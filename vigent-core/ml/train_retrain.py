@@ -21,7 +21,9 @@ def main() -> None:
     ap.add_argument("--imgsz", type=int, default=640)
     ap.add_argument("--batch", type=int, default=8)
     ap.add_argument("--name", default="office_person_v1")
+    ap.add_argument("--data", default=str(DATA), help="data.yaml 경로(기본: merged)")
     args = ap.parse_args()
+    data_yaml = args.data if Path(args.data).is_absolute() else str(ROOT / args.data)
 
     from ultralytics import YOLO
     import torch
@@ -31,7 +33,7 @@ def main() -> None:
 
     model = YOLO(args.base)
     model.train(
-        data=str(DATA),
+        data=data_yaml,
         epochs=args.epochs,
         imgsz=args.imgsz,
         batch=args.batch,
