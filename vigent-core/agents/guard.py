@@ -63,9 +63,10 @@ class GuardAgent(BaseAgent):
     # ── 인식 강화 튜닝(한 곳에서 조정) ──
     DEFAULT_CONF = 0.30      # 임계값(낮을수록 많이 잡음)
     IMGSZ = 960              # 추론 해상도(클수록 작은 객체↑). 워밍업 후 ~250ms/회로 빠름
-    TRACK_TTL = 1.2          # 서버 추적 유지시간(초). 프론트 간격(600ms)보다 길게 → 깜빡임 제거
+    TRACK_TTL = 1.2          # 서버 추적 유지시간(초). 프론트 간격보다 길게 → 깜빡임 제거
     TRACK_IOU = 0.45         # 같은 객체로 볼 겹침 기준
     EMA = 0.5                # 박스 위치 스무딩(0~1, 클수록 새 위치 빨리 반영). 떨림 완화
+    MIN_HITS = 2             # 이 횟수 이상 '연속 확인'된 객체만 표시 → 한 프레임 헛것 제거
 
     def __init__(self, config: Any):
         super().__init__(config)
@@ -104,13 +105,15 @@ class GuardAgent(BaseAgent):
                 best["detector"] = f["detector"]
                 best["raw_label"] = f.get("raw_label", best.get("raw_label"))
                 best["seen"] = now
+                best["hits"] = best.get("hits", 1) + 1   # 연속 확인 횟수 증가
             else:
-                f = dict(f); f["seen"] = now
+                f = dict(f); f["seen"] = now; f["hits"] = 1
                 self._tracks.append(f)
         # TTL 만료 제거(유령 박스 방지)
         self._tracks = [t for t in self._tracks if now - t["seen"] <= self.TRACK_TTL]
-        # 반환은 seen 등 내부필드 빼고 깔끔하게
-        return [{k: v for k, v in t.items() if k != "seen"} for t in self._tracks]
+        # MIN_HITS 이상 '확인된' 트랙만 표시(한 프레임 헛것 제거). 내부필드(seen·hits)는 빼고 반환
+        return [{k: v for k, v in t.items() if k not in ("seen", "hits")}
+                for t in self._tracks if t["hits"] >= self.MIN_HITS]
 
     def _get_model(self, slot: str):
         """슬롯 모델을 1회 로드해 캐시. 실패하면 None(해당 검출기만 비활성)."""
