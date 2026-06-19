@@ -147,11 +147,11 @@
 //   1차 조정값:        DETECT_INTERVAL_MS=600,  JPEG_QUALITY=0.8, DETECT_CONF=0.28
 // ─────────────────────────────────────────────────────────────
 const DETECT_TUNING = {
-  DETECT_INTERVAL_MS: 600,   // /detect/frame 호출 주기(ms). 작을수록 자주(부드럽지만 CPU↑)
+  DETECT_INTERVAL_MS: 400,   // /detect/frame 호출 주기(ms). 더 자주 호출 → 갱신 부드러움
   JPEG_QUALITY: 0.8,         // 백엔드로 보내는 프레임 화질(0~1). 클수록 또렷(전송량↑)
   DETECT_CONF: 0.28,         // confidence 임계값. 낮을수록 많이 잡음(오탐↑)
-  BOX_TTL_MS: 500,           // 박스 유지 시간(ms). 잠깐 안 잡혀도 이 시간동안 유지(깜빡임↓).
-                             //   크면 부드럽지만 '유령 박스'·지연↑ / 작으면 깜빡임↑. (추천 0.3~0.6초)
+  BOX_TTL_MS: 1200,          // 박스 유지 시간(ms). 호출주기(400)보다 충분히 길게 → 깜빡임 제거.
+                             //   잠깐 못 잡아도 1.2초 유지. 너무 크면 잔상↑ (추천 1.0~1.4초)
   BOX_MATCH_IOU: 0.4,        // 직전 박스와 같은 객체로 볼 겹침 기준(IoU). 높을수록 엄격
 };
 
@@ -198,14 +198,24 @@ function liveBoxes(){
 let frameN=0, lastT=performance.now(), fps=0, lastJudge=0, lastLevel='safe';
 
 // 라벨별 박스 색
+// COCO 사물을 카테고리별 선명한 색으로 구분
+const COLOR_CATS = {
+  vehicle:     {c:'#ff8c1a', set:['bicycle','car','motorcycle','airplane','bus','train','truck','boat','forklift','excavator','machinery','wheel loader','vehicle']},
+  furniture:   {c:'#b78bff', set:['chair','couch','potted plant','bed','dining table','toilet','bench']},
+  electronics: {c:'#3ad6ff', set:['tv','laptop','mouse','remote','keyboard','cell phone']},
+  kitchen:     {c:'#ffd23a', set:['bottle','wine glass','cup','fork','knife','spoon','bowl']},
+  animal:      {c:'#ff6fb5', set:['bird','cat','dog','horse','sheep','cow','elephant','bear','zebra','giraffe']},
+};
 function boxColor(label){
   const L=label.toLowerCase();
-  if(label==='NO-Hardhat'||label==='NO-Safety-Vest'||label==='NO-Mask') return '#ff3b3b'; // 미착용=빨강
-  if(label==='Hardhat'||label==='Safety-Vest'||label==='Mask') return '#39d98a';          // 착용=초록
-  if(L==='fire'||L==='smoke') return '#ff5b2e';                           // 화재·연기=주황빨강
-  if(L==='person') return '#7fd0ff';                                      // 사람=파랑
-  if(L==='forklift'||L==='excavator'||L==='machinery'||L==='wheel loader'||L==='truck'||L==='vehicle') return '#ffb020'; // 차량·중장비=주황
-  return '#cfe9ff';
+  // 안전(PPE/화재) — 건설 모드일 때
+  if(label==='NO-Hardhat'||label==='NO-Safety-Vest'||label==='NO-Mask') return '#ff2d2d'; // 미착용=빨강
+  if(label==='Hardhat'||label==='Safety-Vest'||label==='Mask') return '#2ee06b';          // 착용=초록
+  if(L==='fire'||L==='smoke') return '#ff5b2e';                                           // 화재·연기
+  // 일반 객체
+  if(L==='person') return '#2ee06b';                                       // 사람=초록(가장 눈에 띄게)
+  for(const k in COLOR_CATS){ if(COLOR_CATS[k].set.includes(L)) return COLOR_CATS[k].c; }
+  return '#9aa7ff';                                                        // 그 외=라벤더블루
 }
 
 // 캔버스가 CSS로 좌우반전(scaleX -1)돼 있어 글자가 거울상이 된다.
