@@ -141,6 +141,17 @@
 <!-- §8 기능안전 경계 명시: 본 화면의 비전 판정은 보조·감시 신호이며,
      프레스/전단기 비상정지의 1차 책임은 인증 하드웨어(Type 4 광전자식 방호장치·안전 PLC)에 있다. -->
 <script>
+// ─────────────────────────────────────────────────────────────
+// 탐지 튜닝 설정 (한 곳에서 조정 — 되돌리기 쉽게)
+//   기본값(되돌릴 값): DETECT_INTERVAL_MS=1200, JPEG_QUALITY=0.6, DETECT_CONF=0.35
+//   1차 조정값:        DETECT_INTERVAL_MS=600,  JPEG_QUALITY=0.8, DETECT_CONF=0.28
+// ─────────────────────────────────────────────────────────────
+const DETECT_TUNING = {
+  DETECT_INTERVAL_MS: 600,   // /detect/frame 호출 주기(ms). 작을수록 자주(부드럽지만 CPU↑)
+  JPEG_QUALITY: 0.8,         // 백엔드로 보내는 프레임 화질(0~1). 클수록 또렷(전송량↑)
+  DETECT_CONF: 0.28,         // confidence 임계값. 낮을수록 많이 잡음(오탐↑)
+};
+
 const video=document.getElementById('videoEl'), canvas=document.getElementById('outputCanvas');
 const ctx=canvas.getContext('2d');
 let dangerZone=[];          // 일반 위험구역(침입=high)
@@ -271,11 +282,11 @@ function logEvidence(rule, level, score){
 async function runDetect(){
   if(detecting) return;
   const now=performance.now();
-  if(now-lastDetect < 1200) return;
+  if(now-lastDetect < DETECT_TUNING.DETECT_INTERVAL_MS) return;
   detecting=true; lastDetect=now;
   try{
     const r=await fetch('/detect/frame',{method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({image:captureRaw()})});   // 원본 프레임(오버레이 없이)
+      body:JSON.stringify({image:captureRaw(), conf:DETECT_TUNING.DETECT_CONF})});   // 원본 프레임 + 임계값
     const j=await r.json();
     detBoxes=j.detections||[];
     detSignals=j.signals||{};
@@ -295,7 +306,7 @@ function captureRaw(){
   const tc=t.getContext('2d');
   tc.translate(t.width,0); tc.scale(-1,1);
   tc.drawImage(video,0,0,t.width,t.height);
-  return t.toDataURL('image/jpeg',0.6);
+  return t.toDataURL('image/jpeg', DETECT_TUNING.JPEG_QUALITY);
 }
 
 // 백엔드 객체 박스 그리기(정규화 bbox → 캔버스). 라벨+confidence 표시
