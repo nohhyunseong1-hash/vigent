@@ -11,8 +11,9 @@ display_name: "VIGENT Safety"
 
 perception:                       # ── Guard (감지)
   detectors:
-    # 사람: 주 모델 yolo11s, 폴백 yolov8s (둘 다 weights/ 에 복사됨)
-    - {id: person, model: vigent-core/weights/yolo11s.pt, fallback: vigent-core/weights/yolov8s.pt, classes: [person]}
+    # 범용 객체(COCO 80종): 주 모델 yolo11m(더 정확), 폴백 yolo11s → yolov8s
+    #   사람뿐 아니라 의자·노트북·컵·TV 등 일상 사물 전반을 잡는 주력 범용 검출기.
+    - {id: person, model: vigent-core/weights/yolo11m.pt, fallback: vigent-core/weights/yolo11s.pt, classes: [person]}
     # PPE: 25클래스 주력 모델. 안전모·조끼·마스크 착용/미착용 직접 감지 + 차량·중장비.
     #   라벨은 공백형으로 출력(Safety Vest 등) → guard.py 가 표준형(Safety-Vest)으로 정규화.
     - {id: ppe, model: vigent-core/weights/ppe_construction_v30.pt, fallback: heuristic,
