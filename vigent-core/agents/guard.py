@@ -136,7 +136,10 @@ class GuardAgent(BaseAgent):
         detectors: 돌릴 검출기 id 목록(기본 person·ppe·forklift; fire 는 명시 시)
         """
         conf = self.DEFAULT_CONF if conf is None else conf
-        want = detectors or ["person", "ppe", "forklift", "fire_smoke"]
+        # 기본은 '범용' 검출기(person=yolo11s, COCO 80종)만 — 어디서든 일상 사물 정확 인식.
+        # 건설 전용(ppe·forklift·fire_smoke)은 사무실/실내에서 오탐을 일으키므로 기본 off.
+        #   → 건설현장에서 쓸 때만 detectors=["person","ppe","forklift","fire_smoke"] 로 명시 호출.
+        want = detectors or ["person"]
         h, w = image_bgr.shape[:2]
         detections: list[dict[str, Any]] = []
         used: list[str] = []
