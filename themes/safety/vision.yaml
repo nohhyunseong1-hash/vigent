@@ -1,0 +1,52 @@
+# ─────────────────────────────────────────────────────────────
+# VIGENT Safety 테마 선언 (메타 프롬프트 §5 기준)
+#
+# 이 파일 하나로 코어가 전체 파이프라인을 구성한다.
+# 모델 경로는 1단계에서 복사한 실제 파일(vigent-core/weights/) 기준이며,
+# 파일이 없으면 vision_loader 가 자동으로 fallback 으로 내려간다(절대 저하 없음).
+# ─────────────────────────────────────────────────────────────
+theme: safety
+brand: VIGENT
+display_name: "VIGENT Safety"
+
+perception:                       # ── Guard (감지)
+  detectors:
+    # 사람: 주 모델 yolo11s, 폴백 yolov8s (둘 다 weights/ 에 복사됨)
+    - {id: person, model: vigent-core/weights/yolo11s.pt, fallback: vigent-core/weights/yolov8s.pt, classes: [person]}
+    # PPE: 25클래스, 미착용 직접 감지. 폴백은 휴리스틱(색/위치 규칙)
+    - {id: ppe, model: vigent-core/weights/ppe_construction_v30.pt, fallback: heuristic,
+       classes: [Hardhat, NO-Hardhat, Safety-Vest, NO-Safety-Vest]}
+    # 화재/연기: 폴백은 HSV 색공간 휴리스틱
+    - {id: fire_smoke, model: vigent-core/weights/fire_detector.pt, fallback: hsv_heuristic}
+    # 지게차/중장비: 폴백 없음(모델 없으면 해당 기능만 비활성, 나머지는 정상)
+    - {id: forklift, model: vigent-core/weights/forklift_boda_ax.pt, fallback: none}
+  pose:    {model: rtmpose, fallback: [mediapipe_holistic, vigent-core/weights/yolov8n-pose.pt]}
+  tracker: bytetrack
+  temporal: {model: mmaction2_fall, fallback: torso_angle_rule}
+
+judgment:                         # ── Analyst (판단), 가산식
+  zones:
+    danger_zones: config/danger_zone.json   # 1단계 복사본(정규화 폴리곤)
+    intrusion: ray_casting
+  rules:
+    - {id: zone_intrusion, when: "person.center in danger_zone", severity: high}
+    - {id: ppe_missing,    when: "NO-Hardhat or NO-Safety-Vest",  severity: medium}
+    - {id: fall_suspected, when: "temporal.fall or torso_angle>60 for 1.5s", severity: high}
+    - {id: guard_bypass,   when: "hand in machine_hazard_zone",    severity: critical}  # 프레스/전단기
+  score: additive
+
+report:                           # ── Scribe (보고서)
+  templates: [risk_assessment_kr, incident_evidence]
+  output: [pdf, web]
+
+evidence:                         # ── Copilot (논문/근거 써치)
+  corpus: [산업안전보건법, 산업안전보건기준에관한규칙, KOSHA_Guide]
+  retrieval: rag
+  cite: true
+
+dispatch:                         # ── Dispatcher (피드백·연동)
+  channels: [telegram, webhook]
+  on_severity:
+    critical: [alarm, manager_call, safety_relay_signal]   # ⚠ §8 기능안전 경계: 보조 신호만
+    high:     [alarm, manager_call]
+    medium:   [log]
