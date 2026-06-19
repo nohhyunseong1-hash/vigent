@@ -64,6 +64,15 @@
   #startBtn{ position:absolute; z-index:7; left:50%; top:55%; transform:translate(-50%,-50%);
         padding:14px 30px; font-size:15px; background:#0c2236; color:#bfe0ff;
         border:1px solid var(--dim); border-radius:8px; cursor:pointer; }
+  /* 위험구역 설정 도구 */
+  #zoneTools{ bottom:14px; right:14px; width:196px; }
+  #zoneTools button{ display:block; width:100%; margin-top:6px; padding:8px;
+        font-size:12px; background:#0c2236; color:#bfe0ff;
+        border:1px solid var(--dim); border-radius:6px; cursor:pointer; }
+  #zoneTools button#zoneDraw.on{ background:var(--warn); color:#1a1206; border-color:var(--warn); }
+  #zoneHint{ font-size:11px; color:var(--dim); line-height:1.5; }
+  /* 그리기 모드일 때 영상 위 커서를 십자로 */
+  #stage.drawing #outputCanvas{ cursor:crosshair; }
 </style>
 </head>
 <body>
@@ -103,6 +112,15 @@
     <div id="logBody"></div>
   </div>
 
+  <div id="zoneTools" class="panel">
+    <h2>위험구역 설정</h2>
+    <div id="zoneHint">‘그리기’를 켜고 영상에<br>꼭짓점을 차례로 클릭 →<br>‘저장’</div>
+    <button id="zoneDraw">✏️ 그리기 시작</button>
+    <button id="zoneUndo">↶ 한 점 취소</button>
+    <button id="zoneSave">✓ 저장</button>
+    <button id="zoneClear">🗑 구역 지우기</button>
+  </div>
+
   <div id="banner">⚠ DANGER</div>
   <div id="noSignal">NO SIGNAL</div>
   <button id="startBtn">▶ 카메라 시작</button>
@@ -113,7 +131,9 @@
 <script>
 const video=document.getElementById('videoEl'), canvas=document.getElementById('outputCanvas');
 const ctx=canvas.getContext('2d');
-let dangerZone=[];          // 위험구역 폴리곤(정규화 좌표)
+let dangerZone=[];          // 저장된 위험구역 폴리곤(정규화 좌표)
+let draftZone=[];           // 그리는 중인 임시 폴리곤
+let drawMode=false;         // 그리기 모드 on/off
 let frameN=0, lastT=performance.now(), fps=0, lastJudge=0, lastLevel='safe';
 
 const $=id=>document.getElementById(id);
@@ -162,6 +182,21 @@ function drawZone(intrusion){
   ctx.fillStyle = intrusion ? 'rgba(255,59,59,.28)' : 'rgba(255,176,32,.12)';
   ctx.strokeStyle = intrusion ? '#ff3b3b' : '#ffb020';
   ctx.lineWidth=2; ctx.fill(); ctx.stroke();
+  ctx.restore();
+}
+
+// 그리는 중인 임시 폴리곤(점 + 선) 미리보기
+function drawDraft(){
+  if(!draftZone.length) return;
+  ctx.save();
+  ctx.beginPath();
+  draftZone.forEach(([x,y],i)=>{ const px=x*canvas.width, py=y*canvas.height;
+    i?ctx.lineTo(px,py):ctx.moveTo(px,py); });
+  ctx.strokeStyle='#39d98a'; ctx.lineWidth=2; ctx.setLineDash([8,5]); ctx.stroke();
+  ctx.setLineDash([]);
+  draftZone.forEach(([x,y],i)=>{ const px=x*canvas.width, py=y*canvas.height;
+    ctx.beginPath(); ctx.arc(px,py,5,0,7); ctx.fillStyle='#39d98a'; ctx.fill();
+    ctx.fillStyle='#05070a'; ctx.font='10px monospace'; ctx.fillText(i+1, px-3, py+3); });
   ctx.restore();
 }
 
@@ -233,12 +268,66 @@ pose.onResults(async (res)=>{
   }
 
   drawZone(intrusion);
+  drawDraft();
+
+  // 그리기 모드 중엔 판단 호출을 멈춘다(구역 설정에 집중)
+  if(drawMode) return;
 
   // 판단(과도호출 방지: ~300ms 간격)
   if(now-lastJudge>300){ lastJudge=now;
     const j=await judge(signals);
     if(j) applyRisk(j);
     log(`frame=${$('sFrame').textContent} worker=${lm?1:0} zone=${intrusion?'IN':'OUT'} torso=${signals.torso_angle.toFixed(0)}`);
+  }
+});
+
+// ── 위험구역 직접 설정 ──
+const stage=document.getElementById('stage');
+
+// 화면 클릭 좌표 → 이미지 정규화 좌표(영상이 좌우반전이라 x 를 뒤집는다)
+function screenToImage(ev){
+  const r=canvas.getBoundingClientRect();
+  let fx=(ev.clientX-r.left)/r.width, fy=(ev.clientY-r.top)/r.height;
+  fx=1-fx;  // mirror 보정
+  return [Math.min(1,Math.max(0,fx)), Math.min(1,Math.max(0,fy))];
+}
+
+canvas.addEventListener('click',(ev)=>{
+  if(!drawMode) return;
+  draftZone.push(screenToImage(ev));
+  $('zoneHint').textContent=`점 ${draftZone.length}개 — 3개 이상이면 저장 가능`;
+});
+
+$('zoneDraw').addEventListener('click',()=>{
+  drawMode=!drawMode;
+  $('zoneDraw').classList.toggle('on',drawMode);
+  $('zoneDraw').textContent = drawMode ? '■ 그리기 중…' : '✏️ 그리기 시작';
+  stage.classList.toggle('drawing',drawMode);
+  if(drawMode){ draftZone=[]; $('zoneHint').textContent='영상에 꼭짓점을 클릭하세요'; log('zone 그리기 시작'); }
+});
+
+$('zoneUndo').addEventListener('click',()=>{
+  draftZone.pop(); $('zoneHint').textContent=`점 ${draftZone.length}개`;
+});
+
+$('zoneClear').addEventListener('click', async ()=>{
+  draftZone=[]; dangerZone=[];
+  await fetch('/zone/danger',{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({points:[]})});
+  $('zoneHint').textContent='구역을 지웠습니다'; log('zone 지움');
+});
+
+$('zoneSave').addEventListener('click', async ()=>{
+  if(draftZone.length<3){ $('zoneHint').textContent='점이 3개 이상이어야 저장됩니다'; return; }
+  const points=draftZone.map(([x,y])=>({x,y}));
+  const r=await fetch('/zone/danger',{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({points})});
+  const j=await r.json();
+  if(j.ok){
+    dangerZone=draftZone.slice(); draftZone=[];
+    drawMode=false; $('zoneDraw').classList.remove('on');
+    $('zoneDraw').textContent='✏️ 그리기 시작'; stage.classList.remove('drawing');
+    $('zoneHint').textContent=`저장 완료 (${j.count}점)`; log(`zone 저장 ${j.count}점`);
   }
 });
 

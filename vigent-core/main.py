@@ -108,6 +108,33 @@ def zone_danger(theme: str = DEFAULT_THEME):
         return json.load(f)
 
 
+@app.post("/zone/danger")
+def set_zone_danger(payload: dict = Body(...), theme: str = DEFAULT_THEME):
+    """사용자가 화면에서 그린 위험구역 폴리곤(정규화 좌표 0~1)을 저장.
+    payload = {"points": [{"x":..,"y":..}, ...]}"""
+    bundle = STATE.get(theme) or _load_theme(theme)
+    cfg = bundle["config"]
+    zone_path = (cfg.raw.get("judgment", {}) or {}).get("zones", {}).get("danger_zones")
+    if not zone_path:
+        raise HTTPException(status_code=400, detail="vision.yaml 에 danger_zones 경로가 없음")
+
+    pts_in = payload.get("points", []) or []
+    # 검증: 0~1 범위의 {x,y} 만 통과
+    points = []
+    for pt in pts_in:
+        try:
+            x, y = float(pt["x"]), float(pt["y"])
+        except (KeyError, TypeError, ValueError):
+            raise HTTPException(status_code=400, detail="points 형식 오류({x,y} 필요)")
+        points.append({"x": max(0.0, min(1.0, x)), "y": max(0.0, min(1.0, y))})
+
+    p = _ROOT / zone_path
+    p.parent.mkdir(parents=True, exist_ok=True)
+    with open(p, "w", encoding="utf-8") as f:
+        json.dump({"points": points}, f, ensure_ascii=False)
+    return {"ok": True, "count": len(points), "saved_to": str(zone_path)}
+
+
 @app.post("/safety/judge")
 def safety_judge(payload: dict = Body(...), theme: str = DEFAULT_THEME):
     """Analyst 가산식 판단. 프론트가 관측 신호(signals)와 (선택)딥러닝 신호(dl)를 보낸다.
