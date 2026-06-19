@@ -91,5 +91,21 @@ class DispatcherAgent(BaseAgent):
         return {"level": level, "actions": actions, "results": results,
                 "delivered": any_remote, "fallback": not any_remote}
 
+    def relay(self, event: str = "guard_bypass", meta: dict[str, Any] | None = None) -> dict[str, Any]:
+        """프레스/전단기 §8 '보조 방호신호'. 인증 안전회로(Type 4 광전자식 방호장치·안전 PLC)에
+        **추가 신호만** 제공한다. 비전이 1차 비상정지를 대체/구현하지 않는다(§8.1).
+
+        실제 릴레이 출력(GPIO/PLC)은 현장 인증 하드웨어 연동 시 이 지점에서 후킹한다.
+        지금은 보조 신호를 기록·통보하고, 동시에 관리자 경보(critical)를 발송한다."""
+        alert = self.dispatch("critical", f"{event}: 프레스/전단기 위험구역 신체 진입 감지", meta)
+        return {
+            "relay": "auxiliary_signal",          # 보조 신호(1차 방호 아님)
+            "event": event,
+            "is_primary_safety": False,           # ⚠ 명시: 1차 안전기능 아님
+            "boundary": "§8.1 — 비전은 보조·감시 계층. 1차 정지는 인증 하드웨어(Type 4 PSD·안전 PLC) 책임.",
+            "delivered": alert["delivered"],
+            "alert": alert,
+        }
+
     def run(self, level: str = "medium", message: str = "", **kw) -> dict[str, Any]:
         return self.dispatch(level, message, kw.get("meta"))

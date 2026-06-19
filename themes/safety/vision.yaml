@@ -26,7 +26,8 @@ perception:                       # ── Guard (감지)
 
 judgment:                         # ── Analyst (판단), 가산식
   zones:
-    danger_zones: config/danger_zone.json   # 1단계 복사본(정규화 폴리곤)
+    danger_zones: config/danger_zone.json          # 일반 위험구역(침입=high)
+    machine_hazard_zones: config/machine_zone.json # 프레스/전단기 방호구역(손 진입=critical, §8)
     intrusion: ray_casting
   rules:
     - {id: zone_intrusion, when: "person.center in danger_zone", severity: high}

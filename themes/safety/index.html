@@ -73,6 +73,11 @@
   #zoneHint{ font-size:11px; color:var(--dim); line-height:1.5; }
   /* 그리기 모드일 때 영상 위 커서를 십자로 */
   #stage.drawing #outputCanvas{ cursor:crosshair; }
+  /* §8 기능안전 경계 상시 고지 */
+  #safetyNote{ position:absolute; z-index:4; bottom:148px; left:14px; max-width:58%;
+        font-size:10px; color:#86a5bd; background:rgba(5,10,16,.5); border-left:2px solid var(--warn);
+        padding:5px 9px; border-radius:4px; line-height:1.5; }
+  #safetyNote b{ color:var(--warn); }
 </style>
 </head>
 <body>
@@ -96,6 +101,7 @@
     <div class="row"><span>자세(몸통각)</span><b id="sPose">--</b></div>
     <div class="row"><span>PPE</span><b id="sPpe" class="tag-warn">폴백</b></div>
     <div class="row"><span>위험구역(ZONE)</span><b id="sZone">OUT</b></div>
+    <div class="row"><span>기계방호(MACHINE)</span><b id="sMachine" class="tag-ok">정상</b></div>
     <div id="riskBox"><div id="riskLevel">SAFE</div>
       <div id="bar"><div id="barFill"></div></div>
       <div id="riskMode" style="font-size:10px;color:var(--dim);margin-top:4px;">규칙 폴백</div>
@@ -113,13 +119,17 @@
   </div>
 
   <div id="zoneTools" class="panel">
-    <h2>위험구역 설정</h2>
-    <div id="zoneHint">‘그리기’를 켜고 영상에<br>꼭짓점을 차례로 클릭 →<br>‘저장’</div>
+    <h2>구역 설정</h2>
+    <button id="zoneTargetBtn">🎯 대상: 위험구역</button>
+    <div id="zoneHint">대상 선택 → ‘그리기’ → 영상에<br>꼭짓점 클릭 → ‘저장’</div>
     <button id="zoneDraw">✏️ 그리기 시작</button>
     <button id="zoneUndo">↶ 한 점 취소</button>
     <button id="zoneSave">✓ 저장</button>
     <button id="zoneClear">🗑 구역 지우기</button>
   </div>
+
+  <div id="safetyNote">§8 비전 판정은 <b>보조·감시 신호</b>입니다. 프레스·전단기 비상정지의 1차 책임은
+    인증 하드웨어(Type 4 광전자식 방호장치·안전 PLC)에 있으며, 본 시스템은 이를 대체하지 않습니다.</div>
 
   <div id="banner">⚠ DANGER</div>
   <div id="noSignal">NO SIGNAL</div>
@@ -131,9 +141,12 @@
 <script>
 const video=document.getElementById('videoEl'), canvas=document.getElementById('outputCanvas');
 const ctx=canvas.getContext('2d');
-let dangerZone=[];          // 저장된 위험구역 폴리곤(정규화 좌표)
+let dangerZone=[];          // 일반 위험구역(침입=high)
+let machineZone=[];         // 프레스/전단기 방호구역(손 진입=critical, §8)
 let draftZone=[];           // 그리는 중인 임시 폴리곤
 let drawMode=false;         // 그리기 모드 on/off
+let zoneTarget='danger';    // 지금 그리는 대상: 'danger' | 'machine'
+let lastRelay=0;            // 보조 방호신호 과다호출 방지
 let frameN=0, lastT=performance.now(), fps=0, lastJudge=0, lastLevel='safe';
 
 const $=id=>document.getElementById(id);
@@ -144,11 +157,13 @@ function log(msg){ const b=$('logBody');
 // 시계
 setInterval(()=>{ $('clock').textContent=new Date().toLocaleTimeString('en-GB'); },1000);
 
-// 위험구역 좌표 로드(코어 엔드포인트)
+// 위험구역 좌표 로드(일반 + 기계 방호구역)
 async function loadZone(){
-  try{ const r=await fetch('/zone/danger'); const j=await r.json();
-       dangerZone=(j.points||[]).map(p=>[p.x,p.y]);
-       log(`zone loaded points=${dangerZone.length}`);
+  try{ const d=await (await fetch('/zone/danger')).json();
+       dangerZone=(d.points||[]).map(p=>[p.x,p.y]);
+       const m=await (await fetch('/zone/machine')).json();
+       machineZone=(m.points||[]).map(p=>[p.x,p.y]);
+       log(`zone loaded danger=${dangerZone.length} machine=${machineZone.length}`);
   }catch(e){ log('zone load 실패 → 빈 구역'); }
 }
 
@@ -172,16 +187,30 @@ function torsoAngle(lm){
   return Math.abs(Math.atan2(dx, -dy))*180/Math.PI;  // 수직(위)과의 각
 }
 
-function drawZone(intrusion){
-  if(dangerZone.length<3) return;
+function _poly(zone){ ctx.beginPath();
+  zone.forEach(([x,y],i)=>{ const px=x*canvas.width, py=y*canvas.height;
+    i?ctx.lineTo(px,py):ctx.moveTo(px,py); }); ctx.closePath(); }
+
+function drawZone(intrusion, handIn){
   ctx.save();
-  ctx.beginPath();
-  dangerZone.forEach(([x,y],i)=>{ const px=x*canvas.width, py=y*canvas.height;
-    i?ctx.lineTo(px,py):ctx.moveTo(px,py); });
-  ctx.closePath();
-  ctx.fillStyle = intrusion ? 'rgba(255,59,59,.28)' : 'rgba(255,176,32,.12)';
-  ctx.strokeStyle = intrusion ? '#ff3b3b' : '#ffb020';
-  ctx.lineWidth=2; ctx.fill(); ctx.stroke();
+  // 일반 위험구역(주황 / 침입 시 빨강)
+  if(dangerZone.length>=3){
+    _poly(dangerZone);
+    ctx.fillStyle = intrusion ? 'rgba(255,59,59,.28)' : 'rgba(255,176,32,.12)';
+    ctx.strokeStyle = intrusion ? '#ff3b3b' : '#ffb020';
+    ctx.lineWidth=2; ctx.fill(); ctx.stroke();
+  }
+  // 기계 방호구역(빨강, 손 진입 시 강조) — 프레스/전단기 §8
+  if(machineZone.length>=3){
+    _poly(machineZone);
+    ctx.fillStyle = handIn ? 'rgba(255,40,40,.40)' : 'rgba(255,59,59,.16)';
+    ctx.strokeStyle = '#ff3b3b'; ctx.lineWidth = handIn ? 3 : 2;
+    ctx.setLineDash([6,4]); ctx.fill(); ctx.stroke(); ctx.setLineDash([]);
+    // 라벨
+    const [lx,ly]=machineZone[0];
+    ctx.fillStyle='#ff3b3b'; ctx.font='bold 12px monospace';
+    ctx.fillText('⚙ MACHINE GUARD', lx*canvas.width, ly*canvas.height-6);
+  }
   ctx.restore();
 }
 
@@ -219,6 +248,7 @@ function applyRisk(j){
   $('barFill').style.width=Math.min(100,score)+'%';
   $('barFill').style.background = (lv==='high'||lv==='critical')?'var(--danger)':(lv==='medium'?'var(--warn)':'var(--ok)');
   $('riskMode').textContent = (j&&j.used_dl)?'규칙+딥러닝 가산':'규칙 폴백(딥러닝 미가산)';
+  $('banner').textContent = (lv==='critical')?'⚠ GUARD BYPASS':'⚠ DANGER';
   $('banner').style.display = (lv==='high'||lv==='critical')?'block':'none';
   // DETECTIONS 패널
   const fired=(j&&j.fired)||[];
@@ -226,6 +256,16 @@ function applyRisk(j){
     ? fired.map(f=>`<div class="row"><span>${f.rule}</span><b class="${f.severity==='medium'?'tag-warn':'tag-danger'}">${f.severity}</b></div>`).join('')
     : '<div class="row"><span>위반 없음</span><b class="tag-ok">CLEAR</b></div>';
   if(lv!==lastLevel){ log(`alert=${lv} score=${score}`); lastLevel=lv; }
+
+  // guard_bypass(critical) → §8 보조 방호신호 발송(과다호출 방지: 3초 간격)
+  const isBypass = fired.some(f=>f.rule==='guard_bypass');
+  if(isBypass && performance.now()-lastRelay>3000){
+    lastRelay=performance.now();
+    fetch('/dispatch/relay',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({event:'guard_bypass'})})
+      .then(r=>r.json()).then(d=>log(`relay 보조신호 발송(delivered=${d.delivered}) §8 보조계층`))
+      .catch(()=>log('relay 발송 실패(폴백)'));
+  }
 }
 
 // MediaPipe Pose
@@ -243,7 +283,7 @@ pose.onResults(async (res)=>{
 
   const lm=res.poseLandmarks;
   let signals={zone_intrusion:false, ppe_missing:false, torso_angle:0, fall_temporal:false, hand_in_machine_zone:false};
-  let intrusion=false;
+  let intrusion=false, handIn=false;
 
   if(lm){
     $('sWorker').textContent='1';
@@ -257,17 +297,23 @@ pose.onResults(async (res)=>{
     const foot={x:(lm[27].x+lm[28].x)/2, y:(lm[27].y+lm[28].y)/2};  // 발 중점
     intrusion=inPolygon(foot.x, foot.y, dangerZone);
     const ang=torsoAngle(lm);
+    // 손목(15 왼손, 16 오른손)이 기계 방호구역에 진입했는지 → guard_bypass(critical)
+    handIn = inPolygon(lm[15].x, lm[15].y, machineZone) || inPolygon(lm[16].x, lm[16].y, machineZone);
     signals.zone_intrusion=intrusion;
     signals.torso_angle=ang;
+    signals.hand_in_machine_zone=handIn;
     $('sPose').textContent=ang.toFixed(0)+'°';
     $('sPose').className = ang>60?'tag-danger':'';
     $('sZone').textContent = intrusion?'IN':'OUT';
     $('sZone').className = intrusion?'tag-danger':'tag-ok';
+    $('sMachine').textContent = handIn?'손 진입!':'정상';
+    $('sMachine').className = handIn?'tag-danger':'tag-ok';
   } else {
     $('sWorker').textContent='0'; $('sPose').textContent='--'; $('sZone').textContent='OUT';
+    $('sMachine').textContent='정상'; $('sMachine').className='tag-ok';
   }
 
-  drawZone(intrusion);
+  drawZone(intrusion, handIn);
   drawDraft();
 
   // 그리기 모드 중엔 판단 호출을 멈춘다(구역 설정에 집중)
@@ -306,28 +352,39 @@ $('zoneDraw').addEventListener('click',()=>{
   if(drawMode){ draftZone=[]; $('zoneHint').textContent='영상에 꼭짓점을 클릭하세요'; log('zone 그리기 시작'); }
 });
 
+// 그리기 대상 전환(위험구역 ↔ 기계 방호구역)
+function zoneEndpoint(){ return zoneTarget==='machine' ? '/zone/machine' : '/zone/danger'; }
+$('zoneTargetBtn').addEventListener('click',()=>{
+  zoneTarget = (zoneTarget==='danger') ? 'machine' : 'danger';
+  $('zoneTargetBtn').textContent = zoneTarget==='machine' ? '🎯 대상: 기계방호(§8)' : '🎯 대상: 위험구역';
+  draftZone=[]; $('zoneHint').textContent = zoneTarget==='machine'
+    ? '프레스/전단기 방호구역(손 진입=critical)' : '일반 위험구역(침입=high)';
+});
+
 $('zoneUndo').addEventListener('click',()=>{
   draftZone.pop(); $('zoneHint').textContent=`점 ${draftZone.length}개`;
 });
 
 $('zoneClear').addEventListener('click', async ()=>{
-  draftZone=[]; dangerZone=[];
-  await fetch('/zone/danger',{method:'POST',headers:{'Content-Type':'application/json'},
+  draftZone=[];
+  if(zoneTarget==='machine') machineZone=[]; else dangerZone=[];
+  await fetch(zoneEndpoint(),{method:'POST',headers:{'Content-Type':'application/json'},
     body:JSON.stringify({points:[]})});
-  $('zoneHint').textContent='구역을 지웠습니다'; log('zone 지움');
+  $('zoneHint').textContent=`${zoneTarget==='machine'?'기계방호':'위험'}구역을 지웠습니다`; log(`${zoneTarget} zone 지움`);
 });
 
 $('zoneSave').addEventListener('click', async ()=>{
   if(draftZone.length<3){ $('zoneHint').textContent='점이 3개 이상이어야 저장됩니다'; return; }
   const points=draftZone.map(([x,y])=>({x,y}));
-  const r=await fetch('/zone/danger',{method:'POST',headers:{'Content-Type':'application/json'},
+  const r=await fetch(zoneEndpoint(),{method:'POST',headers:{'Content-Type':'application/json'},
     body:JSON.stringify({points})});
   const j=await r.json();
   if(j.ok){
-    dangerZone=draftZone.slice(); draftZone=[];
-    drawMode=false; $('zoneDraw').classList.remove('on');
+    if(zoneTarget==='machine') machineZone=draftZone.slice(); else dangerZone=draftZone.slice();
+    draftZone=[]; drawMode=false; $('zoneDraw').classList.remove('on');
     $('zoneDraw').textContent='✏️ 그리기 시작'; stage.classList.remove('drawing');
-    $('zoneHint').textContent=`저장 완료 (${j.count}점)`; log(`zone 저장 ${j.count}점`);
+    $('zoneHint').textContent=`${zoneTarget==='machine'?'기계방호':'위험'}구역 저장 (${j.count}점)`;
+    log(`${zoneTarget} zone 저장 ${j.count}점`);
   }
 });
 

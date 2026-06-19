@@ -100,12 +100,14 @@ def capabilities(theme: str = DEFAULT_THEME):
     })
 
 
-@app.get("/zone/danger")
-def zone_danger(theme: str = DEFAULT_THEME):
-    """테마 vision.yaml 이 가리키는 위험구역 폴리곤(정규화 좌표)을 반환."""
+# vision.yaml judgment.zones 의 키 → 실제 파일 경로
+def _zone_cfg_path(theme: str, key: str) -> str | None:
     bundle = STATE.get(theme) or _load_theme(theme)
-    cfg = bundle["config"]
-    zone_path = (cfg.raw.get("judgment", {}) or {}).get("zones", {}).get("danger_zones")
+    return (bundle["config"].raw.get("judgment", {}) or {}).get("zones", {}).get(key)
+
+
+def _zone_get(theme: str, key: str) -> dict:
+    zone_path = _zone_cfg_path(theme, key)
     if not zone_path:
         return {"points": []}
     p = _ROOT / zone_path
@@ -115,31 +117,55 @@ def zone_danger(theme: str = DEFAULT_THEME):
         return json.load(f)
 
 
-@app.post("/zone/danger")
-def set_zone_danger(payload: dict = Body(...), theme: str = DEFAULT_THEME):
-    """사용자가 화면에서 그린 위험구역 폴리곤(정규화 좌표 0~1)을 저장.
-    payload = {"points": [{"x":..,"y":..}, ...]}"""
-    bundle = STATE.get(theme) or _load_theme(theme)
-    cfg = bundle["config"]
-    zone_path = (cfg.raw.get("judgment", {}) or {}).get("zones", {}).get("danger_zones")
+def _zone_set(theme: str, key: str, payload: dict) -> dict:
+    zone_path = _zone_cfg_path(theme, key)
     if not zone_path:
-        raise HTTPException(status_code=400, detail="vision.yaml 에 danger_zones 경로가 없음")
-
-    pts_in = payload.get("points", []) or []
-    # 검증: 0~1 범위의 {x,y} 만 통과
+        raise HTTPException(status_code=400, detail=f"vision.yaml 에 {key} 경로가 없음")
     points = []
-    for pt in pts_in:
+    for pt in payload.get("points", []) or []:
         try:
             x, y = float(pt["x"]), float(pt["y"])
         except (KeyError, TypeError, ValueError):
             raise HTTPException(status_code=400, detail="points 형식 오류({x,y} 필요)")
         points.append({"x": max(0.0, min(1.0, x)), "y": max(0.0, min(1.0, y))})
-
     p = _ROOT / zone_path
     p.parent.mkdir(parents=True, exist_ok=True)
     with open(p, "w", encoding="utf-8") as f:
         json.dump({"points": points}, f, ensure_ascii=False)
     return {"ok": True, "count": len(points), "saved_to": str(zone_path)}
+
+
+@app.get("/zone/danger")
+def zone_danger(theme: str = DEFAULT_THEME):
+    """일반 위험구역 폴리곤(정규화 좌표) 반환."""
+    return _zone_get(theme, "danger_zones")
+
+
+@app.post("/zone/danger")
+def set_zone_danger(payload: dict = Body(...), theme: str = DEFAULT_THEME):
+    """일반 위험구역 폴리곤 저장. payload={"points":[{"x":..,"y":..}, ...]}"""
+    return _zone_set(theme, "danger_zones", payload)
+
+
+@app.get("/zone/machine")
+def zone_machine(theme: str = DEFAULT_THEME):
+    """프레스/전단기 방호구역 폴리곤(정규화 좌표) 반환(§8)."""
+    return _zone_get(theme, "machine_hazard_zones")
+
+
+@app.post("/zone/machine")
+def set_zone_machine(payload: dict = Body(...), theme: str = DEFAULT_THEME):
+    """프레스/전단기 방호구역 폴리곤 저장(손 진입 시 guard_bypass=critical)."""
+    return _zone_set(theme, "machine_hazard_zones", payload)
+
+
+@app.post("/dispatch/relay")
+def dispatch_relay(payload: dict = Body(default={}), theme: str = DEFAULT_THEME):
+    """§8 보조 방호신호. guard_bypass(critical) 발생 시 프론트가 호출.
+    ⚠ 비전은 보조·감시 계층이며 1차 비상정지를 대체하지 않는다."""
+    bundle = STATE.get(theme) or _load_theme(theme)
+    dispatcher = bundle["agents"].get("Dispatcher")
+    return dispatcher.relay(payload.get("event", "guard_bypass"), payload.get("meta"))
 
 
 @app.post("/safety/judge")
