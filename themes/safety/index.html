@@ -150,6 +150,9 @@ const DETECT_TUNING = {
   DETECT_INTERVAL_MS: 600,   // /detect/frame 호출 주기(ms). 작을수록 자주(부드럽지만 CPU↑)
   JPEG_QUALITY: 0.8,         // 백엔드로 보내는 프레임 화질(0~1). 클수록 또렷(전송량↑)
   DETECT_CONF: 0.28,         // confidence 임계값. 낮을수록 많이 잡음(오탐↑)
+  BOX_TTL_MS: 500,           // 박스 유지 시간(ms). 잠깐 안 잡혀도 이 시간동안 유지(깜빡임↓).
+                             //   크면 부드럽지만 '유령 박스'·지연↑ / 작으면 깜빡임↑. (추천 0.3~0.6초)
+  BOX_MATCH_IOU: 0.4,        // 직전 박스와 같은 객체로 볼 겹침 기준(IoU). 높을수록 엄격
 };
 
 const video=document.getElementById('videoEl'), canvas=document.getElementById('outputCanvas');
@@ -162,9 +165,36 @@ let zoneTarget='danger';    // 지금 그리는 대상: 'danger' | 'machine'
 let lastRelay=0;            // 보조 방호신호 과다호출 방지
 let lastEvidence={};        // 규칙별 증거 저장 쿨다운(과다저장 방지)
 const HAZARD_RULES=['zone_intrusion','fall_suspected','ppe_missing','guard_bypass'];
-let detBoxes=[];            // 백엔드 /detect/frame 이 준 객체 박스(정규화 bbox)
+let detBoxes=[];            // 백엔드 /detect/frame 이 준 '이번 프레임' 원시 박스
+let trackedBoxes=[];        // 스무딩용 누적 박스(각 박스에 seen 시각 기록)
 let detSignals={};          // 백엔드 파생 신호(ppe_missing, ppe_conf, forklift_present)
 let lastDetect=0, detecting=false;   // /detect/frame 주기 호출 제어
+
+// 두 정규화 bbox([x1,y1,x2,y2])의 겹침(IoU)
+function boxIoU(a,b){
+  const x1=Math.max(a[0],b[0]), y1=Math.max(a[1],b[1]);
+  const x2=Math.min(a[2],b[2]), y2=Math.min(a[3],b[3]);
+  const iw=Math.max(0,x2-x1), ih=Math.max(0,y2-y1), inter=iw*ih;
+  const ua=(a[2]-a[0])*(a[3]-a[1])+(b[2]-b[0])*(b[3]-b[1])-inter;
+  return ua>0 ? inter/ua : 0;
+}
+
+// 새 탐지 결과를 누적 박스에 병합: 같은 라벨·위치면 갱신(seen 갱신), 새것은 추가
+function mergeDetections(fresh){
+  const now=performance.now();
+  fresh.forEach(d=>{
+    const m=trackedBoxes.find(t=>t.label===d.label && boxIoU(t.bbox,d.bbox)>=DETECT_TUNING.BOX_MATCH_IOU);
+    if(m){ m.bbox=d.bbox; m.conf=d.conf; m.seen=now; }   // 기존 객체 갱신
+    else { trackedBoxes.push({...d, seen:now}); }          // 새 객체 추가
+  });
+}
+
+// 유지시간(TTL) 지난 박스 제거 → 그릴 박스 반환(유령 박스 방지)
+function liveBoxes(){
+  const now=performance.now();
+  trackedBoxes = trackedBoxes.filter(t => now - t.seen <= DETECT_TUNING.BOX_TTL_MS);
+  return trackedBoxes;
+}
 let frameN=0, lastT=performance.now(), fps=0, lastJudge=0, lastLevel='safe';
 
 // 라벨별 박스 색
@@ -300,6 +330,7 @@ async function runDetect(){
       body:JSON.stringify({image:captureRaw(), conf:DETECT_TUNING.DETECT_CONF})});   // 원본 프레임 + 임계값
     const j=await r.json();
     detBoxes=j.detections||[];
+    mergeDetections(detBoxes);          // 누적 박스에 병합(스무딩)
     detSignals=j.signals||{};
     $('sWorker').textContent=j.person_count ?? detBoxes.filter(d=>d.label.toLowerCase()==='person').length;
     // PPE 상태표: 실제 탐지 반영
@@ -320,11 +351,11 @@ function captureRaw(){
   return t.toDataURL('image/jpeg', DETECT_TUNING.JPEG_QUALITY);
 }
 
-// 백엔드 객체 박스 그리기(정규화 bbox → 캔버스). 라벨+confidence 표시
+// 박스 그리기(스무딩 적용된 살아있는 박스). 라벨+confidence 표시
 function drawBoxes(){
   ctx.save();
   ctx.font='12px monospace'; ctx.lineWidth=2; ctx.textBaseline='bottom';
-  detBoxes.forEach(d=>{
+  liveBoxes().forEach(d=>{
     const [x1,y1,x2,y2]=d.bbox;
     const px=x1*canvas.width, py=y1*canvas.height, pw=(x2-x1)*canvas.width, ph=(y2-y1)*canvas.height;
     const col=boxColor(d.label);
