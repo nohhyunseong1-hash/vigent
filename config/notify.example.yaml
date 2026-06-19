@@ -1,0 +1,8 @@
+# 사업주 텔레그램 알림 설정 (이 파일을 notify.yaml 로 복사해 사용)
+telegram:
+  # @BotFather 로 만든 봇 토큰. 환경변수 AX_TELEGRAM_BOT_TOKEN 가 있으면 그게 우선.
+  bot_token: ""
+  default: []                 # 현장 매핑이 없을 때 받을 기본 사업주 chat_id
+  sites:
+    위험구역A: []             # 예: ["123456789"] — 이 현장 사업주 chat_id (여러 명 가능)
+    현장B: []

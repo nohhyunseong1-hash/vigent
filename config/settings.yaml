@@ -1,0 +1,58 @@
+detection:
+  # 정확도 업그레이드: nano -> small (같은 80 COCO 클래스, 정확도 상승).
+  # 로드 실패 시 fallback_models 순서로 자동 폴백하므로 저하되지 않음.
+  model_path: "yolov8s.pt"
+  fallback_models: ["yolov8s.pt", "yolov8n.pt"]
+  imgsz: 640
+  device: "mps"
+  conf: 0.25            # 기존 YOLO 기본값과 동일 (행동 변화 없음)
+  iou: 0.45
+  fusion_ppe: true      # 안전모/조끼 전용 모델을 메인 탐지에 융합
+  ppe_conf: 0.35
+  # PPE 모델: construction-ppe 자체학습(helmet 0.841·vest 0.835·gloves·boots·goggles).
+  # 미착용은 detector가 '사람 있는데 헬멧/조끼 미감지 → 미착용' 추론으로 보완.
+  # runs/ 는 gitignore라 미커밋 → 없는 환경에선 자동 폴백(융합 없음)
+  ppe_model_path: "runs/detect/ppe_construction_ax/weights/best.pt"
+  # (이전 모델 fallback) "runs/detect/runs/train/construction_ppe_v30/weights/best.pt"
+  # 지게차(중장비) 융합 모델 — 자체 학습(Forklift 0.995·Load 0.980). 작업자-지게차 근접/속도용.
+  fusion_forklift: true
+  forklift_model_path: "runs/detect/forklift_boda_ax/weights/best.pt"
+  forklift_conf: 0.4
+  use_posture_ai: true  # 학습된 자세 분류기를 위험판단에 가산(딥러닝 판단). false면 규칙만 사용
+  use_fall_ai: true     # 학습된 낙상 분류기를 위험판단에 가산. false면 규칙만 사용
+  # 화재+연기 탐지 모델: 자체 파인튜닝(Roboflow fire-wrpgm CC BY 4.0, Fire 0.861·smoke 0.896).
+  # 'default' 잡음 클래스는 매핑 제외(fire/smoke만 사용). 없으면 색상 휴리스틱 폴백.
+  # ⚠️ AGPL-3.0(ultralytics) — 상업화 시 Ultralytics 기업 라이선스 검토 필요
+  fire_model_path: "runs/detect/fire_boda_ax/weights/best.pt"
+  # (이전 HF 모델 fallback) "models/fire_smoke_hf.pt"
+  # 정밀(비실시간) 분석 전용 고정확 모델 — /detect/precision 에서 lazy-load
+  precision_model_path: "yolov8m.pt"
+  precision_fallback: ["yolov8m.pt", "yolov8s.pt", "yolov8n.pt"]
+  precision_imgsz: 640
+
+pose:
+  model_path: "yolov8n-pose.pt"
+  imgsz: 640
+  device: "mps"
+  iou_threshold: 0.3
+
+tracker:
+  iou_threshold: 0.35
+  max_age_sec: 2.0
+  predict_dt: 0.5
+  pose_iou_threshold: 0.3
+
+# 기능1+2: 실시간 알림 + 안정화. Slack/웹훅 URL은 환경변수(AX_SLACK_WEBHOOK 등)로 설정
+alerting:
+  persist_frames: 3    # 위험이 N프레임 연속일 때만 확정 알림(오탐 제거)
+  cooldown_sec: 60     # 알림 도배 방지(초)
+
+scene:
+  model_path: "yolov8n-cls.pt"
+  imgsz: 640
+  device: "mps"
+  # 실 인스턴스 세그멘테이션 — /vision/segment 에서 lazy-load (실패 시 박스 근사 폴백)
+  seg_model_path: "yolov8s-seg.pt"
+
+logging:
+  jsonl_dir: "logs"
