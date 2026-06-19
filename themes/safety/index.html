@@ -4,564 +4,243 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>VIGENT Safety — 산업안전 관제 콘솔</title>
-<!-- MediaPipe Pose (브라우저 측 저지연 스켈레톤, §4) -->
-<script src="https://cdn.jsdelivr.net/npm/@mediapipe/pose/pose.js" crossorigin="anonymous"></script>
+
+<!-- TF.js + 모델들 -->
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.14.0/dist/tf.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/coco-ssd@2.2.3/dist/coco-ssd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/mobilenet@2.1.1/dist/mobilenet.min.js"></script>
+<script src="/static/posture-model.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/holistic@0.5.1675471629/holistic.js" crossorigin="anonymous"></script>
 <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
 <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js" crossorigin="anonymous"></script>
-<style>
-  :root{ --bg:#05070a; --fg:#cfe9ff; --dim:#5b7891; --ok:#39d98a; --warn:#ffb020; --danger:#ff3b3b; }
-  *{ box-sizing:border-box; }
-  body{ margin:0; background:var(--bg); color:var(--fg);
-        font-family:"SF Mono","Consolas","Menlo",monospace; overflow:hidden; }
-  #stage{ position:relative; width:100vw; height:100vh; background:#000; }
-  #videoEl, #outputCanvas{ position:absolute; inset:0; width:100%; height:100%;
-        object-fit:cover; transform:scaleX(-1); }  /* 영상·캔버스 동일 mirror */
-  #videoEl{ z-index:1; } #outputCanvas{ z-index:2; }
-  /* CCTV 분위기 — 스캔라인 + 비네팅 */
-  #fx{ position:absolute; inset:0; z-index:3; pointer-events:none;
-       background:
-        repeating-linear-gradient(0deg, rgba(0,0,0,0) 0 2px, rgba(0,0,0,.12) 3px),
-        radial-gradient(ellipse at center, rgba(0,0,0,0) 55%, rgba(0,0,0,.55) 100%); }
-  /* 검은 반투명 상태 패널(blur) */
-  .panel{ position:absolute; z-index:4; background:rgba(5,10,16,.62);
-        border:1px solid rgba(80,130,170,.35); border-radius:8px;
-        backdrop-filter:blur(6px); padding:12px 14px; font-size:12px; line-height:1.7; }
-  #statusPanel{ top:14px; left:14px; width:248px; }
-  #detPanel{ top:14px; right:14px; width:220px; }
-  #logPanel{ left:14px; bottom:14px; width:60%; max-width:680px; height:128px;
-        overflow:hidden; font-size:11px; color:#9fd0ff; }
-  .panel h2{ margin:0 0 8px; font-size:11px; letter-spacing:.18em; color:var(--dim);
-        border-bottom:1px solid rgba(80,130,170,.3); padding-bottom:6px; }
-  .row{ display:flex; justify-content:space-between; gap:8px; }
-  .row b{ color:#eaf6ff; font-weight:600; }
-  .tag-ok{ color:var(--ok); } .tag-warn{ color:var(--warn); } .tag-danger{ color:var(--danger); }
-  /* 종합 위험등급 신호바 */
-  #riskBox{ margin-top:8px; padding:8px; border-radius:6px; text-align:center;
-        background:rgba(57,217,138,.12); border:1px solid var(--ok); }
-  #riskBox.high,#riskBox.critical{ background:rgba(255,59,59,.16); border-color:var(--danger); }
-  #riskBox.medium{ background:rgba(255,176,32,.14); border-color:var(--warn); }
-  #riskLevel{ font-size:18px; font-weight:700; letter-spacing:.1em; }
-  #bar{ height:6px; margin-top:6px; border-radius:3px; background:#0c1620; overflow:hidden; }
-  #barFill{ height:100%; width:0%; background:var(--ok); transition:width .25s,background .25s; }
-  /* HUD 상단 — REC / 시계 / CAM */
-  #hud{ position:absolute; z-index:4; top:14px; left:50%; transform:translateX(-50%);
-        display:flex; gap:18px; align-items:center; font-size:12px; color:#bfe0ff; }
-  #rec{ color:var(--danger); font-weight:700; }
-  #rec::before{ content:"●"; margin-right:5px; animation:blink 1s steps(1) infinite; }
-  @keyframes blink{ 50%{ opacity:.15; } }
-  /* 코너 브래킷 */
-  .br{ position:absolute; z-index:4; width:26px; height:26px; border:2px solid rgba(120,170,210,.5); }
-  .br.tl{ top:8px; left:8px; border-right:0; border-bottom:0; }
-  .br.tr{ top:8px; right:8px; border-left:0; border-bottom:0; }
-  .br.bl{ bottom:8px; left:8px; border-right:0; border-top:0; }
-  .br.br2{ bottom:8px; right:8px; border-left:0; border-top:0; }
-  #banner{ position:absolute; z-index:5; top:46%; left:50%; transform:translate(-50%,-50%);
-        display:none; padding:10px 26px; border-radius:8px; font-size:22px; font-weight:800;
-        letter-spacing:.15em; background:rgba(255,59,59,.85); color:#fff; }
-  #noSignal{ position:absolute; inset:0; z-index:6; display:flex; align-items:center;
-        justify-content:center; color:#456; font-size:20px; letter-spacing:.3em; background:#000; }
-  button{ font-family:inherit; }
-  #startBtn{ position:absolute; z-index:7; left:50%; top:55%; transform:translate(-50%,-50%);
-        padding:14px 30px; font-size:15px; background:#0c2236; color:#bfe0ff;
-        border:1px solid var(--dim); border-radius:8px; cursor:pointer; }
-  /* 위험구역 설정 도구 */
-  #zoneTools{ bottom:14px; right:14px; width:196px; }
-  #zoneTools button{ display:block; width:100%; margin-top:6px; padding:8px;
-        font-size:12px; background:#0c2236; color:#bfe0ff;
-        border:1px solid var(--dim); border-radius:6px; cursor:pointer; }
-  #zoneTools button#zoneDraw.on{ background:var(--warn); color:#1a1206; border-color:var(--warn); }
-  #zoneHint{ font-size:11px; color:var(--dim); line-height:1.5; }
-  /* 그리기 모드일 때 영상 위 커서를 십자로 */
-  #stage.drawing #outputCanvas{ cursor:crosshair; }
-  /* §8 기능안전 경계 상시 고지 */
-  #safetyNote{ position:absolute; z-index:4; bottom:148px; left:14px; max-width:58%;
-        font-size:10px; color:#86a5bd; background:rgba(5,10,16,.5); border-left:2px solid var(--warn);
-        padding:5px 9px; border-radius:4px; line-height:1.5; }
-  #safetyNote b{ color:var(--warn); }
-</style>
+<link rel="stylesheet" href="/static/realtime_shared.css">
+<link rel="stylesheet" href="/static/vigent-skin.css?v=1">
 </head>
-<body>
-<div id="stage">
-  <video id="videoEl" autoplay muted playsinline></video>
-  <canvas id="outputCanvas"></canvas>
-  <div id="fx"></div>
-  <div class="br tl"></div><div class="br tr"></div><div class="br bl"></div><div class="br br2"></div>
+<body class="theme-safety theme-locked clean">
 
-  <div id="hud">
-    <span id="rec">REC</span>
-    <span id="clock">--:--:--</span>
-    <span>CAM01 · VIGENT-SAFETY</span>
-    <a href="/safety/reports" target="_blank" style="color:#7fd0ff;text-decoration:none">📁 평가서</a>
+<div id="loadingOverlay">
+  <div style="font-size:36px;">🧠</div>
+  <div style="font-size:18px;font-weight:700;color:#e2e8f0;">VIGENT · 산업안전 비전</div>
+  <div class="spinner"></div>
+  <div class="load-steps" id="loadSteps">
+    <div class="load-step active" id="ls0">⏳ MediaPipe Holistic 로딩 중...</div>
+    <div class="load-step" id="ls1">⏳ COCO-SSD 멀티스케일 모델 로딩 중...</div>
+    <div class="load-step" id="ls2">⏳ MobileNet 손 분류 모델 로딩 중...</div>
+    <div class="load-step" id="ls3">⏳ 카메라 시작 중...</div>
   </div>
+</div>
 
-  <div id="statusPanel" class="panel">
-    <h2>SYSTEM STATUS</h2>
-    <div class="row"><span>FPS</span><b id="sFps">0</b></div>
-    <div class="row"><span>FRAME</span><b id="sFrame">0</b></div>
-    <div class="row"><span>작업자(WORKER)</span><b id="sWorker">0</b></div>
-    <div class="row"><span>자세(몸통각)</span><b id="sPose">--</b></div>
-    <div class="row"><span>PPE</span><b id="sPpe" class="tag-warn">폴백</b></div>
-    <div class="row"><span>위험구역(ZONE)</span><b id="sZone">OUT</b></div>
-    <div class="row"><span>기계방호(MACHINE)</span><b id="sMachine" class="tag-ok">정상</b></div>
-    <div id="riskBox"><div id="riskLevel">SAFE</div>
-      <div id="bar"><div id="barFill"></div></div>
-      <div id="riskMode" style="font-size:10px;color:var(--dim);margin-top:4px;">규칙 폴백</div>
+<header>
+  <div class="logo">🛡️ <span>VIGENT</span> <span style="color:var(--text2);font-weight:400;font-size:14px;">SAFETY 관제 콘솔</span></div>
+  <div class="badge" id="themeBadge">VIGENT SAFETY</div>
+  <div class="status-bar">
+    <div class="status-item"><div class="status-dot" id="dotPose"></div><span>포즈</span></div>
+    <div class="status-item" data-chip="face"><div class="status-dot" id="dotFace"></div><span>얼굴</span></div>
+    <div class="status-item" data-chip="obj"><div class="status-dot" id="dotObj"></div><span>사물</span></div>
+    <div class="status-item" data-chip="hand"><div class="status-dot" id="dotHand"></div><span>손 감지</span></div>
+    <div class="status-item" data-chip="safe"><div class="status-dot" id="dotSafe"></div><span>안전</span></div>
+    <div style="border-left:1px solid var(--border);padding-left:14px;" id="fpsDisplay">FPS: --</div>
+  </div>
+  <button id="cleanToggle" onclick="toggleCleanMode()">⚙ 고급</button>
+</header>
+<script>
+  function toggleCleanMode(){
+    var clean = document.body.classList.toggle('clean');
+    var b = document.getElementById('cleanToggle');
+    if(b) b.textContent = clean ? '⚙ 고급' : '✕ 깔끔 보기';
+    try{ localStorage.setItem('boda_clean', clean ? '1' : '0'); }catch(e){}
+  }
+  // 마지막 선택 기억(기본은 깔끔)
+  try{
+    if(localStorage.getItem('boda_clean') === '0'){
+      document.body.classList.remove('clean');
+      var b0 = document.getElementById('cleanToggle');
+      if(b0) b0.textContent = '✕ 깔끔 보기';
+    }
+  }catch(e){}
+</script>
+
+<main>
+  <div class="video-panel">
+    <div class="video-container" id="videoContainer">
+      <video id="videoEl" autoplay muted playsinline></video>
+      <img id="imageEl" alt=""/>
+      <canvas id="outputCanvas"></canvas>
+
+      <div id="recogPanel" class="recog-panel"><h4>지금 인식 중</h4><div class="dim" style="font-size:13px;">카메라를 켜면 표시됩니다</div></div>
+      <div class="zone-btns" style="position:absolute;right:14px;bottom:14px;z-index:31;display:flex;gap:6px;">
+        <button id="zoneBtn" class="zone-btn" style="position:static;">위험구역 추가</button>
+        <button id="zoneClearBtn" class="zone-btn" style="position:static;">위험구역 삭제</button>
+      </div>
+      <div id="zoneHint" class="zone-hint">꼭짓점을 클릭해 구역을 그리세요 · 여러 개 추가 가능 · '삭제'로 전체 제거</div>
+      <button id="reportBtn" class="report-btn"
+        onclick="window.open(API_BASE+'/report/safety?site='+encodeURIComponent('현장')+'&hours=24','_blank')">
+        안전 증빙 리포트</button>
+      <button id="riskBtn" class="report-btn" style="bottom:98px;border-color:#f59e0b;color:#f59e0b"
+        onclick="window.open(API_BASE+'/report/safety?site='+encodeURIComponent('현장')+'&hours=24#riskassess','_blank')">
+        위험성평가 보기</button>
+      
+      <button id="calBtn" class="report-btn" style="bottom:140px;border-color:#a78bfa;color:#c4b5fd"
+        onclick="axStartCalibration()">거리 보정(m·km/h)</button>
+      <div id="calHint" class="cal-hint"></div>
+
+      <button id="thermBtn" class="report-btn" style="bottom:182px;border-color:#fb7185;color:#fda4af" onclick="toggleTherm()">온도 감지(열화상)</button>
+      <div id="thermPanel" class="therm-panel">
+        <div class="ttl">열화상 온도 감지</div>
+        <label>최저(°C)<input type="number" id="thermMin" value="20" step="1"></label>
+        <label>최고(°C)<input type="number" id="thermMax" value="120" step="1"></label>
+        <label>경보(°C)<input type="number" id="thermAlert" value="80" step="1"></label>
+        <div class="hint">열화상 이미지/영상을 업로드한 뒤 사용하세요. 카메라 범례의 최저·최고 온도를 입력하면 정확합니다. 화면을 클릭하면 그 지점 온도가 표시됩니다.</div>
+      </div>
+      <div id="dzAlert" class="dz-alert">위험구역 침입 감지! 즉시 확인하세요</div>
+      <button id="dzMute" class="dz-mute" onclick="dzMuted=!dzMuted;this.textContent=dzMuted?'🔇 알람 꺼짐(클릭해 켜기)':'🔔 알람 음소거';">🔔 알람 음소거</button>
+      <div id="axTools" class="ax-tools">
+        <label title="개인정보 보호: 얼굴 영역 비식별화"><input type="checkbox" id="togBlur"> 얼굴 가림</label>
+        <label data-ax="safety" title="이동 객체(사람·차량) 실시간 속도 표시 — 거리 보정 시 km/h"><input type="checkbox" id="togSpeed"> 속도 표시</label>
+        <label data-ax="safety" title="이 속도(km/h) 초과 시 텔레그램 경보(거리 보정 필요)">과속경보 <input type="number" id="speedAlert" value="20" min="1" style="width:46px;background:var(--surface2);border:1px solid var(--border);color:var(--text);border-radius:5px;padding:2px 4px;font-size:11px"> km/h</label>
+        <label data-ax="safety" title="사람 동선 누적 히트맵"><input type="checkbox" id="togHeatmap"> 동선 히트맵</label>
+      </div>
+
+      <div id="cameraOffScreen">
+        <div class="co-icon">📷</div>
+        <div class="co-text">카메라가 꺼져 있습니다</div>
+      </div>
+
+      <!-- 안전 경보 배지(낙상/보호구/행동) — updateSafetyUI가 사용 -->
+      <div class="video-overlay-labels">
+        <div class="action-badge" id="actionBadge" style="display:none">🏃 <span id="actionText">—</span></div>
+        <div class="action-badge warn-badge" id="warnBadge" style="display:none">⚠️ <span id="warnText">주의</span></div>
+        <div class="action-badge danger-badge" id="dangerBadge" style="display:none">🚨 <span id="dangerText">위험</span></div>
+      </div>
+
+      <div class="fps-counter" id="fpsCounter">FPS: --</div>
+      <div class="cam-status-badge on" id="camStatusBadge">
+        <div class="cam-led on" id="camLed"></div>
+        <span id="camStatusText">카메라 ON</span>
+      </div>
+    </div>
+
+    <div class="controls">
+      <button class="btn active" id="btnCamToggle" onclick="toggleCamera()">
+        <span id="camBtnIcon">📷</span><span id="camBtnText">카메라 끄기</span>
+      </button>
+      <div style="width:1px;height:28px;background:var(--border);margin:0 2px;"></div>
+      <label class="btn" for="fileInput">🖼️ 파일 업로드</label>
+      <input type="file" id="fileInput" accept="image/*,video/*" style="display:none" onchange="handleFile(event)">
+      <button class="btn" onclick="toggleMirror()">↔ 방향 보정</button>
+      <button class="btn" id="btnPause" onclick="togglePause()" disabled>⏸ 정지</button>
     </div>
   </div>
 
-  <div id="detPanel" class="panel">
-    <h2>DETECTIONS</h2>
-    <div id="detList"><div class="row"><span>대기 중…</span></div></div>
+  <div class="right-panel">
+    <div class="panel-summary">
+      <div class="panel-summary-title" id="panelModeTitle">VIGENT Safety 분석 중</div>
+      <div class="panel-summary-sub" id="panelModeSub">보호구, 위험 행동, 위험 사물과 현장 이벤트를 확인합니다.</div>
+    </div>
+    <div class="panel-tabs">
+      <div class="tab active" data-pane="safety" onclick="switchTab('safety')">안전</div>
+      <div class="tab" data-pane="objects" onclick="switchTab('objects')">사물</div>
+    </div>
+
+    <div class="tab-content">
+      <div class="tab-pane active" id="pane-safety">
+        <div class="simple-result warn" id="ppeSimpleCard">
+          <div class="simple-kicker">보호구 착용 분석</div>
+          <div class="simple-title" id="ppeResultTitle">안전모와 안전조끼를 확인 중입니다</div>
+          <div class="simple-desc" id="ppeResultDesc">VIGENT Safety 모드에서 작업자의 머리와 상체 영역을 확인해 보호구 착용 여부를 표시합니다.</div>
+          <div class="simple-grid">
+            <div class="simple-stat">
+              <div class="k">작업자</div>
+              <div class="v" id="ppeWorkerCount">—</div>
+            </div>
+            <div class="simple-stat">
+              <div class="k">안전모</div>
+              <div class="v" id="helmetStatus">확인 중</div>
+            </div>
+            <div class="simple-stat">
+              <div class="k">안전조끼</div>
+              <div class="v" id="vestStatus">확인 중</div>
+            </div>
+          </div>
+          <div class="simple-guide" id="ppeEvidence">판단 근거: 머리/상체 crop 분석 대기 중</div>
+          <div class="simple-guide warn" id="ppeModelBasis">현재는 브라우저 경량 모델 기반입니다. 전용 PPE YOLO 모델을 연결하면 정확도가 올라갑니다.</div>
+          <div class="simple-guide warn" id="ppeGuide">작업자의 머리와 상체가 화면에 보이면 착용 여부 후보를 표시합니다.</div>
+        </div>
+
+        <div class="card">
+          <div class="card-title">🚨 실시간 안전 상태</div>
+          <div class="row"><span class="label">종합 안전 등급</span><span class="value" id="safetyGrade">대기 중</span></div>
+          <div class="row"><span class="label">낙상 위험</span><span class="value" id="fallRisk">—</span></div>
+          <div class="row"><span class="label">자세 이상</span><span class="value" id="postureRisk">—</span></div>
+          <div class="row"><span class="label">위험 사물</span><span class="value" id="objRisk">—</span></div>
+          <div class="row"><span class="label">현재 활동</span><span class="value" id="activityState">—</span></div>
+        </div>
+        <div class="card">
+          <div class="card-title">⚠️ 경고 이벤트</div>
+          <div id="alertList"><div class="no-data"><span class="icon">✅</span>이상 없음</div></div>
+        </div>
+        <div class="card">
+          <div class="card-title">📊 세션 통계</div>
+          <div class="row"><span class="label">낙상 감지</span><span class="value red" id="statFall">0회</span></div>
+          <div class="row"><span class="label">위험 자세</span><span class="value yellow" id="statPosture">0회</span></div>
+          <div class="row"><span class="label">위험 사물</span><span class="value orange" id="statObj">0회</span></div>
+          <div class="row"><span class="label">분석 시간</span><span class="value accent" id="statTime">0s</span></div>
+        </div>
+        <div class="card">
+          <div class="card-title">⚙️ 안전 설정</div>
+          <div class="toggle-row"><span>안전모/조끼 알림</span><label class="toggle"><input type="checkbox" id="togPPE" checked><span class="toggle-slider"></span></label></div>
+          <div class="toggle-row"><span>낙상 감지 (6프레임)</span><label class="toggle"><input type="checkbox" id="togFall" checked><span class="toggle-slider"></span></label></div>
+          <div class="toggle-row"><span>위험 자세 감지</span><label class="toggle"><input type="checkbox" id="togPosture" checked><span class="toggle-slider"></span></label></div>
+          <div class="toggle-row"><span>위험 사물 경고</span><label class="toggle"><input type="checkbox" id="togObjSafe" checked><span class="toggle-slider"></span></label></div>
+          <div class="toggle-row"><span>경보 사운드</span><label class="toggle"><input type="checkbox" id="togSound"><span class="toggle-slider"></span></label></div>
+        </div>
+      </div>
+
+      <div class="tab-pane" id="pane-objects">
+        <div class="card">
+          <div class="card-title">📊 다중 객체 통계 <span class="new-tag">멀티스케일</span></div>
+          <div class="multi-stat">
+            <div class="mstat"><div class="mv" id="statTotal">0</div><div class="ml">전체 감지</div></div>
+            <div class="mstat"><div class="mv" id="statUniq">0</div><div class="ml">종류 수</div></div>
+            <div class="mstat"><div class="mv" id="statHeld">0</div><div class="ml">손에 든 것</div></div>
+            <div class="mstat"><div class="mv" id="statDanger">0</div><div class="ml">위험 사물</div></div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-title">📍 장소/씬 분류</div>
+          <div class="row"><span class="label">추정 장소</span><span class="value accent" id="sceneLabel">분석 중...</span></div>
+          <div style="margin-top:8px;"><div class="scene-tags" id="sceneTags"></div></div>
+        </div>
+
+        <div class="card">
+          <div class="card-title">📦 감지된 사물 <span id="objCount" style="color:var(--accent);margin-left:4px;">0</span>개 <span style="font-size:10px;color:var(--text2);">(ID 추적 중)</span></div>
+          <div class="obj-list" id="objList"><div class="no-data"><span class="icon">🔍</span>감지된 사물 없음</div></div>
+        </div>
+
+        <div class="card">
+          <div class="card-title">⚙️ 감지 설정</div>
+          <div class="toggle-row"><span>바운딩 박스</span><label class="toggle"><input type="checkbox" id="togBBox" checked><span class="toggle-slider"></span></label></div>
+          <div class="toggle-row"><span>라벨 표시</span><label class="toggle"><input type="checkbox" id="togLabel" checked><span class="toggle-slider"></span></label></div>
+          <div class="toggle-row"><span>멀티스케일 감지</span><label class="toggle"><input type="checkbox" id="togMultiScale" checked><span class="toggle-slider"></span></label></div>
+          <div class="toggle-row"><span>정확도 안정화</span><label class="toggle"><input type="checkbox" id="togPrecision" checked><span class="toggle-slider"></span></label></div>
+          <div class="toggle-row"><span>백엔드 정밀 보정 (yolov8s)</span><label class="toggle"><input type="checkbox" id="togBackendBoost" checked><span class="toggle-slider"></span></label></div>
+          <div class="toggle-row"><span>외곽선 모드 (세그멘테이션)</span><label class="toggle"><input type="checkbox" id="togSegment"><span class="toggle-slider"></span></label></div>
+          <div style="font-size:11px;color:var(--text2);line-height:1.5;margin-top:6px">최근 프레임을 함께 보고 사람 수, 손에 든 물체, 행동 판정을 안정화합니다.</div>
+          <div class="row" style="margin-top:6px;">
+            <span class="label" style="font-size:12px;">최소 신뢰도</span>
+            <div style="display:flex;align-items:center;gap:8px;">
+              <input type="range" id="confThreshold" min="10" max="90" value="32" style="width:80px;accent-color:var(--accent)">
+              <span id="confVal" style="font-size:12px;color:var(--accent);width:32px;">32%</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
+</main>
 
-  <div id="logPanel" class="panel">
-    <h2>CONSOLE</h2>
-    <div id="logBody"></div>
-  </div>
-
-  <div id="zoneTools" class="panel">
-    <h2>구역 설정</h2>
-    <button id="zoneTargetBtn">🎯 대상: 위험구역</button>
-    <div id="zoneHint">대상 선택 → ‘그리기’ → 영상에<br>꼭짓점 클릭 → ‘저장’</div>
-    <button id="zoneDraw">✏️ 그리기 시작</button>
-    <button id="zoneUndo">↶ 한 점 취소</button>
-    <button id="zoneSave">✓ 저장</button>
-    <button id="zoneReload">⟳ 저장된 구역 불러오기</button>
-    <button id="zoneClear">🗑 구역 지우기</button>
-  </div>
-
-  <div id="safetyNote">§8 비전 판정은 <b>보조·감시 신호</b>입니다. 프레스·전단기 비상정지의 1차 책임은
-    인증 하드웨어(Type 4 광전자식 방호장치·안전 PLC)에 있으며, 본 시스템은 이를 대체하지 않습니다.</div>
-
-  <div id="banner">⚠ DANGER</div>
-  <div id="noSignal">NO SIGNAL</div>
-  <button id="startBtn">▶ 카메라 시작</button>
-</div>
-
-<!-- §8 기능안전 경계 명시: 본 화면의 비전 판정은 보조·감시 신호이며,
-     프레스/전단기 비상정지의 1차 책임은 인증 하드웨어(Type 4 광전자식 방호장치·안전 PLC)에 있다. -->
-<script>
-// ─────────────────────────────────────────────────────────────
-// 탐지 튜닝 설정 (한 곳에서 조정 — 되돌리기 쉽게)
-//   기본값(되돌릴 값): DETECT_INTERVAL_MS=1200, JPEG_QUALITY=0.6, DETECT_CONF=0.35
-//   1차 조정값:        DETECT_INTERVAL_MS=600,  JPEG_QUALITY=0.8, DETECT_CONF=0.28
-// ─────────────────────────────────────────────────────────────
-const DETECT_TUNING = {
-  DETECT_INTERVAL_MS: 400,   // /detect/frame 호출 주기(ms). 더 자주 호출 → 갱신 부드러움
-  JPEG_QUALITY: 0.8,         // 백엔드로 보내는 프레임 화질(0~1). 클수록 또렷(전송량↑)
-  DETECT_CONF: 0.35,         // confidence 임계값. 미탐↓(있는것 더잡고) 오탐은 2회확인으로 거름
-  BOX_TTL_MS: 1200,          // 박스 유지 시간(ms). 호출주기(400)보다 충분히 길게 → 깜빡임 제거.
-                             //   잠깐 못 잡아도 1.2초 유지. 너무 크면 잔상↑ (추천 1.0~1.4초)
-  BOX_MATCH_IOU: 0.4,        // 직전 박스와 같은 객체로 볼 겹침 기준(IoU). 높을수록 엄격
-};
-
-const video=document.getElementById('videoEl'), canvas=document.getElementById('outputCanvas');
-const ctx=canvas.getContext('2d');
-let dangerZone=[];          // 일반 위험구역(침입=high)
-let machineZone=[];         // 프레스/전단기 방호구역(손 진입=critical, §8)
-let draftZone=[];           // 그리는 중인 임시 폴리곤
-let drawMode=false;         // 그리기 모드 on/off
-let zoneTarget='danger';    // 지금 그리는 대상: 'danger' | 'machine'
-let lastRelay=0;            // 보조 방호신호 과다호출 방지
-let lastEvidence={};        // 규칙별 증거 저장 쿨다운(과다저장 방지)
-const HAZARD_RULES=['zone_intrusion','fall_suspected','ppe_missing','guard_bypass'];
-let detBoxes=[];            // 백엔드 /detect/frame 이 준 '이번 프레임' 원시 박스
-let trackedBoxes=[];        // 스무딩용 누적 박스(각 박스에 seen 시각 기록)
-let detSignals={};          // 백엔드 파생 신호(ppe_missing, ppe_conf, forklift_present)
-let lastDetect=0, detecting=false;   // /detect/frame 주기 호출 제어
-
-// 두 정규화 bbox([x1,y1,x2,y2])의 겹침(IoU)
-function boxIoU(a,b){
-  const x1=Math.max(a[0],b[0]), y1=Math.max(a[1],b[1]);
-  const x2=Math.min(a[2],b[2]), y2=Math.min(a[3],b[3]);
-  const iw=Math.max(0,x2-x1), ih=Math.max(0,y2-y1), inter=iw*ih;
-  const ua=(a[2]-a[0])*(a[3]-a[1])+(b[2]-b[0])*(b[3]-b[1])-inter;
-  return ua>0 ? inter/ua : 0;
-}
-
-// 새 탐지 결과를 누적 박스에 병합: 같은 라벨·위치면 갱신(seen 갱신), 새것은 추가
-function mergeDetections(fresh){
-  const now=performance.now();
-  fresh.forEach(d=>{
-    const m=trackedBoxes.find(t=>t.label===d.label && boxIoU(t.bbox,d.bbox)>=DETECT_TUNING.BOX_MATCH_IOU);
-    if(m){ m.bbox=d.bbox; m.conf=d.conf; m.seen=now; }   // 기존 객체 갱신
-    else { trackedBoxes.push({...d, seen:now}); }          // 새 객체 추가
-  });
-}
-
-// 유지시간(TTL) 지난 박스 제거 → 그릴 박스 반환(유령 박스 방지)
-function liveBoxes(){
-  const now=performance.now();
-  trackedBoxes = trackedBoxes.filter(t => now - t.seen <= DETECT_TUNING.BOX_TTL_MS);
-  return trackedBoxes;
-}
-let frameN=0, lastT=performance.now(), fps=0, lastJudge=0, lastLevel='safe';
-
-// 라벨별 박스 색
-// COCO 사물을 카테고리별 선명한 색으로 구분
-const COLOR_CATS = {
-  vehicle:     {c:'#ff8c1a', set:['bicycle','car','motorcycle','airplane','bus','train','truck','boat','forklift','excavator','machinery','wheel loader','vehicle']},
-  furniture:   {c:'#b78bff', set:['chair','couch','potted plant','bed','dining table','toilet','bench']},
-  electronics: {c:'#3ad6ff', set:['tv','monitor','laptop','mouse','remote','keyboard','cell phone','printer','tablet']},
-  kitchen:     {c:'#ffd23a', set:['bottle','wine glass','cup','fork','knife','spoon','bowl']},
-  animal:      {c:'#ff6fb5', set:['bird','cat','dog','horse','sheep','cow','elephant','bear','zebra','giraffe']},
-};
-function boxColor(label){
-  const L=label.toLowerCase();
-  // 안전(PPE/화재) — 건설 모드일 때
-  if(label==='NO-Hardhat'||label==='NO-Safety-Vest'||label==='NO-Mask') return '#ff2d2d'; // 미착용=빨강
-  if(label==='Hardhat'||label==='Safety-Vest'||label==='Mask') return '#2ee06b';          // 착용=초록
-  if(L==='fire'||L==='smoke') return '#ff5b2e';                                           // 화재·연기
-  // 일반 객체
-  if(L==='person') return '#2ee06b';                                       // 사람=초록(가장 눈에 띄게)
-  for(const k in COLOR_CATS){ if(COLOR_CATS[k].set.includes(L)) return COLOR_CATS[k].c; }
-  return '#9aa7ff';                                                        // 그 외=라벤더블루
-}
-
-// 캔버스가 CSS로 좌우반전(scaleX -1)돼 있어 글자가 거울상이 된다.
-// 글자만 한 번 더 뒤집어(double flip) 정상으로 보이게 그린다. x=왼쪽, y=기준선.
-function mirrorText(text, x, y){
-  const s=String(text);
-  ctx.save();
-  ctx.translate(x, y);
-  ctx.scale(-1, 1);                       // 글자 좌표만 반전 → CSS 반전과 상쇄
-  ctx.fillText(s, -ctx.measureText(s).width, 0);  // 같은 화면 위치에 정상 글자
-  ctx.restore();
-}
-
-const $=id=>document.getElementById(id);
-function log(msg){ const b=$('logBody');
-  b.innerHTML = `<div>${new Date().toLocaleTimeString('en-GB')}  ${msg}</div>` + b.innerHTML;
-  if(b.childElementCount>40) b.removeChild(b.lastChild); }
-
-// 시계
-setInterval(()=>{ $('clock').textContent=new Date().toLocaleTimeString('en-GB'); },1000);
-
-// 위험구역 좌표 로드(일반 + 기계 방호구역)
-async function loadZone(){
-  try{ const d=await (await fetch('/zone/danger')).json();
-       dangerZone=(d.points||[]).map(p=>[p.x,p.y]);
-       const m=await (await fetch('/zone/machine')).json();
-       machineZone=(m.points||[]).map(p=>[p.x,p.y]);
-       log(`zone loaded danger=${dangerZone.length} machine=${machineZone.length}`);
-  }catch(e){ log('zone load 실패 → 빈 구역'); }
-}
-
-// 점-다각형 내부판정(ray casting), 정규화 좌표
-function inPolygon(x,y,poly){
-  if(poly.length<3) return false;
-  let inside=false;
-  for(let i=0,j=poly.length-1;i<poly.length;j=i++){
-    const xi=poly[i][0],yi=poly[i][1], xj=poly[j][0],yj=poly[j][1];
-    const hit=((yi>y)!==(yj>y)) && (x < (xj-xi)*(y-yi)/(yj-yi)+xi);
-    if(hit) inside=!inside;
-  }
-  return inside;
-}
-
-// 몸통 기울기(수직 대비 각도, 도)
-function torsoAngle(lm){
-  const sh={x:(lm[11].x+lm[12].x)/2, y:(lm[11].y+lm[12].y)/2};
-  const hp={x:(lm[23].x+lm[24].x)/2, y:(lm[23].y+lm[24].y)/2};
-  const dx=sh.x-hp.x, dy=sh.y-hp.y;              // 엉덩이→어깨 벡터
-  return Math.abs(Math.atan2(dx, -dy))*180/Math.PI;  // 수직(위)과의 각
-}
-
-function _poly(zone){ ctx.beginPath();
-  zone.forEach(([x,y],i)=>{ const px=x*canvas.width, py=y*canvas.height;
-    i?ctx.lineTo(px,py):ctx.moveTo(px,py); }); ctx.closePath(); }
-
-function drawZone(intrusion, handIn){
-  ctx.save();
-  // 일반 위험구역(주황 / 침입 시 빨강)
-  if(dangerZone.length>=3){
-    _poly(dangerZone);
-    ctx.fillStyle = intrusion ? 'rgba(255,59,59,.28)' : 'rgba(255,176,32,.12)';
-    ctx.strokeStyle = intrusion ? '#ff3b3b' : '#ffb020';
-    ctx.lineWidth=2; ctx.fill(); ctx.stroke();
-  }
-  // 기계 방호구역(빨강, 손 진입 시 강조) — 프레스/전단기 §8
-  if(machineZone.length>=3){
-    _poly(machineZone);
-    ctx.fillStyle = handIn ? 'rgba(255,40,40,.40)' : 'rgba(255,59,59,.16)';
-    ctx.strokeStyle = '#ff3b3b'; ctx.lineWidth = handIn ? 3 : 2;
-    ctx.setLineDash([6,4]); ctx.fill(); ctx.stroke(); ctx.setLineDash([]);
-    // 라벨
-    const [lx,ly]=machineZone[0];
-    ctx.fillStyle='#ff3b3b'; ctx.font='bold 12px monospace';
-    mirrorText('⚙ MACHINE GUARD', lx*canvas.width, ly*canvas.height-6);
-  }
-  ctx.restore();
-}
-
-// 그리는 중인 임시 폴리곤(점 + 선) 미리보기
-function drawDraft(){
-  if(!draftZone.length) return;
-  ctx.save();
-  ctx.beginPath();
-  draftZone.forEach(([x,y],i)=>{ const px=x*canvas.width, py=y*canvas.height;
-    i?ctx.lineTo(px,py):ctx.moveTo(px,py); });
-  ctx.strokeStyle='#39d98a'; ctx.lineWidth=2; ctx.setLineDash([8,5]); ctx.stroke();
-  ctx.setLineDash([]);
-  draftZone.forEach(([x,y],i)=>{ const px=x*canvas.width, py=y*canvas.height;
-    ctx.beginPath(); ctx.arc(px,py,5,0,7); ctx.fillStyle='#39d98a'; ctx.fill();
-    ctx.fillStyle='#05070a'; ctx.font='10px monospace'; mirrorText(i+1, px-3, py+3); });
-  ctx.restore();
-}
-
-// 증거 프레임 캡처(영상+오버레이 합성, 화면과 동일 mirror) → JPEG data URL
-function captureFrame(){
-  const t=document.createElement('canvas'); t.width=canvas.width; t.height=canvas.height;
-  const tc=t.getContext('2d');
-  tc.translate(t.width,0); tc.scale(-1,1);     // 화면과 동일하게 좌우반전
-  tc.drawImage(video,0,0,t.width,t.height);    // 원본 영상
-  tc.drawImage(canvas,0,0,t.width,t.height);   // 스켈레톤·구역 오버레이
-  return t.toDataURL('image/jpeg',0.6);
-}
-
-// 데이터엔진: 위험 이벤트 증거+로그 저장(규칙별 5초 쿨다운)
-function logEvidence(rule, level, score){
-  const now=performance.now();
-  if(now-(lastEvidence[rule]||0) < 5000) return;   // 과다저장 방지
-  lastEvidence[rule]=now;
-  fetch('/recognition/log',{method:'POST',headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({rule, level, score, site:'console', image:captureFrame()})})
-    .then(r=>r.json()).then(d=>log(`evidence 저장 ${rule} → ${d.evidence||'(이미지없음)'}`))
-    .catch(()=>{});
-}
-
-// 백엔드 정밀 탐지(/detect/frame) 주기 호출 — YOLO person/PPE/forklift
-// 무거우므로 ~1.2초 간격, 직전 호출이 끝나야 다음 호출(겹침 방지)
-async function runDetect(){
-  if(detecting) return;
-  const now=performance.now();
-  if(now-lastDetect < DETECT_TUNING.DETECT_INTERVAL_MS) return;
-  detecting=true; lastDetect=now;
-  try{
-    const r=await fetch('/detect/frame',{method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({image:captureRaw(), conf:DETECT_TUNING.DETECT_CONF})});   // 원본 프레임 + 임계값
-    const j=await r.json();
-    detBoxes=j.detections||[];
-    mergeDetections(detBoxes);          // 누적 박스에 병합(스무딩)
-    detSignals=j.signals||{};
-    $('sWorker').textContent=j.person_count ?? detBoxes.filter(d=>d.label.toLowerCase()==='person').length;
-    // PPE 상태표: 실제 탐지 반영
-    if(detSignals.ppe_missing){ $('sPpe').textContent='미착용!'; $('sPpe').className='tag-danger'; }
-    else if(detBoxes.some(d=>d.label==='Hardhat'||d.label==='Safety-Vest')){ $('sPpe').textContent='착용'; $('sPpe').className='tag-ok'; }
-    else { $('sPpe').textContent='미인식'; $('sPpe').className='tag-warn'; }
-    log(`detect person=${j.person_count} ppe_missing=${detSignals.ppe_missing} 박스=${detBoxes.length}`);
-  }catch(e){ /* 백엔드 탐지 실패해도 브라우저 측은 계속(무중단) */ }
-  finally{ detecting=false; }
-}
-
-// 오버레이 없는 '원본' 프레임 캡처(백엔드 추론용, 화면과 동일 mirror)
-function captureRaw(){
-  const t=document.createElement('canvas'); t.width=canvas.width; t.height=canvas.height;
-  const tc=t.getContext('2d');
-  tc.translate(t.width,0); tc.scale(-1,1);
-  tc.drawImage(video,0,0,t.width,t.height);
-  return t.toDataURL('image/jpeg', DETECT_TUNING.JPEG_QUALITY);
-}
-
-// 박스 그리기(스무딩 적용된 살아있는 박스). 라벨+confidence 표시
-function drawBoxes(){
-  ctx.save();
-  ctx.font='12px monospace'; ctx.lineWidth=2; ctx.textBaseline='bottom';
-  liveBoxes().forEach(d=>{
-    const [x1,y1,x2,y2]=d.bbox;
-    const px=x1*canvas.width, py=y1*canvas.height, pw=(x2-x1)*canvas.width, ph=(y2-y1)*canvas.height;
-    const col=boxColor(d.label);
-    ctx.strokeStyle=col; ctx.strokeRect(px,py,pw,ph);
-    const tag=`${d.label} ${(d.conf*100).toFixed(0)}%`;
-    ctx.fillStyle=col; const tw=ctx.measureText(tag).width+6;
-    ctx.fillRect(px, py-15, tw, 15);
-    ctx.fillStyle='#05070a'; mirrorText(tag, px+3, py-3);
-  });
-  ctx.restore();
-}
-
-// Analyst 가산 판단 호출(모델 신호 없음 → 규칙 폴백)
-async function judge(signals, dl){
-  try{
-    const body = dl ? {signals, dl} : {signals};   // dl 있으면 딥러닝 가산, 없으면 휴리스틱 폴백
-    const r=await fetch('/safety/judge',{method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body:JSON.stringify(body)});
-    return await r.json();
-  }catch(e){ return null; }
-}
-
-function applyRisk(j){
-  const lv=(j&&j.level)||'safe';
-  const box=$('riskBox'), score=(j&&j.score)||0;
-  box.className=lv;
-  $('riskLevel').textContent=lv.toUpperCase();
-  $('riskLevel').className = (lv==='high'||lv==='critical')?'tag-danger':(lv==='medium'?'tag-warn':'tag-ok');
-  $('barFill').style.width=Math.min(100,score)+'%';
-  $('barFill').style.background = (lv==='high'||lv==='critical')?'var(--danger)':(lv==='medium'?'var(--warn)':'var(--ok)');
-  $('riskMode').textContent = (j&&j.used_dl)?'규칙+딥러닝 가산':'규칙 폴백(딥러닝 미가산)';
-  $('banner').textContent = (lv==='critical')?'⚠ GUARD BYPASS':'⚠ DANGER';
-  $('banner').style.display = (lv==='high'||lv==='critical')?'block':'none';
-  // DETECTIONS 패널
-  const fired=(j&&j.fired)||[];
-  $('detList').innerHTML = fired.length
-    ? fired.map(f=>`<div class="row"><span>${f.rule}</span><b class="${f.severity==='medium'?'tag-warn':'tag-danger'}">${f.severity}</b></div>`).join('')
-    : '<div class="row"><span>위반 없음</span><b class="tag-ok">CLEAR</b></div>';
-  if(lv!==lastLevel){ log(`alert=${lv} score=${score}`); lastLevel=lv; }
-
-  // 데이터엔진: 발동한 위험 규칙마다 증거 프레임+로그 자동 저장
-  fired.forEach(f=>{ if(HAZARD_RULES.includes(f.rule)) logEvidence(f.rule, lv, score); });
-
-  // guard_bypass(critical) → §8 보조 방호신호 발송(과다호출 방지: 3초 간격)
-  const isBypass = fired.some(f=>f.rule==='guard_bypass');
-  if(isBypass && performance.now()-lastRelay>3000){
-    lastRelay=performance.now();
-    fetch('/dispatch/relay',{method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({event:'guard_bypass'})})
-      .then(r=>r.json()).then(d=>log(`relay 보조신호 발송(delivered=${d.delivered}) §8 보조계층`))
-      .catch(()=>log('relay 발송 실패(폴백)'));
-  }
-}
-
-// MediaPipe Pose
-const pose=new Pose({locateFile:f=>`https://cdn.jsdelivr.net/npm/@mediapipe/pose/${f}`});
-pose.setOptions({modelComplexity:1, smoothLandmarks:true, minDetectionConfidence:.5, minTrackingConfidence:.5});
-
-pose.onResults(async (res)=>{
-  canvas.width=video.videoWidth||1280; canvas.height=video.videoHeight||720;
-  ctx.clearRect(0,0,canvas.width,canvas.height);
-
-  // FPS
-  frameN++; const now=performance.now();
-  if(now-lastT>=500){ fps=Math.round(frameN*1000/(now-lastT)); frameN=0; lastT=now; $('sFps').textContent=fps; }
-  $('sFrame').textContent = (+$('sFrame').textContent)+1;
-
-  const lm=res.poseLandmarks;
-  let signals={zone_intrusion:false, ppe_missing:false, torso_angle:0, fall_temporal:false, hand_in_machine_zone:false};
-  let intrusion=false, handIn=false;
-
-  if(lm){
-    $('sWorker').textContent='1';
-    // 스켈레톤(글로우 + 1.4px) — drawing_utils
-    ctx.save();
-    drawConnectors(ctx, lm, POSE_CONNECTIONS, {color:'rgba(80,200,255,.85)', lineWidth:1.4});
-    drawLandmarks(ctx, lm, {color:'#eaf6ff', lineWidth:.6, radius:2});
-    ctx.restore();
-
-    // 신호 계산
-    const foot={x:(lm[27].x+lm[28].x)/2, y:(lm[27].y+lm[28].y)/2};  // 발 중점
-    intrusion=inPolygon(foot.x, foot.y, dangerZone);
-    const ang=torsoAngle(lm);
-    // 손목(15 왼손, 16 오른손)이 기계 방호구역에 진입했는지 → guard_bypass(critical)
-    handIn = inPolygon(lm[15].x, lm[15].y, machineZone) || inPolygon(lm[16].x, lm[16].y, machineZone);
-    signals.zone_intrusion=intrusion;
-    signals.torso_angle=ang;
-    signals.hand_in_machine_zone=handIn;
-    // PPE 미착용: 백엔드 YOLO 탐지 결과를 실제 연결(전엔 false 고정이었음)
-    signals.ppe_missing = !!detSignals.ppe_missing;
-    $('sPose').textContent=ang.toFixed(0)+'°';
-    $('sPose').className = ang>60?'tag-danger':'';
-    $('sZone').textContent = intrusion?'IN':'OUT';
-    $('sZone').className = intrusion?'tag-danger':'tag-ok';
-    $('sMachine').textContent = handIn?'손 진입!':'정상';
-    $('sMachine').className = handIn?'tag-danger':'tag-ok';
-  } else {
-    $('sWorker').textContent='0'; $('sPose').textContent='--'; $('sZone').textContent='OUT';
-    $('sMachine').textContent='정상'; $('sMachine').className='tag-ok';
-  }
-
-  drawBoxes();          // 백엔드 객체 박스(YOLO person/PPE/forklift)
-  drawZone(intrusion, handIn);
-  drawDraft();
-
-  // 그리기 모드 중엔 탐지·판단을 멈춘다(구역 설정에 집중)
-  if(drawMode) return;
-
-  // 백엔드 정밀 탐지 주기 호출(비동기, 결과는 다음 프레임부터 반영)
-  runDetect();
-
-  // 판단(과도호출 방지: ~300ms 간격) — 백엔드 confidence 를 dl 로 가산
-  if(now-lastJudge>300){ lastJudge=now;
-    const dl = detSignals.ppe_conf ? {ppe_conf:detSignals.ppe_conf} : null;
-    const j=await judge(signals, dl);
-    if(j) applyRisk(j);
-    log(`frame=${$('sFrame').textContent} worker=${$('sWorker').textContent} zone=${intrusion?'IN':'OUT'} ppe=${signals.ppe_missing?'미착용':'ok'}`);
-  }
-});
-
-// ── 위험구역 직접 설정 ──
-const stage=document.getElementById('stage');
-
-// 화면 클릭 좌표 → 이미지 정규화 좌표(영상이 좌우반전이라 x 를 뒤집는다)
-function screenToImage(ev){
-  const r=canvas.getBoundingClientRect();
-  let fx=(ev.clientX-r.left)/r.width, fy=(ev.clientY-r.top)/r.height;
-  fx=1-fx;  // mirror 보정
-  return [Math.min(1,Math.max(0,fx)), Math.min(1,Math.max(0,fy))];
-}
-
-canvas.addEventListener('click',(ev)=>{
-  if(!drawMode) return;
-  draftZone.push(screenToImage(ev));
-  $('zoneHint').textContent=`점 ${draftZone.length}개 — 3개 이상이면 저장 가능`;
-});
-
-$('zoneDraw').addEventListener('click',()=>{
-  drawMode=!drawMode;
-  $('zoneDraw').classList.toggle('on',drawMode);
-  $('zoneDraw').textContent = drawMode ? '■ 그리기 중…' : '✏️ 그리기 시작';
-  stage.classList.toggle('drawing',drawMode);
-  if(drawMode){ draftZone=[]; $('zoneHint').textContent='영상에 꼭짓점을 클릭하세요'; log('zone 그리기 시작'); }
-});
-
-// 그리기 대상 전환(위험구역 ↔ 기계 방호구역)
-function zoneEndpoint(){ return zoneTarget==='machine' ? '/zone/machine' : '/zone/danger'; }
-$('zoneTargetBtn').addEventListener('click',()=>{
-  zoneTarget = (zoneTarget==='danger') ? 'machine' : 'danger';
-  $('zoneTargetBtn').textContent = zoneTarget==='machine' ? '🎯 대상: 기계방호(§8)' : '🎯 대상: 위험구역';
-  draftZone=[]; $('zoneHint').textContent = zoneTarget==='machine'
-    ? '프레스/전단기 방호구역(손 진입=critical)' : '일반 위험구역(침입=high)';
-});
-
-$('zoneUndo').addEventListener('click',()=>{
-  draftZone.pop(); $('zoneHint').textContent=`점 ${draftZone.length}개`;
-});
-
-$('zoneReload').addEventListener('click', async ()=>{
-  await loadZone();
-  $('zoneHint').textContent=`불러옴: 위험 ${dangerZone.length}점 / 기계 ${machineZone.length}점`;
-});
-
-$('zoneClear').addEventListener('click', async ()=>{
-  draftZone=[];
-  if(zoneTarget==='machine') machineZone=[]; else dangerZone=[];
-  await fetch(zoneEndpoint(),{method:'POST',headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({points:[]})});
-  $('zoneHint').textContent=`${zoneTarget==='machine'?'기계방호':'위험'}구역을 지웠습니다`; log(`${zoneTarget} zone 지움`);
-});
-
-$('zoneSave').addEventListener('click', async ()=>{
-  if(draftZone.length<3){ $('zoneHint').textContent='점이 3개 이상이어야 저장됩니다'; return; }
-  const points=draftZone.map(([x,y])=>({x,y}));
-  const r=await fetch(zoneEndpoint(),{method:'POST',headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({points})});
-  const j=await r.json();
-  if(j.ok){
-    if(zoneTarget==='machine') machineZone=draftZone.slice(); else dangerZone=draftZone.slice();
-    draftZone=[]; drawMode=false; $('zoneDraw').classList.remove('on');
-    $('zoneDraw').textContent='✏️ 그리기 시작'; stage.classList.remove('drawing');
-    $('zoneHint').textContent=`${zoneTarget==='machine'?'기계방호':'위험'}구역 저장 (${j.count}점)`;
-    log(`${zoneTarget} zone 저장 ${j.count}점`);
-  }
-});
-
-// 카메라 시작(보안 컨텍스트 필요 → localhost 서버에서 실행)
-$('startBtn').addEventListener('click', async ()=>{
-  $('startBtn').style.display='none'; $('noSignal').style.display='none';
-  await loadZone();
-  const cam=new Camera(video,{ onFrame:async()=>{ await pose.send({image:video}); }, width:1280, height:720 });
-  cam.start().then(()=>log('camera started')).catch(e=>{ $('noSignal').style.display='flex'; log('camera 실패: '+e); });
-});
-</script>
+<script>window.AX_LOCK_THEME="safety";</script>
+<script src="/static/realtime_core.js?v=7f57d0b1"></script>
 </body>
 </html>

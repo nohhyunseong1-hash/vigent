@@ -323,6 +323,45 @@ def alerts_test(payload: dict = Body(default={}), theme: str = DEFAULT_THEME):
                                payload.get("message", "VIGENT 경보 테스트"))
 
 
+# ── AX 프론트(realtime_core.js) 호환 스텁 ──
+# AX 엔진이 호출하는 보조 엔드포인트들. 핵심 인식은 브라우저(coco-ssd)에서 돌고,
+# 아래는 '없으면 404 콘솔에러'만 막는 안전 스텁(빈 결과). 점진적으로 실제 구현 가능.
+@app.post("/ppe/analyze-frame")
+def stub_ppe_analyze(payload: dict = Body(default={})):
+    return {"ok": True, "ppe": [], "note": "stub"}
+
+
+@app.post("/segment/frame")
+def stub_segment(payload: dict = Body(default={})):
+    return {"ok": True, "segments": [], "note": "stub"}
+
+
+@app.get("/zone/state")
+@app.post("/zone/state")
+def stub_zone_state(payload: dict = Body(default={})):
+    return {"ok": True, "zones": [], "state": "idle"}
+
+
+@app.post("/zone/intrusion")
+def stub_zone_intrusion(payload: dict = Body(default={})):
+    return {"ok": True, "intrusion": False}
+
+
+@app.post("/vitals/rppg")
+def stub_vitals(payload: dict = Body(default={})):
+    return {"ok": True, "bpm": None, "note": "stub"}
+
+
+@app.post("/recognition/note")
+def stub_recognition_note(payload: dict = Body(default={})):
+    return {"ok": True}
+
+
+@app.get("/alerts/status")
+def stub_alerts_status():
+    return {"ok": True, "alerts": []}
+
+
 @app.get("/{theme}")
 def theme_page(theme: str):
     """테마 정적 페이지(index.html) 서빙. 없으면 404."""
