@@ -26,9 +26,16 @@ def main(img_path: str) -> None:
     out_dir.mkdir(parents=True, exist_ok=True)
 
     # 1) 모델 로드(Nano — 허용 범위, 최초 1회 가중치 다운로드)
+    #    Apple GPU(MPS) 사용 + 추론 최적화 → CPU 대비 빠름
+    import torch
+    device = "mps" if torch.backends.mps.is_available() else "cpu"
     t0 = time.time()
-    model = RFDETRNano()
-    print(f"[rf-detr] 모델 로드 {time.time()-t0:.1f}s")
+    model = RFDETRNano(device=device)
+    try:
+        model.optimize_for_inference()      # 그래프 최적화(가능하면)
+    except Exception:
+        pass
+    print(f"[rf-detr] 모델 로드 {time.time()-t0:.1f}s · device={device}")
 
     # 2) 추론
     image = Image.open(img_path).convert("RGB")
