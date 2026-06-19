@@ -176,6 +176,17 @@ function boxColor(label){
   return '#cfe9ff';
 }
 
+// 캔버스가 CSS로 좌우반전(scaleX -1)돼 있어 글자가 거울상이 된다.
+// 글자만 한 번 더 뒤집어(double flip) 정상으로 보이게 그린다. x=왼쪽, y=기준선.
+function mirrorText(text, x, y){
+  const s=String(text);
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.scale(-1, 1);                       // 글자 좌표만 반전 → CSS 반전과 상쇄
+  ctx.fillText(s, -ctx.measureText(s).width, 0);  // 같은 화면 위치에 정상 글자
+  ctx.restore();
+}
+
 const $=id=>document.getElementById(id);
 function log(msg){ const b=$('logBody');
   b.innerHTML = `<div>${new Date().toLocaleTimeString('en-GB')}  ${msg}</div>` + b.innerHTML;
@@ -236,7 +247,7 @@ function drawZone(intrusion, handIn){
     // 라벨
     const [lx,ly]=machineZone[0];
     ctx.fillStyle='#ff3b3b'; ctx.font='bold 12px monospace';
-    ctx.fillText('⚙ MACHINE GUARD', lx*canvas.width, ly*canvas.height-6);
+    mirrorText('⚙ MACHINE GUARD', lx*canvas.width, ly*canvas.height-6);
   }
   ctx.restore();
 }
@@ -252,7 +263,7 @@ function drawDraft(){
   ctx.setLineDash([]);
   draftZone.forEach(([x,y],i)=>{ const px=x*canvas.width, py=y*canvas.height;
     ctx.beginPath(); ctx.arc(px,py,5,0,7); ctx.fillStyle='#39d98a'; ctx.fill();
-    ctx.fillStyle='#05070a'; ctx.font='10px monospace'; ctx.fillText(i+1, px-3, py+3); });
+    ctx.fillStyle='#05070a'; ctx.font='10px monospace'; mirrorText(i+1, px-3, py+3); });
   ctx.restore();
 }
 
@@ -321,7 +332,7 @@ function drawBoxes(){
     const tag=`${d.label} ${(d.conf*100).toFixed(0)}%`;
     ctx.fillStyle=col; const tw=ctx.measureText(tag).width+6;
     ctx.fillRect(px, py-15, tw, 15);
-    ctx.fillStyle='#05070a'; ctx.fillText(tag, px+3, py-3);
+    ctx.fillStyle='#05070a'; mirrorText(tag, px+3, py-3);
   });
   ctx.restore();
 }
