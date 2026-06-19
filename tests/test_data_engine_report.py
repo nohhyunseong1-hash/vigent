@@ -43,11 +43,19 @@ class TestReport(unittest.TestCase):
         cfg = vision_loader.load_vision("safety")
         self.scribe = build_agents(cfg)["Scribe"]
 
-    def test_standard_form_flow_in_html(self):
-        html = self.scribe.generate([{"rule": "zone_intrusion", "count": 5}], save=False)["html"]
-        # 한국 표준 양식 흐름 4단계가 보여야 함
-        for token in ("위험요인 식별", "빈도", "강도", "위험성", "감소대책", "산업안전보건법"):
+    def test_kosha_standard_form_in_html(self):
+        out = self.scribe.generate([{"rule": "zone_intrusion", "count": 5}], save=False)
+        html = out["html"]
+        # KOSHA KRAS 서식 11 공식 컬럼이 보여야 함
+        for token in ("유해·위험요인 파악", "위험 분류", "위험발생 상황 및 결과",
+                      "관련근거", "현재의\n안전보건조치".replace("\n", "<br>"),
+                      "가능성", "중대성", "위험성", "위험성 감소대책",
+                      "개선후", "완료일", "담당자", "산업안전보건법"):
             self.assertIn(token, html)
+        # 공식 서식 출처가 명시돼야 함
+        self.assertEqual(out["assessment"]["form_standard"], "kosha_kras")
+        self.assertIn("표준 서식 기준", html)
+        self.assertIn("oshri.kosha.or.kr", html)
 
     def test_save_list_reopen(self):
         out = self.scribe.generate([{"rule": "fall_suspected", "count": 2}], site="저장테스트", save=True)

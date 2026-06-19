@@ -92,10 +92,24 @@ class ScribeAgent(BaseAgent):
             if self.copilot is not None:
                 citations = self.copilot.cite(rule).get("citations", [])
             rows.append({
-                "rule": rule, "유해위험요인": kb["hazard"], "공정작업": kb["work"],
-                "위험분류": kb["cat"], "위험상황및결과": kb["harm"], "관련근거": kb["law"],
-                "빈도_가능성": likely, "강도_중대성": sev, "위험성": score, "위험성등급": lvl,
-                "감소대책": kb["act"], "AI감지근거": f"AI {count}회 감지",
+                # ── KOSHA KRAS 서식 11 컬럼 구조 ──
+                "rule": rule,
+                "세부작업내용": kb["work"],                 # 1. 세부 작업 내용
+                "유해위험요인": kb["hazard"],                # 2. 유해·위험요인(요약 명칭)
+                "위험분류": kb["cat"],                       # 2a. 위험 분류
+                "위험상황및결과": kb["harm"],                # 2b. 위험발생 상황 및 결과
+                "관련근거": kb["law"],                       # 3. 관련근거(법적기준)
+                "현재안전보건조치": kb.get("now", "AI 영상 감지·실시간 경보·기록"),  # 4. 현재의 안전보건조치
+                "가능성_빈도": likely,                        # 5a. 가능성(빈도)
+                "중대성_강도": sev,                          # 5b. 중대성(강도)
+                "위험성": score,                             # 5c. 위험성(가능성×중대성)
+                "위험성등급": lvl,
+                "감소대책": kb["act"],                       # 6. 위험성 감소대책
+                "개선후위험성": "",                          # 7. 개선후 위험성(검토자 기입)
+                "개선예정일": "",                            # 8. 개선 예정일(검토자 기입)
+                "완료일": "",                                # 9. 완료일(검토자 기입)
+                "담당자": "",                                # 10. 담당자(검토자 기입)
+                "AI감지근거": f"AI {count}회 감지",
                 "citations": citations, "_color": color,
             })
         rows.sort(key=lambda r: r["위험성"], reverse=True)
@@ -103,7 +117,11 @@ class ScribeAgent(BaseAgent):
         return {
             "site": site, "process": process,
             "generated_at": datetime.now(KST).strftime("%Y-%m-%d %H:%M KST"),
-            "method": "위험성 = 빈도(가능성) × 강도(중대성)",
+            "method": "위험성 = 가능성(빈도) × 중대성(강도)",
+            "form_standard": "kosha_kras",            # 정본 = KOSHA KRAS 서식 11
+            "form_label": "KOSHA KRAS 표준 위험성평가 양식(서식 11) 기준",
+            "form_source": "한국산업안전보건공단 OSHRI · "
+                           "oshri.kosha.or.kr/kosha/data/format (articleNo=297038)",
             "status": "draft", "review_required": True,
             "summary": {"총항목": len(rows), "상_높음": len(high),
                         "주요위험": [r["유해위험요인"] for r in high]},
@@ -111,7 +129,7 @@ class ScribeAgent(BaseAgent):
         }
 
     def render_html(self, assessment: dict[str, Any]) -> str:
-        """위험성평가표 → 인쇄/PDF 저장 가능한 자체 완결형 HTML."""
+        """위험성평가표 → KOSHA KRAS 서식 11 구조의 인쇄/PDF용 자체 완결형 HTML."""
         e = html.escape
         rows_html = ""
         for r in assessment["rows"]:
@@ -120,33 +138,46 @@ class ScribeAgent(BaseAgent):
             ) or "—"
             rows_html += f"""
       <tr>
-        <td>{e(r['유해위험요인'])}</td><td>{e(r['공정작업'])}</td><td>{e(r['위험분류'])}</td>
+        <td>{e(r['세부작업내용'])}<div class="hz">[{e(r['유해위험요인'])}]</div></td>
+        <td>{e(r['위험분류'])}</td>
         <td>{e(r['위험상황및결과'])}</td>
         <td>{e(r['관련근거'])}<div class="cite">{cites}</div></td>
-        <td style="text-align:center">{r['빈도_가능성']}</td>
-        <td style="text-align:center">{r['강도_중대성']}</td>
-        <td style="text-align:center"><b style="color:{r['_color']}">{r['위험성']} ({e(r['위험성등급'])})</b></td>
+        <td>{e(r['현재안전보건조치'])}<div class="ai">{e(r['AI감지근거'])}</div></td>
+        <td style="text-align:center">{r['가능성_빈도']}</td>
+        <td style="text-align:center">{r['중대성_강도']}</td>
+        <td style="text-align:center"><b style="color:{r['_color']}">{r['위험성']}<br>({e(r['위험성등급'])})</b></td>
         <td>{e(r['감소대책'])}</td>
-        <td style="text-align:center;color:#64748b">{e(r['AI감지근거'])}</td>
+        <td></td>
+        <td></td><td></td><td></td>
       </tr>"""
         s = assessment["summary"]
+        # 출처 배지: 공식 서식 기준 vs 임시 양식
+        is_official = assessment.get("form_standard") == "kosha_kras"
+        badge = (f'<span class="badge ok">표준 서식 기준</span> {e(assessment.get("form_label",""))}'
+                 if is_official else
+                 '<span class="badge tmp">표준 항목 기반 임시 양식</span> (공식 서식 미확보)')
+        source_line = (f'<div class="src">서식 출처: {e(assessment.get("form_source",""))}</div>'
+                       if is_official else "")
         return f"""<!DOCTYPE html><html lang="ko"><head><meta charset="UTF-8">
-<title>VIGENT 위험성평가서(초안)</title>
+<title>VIGENT 위험성평가서(초안) — KOSHA KRAS 서식</title>
 <style>
-  @page {{ size:A4 landscape; margin:12mm; }}
-  body{{font-family:"Apple SD Gothic Neo","Malgun Gothic",sans-serif;color:#0f172a;margin:28px;}}
-  h1{{font-size:20px;margin:0 0 4px}} .sub{{color:#64748b;font-size:13px}}
-  .notice{{background:#fef3c7;border:1px solid #f59e0b;border-radius:8px;padding:10px 12px;margin:14px 0;font-size:12px}}
-  .meta{{font-size:13px;margin:10px 0}} .meta b{{display:inline-block;min-width:70px;color:#475569}}
-  .flow{{display:flex;gap:8px;margin:14px 0;font-size:12px;flex-wrap:wrap}}
-  .flow span{{background:#eef2ff;border:1px solid #c7d2fe;border-radius:999px;padding:5px 12px;color:#3730a3}}
-  .flow b{{color:#1e3a8a}}
-  table{{width:100%;border-collapse:collapse;font-size:11.5px;margin-top:6px}}
-  th,td{{border:1px solid #cbd5e1;padding:6px 8px;vertical-align:top;text-align:left}}
-  thead th{{background:#f1f5f9}} thead tr.grp th{{background:#e2e8f0;text-align:center;font-size:11px}}
-  .cite{{color:#2563eb;font-size:10.5px;margin-top:4px;line-height:1.5}}
+  @page {{ size:A4 landscape; margin:10mm; }}
+  body{{font-family:"Apple SD Gothic Neo","Malgun Gothic",sans-serif;color:#0f172a;margin:24px;}}
+  h1{{font-size:19px;margin:0 0 4px}} .sub{{color:#64748b;font-size:13px}}
+  .badge{{display:inline-block;padding:2px 9px;border-radius:6px;font-size:12px;font-weight:700}}
+  .badge.ok{{background:#dcfce7;color:#166534;border:1px solid #16a34a}}
+  .badge.tmp{{background:#fef3c7;color:#92400e;border:1px solid #f59e0b}}
+  .src{{color:#64748b;font-size:11px;margin-top:3px}}
+  .notice{{background:#fef3c7;border:1px solid #f59e0b;border-radius:8px;padding:10px 12px;margin:12px 0;font-size:12px}}
+  .meta{{font-size:13px;margin:8px 0}} .meta b{{display:inline-block;min-width:70px;color:#475569}}
+  table{{width:100%;border-collapse:collapse;font-size:11px;margin-top:8px}}
+  th,td{{border:1px solid #94a3b8;padding:5px 7px;vertical-align:top;text-align:left}}
+  thead th{{background:#e2e8f0;text-align:center}}
+  .hz{{color:#b91c1c;font-size:10.5px;margin-top:3px;font-weight:600}}
+  .cite{{color:#2563eb;font-size:10px;margin-top:3px;line-height:1.5}}
+  .ai{{color:#64748b;font-size:10px;margin-top:3px}}
   .btn{{padding:9px 16px;border:1px solid #334155;border-radius:8px;background:#0f172a;color:#fff;cursor:pointer;text-decoration:none}}
-  .foot{{margin-top:16px;font-size:11px;color:#64748b;line-height:1.7}}
+  .foot{{margin-top:14px;font-size:11px;color:#64748b;line-height:1.7}}
   tr{{break-inside:avoid;page-break-inside:avoid}}
   @media print{{ .noprint{{display:none}} body{{margin:0}} }}
 </style></head><body>
@@ -154,45 +185,44 @@ class ScribeAgent(BaseAgent):
     <a class="btn" href="/safety/reports">📁 평가서 목록</a>
     <button class="btn" onclick="window.print()">🖨 인쇄 / PDF로 저장</button>
   </div>
-  <h1>위험성평가서 <span class="sub">(초안 · 검토 전)</span></h1>
+  <h1>위험성평가표 <span class="sub">(초안 · 검토 전)</span></h1>
   <div class="sub">VIGENT Safety · 생성 {e(assessment['generated_at'])}</div>
+  <div style="margin:8px 0">{badge}{source_line}</div>
   <div class="notice">⚠ 본 문서는 AI가 자동 생성한 <b>초안</b>입니다. 안전관리자 검토·승인이 필요하며,
      법적 자문·인증이 아닙니다. 비전 판정은 보조·감시 신호이며 프레스·전단기 등의 1차 방호 책임은
      인증 하드웨어(Type 4 광전자식 방호장치·안전 PLC)에 있습니다(§8).</div>
   <div class="meta">
-    <div><b>현장</b> {e(assessment['site'] or '—')}</div>
-    <div><b>공정</b> {e(assessment['process'] or '—')}</div>
+    <div><b>작업공정명</b> {e(assessment['site'] or '—')} / {e(assessment['process'] or '—')}</div>
+    <div><b>평가일시</b> {e(assessment['generated_at'])}</div>
     <div><b>평가방법</b> {e(assessment['method'])}</div>
     <div><b>요약</b> 총 {s['총항목']}건 · 높음(상) {s['상_높음']}건</div>
   </div>
-  <div class="flow">
-    <span><b>①</b> 위험요인 식별</span><span>→</span>
-    <span><b>②</b> 빈도·강도</span><span>→</span>
-    <span><b>③</b> 위험성 추정</span><span>→</span>
-    <span><b>④</b> 감소대책</span>
-  </div>
   <table>
     <thead>
-      <tr class="grp">
-        <th colspan="5">① 위험요인 식별 (근거 인용 포함)</th>
-        <th colspan="2">② 빈도·강도</th>
-        <th>③ 위험성 추정</th>
-        <th>④ 감소대책</th>
-        <th>AI 근거</th>
+      <tr>
+        <th rowspan="2" style="width:13%">세부 작업 내용<br>(유해·위험요인)</th>
+        <th colspan="2">유해·위험요인 파악</th>
+        <th rowspan="2" style="width:15%">관련근거<br>(법적기준)</th>
+        <th rowspan="2" style="width:13%">현재의<br>안전보건조치</th>
+        <th colspan="3">위험성</th>
+        <th rowspan="2" style="width:14%">위험성 감소대책</th>
+        <th rowspan="2">개선후<br>위험성</th>
+        <th rowspan="2">개선<br>예정일</th>
+        <th rowspan="2">완료일</th>
+        <th rowspan="2">담당자</th>
       </tr>
       <tr>
-        <th>유해·위험요인</th><th>공정/작업</th><th>위험분류</th><th>위험상황 및 결과</th>
-        <th>관련근거(법령·가이드)</th><th>빈도</th><th>강도</th><th>위험성(등급)</th>
-        <th>감소대책</th><th>AI 감지근거</th>
+        <th>위험 분류</th><th>위험발생 상황 및 결과</th>
+        <th>가능성<br>(빈도)</th><th>중대성<br>(강도)</th><th>위험성</th>
       </tr>
     </thead>
     <tbody>{rows_html}
     </tbody>
   </table>
   <div class="foot">
-    · 위험성 = 빈도(가능성) × 강도(중대성). 등급: 6↑ 상 / 3~5 중 / 2↓ 하<br>
-    · 근거(법령·조항)는 초안 참고용이며 최신 개정·현장 적용은 안전관리자가 검증해야 합니다(§9 출처 표기 원칙).<br>
-    · 개선예정일·담당자·승인란은 검토자가 직접 기입합니다.
+    · 양식: KOSHA KRAS 표준 위험성평가 양식(서식 11) 구조. 위험성 = 가능성(빈도) × 중대성(강도). 등급: 6↑ 상 / 3~5 중 / 2↓ 하<br>
+    · 관련근거(법령·조항)는 Copilot 자동 인용이며 초안 참고용입니다. 최신 개정·현장 적용은 안전관리자가 검증해야 합니다(§9 출처 표기 원칙).<br>
+    · 개선후 위험성·개선예정일·완료일·담당자는 검토자가 직접 기입합니다.
   </div>
 </body></html>"""
 
