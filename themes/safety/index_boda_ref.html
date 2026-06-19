@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BODA Safety — 산업안전 비전</title>
+
+<!-- TF.js + 모델들 -->
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.14.0/dist/tf.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/coco-ssd@2.2.3/dist/coco-ssd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/mobilenet@2.1.1/dist/mobilenet.min.js"></script>
+<script src="/static/posture-model.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/holistic@0.5.1675471629/holistic.js" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js" crossorigin="anonymous"></script>
+<link rel="stylesheet" href="/static/realtime_shared.css">
+</head>
+<body class="theme-safety theme-locked clean">
+
+<div id="loadingOverlay">
+  <div style="font-size:36px;">🧠</div>
+  <div style="font-size:18px;font-weight:700;color:#e2e8f0;">BODA TECH AI 비전 v3</div>
+  <div class="spinner"></div>
+  <div class="load-steps" id="loadSteps">
+    <div class="load-step active" id="ls0">⏳ MediaPipe Holistic 로딩 중...</div>
+    <div class="load-step" id="ls1">⏳ COCO-SSD 멀티스케일 모델 로딩 중...</div>
+    <div class="load-step" id="ls2">⏳ MobileNet 손 분류 모델 로딩 중...</div>
+    <div class="load-step" id="ls3">⏳ 카메라 시작 중...</div>
+  </div>
+</div>
+
+<header>
+  <div class="logo">🛡️ <span>BODA</span> TECH <span style="color:var(--text2);font-weight:400;font-size:14px;">직관형 AI 분석 화면</span></div>
+  <div class="badge" id="themeBadge">BODA Fitness</div>
+  <div class="status-bar">
+    <div class="status-item"><div class="status-dot" id="dotPose"></div><span>포즈</span></div>
+    <div class="status-item" data-chip="face"><div class="status-dot" id="dotFace"></div><span>얼굴</span></div>
+    <div class="status-item" data-chip="obj"><div class="status-dot" id="dotObj"></div><span>사물</span></div>
+    <div class="status-item" data-chip="hand"><div class="status-dot" id="dotHand"></div><span>손 감지</span></div>
+    <div class="status-item" data-chip="safe"><div class="status-dot" id="dotSafe"></div><span>안전</span></div>
+    <div style="border-left:1px solid var(--border);padding-left:14px;" id="fpsDisplay">FPS: --</div>
+  </div>
+  <button id="cleanToggle" onclick="toggleCleanMode()">⚙ 고급</button>
+</header>
+<script>
+  function toggleCleanMode(){
+    var clean = document.body.classList.toggle('clean');
+    var b = document.getElementById('cleanToggle');
+    if(b) b.textContent = clean ? '⚙ 고급' : '✕ 깔끔 보기';
+    try{ localStorage.setItem('boda_clean', clean ? '1' : '0'); }catch(e){}
+  }
+  // 마지막 선택 기억(기본은 깔끔)
+  try{
+    if(localStorage.getItem('boda_clean') === '0'){
+      document.body.classList.remove('clean');
+      var b0 = document.getElementById('cleanToggle');
+      if(b0) b0.textContent = '✕ 깔끔 보기';
+    }
+  }catch(e){}
+</script>
+
+<main>
+  <div class="video-panel">
+    <div class="video-container" id="videoContainer">
+      <video id="videoEl" autoplay muted playsinline></video>
+      <img id="imageEl" alt=""/>
+      <canvas id="outputCanvas"></canvas>
+
+      <div id="recogPanel" class="recog-panel"><h4>지금 인식 중</h4><div class="dim" style="font-size:13px;">카메라를 켜면 표시됩니다</div></div>
+      <div class="zone-btns" style="position:absolute;right:14px;bottom:14px;z-index:31;display:flex;gap:6px;">
+        <button id="zoneBtn" class="zone-btn" style="position:static;">위험구역 추가</button>
+        <button id="zoneClearBtn" class="zone-btn" style="position:static;">위험구역 삭제</button>
+      </div>
+      <div id="zoneHint" class="zone-hint">꼭짓점을 클릭해 구역을 그리세요 · 여러 개 추가 가능 · '삭제'로 전체 제거</div>
+      <button id="reportBtn" class="report-btn"
+        onclick="window.open(API_BASE+'/report/safety?site='+encodeURIComponent('현장')+'&hours=24','_blank')">
+        안전 증빙 리포트</button>
+      <button id="riskBtn" class="report-btn" style="bottom:98px;border-color:#f59e0b;color:#f59e0b"
+        onclick="window.open(API_BASE+'/report/safety?site='+encodeURIComponent('현장')+'&hours=24#riskassess','_blank')">
+        위험성평가 보기</button>
+      
+      <button id="calBtn" class="report-btn" style="bottom:140px;border-color:#a78bfa;color:#c4b5fd"
+        onclick="axStartCalibration()">거리 보정(m·km/h)</button>
+      <div id="calHint" class="cal-hint"></div>
+
+      <button id="thermBtn" class="report-btn" style="bottom:182px;border-color:#fb7185;color:#fda4af" onclick="toggleTherm()">온도 감지(열화상)</button>
+      <div id="thermPanel" class="therm-panel">
+        <div class="ttl">열화상 온도 감지</div>
+        <label>최저(°C)<input type="number" id="thermMin" value="20" step="1"></label>
+        <label>최고(°C)<input type="number" id="thermMax" value="120" step="1"></label>
+        <label>경보(°C)<input type="number" id="thermAlert" value="80" step="1"></label>
+        <div class="hint">열화상 이미지/영상을 업로드한 뒤 사용하세요. 카메라 범례의 최저·최고 온도를 입력하면 정확합니다. 화면을 클릭하면 그 지점 온도가 표시됩니다.</div>
+      </div>
+      <div id="dzAlert" class="dz-alert">위험구역 침입 감지! 즉시 확인하세요</div>
+      <button id="dzMute" class="dz-mute" onclick="dzMuted=!dzMuted;this.textContent=dzMuted?'🔇 알람 꺼짐(클릭해 켜기)':'🔔 알람 음소거';">🔔 알람 음소거</button>
+      <div id="axTools" class="ax-tools">
+        <label title="개인정보 보호: 얼굴 영역 비식별화"><input type="checkbox" id="togBlur"> 얼굴 가림</label>
+        <label data-ax="safety" title="이동 객체(사람·차량) 실시간 속도 표시 — 거리 보정 시 km/h"><input type="checkbox" id="togSpeed"> 속도 표시</label>
+        <label data-ax="safety" title="이 속도(km/h) 초과 시 텔레그램 경보(거리 보정 필요)">과속경보 <input type="number" id="speedAlert" value="20" min="1" style="width:46px;background:var(--surface2);border:1px solid var(--border);color:var(--text);border-radius:5px;padding:2px 4px;font-size:11px"> km/h</label>
+        <label data-ax="safety" title="사람 동선 누적 히트맵"><input type="checkbox" id="togHeatmap"> 동선 히트맵</label>
+      </div>
+
+      <div id="cameraOffScreen">
+        <div class="co-icon">📷</div>
+        <div class="co-text">카메라가 꺼져 있습니다</div>
+      </div>
+
+      <!-- 안전 경보 배지(낙상/보호구/행동) — updateSafetyUI가 사용 -->
+      <div class="video-overlay-labels">
+        <div class="action-badge" id="actionBadge" style="display:none">🏃 <span id="actionText">—</span></div>
+        <div class="action-badge warn-badge" id="warnBadge" style="display:none">⚠️ <span id="warnText">주의</span></div>
+        <div class="action-badge danger-badge" id="dangerBadge" style="display:none">🚨 <span id="dangerText">위험</span></div>
+      </div>
+
+      <div class="fps-counter" id="fpsCounter">FPS: --</div>
+      <div class="cam-status-badge on" id="camStatusBadge">
+        <div class="cam-led on" id="camLed"></div>
+        <span id="camStatusText">카메라 ON</span>
+      </div>
+    </div>
+
+    <div class="controls">
+      <button class="btn active" id="btnCamToggle" onclick="toggleCamera()">
+        <span id="camBtnIcon">📷</span><span id="camBtnText">카메라 끄기</span>
+      </button>
+      <div style="width:1px;height:28px;background:var(--border);margin:0 2px;"></div>
+      <label class="btn" for="fileInput">🖼️ 파일 업로드</label>
+      <input type="file" id="fileInput" accept="image/*,video/*" style="display:none" onchange="handleFile(event)">
+      <button class="btn" onclick="toggleMirror()">↔ 방향 보정</button>
+      <button class="btn" id="btnPause" onclick="togglePause()" disabled>⏸ 정지</button>
+    </div>
+  </div>
+
+  <div class="right-panel">
+    <div class="panel-summary">
+      <div class="panel-summary-title" id="panelModeTitle">BODA Safety 분석 중</div>
+      <div class="panel-summary-sub" id="panelModeSub">보호구, 위험 행동, 위험 사물과 현장 이벤트를 확인합니다.</div>
+    </div>
+    <div class="panel-tabs">
+      <div class="tab active" data-pane="safety" onclick="switchTab('safety')">안전</div>
+      <div class="tab" data-pane="objects" onclick="switchTab('objects')">사물</div>
+    </div>
+
+    <div class="tab-content">
+      <div class="tab-pane active" id="pane-safety">
+        <div class="simple-result warn" id="ppeSimpleCard">
+          <div class="simple-kicker">보호구 착용 분석</div>
+          <div class="simple-title" id="ppeResultTitle">안전모와 안전조끼를 확인 중입니다</div>
+          <div class="simple-desc" id="ppeResultDesc">BODA Safety 모드에서 작업자의 머리와 상체 영역을 확인해 보호구 착용 여부를 표시합니다.</div>
+          <div class="simple-grid">
+            <div class="simple-stat">
+              <div class="k">작업자</div>
+              <div class="v" id="ppeWorkerCount">—</div>
+            </div>
+            <div class="simple-stat">
+              <div class="k">안전모</div>
+              <div class="v" id="helmetStatus">확인 중</div>
+            </div>
+            <div class="simple-stat">
+              <div class="k">안전조끼</div>
+              <div class="v" id="vestStatus">확인 중</div>
+            </div>
+          </div>
+          <div class="simple-guide" id="ppeEvidence">판단 근거: 머리/상체 crop 분석 대기 중</div>
+          <div class="simple-guide warn" id="ppeModelBasis">현재는 브라우저 경량 모델 기반입니다. 전용 PPE YOLO 모델을 연결하면 정확도가 올라갑니다.</div>
+          <div class="simple-guide warn" id="ppeGuide">작업자의 머리와 상체가 화면에 보이면 착용 여부 후보를 표시합니다.</div>
+        </div>
+
+        <div class="card">
+          <div class="card-title">🚨 실시간 안전 상태</div>
+          <div class="row"><span class="label">종합 안전 등급</span><span class="value" id="safetyGrade">대기 중</span></div>
+          <div class="row"><span class="label">낙상 위험</span><span class="value" id="fallRisk">—</span></div>
+          <div class="row"><span class="label">자세 이상</span><span class="value" id="postureRisk">—</span></div>
+          <div class="row"><span class="label">위험 사물</span><span class="value" id="objRisk">—</span></div>
+          <div class="row"><span class="label">현재 활동</span><span class="value" id="activityState">—</span></div>
+        </div>
+        <div class="card">
+          <div class="card-title">⚠️ 경고 이벤트</div>
+          <div id="alertList"><div class="no-data"><span class="icon">✅</span>이상 없음</div></div>
+        </div>
+        <div class="card">
+          <div class="card-title">📊 세션 통계</div>
+          <div class="row"><span class="label">낙상 감지</span><span class="value red" id="statFall">0회</span></div>
+          <div class="row"><span class="label">위험 자세</span><span class="value yellow" id="statPosture">0회</span></div>
+          <div class="row"><span class="label">위험 사물</span><span class="value orange" id="statObj">0회</span></div>
+          <div class="row"><span class="label">분석 시간</span><span class="value accent" id="statTime">0s</span></div>
+        </div>
+        <div class="card">
+          <div class="card-title">⚙️ 안전 설정</div>
+          <div class="toggle-row"><span>안전모/조끼 알림</span><label class="toggle"><input type="checkbox" id="togPPE" checked><span class="toggle-slider"></span></label></div>
+          <div class="toggle-row"><span>낙상 감지 (6프레임)</span><label class="toggle"><input type="checkbox" id="togFall" checked><span class="toggle-slider"></span></label></div>
+          <div class="toggle-row"><span>위험 자세 감지</span><label class="toggle"><input type="checkbox" id="togPosture" checked><span class="toggle-slider"></span></label></div>
+          <div class="toggle-row"><span>위험 사물 경고</span><label class="toggle"><input type="checkbox" id="togObjSafe" checked><span class="toggle-slider"></span></label></div>
+          <div class="toggle-row"><span>경보 사운드</span><label class="toggle"><input type="checkbox" id="togSound"><span class="toggle-slider"></span></label></div>
+        </div>
+      </div>
+
+      <div class="tab-pane" id="pane-objects">
+        <div class="card">
+          <div class="card-title">📊 다중 객체 통계 <span class="new-tag">멀티스케일</span></div>
+          <div class="multi-stat">
+            <div class="mstat"><div class="mv" id="statTotal">0</div><div class="ml">전체 감지</div></div>
+            <div class="mstat"><div class="mv" id="statUniq">0</div><div class="ml">종류 수</div></div>
+            <div class="mstat"><div class="mv" id="statHeld">0</div><div class="ml">손에 든 것</div></div>
+            <div class="mstat"><div class="mv" id="statDanger">0</div><div class="ml">위험 사물</div></div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-title">📍 장소/씬 분류</div>
+          <div class="row"><span class="label">추정 장소</span><span class="value accent" id="sceneLabel">분석 중...</span></div>
+          <div style="margin-top:8px;"><div class="scene-tags" id="sceneTags"></div></div>
+        </div>
+
+        <div class="card">
+          <div class="card-title">📦 감지된 사물 <span id="objCount" style="color:var(--accent);margin-left:4px;">0</span>개 <span style="font-size:10px;color:var(--text2);">(ID 추적 중)</span></div>
+          <div class="obj-list" id="objList"><div class="no-data"><span class="icon">🔍</span>감지된 사물 없음</div></div>
+        </div>
+
+        <div class="card">
+          <div class="card-title">⚙️ 감지 설정</div>
+          <div class="toggle-row"><span>바운딩 박스</span><label class="toggle"><input type="checkbox" id="togBBox" checked><span class="toggle-slider"></span></label></div>
+          <div class="toggle-row"><span>라벨 표시</span><label class="toggle"><input type="checkbox" id="togLabel" checked><span class="toggle-slider"></span></label></div>
+          <div class="toggle-row"><span>멀티스케일 감지</span><label class="toggle"><input type="checkbox" id="togMultiScale" checked><span class="toggle-slider"></span></label></div>
+          <div class="toggle-row"><span>정확도 안정화</span><label class="toggle"><input type="checkbox" id="togPrecision" checked><span class="toggle-slider"></span></label></div>
+          <div class="toggle-row"><span>백엔드 정밀 보정 (yolov8s)</span><label class="toggle"><input type="checkbox" id="togBackendBoost" checked><span class="toggle-slider"></span></label></div>
+          <div class="toggle-row"><span>외곽선 모드 (세그멘테이션)</span><label class="toggle"><input type="checkbox" id="togSegment"><span class="toggle-slider"></span></label></div>
+          <div style="font-size:11px;color:var(--text2);line-height:1.5;margin-top:6px">최근 프레임을 함께 보고 사람 수, 손에 든 물체, 행동 판정을 안정화합니다.</div>
+          <div class="row" style="margin-top:6px;">
+            <span class="label" style="font-size:12px;">최소 신뢰도</span>
+            <div style="display:flex;align-items:center;gap:8px;">
+              <input type="range" id="confThreshold" min="10" max="90" value="32" style="width:80px;accent-color:var(--accent)">
+              <span id="confVal" style="font-size:12px;color:var(--accent);width:32px;">32%</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</main>
+
+<script>window.AX_LOCK_THEME="safety";</script>
+<script src="/static/realtime_core.js?v=7f57d0b1"></script>
+</body>
+</html>

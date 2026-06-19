@@ -19,7 +19,9 @@ import os
 import sys
 from pathlib import Path
 
-from fastapi import FastAPI, HTTPException
+import json
+
+from fastapi import Body, FastAPI, HTTPException
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 
@@ -89,6 +91,34 @@ def capabilities(theme: str = DEFAULT_THEME):
         "pipeline": cfg.summary(),
         "agents": [a.status() for a in bundle["agents"].values()],
     })
+
+
+@app.get("/zone/danger")
+def zone_danger(theme: str = DEFAULT_THEME):
+    """테마 vision.yaml 이 가리키는 위험구역 폴리곤(정규화 좌표)을 반환."""
+    bundle = STATE.get(theme) or _load_theme(theme)
+    cfg = bundle["config"]
+    zone_path = (cfg.raw.get("judgment", {}) or {}).get("zones", {}).get("danger_zones")
+    if not zone_path:
+        return {"points": []}
+    p = _ROOT / zone_path
+    if not p.exists():
+        return {"points": []}
+    with open(p, "r", encoding="utf-8") as f:
+        return json.load(f)
+
+
+@app.post("/safety/judge")
+def safety_judge(payload: dict = Body(...), theme: str = DEFAULT_THEME):
+    """Analyst 가산식 판단. 프론트가 관측 신호(signals)와 (선택)딥러닝 신호(dl)를 보낸다.
+    모델 신호가 없으면 규칙만으로 폴백 동작(절대 저하 없음)."""
+    bundle = STATE.get(theme) or _load_theme(theme)
+    analyst = bundle["agents"].get("Analyst")
+    if analyst is None:
+        raise HTTPException(status_code=500, detail="Analyst 미등록")
+    signals = payload.get("signals", {}) or {}
+    dl = payload.get("dl")  # None 이면 폴백
+    return analyst.judge(signals, dl)
 
 
 @app.get("/{theme}")
