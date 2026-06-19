@@ -66,7 +66,7 @@ class GuardAgent(BaseAgent):
     TRACK_TTL = 1.2          # 서버 추적 유지시간(초). 프론트 간격보다 길게 → 깜빡임 제거
     TRACK_IOU = 0.45         # 같은 객체로 볼 겹침 기준
     EMA = 0.5                # 박스 위치 스무딩(0~1, 클수록 새 위치 빨리 반영). 떨림 완화
-    MIN_HITS = 2             # 이 횟수 이상 '연속 확인'된 객체만 표시 → 한 프레임 헛것 제거
+    MIN_HITS = 1             # 1=즉시 표시(움직이는 객체도 바로 보임). 헛것은 임계값으로 거름
 
     def __init__(self, config: Any):
         super().__init__(config)
