@@ -13,11 +13,12 @@ perception:                       # ── Guard (감지)
   detectors:
     # 사람: 주 모델 yolo11s, 폴백 yolov8s (둘 다 weights/ 에 복사됨)
     - {id: person, model: vigent-core/weights/yolo11s.pt, fallback: vigent-core/weights/yolov8s.pt, classes: [person]}
-    # PPE: 25클래스, 미착용 직접 감지. 폴백은 휴리스틱(색/위치 규칙)
+    # PPE: 25클래스 주력 모델. 안전모·조끼·마스크 착용/미착용 직접 감지 + 차량·중장비.
+    #   라벨은 공백형으로 출력(Safety Vest 등) → guard.py 가 표준형(Safety-Vest)으로 정규화.
     - {id: ppe, model: vigent-core/weights/ppe_construction_v30.pt, fallback: heuristic,
-       classes: [Hardhat, NO-Hardhat, Safety-Vest, NO-Safety-Vest]}
-    # 화재/연기: 폴백은 HSV 색공간 휴리스틱
-    - {id: fire_smoke, model: vigent-core/weights/fire_detector.pt, fallback: hsv_heuristic}
+       classes: [Hardhat, NO-Hardhat, Safety-Vest, NO-Safety-Vest, Mask, NO-Mask]}
+    # 화재/연기: fire_smoke_boda(Fire/smoke 2종, smoke mAP 0.896). 폴백은 HSV 색공간 휴리스틱
+    - {id: fire_smoke, model: vigent-core/weights/fire_smoke_boda.pt, fallback: hsv_heuristic}
     # 지게차/중장비: 폴백 없음(모델 없으면 해당 기능만 비활성, 나머지는 정상)
     - {id: forklift, model: vigent-core/weights/forklift_boda_ax.pt, fallback: none}
   pose:    {model: rtmpose, fallback: [mediapipe_holistic, vigent-core/weights/yolov8n-pose.pt]}

@@ -26,9 +26,12 @@ LABEL_NORMALIZE = {
     "NO-Safety-Vest": "NO-Safety-Vest",
     "Safety-Vest": "Safety-Vest",
     "Hardhat": "Hardhat", "NO-Hardhat": "NO-Hardhat",
+    "Fire": "fire",   # 화재 모델 대문자 → 표준 소문자
 }
-# PPE 미착용 판정에 쓰는 표준 라벨
-PPE_MISSING_LABELS = {"NO-Hardhat", "NO-Safety-Vest"}
+# PPE 미착용 판정에 쓰는 표준 라벨(안전모·조끼·마스크)
+PPE_MISSING_LABELS = {"NO-Hardhat", "NO-Safety-Vest", "NO-Mask"}
+# 잡음/무의미 클래스 — 그리지 않고 버림(예: fire 모델의 'default')
+JUNK_LABELS = {"default"}
 
 
 class GuardAgent(BaseAgent):
@@ -78,7 +81,7 @@ class GuardAgent(BaseAgent):
         detectors: 돌릴 검출기 id 목록(기본 person·ppe·forklift; fire 는 명시 시)
         """
         conf = self.DEFAULT_CONF if conf is None else conf
-        want = detectors or ["person", "ppe", "forklift"]
+        want = detectors or ["person", "ppe", "forklift", "fire_smoke"]
         h, w = image_bgr.shape[:2]
         detections: list[dict[str, Any]] = []
         used: list[str] = []
@@ -98,6 +101,8 @@ class GuardAgent(BaseAgent):
                 cls_id = int(b.cls[0])
                 raw = names.get(cls_id, str(cls_id))
                 label = LABEL_NORMALIZE.get(raw, raw)
+                if label in JUNK_LABELS:        # 'default' 등 잡음 클래스 버림
+                    continue
                 x1, y1, x2, y2 = (float(v) for v in b.xyxy[0])
                 detections.append({
                     "detector": slot,
@@ -113,6 +118,9 @@ class GuardAgent(BaseAgent):
         ppe_missing_hits = [d for d in detections if d["label"] in PPE_MISSING_LABELS]
         # ppe_conf: 미착용 탐지 최고 confidence(있으면 Analyst 가산용으로 전달)
         ppe_conf = max((d["conf"] for d in ppe_missing_hits), default=0.0)
+        # 화재·연기 탐지(보조 신호 — §8: 인증 화재경보 대체 아님)
+        fire_hits = [d for d in detections if d["label"].lower() in ("fire", "smoke")]
+        fire_conf = max((d["conf"] for d in fire_hits), default=0.0)
 
         return {
             "detectors_used": used,
@@ -122,5 +130,7 @@ class GuardAgent(BaseAgent):
                 "ppe_missing": bool(ppe_missing_hits),
                 "ppe_conf": ppe_conf,
                 "forklift_present": any(d["label"].lower() == "forklift" for d in detections),
+                "fire_smoke": bool(fire_hits),
+                "fire_conf": fire_conf,
             },
         }

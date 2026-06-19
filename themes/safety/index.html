@@ -199,10 +199,12 @@ let frameN=0, lastT=performance.now(), fps=0, lastJudge=0, lastLevel='safe';
 
 // 라벨별 박스 색
 function boxColor(label){
-  if(label==='NO-Hardhat'||label==='NO-Safety-Vest') return '#ff3b3b';   // 미착용=빨강
-  if(label==='Hardhat'||label==='Safety-Vest') return '#39d98a';          // 착용=초록
-  if(label.toLowerCase()==='person') return '#7fd0ff';                    // 사람=파랑
-  if(label.toLowerCase()==='forklift') return '#ffb020';                  // 지게차=주황
+  const L=label.toLowerCase();
+  if(label==='NO-Hardhat'||label==='NO-Safety-Vest'||label==='NO-Mask') return '#ff3b3b'; // 미착용=빨강
+  if(label==='Hardhat'||label==='Safety-Vest'||label==='Mask') return '#39d98a';          // 착용=초록
+  if(L==='fire'||L==='smoke') return '#ff5b2e';                           // 화재·연기=주황빨강
+  if(L==='person') return '#7fd0ff';                                      // 사람=파랑
+  if(L==='forklift'||L==='excavator'||L==='machinery'||L==='wheel loader'||L==='truck'||L==='vehicle') return '#ffb020'; // 차량·중장비=주황
   return '#cfe9ff';
 }
 
