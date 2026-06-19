@@ -21,7 +21,7 @@ from pathlib import Path
 
 import json
 
-from fastapi import Body, FastAPI, HTTPException
+from fastapi import Body, FastAPI, HTTPException, Response
 from fastapi.responses import FileResponse, HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 
@@ -39,6 +39,7 @@ if str(_HERE) not in sys.path:
     sys.path.insert(0, str(_HERE))
 
 from agents import build_agents          # noqa: E402
+import data_engine                       # noqa: E402
 import vision_loader                     # noqa: E402
 
 # ─────────────────────────────────────────────────────────────
@@ -200,15 +201,88 @@ def safety_risk_assessment(payload: dict = Body(...), theme: str = DEFAULT_THEME
     return {"assessment": out["assessment"], "saved_path": out["saved_path"]}
 
 
+@app.post("/recognition/log")
+def recognition_log(payload: dict = Body(...)):
+    """데이터엔진 — 위험 이벤트 1건 기록(+증거 프레임 저장).
+    payload={rule, level, score, site, note, image(data URL, 선택)}"""
+    return data_engine.log_event(
+        rule=payload.get("rule", ""), level=payload.get("level", ""),
+        score=payload.get("score", 0), site=payload.get("site", ""),
+        note=payload.get("note", ""), image_data_url=payload.get("image"))
+
+
+@app.get("/recognition/log")
+def recognition_log_list(limit: int = 100, hours: float | None = None):
+    """저장된 인식 로그 목록(최신순)."""
+    return {"events": data_engine.list_events(limit=limit, hours=hours)}
+
+
+@app.get("/recognition/log/download")
+def recognition_log_download():
+    """전체 인식 로그를 JSONL 로 다운로드."""
+    lines = [json.dumps(r, ensure_ascii=False) for r in data_engine.list_events(limit=100000)]
+    return Response("\n".join(lines), media_type="application/x-ndjson",
+                    headers={"Content-Disposition": "attachment; filename=vigent_events.jsonl"})
+
+
 @app.get("/report/safety", response_class=HTMLResponse)
-def report_safety(theme: str = DEFAULT_THEME):
-    """최근 위험 이벤트 기반 위험성평가서 HTML(인쇄→PDF). 데모용 샘플 이벤트로 렌더.
-    실제 운영에서는 데이터엔진의 누적 이벤트를 넘긴다(6단계)."""
+def report_safety(theme: str = DEFAULT_THEME, hours: float = 24):
+    """최근 N시간 누적 이벤트(데이터엔진 집계) 기반 위험성평가서 HTML(인쇄→PDF).
+    누적 이벤트가 없으면 데모 샘플로 렌더(빈 화면 방지)."""
     bundle = STATE.get(theme) or _load_theme(theme)
     scribe = bundle["agents"].get("Scribe")
-    sample = [{"rule": "zone_intrusion", "count": 5}, {"rule": "ppe_missing", "count": 9},
-              {"rule": "fall_suspected", "count": 1}]
-    return scribe.generate(sample, site="데모 현장", process="데모 공정", save=False)["html"]
+    events = data_engine.aggregate(hours=hours)
+    site = f"최근 {int(hours)}시간 누적"
+    if not events:                              # 아직 쌓인 이벤트 없음 → 데모
+        events = [{"rule": "zone_intrusion", "count": 5}, {"rule": "ppe_missing", "count": 9},
+                  {"rule": "fall_suspected", "count": 1}]
+        site = "데모 현장(누적 이벤트 없음)"
+    return scribe.generate(events, site=site, process="-", save=False)["html"]
+
+
+@app.get("/safety/risk-assessment/list")
+def risk_assessment_list(theme: str = DEFAULT_THEME):
+    """저장된 위험성평가서 목록(최신순)."""
+    bundle = STATE.get(theme) or _load_theme(theme)
+    return {"items": bundle["agents"]["Scribe"].list_saved()}
+
+
+@app.get("/safety/risk-assessment/{aid}", response_class=HTMLResponse)
+def risk_assessment_open(aid: str, theme: str = DEFAULT_THEME):
+    """저장된 위험성평가서 다시열기(HTML)."""
+    bundle = STATE.get(theme) or _load_theme(theme)
+    page = bundle["agents"]["Scribe"].load_html(aid)
+    if page is None:
+        raise HTTPException(status_code=404, detail="평가서 없음")
+    return page
+
+
+@app.get("/safety/reports", response_class=HTMLResponse)
+def safety_reports(theme: str = DEFAULT_THEME):
+    """저장된 평가서 목록 화면 + '지금 생성' 버튼."""
+    bundle = STATE.get(theme) or _load_theme(theme)
+    items = bundle["agents"]["Scribe"].list_saved()
+    rows = "".join(
+        f"""<tr><td>{i['generated_at']}</td><td>{i['site']}</td>
+        <td style="text-align:center">{i['총항목']}</td>
+        <td style="text-align:center;color:#ef4444">{i['상_높음']}</td>
+        <td><a href="/safety/risk-assessment/{i['id']}" target="_blank">열기 ↗</a></td></tr>"""
+        for i in items) or '<tr><td colspan="5" style="color:#94a3b8">저장된 평가서가 없습니다. 아래 버튼으로 생성하세요.</td></tr>'
+    return f"""<!DOCTYPE html><html lang="ko"><head><meta charset="UTF-8">
+<title>VIGENT 위험성평가서 목록</title><style>
+  body{{font-family:"Apple SD Gothic Neo",sans-serif;margin:32px;color:#0f172a}}
+  h1{{font-size:20px}} a{{color:#2563eb}}
+  table{{width:100%;border-collapse:collapse;margin-top:14px;font-size:13px}}
+  th,td{{border:1px solid #cbd5e1;padding:8px 10px;text-align:left}} th{{background:#f1f5f9}}
+  .btn{{display:inline-block;margin-top:16px;padding:10px 18px;background:#0f172a;color:#fff;
+        border-radius:8px;text-decoration:none}}
+</style></head><body>
+  <h1>📁 위험성평가서 목록</h1>
+  <div style="color:#64748b;font-size:13px">저장 위치: data/risk_assessments/ · 최신순</div>
+  <table><thead><tr><th>생성일시</th><th>현장</th><th>총항목</th><th>높음(상)</th><th>열기</th></tr></thead>
+  <tbody>{rows}</tbody></table>
+  <a class="btn" href="/report/safety" target="_blank">＋ 지금 평가서 생성(누적 이벤트 기반)</a>
+</body></html>"""
 
 
 @app.post("/alerts/test")
@@ -239,3 +313,8 @@ def theme_page(theme: str):
 _STATIC_DIR = _HERE / "static"
 if _STATIC_DIR.exists():
     app.mount("/static", StaticFiles(directory=str(_STATIC_DIR)), name="static")
+
+# 증거 프레임 이미지 서빙(데이터엔진 저장본). 폴더는 첫 이벤트 때 생성됨.
+_EVIDENCE_DIR = _ROOT / "data" / "evidence"
+_EVIDENCE_DIR.mkdir(parents=True, exist_ok=True)
+app.mount("/evidence", StaticFiles(directory=str(_EVIDENCE_DIR)), name="evidence")

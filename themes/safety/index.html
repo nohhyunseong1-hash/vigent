@@ -91,6 +91,7 @@
     <span id="rec">REC</span>
     <span id="clock">--:--:--</span>
     <span>CAM01 · VIGENT-SAFETY</span>
+    <a href="/safety/reports" target="_blank" style="color:#7fd0ff;text-decoration:none">📁 평가서</a>
   </div>
 
   <div id="statusPanel" class="panel">
@@ -147,6 +148,8 @@ let draftZone=[];           // 그리는 중인 임시 폴리곤
 let drawMode=false;         // 그리기 모드 on/off
 let zoneTarget='danger';    // 지금 그리는 대상: 'danger' | 'machine'
 let lastRelay=0;            // 보조 방호신호 과다호출 방지
+let lastEvidence={};        // 규칙별 증거 저장 쿨다운(과다저장 방지)
+const HAZARD_RULES=['zone_intrusion','fall_suspected','ppe_missing','guard_bypass'];
 let frameN=0, lastT=performance.now(), fps=0, lastJudge=0, lastLevel='safe';
 
 const $=id=>document.getElementById(id);
@@ -229,6 +232,27 @@ function drawDraft(){
   ctx.restore();
 }
 
+// 증거 프레임 캡처(영상+오버레이 합성, 화면과 동일 mirror) → JPEG data URL
+function captureFrame(){
+  const t=document.createElement('canvas'); t.width=canvas.width; t.height=canvas.height;
+  const tc=t.getContext('2d');
+  tc.translate(t.width,0); tc.scale(-1,1);     // 화면과 동일하게 좌우반전
+  tc.drawImage(video,0,0,t.width,t.height);    // 원본 영상
+  tc.drawImage(canvas,0,0,t.width,t.height);   // 스켈레톤·구역 오버레이
+  return t.toDataURL('image/jpeg',0.6);
+}
+
+// 데이터엔진: 위험 이벤트 증거+로그 저장(규칙별 5초 쿨다운)
+function logEvidence(rule, level, score){
+  const now=performance.now();
+  if(now-(lastEvidence[rule]||0) < 5000) return;   // 과다저장 방지
+  lastEvidence[rule]=now;
+  fetch('/recognition/log',{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({rule, level, score, site:'console', image:captureFrame()})})
+    .then(r=>r.json()).then(d=>log(`evidence 저장 ${rule} → ${d.evidence||'(이미지없음)'}`))
+    .catch(()=>{});
+}
+
 // Analyst 가산 판단 호출(모델 신호 없음 → 규칙 폴백)
 async function judge(signals){
   try{
@@ -256,6 +280,9 @@ function applyRisk(j){
     ? fired.map(f=>`<div class="row"><span>${f.rule}</span><b class="${f.severity==='medium'?'tag-warn':'tag-danger'}">${f.severity}</b></div>`).join('')
     : '<div class="row"><span>위반 없음</span><b class="tag-ok">CLEAR</b></div>';
   if(lv!==lastLevel){ log(`alert=${lv} score=${score}`); lastLevel=lv; }
+
+  // 데이터엔진: 발동한 위험 규칙마다 증거 프레임+로그 자동 저장
+  fired.forEach(f=>{ if(HAZARD_RULES.includes(f.rule)) logEvidence(f.rule, lv, score); });
 
   // guard_bypass(critical) → §8 보조 방호신호 발송(과다호출 방지: 3초 간격)
   const isBypass = fired.some(f=>f.rule==='guard_bypass');

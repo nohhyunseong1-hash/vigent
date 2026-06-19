@@ -133,18 +133,25 @@ class ScribeAgent(BaseAgent):
         return f"""<!DOCTYPE html><html lang="ko"><head><meta charset="UTF-8">
 <title>VIGENT 위험성평가서(초안)</title>
 <style>
+  @page {{ size:A4 landscape; margin:12mm; }}
   body{{font-family:"Apple SD Gothic Neo","Malgun Gothic",sans-serif;color:#0f172a;margin:28px;}}
   h1{{font-size:20px;margin:0 0 4px}} .sub{{color:#64748b;font-size:13px}}
   .notice{{background:#fef3c7;border:1px solid #f59e0b;border-radius:8px;padding:10px 12px;margin:14px 0;font-size:12px}}
   .meta{{font-size:13px;margin:10px 0}} .meta b{{display:inline-block;min-width:70px;color:#475569}}
-  table{{width:100%;border-collapse:collapse;font-size:12px;margin-top:10px}}
-  th,td{{border:1px solid #cbd5e1;padding:7px 8px;vertical-align:top;text-align:left}}
-  th{{background:#f1f5f9}} .cite{{color:#2563eb;font-size:11px;margin-top:4px;line-height:1.5}}
-  .btn{{padding:9px 16px;border:1px solid #334155;border-radius:8px;background:#0f172a;color:#fff;cursor:pointer}}
+  .flow{{display:flex;gap:8px;margin:14px 0;font-size:12px;flex-wrap:wrap}}
+  .flow span{{background:#eef2ff;border:1px solid #c7d2fe;border-radius:999px;padding:5px 12px;color:#3730a3}}
+  .flow b{{color:#1e3a8a}}
+  table{{width:100%;border-collapse:collapse;font-size:11.5px;margin-top:6px}}
+  th,td{{border:1px solid #cbd5e1;padding:6px 8px;vertical-align:top;text-align:left}}
+  thead th{{background:#f1f5f9}} thead tr.grp th{{background:#e2e8f0;text-align:center;font-size:11px}}
+  .cite{{color:#2563eb;font-size:10.5px;margin-top:4px;line-height:1.5}}
+  .btn{{padding:9px 16px;border:1px solid #334155;border-radius:8px;background:#0f172a;color:#fff;cursor:pointer;text-decoration:none}}
   .foot{{margin-top:16px;font-size:11px;color:#64748b;line-height:1.7}}
-  @media print{{.noprint{{display:none}}}}
+  tr{{break-inside:avoid;page-break-inside:avoid}}
+  @media print{{ .noprint{{display:none}} body{{margin:0}} }}
 </style></head><body>
   <div class="noprint" style="text-align:right;margin-bottom:8px">
+    <a class="btn" href="/safety/reports">📁 평가서 목록</a>
     <button class="btn" onclick="window.print()">🖨 인쇄 / PDF로 저장</button>
   </div>
   <h1>위험성평가서 <span class="sub">(초안 · 검토 전)</span></h1>
@@ -158,12 +165,27 @@ class ScribeAgent(BaseAgent):
     <div><b>평가방법</b> {e(assessment['method'])}</div>
     <div><b>요약</b> 총 {s['총항목']}건 · 높음(상) {s['상_높음']}건</div>
   </div>
+  <div class="flow">
+    <span><b>①</b> 위험요인 식별</span><span>→</span>
+    <span><b>②</b> 빈도·강도</span><span>→</span>
+    <span><b>③</b> 위험성 추정</span><span>→</span>
+    <span><b>④</b> 감소대책</span>
+  </div>
   <table>
-    <thead><tr>
-      <th>유해·위험요인</th><th>공정/작업</th><th>위험분류</th><th>위험상황 및 결과</th>
-      <th>관련근거(법령·가이드)</th><th>빈도</th><th>강도</th><th>위험성(등급)</th>
-      <th>감소대책</th><th>AI 감지근거</th>
-    </tr></thead>
+    <thead>
+      <tr class="grp">
+        <th colspan="5">① 위험요인 식별 (근거 인용 포함)</th>
+        <th colspan="2">② 빈도·강도</th>
+        <th>③ 위험성 추정</th>
+        <th>④ 감소대책</th>
+        <th>AI 근거</th>
+      </tr>
+      <tr>
+        <th>유해·위험요인</th><th>공정/작업</th><th>위험분류</th><th>위험상황 및 결과</th>
+        <th>관련근거(법령·가이드)</th><th>빈도</th><th>강도</th><th>위험성(등급)</th>
+        <th>감소대책</th><th>AI 감지근거</th>
+      </tr>
+    </thead>
     <tbody>{rows_html}
     </tbody>
   </table>
@@ -188,6 +210,37 @@ class ScribeAgent(BaseAgent):
                 json.dumps(assessment, ensure_ascii=False, indent=2), encoding="utf-8")
             saved_path = str((_SAVE_DIR / f"ra_{stamp}.html").relative_to(_ROOT))
         return {"assessment": assessment, "html": page, "saved_path": saved_path}
+
+    # ── 저장된 평가서 목록·다시열기 (감사추적) ──
+    @staticmethod
+    def list_saved(limit: int = 100) -> list[dict[str, Any]]:
+        """저장된 위험성평가서 목록(최신순). id 로 다시 열 수 있다."""
+        if not _SAVE_DIR.exists():
+            return []
+        out = []
+        for jf in sorted(_SAVE_DIR.glob("ra_*.json"), reverse=True)[:limit]:
+            try:
+                a = json.loads(jf.read_text(encoding="utf-8"))
+            except (json.JSONDecodeError, OSError):
+                continue
+            out.append({
+                "id": jf.stem,                       # 예: ra_20260619_111630
+                "generated_at": a.get("generated_at", ""),
+                "site": a.get("site", ""), "process": a.get("process", ""),
+                "총항목": a.get("summary", {}).get("총항목", 0),
+                "상_높음": a.get("summary", {}).get("상_높음", 0),
+                "has_html": (_SAVE_DIR / f"{jf.stem}.html").exists(),
+            })
+        return out
+
+    @staticmethod
+    def load_html(aid: str) -> str | None:
+        """저장된 평가서 HTML 을 그대로 반환(다시열기). 없으면 None."""
+        # 경로 조작 방지: 파일명만 허용
+        if "/" in aid or ".." in aid:
+            return None
+        p = _SAVE_DIR / f"{aid}.html"
+        return p.read_text(encoding="utf-8") if p.exists() else None
 
     def run(self, events: list[dict[str, Any]] | None = None, **kw) -> dict[str, Any]:
         return self.generate(events or [], **kw)
