@@ -126,6 +126,7 @@
     <button id="zoneDraw">✏️ 그리기 시작</button>
     <button id="zoneUndo">↶ 한 점 취소</button>
     <button id="zoneSave">✓ 저장</button>
+    <button id="zoneReload">⟳ 저장된 구역 불러오기</button>
     <button id="zoneClear">🗑 구역 지우기</button>
   </div>
 
@@ -150,7 +151,19 @@ let zoneTarget='danger';    // 지금 그리는 대상: 'danger' | 'machine'
 let lastRelay=0;            // 보조 방호신호 과다호출 방지
 let lastEvidence={};        // 규칙별 증거 저장 쿨다운(과다저장 방지)
 const HAZARD_RULES=['zone_intrusion','fall_suspected','ppe_missing','guard_bypass'];
+let detBoxes=[];            // 백엔드 /detect/frame 이 준 객체 박스(정규화 bbox)
+let detSignals={};          // 백엔드 파생 신호(ppe_missing, ppe_conf, forklift_present)
+let lastDetect=0, detecting=false;   // /detect/frame 주기 호출 제어
 let frameN=0, lastT=performance.now(), fps=0, lastJudge=0, lastLevel='safe';
+
+// 라벨별 박스 색
+function boxColor(label){
+  if(label==='NO-Hardhat'||label==='NO-Safety-Vest') return '#ff3b3b';   // 미착용=빨강
+  if(label==='Hardhat'||label==='Safety-Vest') return '#39d98a';          // 착용=초록
+  if(label.toLowerCase()==='person') return '#7fd0ff';                    // 사람=파랑
+  if(label.toLowerCase()==='forklift') return '#ffb020';                  // 지게차=주황
+  return '#cfe9ff';
+}
 
 const $=id=>document.getElementById(id);
 function log(msg){ const b=$('logBody');
@@ -253,12 +266,62 @@ function logEvidence(rule, level, score){
     .catch(()=>{});
 }
 
-// Analyst 가산 판단 호출(모델 신호 없음 → 규칙 폴백)
-async function judge(signals){
+// 백엔드 정밀 탐지(/detect/frame) 주기 호출 — YOLO person/PPE/forklift
+// 무거우므로 ~1.2초 간격, 직전 호출이 끝나야 다음 호출(겹침 방지)
+async function runDetect(){
+  if(detecting) return;
+  const now=performance.now();
+  if(now-lastDetect < 1200) return;
+  detecting=true; lastDetect=now;
   try{
+    const r=await fetch('/detect/frame',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({image:captureRaw()})});   // 원본 프레임(오버레이 없이)
+    const j=await r.json();
+    detBoxes=j.detections||[];
+    detSignals=j.signals||{};
+    $('sWorker').textContent=j.person_count ?? detBoxes.filter(d=>d.label.toLowerCase()==='person').length;
+    // PPE 상태표: 실제 탐지 반영
+    if(detSignals.ppe_missing){ $('sPpe').textContent='미착용!'; $('sPpe').className='tag-danger'; }
+    else if(detBoxes.some(d=>d.label==='Hardhat'||d.label==='Safety-Vest')){ $('sPpe').textContent='착용'; $('sPpe').className='tag-ok'; }
+    else { $('sPpe').textContent='미인식'; $('sPpe').className='tag-warn'; }
+    log(`detect person=${j.person_count} ppe_missing=${detSignals.ppe_missing} 박스=${detBoxes.length}`);
+  }catch(e){ /* 백엔드 탐지 실패해도 브라우저 측은 계속(무중단) */ }
+  finally{ detecting=false; }
+}
+
+// 오버레이 없는 '원본' 프레임 캡처(백엔드 추론용, 화면과 동일 mirror)
+function captureRaw(){
+  const t=document.createElement('canvas'); t.width=canvas.width; t.height=canvas.height;
+  const tc=t.getContext('2d');
+  tc.translate(t.width,0); tc.scale(-1,1);
+  tc.drawImage(video,0,0,t.width,t.height);
+  return t.toDataURL('image/jpeg',0.6);
+}
+
+// 백엔드 객체 박스 그리기(정규화 bbox → 캔버스). 라벨+confidence 표시
+function drawBoxes(){
+  ctx.save();
+  ctx.font='12px monospace'; ctx.lineWidth=2; ctx.textBaseline='bottom';
+  detBoxes.forEach(d=>{
+    const [x1,y1,x2,y2]=d.bbox;
+    const px=x1*canvas.width, py=y1*canvas.height, pw=(x2-x1)*canvas.width, ph=(y2-y1)*canvas.height;
+    const col=boxColor(d.label);
+    ctx.strokeStyle=col; ctx.strokeRect(px,py,pw,ph);
+    const tag=`${d.label} ${(d.conf*100).toFixed(0)}%`;
+    ctx.fillStyle=col; const tw=ctx.measureText(tag).width+6;
+    ctx.fillRect(px, py-15, tw, 15);
+    ctx.fillStyle='#05070a'; ctx.fillText(tag, px+3, py-3);
+  });
+  ctx.restore();
+}
+
+// Analyst 가산 판단 호출(모델 신호 없음 → 규칙 폴백)
+async function judge(signals, dl){
+  try{
+    const body = dl ? {signals, dl} : {signals};   // dl 있으면 딥러닝 가산, 없으면 휴리스틱 폴백
     const r=await fetch('/safety/judge',{method:'POST',
       headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({signals})});   // dl 생략 → 백엔드가 휴리스틱 폴백
+      body:JSON.stringify(body)});
     return await r.json();
   }catch(e){ return null; }
 }
@@ -329,6 +392,8 @@ pose.onResults(async (res)=>{
     signals.zone_intrusion=intrusion;
     signals.torso_angle=ang;
     signals.hand_in_machine_zone=handIn;
+    // PPE 미착용: 백엔드 YOLO 탐지 결과를 실제 연결(전엔 false 고정이었음)
+    signals.ppe_missing = !!detSignals.ppe_missing;
     $('sPose').textContent=ang.toFixed(0)+'°';
     $('sPose').className = ang>60?'tag-danger':'';
     $('sZone').textContent = intrusion?'IN':'OUT';
@@ -340,17 +405,22 @@ pose.onResults(async (res)=>{
     $('sMachine').textContent='정상'; $('sMachine').className='tag-ok';
   }
 
+  drawBoxes();          // 백엔드 객체 박스(YOLO person/PPE/forklift)
   drawZone(intrusion, handIn);
   drawDraft();
 
-  // 그리기 모드 중엔 판단 호출을 멈춘다(구역 설정에 집중)
+  // 그리기 모드 중엔 탐지·판단을 멈춘다(구역 설정에 집중)
   if(drawMode) return;
 
-  // 판단(과도호출 방지: ~300ms 간격)
+  // 백엔드 정밀 탐지 주기 호출(비동기, 결과는 다음 프레임부터 반영)
+  runDetect();
+
+  // 판단(과도호출 방지: ~300ms 간격) — 백엔드 confidence 를 dl 로 가산
   if(now-lastJudge>300){ lastJudge=now;
-    const j=await judge(signals);
+    const dl = detSignals.ppe_conf ? {ppe_conf:detSignals.ppe_conf} : null;
+    const j=await judge(signals, dl);
     if(j) applyRisk(j);
-    log(`frame=${$('sFrame').textContent} worker=${lm?1:0} zone=${intrusion?'IN':'OUT'} torso=${signals.torso_angle.toFixed(0)}`);
+    log(`frame=${$('sFrame').textContent} worker=${$('sWorker').textContent} zone=${intrusion?'IN':'OUT'} ppe=${signals.ppe_missing?'미착용':'ok'}`);
   }
 });
 
@@ -390,6 +460,11 @@ $('zoneTargetBtn').addEventListener('click',()=>{
 
 $('zoneUndo').addEventListener('click',()=>{
   draftZone.pop(); $('zoneHint').textContent=`점 ${draftZone.length}개`;
+});
+
+$('zoneReload').addEventListener('click', async ()=>{
+  await loadZone();
+  $('zoneHint').textContent=`불러옴: 위험 ${dangerZone.length}점 / 기계 ${machineZone.length}점`;
 });
 
 $('zoneClear').addEventListener('click', async ()=>{

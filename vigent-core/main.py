@@ -201,6 +201,35 @@ def safety_risk_assessment(payload: dict = Body(...), theme: str = DEFAULT_THEME
     return {"assessment": out["assessment"], "saved_path": out["saved_path"]}
 
 
+def _decode_data_url(image: str):
+    """data:image/...;base64,... → cv2 BGR numpy. 실패하면 None."""
+    import base64
+    import re
+    import cv2
+    import numpy as np
+    m = re.match(r"^data:image/\w+;base64,(.+)$", image or "", re.S)
+    if not m:
+        return None
+    try:
+        buf = np.frombuffer(base64.b64decode(m.group(1)), dtype=np.uint8)
+        return cv2.imdecode(buf, cv2.IMREAD_COLOR)
+    except Exception:  # noqa: BLE001
+        return None
+
+
+@app.post("/detect/frame")
+def detect_frame(payload: dict = Body(...), theme: str = DEFAULT_THEME):
+    """Guard 딥러닝 정밀 탐지. payload={image: data URL, detectors?:[...], conf?:float}.
+    반환: 정규화 bbox·라벨·confidence 목록 + 파생 신호(ppe_missing 등).
+    모델 없으면 해당 검출기만 비활성(무중단)."""
+    bundle = STATE.get(theme) or _load_theme(theme)
+    guard = bundle["agents"].get("Guard")
+    img = _decode_data_url(payload.get("image", ""))
+    if img is None:
+        raise HTTPException(status_code=400, detail="image(data URL) 디코딩 실패")
+    return guard.detect(img, detectors=payload.get("detectors"), conf=payload.get("conf"))
+
+
 @app.post("/recognition/log")
 def recognition_log(payload: dict = Body(...)):
     """데이터엔진 — 위험 이벤트 1건 기록(+증거 프레임 저장).
