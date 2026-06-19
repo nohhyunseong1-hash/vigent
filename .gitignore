@@ -1,6 +1,7 @@
 # ── 비밀키·환경변수 (규칙 5) ──
 .env
 .env.*
+!.env.example          # 예시 파일은 git 에 포함(실제 키 없음)
 config/notify.yaml
 
 # ── 모델 가중치 (용량 큼 — git 제외, 필요시 Git LFS) ──

@@ -22,8 +22,15 @@ from pathlib import Path
 import json
 
 from fastapi import Body, FastAPI, HTTPException
-from fastapi.responses import FileResponse, JSONResponse
+from fastapi.responses import FileResponse, HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
+
+# .env 의 비밀키(텔레그램·웹훅 등)를 환경변수로 로드(있으면). 없어도 무해.
+try:
+    from dotenv import load_dotenv
+    load_dotenv(Path(__file__).resolve().parent.parent / ".env")
+except ImportError:
+    pass
 
 # 이 파일이 단독(uvicorn main:app)으로 실행돼도 패키지 임포트가 되도록 경로 보정
 _HERE = Path(__file__).resolve().parent          # vigent-core/
@@ -146,6 +153,45 @@ def safety_judge(payload: dict = Body(...), theme: str = DEFAULT_THEME):
     signals = payload.get("signals", {}) or {}
     dl = payload.get("dl")  # None 이면 폴백
     return analyst.judge(signals, dl)
+
+
+@app.get("/evidence/search")
+def evidence_search(rule: str, theme: str = DEFAULT_THEME):
+    """Copilot 근거 검색 — 규칙 id 의 법령·가이드 인용(출처 포함)을 반환(§9)."""
+    bundle = STATE.get(theme) or _load_theme(theme)
+    copilot = bundle["agents"].get("Copilot")
+    return copilot.cite(rule)
+
+
+@app.post("/safety/risk-assessment")
+def safety_risk_assessment(payload: dict = Body(...), theme: str = DEFAULT_THEME):
+    """Scribe 위험성평가서 생성. payload={events:[{rule,count}], site, process}.
+    근거 인용 자동 삽입 + data/risk_assessments/ 저장. 반환은 평가표 JSON(+저장경로)."""
+    bundle = STATE.get(theme) or _load_theme(theme)
+    scribe = bundle["agents"].get("Scribe")
+    out = scribe.generate(payload.get("events", []) or [],
+                          site=payload.get("site", ""), process=payload.get("process", ""))
+    return {"assessment": out["assessment"], "saved_path": out["saved_path"]}
+
+
+@app.get("/report/safety", response_class=HTMLResponse)
+def report_safety(theme: str = DEFAULT_THEME):
+    """최근 위험 이벤트 기반 위험성평가서 HTML(인쇄→PDF). 데모용 샘플 이벤트로 렌더.
+    실제 운영에서는 데이터엔진의 누적 이벤트를 넘긴다(6단계)."""
+    bundle = STATE.get(theme) or _load_theme(theme)
+    scribe = bundle["agents"].get("Scribe")
+    sample = [{"rule": "zone_intrusion", "count": 5}, {"rule": "ppe_missing", "count": 9},
+              {"rule": "fall_suspected", "count": 1}]
+    return scribe.generate(sample, site="데모 현장", process="데모 공정", save=False)["html"]
+
+
+@app.post("/alerts/test")
+def alerts_test(payload: dict = Body(default={}), theme: str = DEFAULT_THEME):
+    """Dispatcher 경보 테스트. payload={level, message}. 키 없으면 폴백(로그)로 동작."""
+    bundle = STATE.get(theme) or _load_theme(theme)
+    dispatcher = bundle["agents"].get("Dispatcher")
+    return dispatcher.dispatch(payload.get("level", "high"),
+                               payload.get("message", "VIGENT 경보 테스트"))
 
 
 @app.get("/{theme}")

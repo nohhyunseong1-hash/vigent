@@ -28,7 +28,11 @@ AGENT_CLASSES = [
 
 def build_agents(config: Any) -> dict[str, BaseAgent]:
     """6-에이전트를 인스턴스화해 {이름: 에이전트} 로 반환."""
-    return {cls.name: cls(config) for cls in AGENT_CLASSES}
+    agents = {cls.name: cls(config) for cls in AGENT_CLASSES}
+    # Scribe 가 Copilot 근거(법령 인용)를 보고서에 삽입하도록 연결
+    if "Scribe" in agents and "Copilot" in agents:
+        agents["Scribe"].copilot = agents["Copilot"]
+    return agents
 
 
 __all__ = [
