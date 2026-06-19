@@ -18,6 +18,16 @@
 </head>
 <body class="theme-safety theme-locked clean">
 
+<!-- VIGENT 콘솔 오버레이(인식 엔진과 무관, 화면 위에 얹기만) -->
+<div id="vgBrand">🛡️ VIGENT · SAFETY</div>
+<div id="vgHud">
+  <span class="rec">REC</span>
+  <span id="vgClock">--:--:--</span>
+  <span>CAM01 · VIGENT-SAFETY</span>
+</div>
+<script>setInterval(function(){var c=document.getElementById('vgClock');if(c)c.textContent=new Date().toLocaleTimeString('en-GB');},1000);</script>
+
+
 <div id="loadingOverlay">
   <div style="font-size:36px;">🧠</div>
   <div style="font-size:18px;font-weight:700;color:#e2e8f0;">VIGENT · 산업안전 비전</div>

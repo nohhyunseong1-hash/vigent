@@ -1,61 +1,71 @@
-/* VIGENT 콘솔 스킨 — AX 프론트(realtime_core.js) DOM 은 그대로 두고 '겉모습만' VIGENT 콘솔 룩으로.
-   realtime_shared.css 뒤에 로드되어 색·폰트·패널 스타일을 덮어쓴다. */
+/* VIGENT 콘솔 스킨 — AX 인식 엔진(realtime_core.js)은 그대로, '레이아웃·겉모습'만 VIGENT 전체화면 관제 콘솔로.
+   realtime_shared.css 뒤에 로드되어 덮어쓴다. AX DOM 은 숨기기만(display:none) 하고 제거하지 않음(JS 안전). */
 
 :root, body.theme-safety {
-  /* VIGENT 관제 콘솔 팔레트 */
-  --bg:#05070a; --surface:#0a1018; --surface2:#0e1622; --surface3:#13202f;
+  --bg:#05070a; --surface:#0a1018; --surface2:#0e1622;
   --border:rgba(80,130,170,.35); --line:rgba(80,130,170,.22);
   --text:#cfe9ff; --text2:#7fa6c4; --muted:#5b7891;
-  --accent:#39d0ff; --accent2:#39d98a;
-  --green:#39d98a; --yellow:#ffb020; --red:#ff3b3b; --orange:#ff8c1a; --purple:#9aa7ff;
-  /* 콘솔 느낌 = 모노스페이스 */
+  --accent:#39d0ff; --green:#39d98a; --yellow:#ffb020; --red:#ff3b3b; --orange:#ff8c1a;
   --font:"SF Mono","JetBrains Mono","Consolas","Menlo",monospace;
 }
+html,body{ margin:0; padding:0; background:#000 !important; overflow:hidden !important;
+  font-family:var(--font) !important; color:var(--text); height:100%; }
 
-body { background:var(--bg) !important; font-family:var(--font) !important; letter-spacing:.01em; }
+/* ── AX 크롬 숨기기(DOM 은 유지) ── */
+header, .right-panel, .controls, #loadingOverlay > .spinner { display:none !important; }
 
-/* 헤더: 얇은 관제 바 */
-header {
-  background:rgba(5,10,16,.85) !important; border-bottom:1px solid var(--border) !important;
-  backdrop-filter:blur(6px);
-}
-.logo, .logo span { color:var(--accent) !important; letter-spacing:.12em; }
-.badge { background:rgba(57,208,255,.12) !important; color:var(--accent) !important;
-  border:1px solid var(--border) !important; }
+/* ── 영상 전체화면 ── */
+main{ display:block !important; max-width:none !important; margin:0 !important; padding:0 !important; }
+.video-panel{ margin:0 !important; padding:0 !important; }
+#videoContainer{ position:fixed !important; inset:0 !important; width:100vw !important; height:100vh !important;
+  border:0 !important; border-radius:0 !important; box-shadow:none !important; background:#000 !important; }
+#videoEl, #outputCanvas, #imageEl{ position:absolute !important; inset:0 !important;
+  width:100% !important; height:100% !important; object-fit:cover !important; }
 
-/* 상태 점/칩 */
-.status-item span { color:var(--text2) !important; }
-.status-dot { box-shadow:0 0 6px currentColor; }
+/* ── VIGENT 시그니처 오버레이(CSS) : 스캔라인 + 비네팅 ── */
+#videoContainer::before{ content:""; position:absolute; inset:0; z-index:6; pointer-events:none;
+  background:
+    repeating-linear-gradient(0deg, rgba(0,0,0,0) 0 2px, rgba(0,0,0,.12) 3px),
+    radial-gradient(ellipse at center, rgba(0,0,0,0) 55%, rgba(0,0,0,.5) 100%); }
+/* 코너 브래킷 */
+#videoContainer::after{ content:""; position:absolute; inset:10px; z-index:6; pointer-events:none;
+  border:2px solid rgba(120,170,210,.0);
+  background:
+    linear-gradient(#78aad2,#78aad2) left top/26px 2px no-repeat,
+    linear-gradient(#78aad2,#78aad2) left top/2px 26px no-repeat,
+    linear-gradient(#78aad2,#78aad2) right top/26px 2px no-repeat,
+    linear-gradient(#78aad2,#78aad2) right top/2px 26px no-repeat,
+    linear-gradient(#78aad2,#78aad2) left bottom/26px 2px no-repeat,
+    linear-gradient(#78aad2,#78aad2) left bottom/2px 26px no-repeat,
+    linear-gradient(#78aad2,#78aad2) right bottom/26px 2px no-repeat,
+    linear-gradient(#78aad2,#78aad2) right bottom/2px 26px no-repeat;
+  opacity:.5; }
 
-/* 영상 패널: 더 넓고 콘솔처럼 */
-.video-container { border:1px solid var(--border) !important; border-radius:10px !important;
-  box-shadow:0 0 0 1px rgba(0,0,0,.4), inset 0 0 80px rgba(0,0,0,.35) !important; }
+/* ── 영상 위 떠있는 반투명 패널(VIGENT 룩) — AX 오버레이 재스타일 ── */
+.recog-panel, .therm-panel, .ax-tools{
+  background:rgba(5,10,16,.62) !important; border:1px solid var(--border) !important;
+  border-radius:8px !important; backdrop-filter:blur(6px); color:var(--text) !important; z-index:20 !important; }
+.recog-panel h4{ color:var(--accent) !important; letter-spacing:.14em; font-size:11px !important; }
+.recog-panel{ top:14px !important; right:14px !important; left:auto !important; width:240px !important; max-height:60vh; overflow:auto; }
 
-/* 검은 반투명 패널(blur) — VIGENT 시그니처 */
-.panel, .card, .right-panel, .multi-stat, .recog-panel, .therm-panel, .ax-tools {
-  background:rgba(5,10,16,.62) !important;
-  border:1px solid var(--border) !important; border-radius:8px !important;
-  backdrop-filter:blur(6px); color:var(--text) !important;
-}
-.card-title, .panel-summary-title { color:var(--accent) !important; letter-spacing:.08em; }
-.panel-summary-sub, .dim, .hint { color:var(--muted) !important; }
+/* 버튼(구역/리포트/컨트롤): 콘솔 버튼 */
+.zone-btn, .report-btn, .btn{ background:rgba(12,34,54,.85) !important; color:var(--accent) !important;
+  border:1px solid var(--border) !important; border-radius:6px !important; font-family:var(--font) !important; z-index:20; }
 
-/* 버튼: 콘솔 버튼 */
-.btn { background:#0c2236 !important; color:var(--text) !important;
-  border:1px solid var(--border) !important; border-radius:6px !important; }
-.btn.active, .btn:hover { border-color:var(--accent) !important; color:var(--accent) !important; }
-.zone-btn, .report-btn { background:rgba(12,34,54,.85) !important; color:var(--accent) !important;
-  border:1px solid var(--border) !important; }
+/* HUD: FPS / 카메라 상태 */
+.fps-counter, #fpsCounter, .cam-status-badge{ background:rgba(5,10,16,.6) !important;
+  border:1px solid var(--border) !important; color:var(--accent) !important; font-family:var(--font) !important; z-index:20; }
 
-/* HUD/FPS/카메라 상태 — 모노스페이스 콘솔 */
-.fps-counter, #fpsDisplay, .cam-status-badge { font-family:var(--font) !important;
-  color:var(--accent) !important; }
+/* 위험 배지 */
+.danger-badge{ background:rgba(255,59,59,.85) !important; }
+.warn-badge{ background:rgba(255,176,32,.85) !important; color:#1a1206 !important; }
+.dz-alert{ background:rgba(255,59,59,.9) !important; font-family:var(--font) !important; }
 
-/* 위험 배지 색만 VIGENT 톤 유지 */
-.danger-badge { background:rgba(255,59,59,.85) !important; }
-.warn-badge { background:rgba(255,176,32,.85) !important; color:#1a1206 !important; }
-
-/* 로딩 오버레이도 콘솔 톤 */
-#loadingOverlay { background:rgba(5,7,10,.95) !important; }
-.load-step { color:var(--text2) !important; font-family:var(--font) !important; }
-.load-step.active { color:var(--accent) !important; }
+/* ── VIGENT HUD 바(REC·시계·CAM) — index 에 주입한 #vgHud ── */
+#vgHud{ position:fixed; top:14px; left:50%; transform:translateX(-50%); z-index:25;
+  display:flex; gap:18px; align-items:center; font:600 12px/1 var(--font); color:#bfe0ff;
+  background:rgba(5,10,16,.55); border:1px solid var(--border); border-radius:8px; padding:7px 16px; backdrop-filter:blur(6px); }
+#vgHud .rec{ color:var(--red); } #vgHud .rec::before{ content:"●"; margin-right:5px; animation:vgblink 1s steps(1) infinite; }
+@keyframes vgblink{ 50%{ opacity:.15; } }
+#vgBrand{ position:fixed; left:14px; top:14px; z-index:25; font:700 13px/1 var(--font); color:var(--accent);
+  letter-spacing:.14em; background:rgba(5,10,16,.55); border:1px solid var(--border); border-radius:8px; padding:8px 12px; }
