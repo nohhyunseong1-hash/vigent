@@ -149,7 +149,7 @@
 const DETECT_TUNING = {
   DETECT_INTERVAL_MS: 400,   // /detect/frame 호출 주기(ms). 더 자주 호출 → 갱신 부드러움
   JPEG_QUALITY: 0.8,         // 백엔드로 보내는 프레임 화질(0~1). 클수록 또렷(전송량↑)
-  DETECT_CONF: 0.45,         // confidence 임계값. 높여서 '확신 없는 추측(헛것)' 컷
+  DETECT_CONF: 0.35,         // confidence 임계값. 미탐↓(있는것 더잡고) 오탐은 2회확인으로 거름
   BOX_TTL_MS: 1200,          // 박스 유지 시간(ms). 호출주기(400)보다 충분히 길게 → 깜빡임 제거.
                              //   잠깐 못 잡아도 1.2초 유지. 너무 크면 잔상↑ (추천 1.0~1.4초)
   BOX_MATCH_IOU: 0.4,        // 직전 박스와 같은 객체로 볼 겹침 기준(IoU). 높을수록 엄격
