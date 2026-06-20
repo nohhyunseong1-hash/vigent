@@ -291,7 +291,8 @@
   // ── 위험구역 부위별 판정: 백엔드 포즈 대신 '브라우저 스켈레톤' 사용 ──
   // (엔진의 좌표변환 kpToNorm + dangerZonePolys + pointInPoly 재사용 → 좌표 정확)
   // MediaPipe 33점 인덱스: 팔꿈치 13,14 · 손목 15,16 = 손/팔(주황 경고). 그 외 = 빨강 위험.
-  const FOREARM_MP=new Set([13,14,15,16]);
+  // 손~팔꿈치(주황 경고): 팔꿈치13,14 · 손목15,16 · 손끝(새끼/검지/엄지)17~22
+  const FOREARM_MP=new Set([13,14,15,16,17,18,19,20,21,22]);
   function vgZoneSeverity(frame){
     try{
       const polys=dangerZonePolys(); if(!polys.length) return 'none';
