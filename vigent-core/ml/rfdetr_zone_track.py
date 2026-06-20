@@ -16,6 +16,7 @@ import cv2
 import numpy as np
 import supervision as sv
 import torch
+import yaml
 from PIL import Image
 
 from rfdetr import RFDETRNano
@@ -23,6 +24,20 @@ from rfdetr.util.coco_classes import COCO_CLASSES
 from trackers import SORTTracker
 
 ROOT = Path(__file__).resolve().parent.parent.parent
+
+
+def load_zone_config(theme: str = "safety"):
+    """vision.yaml + danger_zone.json 에서 위험구역(정규화 폴리곤)·임계값을 읽는다.
+    코드 수정 없이 설정만 바꾸면 구역/임계값이 바뀐다(§5)."""
+    vy = yaml.safe_load(open(ROOT / "themes" / theme / "vision.yaml", encoding="utf-8"))
+    jud = (vy.get("judgment", {}) or {})
+    thr = float(jud.get("detect_threshold", 0.4))
+    zone_path = (jud.get("zones", {}) or {}).get("danger_zones")
+    pts_norm = []
+    if zone_path and (ROOT / zone_path).exists():
+        z = yaml.safe_load(open(ROOT / zone_path, encoding="utf-8"))  # json 도 yaml 로 읽힘
+        pts_norm = [(p["x"], p["y"]) for p in z.get("points", [])]
+    return pts_norm, thr
 
 
 def main(source: str, out: str | None = None) -> None:
@@ -37,10 +52,15 @@ def main(source: str, out: str | None = None) -> None:
     H = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT)) or 540
     fps = cap.get(cv2.CAP_PROP_FPS) or 12
 
-    # 위험구역(정규화 폴리곤) — 데모용 화면 좌측 60%. 나중에 vision.yaml 로 분리 예정.
-    #   (실제 운영에선 사용자가 그린 구역 좌표를 주입)
-    zone_poly = np.array([[0.0, 0.0], [0.6, 0.0], [0.6, 1.0], [0.0, 1.0]]) * [W, H]
-    zone = sv.PolygonZone(polygon=zone_poly.astype(int))
+    # 위험구역·임계값을 vision.yaml/danger_zone.json 에서 읽음(코드 수정 없이 변경 가능)
+    pts_norm, threshold = load_zone_config("safety")
+    if len(pts_norm) < 3:                                   # 설정 비었으면 데모 기본(좌측 60%)
+        pts_norm = [(0.0, 0.0), (0.6, 0.0), (0.6, 1.0), (0.0, 1.0)]
+        print("[zone] 설정 폴리곤 없음 → 데모 기본(좌측 60%) 사용")
+    else:
+        print(f"[zone] vision.yaml 설정 사용: {len(pts_norm)}점 폴리곤 · threshold={threshold}")
+    zone_poly = (np.array(pts_norm) * [W, H]).astype(int)
+    zone = sv.PolygonZone(polygon=zone_poly)
 
     device = "mps" if torch.backends.mps.is_available() else "cpu"
     model = RFDETRNano(device=device)
@@ -60,7 +80,7 @@ def main(source: str, out: str | None = None) -> None:
             break
         frame_i += 1
         # 1) rf-detr 탐지 → 사람만
-        det = model.predict(Image.fromarray(cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)), threshold=0.4)
+        det = model.predict(Image.fromarray(cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)), threshold=threshold)
         names = np.array([COCO_CLASSES[c] for c in det.class_id])
         det = det[names == "person"]
         # 2) 추적(ID 부여)
