@@ -364,8 +364,38 @@ def stub_zone_state(payload: dict = Body(default={})):
 
 
 @app.post("/zone/intrusion")
-def stub_zone_intrusion(payload: dict = Body(default={})):
-    return {"ok": True, "intrusion": False}
+def zone_intrusion_alert(payload: dict = Body(default={}), theme: str = DEFAULT_THEME):
+    """위험구역 침입(몸통/머리/다리 등 '위험') → 휴대폰 알림(텔레그램/웹훅) + 증거 저장.
+    프론트(AX 엔진)는 손/팔만이면 호출하지 않고, '위험' 부위 진입 시에만 호출한다."""
+    bundle = STATE.get(theme) or _load_theme(theme)
+    dispatcher = bundle["agents"].get("Dispatcher")
+    reasons = payload.get("reasons") or ["위험구역 접근"]
+    people = payload.get("people", 0)
+    zone_name = payload.get("zone", "위험구역")
+    msg = f"[{zone_name}] 위험구역 침입 — {', '.join(reasons)} · 구역 내 {people}명"
+
+    # 증거 이미지 저장(있으면)
+    saved = None
+    img = payload.get("image_base64")
+    if img:
+        try:
+            decoded = _decode_data_url(img if img.startswith("data:") else "data:image/jpeg;base64," + img)
+            if decoded is not None:
+                import cv2
+                from datetime import datetime
+                d = _ROOT / "data" / "evidence" / datetime.now().strftime("%Y%m%d")
+                d.mkdir(parents=True, exist_ok=True)
+                fn = d / f"intrusion_{datetime.now().strftime('%H%M%S')}.jpg"
+                cv2.imwrite(str(fn), decoded)
+                saved = str(fn.relative_to(_ROOT))
+        except Exception:  # noqa: BLE001
+            pass
+
+    result = dispatcher.dispatch("high", msg) if dispatcher else {"delivered": False, "fallback": True}
+    return {"ok": True, "message": msg,
+            "phone_sent": bool(result.get("delivered")),      # 텔레그램/웹훅 실제 발송 여부
+            "fallback": result.get("fallback", True),         # 키 없으면 True(로그만)
+            "evidence": saved}
 
 
 @app.post("/vitals/rppg")
