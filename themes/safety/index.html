@@ -258,7 +258,7 @@
 <script>
 (function(){
   // 튜닝값: MINCUTOFF↓=더 부드럽지만 느림 / BETA↑=빠른 움직임에 더 즉각 반응
-  const CFG={ MINCUTOFF:0.7, BETA:0.5, DCUTOFF:1.0, FREQ:30 };
+  const CFG={ MINCUTOFF:0.7, BETA:1.0, DCUTOFF:1.0, FREQ:30 };
   const TAU=c=>1/(2*Math.PI*c), ALPHA=(c,dt)=>{const t=TAU(c);return 1/(1+t/dt);};
   const st={}; let lastT=null;
   function oe(s,val,dt){
