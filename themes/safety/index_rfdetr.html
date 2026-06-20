@@ -101,13 +101,23 @@ function drawPoly(zone,stroke,fill){ if(zone.length<3)return; ctx.save(); ctx.be
 function mtext(t,x,y){ ctx.save(); ctx.translate(x,y); ctx.scale(-1,1);
   ctx.fillText(String(t), -ctx.measureText(String(t)).width, 0); ctx.restore(); }
 
+// 라벨 카테고리별 색
+function boxColor(label,inZone){
+  if(inZone) return '#ff3b3b';                       // 위험구역 침입=빨강
+  const L=label.toLowerCase();
+  if(L==='person') return '#39d98a';                 // 사람=초록
+  if(['car','truck','bus','motorcycle','bicycle','train','boat','airplane','horse','cow','dog','cat','bird','sheep','elephant','bear'].includes(L)) return '#ffb020'; // 이동체/동물=주황
+  if(['chair','couch','bed','dining table','toilet','bench','potted plant','tv','laptop','mouse','keyboard','remote','cell phone'].includes(L)) return '#39d0ff'; // 가구/전자=시안
+  if(['bottle','cup','bowl','fork','knife','spoon','wine glass'].includes(L)) return '#ffd23a'; // 식기=노랑
+  return '#9aa7ff';
+}
 function drawBoxes(dets){
   ctx.save(); ctx.font='13px monospace'; ctx.lineWidth=2; ctx.textBaseline='bottom';
   dets.forEach(d=>{ const [x1,y1,x2,y2]=d.bbox;
     const px=x1*canvas.width, py=y1*canvas.height, pw=(x2-x1)*canvas.width, ph=(y2-y1)*canvas.height;
-    const col=d.in_zone?'#ff3b3b':'#39d98a';
+    const col=boxColor(d.label,d.in_zone);
     ctx.strokeStyle=col; ctx.strokeRect(px,py,pw,ph);
-    const tag=`ID:${d.id} ${(d.conf*100).toFixed(0)}%`; const tw=ctx.measureText(tag).width+6;
+    const tag=`${d.label} ${(d.conf*100).toFixed(0)}%`; const tw=ctx.measureText(tag).width+6;
     ctx.fillStyle=col; ctx.fillRect(px,py-16,tw,16); ctx.fillStyle='#05070a'; mtext(tag,px+3,py-3);
   });
   ctx.restore();
@@ -129,7 +139,7 @@ async function detectLoop(){
     const nin=j.intrusion?.count||0;
     $('sZone').textContent=nin; $('sZone').className=nin>0?'tag-danger':'tag-ok';
     $('detList').innerHTML=(j.detections||[]).length
-      ? j.detections.map(d=>`<div class="row"><span>ID:${d.id} person</span><b class="${d.in_zone?'tag-danger':'tag-ok'}">${d.in_zone?'침입':'정상'}</b></div>`).join('')
+      ? j.detections.map(d=>`<div class="row"><span>${d.label} ${(d.conf*100).toFixed(0)}%</span>${d.in_zone?'<b class="tag-danger">침입</b>':''}</div>`).join('')
       : '<div class="row"><span>탐지 없음</span></div>';
     $('banner').style.display=nin>0?'block':'none';
     // 침입 시 VLM 위험요약(쿨다운)

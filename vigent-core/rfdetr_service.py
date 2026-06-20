@@ -30,6 +30,20 @@ def _load_zone(theme: str = "safety"):
     return pts, thr
 
 
+def _point_in_poly(x, y, poly) -> bool:
+    """점(x,y)이 폴리곤(픽셀좌표 Nx2) 내부인지 — ray casting."""
+    n = len(poly)
+    inside = False
+    j = n - 1
+    for i in range(n):
+        xi, yi = poly[i]
+        xj, yj = poly[j]
+        if ((yi > y) != (yj > y)) and (x < (xj - xi) * (y - yi) / (yj - yi + 1e-9) + xi):
+            inside = not inside
+        j = i
+    return inside
+
+
 class RFDetrService:
     """rf-detr 탐지 + 추적 + 위험구역. 지연 로드 싱글톤."""
 
@@ -64,29 +78,38 @@ class RFDetrService:
         pts, thr = _load_zone("safety")              # 매 프레임 설정 반영(화면서 구역 바꾸면 즉시)
         det = self._model.predict(
             Image.fromarray(cv2.cvtColor(image_bgr, cv2.COLOR_BGR2RGB)), threshold=thr)
-        names = np.array([COCO_CLASSES[c] for c in det.class_id])
-        det = det[names == "person"]
-        det = self._tracker.update(det)
+        names = [COCO_CLASSES[c] for c in det.class_id]   # 80종 전부 유지(사람만 거르지 않음)
 
-        in_mask = None
+        # 위험구역 침입은 '사람'에만 적용 → 좌표가 구역 안인지 판정
+        zone = None
         if len(pts) >= 3:
             zone = sv.PolygonZone(polygon=(np.array(pts) * [w, h]).astype(int))
-            in_mask = zone.trigger(det)
+            zone.trigger(det)            # 내부 카운트 갱신(개별 마스크는 아래서 직접 계산)
+        poly = (np.array(pts) * [w, h]) if len(pts) >= 3 else None
 
-        out = []
-        ids = det.tracker_id if det.tracker_id is not None else [-1] * len(det)
+        def _in_zone(box):
+            if poly is None:
+                return False
+            cx, cy = (box[0] + box[2]) / 2, box[3]          # 발 위치(하단 중앙)
+            return bool(_point_in_poly(cx, cy, poly))
+
+        out, n_in = [], 0
         for i in range(len(det)):
+            label = names[i]
             x1, y1, x2, y2 = (float(v) for v in det.xyxy[i])
+            inz = (label == "person") and _in_zone((x1, y1, x2, y2))
+            if inz:
+                n_in += 1
             out.append({
-                "label": "person",
+                "label": label,
                 "conf": round(float(det.confidence[i]), 2),
-                "id": int(ids[i]),
-                "in_zone": bool(in_mask[i]) if in_mask is not None else False,
+                "id": -1,
+                "in_zone": inz,
                 "bbox": [round(x1 / w, 4), round(y1 / h, 4), round(x2 / w, 4), round(y2 / h, 4)],
             })
-        n_in = int(in_mask.sum()) if in_mask is not None else 0
-        return {"detections": out, "person_count": len(out),
-                "intrusion": {"count": n_in, "ids": [d["id"] for d in out if d["in_zone"]]},
+        person_count = sum(1 for d in out if d["label"] == "person")
+        return {"detections": out, "person_count": person_count,
+                "intrusion": {"count": n_in, "ids": []},
                 "device": getattr(self, "device", "?")}
 
 
