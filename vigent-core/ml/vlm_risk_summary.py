@@ -46,25 +46,34 @@ def _safe_image(img_path: str, max_side: int = 1024) -> str:
     return str(out)
 
 
+class RiskVLM:
+    """모델을 1회 로드해 재사용하는 위험요약 VLM (통합 파이프라인에서 사용)."""
+
+    def __init__(self):
+        from mlx_vlm import load, generate
+        from mlx_vlm.prompt_utils import apply_chat_template
+        from mlx_vlm.utils import load_config
+        self._generate = generate
+        self._apply = apply_chat_template
+        t0 = time.time()
+        self.model, self.processor = load(MODEL)
+        self.config = load_config(MODEL)
+        print(f"[vlm] 모델 로드 {time.time()-t0:.1f}s")
+
+    def summarize(self, img_path: str) -> dict:
+        safe = _safe_image(img_path)
+        fmt = self._apply(self.processor, self.config, PROMPT, num_images=1)
+        res = self._generate(self.model, self.processor, fmt, image=safe,
+                             max_tokens=256, verbose=False)
+        text = res if isinstance(res, str) else getattr(res, "text", str(res))
+        return extract_json(text)
+
+
 def main(img_path: str) -> None:
-    from mlx_vlm import load, generate
-    from mlx_vlm.prompt_utils import apply_chat_template
-    from mlx_vlm.utils import load_config
-
-    t0 = time.time()
-    model, processor = load(MODEL)
-    config = load_config(MODEL)
-    print(f"[vlm] 모델 로드 {time.time()-t0:.1f}s")
-
-    safe_img = _safe_image(img_path)         # 28배수 리사이즈(깨짐 방지)
-    formatted = apply_chat_template(processor, config, PROMPT, num_images=1)
+    vlm = RiskVLM()
     t1 = time.time()
-    # 이미지는 '문자열 경로'로 넘긴다(리스트로 주면 생성이 깨짐)
-    result = generate(model, processor, formatted, image=safe_img, max_tokens=256, verbose=False)
-    text = result if isinstance(result, str) else getattr(result, "text", str(result))
+    data = vlm.summarize(img_path)
     print(f"[vlm] 생성 {time.time()-t1:.1f}s")
-
-    data = extract_json(text)
     out = ROOT / "runs" / "rfdetr" / f"vlm_{Path(img_path).stem}.json"
     out.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
     print("─── 위험 요약(JSON) ───")
