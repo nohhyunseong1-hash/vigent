@@ -252,5 +252,41 @@
 
 <script>window.AX_LOCK_THEME="safety";</script>
 <script src="/static/realtime_core.js?v=7f57d0b1"></script>
+
+<!-- 스켈레톤 스무딩 고도화: 기존 이동평균 smoothPose 를 One-Euro 필터로 교체.
+     (realtime_core.js 는 안 건드리고 전역 함수만 덮어씀 — AX 엔진 그대로) -->
+<script>
+(function(){
+  // 튜닝값: MINCUTOFF↓=더 부드럽지만 느림 / BETA↑=빠른 움직임에 더 즉각 반응
+  const CFG={ MINCUTOFF:1.0, BETA:0.025, DCUTOFF:1.0, FREQ:30 };
+  const TAU=c=>1/(2*Math.PI*c), ALPHA=(c,dt)=>{const t=TAU(c);return 1/(1+t/dt);};
+  const st={}; let lastT=null;
+  function oe(s,val,dt){
+    if(s.x===undefined){ s.x=val; s.dx=0; return val; }
+    const dval=(val-s.x)/dt;
+    s.dx=s.dx+ALPHA(CFG.DCUTOFF,dt)*(dval-s.dx);
+    const cutoff=CFG.MINCUTOFF+CFG.BETA*Math.abs(s.dx);
+    s.x=s.x+ALPHA(cutoff,dt)*(val-s.x);
+    return s.x;
+  }
+  function oneEuroSmooth(lm){
+    if(!lm) return null;
+    const now=performance.now()/1000;
+    let dt=lastT?(now-lastT):1/CFG.FREQ; lastT=now;
+    if(dt<=0||dt>0.25) dt=1/CFG.FREQ;
+    return lm.map((pt,i)=>{
+      if(!pt) return null;
+      if(!st[i]) st[i]={x:{},y:{},z:{}};
+      return { x:oe(st[i].x,pt.x,dt), y:oe(st[i].y,pt.y,dt),
+               z:oe(st[i].z,pt.z||0,dt), visibility:pt.visibility };
+    });
+  }
+  // 전역 smoothPose 교체(엔진 내부 호출이 새 함수를 쓰게 됨)
+  try{ smoothPose=oneEuroSmooth; }catch(e){}
+  window.smoothPose=oneEuroSmooth;
+  window.VIGENT_SMOOTH_CFG=CFG;   // 콘솔에서 실시간 튜닝 가능
+  console.log("[VIGENT] 스켈레톤 스무딩 → One-Euro 필터 적용");
+})();
+</script>
 </body>
 </html>
