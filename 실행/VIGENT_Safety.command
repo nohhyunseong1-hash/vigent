@@ -6,7 +6,8 @@
 # ════════════════════════════════════════════════════════════
 DIR="$HOME/Desktop/VIGENT"
 PORT=8010
-URL="http://127.0.0.1:${PORT}/safety?t=$(date +%s)"
+# rf-detr permissive 백엔드 + 위험구역 + VLM 화면
+URL="http://127.0.0.1:${PORT}/safety-pro?t=$(date +%s)"
 
 echo "================================================"
 echo "  VIGENT Safety 테마 시작..."
@@ -25,7 +26,7 @@ fi
 echo "사용 파이썬: $PY"
 
 # 이미 우리 서버가 떠 있으면(=/safety 200) 그대로 브라우저만 연다
-if curl -fs -o /dev/null --max-time 2 "http://127.0.0.1:${PORT}/safety"; then
+if curl -fs -o /dev/null --max-time 2 "http://127.0.0.1:${PORT}/health"; then
   echo "서버가 이미 정상 동작 중 → 페이지를 엽니다."
   open "$URL"; exit 0
 fi
@@ -42,13 +43,13 @@ SRV=$!
 
 # /safety 가 200 으로 응답할 때까지 대기
 for i in $(seq 1 30); do
-  curl -fs -o /dev/null --max-time 1 "http://127.0.0.1:${PORT}/safety" && break
+  curl -fs -o /dev/null --max-time 1 "http://127.0.0.1:${PORT}/health" && break
   sleep 1
 done
 
 open "$URL"
 echo "------------------------------------------------"
-echo "페이지를 열었습니다 → http://127.0.0.1:${PORT}/safety"
+echo "페이지를 열었습니다 → http://127.0.0.1:${PORT}/safety-pro"
 echo "이 창을 닫으면 서버가 종료됩니다."
 echo "------------------------------------------------"
 wait $SRV

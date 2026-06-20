@@ -323,6 +323,27 @@ def alerts_test(payload: dict = Body(default={}), theme: str = DEFAULT_THEME):
                                payload.get("message", "VIGENT 경보 테스트"))
 
 
+# ── rf-detr permissive 백엔드(탐지·추적·위험구역·VLM) ──
+@app.post("/rfdetr/frame")
+def rfdetr_frame(payload: dict = Body(...)):
+    """웹캠 프레임 → rf-detr 사람탐지 + 추적 + 위험구역 침입 판정(빠름)."""
+    import rfdetr_service
+    img = _decode_data_url(payload.get("image", ""))
+    if img is None:
+        raise HTTPException(status_code=400, detail="image(data URL) 디코딩 실패")
+    return rfdetr_service.rfdetr.detect(img)
+
+
+@app.post("/rfdetr/vlm")
+def rfdetr_vlm(payload: dict = Body(...)):
+    """이벤트 프레임 → mlx-vlm 위험요약 JSON(느림, 프론트가 침입 시 드물게 호출)."""
+    import rfdetr_service
+    img = _decode_data_url(payload.get("image", ""))
+    if img is None:
+        raise HTTPException(status_code=400, detail="image(data URL) 디코딩 실패")
+    return rfdetr_service.vlm.summarize_bgr(img)
+
+
 # ── AX 프론트(realtime_core.js) 호환 스텁 ──
 # AX 엔진이 호출하는 보조 엔드포인트들. 핵심 인식은 브라우저(coco-ssd)에서 돌고,
 # 아래는 '없으면 404 콘솔에러'만 막는 안전 스텁(빈 결과). 점진적으로 실제 구현 가능.
@@ -360,6 +381,13 @@ def stub_recognition_note(payload: dict = Body(default={})):
 @app.get("/alerts/status")
 def stub_alerts_status():
     return {"ok": True, "alerts": []}
+
+
+@app.get("/safety-pro", response_class=HTMLResponse)
+def safety_pro():
+    """rf-detr permissive 백엔드를 쓰는 VIGENT 콘솔 화면(탐지·위험구역·VLM)."""
+    p = _ROOT / "themes" / "safety" / "index_rfdetr.html"
+    return p.read_text(encoding="utf-8")
 
 
 @app.get("/{theme}")
