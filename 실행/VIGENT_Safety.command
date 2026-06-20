@@ -6,8 +6,8 @@
 # ════════════════════════════════════════════════════════════
 DIR="$HOME/Desktop/VIGENT"
 PORT=8010
-# rf-detr permissive 백엔드 + 위험구역 + VLM 화면
-URL="http://127.0.0.1:${PORT}/safety-pro?t=$(date +%s)"
+# AX 인식 엔진 + VIGENT 콘솔 화면(체감이 가장 좋음). rf-detr 버전은 /safety-pro 로 접근 가능.
+URL="http://127.0.0.1:${PORT}/safety?t=$(date +%s)"
 
 echo "================================================"
 echo "  VIGENT Safety 테마 시작..."
@@ -49,7 +49,7 @@ done
 
 open "$URL"
 echo "------------------------------------------------"
-echo "페이지를 열었습니다 → http://127.0.0.1:${PORT}/safety-pro"
+echo "페이지를 열었습니다 → http://127.0.0.1:${PORT}/safety"
 echo "이 창을 닫으면 서버가 종료됩니다."
 echo "------------------------------------------------"
 wait $SRV
