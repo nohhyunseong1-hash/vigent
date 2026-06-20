@@ -58,14 +58,19 @@ def load_yolo_gt(ds: Path, split: str, target_name: str):
     return items
 
 
-def run_detector(items, target_name: str, conf: float):
+RFDETR_MODELS = {"nano": "RFDETRNano", "small": "RFDETRSmall",
+                 "medium": "RFDETRMedium", "large": "RFDETRLarge"}   # XL/2XL 금지
+
+
+def run_detector(items, target_name: str, conf: float, model_name: str = "nano"):
     """rf-detr 로 추론 → 타깃 클래스만 supervision Detections 로."""
     import torch
+    import rfdetr
     from PIL import Image
-    from rfdetr import RFDETRNano
     from rfdetr.util.coco_classes import COCO_CLASSES
     dev = "mps" if torch.backends.mps.is_available() else "cpu"
-    model = RFDETRNano(device=dev)
+    cls = getattr(rfdetr, RFDETR_MODELS[model_name])
+    model = cls(device=dev)
     try: model.optimize_for_inference()
     except Exception: pass
     preds, t0 = [], time.time()
@@ -87,6 +92,7 @@ def main():
     ap.add_argument("--target", default="person", help="측정할 클래스(소문자)")
     ap.add_argument("--conf", type=float, default=0.4)
     ap.add_argument("--limit", type=int, default=0, help="평가 이미지 수 제한(0=전체)")
+    ap.add_argument("--model", default="nano", choices=list(RFDETR_MODELS), help="rf-detr 크기")
     args = ap.parse_args()
 
     ds = Path(args.dataset) if Path(args.dataset).is_absolute() else ROOT / args.dataset
@@ -95,7 +101,8 @@ def main():
         items = items[:args.limit]
     print(f"[eval] 데이터셋 {ds.name}/{args.split} · 타깃 '{args.target}' · {len(items)}장")
 
-    preds, dev, per_img = run_detector(items, args.target.lower(), args.conf)
+    print(f"[eval] 모델 rf-detr-{args.model}")
+    preds, dev, per_img = run_detector(items, args.target.lower(), args.conf, args.model)
     gts = [gt for _p, gt, _wh in items]
 
     # 지표 계산(supervision)
@@ -109,6 +116,7 @@ def main():
     n_pred = sum(len(p) for p in preds)
     p50, r50, f50 = float(prec.precision_at_50), float(rec.recall_at_50), float(f1.f1_50)
     result = {
+        "model": f"rf-detr-{args.model}",
         "dataset": ds.name, "split": args.split, "target": args.target,
         "images": len(items), "gt_boxes": n_gt, "pred_boxes": n_pred,
         "conf_threshold": args.conf, "device": dev,
