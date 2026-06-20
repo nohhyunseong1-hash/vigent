@@ -270,22 +270,54 @@
     return s.x;
   }
   function oneEuroSmooth(lm){
-    if(!lm) return null;
+    if(!lm){ window._vgPose=null; return null; }
     const now=performance.now()/1000;
     let dt=lastT?(now-lastT):1/CFG.FREQ; lastT=now;
     if(dt<=0||dt>0.25) dt=1/CFG.FREQ;
-    return lm.map((pt,i)=>{
+    const out=lm.map((pt,i)=>{
       if(!pt) return null;
       if(!st[i]) st[i]={x:{},y:{},z:{}};
       return { x:oe(st[i].x,pt.x,dt), y:oe(st[i].y,pt.y,dt),
                z:oe(st[i].z,pt.z||0,dt), visibility:pt.visibility };
     });
+    window._vgPose=out;   // 위험구역 부위별 판정에서 사용
+    return out;
   }
-  // 전역 smoothPose 교체(엔진 내부 호출이 새 함수를 쓰게 됨)
   try{ smoothPose=oneEuroSmooth; }catch(e){}
   window.smoothPose=oneEuroSmooth;
-  window.VIGENT_SMOOTH_CFG=CFG;   // 콘솔에서 실시간 튜닝 가능
+  window.VIGENT_SMOOTH_CFG=CFG;
   console.log("[VIGENT] 스켈레톤 스무딩 → One-Euro 필터 적용");
+
+  // ── 위험구역 부위별 판정: 백엔드 포즈 대신 '브라우저 스켈레톤' 사용 ──
+  // (엔진의 좌표변환 kpToNorm + dangerZonePolys + pointInPoly 재사용 → 좌표 정확)
+  // MediaPipe 33점 인덱스: 팔꿈치 13,14 · 손목 15,16 = 손/팔(주황 경고). 그 외 = 빨강 위험.
+  const FOREARM_MP=new Set([13,14,15,16]);
+  function vgZoneSeverity(frame){
+    try{
+      const polys=dangerZonePolys(); if(!polys.length) return 'none';
+      const lm=window._vgPose;
+      const W=frame.W,H=frame.H,scX=frame.scX,scY=frame.scY;
+      const VW=videoEl.videoWidth||1280, VH=videoEl.videoHeight||720;
+      const inAny=(nx,ny)=>polys.some(pts=>pointInPoly(nx,ny,pts));
+      if(lm){
+        let core=false, forearm=false;
+        for(let i=0;i<lm.length;i++){
+          const pt=lm[i]; if(!pt || (pt.visibility==null?1:pt.visibility)<0.3) continue;
+          const n=kpToNorm(pt.x*VW, pt.y*VH, W,H,scX,scY);
+          if(!inAny(n[0],n[1])) continue;
+          if(FOREARM_MP.has(i)) forearm=true; else core=true;
+        }
+        if(core) return 'danger';
+        if(forearm) return 'warning';
+        return 'none';
+      }
+      // 포즈 없으면 박스 중심 폴백(기존 동작)
+      return checkDangerZone(frame.latestObjects,W,H,scX,scY) ? 'danger' : 'none';
+    }catch(e){ return 'none'; }
+  }
+  try{ zoneIntrusionSeverity=vgZoneSeverity; }catch(e){}
+  window.zoneIntrusionSeverity=vgZoneSeverity;
+  console.log("[VIGENT] 위험구역 판정 → 브라우저 스켈레톤 기반(손/팔=주황, 몸통=빨강)");
 })();
 </script>
 </body>
