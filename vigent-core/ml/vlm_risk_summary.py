@@ -16,11 +16,23 @@ ROOT = Path(__file__).resolve().parent.parent.parent
 MODEL = "mlx-community/Qwen2.5-VL-3B-Instruct-4bit"   # ~2-3GB(1회 다운로드)
 
 PROMPT = (
-    "당신은 산업안전 관제 분석가다. 이 CCTV 프레임을 보고 작업장 위험을 분석하라.\n"
-    "반드시 아래 JSON 형식 하나만 출력하라(설명·코드블록 금지):\n"
-    '{"위험요인": "...", "위험등급": "낮음|중간|높음", "근거": "...", "권고조치": "..."}\n'
-    "한국어로, 보이는 것에만 근거해 간결히."
+    "당신은 한국 산업안전 관제 분석가다. 답변은 무조건 한국어(Korean)로만 한다. "
+    "절대 영어·중국어·일본어를 쓰지 마라.\n"
+    "이 CCTV 프레임을 보고 작업장 위험을 분석해, 아래 JSON 하나만 출력하라(설명·코드블록 금지):\n"
+    '{"위험요인": "한국어 설명", "위험등급": "낮음 또는 중간 또는 높음", '
+    '"근거": "한국어 설명", "권고조치": "한국어 설명"}\n'
+    "보이는 것에만 근거해 모든 값을 한국어로 간결히 작성하라."
 )
+
+
+def _is_korean(data: dict) -> bool:
+    """JSON 값에 한글이 충분히 들어있는지(중국어/영어 새는지 감지)."""
+    blob = " ".join(str(v) for k, v in data.items() if k != "위험등급")
+    if not blob.strip():
+        return True
+    kr = sum(1 for ch in blob if "가" <= ch <= "힣")
+    cjk = sum(1 for ch in blob if "一" <= ch <= "鿿")   # 한자(중국어)
+    return kr >= max(3, cjk)   # 한글이 한자보다 많아야 OK
 
 
 def extract_json(text: str) -> dict:
@@ -60,13 +72,30 @@ class RiskVLM:
         self.config = load_config(MODEL)
         print(f"[vlm] 모델 로드 {time.time()-t0:.1f}s")
 
-    def summarize(self, img_path: str) -> dict:
-        safe = _safe_image(img_path)
-        fmt = self._apply(self.processor, self.config, PROMPT, num_images=1)
+    def _ask(self, safe: str, prompt: str) -> dict:
+        fmt = self._apply(self.processor, self.config, prompt, num_images=1)
+        # 안정성: 낮은 temperature + 반복 억제(같은 말 반복/degeneration 방지)
         res = self._generate(self.model, self.processor, fmt, image=safe,
-                             max_tokens=256, verbose=False)
+                             max_tokens=200, temperature=0.2, repetition_penalty=1.15,
+                             verbose=False)
         text = res if isinstance(res, str) else getattr(res, "text", str(res))
         return extract_json(text)
+
+    def summarize(self, img_path: str) -> dict:
+        """이벤트 프레임 → 위험요약 JSON. 절대 예외로 죽지 않는다(모니터링 안정성).
+        한국어가 아니면 1회 재시도. 그래도 안 되면 경고 플래그를 달아 그대로 반환."""
+        try:
+            safe = _safe_image(img_path)
+            data = self._ask(safe, PROMPT)
+            if _is_korean(data):
+                return data
+            data2 = self._ask(safe, PROMPT + "\n주의: 이전 답이 한국어가 아니었다. 반드시 한국어로만.")
+            if _is_korean(data2):
+                return data2
+            data2.setdefault("_warn", "VLM이 한국어로 답하지 않음(작은 모델 한계)")
+            return data2
+        except Exception as ex:   # noqa: BLE001  VLM 실패가 파이프라인을 멈추지 않게
+            return {"_error": f"VLM 요약 실패: {type(ex).__name__}", "위험등급": "미상"}
 
 
 def main(img_path: str) -> None:
