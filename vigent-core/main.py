@@ -457,6 +457,55 @@ def zone_intrusion_alert(payload: dict = Body(default={}), theme: str = DEFAULT_
             "evidence": saved}
 
 
+@app.post("/safety/fall")
+def safety_fall_alert(payload: dict = Body(default={}), theme: str = DEFAULT_THEME):
+    """낙상 확정(브라우저 stats.fall 증가) → 3단계 통합 체인:
+    Analyst 종합판단(+VLM 옵션) + Copilot 추락방지 법령 + Dispatcher 알림 + 증거 저장.
+    키 없으면 Dispatcher 는 로그 폴백(기능 무중단)."""
+    bundle = STATE.get(theme) or _load_theme(theme)
+    analyst = bundle["agents"].get("Analyst")
+    copilot = bundle["agents"].get("Copilot")
+    dispatcher = bundle["agents"].get("Dispatcher")
+
+    signals = {"fall_temporal": True, "torso_angle": float(payload.get("torso_angle") or 0)}
+    if analyst:
+        verdict = analyst.integrate(signals, vlm=payload.get("vlm"), copilot=copilot)
+    else:
+        verdict = {"level": "high", "fired": [], "dispatch": []}
+
+    # 증거 이미지 저장(있으면)
+    saved = None
+    img = payload.get("image_base64")
+    if img:
+        try:
+            decoded = _decode_data_url(img if img.startswith("data:") else "data:image/jpeg;base64," + img)
+            if decoded is not None:
+                import cv2
+                from datetime import datetime
+                d = _ROOT / "data" / "evidence" / datetime.now().strftime("%Y%m%d")
+                d.mkdir(parents=True, exist_ok=True)
+                fn = d / f"fall_{datetime.now().strftime('%H%M%S')}.jpg"
+                cv2.imwrite(str(fn), decoded)
+                saved = str(fn.relative_to(_ROOT))
+        except Exception:  # noqa: BLE001
+            pass
+
+    # 메시지에 법령 근거 한 줄(§9)
+    laws = []
+    for f in verdict.get("fired", []):
+        for c in (f.get("citations") or [])[:1]:
+            laws.append(f"{c['source']} {c['clause']}")
+    msg = f"[낙상] 낙상 감지 — 등급 {verdict.get('level', 'high').upper()}"
+    if laws:
+        msg += " · 근거 " + "; ".join(dict.fromkeys(laws))
+
+    result = dispatcher.dispatch(verdict.get("level", "high"), msg) if dispatcher \
+        else {"delivered": False, "fallback": True}
+    return {"ok": True, "message": msg, "verdict": verdict,
+            "phone_sent": bool(result.get("delivered")),
+            "fallback": result.get("fallback", True), "evidence": saved}
+
+
 @app.post("/vitals/rppg")
 def stub_vitals(payload: dict = Body(default={})):
     return {"ok": True, "bpm": None, "note": "stub"}

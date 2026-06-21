@@ -37,6 +37,13 @@ judgment:                         # ── Analyst (판단), 가산식
     - {id: ppe_missing,    when: "NO-Hardhat or NO-Safety-Vest",  severity: medium}
     - {id: fall_suspected, when: "temporal.fall or torso_angle>60 for 1.5s", severity: high}
     - {id: guard_bypass,   when: "hand in machine_hazard_zone",    severity: critical}  # 프레스/전단기
+  fall:                           # 낙상 감지 파라미터(브라우저 MediaPipe 포즈 기반, 추가 모델 불필요)
+    detector: mediapipe_pose
+    fast: {trunk_deg: 55, hip_y: 0.62, hip_velocity: 0.012}   # 빠른 낙상
+    slow: {trunk_deg: 48, hip_velocity: 0.008}                # 천천히 무너짐
+    confirm_frames: 6             # N프레임 연속 확인 시 '낙상'(오탐 억제), 그 전(3) '넘어질 위험'
+    law_rule: fall_suspected      # Copilot 법령 매칭 키(추락의 방지 등)
+    alert: true                   # 낙상 확정 시 에이전트 체인(Analyst→Copilot→Dispatcher) 가동
   score: additive
 
 vlm:                              # ── 영상→위험 분석(로컬 MLX, Analyst·Copilot 보조)
