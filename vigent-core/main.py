@@ -555,6 +555,44 @@ def office_trend(token: str = "anon", days: int = 7):
     return office_data.trend(token, days)
 
 
+@app.get("/office/report", response_class=HTMLResponse)
+def office_report(days: int = 7):
+    """관리자용 팀 단위 익명 자세 복지 리포트(개인 식별 없음)."""
+    import office_data
+    r = office_data.team_report(days)
+    bars = ""
+    mx = max([s["avg_score"] for s in r["series"]] + [1])
+    for s in r["series"]:
+        h = int(s["avg_score"] / mx * 90)
+        col = "#2ecc71" if s["avg_score"] >= 80 else "#f1c40f" if s["avg_score"] >= 60 else "#e74c3c"
+        bars += (f'<div style="flex:1;text-align:center"><div style="height:100px;display:flex;'
+                 f'align-items:flex-end"><div style="width:100%;height:{h}px;background:{col};'
+                 f'border-radius:4px 4px 0 0"></div></div>'
+                 f'<div style="font-size:11px;color:#8aa0b8;margin-top:4px">{s["date"][5:]}<br>'
+                 f'{s["avg_score"]}점<br>{s["participants"]}명</div></div>')
+    html = f"""<!DOCTYPE html><html lang="ko"><head><meta charset="UTF-8">
+<title>VIGENT Office · 관리자 리포트</title><style>
+body{{background:#0f1620;color:#e8eef5;font-family:-apple-system,"Apple SD Gothic Neo",sans-serif;margin:0;padding:24px}}
+.card{{background:#172230;border:1px solid #26384d;border-radius:14px;padding:20px;max-width:880px;margin:0 auto 16px}}
+.kpi{{display:flex;gap:16px;flex-wrap:wrap}} .k{{flex:1;min-width:120px;background:#10202f;border-radius:10px;padding:14px;text-align:center}}
+.k b{{font-size:28px}} .k span{{font-size:12px;color:#8aa0b8}} h1{{font-size:20px}} .mut{{color:#8aa0b8;font-size:13px}}
+</style></head><body>
+<div class="card"><h1>VIGENT <span style="color:#4aa3ff">Office</span> · 관리자 리포트</h1>
+<p class="mut">최근 {r['days']}일 · 팀 단위 <b>익명 집계</b>(개인 식별 정보 없음) · 자세 교정 복지 프로그램</p>
+<div class="kpi">
+  <div class="k"><b>{r['participants']}</b><br><span>익명 참여(명)</span></div>
+  <div class="k"><b style="color:#4aa3ff">{r['team_avg_score']}</b><br><span>팀 평균 점수</span></div>
+  <div class="k"><b style="color:#2ecc71">{r['team_good_ratio']}%</b><br><span>바른자세 비율</span></div>
+  <div class="k"><b>{r['good_hours']}h</b><br><span>바른자세 누적</span></div>
+  <div class="k"><b style="color:#e74c3c">{r['bad_hours']}h</b><br><span>나쁜자세 누적</span></div>
+</div></div>
+<div class="card"><h1 style="font-size:15px">일자별 팀 평균 점수</h1>
+<div style="display:flex;gap:8px;align-items:flex-end">{bars or '<p class="mut">아직 데이터가 없습니다. office 사용 후 표시됩니다.</p>'}</div></div>
+<div class="card mut">※ 본 리포트는 개인을 식별하지 않는 익명 집계입니다. 근로기준법·개인정보보호법상 근로자 동의·노사협의 절차를 준수하여 운영하세요.</div>
+</body></html>"""
+    return html
+
+
 @app.post("/vitals/rppg")
 def stub_vitals(payload: dict = Body(default={})):
     return {"ok": True, "bpm": None, "note": "stub"}

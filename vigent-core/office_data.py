@@ -82,3 +82,37 @@ def trend(token: str, days: int = 7) -> dict[str, Any]:
     avg_all = round(sum(s["avg_score"] for s in series) / len(series), 1) if series else 0
     return {"ok": True, "token_days": days, "series": series,
             "today": today_row, "period_avg_score": avg_all, "samples": len(recs)}
+
+
+def team_report(days: int = 7) -> dict[str, Any]:
+    """관리자용 팀 단위 익명 집계 — 개인 식별 없이 전체 통계만(복지 프로그램 관리용)."""
+    recs = _read(days)
+    by_date: dict[str, dict[str, Any]] = defaultdict(
+        lambda: {"good": 0.0, "bad": 0.0, "ssum": 0.0, "n": 0, "tokens": set()})
+    all_tokens: set[str] = set()
+    g_total = b_total = ssum = 0.0
+    n = 0
+    for r in recs:
+        d = by_date[r["date"]]
+        d["good"] += r.get("good_sec", 0); d["bad"] += r.get("bad_sec", 0)
+        d["ssum"] += r.get("avg_score", 0); d["n"] += 1; d["tokens"].add(r.get("token"))
+        all_tokens.add(r.get("token"))
+        g_total += r.get("good_sec", 0); b_total += r.get("bad_sec", 0)
+        ssum += r.get("avg_score", 0); n += 1
+    series = []
+    for date in sorted(by_date):
+        d = by_date[date]; total = d["good"] + d["bad"]
+        series.append({
+            "date": date, "participants": len(d["tokens"]),
+            "avg_score": round(d["ssum"] / d["n"], 1) if d["n"] else 0,
+            "good_ratio": round(d["good"] / total * 100, 1) if total else 0,
+        })
+    tot = g_total + b_total
+    return {
+        "ok": True, "days": days,
+        "participants": len(all_tokens),       # 익명 참여 인원(고유 토큰 수)
+        "team_avg_score": round(ssum / n, 1) if n else 0,
+        "team_good_ratio": round(g_total / tot * 100, 1) if tot else 0,
+        "good_hours": round(g_total / 3600, 1), "bad_hours": round(b_total / 3600, 1),
+        "series": series, "samples": n,
+    }
