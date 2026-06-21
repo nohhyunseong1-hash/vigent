@@ -46,6 +46,15 @@
       chk();
     });
     const vid=vs.video||vs.querySelector('video');
+    // 어떤 모드로 붙었는지 진단(WebRTC=저지연 / MSE=버퍼링)
+    setTimeout(()=>console.log('[VIGENT] Tapo 재생모드:', vs.pc?'WebRTC(저지연)':'MSE(버퍼)'), 1500);
+    // 라이브 따라잡기: 영상이 밀리면 최신 지점으로 점프 + 약간 빠르게 재생해 누적지연 제거
+    setInterval(()=>{ try{
+      const b=vid.buffered; if(!b||!b.length) return;
+      const live=b.end(b.length-1), lag=live-vid.currentTime;
+      if(lag>0.6) vid.currentTime=live-0.05;          // 0.6s 이상 밀리면 라이브로 점프
+      vid.playbackRate = lag>0.25 ? 1.07 : 1.0;       // 살짝 밀리면 빠르게 따라잡기
+    }catch(e){} }, 800);
     return vid.captureStream ? vid.captureStream() : vid.mozCaptureStream();
   }
 
