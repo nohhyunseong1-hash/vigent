@@ -21,7 +21,9 @@ from pathlib import Path
 
 import json
 
-from fastapi import Body, FastAPI, HTTPException, Request, Response
+import asyncio
+
+from fastapi import Body, FastAPI, HTTPException, Request, Response, WebSocket
 from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, PlainTextResponse
 from fastapi.staticfiles import StaticFiles
 
@@ -321,6 +323,47 @@ def alerts_test(payload: dict = Body(default={}), theme: str = DEFAULT_THEME):
     dispatcher = bundle["agents"].get("Dispatcher")
     return dispatcher.dispatch(payload.get("level", "high"),
                                payload.get("message", "VIGENT 경보 테스트"))
+
+
+# ── go2rtc 자산·WS 중계(같은 출처 :8010 로 만들어 CORS 회피) ──
+@app.get("/tapo/video-rtc.js")
+def tapo_videortc_js():
+    """go2rtc 의 video-rtc.js(ES모듈)를 VIGENT 서버가 대신 받아 같은 출처로 제공."""
+    import urllib.request
+    try:
+        with urllib.request.urlopen("http://localhost:1984/video-rtc.js", timeout=5) as r:
+            return Response(r.read(), media_type="application/javascript")
+    except Exception as ex:  # noqa: BLE001
+        raise HTTPException(status_code=502, detail=f"go2rtc 미실행: {ex}")
+
+
+@app.websocket("/tapo/ws")
+async def tapo_ws(ws: WebSocket):
+    """브라우저 ↔ go2rtc WebSocket(/api/ws?src=tapo) 양방향 중계(같은 출처)."""
+    await ws.accept()
+    import websockets
+    try:
+        async with websockets.connect("ws://localhost:1984/api/ws?src=tapo") as up:
+            async def c2u():
+                while True:
+                    data = await ws.receive()
+                    if data.get("type") == "websocket.disconnect":
+                        break
+                    if data.get("text") is not None:
+                        await up.send(data["text"])
+                    elif data.get("bytes") is not None:
+                        await up.send(data["bytes"])
+
+            async def u2c():
+                async for msg in up:
+                    if isinstance(msg, (bytes, bytearray)):
+                        await ws.send_bytes(msg)
+                    else:
+                        await ws.send_text(msg)
+
+            await asyncio.gather(c2u(), u2c())
+    except Exception:  # noqa: BLE001  연결 종료/실패 시 조용히 닫음
+        pass
 
 
 # ── go2rtc WebRTC 신호 중계(같은 출처로 만들어 CORS 회피) ──

@@ -21,14 +21,14 @@
 <script>
 (function(){
   if(new URLSearchParams(location.search).get('cam')!=='tapo') return;
-  // go2rtc 주소를 '페이지와 같은 host'로(127.0.0.1↔localhost 불일치 방지)
-  const HOST=location.hostname||'127.0.0.1';
-  const G2=`http://${HOST}:1984`, WS=`ws://${HOST}:1984/api/ws?src=tapo`;
+  // go2rtc 를 VIGENT 서버(같은 출처)가 중계 → CORS 없음
+  const JS='/tapo/video-rtc.js';
+  const WS=`${location.protocol==='https:'?'wss':'ws'}://${location.host}/tapo/ws`;
 
-  // go2rtc 공식 컴포넌트(video-rtc.js)는 ES 모듈 → 동적 import 로 VideoRTC 를 가져온다
+  // go2rtc 공식 컴포넌트(video-rtc.js, ES모듈) → 같은 출처 경로로 동적 import
   async function tapoStream(){
     if(!customElements.get('video-stream')){
-      const mod=await import(`${G2}/video-rtc.js`);   // export class VideoRTC
+      const mod=await import(JS);   // export class VideoRTC
       customElements.define('video-stream', class extends mod.VideoRTC{});
     }
     const vs=document.createElement('video-stream');
