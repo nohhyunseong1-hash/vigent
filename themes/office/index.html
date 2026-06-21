@@ -229,11 +229,28 @@ function drawSkeleton(lm){
     ctx.lineWidth=3; ctx.strokeStyle='rgba(120,200,255,.95)';  // 본선
     ctx.beginPath(); ctx.moveTo(p.x*W,p.y*H); ctx.lineTo(q.x*W,q.y*H); ctx.stroke();
   }
+  // 목 관절(Pose 엔 없음 → 합성): 어깨중점(목 밑) ↔ 귀중점(머리). 거북목 측정 부위라 강조.
+  const mid=(a,b)=>vok(lm[a])&&vok(lm[b])?{x:(lm[a].x+lm[b].x)/2,y:(lm[a].y+lm[b].y)/2}
+                  :(vok(lm[a])?lm[a]:vok(lm[b])?lm[b]:null);
+  const shM=mid(11,12), earM=mid(7,8)||(vok(lm[0])?lm[0]:null);
+  if(shM&&earM){
+    ctx.lineCap='round';
+    ctx.lineWidth=7; ctx.strokeStyle='rgba(74,163,255,.18)';
+    ctx.beginPath(); ctx.moveTo(shM.x*W,shM.y*H); ctx.lineTo(earM.x*W,earM.y*H); ctx.stroke();
+    ctx.lineWidth=3; ctx.strokeStyle='rgba(120,200,255,.95)';
+    ctx.beginPath(); ctx.moveTo(shM.x*W,shM.y*H); ctx.lineTo(earM.x*W,earM.y*H); ctx.stroke();
+  }
   // 관절점(흰 코어 + 색 링). 손·발은 작게, 큰 관절은 크게.
   for(const i of JOINTS){ const p=lm[i]; if(!vok(p)) continue;
     const x=p.x*W,y=p.y*H, small=HANDS.has(i)||FEET.has(i), r=small?3.5:6;
     ctx.beginPath(); ctx.arc(x,y,r+2,0,7); ctx.fillStyle='rgba(74,163,255,.9)'; ctx.fill();
     ctx.beginPath(); ctx.arc(x,y,r,0,7); ctx.fillStyle='#fff'; ctx.fill();
+  }
+  // 목 관절점(어깨중점)을 노란색으로 강조 — 거북목 핵심 부위
+  if(shM){ const x=shM.x*W,y=shM.y*H;
+    ctx.beginPath(); ctx.arc(x,y,8,0,7); ctx.fillStyle='rgba(241,196,15,.9)'; ctx.fill();
+    ctx.beginPath(); ctx.arc(x,y,5,0,7); ctx.fillStyle='#fff'; ctx.fill();
+    ctx.fillStyle='#f1c40f'; ctx.font='11px sans-serif'; ctx.fillText('목', x+11, y+4);
   }
 }
 
