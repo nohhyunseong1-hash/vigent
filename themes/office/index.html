@@ -44,6 +44,46 @@
   button{background:#1f3346;color:var(--tx);border:1px solid var(--line);border-radius:8px;
     padding:6px 10px;cursor:pointer}
 </style>
+<!-- Tapo(IP카메라) 입력 — URL 에 ?cam=tapo 일 때만 활성. 기본(웹캠) 무변경(규칙 6).
+     MediaPipe Camera 의 getUserMedia 를 가로채 go2rtc(Tapo) 영상을 공급. 실패 시 웹캠 폴백. -->
+<script>
+(function(){
+  if(new URLSearchParams(location.search).get('cam')!=='tapo') return;
+  const JS='/tapo/video-rtc.js';
+  const WS=`${location.protocol==='https:'?'wss':'ws'}://${location.host}/tapo/ws`;
+  async function tapoStream(){
+    if(!customElements.get('video-stream')){
+      const mod=await import(JS);
+      customElements.define('video-stream', class extends mod.VideoRTC{});
+    }
+    const vs=document.createElement('video-stream');
+    vs.style.cssText='position:fixed;left:-9999px;width:320px;height:180px';
+    vs.mode='webrtc,mse'; vs.background=true;
+    document.body.appendChild(vs);
+    vs.src=new URL(WS);
+    await new Promise((ok,no)=>{
+      const t=setTimeout(()=>no(new Error('video timeout')),8000);
+      const chk=()=>{ const vid=vs.video||vs.querySelector('video');
+        if(vid && vid.videoWidth>0){ clearTimeout(t); ok(vid); } else setTimeout(chk,200); };
+      chk();
+    });
+    const vid=vs.video||vs.querySelector('video');
+    setTimeout(()=>console.log('[VIGENT] Tapo 재생모드:', vs.pc?'WebRTC(저지연)':'MSE(버퍼)'), 1500);
+    setInterval(()=>{ try{
+      const b=vid.buffered; if(!b||!b.length) return;
+      const live=b.end(b.length-1), lag=live-vid.currentTime;
+      if(lag>0.6) vid.currentTime=live-0.05;
+      vid.playbackRate = lag>0.25 ? 1.07 : 1.0;
+    }catch(e){} }, 800);
+    return vid.captureStream ? vid.captureStream() : vid.mozCaptureStream();
+  }
+  const _gum=navigator.mediaDevices.getUserMedia.bind(navigator.mediaDevices);
+  navigator.mediaDevices.getUserMedia=async(c)=>{
+    try{ const s=await tapoStream(); console.log('[VIGENT] Office 입력=Tapo(IP카메라)'); return s; }
+    catch(e){ console.warn('[VIGENT] Tapo 실패 → 웹캠 폴백:', e.message); return _gum(c); }
+  };
+})();
+</script>
 </head>
 <body>
 <header>
