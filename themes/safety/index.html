@@ -21,16 +21,15 @@
 <script>
 (function(){
   if(new URLSearchParams(location.search).get('cam')!=='tapo') return;
-  const G2='http://localhost:1984', WS='ws://localhost:1984/api/ws?src=tapo';
+  // go2rtc 주소를 '페이지와 같은 host'로(127.0.0.1↔localhost 불일치 방지)
+  const HOST=location.hostname||'127.0.0.1';
+  const G2=`http://${HOST}:1984`, WS=`ws://${HOST}:1984/api/ws?src=tapo`;
 
-  // go2rtc 공식 컴포넌트(video-rtc.js)로 Tapo 재생 → 그 영상의 MediaStream 을 엔진에 공급
-  function loadScript(src){ return new Promise((ok,no)=>{
-    const s=document.createElement('script'); s.src=src; s.onload=ok; s.onerror=()=>no(new Error('script '+src)); document.head.appendChild(s); }); }
-
+  // go2rtc 공식 컴포넌트(video-rtc.js)는 ES 모듈 → 동적 import 로 VideoRTC 를 가져온다
   async function tapoStream(){
     if(!customElements.get('video-stream')){
-      await loadScript(`${G2}/video-rtc.js`);     // 전역 VideoRTC 클래스 정의
-      customElements.define('video-stream', class extends VideoRTC{});  // 직접 등록
+      const mod=await import(`${G2}/video-rtc.js`);   // export class VideoRTC
+      customElements.define('video-stream', class extends mod.VideoRTC{});
     }
     const vs=document.createElement('video-stream');
     vs.style.cssText='position:fixed;left:-9999px;width:320px;height:180px';
