@@ -141,6 +141,7 @@
     </div>
     <div class="ctrl">
       <label><input type="checkbox" id="togBlur" checked> 얼굴 블러</label>
+      <button id="btnEngine">⚡ 빠른 모드</button>
       <button id="btnReset">통계 초기화</button>
     </div>
   </div>
@@ -167,7 +168,6 @@
   </div>
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/@mediapipe/holistic@0.5.1675471629/holistic.js" crossorigin="anonymous"></script>
 <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
 <script src="/static/ergonomics.js"></script>
 <script>
@@ -418,22 +418,44 @@ async function loadTrend(){
 }
 loadTrend();
 
-// Holistic: 포즈(33) + 양손 21점씩(손가락) — safety 와 동일 수준의 정밀 스켈레톤
-const holistic=new Holistic({locateFile:f=>`https://cdn.jsdelivr.net/npm/@mediapipe/holistic@0.5.1675471629/${f}`});
-holistic.setOptions({modelComplexity:0,smoothLandmarks:true,refineFaceLandmarks:false,
-  minDetectionConfidence:.5,minTrackingConfidence:.5});   // 0=경량(실시간 우선)
-holistic.onResults(onResults);
-
-// 프레임 과적체 방지: 이전 추론이 끝나야 다음 프레임 전송(밀림 누적 차단)
-let inflight=false;
+// 엔진 선택: holistic(정밀·손가락) / pose(빠름·손가락 없음). 느리면 버튼으로 전환.
+const ENGINE=new URLSearchParams(location.search).get('engine')
+  || localStorage.getItem('vigent_office_engine') || 'holistic';
+// 엔진 전환 버튼(빠른 모드 ↔ 정밀). 클릭 시 저장 후 새로고침.
+(function(){ const b=document.getElementById('btnEngine'); if(!b) return;
+  b.textContent = ENGINE==='pose' ? '🖐️ 정밀(손가락)' : '⚡ 빠른 모드';
+  b.title = ENGINE==='pose' ? '손가락까지 정밀하게(느려질 수 있음)' : '손가락 끄고 빠르게';
+  b.onclick=()=>{ localStorage.setItem('vigent_office_engine', ENGINE==='pose'?'holistic':'pose'); location.reload(); };
+})();
+function loadMP(){
+  const url=ENGINE==='pose'
+    ? 'https://cdn.jsdelivr.net/npm/@mediapipe/pose/pose.js'
+    : 'https://cdn.jsdelivr.net/npm/@mediapipe/holistic@0.5.1675471629/holistic.js';
+  return new Promise((ok,no)=>{ const s=document.createElement('script');
+    s.src=url; s.crossOrigin='anonymous'; s.onload=ok; s.onerror=()=>no(new Error('MP load')); document.head.appendChild(s); });
+}
+let solution=null, inflight=false;
 const video=document.createElement('video');
 const cam=new Camera(video,{onFrame:async()=>{
-  if(inflight) return; inflight=true;
-  try{ await holistic.send({image:video}); } finally{ inflight=false; }
-},width:960,height:540});
-function startApp(){
+  if(inflight||!solution) return; inflight=true;
+  try{ await solution.send({image:video}); } finally{ inflight=false; }
+},width:ENGINE==='pose'?960:640, height:ENGINE==='pose'?540:480});
+
+async function startApp(){
   document.getElementById('consent').style.display='none';
-  cam.start().then(()=>hud.textContent='시작됨').catch(e=>hud.textContent='카메라 권한 필요: '+e.message);
+  hud.textContent='엔진 로딩 중…';
+  try{
+    await loadMP();
+    if(ENGINE==='pose'){
+      solution=new Pose({locateFile:f=>`https://cdn.jsdelivr.net/npm/@mediapipe/pose/${f}`});
+      solution.setOptions({modelComplexity:1,smoothLandmarks:true,minDetectionConfidence:.5,minTrackingConfidence:.5});
+    }else{
+      solution=new Holistic({locateFile:f=>`https://cdn.jsdelivr.net/npm/@mediapipe/holistic@0.5.1675471629/${f}`});
+      solution.setOptions({modelComplexity:0,smoothLandmarks:true,refineFaceLandmarks:false,minDetectionConfidence:.5,minTrackingConfidence:.5});
+    }
+    solution.onResults(onResults);
+    await cam.start(); hud.textContent='시작됨 · '+(ENGINE==='pose'?'빠른 모드':'정밀(손가락)');
+  }catch(e){ hud.textContent='시작 실패: '+e.message; }
 }
 // 동의 게이트: 이미 동의했으면 바로 시작, 아니면 동의 후 시작(카메라는 동의 전 미작동)
 const cAgree=document.getElementById('cAgree'), cStart=document.getElementById('cStart');
