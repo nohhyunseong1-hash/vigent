@@ -33,6 +33,8 @@
     }
     const vs=document.createElement('video-stream');
     vs.style.cssText='position:fixed;left:-9999px;width:320px;height:180px';
+    vs.mode='webrtc,mse';        // WebRTC(저지연) 우선, 안 되면 MSE 폴백 (hls/mjpeg 제거)
+    vs.background=true;          // 화면 밖이어도 끊기지 않게
     document.body.appendChild(vs);
     vs.src=new URL(WS);                          // go2rtc 가 WebRTC/MSE 자동 처리
     const v=vs.video || vs.querySelector('video');

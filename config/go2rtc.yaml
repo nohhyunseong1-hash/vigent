@@ -3,3 +3,7 @@ streams:
   tapo: ${RTSP_URL}     # 실제 주소는 .env 의 RTSP_URL 에서 환경변수로 주입(파일에 비번 없음)
 api:
   listen: ":1984"
+webrtc:
+  # 로컬(같은 PC) WebRTC 연결을 확실히 성립시켜 저지연 재생(MSE 버퍼링 회피)
+  candidates:
+    - 127.0.0.1:8555
