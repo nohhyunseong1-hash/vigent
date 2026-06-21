@@ -147,6 +147,26 @@
 </div>
 <div class="toast" id="toast"></div>
 
+<!-- 동의 온보딩(개인정보보호법) — 동의 전에는 카메라가 시작되지 않음 -->
+<div id="consent" style="position:fixed;inset:0;background:rgba(8,12,18,.92);z-index:99;
+  display:flex;align-items:center;justify-content:center;padding:20px">
+  <div style="max-width:560px;background:var(--card);border:1px solid var(--line);border-radius:16px;padding:26px">
+    <h2 style="margin:0 0 6px">VIGENT Office · 이용 동의</h2>
+    <p style="color:var(--mut);font-size:13px;margin:0 0 16px">사무직 자세 교정 <b>복지</b>를 위한 분석입니다. 시작 전 아래를 확인해 주세요.</p>
+    <ul style="font-size:14px;line-height:1.7;color:var(--tx);padding-left:18px;margin:0 0 16px">
+      <li><b>영상은 저장·전송되지 않습니다.</b> 자세 분석은 이 브라우저 안에서만 수행됩니다.</li>
+      <li><b>얼굴은 자동 블러</b> 처리되며, 이름 등 개인 식별정보를 수집하지 않습니다.</li>
+      <li>저장되는 것은 <b>익명 자세 통계</b>(점수·바른자세 비율)뿐이며, 무작위 토큰으로만 그룹화됩니다.</li>
+      <li>이 도구는 <b>감시가 아닌 자기 자세 관리</b> 목적이며, 의료 진단이 아닙니다.</li>
+      <li>동의 철회: 브라우저 데이터(localStorage) 삭제 시 토큰·동의가 초기화됩니다.</li>
+    </ul>
+    <label style="display:flex;align-items:center;gap:8px;font-size:14px;margin-bottom:14px;cursor:pointer">
+      <input type="checkbox" id="cAgree"> 위 내용을 확인했고, 자세 교정 복지 목적의 <b>익명 분석에 동의</b>합니다.</label>
+    <p style="color:var(--mut);font-size:12px;margin:0 0 14px">※ 사업장 도입 시: 근로자 동의·고지 및 노사협의 절차를 별도로 거쳐야 합니다.</p>
+    <button id="cStart" disabled style="width:100%;padding:12px;font-size:15px;background:#2a4a6b;opacity:.5;cursor:not-allowed">동의하고 시작</button>
+  </div>
+</div>
+
 <script src="https://cdn.jsdelivr.net/npm/@mediapipe/pose/pose.js" crossorigin="anonymous"></script>
 <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
 <script src="/static/ergonomics.js"></script>
@@ -320,7 +340,16 @@ pose.onResults(onResults);
 
 const video=document.createElement('video');
 const cam=new Camera(video,{onFrame:async()=>{await pose.send({image:video});},width:1280,height:720});
-cam.start().then(()=>hud.textContent='시작됨').catch(e=>hud.textContent='카메라 권한 필요: '+e.message);
+function startApp(){
+  document.getElementById('consent').style.display='none';
+  cam.start().then(()=>hud.textContent='시작됨').catch(e=>hud.textContent='카메라 권한 필요: '+e.message);
+}
+// 동의 게이트: 이미 동의했으면 바로 시작, 아니면 동의 후 시작(카메라는 동의 전 미작동)
+const cAgree=document.getElementById('cAgree'), cStart=document.getElementById('cStart');
+cAgree.onchange=()=>{ cStart.disabled=!cAgree.checked;
+  cStart.style.opacity=cAgree.checked?1:.5; cStart.style.cursor=cAgree.checked?'pointer':'not-allowed'; };
+cStart.onclick=()=>{ localStorage.setItem('vigent_office_consent', new Date().toISOString()); startApp(); };
+if(localStorage.getItem('vigent_office_consent')) startApp();
 </script>
 </body>
 </html>
