@@ -21,26 +21,33 @@
 <script>
 (function(){
   if(new URLSearchParams(location.search).get('cam')!=='tapo') return;
+  const G2='http://localhost:1984', WS='ws://localhost:1984/api/ws?src=tapo';
+
+  // go2rtc 공식 컴포넌트(video-rtc.js)로 Tapo 재생 → 그 영상의 MediaStream 을 엔진에 공급
+  function loadScript(src){ return new Promise((ok,no)=>{
+    const s=document.createElement('script'); s.src=src; s.onload=ok; s.onerror=()=>no(new Error('script '+src)); document.head.appendChild(s); }); }
+
   async function tapoStream(){
-    const pc=new RTCPeerConnection({iceServers:[]});
-    pc.addTransceiver('video',{direction:'recvonly'});
-    const stream=new MediaStream();
-    const ready=new Promise((ok,no)=>{
-      const t=setTimeout(()=>no(new Error('track timeout')),6000);
-      pc.ontrack=e=>{ stream.addTrack(e.track); clearTimeout(t); ok(); };
+    if(!customElements.get('video-stream')){
+      await loadScript(`${G2}/video-rtc.js`);     // 전역 VideoRTC 클래스 정의
+      customElements.define('video-stream', class extends VideoRTC{});  // 직접 등록
+    }
+    const vs=document.createElement('video-stream');
+    vs.style.cssText='position:fixed;left:-9999px;width:320px;height:180px';
+    document.body.appendChild(vs);
+    vs.src=new URL(WS);                          // go2rtc 가 WebRTC/MSE 자동 처리
+    const v=vs.video || vs.querySelector('video');
+    // 실제 영상 프레임이 올 때까지 대기
+    await new Promise((ok,no)=>{
+      const t=setTimeout(()=>no(new Error('video timeout')),8000);
+      const chk=()=>{ const vid=vs.video||vs.querySelector('video');
+        if(vid && vid.videoWidth>0){ clearTimeout(t); ok(vid); } else setTimeout(chk,200); };
+      chk();
     });
-    await pc.setLocalDescription(await pc.createOffer());
-    // ICE 수집 대기(로컬이라 짧음)
-    await new Promise(r=>{ if(pc.iceGatheringState==='complete')return r();
-      pc.addEventListener('icegatheringstatechange',()=>pc.iceGatheringState==='complete'&&r());
-      setTimeout(r,800); });
-    // VIGENT 서버를 통해 중계(같은 출처라 CORS 없음). go2rtc 는 순수 SDP 사용.
-    const res=await fetch('/tapo/webrtc',{method:'POST', body:pc.localDescription.sdp});
-    if(!res.ok) throw new Error('go2rtc '+res.status);
-    await pc.setRemoteDescription({type:'answer', sdp:await res.text()});
-    await ready;   // 트랙 도착까지 대기
-    return stream;
+    const vid=vs.video||vs.querySelector('video');
+    return vid.captureStream ? vid.captureStream() : vid.mozCaptureStream();
   }
+
   const _gum=navigator.mediaDevices.getUserMedia.bind(navigator.mediaDevices);
   navigator.mediaDevices.getUserMedia=async(c)=>{
     try{ const s=await tapoStream(); console.log('[VIGENT] 입력=Tapo(IP카메라, go2rtc)'); return s; }
