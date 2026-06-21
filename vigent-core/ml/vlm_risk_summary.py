@@ -13,9 +13,10 @@ import time
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent.parent
-MODEL = "mlx-community/Qwen2.5-VL-3B-Instruct-4bit"   # ~2-3GB(1회 다운로드)
 
-PROMPT = (
+# 기본값(테마 vision.yaml 에 vlm 블록이 없을 때만 사용 — 규칙 6: 절대 저하 없음)
+_DEFAULT_MODEL = "mlx-community/Qwen2.5-VL-3B-Instruct-4bit"   # ~2-3GB(1회 다운로드)
+_DEFAULT_PROMPT = (
     "당신은 한국 산업안전 관제 분석가다. 답변은 무조건 한국어(Korean)로만 한다. "
     "절대 영어·중국어·일본어를 쓰지 마라.\n"
     "이 CCTV 프레임을 보고 작업장 위험을 분석해, 아래 JSON 하나만 출력하라(설명·코드블록 금지):\n"
@@ -23,6 +24,27 @@ PROMPT = (
     '"근거": "한국어 설명", "권고조치": "한국어 설명"}\n'
     "보이는 것에만 근거해 모든 값을 한국어로 간결히 작성하라."
 )
+
+
+def _load_vlm_config() -> tuple[str, str]:
+    """테마(vision.yaml)에서 VLM 모델·프롬프트를 읽는다. 없으면 기본값(폴백).
+    VIGENT_THEME 환경변수로 테마 선택(기본 safety) → office·sports 확장 시 그대로 재사용."""
+    import os
+    theme = os.environ.get("VIGENT_THEME", "safety")
+    vy = ROOT / "themes" / theme / "vision.yaml"
+    model, prompt = _DEFAULT_MODEL, _DEFAULT_PROMPT
+    try:
+        import yaml
+        cfg = yaml.safe_load(vy.read_text(encoding="utf-8")) or {}
+        v = cfg.get("vlm") or {}
+        model = v.get("model") or model
+        prompt = v.get("prompt") or prompt
+    except Exception:   # noqa: BLE001  설정 못 읽어도 기본값으로 동작(저하 없음)
+        pass
+    return model, prompt
+
+
+MODEL, PROMPT = _load_vlm_config()
 
 
 def _is_korean(data: dict) -> bool:

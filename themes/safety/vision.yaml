@@ -39,6 +39,20 @@ judgment:                         # ── Analyst (판단), 가산식
     - {id: guard_bypass,   when: "hand in machine_hazard_zone",    severity: critical}  # 프레스/전단기
   score: additive
 
+vlm:                              # ── 영상→위험 분석(로컬 MLX, Analyst·Copilot 보조)
+  # 테마=설정 원칙: 모델·프롬프트를 여기서 주입 → office·sports 는 이 블록만 교체
+  model: mlx-community/Qwen2.5-VL-3B-Instruct-4bit
+  fallback: none                  # 모델 없으면 VLM 만 비활성(규칙 가산 점수는 그대로 유지)
+  cooldown_sec: 8                 # 같은 장면 반복 분석 방지(무거움)
+  language: ko
+  output_schema: [위험요인, 위험등급, 근거, 권고조치, 관련법령]
+  prompt: |
+    당신은 한국 산업안전보건 관제 분석가다. 답변은 무조건 한국어로만 한다(영어·중국어·일본어 금지).
+    이 CCTV 프레임의 작업장 위험을 산업안전보건법·산업안전보건기준에관한규칙·KOSHA Guide 관점에서 분석하라.
+    아래 JSON 하나만 출력하라(설명·코드블록 금지):
+    {"위험요인": "한국어 설명", "위험등급": "낮음 또는 중간 또는 높음", "근거": "한국어 설명", "권고조치": "한국어 설명", "관련법령": "해당 산업안전보건법 조항·KOSHA Guide(모르면 빈 문자열)"}
+    반드시 보이는 것에만 근거해 간결히 작성하고, 추측하지 마라.
+
 report:                           # ── Scribe (보고서)
   templates: [risk_assessment_kr, incident_evidence]
   output: [pdf, web]
