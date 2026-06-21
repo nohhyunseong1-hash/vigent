@@ -322,9 +322,16 @@ function updatePanel(res){
 function toast(msg){ const t=document.getElementById('toast'); t.textContent=msg; t.classList.add('on');
   setTimeout(()=>t.classList.remove('on'),5000); }
 
+// 캔버스 크기는 매 프레임이 아니라 '바뀔 때만' 설정(재할당 비용 제거) + DPR 1(픽셀수 절감)
+function fitCanvas(){
+  const w=cv.clientWidth||960, h=cv.clientHeight||540;
+  if(cv.width!==w || cv.height!==h){ cv.width=w; cv.height=h; }
+}
+window.addEventListener('resize', fitCanvas);
+
 function onResults(r){
-  const W=cv.width=cv.clientWidth*(window.devicePixelRatio||1);
-  const H=cv.height=cv.clientHeight*(window.devicePixelRatio||1);
+  fitCanvas();
+  const W=cv.width, H=cv.height;
   // 거울 모드: 영상을 좌우 반전해 그린다(셀피처럼 직관적)
   ctx.save(); ctx.translate(W,0); ctx.scale(-1,1); ctx.drawImage(r.image,0,0,W,H); ctx.restore();
   const lm=r.poseLandmarks;
@@ -413,12 +420,17 @@ loadTrend();
 
 // Holistic: 포즈(33) + 양손 21점씩(손가락) — safety 와 동일 수준의 정밀 스켈레톤
 const holistic=new Holistic({locateFile:f=>`https://cdn.jsdelivr.net/npm/@mediapipe/holistic@0.5.1675471629/${f}`});
-holistic.setOptions({modelComplexity:1,smoothLandmarks:true,refineFaceLandmarks:false,
-  minDetectionConfidence:.5,minTrackingConfidence:.5});
+holistic.setOptions({modelComplexity:0,smoothLandmarks:true,refineFaceLandmarks:false,
+  minDetectionConfidence:.5,minTrackingConfidence:.5});   // 0=경량(실시간 우선)
 holistic.onResults(onResults);
 
+// 프레임 과적체 방지: 이전 추론이 끝나야 다음 프레임 전송(밀림 누적 차단)
+let inflight=false;
 const video=document.createElement('video');
-const cam=new Camera(video,{onFrame:async()=>{await holistic.send({image:video});},width:1280,height:720});
+const cam=new Camera(video,{onFrame:async()=>{
+  if(inflight) return; inflight=true;
+  try{ await holistic.send({image:video}); } finally{ inflight=false; }
+},width:960,height:540});
 function startApp(){
   document.getElementById('consent').style.display='none';
   cam.start().then(()=>hud.textContent='시작됨').catch(e=>hud.textContent='카메라 권한 필요: '+e.message);
