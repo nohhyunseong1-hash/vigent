@@ -96,6 +96,7 @@
   <div class="stage">
     <canvas id="cv"></canvas>
     <div class="hud" id="hud">카메라 시작 중…</div>
+    <div class="hud" id="viewMode" style="left:auto;right:12px;display:none"></div>
   </div>
 
   <div class="panel">
@@ -342,6 +343,19 @@ function drawHand(hlm){   // hlm: 21점(정규화). 거울모드라 x 반전.
   for(const p of m){ ctx.beginPath(); ctx.arc(p.x*W,p.y*H,3,0,7); ctx.fillStyle='#fff'; ctx.fill(); }
 }
 
+// ── 4. 측면뷰 감지: 어깨너비/몸통높이 비율로 정면·측면 판정 ──
+// 측면이면 거북목(귀가 어깨보다 앞) 측정이 정확해짐(2D 정면의 한계 해결)
+function detectView(lm){
+  const shL=lm[11],shR=lm[12],hipL=lm[23],hipR=lm[24];
+  if(!vok(shL)||!vok(shR)) return null;
+  const shW=Math.abs(shL.x-shR.x), shY=(shL.y+shR.y)/2;
+  let torsoH=0;
+  if(vok(hipL)||vok(hipR)){ const hy=((hipL&&vok(hipL))?hipL.y:hipR.y); torsoH=Math.abs(shY-hy); }
+  else if(vok(lm[0])) torsoH=Math.abs(shY-lm[0].y)*2;
+  if(!torsoH) return null;
+  return (shW/torsoH) < 0.45 ? 'side' : 'front';   // 어깨가 좁게 보이면 측면
+}
+
 function setDot(id,lv){ const d=document.getElementById(id); d.className='dot '+(lv||'good'); }
 function lvOf(a,j){ return a<=j.good?'good':a<=j.warn?'warn':'bad'; }
 
@@ -351,10 +365,11 @@ function updatePanel(res){
   const lvl=document.getElementById('lvl'); lvl.className='lvl '+res.level;
   lvl.textContent={good:'완벽한 자세 ✅',warn:'주의',bad:'교정 필요 ⚠️'}[res.level];
   const a=res.angles;
-  const show=(id,val,j)=>{ if(val==null) return;
+  const show=(id,val,j,tag)=>{ if(val==null) return;
     const ok=val<=j.good;
-    document.getElementById(id).innerHTML=val+'° <span style="color:var(--mut);font-size:12px">/ 목표 ≤'+j.good+'°'+(ok?' ✓':'')+'</span>'; };
-  show('aNeck',a.neck,J.neck);   setDot('dNeck',a.neck!=null?lvOf(a.neck,J.neck):'good');
+    document.getElementById(id).innerHTML=val+'° <span style="color:var(--mut);font-size:12px">/ 목표 ≤'+j.good+'°'+(ok?' ✓':'')+(tag||'')+'</span>'; };
+  const neckTag = res._view==='side' ? ' · 측면정밀' : (res._view==='front'?' · 정면추정':'');
+  show('aNeck',a.neck,J.neck,neckTag);   setDot('dNeck',a.neck!=null?lvOf(a.neck,J.neck):'good');
   show('aTrunk',a.trunk,J.trunk); setDot('dTrunk',a.trunk!=null?lvOf(a.trunk,J.trunk):'good');
   show('aSh',a.shoulder,J.shoulder); setDot('dSh',a.shoulder!=null?lvOf(a.shoulder,J.shoulder):'good');
   // 가장 부담된 부위 산출(목표 대비 초과량 비율) → 맞춤 스트레칭
@@ -400,6 +415,13 @@ function onResults(r){
   const res=VIGENTErgo.score(lm);
   if(!res.ok){ hud.textContent=res.reason; return; }
   hud.textContent='자세 분석 중 · '+(res.framework||'RULA');
+  // 측정 모드(정면/측면) 표시 — 측면이면 거북목 정밀
+  const vm=detectView(lm); const vmEl=document.getElementById('viewMode');
+  if(vm){ vmEl.style.display='block';
+    if(vm==='side'){ vmEl.textContent='📐 측면 정밀 측정 (거북목 정확)'; vmEl.style.color='#2ecc71'; }
+    else{ vmEl.textContent='🙂 정면 · 옆으로 앉으면 거북목 정밀'; vmEl.style.color='#feca57'; }
+  }
+  res._view=vm;
   updatePanel(res);
   trackScore(res.score);   // 추세용 점수 누적(60초마다 익명 저장)
 
