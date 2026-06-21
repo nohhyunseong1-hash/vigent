@@ -72,6 +72,17 @@
       <div id="tips"><div class="tip good">자세를 측정하면 교정 조언이 표시됩니다.</div></div>
     </div>
 
+    <div class="ideal" id="ideal">
+      <h4 style="margin:14px 0 8px;font-size:13px;color:var(--mut)">✅ 이상적인 자세 (목표)</h4>
+      <div class="tip good" style="border-left-color:var(--accent)">
+        ① 화면 상단을 <b>눈높이</b>에 — 고개를 숙이지 않게<br>
+        ② <b>귀–어깨–골반</b>을 옆에서 봤을 때 <b>일직선</b><br>
+        ③ <b>등받이에 허리를 붙여</b> 골반을 세우고 허리를 곧게<br>
+        ④ <b>양 어깨 수평</b> — 한쪽으로 기울지 않게<br>
+        ⑤ 발은 바닥에, 무릎 90°
+      </div>
+    </div>
+
     <div class="stats">
       <div class="stat"><div class="b" id="goodMin" style="color:var(--good)">0분</div><div class="l">바른 자세</div></div>
       <div class="stat"><div class="b" id="badMin" style="color:var(--bad)">0분</div><div class="l">나쁜 자세</div></div>
@@ -139,14 +150,24 @@ function updatePanel(res){
   const J=VIGENTErgo.config.joints;
   document.getElementById('scoreNum').textContent=res.score;
   const lvl=document.getElementById('lvl'); lvl.className='lvl '+res.level;
-  lvl.textContent={good:'좋은 자세 👍',warn:'주의',bad:'교정 필요 ⚠️'}[res.level];
+  lvl.textContent={good:'완벽한 자세 ✅',warn:'주의',bad:'교정 필요 ⚠️'}[res.level];
   const a=res.angles;
-  if(a.neck!=null){document.getElementById('aNeck').textContent=a.neck+'°'; setDot('dNeck',lvOf(a.neck,J.neck));}
-  if(a.trunk!=null){document.getElementById('aTrunk').textContent=a.trunk+'°'; setDot('dTrunk',lvOf(a.trunk,J.trunk));}
-  if(a.shoulder!=null){document.getElementById('aSh').textContent=a.shoulder+'°'; setDot('dSh',lvOf(a.shoulder,J.shoulder));}
+  const show=(id,val,j)=>{ if(val==null) return;
+    const ok=val<=j.good;
+    document.getElementById(id).innerHTML=val+'° <span style="color:var(--mut);font-size:12px">/ 목표 ≤'+j.good+'°'+(ok?' ✓':'')+'</span>'; };
+  show('aNeck',a.neck,J.neck);   setDot('dNeck',a.neck!=null?lvOf(a.neck,J.neck):'good');
+  show('aTrunk',a.trunk,J.trunk); setDot('dTrunk',a.trunk!=null?lvOf(a.trunk,J.trunk):'good');
+  show('aSh',a.shoulder,J.shoulder); setDot('dSh',a.shoulder!=null?lvOf(a.shoulder,J.shoulder):'good');
   const tips=document.getElementById('tips'); tips.innerHTML='';
-  for(const f of res.feedback){ const d=document.createElement('div'); d.className='tip '+f.level;
-    d.textContent=(f.joint!=='전체'?'['+f.joint+'] ':'')+f.msg; tips.appendChild(d); }
+  if(res.level==='good'){
+    const d=document.createElement('div'); d.className='tip good';
+    d.innerHTML='✅ <b>완벽한 자세입니다!</b> 목·허리·어깨 모두 목표 범위 안이에요. 이대로 유지하세요.';
+    tips.appendChild(d);
+  } else {
+    for(const f of res.feedback){ if(f.joint==='전체') continue;
+      const d=document.createElement('div'); d.className='tip '+f.level;
+      d.textContent='['+f.joint+'] '+f.msg; tips.appendChild(d); }
+  }
 }
 
 function toast(msg){ const t=document.getElementById('toast'); t.textContent=msg; t.classList.add('on');
@@ -155,10 +176,13 @@ function toast(msg){ const t=document.getElementById('toast'); t.textContent=msg
 function onResults(r){
   const W=cv.width=cv.clientWidth*(window.devicePixelRatio||1);
   const H=cv.height=cv.clientHeight*(window.devicePixelRatio||1);
-  ctx.drawImage(r.image,0,0,W,H);
+  // 거울 모드: 영상을 좌우 반전해 그린다(셀피처럼 직관적)
+  ctx.save(); ctx.translate(W,0); ctx.scale(-1,1); ctx.drawImage(r.image,0,0,W,H); ctx.restore();
   const lm=r.poseLandmarks;
   if(!lm){ hud.textContent='사람을 찾는 중…'; return; }
-  blurFace(lm); drawSkeleton(lm);
+  // 화면과 일치하도록 랜드마크 x 도 반전(오버레이 정합). 각도는 좌우대칭이라 영향 없음.
+  const mlm=lm.map(p=>p?{x:1-p.x,y:p.y,z:p.z,visibility:p.visibility}:p);
+  blurFace(mlm); drawSkeleton(mlm);
   const res=VIGENTErgo.score(lm);
   if(!res.ok){ hud.textContent=res.reason; return; }
   hud.textContent='자세 분석 중 · '+(res.framework||'RULA');
