@@ -123,6 +123,13 @@
       </div>
     </div>
 
+    <div class="coach" id="aiCoach" style="margin-top:14px">
+      <h4 style="font-size:13px;color:var(--mut);display:flex;align-items:center;gap:6px">
+        🤖 AI 자세 코치 <span id="coachState" style="font-size:11px;color:var(--mut)">대기 중</span></h4>
+      <div class="tip good" id="coachBox" style="border-left-color:#a06cff">
+        잠시 후 AI가 자세를 종합 분석해 조언해드립니다…</div>
+    </div>
+
     <div class="stats">
       <div class="stat"><div class="b" id="goodMin" style="color:var(--good)">0분</div><div class="l">바른 자세</div></div>
       <div class="stat"><div class="b" id="badMin" style="color:var(--bad)">0분</div><div class="l">나쁜 자세</div></div>
@@ -148,6 +155,7 @@ let cfg={hold_sec:60};
 fetch('/theme/office/raw').then(r=>r.json()).then(raw=>{
   const e=(raw.judgment||{}).ergonomics;
   if(e){ VIGENTErgo.setConfig(e); cfg.hold_sec=e.hold_sec||60; }
+  cfg.cooldown_sec=((raw.vlm||{}).cooldown_sec)||30;   // AI 코치 호출 간격
   const p=(raw.privacy||{}).notice; if(p) document.getElementById('privacy').textContent=p;
 }).catch(()=>{});
 
@@ -237,6 +245,30 @@ function onResults(r){
   document.getElementById('goodMin').textContent=fmt(goodSec);
   document.getElementById('badMin').textContent=fmt(badSec);
 }
+
+// ── AI 자세 코치(VLM) — 쿨다운마다 1회 호출(무거우니 드물게) ──
+let coachBusy=false, coachNext=0;
+async function askCoach(){
+  if(coachBusy || performance.now()<coachNext) return;
+  coachBusy=true; document.getElementById('coachState').textContent='분석 중…';
+  try{
+    const img=cv.toDataURL('image/jpeg',0.6);   // 얼굴 블러된 화면을 전송(개인정보)
+    const r=await fetch('/office/coach',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({image:img})});
+    const j=await r.json();
+    if(j.ok && j.coach){
+      const c=j.coach;
+      let html=`<b>${c.자세평가||''}</b>`;
+      if(c.교정조언) html+=`<br>💡 ${c.교정조언}`;
+      if(c.관련지침) html+=`<br><span style="color:var(--mut);font-size:12px">📋 ${c.관련지침}</span>`;
+      document.getElementById('coachBox').innerHTML=html;
+    }
+    document.getElementById('coachState').textContent='업데이트됨';
+  }catch(e){ document.getElementById('coachState').textContent='일시 실패'; }
+  coachNext=performance.now()+((cfg.cooldown_sec||30)*1000);
+  coachBusy=false;
+}
+setInterval(askCoach, 4000);   // 4초마다 체크(실제 호출은 쿨다운으로 제한)
 
 const pose=new Pose({locateFile:f=>`https://cdn.jsdelivr.net/npm/@mediapipe/pose/${f}`});
 pose.setOptions({modelComplexity:1,smoothLandmarks:true,minDetectionConfidence:.5,minTrackingConfidence:.5});

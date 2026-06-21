@@ -47,6 +47,17 @@ def _load_vlm_config() -> tuple[str, str]:
 MODEL, PROMPT = _load_vlm_config()
 
 
+def prompt_for_theme(theme: str) -> str:
+    """특정 테마(vision.yaml)의 VLM 프롬프트를 반환(office·sports 등). 없으면 기본값."""
+    vy = ROOT / "themes" / theme / "vision.yaml"
+    try:
+        import yaml
+        v = (yaml.safe_load(vy.read_text(encoding="utf-8")) or {}).get("vlm") or {}
+        return v.get("prompt") or PROMPT
+    except Exception:   # noqa: BLE001
+        return PROMPT
+
+
 def _enrich_with_law(data: dict) -> dict:
     """Copilot 으로 '관련법령'을 보강. Copilot 미가용/실패해도 원본 그대로(저하 없음)."""
     try:
@@ -114,15 +125,16 @@ class RiskVLM:
         text = res if isinstance(res, str) else getattr(res, "text", str(res))
         return extract_json(text)
 
-    def summarize(self, img_path: str) -> dict:
+    def summarize(self, img_path: str, prompt: str | None = None) -> dict:
         """이벤트 프레임 → 위험요약 JSON. 절대 예외로 죽지 않는다(모니터링 안정성).
-        한국어가 아니면 1회 재시도. 그래도 안 되면 경고 플래그를 달아 그대로 반환.
-        끝으로 Copilot 으로 '관련법령'을 보강한다(빈 값일 때만 — 규칙 6 가산)."""
+        prompt 를 주면 그 테마 프롬프트로(office·sports). 없으면 기본(safety).
+        한국어가 아니면 1회 재시도. 끝으로 Copilot 으로 '관련법령'을 보강(빈 값일 때만)."""
+        p = prompt or PROMPT
         try:
             safe = _safe_image(img_path)
-            data = self._ask(safe, PROMPT)
+            data = self._ask(safe, p)
             if not _is_korean(data):
-                data2 = self._ask(safe, PROMPT + "\n주의: 이전 답이 한국어가 아니었다. 반드시 한국어로만.")
+                data2 = self._ask(safe, p + "\n주의: 이전 답이 한국어가 아니었다. 반드시 한국어로만.")
                 if _is_korean(data2):
                     data = data2
                 else:

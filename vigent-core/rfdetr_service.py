@@ -119,7 +119,7 @@ class VLMService:
     def __init__(self):
         self._vlm = None
 
-    def summarize_bgr(self, image_bgr: np.ndarray) -> dict[str, Any]:
+    def summarize_bgr(self, image_bgr: np.ndarray, prompt: str | None = None) -> dict[str, Any]:
         import sys
         sys.path.insert(0, str(Path(__file__).resolve().parent / "ml"))
         import cv2
@@ -128,7 +128,7 @@ class VLMService:
             self._vlm = RiskVLM()
         tmp = Path("/tmp/vigent_vlm_event.jpg")
         cv2.imwrite(str(tmp), image_bgr)
-        return self._vlm.summarize(str(tmp))
+        return self._vlm.summarize(str(tmp), prompt=prompt)
 
 
 # 서버 전역 싱글톤

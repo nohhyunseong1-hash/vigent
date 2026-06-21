@@ -506,6 +506,38 @@ def safety_fall_alert(payload: dict = Body(default={}), theme: str = DEFAULT_THE
             "fallback": result.get("fallback", True), "evidence": saved}
 
 
+@app.post("/office/coach")
+def office_coach(payload: dict = Body(default={})):
+    """사무직 자세 코치(VLM) — office 프롬프트로 프레임 분석 + 근골격계 지침 보강.
+    무거우므로 프론트가 쿨다운(기본 30초)으로 드물게 호출한다. 실패해도 죽지 않음."""
+    import sys
+    sys.path.insert(0, str(_HERE / "ml"))
+    import rfdetr_service
+    from vlm_risk_summary import prompt_for_theme
+    raw_img = payload.get("image", "")
+    if not raw_img:
+        raise HTTPException(status_code=400, detail="image 필요")
+    try:
+        img = _decode_data_url(raw_img)
+    except Exception:  # noqa: BLE001
+        img = None
+    if img is None:
+        raise HTTPException(status_code=400, detail="image(data URL) 디코딩 실패")
+    try:
+        result = rfdetr_service.vlm.summarize_bgr(img, prompt=prompt_for_theme("office"))
+    except Exception as ex:  # noqa: BLE001
+        return {"ok": False, "error": f"VLM 실패: {type(ex).__name__}"}
+    # 관련지침이 비었으면 Copilot 근골격계 지침으로 보강
+    bundle = STATE.get("office") or _load_theme("office")
+    copilot = bundle["agents"].get("Copilot")
+    if copilot and not str(result.get("관련지침", "")).strip():
+        text = f"{result.get('자세평가', '')} {result.get('위험부위', '')} {result.get('교정조언', '')}"
+        m = copilot.cite_for_hazard(text)
+        if m["matched"]:
+            result["관련지침"] = m["관련법령"]
+    return {"ok": True, "coach": result}
+
+
 @app.post("/vitals/rppg")
 def stub_vitals(payload: dict = Body(default={})):
     return {"ok": True, "bpm": None, "note": "stub"}
