@@ -133,6 +133,12 @@
     <div class="stats">
       <div class="stat"><div class="b" id="goodMin" style="color:var(--good)">0분</div><div class="l">바른 자세</div></div>
       <div class="stat"><div class="b" id="badMin" style="color:var(--bad)">0분</div><div class="l">나쁜 자세</div></div>
+      <div class="stat"><div class="b" id="streakN" style="color:#feca57">🔥0</div><div class="l">연속 사용일</div></div>
+    </div>
+
+    <div class="coach" id="badgePanel" style="margin-top:12px">
+      <h4 style="font-size:13px;color:var(--mut);margin:0 0 8px">🏅 획득 뱃지</h4>
+      <div id="badges" style="display:flex;flex-wrap:wrap;gap:8px"></div>
     </div>
     <div class="coach" id="stretchPanel" style="margin-top:14px">
       <h4 style="font-size:13px;color:var(--mut);margin:0 0 8px">🧘 추천 스트레칭 (가장 부담된 부위)</h4>
@@ -431,6 +437,41 @@ async function askCoach(){
 }
 setInterval(askCoach, 4000);   // 4초마다 체크(실제 호출은 쿨다운으로 제한)
 
+// ── 3. 게임화: 연속 사용일(streak) + 뱃지 ──
+const BADGES=[
+  {id:'first', icon:'🌱', name:'첫 발걸음', test:s=>s.days>=1},
+  {id:'streak3', icon:'🔥', name:'3일 연속', test:s=>s.streak>=3},
+  {id:'streak7', icon:'⚡', name:'일주일 개근', test:s=>s.streak>=7},
+  {id:'good80', icon:'✅', name:'바른자세 80%', test:s=>s.bestRatio>=80},
+  {id:'hour1', icon:'⏱️', name:'바른자세 1시간', test:s=>s.bestGoodMin>=60},
+  {id:'perfect', icon:'💎', name:'완벽한 하루(90점)', test:s=>s.bestScore>=90},
+];
+function gState(){ try{return JSON.parse(localStorage.getItem('vigent_office_game'))||{};}catch(e){return {};} }
+function gSave(s){ localStorage.setItem('vigent_office_game', JSON.stringify(s)); }
+function updateStreak(){
+  const s=gState(); const today=new Date().toISOString().slice(0,10);
+  if(s.lastDay!==today){
+    const y=new Date(Date.now()-864e5).toISOString().slice(0,10);
+    s.streak = (s.lastDay===y) ? (s.streak||0)+1 : 1;   // 어제 썼으면 +1, 아니면 리셋
+    s.days = (s.days||0)+1; s.lastDay=today; gSave(s);
+  }
+  return s;
+}
+function bumpBest(field, val){ const s=gState(); if((s[field]||0)<val){ s[field]=val; gSave(s); renderBadges(); } }
+function renderBadges(){
+  const s=gState();
+  document.getElementById('streakN').textContent='🔥'+(s.streak||0);
+  const wrap=document.getElementById('badges'); if(!wrap) return; wrap.innerHTML='';
+  for(const b of BADGES){ const got=b.test(s);
+    const d=document.createElement('div'); d.title=b.name;
+    d.style.cssText=`font-size:24px;width:42px;height:42px;display:flex;align-items:center;justify-content:center;
+      border-radius:10px;background:#10202f;${got?'':'filter:grayscale(1);opacity:.3'}`;
+    d.textContent=b.icon; wrap.appendChild(d); }
+}
+function checkBadgeToast(prev, now){   // 새로 딴 뱃지 알림
+  for(const b of BADGES){ if(!b.test(prev) && b.test(now)) toast(`🏅 새 뱃지 획득: ${b.icon} ${b.name}!`); }
+}
+
 // ── 익명 데이터 영속 + 추세(개인정보: 이름·얼굴 없이 로컬 랜덤 토큰만) ──
 let TOKEN=localStorage.getItem('vigent_office_token');
 if(!TOKEN){ TOKEN='of-'+Math.random().toString(36).slice(2,10)+Date.now().toString(36).slice(-4);
@@ -443,6 +484,12 @@ async function logPosture(){
   if(dG+dB < 5) return;            // 5초 미만이면 스킵(의미 없는 기록 방지)
   lastLogG=goodSec; lastLogB=badSec;
   const avg=scoreN?scoreSum/scoreN:0; scoreSum=0; scoreN=0;
+  // 뱃지: 세션 최고 기록 갱신 + 새 뱃지 알림
+  const prev=gState();
+  bumpBest('bestGoodMin', goodSec/60);
+  const ratio = (goodSec+badSec)? goodSec/(goodSec+badSec)*100 : 0;
+  bumpBest('bestRatio', ratio); bumpBest('bestScore', avg);
+  checkBadgeToast(prev, gState());
   try{
     await fetch('/office/log',{method:'POST',headers:{'Content-Type':'application/json'},
       body:JSON.stringify({token:TOKEN,good_sec:dG,bad_sec:dB,avg_score:avg})});
@@ -506,6 +553,7 @@ async function startApp(){
     }
     solution.onResults(onResults);
     await cam.start(); camOn=true; lastRemind=performance.now();
+    updateStreak(); renderBadges();   // 연속 사용일 + 뱃지
     hud.textContent='시작됨 · '+(ENGINE==='pose'?'빠른 모드':'정밀(손가락)');
   }catch(e){ hud.textContent='시작 실패: '+e.message; }
 }
