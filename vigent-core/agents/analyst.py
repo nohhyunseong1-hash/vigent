@@ -45,6 +45,9 @@ class AnalystAgent(BaseAgent):
             rid = rule.get("id")
             if rid:
                 self.rule_severity[rid] = rule.get("severity", "low")
+        # dispatch.on_severity: 등급별로 보낼 신호(설정 주도, office·sports 도 재사용)
+        self.dispatch_map: dict[str, Any] = \
+            (config.raw.get("dispatch", {}) or {}).get("on_severity", {}) or {}
 
     def status(self) -> dict[str, Any]:
         return {"name": self.name, "role": self.role, "implemented": True,
@@ -112,6 +115,48 @@ class AnalystAgent(BaseAgent):
             "fallback": (not used_dl),          # 폴백(규칙만)으로 동작했는가
             "torso_angle": round(torso, 1),
         }
+
+    # ── 종합 통합(3단계): 규칙 + VLM + 법령을 한자리에서 ────────────────
+    _VLM_LEVEL = {"높음": "high", "중간": "medium", "낮음": "low"}
+
+    def integrate(self, signals: dict[str, Any], vlm: dict[str, Any] | None = None,
+                  dl: dict[str, float] | None = None, copilot: Any = None) -> dict[str, Any]:
+        """규칙(judge) + VLM 위험분석 + Copilot 법령을 가산식으로 종합한 '최종 판단'.
+
+        - 규칙 점수(휴리스틱+딥러닝 가산)는 그대로 바닥을 깐다.
+        - VLM 위험등급은 보조 신호로 *가산*만 한다(0.4 가중) — 절대 점수를 낮추지 않는다(규칙 6).
+        - 각 발화 규칙에 Copilot 법령 인용을 붙인다(§9 근거 인용).
+        - 최종 등급으로 Dispatcher 가 보낼 신호를 권고한다(vision.yaml dispatch).
+        """
+        verdict = self.judge(signals, dl)
+
+        # VLM 가산(보조). VLM 이 없거나 실패해도 규칙 판단은 그대로(폴백).
+        if isinstance(vlm, dict) and not vlm.get("_error"):
+            lvl = self._VLM_LEVEL.get(str(vlm.get("위험등급", "")).strip())
+            if lvl:
+                gain = _SEVERITY_WEIGHT[lvl] * 0.4   # VLM 은 보조라 40% 가중
+                verdict["score"] = round(verdict["score"] + gain, 1)
+                verdict["level"] = _score_to_level(verdict["score"])
+                verdict["fired"].append({"rule": "vlm_risk", "severity": lvl,
+                                         "gain": round(gain, 1), "via": "vlm"})
+            verdict["vlm"] = {k: vlm.get(k) for k in
+                              ("위험요인", "위험등급", "근거", "권고조치", "관련법령")}
+            if vlm.get("_citations"):
+                verdict["vlm"]["citations"] = vlm["_citations"]
+
+        # 각 규칙에 법령 인용 부착(Copilot 가 있으면). 없으면 생략(저하 없음).
+        if copilot is not None:
+            for f in verdict["fired"]:
+                if f["rule"] == "vlm_risk":
+                    continue
+                try:
+                    f["citations"] = copilot.cite(f["rule"]).get("citations", [])
+                except Exception:   # noqa: BLE001
+                    pass
+
+        # 최종 등급 → 보낼 신호 권고(Dispatcher 입력)
+        verdict["dispatch"] = self.dispatch_map.get(verdict["level"], [])
+        return verdict
 
     # run() 은 judge 의 얇은 래퍼(공통 인터페이스 유지)
     def run(self, signals: dict[str, Any] | None = None,
