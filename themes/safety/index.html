@@ -25,20 +25,22 @@
   async function tapoStream(){
     const pc=new RTCPeerConnection({iceServers:[]});
     pc.addTransceiver('video',{direction:'recvonly'});
-    pc.addTransceiver('audio',{direction:'recvonly'});
     const stream=new MediaStream();
-    pc.ontrack=e=>stream.addTrack(e.track);
+    const ready=new Promise((ok,no)=>{
+      const t=setTimeout(()=>no(new Error('track timeout')),6000);
+      pc.ontrack=e=>{ stream.addTrack(e.track); clearTimeout(t); ok(); };
+    });
     await pc.setLocalDescription(await pc.createOffer());
     // ICE 수집 대기(로컬이라 짧음)
     await new Promise(r=>{ if(pc.iceGatheringState==='complete')return r();
-      pc.onicegatheringstatechange=()=>pc.iceGatheringState==='complete'&&r();
+      pc.addEventListener('icegatheringstatechange',()=>pc.iceGatheringState==='complete'&&r());
       setTimeout(r,800); });
+    // go2rtc 는 '순수 SDP' 를 주고받는다(JSON 아님)
     const res=await fetch(`${GO2RTC}/api/webrtc?src=tapo`,{method:'POST',
-      body:JSON.stringify({type:'offer',sdp:pc.localDescription.sdp})});
-    await pc.setRemoteDescription(await res.json());
-    // 트랙이 실제로 올 때까지 대기
-    await new Promise((ok,no)=>{ const t=setTimeout(()=>no(new Error('timeout')),6000);
-      pc.ontrack=e=>{ stream.addTrack(e.track); clearTimeout(t); ok(); }; });
+      body:pc.localDescription.sdp});
+    if(!res.ok) throw new Error('go2rtc '+res.status);
+    await pc.setRemoteDescription({type:'answer', sdp:await res.text()});
+    await ready;   // 트랙 도착까지 대기
     return stream;
   }
   const _gum=navigator.mediaDevices.getUserMedia.bind(navigator.mediaDevices);
