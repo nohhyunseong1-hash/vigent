@@ -21,7 +21,6 @@
 <script>
 (function(){
   if(new URLSearchParams(location.search).get('cam')!=='tapo') return;
-  const GO2RTC='http://localhost:1984';
   async function tapoStream(){
     const pc=new RTCPeerConnection({iceServers:[]});
     pc.addTransceiver('video',{direction:'recvonly'});
@@ -35,9 +34,8 @@
     await new Promise(r=>{ if(pc.iceGatheringState==='complete')return r();
       pc.addEventListener('icegatheringstatechange',()=>pc.iceGatheringState==='complete'&&r());
       setTimeout(r,800); });
-    // go2rtc 는 '순수 SDP' 를 주고받는다(JSON 아님)
-    const res=await fetch(`${GO2RTC}/api/webrtc?src=tapo`,{method:'POST',
-      body:pc.localDescription.sdp});
+    // VIGENT 서버를 통해 중계(같은 출처라 CORS 없음). go2rtc 는 순수 SDP 사용.
+    const res=await fetch('/tapo/webrtc',{method:'POST', body:pc.localDescription.sdp});
     if(!res.ok) throw new Error('go2rtc '+res.status);
     await pc.setRemoteDescription({type:'answer', sdp:await res.text()});
     await ready;   // 트랙 도착까지 대기

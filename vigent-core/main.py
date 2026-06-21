@@ -21,8 +21,8 @@ from pathlib import Path
 
 import json
 
-from fastapi import Body, FastAPI, HTTPException, Response
-from fastapi.responses import FileResponse, HTMLResponse, JSONResponse
+from fastapi import Body, FastAPI, HTTPException, Request, Response
+from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, PlainTextResponse
 from fastapi.staticfiles import StaticFiles
 
 # .env 의 비밀키(텔레그램·웹훅 등)를 환경변수로 로드(있으면). 없어도 무해.
@@ -321,6 +321,22 @@ def alerts_test(payload: dict = Body(default={}), theme: str = DEFAULT_THEME):
     dispatcher = bundle["agents"].get("Dispatcher")
     return dispatcher.dispatch(payload.get("level", "high"),
                                payload.get("message", "VIGENT 경보 테스트"))
+
+
+# ── go2rtc WebRTC 신호 중계(같은 출처로 만들어 CORS 회피) ──
+@app.post("/tapo/webrtc")
+async def tapo_webrtc(request: Request):
+    """브라우저 ↔ go2rtc WebRTC 핸드셰이크(SDP)를 VIGENT 서버가 중계.
+    영상(미디어)은 WebRTC로 직접 흐르고, 여기선 SDP 신호만 전달 → CORS 문제 없음."""
+    import urllib.request
+    sdp = await request.body()
+    req = urllib.request.Request("http://localhost:1984/api/webrtc?src=tapo",
+                                 data=sdp, method="POST")
+    try:
+        with urllib.request.urlopen(req, timeout=10) as r:
+            return PlainTextResponse(r.read().decode())
+    except Exception as ex:  # noqa: BLE001
+        raise HTTPException(status_code=502, detail=f"go2rtc 연결 실패: {ex}")
 
 
 # ── rf-detr permissive 백엔드(탐지·추적·위험구역·VLM) ──
