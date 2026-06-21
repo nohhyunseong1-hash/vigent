@@ -134,6 +134,11 @@
       <div class="stat"><div class="b" id="goodMin" style="color:var(--good)">0분</div><div class="l">바른 자세</div></div>
       <div class="stat"><div class="b" id="badMin" style="color:var(--bad)">0분</div><div class="l">나쁜 자세</div></div>
     </div>
+    <div class="coach" id="stretchPanel" style="margin-top:14px">
+      <h4 style="font-size:13px;color:var(--mut);margin:0 0 8px">🧘 추천 스트레칭 (가장 부담된 부위)</h4>
+      <div class="tip good" id="stretchBox" style="border-left-color:#2ecc71">자세를 측정하면 맞춤 스트레칭을 추천합니다.</div>
+    </div>
+
     <div class="trend" id="trend" style="margin-top:14px">
       <h4 style="font-size:13px;color:var(--mut);margin:0 0 8px">📈 나의 자세 추세 (최근 7일 · 익명)</h4>
       <div id="trendToday" style="font-size:13px;margin-bottom:8px;color:var(--mut)">아직 기록이 없어요. 잠시 사용하면 쌓입니다.</div>
@@ -201,8 +206,19 @@ document.getElementById('remindOk').onclick=()=>{ document.getElementById('remin
 setInterval(()=>{ if(!camOn) return;
   if(performance.now()-lastRemind >= cfg.reminder_min*60000) showRemind();
 }, 5000);
-// 2번에서 채움(없으면 기본 안내). 1번 단계 기본값:
-function fillStretch(el){ el.innerHTML='🙆 목을 좌우로 천천히, 어깨를 으쓱 5회, 일어나서 허리를 펴고 가볍게 걸어보세요.'; }
+
+// ── 2. 맞춤 스트레칭 가이드(부위별) ──
+const STRETCH={
+  neck:{icon:'🙆',title:'목 스트레칭',steps:['턱을 가슴쪽으로 천천히 당겨 5초 (3회)','귀를 어깨쪽으로 좌우 기울여 각 10초','고개를 좌우로 천천히 돌려 각 5초']},
+  trunk:{icon:'🧍',title:'허리·등 스트레칭',steps:['일어서서 양손 깍지 끼고 위로 쭉 펴기 10초','의자에 앉아 상체를 좌우로 비틀기 각 10초','허리에 손 대고 뒤로 가볍게 젖히기 5초 (3회)']},
+  shoulder:{icon:'💪',title:'어깨 스트레칭',steps:['어깨를 으쓱 올렸다 내리기 10회','한 팔을 반대쪽으로 당겨 어깨 늘리기 각 10초','어깨를 앞·뒤로 크게 돌리기 각 5회']},
+  general:{icon:'🚶',title:'전신 리프레시',steps:['일어나서 가볍게 30초 걷기','목·어깨·허리를 가볍게 풀기','창밖 먼 곳을 20초 바라보기(눈 휴식)']},
+};
+let worstJoint='general';   // onResults 에서 갱신(가장 나쁜 부위)
+function stretchFor(key){ const s=STRETCH[key]||STRETCH.general;
+  return `<b>${s.icon} ${s.title}</b><ul style="margin:8px 0 0;padding-left:18px">`+
+    s.steps.map(x=>`<li>${x}</li>`).join('')+`</ul>`; }
+function fillStretch(el){ el.innerHTML=stretchFor(worstJoint); }
 
 // office 설정(vision.yaml ergonomics)을 읽어 채점기에 주입 — 테마=설정
 fetch('/theme/office/raw').then(r=>r.json()).then(raw=>{
@@ -335,6 +351,13 @@ function updatePanel(res){
   show('aNeck',a.neck,J.neck);   setDot('dNeck',a.neck!=null?lvOf(a.neck,J.neck):'good');
   show('aTrunk',a.trunk,J.trunk); setDot('dTrunk',a.trunk!=null?lvOf(a.trunk,J.trunk):'good');
   show('aSh',a.shoulder,J.shoulder); setDot('dSh',a.shoulder!=null?lvOf(a.shoulder,J.shoulder):'good');
+  // 가장 부담된 부위 산출(목표 대비 초과량 비율) → 맞춤 스트레칭
+  const over=[]; if(a.neck!=null)over.push(['neck',a.neck/J.neck.good]);
+  if(a.trunk!=null)over.push(['trunk',a.trunk/J.trunk.good]);
+  if(a.shoulder!=null)over.push(['shoulder',a.shoulder/J.shoulder.good]);
+  over.sort((x,y)=>y[1]-x[1]);
+  worstJoint = (over.length && over[0][1]>1) ? over[0][0] : 'general';
+  const sb=document.getElementById('stretchBox'); if(sb) sb.innerHTML=stretchFor(worstJoint);
   const tips=document.getElementById('tips'); tips.innerHTML='';
   if(res.level==='good'){
     const d=document.createElement('div'); d.className='tip good';
