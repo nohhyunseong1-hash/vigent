@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>VIGENT Office · 자세 교정 도우미</title>
+<style>
+  :root{ --bg:#0f1620; --card:#172230; --line:#26384d; --tx:#e8eef5; --mut:#8aa0b8;
+         --good:#2ecc71; --warn:#f1c40f; --bad:#e74c3c; --accent:#4aa3ff; }
+  *{box-sizing:border-box} body{margin:0;background:var(--bg);color:var(--tx);
+    font-family:-apple-system,"Apple SD Gothic Neo","Malgun Gothic",sans-serif}
+  header{padding:14px 20px;border-bottom:1px solid var(--line);display:flex;
+    align-items:center;gap:12px}
+  header b{font-size:18px;letter-spacing:.5px} header .tag{font-size:12px;color:var(--mut)}
+  .privacy{margin-left:auto;font-size:12px;color:var(--mut);max-width:48ch;text-align:right}
+  .wrap{display:grid;grid-template-columns:1fr 360px;gap:16px;padding:16px;max-width:1280px;margin:0 auto}
+  @media(max-width:900px){.wrap{grid-template-columns:1fr}}
+  .stage{position:relative;background:#000;border-radius:14px;overflow:hidden;aspect-ratio:16/9}
+  .stage canvas{width:100%;height:100%;display:block}
+  .stage .hud{position:absolute;left:12px;top:12px;font-size:12px;color:#cfe;
+    background:rgba(0,0,0,.45);padding:4px 8px;border-radius:6px}
+  .panel{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px}
+  .score{display:flex;align-items:baseline;gap:8px;margin-bottom:6px}
+  .score .num{font-size:44px;font-weight:800} .score .u{color:var(--mut)}
+  .lvl{display:inline-block;padding:3px 10px;border-radius:20px;font-size:13px;font-weight:700}
+  .lvl.good{background:rgba(46,204,113,.18);color:var(--good)}
+  .lvl.warn{background:rgba(241,196,15,.18);color:var(--warn)}
+  .lvl.bad{background:rgba(231,76,60,.18);color:var(--bad)}
+  .row{display:flex;justify-content:space-between;padding:9px 0;border-bottom:1px solid var(--line);font-size:14px}
+  .row .v{font-variant-numeric:tabular-nums}
+  .dot{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:6px}
+  .dot.good{background:var(--good)} .dot.warn{background:var(--warn)} .dot.bad{background:var(--bad)}
+  .coach{margin-top:12px} .coach h4{margin:0 0 8px;font-size:13px;color:var(--mut)}
+  .tip{font-size:13px;line-height:1.5;padding:8px 10px;border-radius:8px;margin-bottom:6px;background:#10202f}
+  .tip.bad{border-left:3px solid var(--bad)} .tip.warn{border-left:3px solid var(--warn)}
+  .tip.good{border-left:3px solid var(--good)}
+  .stats{margin-top:12px;display:flex;gap:10px} .stat{flex:1;background:#10202f;border-radius:10px;padding:10px;text-align:center}
+  .stat .b{font-size:20px;font-weight:800} .stat .l{font-size:11px;color:var(--mut)}
+  .ctrl{margin-top:12px;display:flex;gap:8px;align-items:center;font-size:13px;color:var(--mut)}
+  .toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:#1d3b22;
+    color:#dff5e3;border:1px solid #2ecc71;padding:12px 18px;border-radius:12px;font-size:14px;
+    box-shadow:0 8px 30px rgba(0,0,0,.4);opacity:0;transition:.3s;pointer-events:none}
+  .toast.on{opacity:1}
+  button{background:#1f3346;color:var(--tx);border:1px solid var(--line);border-radius:8px;
+    padding:6px 10px;cursor:pointer}
+</style>
+</head>
+<body>
+<header>
+  <b>VIGENT <span style="color:var(--accent)">Office</span></b>
+  <span class="tag">· 자세 교정 도우미 (복지)</span>
+  <div class="privacy" id="privacy">얼굴 블러 ON · 익명 분석 · 영상은 저장·전송되지 않습니다</div>
+</header>
+
+<div class="wrap">
+  <div class="stage">
+    <canvas id="cv"></canvas>
+    <div class="hud" id="hud">카메라 시작 중…</div>
+  </div>
+
+  <div class="panel">
+    <div class="score">
+      <span class="num" id="scoreNum">--</span><span class="u">/100</span>
+      <span class="lvl good" id="lvl" style="margin-left:auto">측정 중</span>
+    </div>
+    <div class="row"><span><span class="dot good" id="dNeck"></span>목 (거북목)</span><span class="v" id="aNeck">--°</span></div>
+    <div class="row"><span><span class="dot good" id="dTrunk"></span>허리 (구부정)</span><span class="v" id="aTrunk">--°</span></div>
+    <div class="row"><span><span class="dot good" id="dSh"></span>어깨 (비대칭)</span><span class="v" id="aSh">--°</span></div>
+
+    <div class="coach">
+      <h4>실시간 코칭</h4>
+      <div id="tips"><div class="tip good">자세를 측정하면 교정 조언이 표시됩니다.</div></div>
+    </div>
+
+    <div class="stats">
+      <div class="stat"><div class="b" id="goodMin" style="color:var(--good)">0분</div><div class="l">바른 자세</div></div>
+      <div class="stat"><div class="b" id="badMin" style="color:var(--bad)">0분</div><div class="l">나쁜 자세</div></div>
+    </div>
+    <div class="ctrl">
+      <label><input type="checkbox" id="togBlur" checked> 얼굴 블러</label>
+      <button id="btnReset">통계 초기화</button>
+    </div>
+  </div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/pose/pose.js" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
+<script src="/static/ergonomics.js"></script>
+<script>
+const cv=document.getElementById('cv'), ctx=cv.getContext('2d');
+const hud=document.getElementById('hud');
+const FACE=[0,1,2,3,4,5,6,7,8,9,10];   // MediaPipe Pose 얼굴 랜드마크(블러 대상)
+let cfg={hold_sec:60};
+
+// office 설정(vision.yaml ergonomics)을 읽어 채점기에 주입 — 테마=설정
+fetch('/theme/office/raw').then(r=>r.json()).then(raw=>{
+  const e=(raw.judgment||{}).ergonomics;
+  if(e){ VIGENTErgo.setConfig(e); cfg.hold_sec=e.hold_sec||60; }
+  const p=(raw.privacy||{}).notice; if(p) document.getElementById('privacy').textContent=p;
+}).catch(()=>{});
+
+// ── 통계(익명, 로컬에만) ──
+let goodSec=0, badSec=0, badStreak=0, lastT=performance.now(), notified=false;
+function fmt(s){ return Math.floor(s/60)+'분'; }
+document.getElementById('btnReset').onclick=()=>{goodSec=badSec=badStreak=0;};
+
+function blurFace(lm){
+  if(!document.getElementById('togBlur').checked) return;
+  const W=cv.width,H=cv.height;
+  let x0=1,y0=1,x1=0,y1=0,seen=0;
+  for(const i of FACE){ const p=lm[i]; if(!p||(p.visibility||0)<0.3) continue;
+    x0=Math.min(x0,p.x);y0=Math.min(y0,p.y);x1=Math.max(x1,p.x);y1=Math.max(y1,p.y);seen++; }
+  if(seen<3) return;
+  const pad=0.06; x0=Math.max(0,x0-pad);y0=Math.max(0,y0-pad*1.4);x1=Math.min(1,x1+pad);y1=Math.min(1,y1+pad);
+  const rx=x0*W,ry=y0*H,rw=(x1-x0)*W,rh=(y1-y0)*H;
+  ctx.save(); ctx.filter='blur(18px)';
+  ctx.beginPath(); ctx.rect(rx,ry,rw,rh); ctx.clip();
+  ctx.drawImage(cv, rx,ry,rw,rh, rx,ry,rw,rh);  // 해당 영역만 블러로 재그리기
+  ctx.restore();
+}
+
+const CONN=[[11,12],[11,23],[12,24],[23,24],[11,13],[13,15],[12,14],[14,16],
+            [23,25],[25,27],[24,26],[26,28]];   // 몸통·팔·다리(얼굴 제외)
+function drawSkeleton(lm){
+  const W=cv.width,H=cv.height;
+  ctx.lineWidth=4; ctx.strokeStyle='rgba(74,163,255,.9)';
+  for(const [a,b] of CONN){ const p=lm[a],q=lm[b]; if(!p||!q) continue;
+    ctx.beginPath(); ctx.moveTo(p.x*W,p.y*H); ctx.lineTo(q.x*W,q.y*H); ctx.stroke(); }
+  ctx.fillStyle='#fff';
+  for(const i of [11,12,13,14,15,16,23,24]){ const p=lm[i]; if(!p) continue;
+    ctx.beginPath(); ctx.arc(p.x*W,p.y*H,5,0,7); ctx.fill(); }
+}
+
+function setDot(id,lv){ const d=document.getElementById(id); d.className='dot '+(lv||'good'); }
+function lvOf(a,j){ return a<=j.good?'good':a<=j.warn?'warn':'bad'; }
+
+function updatePanel(res){
+  const J=VIGENTErgo.config.joints;
+  document.getElementById('scoreNum').textContent=res.score;
+  const lvl=document.getElementById('lvl'); lvl.className='lvl '+res.level;
+  lvl.textContent={good:'좋은 자세 👍',warn:'주의',bad:'교정 필요 ⚠️'}[res.level];
+  const a=res.angles;
+  if(a.neck!=null){document.getElementById('aNeck').textContent=a.neck+'°'; setDot('dNeck',lvOf(a.neck,J.neck));}
+  if(a.trunk!=null){document.getElementById('aTrunk').textContent=a.trunk+'°'; setDot('dTrunk',lvOf(a.trunk,J.trunk));}
+  if(a.shoulder!=null){document.getElementById('aSh').textContent=a.shoulder+'°'; setDot('dSh',lvOf(a.shoulder,J.shoulder));}
+  const tips=document.getElementById('tips'); tips.innerHTML='';
+  for(const f of res.feedback){ const d=document.createElement('div'); d.className='tip '+f.level;
+    d.textContent=(f.joint!=='전체'?'['+f.joint+'] ':'')+f.msg; tips.appendChild(d); }
+}
+
+function toast(msg){ const t=document.getElementById('toast'); t.textContent=msg; t.classList.add('on');
+  setTimeout(()=>t.classList.remove('on'),5000); }
+
+function onResults(r){
+  const W=cv.width=cv.clientWidth*(window.devicePixelRatio||1);
+  const H=cv.height=cv.clientHeight*(window.devicePixelRatio||1);
+  ctx.drawImage(r.image,0,0,W,H);
+  const lm=r.poseLandmarks;
+  if(!lm){ hud.textContent='사람을 찾는 중…'; return; }
+  blurFace(lm); drawSkeleton(lm);
+  const res=VIGENTErgo.score(lm);
+  if(!res.ok){ hud.textContent=res.reason; return; }
+  hud.textContent='자세 분석 중 · '+(res.framework||'RULA');
+  updatePanel(res);
+
+  // 누적 통계 + 나쁜 자세 지속 시 부드러운 알림(복지 톤)
+  const now=performance.now(), dt=(now-lastT)/1000; lastT=now;
+  if(res.level==='bad'){ badSec+=dt; badStreak+=dt;
+    if(badStreak>=cfg.hold_sec && !notified){ notified=true;
+      toast('🧘 '+Math.round(cfg.hold_sec/60*10)/10+'분 넘게 자세가 흐트러졌어요. 잠깐 일어나 스트레칭 어때요?'); }
+  } else { goodSec+=dt; badStreak=0; notified=false; }
+  document.getElementById('goodMin').textContent=fmt(goodSec);
+  document.getElementById('badMin').textContent=fmt(badSec);
+}
+
+const pose=new Pose({locateFile:f=>`https://cdn.jsdelivr.net/npm/@mediapipe/pose/${f}`});
+pose.setOptions({modelComplexity:1,smoothLandmarks:true,minDetectionConfidence:.5,minTrackingConfidence:.5});
+pose.onResults(onResults);
+
+const video=document.createElement('video');
+const cam=new Camera(video,{onFrame:async()=>{await pose.send({image:video});},width:1280,height:720});
+cam.start().then(()=>hud.textContent='시작됨').catch(e=>hud.textContent='카메라 권한 필요: '+e.message);
+</script>
+</body>
+</html>

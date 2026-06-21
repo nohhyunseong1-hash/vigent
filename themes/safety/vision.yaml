@@ -44,6 +44,14 @@ judgment:                         # ── Analyst (판단), 가산식
     confirm_frames: 6             # N프레임 연속 확인 시 '낙상'(오탐 억제), 그 전(3) '넘어질 위험'
     law_rule: fall_suspected      # Copilot 법령 매칭 키(추락의 방지 등)
     alert: true                   # 낙상 확정 시 에이전트 체인(Analyst→Copilot→Dispatcher) 가동
+  ergonomics:                     # ── 5.5단계: 인간공학(작업자세 위험) — 포즈 기반, 추가 모델 불필요
+    framework: REBA               # safety=전신(REBA), 중량물·허리굽힘 작업자세
+    joints:
+      neck:     {good: 15, warn: 25}    # 목 굽힘(도)
+      trunk:    {good: 20, warn: 45}    # 허리 굽힘(작업현장은 허용범위 넓게)
+      shoulder: {good: 12, warn: 25}    # 어깨 비대칭/들어올림(도)
+    hold_sec: 3                   # 나쁜 자세 3초 지속 시 위험 가산
+    law_rule: ergonomic_risk      # Copilot 법령(근골격계 부담작업 예방)
   score: additive
 
 vlm:                              # ── 영상→위험 분석(로컬 MLX, Analyst·Copilot 보조)

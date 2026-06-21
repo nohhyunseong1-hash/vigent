@@ -528,6 +528,16 @@ def safety_pro():
     return p.read_text(encoding="utf-8")
 
 
+@app.get("/theme/{theme}/raw")
+def theme_raw(theme: str):
+    """테마 vision.yaml 원본 반환(프론트가 ergonomics 등 설정을 읽어 설정주도 동작)."""
+    from vision_loader import load_vision
+    try:
+        return load_vision(theme).raw
+    except FileNotFoundError:
+        raise HTTPException(status_code=404, detail=f"테마 없음: {theme}")
+
+
 @app.get("/{theme}")
 def theme_page(theme: str):
     """테마 정적 페이지(index.html) 서빙. 없으면 404."""
