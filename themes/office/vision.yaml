@@ -29,6 +29,7 @@ judgment:                         # ── Analyst (판단), 가산식
       shoulder: {good: 8,  warn: 15}    # 어깨 좌우 비대칭
     hold_sec: 60                  # 나쁜 자세 60초 지속 시 부드러운 알림(복지 톤)
     coaching: true                # 실시간 자세 코칭 표시
+    reminder_min: 50              # N분마다 스트레칭 리마인더(근골격계 예방: 50분 작업·10분 휴식 권장)
     law_rule: ergonomic_risk
   rules:
     - {id: bad_posture, when: "ergonomics.level == bad for hold_sec", severity: low}

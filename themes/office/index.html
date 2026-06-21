@@ -148,6 +148,19 @@
 </div>
 <div class="toast" id="toast"></div>
 
+<!-- 스트레칭 리마인더 모달(50분마다) -->
+<div id="remind" style="position:fixed;inset:0;background:rgba(8,12,18,.85);z-index:80;
+  display:none;align-items:center;justify-content:center;padding:20px">
+  <div style="max-width:440px;background:var(--card);border:1px solid #2ecc71;border-radius:16px;padding:26px;text-align:center">
+    <div style="font-size:46px">🧘</div>
+    <h2 style="margin:8px 0 6px">스트레칭 시간이에요!</h2>
+    <p id="remindMsg" style="color:var(--mut);font-size:14px;margin:0 0 16px">
+      50분 동안 앉아 계셨어요. 잠깐 일어나 몸을 풀어주세요.</p>
+    <div id="remindStretch" style="text-align:left;background:#10202f;border-radius:10px;padding:14px;margin-bottom:16px;font-size:14px;line-height:1.7"></div>
+    <button id="remindOk" style="width:100%;padding:12px;font-size:15px;background:#1d3b22;border-color:#2ecc71">완료 👍</button>
+  </div>
+</div>
+
 <!-- 동의 온보딩(개인정보보호법) — 동의 전에는 카메라가 시작되지 않음 -->
 <div id="consent" style="position:fixed;inset:0;background:rgba(8,12,18,.92);z-index:99;
   display:flex;align-items:center;justify-content:center;padding:20px">
@@ -174,12 +187,27 @@
 const cv=document.getElementById('cv'), ctx=cv.getContext('2d');
 const hud=document.getElementById('hud');
 const FACE=[0,1,2,3,4,5,6,7,8,9,10];   // MediaPipe Pose 얼굴 랜드마크(블러 대상)
-let cfg={hold_sec:60};
+let cfg={hold_sec:60, reminder_min:50};
+let camOn=false, lastRemind=0;
+
+// ── 1. 스트레칭 리마인더(N분마다) ──
+function showRemind(){
+  const m=document.getElementById('remind');
+  document.getElementById('remindMsg').textContent=`${cfg.reminder_min}분 동안 앉아 계셨어요. 잠깐 일어나 몸을 풀어주세요.`;
+  fillStretch(document.getElementById('remindStretch'));   // 2번: 맞춤 스트레칭(없으면 기본)
+  m.style.display='flex';
+}
+document.getElementById('remindOk').onclick=()=>{ document.getElementById('remind').style.display='none'; lastRemind=performance.now(); };
+setInterval(()=>{ if(!camOn) return;
+  if(performance.now()-lastRemind >= cfg.reminder_min*60000) showRemind();
+}, 5000);
+// 2번에서 채움(없으면 기본 안내). 1번 단계 기본값:
+function fillStretch(el){ el.innerHTML='🙆 목을 좌우로 천천히, 어깨를 으쓱 5회, 일어나서 허리를 펴고 가볍게 걸어보세요.'; }
 
 // office 설정(vision.yaml ergonomics)을 읽어 채점기에 주입 — 테마=설정
 fetch('/theme/office/raw').then(r=>r.json()).then(raw=>{
   const e=(raw.judgment||{}).ergonomics;
-  if(e){ VIGENTErgo.setConfig(e); cfg.hold_sec=e.hold_sec||60; }
+  if(e){ VIGENTErgo.setConfig(e); cfg.hold_sec=e.hold_sec||60; cfg.reminder_min=e.reminder_min||50; }
   cfg.cooldown_sec=((raw.vlm||{}).cooldown_sec)||30;   // AI 코치 호출 간격
   const p=(raw.privacy||{}).notice; if(p) document.getElementById('privacy').textContent=p;
 }).catch(()=>{});
@@ -454,7 +482,8 @@ async function startApp(){
       solution.setOptions({modelComplexity:0,smoothLandmarks:true,refineFaceLandmarks:false,minDetectionConfidence:.5,minTrackingConfidence:.5});
     }
     solution.onResults(onResults);
-    await cam.start(); hud.textContent='시작됨 · '+(ENGINE==='pose'?'빠른 모드':'정밀(손가락)');
+    await cam.start(); camOn=true; lastRemind=performance.now();
+    hud.textContent='시작됨 · '+(ENGINE==='pose'?'빠른 모드':'정밀(손가락)');
   }catch(e){ hud.textContent='시작 실패: '+e.message; }
 }
 // 동의 게이트: 이미 동의했으면 바로 시작, 아니면 동의 후 시작(카메라는 동의 전 미작동)
