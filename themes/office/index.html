@@ -219,6 +219,18 @@ const CONN=[
 const JOINTS=[11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32];
 const HANDS=new Set([17,18,19,20,21,22]), FEET=new Set([29,30,31,32]);
 function vok(p){ return p && (p.visibility==null?1:p.visibility)>=0.3; }
+// 부위별 관절 색상(전문 모션캡처 느낌)
+function JCOL(i){
+  if(i===11||i===12) return '#ff9f43';   // 어깨 주황
+  if(i===13||i===14) return '#feca57';   // 팔꿈치 노랑
+  if(i===15||i===16) return '#10ac84';   // 손목 청록
+  if(i>=17&&i<=22)   return '#1dd1a1';   // 손 초록
+  if(i===23||i===24) return '#a29bfe';   // 골반 보라
+  if(i===25||i===26) return '#ff6b9d';   // 무릎 분홍
+  if(i===27||i===28) return '#ee5253';   // 발목 빨강
+  if(i>=29)          return '#54a0ff';   // 발 파랑
+  return '#74a3ff';
+}
 function drawSkeleton(lm){
   const W=cv.width,H=cv.height;
   // 연결선(글로우 + 본선)
@@ -229,28 +241,38 @@ function drawSkeleton(lm){
     ctx.lineWidth=3; ctx.strokeStyle='rgba(120,200,255,.95)';  // 본선
     ctx.beginPath(); ctx.moveTo(p.x*W,p.y*H); ctx.lineTo(q.x*W,q.y*H); ctx.stroke();
   }
-  // 목 관절(Pose 엔 없음 → 합성): 어깨중점(목 밑) ↔ 귀중점(머리). 거북목 측정 부위라 강조.
+  // 척추·목(Pose 엔 없음 → 합성): 골반중앙→어깨중앙(흉추)→목중간→목밑머리(경추). 여러 마디로.
   const mid=(a,b)=>vok(lm[a])&&vok(lm[b])?{x:(lm[a].x+lm[b].x)/2,y:(lm[a].y+lm[b].y)/2}
                   :(vok(lm[a])?lm[a]:vok(lm[b])?lm[b]:null);
-  const shM=mid(11,12), earM=mid(7,8)||(vok(lm[0])?lm[0]:null);
-  if(shM&&earM){
-    ctx.lineCap='round';
-    ctx.lineWidth=7; ctx.strokeStyle='rgba(74,163,255,.18)';
-    ctx.beginPath(); ctx.moveTo(shM.x*W,shM.y*H); ctx.lineTo(earM.x*W,earM.y*H); ctx.stroke();
-    ctx.lineWidth=3; ctx.strokeStyle='rgba(120,200,255,.95)';
-    ctx.beginPath(); ctx.moveTo(shM.x*W,shM.y*H); ctx.lineTo(earM.x*W,earM.y*H); ctx.stroke();
+  const lerp=(p,q,t)=>({x:p.x+(q.x-p.x)*t, y:p.y+(q.y-p.y)*t});
+  const hipM=mid(23,24), shM=mid(11,12), earM=mid(7,8)||(vok(lm[0])?lm[0]:null);
+  // 합성 관절: [부위명, 점, 색]
+  const synth=[];
+  if(hipM&&shM){ synth.push(['척추', lerp(hipM,shM,0.5), '#00d2d3']); }    // 흉추 중간
+  if(shM){ synth.push(['목밑', shM, '#feca57']); }                         // 경추 하단(C7)
+  if(shM&&earM){ synth.push(['목중간', lerp(shM,earM,0.5), '#ff9ff3']);    // 경추 중간
+                 synth.push(['머리', earM, '#48dbfb']); }                  // 머리
+  // 척추·목 연결선
+  const spineLine=[hipM, shM, (shM&&earM?lerp(shM,earM,0.5):null), earM].filter(Boolean);
+  ctx.lineCap='round';
+  for(let i=0;i<spineLine.length-1;i++){ const p=spineLine[i],q=spineLine[i+1];
+    ctx.lineWidth=7; ctx.strokeStyle='rgba(255,255,255,.16)';
+    ctx.beginPath(); ctx.moveTo(p.x*W,p.y*H); ctx.lineTo(q.x*W,q.y*H); ctx.stroke();
+    ctx.lineWidth=3; ctx.strokeStyle='rgba(200,230,255,.9)';
+    ctx.beginPath(); ctx.moveTo(p.x*W,p.y*H); ctx.lineTo(q.x*W,q.y*H); ctx.stroke();
   }
-  // 관절점(흰 코어 + 색 링). 손·발은 작게, 큰 관절은 크게.
+
+  // 관절점 — 부위별 색(흰 코어 + 색 링).
   for(const i of JOINTS){ const p=lm[i]; if(!vok(p)) continue;
     const x=p.x*W,y=p.y*H, small=HANDS.has(i)||FEET.has(i), r=small?3.5:6;
-    ctx.beginPath(); ctx.arc(x,y,r+2,0,7); ctx.fillStyle='rgba(74,163,255,.9)'; ctx.fill();
+    ctx.beginPath(); ctx.arc(x,y,r+2,0,7); ctx.fillStyle=JCOL(i); ctx.fill();
     ctx.beginPath(); ctx.arc(x,y,r,0,7); ctx.fillStyle='#fff'; ctx.fill();
   }
-  // 목 관절점(어깨중점)을 노란색으로 강조 — 거북목 핵심 부위
-  if(shM){ const x=shM.x*W,y=shM.y*H;
-    ctx.beginPath(); ctx.arc(x,y,8,0,7); ctx.fillStyle='rgba(241,196,15,.9)'; ctx.fill();
-    ctx.beginPath(); ctx.arc(x,y,5,0,7); ctx.fillStyle='#fff'; ctx.fill();
-    ctx.fillStyle='#f1c40f'; ctx.font='11px sans-serif'; ctx.fillText('목', x+11, y+4);
+  // 합성 척추·목 관절(여러 마디, 각기 다른 색 + 라벨)
+  for(const [name,p,col] of synth){ const x=p.x*W,y=p.y*H;
+    ctx.beginPath(); ctx.arc(x,y,7,0,7); ctx.fillStyle=col; ctx.fill();
+    ctx.beginPath(); ctx.arc(x,y,4,0,7); ctx.fillStyle='#fff'; ctx.fill();
+    ctx.fillStyle=col; ctx.font='10px sans-serif'; ctx.fillText(name, x+10, y+4);
   }
 }
 
