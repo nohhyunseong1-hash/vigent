@@ -167,7 +167,7 @@
   </div>
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/@mediapipe/pose/pose.js" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/holistic@0.5.1675471629/holistic.js" crossorigin="anonymous"></script>
 <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
 <script src="/static/ergonomics.js"></script>
 <script>
@@ -254,6 +254,22 @@ function drawSkeleton(lm){
   }
 }
 
+// 손 21점 연결(safety 와 동일) — 손목0 기준 5손가락
+const HAND_CONN=[[0,1],[1,2],[2,3],[3,4],[0,5],[5,6],[6,7],[7,8],[0,9],[9,10],[10,11],[11,12],
+                 [0,13],[13,14],[14,15],[15,16],[0,17],[17,18],[18,19],[19,20]];
+function drawHand(hlm){   // hlm: 21점(정규화). 거울모드라 x 반전.
+  if(!hlm||hlm.length<21) return;
+  const W=cv.width,H=cv.height, m=hlm.map(p=>({x:1-p.x,y:p.y}));
+  ctx.lineCap='round';
+  for(const [a,b] of HAND_CONN){ const p=m[a],q=m[b];
+    ctx.lineWidth=4; ctx.strokeStyle='rgba(120,255,200,.22)';
+    ctx.beginPath(); ctx.moveTo(p.x*W,p.y*H); ctx.lineTo(q.x*W,q.y*H); ctx.stroke();
+    ctx.lineWidth=2; ctx.strokeStyle='rgba(140,255,210,.95)';
+    ctx.beginPath(); ctx.moveTo(p.x*W,p.y*H); ctx.lineTo(q.x*W,q.y*H); ctx.stroke();
+  }
+  for(const p of m){ ctx.beginPath(); ctx.arc(p.x*W,p.y*H,3,0,7); ctx.fillStyle='#fff'; ctx.fill(); }
+}
+
 function setDot(id,lv){ const d=document.getElementById(id); d.className='dot '+(lv||'good'); }
 function lvOf(a,j){ return a<=j.good?'good':a<=j.warn?'warn':'bad'; }
 
@@ -294,6 +310,7 @@ function onResults(r){
   // 화면과 일치하도록 랜드마크 x 도 반전(오버레이 정합). 각도는 좌우대칭이라 영향 없음.
   const mlm=lm.map(p=>p?{x:1-p.x,y:p.y,z:p.z,visibility:p.visibility}:p);
   blurFace(mlm); drawSkeleton(mlm);
+  drawHand(r.leftHandLandmarks); drawHand(r.rightHandLandmarks);   // 손가락 21점(Holistic)
   const res=VIGENTErgo.score(lm);
   if(!res.ok){ hud.textContent=res.reason; return; }
   hud.textContent='자세 분석 중 · '+(res.framework||'RULA');
@@ -372,12 +389,14 @@ async function loadTrend(){
 }
 loadTrend();
 
-const pose=new Pose({locateFile:f=>`https://cdn.jsdelivr.net/npm/@mediapipe/pose/${f}`});
-pose.setOptions({modelComplexity:1,smoothLandmarks:true,minDetectionConfidence:.5,minTrackingConfidence:.5});
-pose.onResults(onResults);
+// Holistic: 포즈(33) + 양손 21점씩(손가락) — safety 와 동일 수준의 정밀 스켈레톤
+const holistic=new Holistic({locateFile:f=>`https://cdn.jsdelivr.net/npm/@mediapipe/holistic@0.5.1675471629/${f}`});
+holistic.setOptions({modelComplexity:1,smoothLandmarks:true,refineFaceLandmarks:false,
+  minDetectionConfidence:.5,minTrackingConfidence:.5});
+holistic.onResults(onResults);
 
 const video=document.createElement('video');
-const cam=new Camera(video,{onFrame:async()=>{await pose.send({image:video});},width:1280,height:720});
+const cam=new Camera(video,{onFrame:async()=>{await holistic.send({image:video});},width:1280,height:720});
 function startApp(){
   document.getElementById('consent').style.display='none';
   cam.start().then(()=>hud.textContent='시작됨').catch(e=>hud.textContent='카메라 권한 필요: '+e.message);
