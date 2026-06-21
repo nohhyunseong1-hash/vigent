@@ -47,6 +47,17 @@ def _load_vlm_config() -> tuple[str, str]:
 MODEL, PROMPT = _load_vlm_config()
 
 
+def _enrich_with_law(data: dict) -> dict:
+    """Copilot 으로 '관련법령'을 보강. Copilot 미가용/실패해도 원본 그대로(저하 없음)."""
+    try:
+        import sys
+        sys.path.insert(0, str(ROOT / "vigent-core"))
+        from agents.copilot import CopilotAgent
+        return CopilotAgent(config={}).enrich_vlm(data)
+    except Exception:   # noqa: BLE001
+        return data
+
+
 def _is_korean(data: dict) -> bool:
     """JSON 값에 한글이 충분히 들어있는지(중국어/영어 새는지 감지)."""
     blob = " ".join(str(v) for k, v in data.items() if k != "위험등급")
@@ -105,17 +116,19 @@ class RiskVLM:
 
     def summarize(self, img_path: str) -> dict:
         """이벤트 프레임 → 위험요약 JSON. 절대 예외로 죽지 않는다(모니터링 안정성).
-        한국어가 아니면 1회 재시도. 그래도 안 되면 경고 플래그를 달아 그대로 반환."""
+        한국어가 아니면 1회 재시도. 그래도 안 되면 경고 플래그를 달아 그대로 반환.
+        끝으로 Copilot 으로 '관련법령'을 보강한다(빈 값일 때만 — 규칙 6 가산)."""
         try:
             safe = _safe_image(img_path)
             data = self._ask(safe, PROMPT)
-            if _is_korean(data):
-                return data
-            data2 = self._ask(safe, PROMPT + "\n주의: 이전 답이 한국어가 아니었다. 반드시 한국어로만.")
-            if _is_korean(data2):
-                return data2
-            data2.setdefault("_warn", "VLM이 한국어로 답하지 않음(작은 모델 한계)")
-            return data2
+            if not _is_korean(data):
+                data2 = self._ask(safe, PROMPT + "\n주의: 이전 답이 한국어가 아니었다. 반드시 한국어로만.")
+                if _is_korean(data2):
+                    data = data2
+                else:
+                    data2.setdefault("_warn", "VLM이 한국어로 답하지 않음(작은 모델 한계)")
+                    data = data2
+            return _enrich_with_law(data)
         except Exception as ex:   # noqa: BLE001  VLM 실패가 파이프라인을 멈추지 않게
             return {"_error": f"VLM 요약 실패: {type(ex).__name__}", "위험등급": "미상"}
 

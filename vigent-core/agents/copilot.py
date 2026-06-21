@@ -67,5 +67,47 @@ class CopilotAgent(BaseAgent):
         """여러 규칙에 대한 근거를 한 번에. Scribe 가 보고서에 삽입할 때 사용."""
         return {rid: self.cite(rid) for rid in rule_ids}
 
+    # ── VLM 자유텍스트 위험요인 → 법령 매칭(2단계) ────────────────────────
+    def match_rules(self, text: str) -> list[str]:
+        """위험요인 문장에서 키워드를 찾아 해당 규칙 id 목록을 반환(매칭 많은 순)."""
+        kw = self.corpus.get("_keywords", {}) if self.available else {}
+        hits = []
+        for rid, words in kw.items():
+            n = sum(1 for w in words if w in text)
+            if n:
+                hits.append((n, rid))
+        return [rid for _n, rid in sorted(hits, reverse=True)]
+
+    def cite_for_hazard(self, text: str) -> dict[str, Any]:
+        """위험요인 텍스트 → 매칭된 법령 인용(중복 조항 제거). 항상 출처 포함(§9)."""
+        seen, cites = set(), []
+        for rid in self.match_rules(text):
+            for c in self.corpus.get(rid, []):
+                key = (c.get("source"), c.get("clause"))
+                if key in seen:
+                    continue
+                seen.add(key)
+                cites.append({"title": c.get("title", ""), "source": c.get("source", ""),
+                              "clause": c.get("clause", ""), "snippet": c.get("snippet", ""),
+                              "rule": rid})
+        if not cites:
+            return {"matched": False, "citations": [], "관련법령": ""}
+        법령 = "; ".join(f"{c['source']} {c['clause']}" for c in cites[:3])
+        return {"matched": True, "citations": cites, "관련법령": 법령}
+
+    def enrich_vlm(self, vlm: dict[str, Any]) -> dict[str, Any]:
+        """VLM 위험요약 dict 의 빈 '관련법령' 을, 위험요인+근거 텍스트로 매칭해 채운다.
+        VLM 이 이미 채웠으면 건드리지 않는다(규칙 6: 가산만)."""
+        if not isinstance(vlm, dict):
+            return vlm
+        if str(vlm.get("관련법령", "")).strip():
+            return vlm   # VLM 이 이미 적었으면 유지
+        text = f"{vlm.get('위험요인', '')} {vlm.get('근거', '')}"
+        m = self.cite_for_hazard(text)
+        if m["matched"]:
+            vlm["관련법령"] = m["관련법령"]
+            vlm["_citations"] = m["citations"]   # 보고서/UI 가 출처 표시에 사용
+        return vlm
+
     def run(self, rule_ids: list[str] | None = None) -> dict[str, Any]:
         return self.search(rule_ids or [])
