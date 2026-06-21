@@ -27,12 +27,31 @@ ROOT = Path(__file__).resolve().parent.parent.parent
 VLM_COOLDOWN_S = 8.0          # 같은 이벤트 반복 호출 방지(VLM 무거움)
 
 
-def main(source: str, use_vlm: bool = True) -> None:
+def _resolve_source(source: str) -> str:
+    """source='env' 면 .env 의 RTSP_URL 을 읽는다(비번 노출 방지)."""
+    if source.lower() != "env":
+        return source
+    import os
+    env = ROOT / ".env"
+    if env.exists():
+        for line in env.read_text(encoding="utf-8", errors="ignore").splitlines():
+            if line.strip().startswith("RTSP_URL"):
+                return line.split("=", 1)[1].strip().strip('"').strip("'")
+    raise SystemExit("❌ .env 에 RTSP_URL 이 없습니다.")
+
+
+def main(source: str, use_vlm: bool = True, max_frames: int = 0) -> None:
     out_dir = ROOT / "runs" / "safety"
     out_dir.mkdir(parents=True, exist_ok=True)
     events_log = out_dir / "events.jsonl"
 
-    cap = cv2.VideoCapture(int(source) if source.isdigit() else source)
+    src = _resolve_source(source)
+    is_rtsp = src.startswith("rtsp://")
+    if is_rtsp:
+        import os
+        os.environ.setdefault("OPENCV_FFMPEG_CAPTURE_OPTIONS", "rtsp_transport;tcp")
+    cap = cv2.VideoCapture(int(src) if src.isdigit() else src,
+                           cv2.CAP_FFMPEG if is_rtsp else cv2.CAP_ANY)
     if not cap.isOpened():
         print(f"❌ 입력 열기 실패: {source}"); return
     W = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH)) or 960
@@ -63,13 +82,21 @@ def main(source: str, use_vlm: bool = True) -> None:
                          cv2.VideoWriter_fourcc(*"mp4v"), fps, (W, H))
 
     last_vlm = 0.0
-    frame_i = 0
+    frame_i, fail = 0, 0
+    print(f"[pipeline] 입력 {('RTSP 카메라' if is_rtsp else src)} · "
+          f"{'최대 '+str(max_frames)+'프레임' if max_frames else '끝까지'} (Ctrl+C 로 중단)")
     with open(events_log, "w", encoding="utf-8") as elog:
         while True:
             ok, frame = cap.read()
             if not ok:
-                break
+                fail += 1
+                if fail > 30:            # RTSP 일시 끊김 허용, 30회 연속 실패면 종료
+                    print("⚠ 프레임 수신 중단(스트림 종료/끊김)"); break
+                continue
+            fail = 0
             frame_i += 1
+            if max_frames and frame_i > max_frames:
+                break
             det = model.predict(Image.fromarray(cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)),
                                 threshold=threshold)
             names = np.array([COCO_CLASSES[c] for c in det.class_id])
@@ -108,6 +135,11 @@ def main(source: str, use_vlm: bool = True) -> None:
 
 if __name__ == "__main__":
     if len(sys.argv) < 2:
-        print("사용: python3 vigent-core/ml/safety_pipeline.py <영상|0|rtsp://...> [--no-vlm]")
+        print("사용: python3 vigent-core/ml/safety_pipeline.py <영상|0|env|rtsp://...> "
+              "[--no-vlm] [--max-frames N]")
+        print("  env = .env 의 RTSP_URL 사용(비번 노출 방지)")
         sys.exit(1)
-    main(sys.argv[1], use_vlm=("--no-vlm" not in sys.argv))
+    mf = 0
+    if "--max-frames" in sys.argv:
+        mf = int(sys.argv[sys.argv.index("--max-frames") + 1])
+    main(sys.argv[1], use_vlm=("--no-vlm" not in sys.argv), max_frames=mf)
