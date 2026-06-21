@@ -15,6 +15,39 @@
 <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js" crossorigin="anonymous"></script>
 <link rel="stylesheet" href="/static/realtime_shared.css">
 <link rel="stylesheet" href="/static/vigent-skin.css?v=1">
+<!-- Tapo(IP카메라) 입력 — URL 에 ?cam=tapo 일 때만 활성. 기본(웹캠)은 무변경(규칙 6).
+     AX 인식 엔진은 그대로 두고, getUserMedia 만 가로채 go2rtc(Tapo) 영상을 돌려줌.
+     go2rtc 연결 실패 시 자동으로 웹캠 폴백 → 저하 없음. -->
+<script>
+(function(){
+  if(new URLSearchParams(location.search).get('cam')!=='tapo') return;
+  const GO2RTC='http://localhost:1984';
+  async function tapoStream(){
+    const pc=new RTCPeerConnection({iceServers:[]});
+    pc.addTransceiver('video',{direction:'recvonly'});
+    pc.addTransceiver('audio',{direction:'recvonly'});
+    const stream=new MediaStream();
+    pc.ontrack=e=>stream.addTrack(e.track);
+    await pc.setLocalDescription(await pc.createOffer());
+    // ICE 수집 대기(로컬이라 짧음)
+    await new Promise(r=>{ if(pc.iceGatheringState==='complete')return r();
+      pc.onicegatheringstatechange=()=>pc.iceGatheringState==='complete'&&r();
+      setTimeout(r,800); });
+    const res=await fetch(`${GO2RTC}/api/webrtc?src=tapo`,{method:'POST',
+      body:JSON.stringify({type:'offer',sdp:pc.localDescription.sdp})});
+    await pc.setRemoteDescription(await res.json());
+    // 트랙이 실제로 올 때까지 대기
+    await new Promise((ok,no)=>{ const t=setTimeout(()=>no(new Error('timeout')),6000);
+      pc.ontrack=e=>{ stream.addTrack(e.track); clearTimeout(t); ok(); }; });
+    return stream;
+  }
+  const _gum=navigator.mediaDevices.getUserMedia.bind(navigator.mediaDevices);
+  navigator.mediaDevices.getUserMedia=async(c)=>{
+    try{ const s=await tapoStream(); console.log('[VIGENT] 입력=Tapo(IP카메라, go2rtc)'); return s; }
+    catch(e){ console.warn('[VIGENT] Tapo 연결 실패 → 웹캠 폴백:', e.message); return _gum(c); }
+  };
+})();
+</script>
 </head>
 <body class="theme-safety theme-locked clean">
 

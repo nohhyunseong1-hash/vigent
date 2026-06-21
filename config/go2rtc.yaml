@@ -1,0 +1,5 @@
+# go2rtc — Tapo RTSP 를 브라우저용(WebRTC/MSE)으로 변환
+streams:
+  tapo: ${RTSP_URL}     # 실제 주소는 .env 의 RTSP_URL 에서 환경변수로 주입(파일에 비번 없음)
+api:
+  listen: ":1984"
