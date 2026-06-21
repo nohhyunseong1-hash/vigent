@@ -538,6 +538,23 @@ def office_coach(payload: dict = Body(default={})):
     return {"ok": True, "coach": result}
 
 
+@app.post("/office/log")
+def office_log(payload: dict = Body(default={})):
+    """익명 자세 통계 1주기 저장(데이터 영속). 토큰은 브라우저 로컬 랜덤값(개인식별 아님)."""
+    import office_data
+    return office_data.log_posture(
+        token=payload.get("token", "anon"),
+        good_sec=payload.get("good_sec", 0), bad_sec=payload.get("bad_sec", 0),
+        avg_score=payload.get("avg_score", 0), joints=payload.get("joints"))
+
+
+@app.get("/office/trend")
+def office_trend(token: str = "anon", days: int = 7):
+    """익명 토큰의 자세 추세(일자별 평균점수·바른자세 비율)."""
+    import office_data
+    return office_data.trend(token, days)
+
+
 @app.post("/vitals/rppg")
 def stub_vitals(payload: dict = Body(default={})):
     return {"ok": True, "bpm": None, "note": "stub"}

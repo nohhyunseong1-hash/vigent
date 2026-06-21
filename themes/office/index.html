@@ -134,6 +134,11 @@
       <div class="stat"><div class="b" id="goodMin" style="color:var(--good)">0분</div><div class="l">바른 자세</div></div>
       <div class="stat"><div class="b" id="badMin" style="color:var(--bad)">0분</div><div class="l">나쁜 자세</div></div>
     </div>
+    <div class="trend" id="trend" style="margin-top:14px">
+      <h4 style="font-size:13px;color:var(--mut);margin:0 0 8px">📈 나의 자세 추세 (최근 7일 · 익명)</h4>
+      <div id="trendToday" style="font-size:13px;margin-bottom:8px;color:var(--mut)">아직 기록이 없어요. 잠시 사용하면 쌓입니다.</div>
+      <div id="trendBars" style="display:flex;gap:4px;align-items:flex-end;height:54px"></div>
+    </div>
     <div class="ctrl">
       <label><input type="checkbox" id="togBlur" checked> 얼굴 블러</label>
       <button id="btnReset">통계 초기화</button>
@@ -235,6 +240,7 @@ function onResults(r){
   if(!res.ok){ hud.textContent=res.reason; return; }
   hud.textContent='자세 분석 중 · '+(res.framework||'RULA');
   updatePanel(res);
+  trackScore(res.score);   // 추세용 점수 누적(60초마다 익명 저장)
 
   // 누적 통계 + 나쁜 자세 지속 시 부드러운 알림(복지 톤)
   const now=performance.now(), dt=(now-lastT)/1000; lastT=now;
@@ -269,6 +275,44 @@ async function askCoach(){
   coachBusy=false;
 }
 setInterval(askCoach, 4000);   // 4초마다 체크(실제 호출은 쿨다운으로 제한)
+
+// ── 익명 데이터 영속 + 추세(개인정보: 이름·얼굴 없이 로컬 랜덤 토큰만) ──
+let TOKEN=localStorage.getItem('vigent_office_token');
+if(!TOKEN){ TOKEN='of-'+Math.random().toString(36).slice(2,10)+Date.now().toString(36).slice(-4);
+  localStorage.setItem('vigent_office_token',TOKEN); }
+let scoreSum=0, scoreN=0, lastLogG=0, lastLogB=0;
+function trackScore(s){ scoreSum+=s; scoreN++; }
+
+async function logPosture(){
+  const dG=goodSec-lastLogG, dB=badSec-lastLogB;
+  if(dG+dB < 5) return;            // 5초 미만이면 스킵(의미 없는 기록 방지)
+  lastLogG=goodSec; lastLogB=badSec;
+  const avg=scoreN?scoreSum/scoreN:0; scoreSum=0; scoreN=0;
+  try{
+    await fetch('/office/log',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({token:TOKEN,good_sec:dG,bad_sec:dB,avg_score:avg})});
+    loadTrend();
+  }catch(e){}
+}
+setInterval(logPosture, 60000);   // 60초마다 익명 누적 저장
+
+async function loadTrend(){
+  try{
+    const r=await fetch(`/office/trend?token=${TOKEN}&days=7`); const j=await r.json();
+    if(!j.ok) return;
+    const t=document.getElementById('trendToday');
+    if(j.today){ t.innerHTML=`오늘 평균 <b style="color:var(--accent)">${j.today.avg_score}점</b> · 바른자세 <b>${j.today.good_ratio}%</b> · 기간평균 ${j.period_avg_score}점`; }
+    const bars=document.getElementById('trendBars'); bars.innerHTML='';
+    for(const s of j.series.slice(-7)){
+      const h=Math.max(6, s.avg_score*0.5);
+      const col=s.avg_score>=80?'var(--good)':s.avg_score>=60?'var(--warn)':'var(--bad)';
+      const d=document.createElement('div'); d.title=`${s.date}: ${s.avg_score}점 / 바른자세 ${s.good_ratio}%`;
+      d.style.cssText=`flex:1;height:${h}px;background:${col};border-radius:4px 4px 0 0;min-width:14px`;
+      bars.appendChild(d);
+    }
+  }catch(e){}
+}
+loadTrend();
 
 const pose=new Pose({locateFile:f=>`https://cdn.jsdelivr.net/npm/@mediapipe/pose/${f}`});
 pose.setOptions({modelComplexity:1,smoothLandmarks:true,minDetectionConfidence:.5,minTrackingConfidence:.5});
