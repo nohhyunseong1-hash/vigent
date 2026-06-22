@@ -280,12 +280,12 @@ function fit3D(){ if(!T3)return; const c=document.getElementById('cv3d');
   const a=w/h; T3.cam.left=-a;T3.cam.right=a;T3.cam.top=1;T3.cam.bottom=-1;T3.cam.updateProjectionMatrix(); T3.aspect=a; }
 function P3(p){ const a=T3.aspect; return new THREE.Vector3((p.x-0.5)*2*a, -(p.y-0.5)*2, -(p.z||0)*1.7); }
 function getJoint(i,col,r){ let m=T3.joints[i];
-  if(!m){ m=new THREE.Mesh(new THREE.SphereGeometry(1,20,16),
-      new THREE.MeshStandardMaterial({color:col,roughness:.35,metalness:.15,emissive:col,emissiveIntensity:.2}));
+  if(!m){ m=new THREE.Mesh(new THREE.SphereGeometry(1,16,12),
+      new THREE.MeshStandardMaterial({color:col,roughness:.3,metalness:.1,emissive:col,emissiveIntensity:.5}));
     T3.scene.add(m); T3.joints[i]=m; }
   m.material.color.set(col); m.material.emissive.set(col); m.scale.setScalar(r); m.visible=true; return m; }
 // 온몸 3D 와이어프레임: 각 부위를 고리(ring)+세로선 튜브 격자로 감싼다
-const RINGS=4, SIDES=6;
+const RINGS=3, SIDES=5;
 function perpBasis(axis){
   const up=Math.abs(axis.y)<0.98?new THREE.Vector3(0,1,0):new THREE.Vector3(1,0,0);
   const u=new THREE.Vector3().crossVectors(axis,up).normalize();
@@ -297,10 +297,13 @@ function ensureMesh(){
   const geo=new THREE.BufferGeometry();
   geo.setAttribute('position',new THREE.BufferAttribute(new Float32Array(12000),3));
   geo.setAttribute('color',new THREE.BufferAttribute(new Float32Array(12000),3));
-  T3.mesh=new THREE.LineSegments(geo,new THREE.LineBasicMaterial({vertexColors:true,transparent:true,opacity:0.7,blending:THREE.AdditiveBlending}));
+  T3.mesh=new THREE.LineSegments(geo,new THREE.LineBasicMaterial({vertexColors:true,transparent:true,opacity:0.98}));
   T3.scene.add(T3.mesh); T3.pos=geo.attributes.position; T3.col=geo.attributes.color;
 }
-function rgbOf(hex){const h=hex.replace('#','');return[parseInt(h.slice(0,2),16)/255,parseInt(h.slice(2,4),16)/255,parseInt(h.slice(4,6),16)/255];}
+function rgbOf(hex){const h=hex.replace('#','');
+  // 밝고 선명하게 부스트(어두운 배경에서도 잘 보이게)
+  const b=c=>Math.min(1, c/255*1.25+0.12);
+  return[b(parseInt(h.slice(0,2),16)),b(parseInt(h.slice(2,4),16)),b(parseInt(h.slice(4,6),16))];}
 function pushSeg(p,q,c){ const i=T3.segIx; const P=T3.pos.array,C=T3.col.array; if(i*6+5>=P.length)return;
   P[i*6]=p.x;P[i*6+1]=p.y;P[i*6+2]=p.z; P[i*6+3]=q.x;P[i*6+4]=q.y;P[i*6+5]=q.z;
   C[i*6]=c[0];C[i*6+1]=c[1];C[i*6+2]=c[2]; C[i*6+3]=c[0];C[i*6+4]=c[1];C[i*6+5]=c[2]; T3.segIx++; }
@@ -525,7 +528,7 @@ const cam=new Camera(video,{onFrame:async()=>{if(inflight||!solution)return;infl
 (async function(){ hud.textContent='엔진 로딩 중…';
   try{ await loadMP();
     if(ENGINE==='pose'){solution=new Pose({locateFile:f=>`https://cdn.jsdelivr.net/npm/@mediapipe/pose/${f}`});solution.setOptions({modelComplexity:1,smoothLandmarks:true,minDetectionConfidence:.5,minTrackingConfidence:.5});}
-    else{solution=new Holistic({locateFile:f=>`https://cdn.jsdelivr.net/npm/@mediapipe/holistic@0.5.1675471629/${f}`});solution.setOptions({modelComplexity:1,smoothLandmarks:true,refineFaceLandmarks:false,minDetectionConfidence:.5,minTrackingConfidence:.5});}
+    else{solution=new Holistic({locateFile:f=>`https://cdn.jsdelivr.net/npm/@mediapipe/holistic@0.5.1675471629/${f}`});solution.setOptions({modelComplexity:0,smoothLandmarks:true,refineFaceLandmarks:false,minDetectionConfidence:.5,minTrackingConfidence:.5});}
     solution.onResults(onResults); await cam.start(); hud.textContent='시작됨';
   }catch(e){ hud.textContent='시작 실패: '+e.message; }
 })();
