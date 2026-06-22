@@ -555,6 +555,38 @@ def office_trend(token: str = "anon", days: int = 7):
     return office_data.trend(token, days)
 
 
+@app.post("/office/webhook")
+def office_webhook(payload: dict = Body(default={})):
+    """Slack/Teams Incoming Webhook 으로 메시지 전송(서버 중계 — 브라우저 CORS 회피).
+    웹훅 URL 은 .env 의 OFFICE_WEBHOOK_URL(비밀). 미설정이면 폴백(보내지 않음)."""
+    import os
+    url = os.environ.get("OFFICE_WEBHOOK_URL", "")
+    if not url:
+        # .env 직접 읽기(서버 환경변수에 없을 때)
+        envf = _ROOT / ".env"
+        if envf.exists():
+            for line in envf.read_text(encoding="utf-8", errors="ignore").splitlines():
+                if line.strip().startswith("OFFICE_WEBHOOK_URL"):
+                    url = line.split("=", 1)[1].strip().strip('"').strip("'")
+                    break
+    text = str(payload.get("text", "")).strip()
+    if not text:
+        raise HTTPException(status_code=400, detail="text 필요")
+    if not url:
+        return {"ok": False, "fallback": True, "note": ".env 에 OFFICE_WEBHOOK_URL 없음(미발송)"}
+    import json as _json
+    import urllib.request
+    # Slack/Teams 둘 다 {"text": ...} 호환
+    body = _json.dumps({"text": text}).encode()
+    req = urllib.request.Request(url, data=body, method="POST",
+                                 headers={"Content-Type": "application/json"})
+    try:
+        with urllib.request.urlopen(req, timeout=8) as r:
+            return {"ok": True, "status": r.status}
+    except Exception as ex:  # noqa: BLE001
+        return {"ok": False, "error": f"웹훅 전송 실패: {type(ex).__name__}"}
+
+
 @app.get("/office/report", response_class=HTMLResponse)
 def office_report(days: int = 7):
     """관리자용 팀 단위 익명 자세 복지 리포트(개인 식별 없음)."""

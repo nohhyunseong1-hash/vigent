@@ -154,6 +154,7 @@
     <div class="ctrl">
       <label><input type="checkbox" id="togBlur"> 얼굴 블러</label>
       <button id="btnEngine">⚡ 빠른 모드</button>
+      <button id="btnShare">💬 슬랙 공유</button>
       <button id="btnReset">통계 초기화</button>
     </div>
   </div>
@@ -242,6 +243,18 @@ fetch('/theme/office/raw').then(r=>r.json()).then(raw=>{
 let goodSec=0, badSec=0, badStreak=0, lastT=performance.now(), notified=false;
 function fmt(s){ return Math.floor(s/60)+'분'; }
 document.getElementById('btnReset').onclick=()=>{goodSec=badSec=badStreak=0;};
+// A-2. 슬랙/Teams 공유 — 오늘 자세 요약을 워크플로로
+document.getElementById('btnShare').onclick=async ()=>{
+  const gm=Math.round(goodSec/60), bm=Math.round(badSec/60);
+  const ratio=(goodSec+badSec)?Math.round(goodSec/(goodSec+badSec)*100):0;
+  const s=gState();
+  const text=`🪑 VIGENT Office 자세 리포트\n· 바른자세 ${gm}분 / 나쁜자세 ${bm}분 (바른 ${ratio}%)\n· 연속 사용 ${s.streak||0}일 · 가장 부담: ${({neck:'목',trunk:'허리',shoulder:'어깨',general:'-'})[worstJoint]}`;
+  try{
+    const r=await fetch('/office/webhook',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text})});
+    const j=await r.json();
+    toast(j.ok ? '✅ 슬랙으로 공유했어요' : (j.fallback ? '⚠️ .env 에 OFFICE_WEBHOOK_URL 설정 필요' : '전송 실패'));
+  }catch(e){ toast('전송 실패'); }
+};
 
 function blurFace(lm){
   if(!document.getElementById('togBlur').checked) return;
