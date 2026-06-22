@@ -256,6 +256,7 @@
           <div class="toggle-row"><span>위험 자세 감지</span><label class="toggle"><input type="checkbox" id="togPosture" checked><span class="toggle-slider"></span></label></div>
           <div class="toggle-row"><span>위험 사물 경고</span><label class="toggle"><input type="checkbox" id="togObjSafe" checked><span class="toggle-slider"></span></label></div>
           <div class="toggle-row"><span>경보 사운드</span><label class="toggle"><input type="checkbox" id="togSound"><span class="toggle-slider"></span></label></div>
+          <div class="toggle-row" title="VLM(AI 두뇌)이 감지 이벤트를 다시 보고 명백한 오탐을 걸러냅니다. 고신뢰 오탐만 알림을 억제하고 증거·기록은 그대로 저장합니다. VLM 추론이 끼어 다소 느려질 수 있습니다."><span>🧠 VLM 오탐 필터</span><label class="toggle"><input type="checkbox" id="togVlmConfirm"><span class="toggle-slider"></span></label></div>
         </div>
       </div>
 
@@ -388,10 +389,12 @@
         _lastFall=f;
         if(Date.now()<_fallCooldown) return;        // 10초 쿨다운(연속 알림 방지)
         _fallCooldown=Date.now()+10000;
+        const vlmOn = !!document.getElementById('togVlmConfirm')?.checked;
         const r=await fetch('/safety/fall',{method:'POST',headers:{'Content-Type':'application/json'},
-          body:JSON.stringify({image_base64:captureEvidence()})});
+          body:JSON.stringify({image_base64:captureEvidence(), vlm_confirm:vlmOn})});
         const j=await r.json();
-        console.warn('[VIGENT] 🚨 낙상 알림:',j.message,'· 휴대폰발송='+j.phone_sent);
+        if(j.suppressed) console.info('[VIGENT] 🧠 VLM 오탐 필터 — 낙상 알림 억제(증거는 저장):',j.message);
+        else console.warn('[VIGENT] 🚨 낙상 알림:',j.message,'· 휴대폰발송='+j.phone_sent);
       }
     }catch(e){}
   }, 700);

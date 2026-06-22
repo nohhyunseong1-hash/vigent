@@ -1635,8 +1635,10 @@ function captureIntrusionEvidence(frame){
   try{ octx.drawImage(canvas,0,0); }catch(e){}
   let img; try{ img=oc.toDataURL('image/jpeg',0.7); }catch(e){ return; }
   dzCaptureAt=now;
+  const vlmOn = !!document.getElementById('togVlmConfirm')?.checked;   // safety 화면에만 존재(없으면 false)
   fetch(API_BASE+'/zone/intrusion',{method:'POST',headers:{'content-type':'application/json'},
-    body:JSON.stringify({image_base64:img, people:inZone, reasons, zone:'위험구역A'})}).catch(()=>{});
+    body:JSON.stringify({image_base64:img, people:inZone, reasons, zone:'위험구역A', vlm_confirm:vlmOn})})
+    .then(r=>r.json()).then(j=>{ if(j&&j.suppressed) console.info('[VIGENT] 🧠 VLM 오탐 필터 — 침입 알림 억제(증거는 저장)'); }).catch(()=>{});
 }
 // 위험구역 점유 상태를 서버에 푸시(아두이노 E-stop 폴링용)
 function pushZoneState(active){
