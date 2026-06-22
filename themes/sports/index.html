@@ -43,6 +43,7 @@
   <div class="stage">
     <canvas id="cv"></canvas>
     <div class="hud" id="hud">카메라 시작 중…</div>
+    <div class="hud" id="viewMode" style="left:auto;right:12px;display:none"></div>
   </div>
 
   <div>
@@ -90,6 +91,18 @@ fetch('/theme/sports/raw').then(r=>r.json()).then(raw=>{
   const p=(raw.privacy||{}).notice; if(p) document.getElementById('privacy').textContent=p;
 }).catch(()=>{});
 function setAsana(i){ cur=asanas[i]; if(cur) document.getElementById('asanaDesc').textContent='🎯 '+cur.desc; }
+
+// 측면뷰 감지(어깨너비/몸통높이) — 플랭크·전사 등 측면 동작 정밀
+function detectView(lm){
+  const shL=lm[11],shR=lm[12],hipL=lm[23],hipR=lm[24];
+  if(!vok(shL)||!vok(shR)) return null;
+  const shW=Math.abs(shL.x-shR.x), shY=(shL.y+shR.y)/2;
+  let torsoH=0;
+  if(vok(hipL)||vok(hipR)){ const hy=(hipL&&vok(hipL))?hipL.y:hipR.y; torsoH=Math.abs(shY-hy); }
+  else if(vok(lm[0])) torsoH=Math.abs(shY-lm[0].y)*2;
+  if(!torsoH) return null;
+  return (shW/torsoH) < 0.45 ? 'side' : 'front';
+}
 
 // ── 동작별 '정답 각도' 채점 ──
 function angAt(lm,pts){ const[a,b,c]=pts; return ang(lm[a],lm[b],lm[c]); }
@@ -194,6 +207,15 @@ function onResults(r){
   drawSkeleton(dlm); drawHand(r.leftHandLandmarks); drawHand(r.rightHandLandmarks);
   updateForm(formMetrics(lm));   // 일반 지표(대칭·균형·안정성)
   updateAngleChecks(scoreAsana(lm, cur));   // 동작별 정답 각도 비교
+  // 측정 모드(정면/측면) — 동작 권장 뷰와 함께 안내
+  const vm=detectView(lm); const vmEl=document.getElementById('viewMode');
+  if(vm){ vmEl.style.display='block'; const rec=cur&&cur.view;
+    const okView = !rec || rec===vm;
+    if(vm==='side'){ vmEl.textContent='📐 측면 측정'; }
+    else{ vmEl.textContent='🙂 정면 측정'; }
+    if(rec && !okView){ vmEl.textContent += rec==='side'?' · 옆으로 서면 정확' : ' · 정면이 정확'; vmEl.style.color='#feca57'; }
+    else vmEl.style.color='#2ecc71';
+  }
   hud.textContent='폼 분석 중'+(cur?' · '+cur.name:'');
 }
 
