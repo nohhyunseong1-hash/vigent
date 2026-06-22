@@ -445,7 +445,7 @@ function loadMP(){const url=ENGINE==='pose'?'https://cdn.jsdelivr.net/npm/@media
   return new Promise((ok,no)=>{const s=document.createElement('script');s.src=url;s.crossOrigin='anonymous';s.onload=ok;s.onerror=()=>no(new Error('MP'));document.head.appendChild(s);});}
 let solution=null,inflight=false;
 const video=document.createElement('video');
-const cam=new Camera(video,{onFrame:async()=>{if(inflight||!solution)return;inflight=true;try{await solution.send({image:video});}finally{inflight=false;}},width:ENGINE==='pose'?960:640,height:ENGINE==='pose'?540:480});
+const cam=new Camera(video,{onFrame:async()=>{if(inflight||!solution)return;inflight=true;try{await solution.send({image:video});}finally{inflight=false;}},width:ENGINE==='pose'?960:640,height:ENGINE==='pose'?540:360});
 (async function(){ hud.textContent='엔진 로딩 중…';
   try{ await loadMP();
     if(ENGINE==='pose'){solution=new Pose({locateFile:f=>`https://cdn.jsdelivr.net/npm/@mediapipe/pose/${f}`});solution.setOptions({modelComplexity:1,smoothLandmarks:true,minDetectionConfidence:.5,minTrackingConfidence:.5});}

@@ -585,7 +585,7 @@ const video=document.createElement('video');
 const cam=new Camera(video,{onFrame:async()=>{
   if(inflight||!solution) return; inflight=true;
   try{ await solution.send({image:video}); } finally{ inflight=false; }
-},width:ENGINE==='pose'?960:640, height:ENGINE==='pose'?540:480});
+},width:ENGINE==='pose'?960:640, height:ENGINE==='pose'?540:360});
 
 async function startApp(){
   document.getElementById('consent').style.display='none';
