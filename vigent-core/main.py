@@ -42,6 +42,7 @@ if str(_HERE) not in sys.path:
 
 from agents import build_agents          # noqa: E402
 import data_engine                       # noqa: E402
+import tbm_store                          # noqa: E402
 import vision_loader                     # noqa: E402
 
 # ─────────────────────────────────────────────────────────────
@@ -314,6 +315,203 @@ def safety_reports(theme: str = DEFAULT_THEME):
   <tbody>{rows}</tbody></table>
   <a class="btn" href="/report/safety" target="_blank">＋ 지금 평가서 생성(누적 이벤트 기반)</a>
 </body></html>"""
+
+
+# ─────────────────────────────────────────────────────────────
+# 작업 전 TBM(안전점검 회의) — 작성·저장·열기 (한전 스마트TBM '작업 전' 단계)
+# ─────────────────────────────────────────────────────────────
+_TBM_CSS = """
+  body{font-family:"Apple SD Gothic Neo",sans-serif;margin:0;background:#0f172a;color:#e2e8f0}
+  .wrap{max-width:760px;margin:0 auto;padding:28px 20px 80px}
+  h1{font-size:21px;margin:4px 0 2px} .sub{color:#94a3b8;font-size:13px;margin-bottom:20px}
+  a{color:#60a5fa;text-decoration:none}
+  .card{background:#1e293b;border:1px solid #334155;border-radius:12px;padding:18px;margin-bottom:14px}
+  .card h2{font-size:15px;margin:0 0 12px;color:#93c5fd}
+  label.fld{display:block;font-size:13px;color:#cbd5e1;margin:10px 0 4px}
+  input[type=text],textarea{width:100%;box-sizing:border-box;background:#0f172a;border:1px solid #334155;
+    border-radius:8px;color:#e2e8f0;padding:9px 11px;font-size:14px;font-family:inherit}
+  textarea{min-height:64px;resize:vertical}
+  .row{display:flex;gap:8px} .row input{flex:1}
+  .chk{display:flex;align-items:center;gap:8px;font-size:13.5px;padding:7px 0;border-bottom:1px solid #29374a}
+  .chk:last-child{border-bottom:none}
+  .chk input{width:17px;height:17px;accent-color:#22c55e}
+  .tag{display:inline-flex;align-items:center;gap:6px;background:#0b2545;border:1px solid #1d4ed8;
+    color:#bfdbfe;border-radius:999px;padding:5px 10px;font-size:13px;margin:4px 6px 0 0}
+  .tag b{cursor:pointer;color:#93c5fd}
+  .wk{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid #29374a}
+  .wk .nm{flex:1} .wk small{color:#94a3b8}
+  .btn{display:inline-block;padding:10px 16px;border-radius:8px;border:1px solid #334155;
+    background:#0f172a;color:#e2e8f0;font-size:14px;cursor:pointer}
+  .btn.add{padding:9px 14px}
+  .btn.primary{background:#2563eb;border-color:#2563eb;color:#fff;font-weight:700}
+  .bar{position:fixed;left:0;right:0;bottom:0;background:#0b1220;border-top:1px solid #334155;
+    padding:14px 20px;display:flex;justify-content:center;gap:10px}
+  table{width:100%;border-collapse:collapse;font-size:13px;margin-top:6px}
+  th,td{border:1px solid #334155;padding:8px 10px;text-align:left} th{background:#162133;color:#93c5fd}
+"""
+
+# 작성 화면(plain 문자열 — JS 중괄호 보존). /*CSS*/ 와 <!--CHECKLIST--> 만 치환된다.
+_TBM_NEW_HTML = r"""<!DOCTYPE html><html lang="ko"><head><meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>VIGENT · 새 TBM 회의록</title><style>/*CSS*/</style></head><body><div class="wrap">
+  <h1>📋 새 TBM 회의록 작성</h1>
+  <div class="sub">작업 전 안전점검 회의(툴박스미팅) · 작성 후 저장하면 인쇄/PDF 가능</div>
+
+  <div class="card"><h2>작업 정보</h2>
+    <label class="fld">현장</label><input id="site" type="text" placeholder="예: ○○변전소 22.9kV 개폐기 교체 현장">
+    <label class="fld">작업공종</label><input id="process" type="text" placeholder="예: 활선작업 / 고소작업 / 굴착작업">
+    <label class="fld">작업내용</label><textarea id="work_desc" placeholder="오늘 수행할 작업 내용을 적습니다"></textarea>
+    <label class="fld">감독관</label><input id="supervisor" type="text" placeholder="예: 홍길동 감독관">
+  </div>
+
+  <div class="card"><h2>중점 관리 위험요인</h2>
+    <div class="row"><input id="hazIn" type="text" placeholder="예: 활선 감전 위험"
+      onkeydown="if(event.key==='Enter'){event.preventDefault();addHaz();}">
+      <button class="btn add" onclick="addHaz()">추가</button></div>
+    <div id="hazList" style="margin-top:6px"></div>
+  </div>
+
+  <div class="card"><h2>작업 전 안전점검</h2>
+    <div id="chkList"><!--CHECKLIST--></div>
+  </div>
+
+  <div class="card"><h2>참석 작업자(서명)</h2>
+    <div class="row"><input id="wkIn" type="text" placeholder="작업자 이름"
+      onkeydown="if(event.key==='Enter'){event.preventDefault();addWk();}">
+      <button class="btn add" onclick="addWk()">추가</button></div>
+    <div id="wkList" style="margin-top:6px"></div>
+    <small style="color:#94a3b8;display:block;margin-top:6px">※ 회의 내용을 확인한 작업자는 '서명'에 체크합니다.</small>
+  </div>
+
+  <div class="card"><h2>전달사항</h2>
+    <textarea id="notes" placeholder="추가 전달·공지 사항(선택)"></textarea>
+  </div>
+
+  <div class="bar">
+    <a class="btn" href="/safety/tbm">취소</a>
+    <button class="btn primary" id="saveBtn" onclick="save()">저장하기</button>
+  </div>
+</div>
+<script>
+  const hazards = [];
+  const workers = [];
+  function renderHaz(){
+    document.getElementById('hazList').innerHTML = hazards.map((h,idx)=>
+      '<span class="tag">'+h+' <b onclick="delHaz('+idx+')">✕</b></span>').join('');
+  }
+  function addHaz(){
+    const el = document.getElementById('hazIn'); const v = el.value.trim();
+    if(!v) return; hazards.push(v); el.value=''; el.focus(); renderHaz();
+  }
+  function delHaz(i){ hazards.splice(i,1); renderHaz(); }
+  function renderWk(){
+    document.getElementById('wkList').innerHTML = workers.map((w,idx)=>
+      '<div class="wk"><span class="nm">'+w.name+'</span>'+
+      '<label><input type="checkbox" '+(w.signed?'checked':'')+' onchange="signWk('+idx+',this.checked)"> 서명</label>'+
+      '<b style="cursor:pointer;color:#f87171" onclick="delWk('+idx+')">✕</b></div>').join('');
+  }
+  function addWk(){
+    const el = document.getElementById('wkIn'); const v = el.value.trim();
+    if(!v) return; workers.push({name:v, signed:false}); el.value=''; el.focus(); renderWk();
+  }
+  function signWk(i,ok){ workers[i].signed = ok; }
+  function delWk(i){ workers.splice(i,1); renderWk(); }
+  async function save(){
+    const btn = document.getElementById('saveBtn'); btn.disabled = true; btn.textContent='저장 중…';
+    const checklist = [...document.querySelectorAll('#chkList .chk input')].map(i=>({item:i.dataset.item, ok:i.checked}));
+    const payload = {
+      site: document.getElementById('site').value,
+      process: document.getElementById('process').value,
+      work_desc: document.getElementById('work_desc').value,
+      supervisor: document.getElementById('supervisor').value,
+      hazards, checklist, workers,
+      notes: document.getElementById('notes').value,
+    };
+    try{
+      const res = await fetch('/safety/tbm',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
+      const j = await res.json();
+      if(j && j.id){ location.href = '/safety/tbm/'+j.id; }
+      else { alert('저장 실패'); btn.disabled=false; btn.textContent='저장하기'; }
+    }catch(e){ alert('저장 오류: '+e); btn.disabled=false; btn.textContent='저장하기'; }
+  }
+</script></body></html>"""
+
+
+@app.get("/safety/tbm", response_class=HTMLResponse)
+def tbm_list():
+    """저장된 TBM 회의록 목록 + '새 회의록 작성' 버튼."""
+    items = tbm_store.list_recent()
+    rows = "".join(
+        f"""<tr><td>{i['created_at'][:16].replace('T',' ')}</td><td>{i['site'] or '-'}</td>
+        <td>{i['process'] or '-'}</td><td style="text-align:center">{i['signed_count']}/{i['worker_count']}</td>
+        <td style="text-align:center">{i['hazard_count']}</td>
+        <td><a href="/safety/tbm/{i['id']}" target="_blank">열기 ↗</a></td></tr>"""
+        for i in items) or '<tr><td colspan="6" style="color:#64748b">저장된 회의록이 없습니다. 새 회의록을 작성하세요.</td></tr>'
+    return f"""<!DOCTYPE html><html lang="ko"><head><meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>VIGENT · 작업 전 TBM 회의록</title><style>{_TBM_CSS}</style></head><body><div class="wrap">
+  <h1>📋 작업 전 TBM 회의록</h1>
+  <div class="sub">작업 전 안전점검 회의(툴박스미팅) 기록 · 저장 위치 data/tbm/ · 최신순</div>
+  <div class="card"><table>
+    <thead><tr><th>작성일시</th><th>현장</th><th>작업공종</th><th>서명</th><th>위험요인</th><th>열기</th></tr></thead>
+    <tbody>{rows}</tbody></table></div>
+  <a class="btn primary" href="/safety/tbm/new">＋ 새 회의록 작성</a>
+</div></body></html>"""
+
+
+@app.get("/safety/tbm/new", response_class=HTMLResponse)
+def tbm_new():
+    """TBM 회의록 작성 화면(작성 후 저장 → 열기로 이동)."""
+    checklist_html = "".join(
+        '<label class="chk"><input type="checkbox" checked data-item="ITEM"><span>ITEM</span></label>'
+        .replace("ITEM", item) for item in tbm_store.DEFAULT_CHECKLIST)
+    page = _TBM_NEW_HTML.replace("/*CSS*/", _TBM_CSS).replace("<!--CHECKLIST-->", checklist_html)
+    return page
+
+
+@app.post("/safety/tbm")
+def tbm_create(payload: dict = Body(...)):
+    """회의록 1건 저장. payload={site,process,work_desc,supervisor,hazards[],checklist[],workers[],notes}."""
+    rec = tbm_store.create(payload)
+    return {"id": rec["id"], "saved_path": rec["saved_path"]}
+
+
+@app.get("/safety/tbm/{tid}", response_class=HTMLResponse)
+def tbm_open(tid: str):
+    """저장된 회의록 열기(인쇄 가능 HTML)."""
+    r = tbm_store.get(tid)
+    if not r:
+        raise HTTPException(status_code=404, detail=f"회의록 없음: {tid}")
+    haz = "".join(f"<li>{h}</li>" for h in r.get("hazards", [])) or '<li style="color:#64748b">등록된 위험요인 없음</li>'
+    chk = "".join(
+        f"""<tr><td style="text-align:center">{'✅' if c.get('ok') else '⬜'}</td><td>{c.get('item','')}</td></tr>"""
+        for c in r.get("checklist", []))
+    wks = "".join(
+        f"""<tr><td>{w.get('name','')}</td><td style="text-align:center">{'서명함 ✔' if w.get('signed') else '미서명'}</td></tr>"""
+        for w in r.get("workers", [])) or '<tr><td colspan="2" style="color:#64748b">참석 작업자 없음</td></tr>'
+    return f"""<!DOCTYPE html><html lang="ko"><head><meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>TBM 회의록 · {r.get('site','')}</title><style>{_TBM_CSS}</style></head><body><div class="wrap">
+  <h1>📋 작업 전 TBM 회의록</h1>
+  <div class="sub">{r.get('created_at','')[:16].replace('T',' ')} · {r.get('id','')}</div>
+  <div class="card"><h2>작업 정보</h2>
+    <table>
+      <tr><th style="width:110px">현장</th><td>{r.get('site','') or '-'}</td></tr>
+      <tr><th>작업공종</th><td>{r.get('process','') or '-'}</td></tr>
+      <tr><th>작업내용</th><td>{(r.get('work_desc','') or '-').replace(chr(10),'<br>')}</td></tr>
+      <tr><th>감독관</th><td>{r.get('supervisor','') or '-'}</td></tr>
+    </table></div>
+  <div class="card"><h2>중점 관리 위험요인</h2><ul>{haz}</ul></div>
+  <div class="card"><h2>작업 전 안전점검</h2><table>
+    <thead><tr><th style="width:60px">확인</th><th>점검 항목</th></tr></thead><tbody>{chk}</tbody></table></div>
+  <div class="card"><h2>참석 작업자 ({sum(1 for w in r.get('workers',[]) if w.get('signed'))}/{len(r.get('workers',[]))} 서명)</h2>
+    <table><thead><tr><th>이름</th><th style="width:120px">서명</th></tr></thead><tbody>{wks}</tbody></table></div>
+  <div class="card"><h2>전달사항</h2><div style="white-space:pre-wrap;font-size:14px">{r.get('notes','') or '-'}</div></div>
+  <div class="bar">
+    <a class="btn" href="/safety/tbm">목록</a>
+    <button class="btn primary" onclick="window.print()">🖨 인쇄 / PDF 저장</button>
+  </div>
+</div></body></html>"""
 
 
 @app.post("/alerts/test")
