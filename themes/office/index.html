@@ -208,6 +208,9 @@ function showRemind(){
   document.getElementById('remindMsg').textContent=`${cfg.reminder_min}분 동안 앉아 계셨어요. 잠깐 일어나 몸을 풀어주세요.`;
   fillStretch(document.getElementById('remindStretch'));   // 2번: 맞춤 스트레칭(없으면 기본)
   m.style.display='flex';
+  // 다른 앱 보는 중이면 시스템 알림으로(참여율)
+  const s=STRETCH[worstJoint]||STRETCH.general;
+  notify('🧘 VIGENT 스트레칭 시간', `${cfg.reminder_min}분 앉아 계셨어요. ${s.title} 어떠세요?`);
 }
 document.getElementById('remindOk').onclick=()=>{ document.getElementById('remind').style.display='none'; lastRemind=performance.now(); };
 setInterval(()=>{ if(!camOn) return;
@@ -394,6 +397,16 @@ function updatePanel(res){
 function toast(msg){ const t=document.getElementById('toast'); t.textContent=msg; t.classList.add('on');
   setTimeout(()=>t.classList.remove('on'),5000); }
 
+// ── A-1. 데스크톱 알림(다른 앱 쓰는 중에도 뜸 — 참여율 핵심) ──
+function notify(title, body){
+  try{
+    if(!('Notification' in window) || Notification.permission!=='granted') return false;
+    const n=new Notification(title,{body, icon:'', tag:'vigent-office', renotify:true});
+    n.onclick=()=>{ window.focus(); n.close(); };
+    return true;
+  }catch(e){ return false; }
+}
+
 // 캔버스 크기는 매 프레임이 아니라 '바뀔 때만' 설정(재할당 비용 제거) + DPR 1(픽셀수 절감)
 function fitCanvas(){
   const w=cv.clientWidth||960, h=cv.clientHeight||540;
@@ -575,6 +588,7 @@ async function startApp(){
     }
     solution.onResults(onResults);
     await cam.start(); camOn=true; lastRemind=performance.now();
+    if('Notification' in window && Notification.permission==='default') Notification.requestPermission();
     updateStreak(); renderBadges();   // 연속 사용일 + 뱃지
     hud.textContent='시작됨 · '+(ENGINE==='pose'?'빠른 모드':'정밀(손가락)');
   }catch(e){ hud.textContent='시작 실패: '+e.message; }
