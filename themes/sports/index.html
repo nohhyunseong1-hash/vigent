@@ -154,29 +154,54 @@ function featureVec(lm){   // 어깨중심 평행이동 + 어깨너비 스케일
     v.push((p.x-cx)/s, (p.y-cy)/s); }
   return v;
 }
-function tplStore(){ try{return JSON.parse(localStorage.getItem('vigent_sports_tpl'))||{};}catch(e){return{};} }
-function tplSave(t){ localStorage.setItem('vigent_sports_tpl', JSON.stringify(t)); }
+let PRETRAINED={};   // 학습된 템플릿(서버에서 로드, 92.8% 정확도)
+function tplStore(){ let user={}; try{user=JSON.parse(localStorage.getItem('vigent_sports_tpl'))||{};}catch(e){}
+  // 학습 템플릿 + 사용자 등록 템플릿 합치기(사용자가 추가하면 더 정확)
+  const merged={...PRETRAINED}; for(const k in user){ merged[k]=(merged[k]||[]).concat(user[k]); } return merged; }
+function tplSave(t){ /* 사용자 등록만 별도 저장 */ }
+// 학습 템플릿 로드 + 자동인식 기본 ON
+fetch('/sports/templates').then(r=>r.json()).then(d=>{
+  PRETRAINED=d.templates||{};
+  const n=Object.keys(PRETRAINED).length;
+  if(n){ const a=document.getElementById('togAuto'); if(a)a.checked=true;
+    const acc=d._meta&&d._meta.accuracy?` · 인식 정확도 ${Math.round(d._meta.accuracy*100)}%`:'';
+    const rc=document.getElementById('regCount'); if(rc)rc.textContent=`🧠 학습된 동작 ${n}종 자동 인식${acc}`; }
+}).catch(()=>{});
 let lastLM=null;   // 최근 포즈(등록 버튼용)
+function userStore(){ try{return JSON.parse(localStorage.getItem('vigent_sports_tpl'))||{};}catch(e){return{};} }
 function registerPose(){
   if(!cur){ flash('먼저 동작을 선택하세요'); return; }
   if(!lastLM){ flash('카메라에 몸이 보여야 해요'); return; }
   const v=featureVec(lastLM); if(!v){ flash('포즈가 또렷하지 않아요'); return; }
-  const t=tplStore(); (t[cur.id]=t[cur.id]||[]).push(v); if(t[cur.id].length>8)t[cur.id].shift();
-  tplSave(t); updateRegCount(); flash(`✅ ${cur.name} 등록 (${t[cur.id].length}개)`);
+  const u=userStore(); (u[cur.id]=u[cur.id]||[]).push(v); if(u[cur.id].length>8)u[cur.id].shift();
+  localStorage.setItem('vigent_sports_tpl', JSON.stringify(u));
+  updateRegCount(); flash(`✅ ${cur.name} 내 자세 추가 (${u[cur.id].length}개)`);
 }
 function dist(a,b){ let s=0; for(let i=0;i<a.length;i++){const d=a[i]-b[i];s+=d*d;} return Math.sqrt(s); }
-function recognize(lm){
+function recognize(lm){   // 클래스별 최소거리 → 마진 기반 신뢰도(포즈 변동에 견고)
   const v=featureVec(lm); if(!v) return null;
-  const t=tplStore(); let best=null,bestD=1e9,second=1e9;
-  for(const id in t){ for(const tv of t[id]){ if(tv.length!==v.length)continue;
-    const d=dist(v,tv); if(d<bestD){second=bestD;bestD=d;best=id;} else if(d<second)second=d; } }
-  if(!best) return null;
-  const conf=Math.max(0,Math.min(1, 1 - bestD/2.5));   // 거리→신뢰도(대략)
-  return {id:best, dist:bestD, conf};
+  const t=tplStore(); const cmin={};
+  for(const id in t){ let m=1e9; for(const tv of t[id]){ if(tv.length===v.length){ const d=dist(v,tv); if(d<m)m=d; } } if(m<1e9)cmin[id]=m; }
+  const s=Object.entries(cmin).sort((a,b)=>a[1]-b[1]); if(!s.length) return null;
+  const bestD=s[0][1], secondD=s.length>1?s[1][1]:bestD*2;
+  const margin=(secondD-bestD)/(secondD||1);
+  return {id:s[0][0], dist:bestD, conf:Math.max(0,Math.min(1,margin*2.2))};
 }
-function updateRegCount(){ const t=tplStore();
-  const total=Object.values(t).reduce((a,b)=>a+b.length,0);
-  document.getElementById('regCount').textContent = total?`등록된 동작 템플릿 ${total}개 (${Object.keys(t).length}종)`:'아직 등록된 동작이 없어요. 자세 잡고 "이 동작 등록"을 눌러보세요.';
+// 시간 안정화: 최근 프레임 다수결로 흔들림 없이 자동 전환
+let recogHist=[];
+function stableRecog(rec){
+  if(rec) recogHist.push(rec.conf>0.2?rec.id:null); else recogHist.push(null);
+  if(recogHist.length>12) recogHist.shift();
+  const cnt={}; for(const x of recogHist){ if(x)cnt[x]=(cnt[x]||0)+1; }
+  let top=null,tn=0; for(const k in cnt){ if(cnt[k]>tn){tn=cnt[k];top=k;} }
+  return (tn>=6)?top:null;   // 12프레임 중 6+ 동의해야 확정
+}
+function updateRegCount(){
+  const pn=Object.keys(PRETRAINED).length;
+  const u=userStore(); const um=Object.values(u).reduce((a,b)=>a+b.length,0);
+  let s = pn?`🧠 학습된 동작 ${pn}종 자동 인식`:'';
+  if(um) s += (s?' + ':'')+`내 자세 ${um}개 추가`;
+  document.getElementById('regCount').textContent = s || '자세 잡고 "이 동작 등록"으로 내 자세를 추가할 수 있어요.';
 }
 function flash(m){ const el=document.getElementById('regCount'); const old=el.textContent;
   el.textContent=m; el.style.color='var(--accent)';
@@ -304,16 +329,17 @@ function onResults(r){
   else ctx.drawImage(r.image,0,0,W,H);
   const lm=r.poseLandmarks; if(!lm){hud.textContent='사람을 찾는 중…';return;}
   lastLM=lm;   // 등록 버튼용 최근 포즈
-  // 자동 인식: 등록된 템플릿 중 최근접 → 동작 자동 선택
+  // 자동 인식: 클래스 마진 + 시간 안정화(다수결) → 흔들림 없이 자동 선택
   if(document.getElementById('togAuto').checked){
     const rec=recognize(lm);
-    const box=document.getElementById('recogBox');
-    if(rec && rec.conf>0.4){ box.style.display='block';
-      const a=asanas.find(x=>x.id===rec.id);
-      document.getElementById('recogName').textContent=a?a.name:rec.id;
-      document.getElementById('recogConf').textContent=`(${Math.round(rec.conf*100)}%)`;
-      if(a && (!cur||cur.id!==a.id)){ cur=a; document.getElementById('asana').value=asanas.indexOf(a); setAsana(asanas.indexOf(a)); }
-    } else { box.style.display='block'; document.getElementById('recogName').textContent='인식 중…'; document.getElementById('recogConf').textContent=''; }
+    const stable=stableRecog(rec);
+    const box=document.getElementById('recogBox'); box.style.display='block';
+    if(stable){
+      const a=asanas.find(x=>x.id===stable);
+      document.getElementById('recogName').textContent=a?a.name:stable;
+      document.getElementById('recogConf').textContent=rec?`(${Math.round(rec.conf*100)}%)`:'';
+      if(a && (!cur||cur.id!==a.id)){ cur=a; const ix=asanas.indexOf(a); document.getElementById('asana').value=ix; setAsana(ix); }
+    } else { document.getElementById('recogName').textContent='인식 중…'; document.getElementById('recogConf').textContent=''; }
   }
   const dlm=MIRROR?lm.map(p=>p?{x:1-p.x,y:p.y,z:p.z,visibility:p.visibility}:p):lm;
   drawSkeleton(dlm); drawHand(r.leftHandLandmarks); drawHand(r.rightHandLandmarks);

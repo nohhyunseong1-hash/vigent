@@ -933,6 +933,15 @@ def sports_asanas():
     return json.loads(p.read_text(encoding="utf-8"))
 
 
+@app.get("/sports/templates")
+def sports_templates():
+    """학습된 요가 동작 인식 템플릿(브라우저가 등록 없이 자동 인식). 없으면 빈값."""
+    p = _ROOT / "config" / "yoga_templates.json"
+    if not p.exists():
+        return {"templates": {}}
+    return json.loads(p.read_text(encoding="utf-8"))
+
+
 @app.get("/theme/{theme}/raw")
 def theme_raw(theme: str):
     """테마 vision.yaml 원본 반환(프론트가 ergonomics 등 설정을 읽어 설정주도 동작)."""
