@@ -117,3 +117,29 @@ def confirm(image_bgr, rule: str, reason: str = "") -> dict[str, Any]:
         reason = "(VLM 근거 미생성)"
     return {"available": True, "verdict": verdict, "risk": risk,
             "reason": reason, "suppress": suppress, "raw": data}
+
+
+_SCENE_PROMPT = (
+    "이 산업안전 CCTV 증거 사진을 보고, 무슨 작업·상황이 보이는지 한국어 한 문장으로 객관적으로 설명하라. "
+    "보이는 것에만 근거하고 추측·과장하지 마라. JSON·코드블록 없이 한 문장만 출력하라."
+)
+
+
+def describe_scene(image_bgr) -> str:
+    """증거 프레임 → 한국어 장면 설명 1문장(보조·초안). VLM 미가용/실패 시 빈 문자열(폴백)."""
+    if image_bgr is None:
+        return ""
+    try:
+        import rfdetr_service
+        data = rfdetr_service.vlm.summarize_bgr(image_bgr, prompt=_SCENE_PROMPT)
+    except Exception:  # noqa: BLE001  의존성/추론 실패 → 폴백
+        return ""
+    if not isinstance(data, dict) or data.get("_error"):
+        return ""
+    # 자유문장 응답은 보통 raw 에, 혹은 값들에 들어온다. 합쳐서 한 줄로.
+    txt = data.get("raw") or " ".join(
+        str(v) for k, v in data.items() if not str(k).startswith("_") and k != "관련법령")
+    txt = " ".join(str(txt).split())            # 개행·중복공백 정리
+    if not txt or any(t in txt for t in ("한 문장", "코드블록", "JSON")):  # placeholder echo 방어
+        return ""
+    return txt[:200]

@@ -798,10 +798,20 @@ def safety_auto_approve(payload: dict = Body(...), theme: str = DEFAULT_THEME):
     if action == "risk_assessment":
         bundle = STATE.get(theme) or _load_theme(theme)
         scribe = bundle["agents"].get("Scribe")
-        # 이 이벤트(같은 ts+rule)의 증거 사진 경로 수집 → 평가서에 자동 첨부
+        # 이 이벤트(같은 ts+rule)의 증거 사진 경로 수집 → 평가서에 자동 첨부(+VLM 장면설명)
         ev_paths = [e.get("evidence") for e in data_engine.list_events(limit=2000)
                     if e.get("ts") == event_ts and e.get("rule") == rule and e.get("evidence")]
-        out = scribe.generate([{"rule": rule, "count": 1, "evidence_paths": ev_paths}],
+        ev_items = []
+        if ev_paths:
+            import cv2
+            import vlm_confirm as _vc
+            for i, p in enumerate(ev_paths[:4]):
+                note = ""
+                fp = _ROOT / p
+                if i == 0 and fp.exists():        # 첫 사진만 VLM 장면분석(지연 제한)
+                    note = _vc.describe_scene(cv2.imread(str(fp)))
+                ev_items.append({"path": p, "note": note})
+        out = scribe.generate([{"rule": rule, "count": 1, "evidence_items": ev_items}],
                               site=site or "자동처리 승인", process="-", save=True)
         ra_aid = Path(out["saved_path"]).stem if out.get("saved_path") else ""
     rec = audit_store.record(event_ts, rule, action, approver=approver, site=site, ra_aid=ra_aid)
@@ -954,22 +964,13 @@ def zone_intrusion_alert(payload: dict = Body(default={}), theme: str = DEFAULT_
     zone_name = payload.get("zone", "위험구역")
     msg = f"[{zone_name}] 위험구역 침입 — {', '.join(reasons)} · 구역 내 {people}명"
 
-    # 증거 이미지 저장(있으면). decoded 는 VLM 확정에도 재사용한다.
-    saved, decoded = None, None
+    # 증거 저장 + 인식로그 기록(데이터엔진) → 자동처리 콘솔에 노출. decoded 는 VLM 확정에 재사용.
     img = payload.get("image_base64")
-    if img:
-        try:
-            decoded = _decode_data_url(img if img.startswith("data:") else "data:image/jpeg;base64," + img)
-            if decoded is not None:
-                import cv2
-                from datetime import datetime
-                d = _ROOT / "data" / "evidence" / datetime.now().strftime("%Y%m%d")
-                d.mkdir(parents=True, exist_ok=True)
-                fn = d / f"intrusion_{datetime.now().strftime('%H%M%S')}.jpg"
-                cv2.imwrite(str(fn), decoded)
-                saved = str(fn.relative_to(_ROOT))
-        except Exception:  # noqa: BLE001
-            pass
+    img_url = (img if (img or "").startswith("data:") else "data:image/jpeg;base64," + img) if img else None
+    decoded = _decode_data_url(img_url) if img_url else None
+    rec = data_engine.log_event(rule="zone_intrusion", level="high",
+                                site=zone_name, note=", ".join(reasons), image_data_url=img_url)
+    saved = rec.get("evidence")
 
     # CNN→VLM 하이브리드 확정(opt-in: vlm_confirm). 고신뢰 오탐만 푸시 억제(증거·기록은 유지).
     vlm_conf, suppressed = None, False
@@ -1008,22 +1009,13 @@ def safety_fall_alert(payload: dict = Body(default={}), theme: str = DEFAULT_THE
     else:
         verdict = {"level": "high", "fired": [], "dispatch": []}
 
-    # 증거 이미지 저장(있으면). decoded 는 VLM 확정에도 재사용한다.
-    saved, decoded = None, None
+    # 증거 저장 + 인식로그 기록(데이터엔진) → 자동처리 콘솔에 노출. decoded 는 VLM 확정에 재사용.
     img = payload.get("image_base64")
-    if img:
-        try:
-            decoded = _decode_data_url(img if img.startswith("data:") else "data:image/jpeg;base64," + img)
-            if decoded is not None:
-                import cv2
-                from datetime import datetime
-                d = _ROOT / "data" / "evidence" / datetime.now().strftime("%Y%m%d")
-                d.mkdir(parents=True, exist_ok=True)
-                fn = d / f"fall_{datetime.now().strftime('%H%M%S')}.jpg"
-                cv2.imwrite(str(fn), decoded)
-                saved = str(fn.relative_to(_ROOT))
-        except Exception:  # noqa: BLE001
-            pass
+    img_url = (img if (img or "").startswith("data:") else "data:image/jpeg;base64," + img) if img else None
+    decoded = _decode_data_url(img_url) if img_url else None
+    rec = data_engine.log_event(rule="fall_suspected", level=verdict.get("level", "high"),
+                                site=payload.get("site", ""), note="낙상 감지", image_data_url=img_url)
+    saved = rec.get("evidence")
 
     # 메시지에 법령 근거 한 줄(§9)
     laws = []

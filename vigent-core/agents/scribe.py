@@ -127,9 +127,18 @@ class ScribeAgent(BaseAgent):
             citations = []
             if self.copilot is not None:
                 citations = self.copilot.cite(rule).get("citations", [])
-            # 증거 사진(이벤트 캡쳐) 자동 첨부 — data URI 로 문서에 내장(최대 4장)
-            ev_paths = ev.get("evidence_paths") or ([ev["evidence"]] if ev.get("evidence") else [])
-            ev_imgs = [u for u in (_evidence_data_uri(p) for p in ev_paths[:4]) if u]
+            # 증거 사진(이벤트 캡쳐) 자동 첨부 — data URI 로 문서에 내장(최대 4장) + VLM 장면설명
+            ev_items = ev.get("evidence_items")
+            if ev_items:
+                pairs = [(it.get("path"), it.get("note", "")) for it in ev_items]
+            else:
+                _paths = ev.get("evidence_paths") or ([ev["evidence"]] if ev.get("evidence") else [])
+                pairs = [(p, "") for p in _paths]
+            ev_imgs = []
+            for _p, _note in pairs[:4]:
+                _uri = _evidence_data_uri(_p)
+                if _uri:
+                    ev_imgs.append({"uri": _uri, "note": _note})
             rows.append({
                 # ── KOSHA KRAS 서식 11 컬럼 구조 ──
                 "rule": rule,
@@ -200,9 +209,13 @@ class ScribeAgent(BaseAgent):
         # 📷 현장 증거 사진 섹션(이벤트 캡쳐 자동 첨부). 사진 없으면 섹션 자체를 생략.
         ev_cards = ""
         for r in assessment["rows"]:
-            for uri in r.get("_evidence", []) or []:
-                ev_cards += (f'<div class="evc"><img src="{uri}" alt="증거">'
-                             f'<div class="evcap">[{e(r["유해위험요인"])}] · {e(r.get("AI감지근거",""))}</div></div>')
+            for img in r.get("_evidence", []) or []:
+                _uri = img.get("uri") if isinstance(img, dict) else img
+                _note = img.get("note") if isinstance(img, dict) else ""
+                note_html = f'<div class="evnote">🧠 VLM 장면분석(초안): {e(_note)}</div>' if _note else ""
+                ev_cards += (f'<div class="evc"><img src="{_uri}" alt="증거">'
+                             f'<div class="evcap">[{e(r["유해위험요인"])}] · {e(r.get("AI감지근거",""))}</div>'
+                             f'{note_html}</div>')
         ev_section = (f'<div class="evsec"><h3>📷 현장 증거 사진 '
                       f'<span class="src">(이벤트 발생 시 자동 캡쳐 · 안전관리자 확인용)</span></h3>'
                       f'<div class="evgrid">{ev_cards}</div></div>') if ev_cards else ""
@@ -231,6 +244,7 @@ class ScribeAgent(BaseAgent):
   .evc{{border:1px solid #94a3b8;border-radius:6px;padding:6px;width:240px;break-inside:avoid}}
   .evc img{{width:100%;border-radius:4px;display:block}}
   .evcap{{font-size:10.5px;color:#475569;margin-top:4px}}
+  .evnote{{font-size:10.5px;color:#1e40af;background:#eff6ff;border:1px solid #bfdbfe;border-radius:4px;padding:4px 6px;margin-top:4px;line-height:1.5}}
   tr{{break-inside:avoid;page-break-inside:avoid}}
   @media print{{ .noprint{{display:none}} body{{margin:0}} }}
 </style></head><body>
