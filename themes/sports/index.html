@@ -65,7 +65,6 @@
 <div class="wrap">
   <div class="stage">
     <canvas id="cv"></canvas>
-    <canvas id="cv3d" style="position:absolute;inset:0;width:100%;height:100%;pointer-events:none"></canvas>
     <div class="hud" id="hud">카메라 시작 중…</div>
     <div class="hud" id="viewMode" style="left:auto;right:12px;display:none"></div>
   </div>
@@ -105,14 +104,12 @@
 
     <div class="panel">
       <button id="btnMirror">🪞 거울 ON</button>
-      <button id="btn3D">🧊 3D ON</button>
       <button id="btnEngine">⚡ 빠른 모드</button>
     </div>
   </div>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
-<script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
 <script>
 const cv=document.getElementById('cv'), ctx=cv.getContext('2d'), hud=document.getElementById('hud');
 let MIRROR=true, asanas=[], cur=null, CFG={symmetry:{good:8,warn:18},balance:{good:.04,warn:.10},stability:{good:.02,warn:.05},hold:15};
@@ -255,88 +252,51 @@ function vok(p){return p&&(p.visibility==null?1:p.visibility)>=0.3;}
 function JCOL(i){ if(i===11||i===12)return'#ff9f43'; if(i===13||i===14)return'#feca57'; if(i===15||i===16)return'#10ac84';
   if(i>=17&&i<=22)return'#1dd1a1'; if(i===23||i===24)return'#a29bfe'; if(i===25||i===26)return'#ff6b9d';
   if(i===27||i===28)return'#ee5253'; if(i>=29)return'#54a0ff'; return'#9b6bff'; }
-// ── 진짜 3D 렌더(Three.js): 빛 받는 입체 구(관절) + 원통(뼈대) ──
-let MODE3D=true, T3=null;
-function init3D(){
-  if(T3||typeof THREE==='undefined') return;
-  const canvas=document.getElementById('cv3d');
-  const renderer=new THREE.WebGLRenderer({canvas,alpha:true,antialias:true});
-  renderer.setPixelRatio(Math.min(2,window.devicePixelRatio||1));
-  const scene=new THREE.Scene();
-  const cam=new THREE.OrthographicCamera(-1,1,1,-1,-10,10); cam.position.z=3;
-  scene.add(new THREE.AmbientLight(0xffffff,0.55));
-  const key=new THREE.DirectionalLight(0xffffff,1.0); key.position.set(-1,1.5,2); scene.add(key);
-  const rim=new THREE.DirectionalLight(0x9b6bff,0.6); rim.position.set(1,-0.5,1); scene.add(rim);
-  T3={renderer,scene,cam,joints:{},bones:[],boneIx:0};
+// ── 근육 섬유 스타일: 한 부위(뼈)를 여러 가닥의 얇은 곡선(근섬유)으로 ──
+// 각 섬유는 양 끝(힘줄)에서 모이고 가운데서 볼록(방추형 근육)하게 휜다.
+function muscleColor(i){   // 부위별 근육 톤(붉은 근육 + 부위 구분)
+  return JCOL(i);
 }
-function fit3D(){ if(!T3)return; const c=document.getElementById('cv3d');
-  const w=c.clientWidth||960,h=c.clientHeight||540; T3.renderer.setSize(w,h,false);
-  const a=w/h; T3.cam.left=-a;T3.cam.right=a;T3.cam.top=1;T3.cam.bottom=-1;T3.cam.updateProjectionMatrix(); T3.aspect=a; }
-function P3(p){ const a=T3.aspect||1.6; return new THREE.Vector3((p.x-0.5)*2*a, -(p.y-0.5)*2, -(p.z||0)*1.6); }
-function getJoint(i,col,r){ let m=T3.joints[i];
-  if(!m){ const g=new THREE.SphereGeometry(1,20,16);
-    m=new THREE.Mesh(g,new THREE.MeshStandardMaterial({color:col,roughness:.35,metalness:.15,emissive:col,emissiveIntensity:.18}));
-    T3.scene.add(m); T3.joints[i]=m; }
-  m.material.color.set(col); m.material.emissive.set(col); m.scale.setScalar(r); m.visible=true; return m; }
-function getBone(){ let m=T3.bones[T3.boneIx];
-  if(!m){ const g=new THREE.CylinderGeometry(1,1,1,12);
-    m=new THREE.Mesh(g,new THREE.MeshStandardMaterial({color:0xb49bff,roughness:.4,metalness:.1,emissive:0x6b5bff,emissiveIntensity:.15}));
-    T3.scene.add(m); T3.bones.push(m); }
-  T3.boneIx++; m.visible=true; return m; }
-function setBone(m,A,B,rad){ const mid=A.clone().add(B).multiplyScalar(.5); m.position.copy(mid);
-  const dir=B.clone().sub(A); const len=dir.length()||.001; m.scale.set(rad,len,rad);
-  m.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0), dir.normalize()); }
-function render3D(lm){
-  if(!T3){ init3D(); if(!T3)return; } fit3D();
-  for(const k in T3.joints) T3.joints[k].visible=false;
-  for(const m of T3.bones) m.visible=false; T3.boneIx=0;
-  // 뼈대(몸 연결 + 척추·목)
-  const segs=[...CONN];
-  const sh=(vok(lm[11])&&vok(lm[12]))?{x:(lm[11].x+lm[12].x)/2,y:(lm[11].y+lm[12].y)/2,z:((lm[11].z||0)+(lm[12].z||0))/2}:null;
-  const ear=(vok(lm[7])&&vok(lm[8]))?{x:(lm[7].x+lm[8].x)/2,y:(lm[7].y+lm[8].y)/2,z:((lm[7].z||0)+(lm[8].z||0))/2}:null;
-  for(const[a,b]of segs){ if(!vok(lm[a])||!vok(lm[b]))continue; setBone(getBone(),P3(lm[a]),P3(lm[b]),0.018); }
-  if(sh&&ear) setBone(getBone(),P3(sh),P3(ear),0.016);
-  // 관절(입체 구, 손·발 작게)
-  for(const i of JOINTS){ const p=lm[i]; if(!vok(p))continue; const sm=HANDS.has(i)||FEET.has(i);
-    getJoint(i, JCOL(i), sm?0.022:0.04).position.copy(P3(p)); }
-  T3.renderer.render(T3.scene,T3.cam);
+function drawFibers(ax,ay,bx,by, baseCol, n){
+  const dx=bx-ax, dy=by-ay, len=Math.hypot(dx,dy)||1;
+  const px=-dy/len, py=dx/len;                 // 수직(근육 두께 방향)
+  const belly=Math.min(len*0.20, 26);          // 근육 배(가운데 볼록) 폭
+  const cxm=(ax+bx)/2, cym=(ay+by)/2;
+  for(let k=0;k<n;k++){
+    const t=(n===1)?0:(k/(n-1)*2-1);           // -1..1
+    const o=t*belly;
+    // 가운데를 o 만큼 볼록하게: 2차 베지어 제어점 = 2*M - (A+B)/2
+    const mx=cxm+px*o, my=cym+py*o;
+    const ctrlx=2*mx-cxm, ctrly=2*my-cym;
+    // 가장자리 섬유는 더 얇고 흐리게(둥근 단면 느낌)
+    const edge=Math.abs(t);
+    ctx.lineWidth=1.0+(1-edge)*0.9;
+    ctx.strokeStyle=baseCol(0.30+(1-edge)*0.55);
+    ctx.beginPath(); ctx.moveTo(ax,ay); ctx.quadraticCurveTo(ctrlx,ctrly,bx,by); ctx.stroke();
+  }
 }
-function clear3D(){ if(T3) T3.renderer.clear(); }
-
-// ── 입체(3D 느낌) 렌더: MediaPipe z(깊이)로 크기·밝기·앞뒤 정렬 ──
-function hexRGB(h){h=h.replace('#','');return[parseInt(h.slice(0,2),16),parseInt(h.slice(2,4),16),parseInt(h.slice(4,6),16)];}
-function depthCol(hex,depth,alpha){const[r,g,b]=hexRGB(hex);const f=1.3-depth*0.85;  // 가까울수록 밝게
-  const m=c=>Math.max(0,Math.min(255,Math.round(c*f)));return`rgba(${m(r)},${m(g)},${m(b)},${alpha})`;}
-function zMap(lm){let mn=1e9,mx=-1e9;for(const i of JOINTS){const p=lm[i];if(!vok(p))continue;const z=p.z||0;if(z<mn)mn=z;if(z>mx)mx=z;}
-  const sp=(mx-mn)||1;return i=>{const p=lm[i];const z=(p&&p.z!=null)?p.z:0;return Math.max(0,Math.min(1,(z-mn)/sp));};}
-function joint3D(x,y,r,hex,depth){
-  ctx.beginPath();ctx.arc(x,y,r*2,0,7);ctx.fillStyle=depthCol(hex,depth,0.13);ctx.fill();   // 글로우
-  const g=ctx.createRadialGradient(x-r*0.38,y-r*0.38,r*0.1,x,y,r);                            // 구슬 음영
-  g.addColorStop(0,'rgba(255,255,255,0.95)');g.addColorStop(0.4,depthCol(hex,depth,1));g.addColorStop(1,depthCol(hex,Math.min(1,depth+0.45),1));
-  ctx.beginPath();ctx.arc(x,y,r,0,7);ctx.fillStyle=g;ctx.fill();
-}
-function drawSkeleton(lm){ const W=cv.width,H=cv.height; ctx.lineCap='round'; const dep=zMap(lm);
-  // 합성 척추·목
-  const mid=(a,b)=>vok(lm[a])&&vok(lm[b])?{x:(lm[a].x+lm[b].x)/2,y:(lm[a].y+lm[b].y)/2,z:((lm[a].z||0)+(lm[b].z||0))/2}:(vok(lm[a])?lm[a]:vok(lm[b])?lm[b]:null);
+function hx(h){h=h.replace('#','');return[parseInt(h.slice(0,2),16),parseInt(h.slice(2,4),16),parseInt(h.slice(4,6),16)];}
+function drawSkeleton(lm){ const W=cv.width,H=cv.height; ctx.lineCap='round'; ctx.lineJoin='round';
+  const mid=(a,b)=>vok(lm[a])&&vok(lm[b])?{x:(lm[a].x+lm[b].x)/2,y:(lm[a].y+lm[b].y)/2}:(vok(lm[a])?lm[a]:vok(lm[b])?lm[b]:null);
   const shM=mid(11,12),earM=mid(7,8)||(vok(lm[0])?lm[0]:null);
-  // 뼈대: 평균 깊이로 정렬해 '먼 것 먼저'(앞뒤 가림 느낌)
-  const bones=[];
-  for(const[a,b]of CONN){if(vok(lm[a])&&vok(lm[b]))bones.push({p:lm[a],q:lm[b],d:(dep(a)+dep(b))/2});}
-  if(shM&&earM)bones.push({p:shM,q:earM,d:dep(11)});
-  bones.sort((x,y)=>y.d-x.d);
-  for(const bn of bones){const w=2.5+(1-bn.d)*4.5;
-    ctx.lineWidth=w+5;ctx.strokeStyle=`rgba(155,107,255,${0.08+(1-bn.d)*0.14})`;ctx.beginPath();ctx.moveTo(bn.p.x*W,bn.p.y*H);ctx.lineTo(bn.q.x*W,bn.q.y*H);ctx.stroke();
-    ctx.lineWidth=w;ctx.strokeStyle=`rgba(${180-bn.d*70|0},${150-bn.d*60|0},255,${0.55+(1-bn.d)*0.4})`;ctx.beginPath();ctx.moveTo(bn.p.x*W,bn.p.y*H);ctx.lineTo(bn.q.x*W,bn.q.y*H);ctx.stroke();}
-  // 관절: 먼 것 먼저, 깊이로 크기·밝기
-  const js=JOINTS.filter(i=>vok(lm[i])).map(i=>({i,d:dep(i)})).sort((a,b)=>b.d-a.d);
-  for(const{i,d}of js){const p=lm[i],x=p.x*W,y=p.y*H,sm=HANDS.has(i)||FEET.has(i);
-    const r=(sm?3:6.5)*(1.35-d*0.7);joint3D(x,y,Math.max(2,r),JCOL(i),d);}
+  // 부위별로 근섬유 렌더(연결의 첫 관절 색을 근육색으로)
+  const segs=[];
+  for(const[a,b]of CONN){ if(vok(lm[a])&&vok(lm[b])) segs.push([lm[a],lm[b],a]); }
+  if(shM&&earM) segs.push([shM,earM,11]);
+  for(const[A,B,ci]of segs){
+    const [r,g,bl]=hx(muscleColor(ci));
+    const col=(al)=>`rgba(${r},${g},${bl},${al})`;
+    drawFibers(A.x*W,A.y*H, B.x*W,B.y*H, col, 7);   // 7가닥 근섬유
+  }
+  // 관절(힘줄 매듭) — 작게, 흰 코어 + 색 링
+  for(const i of JOINTS){ const p=lm[i]; if(!vok(p))continue; const x=p.x*W,y=p.y*H,sm=HANDS.has(i)||FEET.has(i),rr=sm?2.5:4.5;
+    ctx.beginPath();ctx.arc(x,y,rr+1.5,0,7);ctx.fillStyle=muscleColor(i);ctx.fill();
+    ctx.beginPath();ctx.arc(x,y,rr-1,0,7);ctx.fillStyle='rgba(255,255,255,.9)';ctx.fill(); }
 }
-function drawHand(hlm){ if(!hlm||hlm.length<21)return; const W=cv.width,H=cv.height,m=hlm.map(p=>({x:MIRROR?1-p.x:p.x,y:p.y,z:p.z||0}));ctx.lineCap='round';
-  let mn=1e9,mx=-1e9;for(const p of m){if(p.z<mn)mn=p.z;if(p.z>mx)mx=p.z;}const sp=(mx-mn)||1;
-  for(const[a,b]of HAND_CONN){const p=m[a],q=m[b],d=((p.z+q.z)/2-mn)/sp;
-    ctx.lineWidth=1.5+(1-d)*1.8;ctx.strokeStyle=`rgba(120,255,200,${0.55+(1-d)*0.4})`;ctx.beginPath();ctx.moveTo(p.x*W,p.y*H);ctx.lineTo(q.x*W,q.y*H);ctx.stroke();}
-  for(const p of m){const d=(p.z-mn)/sp,r=2+(1-d)*2;ctx.beginPath();ctx.arc(p.x*W,p.y*H,r,0,7);ctx.fillStyle=`rgba(255,255,255,${0.6+(1-d)*0.4})`;ctx.fill();}}
+function drawHand(hlm){ if(!hlm||hlm.length<21)return; const W=cv.width,H=cv.height,m=hlm.map(p=>({x:MIRROR?1-p.x:p.x,y:p.y}));ctx.lineCap='round';
+  const col=(al)=>`rgba(120,255,200,${al})`;
+  for(const[a,b]of HAND_CONN){const p=m[a],q=m[b]; drawFibers(p.x*W,p.y*H,q.x*W,q.y*H,col,3);}   // 손가락은 3가닥
+  for(const p of m){ctx.beginPath();ctx.arc(p.x*W,p.y*H,2,0,7);ctx.fillStyle='rgba(255,255,255,.85)';ctx.fill();}}
 
 // ── 요가 폼 지표 계산 ──
 function ang(a,b,c){ if(!vok(a)||!vok(b)||!vok(c))return null;
@@ -414,8 +374,7 @@ function onResults(r){
     } else { document.getElementById('recogName').textContent='인식 중…'; document.getElementById('recogConf').textContent=''; }
   }
   const dlm=MIRROR?lm.map(p=>p?{x:1-p.x,y:p.y,z:p.z,visibility:p.visibility}:p):lm;
-  if(MODE3D){ render3D(dlm); }
-  else { clear3D(); drawSkeleton(dlm); drawHand(r.leftHandLandmarks); drawHand(r.rightHandLandmarks); }
+  drawSkeleton(dlm); drawHand(r.leftHandLandmarks); drawHand(r.rightHandLandmarks);
   updateForm(formMetrics(lm));   // 일반 지표(대칭·균형·안정성)
   updateAngleChecks(scoreAsana(lm, cur));   // 동작별 정답 각도 비교
   // 측정 모드(정면/측면) — 동작 권장 뷰와 함께 안내
@@ -448,9 +407,6 @@ function updateAngleChecks(res){
 document.getElementById('btnRegister').onclick=registerPose;
 updateRegCount();
 document.getElementById('btnMirror').onclick=function(){MIRROR=!MIRROR;this.textContent=MIRROR?'🪞 거울 ON':'🪞 거울 OFF';};
-document.getElementById('btn3D').onclick=function(){MODE3D=!MODE3D;this.textContent=MODE3D?'🧊 3D ON':'🧊 3D OFF';
-  if(!MODE3D)clear3D(); const c=document.getElementById('cv3d'); c.style.display=MODE3D?'block':'none';
-  if(!MODE3D){ctx.clearRect&&0;} };
 const ENGINE=new URLSearchParams(location.search).get('engine')||localStorage.getItem('vigent_sports_engine')||'holistic';
 (function(){const b=document.getElementById('btnEngine');b.textContent=ENGINE==='pose'?'🖐️ 정밀(손가락)':'⚡ 빠른 모드';
   b.onclick=()=>{localStorage.setItem('vigent_sports_engine',ENGINE==='pose'?'holistic':'pose');location.reload();};})();
