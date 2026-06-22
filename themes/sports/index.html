@@ -65,6 +65,7 @@
 <div class="wrap">
   <div class="stage">
     <canvas id="cv"></canvas>
+    <canvas id="cv3d" style="position:absolute;inset:0;width:100%;height:100%;pointer-events:none"></canvas>
     <div class="hud" id="hud">카메라 시작 중…</div>
     <div class="hud" id="viewMode" style="left:auto;right:12px;display:none"></div>
   </div>
@@ -104,12 +105,14 @@
 
     <div class="panel">
       <button id="btnMirror">🪞 거울 ON</button>
+      <button id="btn3D">🧊 3D ON</button>
       <button id="btnEngine">⚡ 빠른 모드</button>
     </div>
   </div>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
 <script>
 const cv=document.getElementById('cv'), ctx=cv.getContext('2d'), hud=document.getElementById('hud');
 let MIRROR=true, asanas=[], cur=null, CFG={symmetry:{good:8,warn:18},balance:{good:.04,warn:.10},stability:{good:.02,warn:.05},hold:15};
@@ -252,6 +255,54 @@ function vok(p){return p&&(p.visibility==null?1:p.visibility)>=0.3;}
 function JCOL(i){ if(i===11||i===12)return'#ff9f43'; if(i===13||i===14)return'#feca57'; if(i===15||i===16)return'#10ac84';
   if(i>=17&&i<=22)return'#1dd1a1'; if(i===23||i===24)return'#a29bfe'; if(i===25||i===26)return'#ff6b9d';
   if(i===27||i===28)return'#ee5253'; if(i>=29)return'#54a0ff'; return'#9b6bff'; }
+// ── 진짜 3D 렌더(Three.js): 빛 받는 입체 구(관절) + 원통(뼈대) ──
+let MODE3D=true, T3=null;
+function init3D(){
+  if(T3||typeof THREE==='undefined') return;
+  const canvas=document.getElementById('cv3d');
+  const renderer=new THREE.WebGLRenderer({canvas,alpha:true,antialias:true});
+  renderer.setPixelRatio(Math.min(2,window.devicePixelRatio||1));
+  const scene=new THREE.Scene();
+  const cam=new THREE.OrthographicCamera(-1,1,1,-1,-10,10); cam.position.z=3;
+  scene.add(new THREE.AmbientLight(0xffffff,0.55));
+  const key=new THREE.DirectionalLight(0xffffff,1.0); key.position.set(-1,1.5,2); scene.add(key);
+  const rim=new THREE.DirectionalLight(0x9b6bff,0.6); rim.position.set(1,-0.5,1); scene.add(rim);
+  T3={renderer,scene,cam,joints:{},bones:[],boneIx:0};
+}
+function fit3D(){ if(!T3)return; const c=document.getElementById('cv3d');
+  const w=c.clientWidth||960,h=c.clientHeight||540; T3.renderer.setSize(w,h,false);
+  const a=w/h; T3.cam.left=-a;T3.cam.right=a;T3.cam.top=1;T3.cam.bottom=-1;T3.cam.updateProjectionMatrix(); T3.aspect=a; }
+function P3(p){ const a=T3.aspect||1.6; return new THREE.Vector3((p.x-0.5)*2*a, -(p.y-0.5)*2, -(p.z||0)*1.6); }
+function getJoint(i,col,r){ let m=T3.joints[i];
+  if(!m){ const g=new THREE.SphereGeometry(1,20,16);
+    m=new THREE.Mesh(g,new THREE.MeshStandardMaterial({color:col,roughness:.35,metalness:.15,emissive:col,emissiveIntensity:.18}));
+    T3.scene.add(m); T3.joints[i]=m; }
+  m.material.color.set(col); m.material.emissive.set(col); m.scale.setScalar(r); m.visible=true; return m; }
+function getBone(){ let m=T3.bones[T3.boneIx];
+  if(!m){ const g=new THREE.CylinderGeometry(1,1,1,12);
+    m=new THREE.Mesh(g,new THREE.MeshStandardMaterial({color:0xb49bff,roughness:.4,metalness:.1,emissive:0x6b5bff,emissiveIntensity:.15}));
+    T3.scene.add(m); T3.bones.push(m); }
+  T3.boneIx++; m.visible=true; return m; }
+function setBone(m,A,B,rad){ const mid=A.clone().add(B).multiplyScalar(.5); m.position.copy(mid);
+  const dir=B.clone().sub(A); const len=dir.length()||.001; m.scale.set(rad,len,rad);
+  m.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0), dir.normalize()); }
+function render3D(lm){
+  if(!T3){ init3D(); if(!T3)return; } fit3D();
+  for(const k in T3.joints) T3.joints[k].visible=false;
+  for(const m of T3.bones) m.visible=false; T3.boneIx=0;
+  // 뼈대(몸 연결 + 척추·목)
+  const segs=[...CONN];
+  const sh=(vok(lm[11])&&vok(lm[12]))?{x:(lm[11].x+lm[12].x)/2,y:(lm[11].y+lm[12].y)/2,z:((lm[11].z||0)+(lm[12].z||0))/2}:null;
+  const ear=(vok(lm[7])&&vok(lm[8]))?{x:(lm[7].x+lm[8].x)/2,y:(lm[7].y+lm[8].y)/2,z:((lm[7].z||0)+(lm[8].z||0))/2}:null;
+  for(const[a,b]of segs){ if(!vok(lm[a])||!vok(lm[b]))continue; setBone(getBone(),P3(lm[a]),P3(lm[b]),0.018); }
+  if(sh&&ear) setBone(getBone(),P3(sh),P3(ear),0.016);
+  // 관절(입체 구, 손·발 작게)
+  for(const i of JOINTS){ const p=lm[i]; if(!vok(p))continue; const sm=HANDS.has(i)||FEET.has(i);
+    getJoint(i, JCOL(i), sm?0.022:0.04).position.copy(P3(p)); }
+  T3.renderer.render(T3.scene,T3.cam);
+}
+function clear3D(){ if(T3) T3.renderer.clear(); }
+
 // ── 입체(3D 느낌) 렌더: MediaPipe z(깊이)로 크기·밝기·앞뒤 정렬 ──
 function hexRGB(h){h=h.replace('#','');return[parseInt(h.slice(0,2),16),parseInt(h.slice(2,4),16),parseInt(h.slice(4,6),16)];}
 function depthCol(hex,depth,alpha){const[r,g,b]=hexRGB(hex);const f=1.3-depth*0.85;  // 가까울수록 밝게
@@ -363,7 +414,8 @@ function onResults(r){
     } else { document.getElementById('recogName').textContent='인식 중…'; document.getElementById('recogConf').textContent=''; }
   }
   const dlm=MIRROR?lm.map(p=>p?{x:1-p.x,y:p.y,z:p.z,visibility:p.visibility}:p):lm;
-  drawSkeleton(dlm); drawHand(r.leftHandLandmarks); drawHand(r.rightHandLandmarks);
+  if(MODE3D){ render3D(dlm); }
+  else { clear3D(); drawSkeleton(dlm); drawHand(r.leftHandLandmarks); drawHand(r.rightHandLandmarks); }
   updateForm(formMetrics(lm));   // 일반 지표(대칭·균형·안정성)
   updateAngleChecks(scoreAsana(lm, cur));   // 동작별 정답 각도 비교
   // 측정 모드(정면/측면) — 동작 권장 뷰와 함께 안내
@@ -396,6 +448,9 @@ function updateAngleChecks(res){
 document.getElementById('btnRegister').onclick=registerPose;
 updateRegCount();
 document.getElementById('btnMirror').onclick=function(){MIRROR=!MIRROR;this.textContent=MIRROR?'🪞 거울 ON':'🪞 거울 OFF';};
+document.getElementById('btn3D').onclick=function(){MODE3D=!MODE3D;this.textContent=MODE3D?'🧊 3D ON':'🧊 3D OFF';
+  if(!MODE3D)clear3D(); const c=document.getElementById('cv3d'); c.style.display=MODE3D?'block':'none';
+  if(!MODE3D){ctx.clearRect&&0;} };
 const ENGINE=new URLSearchParams(location.search).get('engine')||localStorage.getItem('vigent_sports_engine')||'holistic';
 (function(){const b=document.getElementById('btnEngine');b.textContent=ENGINE==='pose'?'🖐️ 정밀(손가락)':'⚡ 빠른 모드';
   b.onclick=()=>{localStorage.setItem('vigent_sports_engine',ENGINE==='pose'?'holistic':'pose');location.reload();};})();
