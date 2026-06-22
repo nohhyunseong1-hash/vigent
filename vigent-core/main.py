@@ -845,6 +845,15 @@ def safety_pro():
     return p.read_text(encoding="utf-8")
 
 
+@app.get("/sports/asanas")
+def sports_asanas():
+    """요가 동작 라이브러리(Yoga-82 수준). 정답각도(scored)·카테고리 포함."""
+    p = _ROOT / "config" / "yoga_asanas.json"
+    if not p.exists():
+        return {"asanas": []}
+    return json.loads(p.read_text(encoding="utf-8"))
+
+
 @app.get("/theme/{theme}/raw")
 def theme_raw(theme: str):
     """테마 vision.yaml 원본 반환(프론트가 ergonomics 등 설정을 읽어 설정주도 동작)."""

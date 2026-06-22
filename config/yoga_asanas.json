@@ -1,0 +1,1822 @@
+{
+ "_meta": {
+  "설명": "VIGENT 요가 동작 라이브러리(Yoga-82 수준). scored=true 정답각도 채점, false 인식·선택만(2D 채점 부적합/추가예정).",
+  "주의": "정답각도는 합리적 기준값. 요가 전문가 검수로 정밀화 권장."
+ },
+ "asanas": [
+  {
+   "id": "mountain",
+   "name": "산 자세",
+   "sanskrit": "Tadasana",
+   "category": "서기",
+   "view": "front",
+   "difficulty": "초급",
+   "scored": true,
+   "angles": [
+    {
+     "name": "왼팔 곧게",
+     "pts": [
+      11,
+      13,
+      15
+     ],
+     "ideal": 172,
+     "tol": 22
+    },
+    {
+     "name": "오른팔 곧게",
+     "pts": [
+      12,
+      14,
+      16
+     ],
+     "ideal": 172,
+     "tol": 22
+    },
+    {
+     "name": "왼다리 곧게",
+     "pts": [
+      23,
+      25,
+      27
+     ],
+     "ideal": 176,
+     "tol": 14
+    },
+    {
+     "name": "오른다리 곧게",
+     "pts": [
+      24,
+      26,
+      28
+     ],
+     "ideal": 176,
+     "tol": 14
+    }
+   ]
+  },
+  {
+   "id": "chair",
+   "name": "의자 자세",
+   "sanskrit": "Utkatasana",
+   "category": "서기",
+   "view": "side",
+   "difficulty": "초급",
+   "scored": true,
+   "angles": [
+    {
+     "name": "무릎 굽힘",
+     "pts": [
+      23,
+      25,
+      27
+     ],
+     "ideal": 115,
+     "tol": 30,
+     "oneOf": [
+      [
+       23,
+       25,
+       27
+      ],
+      [
+       24,
+       26,
+       28
+      ]
+     ]
+    },
+    {
+     "name": "왼팔 위로",
+     "pts": [
+      23,
+      11,
+      15
+     ],
+     "ideal": 160,
+     "tol": 25
+    },
+    {
+     "name": "오른팔 위로",
+     "pts": [
+      24,
+      12,
+      16
+     ],
+     "ideal": 160,
+     "tol": 25
+    }
+   ]
+  },
+  {
+   "id": "warrior1",
+   "name": "전사 자세 I",
+   "sanskrit": "Virabhadrasana I",
+   "category": "서기",
+   "view": "side",
+   "difficulty": "중급",
+   "scored": true,
+   "angles": [
+    {
+     "name": "앞 무릎 굽힘",
+     "pts": [
+      23,
+      25,
+      27
+     ],
+     "ideal": 105,
+     "tol": 30,
+     "oneOf": [
+      [
+       23,
+       25,
+       27
+      ],
+      [
+       24,
+       26,
+       28
+      ]
+     ]
+    },
+    {
+     "name": "왼팔 위로",
+     "pts": [
+      23,
+      11,
+      15
+     ],
+     "ideal": 165,
+     "tol": 22
+    },
+    {
+     "name": "오른팔 위로",
+     "pts": [
+      24,
+      12,
+      16
+     ],
+     "ideal": 165,
+     "tol": 22
+    }
+   ]
+  },
+  {
+   "id": "warrior2",
+   "name": "전사 자세 II",
+   "sanskrit": "Virabhadrasana II",
+   "category": "서기",
+   "view": "side",
+   "difficulty": "중급",
+   "scored": true,
+   "angles": [
+    {
+     "name": "앞 무릎 굽힘",
+     "pts": [
+      23,
+      25,
+      27
+     ],
+     "ideal": 105,
+     "tol": 30,
+     "oneOf": [
+      [
+       23,
+       25,
+       27
+      ],
+      [
+       24,
+       26,
+       28
+      ]
+     ]
+    },
+    {
+     "name": "왼팔 곧게",
+     "pts": [
+      11,
+      13,
+      15
+     ],
+     "ideal": 174,
+     "tol": 18
+    },
+    {
+     "name": "오른팔 곧게",
+     "pts": [
+      12,
+      14,
+      16
+     ],
+     "ideal": 174,
+     "tol": 18
+    }
+   ]
+  },
+  {
+   "id": "warrior3",
+   "name": "전사 자세 III",
+   "sanskrit": "Virabhadrasana III",
+   "category": "균형",
+   "view": "side",
+   "difficulty": "중급",
+   "scored": true,
+   "angles": [
+    {
+     "name": "선 다리 곧게",
+     "pts": [
+      23,
+      25,
+      27
+     ],
+     "ideal": 172,
+     "tol": 16,
+     "oneOf": [
+      [
+       23,
+       25,
+       27
+      ],
+      [
+       24,
+       26,
+       28
+      ]
+     ]
+    },
+    {
+     "name": "몸-팔 일직선",
+     "pts": [
+      15,
+      11,
+      23
+     ],
+     "ideal": 168,
+     "tol": 22,
+     "oneOf": [
+      [
+       15,
+       11,
+       23
+      ],
+      [
+       16,
+       12,
+       24
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "id": "triangle",
+   "name": "삼각 자세",
+   "sanskrit": "Trikonasana",
+   "category": "서기",
+   "view": "side",
+   "difficulty": "중급",
+   "scored": true,
+   "angles": [
+    {
+     "name": "앞 다리 곧게",
+     "pts": [
+      23,
+      25,
+      27
+     ],
+     "ideal": 172,
+     "tol": 16,
+     "oneOf": [
+      [
+       23,
+       25,
+       27
+      ],
+      [
+       24,
+       26,
+       28
+      ]
+     ]
+    },
+    {
+     "name": "위 팔 곧게",
+     "pts": [
+      11,
+      13,
+      15
+     ],
+     "ideal": 172,
+     "tol": 22,
+     "oneOf": [
+      [
+       11,
+       13,
+       15
+      ],
+      [
+       12,
+       14,
+       16
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "id": "forwardfold",
+   "name": "서서 전굴",
+   "sanskrit": "Uttanasana",
+   "category": "전굴",
+   "view": "side",
+   "difficulty": "초급",
+   "scored": true,
+   "angles": [
+    {
+     "name": "다리 곧게",
+     "pts": [
+      23,
+      25,
+      27
+     ],
+     "ideal": 172,
+     "tol": 16,
+     "oneOf": [
+      [
+       23,
+       25,
+       27
+      ],
+      [
+       24,
+       26,
+       28
+      ]
+     ]
+    },
+    {
+     "name": "상체 접힘",
+     "pts": [
+      11,
+      23,
+      25
+     ],
+     "ideal": 40,
+     "tol": 30,
+     "oneOf": [
+      [
+       11,
+       23,
+       25
+      ],
+      [
+       12,
+       24,
+       26
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "id": "widefold",
+   "name": "넓은 전굴",
+   "sanskrit": "Prasarita Padottanasana",
+   "category": "전굴",
+   "view": "front",
+   "difficulty": "초급",
+   "scored": true,
+   "angles": [
+    {
+     "name": "다리 곧게",
+     "pts": [
+      23,
+      25,
+      27
+     ],
+     "ideal": 173,
+     "tol": 14,
+     "oneOf": [
+      [
+       23,
+       25,
+       27
+      ],
+      [
+       24,
+       26,
+       28
+      ]
+     ]
+    },
+    {
+     "name": "상체 접힘",
+     "pts": [
+      11,
+      23,
+      25
+     ],
+     "ideal": 50,
+     "tol": 30,
+     "oneOf": [
+      [
+       11,
+       23,
+       25
+      ],
+      [
+       12,
+       24,
+       26
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "id": "lowlunge",
+   "name": "로우 런지",
+   "sanskrit": "Anjaneyasana",
+   "category": "서기",
+   "view": "side",
+   "difficulty": "초급",
+   "scored": true,
+   "angles": [
+    {
+     "name": "앞 무릎 굽힘",
+     "pts": [
+      23,
+      25,
+      27
+     ],
+     "ideal": 100,
+     "tol": 30,
+     "oneOf": [
+      [
+       23,
+       25,
+       27
+      ],
+      [
+       24,
+       26,
+       28
+      ]
+     ]
+    },
+    {
+     "name": "양팔 위로",
+     "pts": [
+      23,
+      11,
+      15
+     ],
+     "ideal": 160,
+     "tol": 28
+    }
+   ]
+  },
+  {
+   "id": "lowcrescent",
+   "name": "초승달 런지",
+   "sanskrit": "Ashta Chandrasana",
+   "category": "서기",
+   "view": "side",
+   "difficulty": "중급",
+   "scored": true,
+   "angles": [
+    {
+     "name": "앞 무릎 굽힘",
+     "pts": [
+      23,
+      25,
+      27
+     ],
+     "ideal": 100,
+     "tol": 30,
+     "oneOf": [
+      [
+       23,
+       25,
+       27
+      ],
+      [
+       24,
+       26,
+       28
+      ]
+     ]
+    },
+    {
+     "name": "양팔 위로",
+     "pts": [
+      23,
+      11,
+      15
+     ],
+     "ideal": 160,
+     "tol": 28
+    }
+   ]
+  },
+  {
+   "id": "sidestretch",
+   "name": "강한 측면 신전",
+   "sanskrit": "Parsvottanasana",
+   "category": "전굴",
+   "view": "side",
+   "difficulty": "중급",
+   "scored": true,
+   "angles": [
+    {
+     "name": "앞 다리 곧게",
+     "pts": [
+      23,
+      25,
+      27
+     ],
+     "ideal": 172,
+     "tol": 16,
+     "oneOf": [
+      [
+       23,
+       25,
+       27
+      ],
+      [
+       24,
+       26,
+       28
+      ]
+     ]
+    },
+    {
+     "name": "상체 접힘",
+     "pts": [
+      11,
+      23,
+      25
+     ],
+     "ideal": 55,
+     "tol": 30,
+     "oneOf": [
+      [
+       11,
+       23,
+       25
+      ],
+      [
+       12,
+       24,
+       26
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "id": "tree",
+   "name": "나무 자세",
+   "sanskrit": "Vrksasana",
+   "category": "균형",
+   "view": "front",
+   "difficulty": "초급",
+   "scored": true,
+   "angles": [
+    {
+     "name": "선 다리 곧게",
+     "pts": [
+      23,
+      25,
+      27
+     ],
+     "ideal": 176,
+     "tol": 12,
+     "oneOf": [
+      [
+       23,
+       25,
+       27
+      ],
+      [
+       24,
+       26,
+       28
+      ]
+     ]
+    },
+    {
+     "name": "접은 무릎",
+     "pts": [
+      24,
+      26,
+      28
+     ],
+     "ideal": 60,
+     "tol": 35,
+     "oneOf": [
+      [
+       23,
+       25,
+       27
+      ],
+      [
+       24,
+       26,
+       28
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "id": "eagle",
+   "name": "독수리 자세",
+   "sanskrit": "Garudasana",
+   "category": "균형",
+   "view": "front",
+   "difficulty": "중급",
+   "scored": true,
+   "angles": [
+    {
+     "name": "선 다리 굽힘",
+     "pts": [
+      23,
+      25,
+      27
+     ],
+     "ideal": 150,
+     "tol": 30,
+     "oneOf": [
+      [
+       23,
+       25,
+       27
+      ],
+      [
+       24,
+       26,
+       28
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "id": "dancer",
+   "name": "춤의 신 자세",
+   "sanskrit": "Natarajasana",
+   "category": "균형",
+   "view": "side",
+   "difficulty": "고급",
+   "scored": true,
+   "angles": [
+    {
+     "name": "선 다리 곧게",
+     "pts": [
+      23,
+      25,
+      27
+     ],
+     "ideal": 172,
+     "tol": 16,
+     "oneOf": [
+      [
+       23,
+       25,
+       27
+      ],
+      [
+       24,
+       26,
+       28
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "id": "halfmoon",
+   "name": "반달 자세",
+   "sanskrit": "Ardha Chandrasana",
+   "category": "균형",
+   "view": "side",
+   "difficulty": "중급",
+   "scored": true,
+   "angles": [
+    {
+     "name": "선 다리 곧게",
+     "pts": [
+      23,
+      25,
+      27
+     ],
+     "ideal": 172,
+     "tol": 16,
+     "oneOf": [
+      [
+       23,
+       25,
+       27
+      ],
+      [
+       24,
+       26,
+       28
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "id": "standingtoe",
+   "name": "서서 엄지 잡기",
+   "sanskrit": "Utthita Hasta Padangusthasana",
+   "category": "균형",
+   "view": "side",
+   "difficulty": "고급",
+   "scored": true,
+   "angles": [
+    {
+     "name": "선 다리 곧게",
+     "pts": [
+      23,
+      25,
+      27
+     ],
+     "ideal": 173,
+     "tol": 15,
+     "oneOf": [
+      [
+       23,
+       25,
+       27
+      ],
+      [
+       24,
+       26,
+       28
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "id": "garland",
+   "name": "화환 자세(말라사나)",
+   "sanskrit": "Malasana",
+   "category": "스쿼트",
+   "view": "front",
+   "difficulty": "초급",
+   "scored": true,
+   "angles": [
+    {
+     "name": "깊은 스쿼트",
+     "pts": [
+      23,
+      25,
+      27
+     ],
+     "ideal": 55,
+     "tol": 30,
+     "oneOf": [
+      [
+       23,
+       25,
+       27
+      ],
+      [
+       24,
+       26,
+       28
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "id": "plank",
+   "name": "플랭크",
+   "sanskrit": "Phalakasana",
+   "category": "코어",
+   "view": "side",
+   "difficulty": "초급",
+   "scored": true,
+   "angles": [
+    {
+     "name": "몸 일직선(좌)",
+     "pts": [
+      11,
+      23,
+      27
+     ],
+     "ideal": 176,
+     "tol": 16
+    },
+    {
+     "name": "몸 일직선(우)",
+     "pts": [
+      12,
+      24,
+      28
+     ],
+     "ideal": 176,
+     "tol": 16
+    }
+   ]
+  },
+  {
+   "id": "sideplank",
+   "name": "사이드 플랭크",
+   "sanskrit": "Vasisthasana",
+   "category": "코어",
+   "view": "side",
+   "difficulty": "중급",
+   "scored": true,
+   "angles": [
+    {
+     "name": "몸 일직선",
+     "pts": [
+      11,
+      23,
+      27
+     ],
+     "ideal": 172,
+     "tol": 18,
+     "oneOf": [
+      [
+       11,
+       23,
+       27
+      ],
+      [
+       12,
+       24,
+       28
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "id": "chaturanga",
+   "name": "사지 막대 자세",
+   "sanskrit": "Chaturanga",
+   "category": "코어",
+   "view": "side",
+   "difficulty": "중급",
+   "scored": true,
+   "angles": [
+    {
+     "name": "팔꿈치 굽힘",
+     "pts": [
+      11,
+      13,
+      15
+     ],
+     "ideal": 95,
+     "tol": 30,
+     "oneOf": [
+      [
+       11,
+       13,
+       15
+      ],
+      [
+       12,
+       14,
+       16
+      ]
+     ]
+    },
+    {
+     "name": "몸 일직선",
+     "pts": [
+      11,
+      23,
+      27
+     ],
+     "ideal": 173,
+     "tol": 16,
+     "oneOf": [
+      [
+       11,
+       23,
+       27
+      ],
+      [
+       12,
+       24,
+       28
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "id": "dolphinplank",
+   "name": "돌고래 플랭크",
+   "sanskrit": "Makara Adho Mukha",
+   "category": "코어",
+   "view": "side",
+   "difficulty": "중급",
+   "scored": true,
+   "angles": [
+    {
+     "name": "몸 일직선",
+     "pts": [
+      11,
+      23,
+      27
+     ],
+     "ideal": 172,
+     "tol": 18,
+     "oneOf": [
+      [
+       11,
+       23,
+       27
+      ],
+      [
+       12,
+       24,
+       28
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "id": "boat",
+   "name": "보트 자세",
+   "sanskrit": "Navasana",
+   "category": "코어",
+   "view": "side",
+   "difficulty": "중급",
+   "scored": true,
+   "angles": [
+    {
+     "name": "무릎 각",
+     "pts": [
+      23,
+      25,
+      27
+     ],
+     "ideal": 120,
+     "tol": 35,
+     "oneOf": [
+      [
+       23,
+       25,
+       27
+      ],
+      [
+       24,
+       26,
+       28
+      ]
+     ]
+    },
+    {
+     "name": "상체-다리 V",
+     "pts": [
+      11,
+      23,
+      25
+     ],
+     "ideal": 55,
+     "tol": 30,
+     "oneOf": [
+      [
+       11,
+       23,
+       25
+      ],
+      [
+       12,
+       24,
+       26
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "id": "cobra",
+   "name": "코브라",
+   "sanskrit": "Bhujangasana",
+   "category": "후굴",
+   "view": "side",
+   "difficulty": "초급",
+   "scored": true,
+   "angles": [
+    {
+     "name": "팔꿈치 굽힘",
+     "pts": [
+      11,
+      13,
+      15
+     ],
+     "ideal": 130,
+     "tol": 35,
+     "oneOf": [
+      [
+       11,
+       13,
+       15
+      ],
+      [
+       12,
+       14,
+       16
+      ]
+     ]
+    },
+    {
+     "name": "등 신전",
+     "pts": [
+      13,
+      11,
+      23
+     ],
+     "ideal": 110,
+     "tol": 30,
+     "oneOf": [
+      [
+       13,
+       11,
+       23
+      ],
+      [
+       14,
+       12,
+       24
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "id": "updog",
+   "name": "위를 향한 개",
+   "sanskrit": "Urdhva Mukha Svanasana",
+   "category": "후굴",
+   "view": "side",
+   "difficulty": "중급",
+   "scored": true,
+   "angles": [
+    {
+     "name": "팔 곧게",
+     "pts": [
+      11,
+      13,
+      15
+     ],
+     "ideal": 170,
+     "tol": 20,
+     "oneOf": [
+      [
+       11,
+       13,
+       15
+      ],
+      [
+       12,
+       14,
+       16
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "id": "camel",
+   "name": "낙타 자세",
+   "sanskrit": "Ustrasana",
+   "category": "후굴",
+   "view": "side",
+   "difficulty": "중급",
+   "scored": true,
+   "angles": [
+    {
+     "name": "허벅지 수직",
+     "pts": [
+      23,
+      25,
+      27
+     ],
+     "ideal": 168,
+     "tol": 20,
+     "oneOf": [
+      [
+       23,
+       25,
+       27
+      ],
+      [
+       24,
+       26,
+       28
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "id": "bridge",
+   "name": "다리 자세",
+   "sanskrit": "Setu Bandha",
+   "category": "후굴",
+   "view": "side",
+   "difficulty": "초급",
+   "scored": true,
+   "angles": [
+    {
+     "name": "정강이 수직",
+     "pts": [
+      23,
+      25,
+      27
+     ],
+     "ideal": 95,
+     "tol": 30,
+     "oneOf": [
+      [
+       23,
+       25,
+       27
+      ],
+      [
+       24,
+       26,
+       28
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "id": "downdog",
+   "name": "다운독",
+   "sanskrit": "Adho Mukha Svanasana",
+   "category": "역자세",
+   "view": "side",
+   "difficulty": "초급",
+   "scored": true,
+   "angles": [
+    {
+     "name": "엉덩이 각(∧)",
+     "pts": [
+      11,
+      23,
+      25
+     ],
+     "ideal": 80,
+     "tol": 25,
+     "oneOf": [
+      [
+       11,
+       23,
+       25
+      ],
+      [
+       12,
+       24,
+       26
+      ]
+     ]
+    },
+    {
+     "name": "팔-등 일직선",
+     "pts": [
+      15,
+      11,
+      23
+     ],
+     "ideal": 170,
+     "tol": 20,
+     "oneOf": [
+      [
+       15,
+       11,
+       23
+      ],
+      [
+       16,
+       12,
+       24
+      ]
+     ]
+    },
+    {
+     "name": "다리 곧게",
+     "pts": [
+      23,
+      25,
+      27
+     ],
+     "ideal": 172,
+     "tol": 18,
+     "oneOf": [
+      [
+       23,
+       25,
+       27
+      ],
+      [
+       24,
+       26,
+       28
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "id": "dolphin",
+   "name": "돌고래 자세",
+   "sanskrit": "Ardha Pincha",
+   "category": "역자세",
+   "view": "side",
+   "difficulty": "중급",
+   "scored": true,
+   "angles": [
+    {
+     "name": "엉덩이 각(∧)",
+     "pts": [
+      11,
+      23,
+      25
+     ],
+     "ideal": 85,
+     "tol": 25,
+     "oneOf": [
+      [
+       11,
+       23,
+       25
+      ],
+      [
+       12,
+       24,
+       26
+      ]
+     ]
+    },
+    {
+     "name": "다리 곧게",
+     "pts": [
+      23,
+      25,
+      27
+     ],
+     "ideal": 172,
+     "tol": 18,
+     "oneOf": [
+      [
+       23,
+       25,
+       27
+      ],
+      [
+       24,
+       26,
+       28
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "id": "bow",
+   "name": "활 자세",
+   "sanskrit": "Dhanurasana",
+   "category": "후굴",
+   "view": "side",
+   "difficulty": "중급",
+   "scored": false,
+   "angles": []
+  },
+  {
+   "id": "wheel",
+   "name": "바퀴 자세",
+   "sanskrit": "Urdhva Dhanurasana",
+   "category": "후굴",
+   "view": "side",
+   "difficulty": "고급",
+   "scored": false,
+   "angles": []
+  },
+  {
+   "id": "locust",
+   "name": "메뚜기 자세",
+   "sanskrit": "Salabhasana",
+   "category": "후굴",
+   "view": "side",
+   "difficulty": "초급",
+   "scored": false,
+   "angles": []
+  },
+  {
+   "id": "fish",
+   "name": "물고기 자세",
+   "sanskrit": "Matsyasana",
+   "category": "후굴",
+   "view": "side",
+   "difficulty": "중급",
+   "scored": false,
+   "angles": []
+  },
+  {
+   "id": "wildthing",
+   "name": "와일드 띵",
+   "sanskrit": "Camatkarasana",
+   "category": "후굴",
+   "view": "side",
+   "difficulty": "고급",
+   "scored": false,
+   "angles": []
+  },
+  {
+   "id": "headstand",
+   "name": "머리서기",
+   "sanskrit": "Sirsasana",
+   "category": "역자세",
+   "view": "side",
+   "difficulty": "고급",
+   "scored": false,
+   "angles": []
+  },
+  {
+   "id": "handstand",
+   "name": "물구나무",
+   "sanskrit": "Adho Mukha Vrksasana",
+   "category": "역자세",
+   "view": "side",
+   "difficulty": "고급",
+   "scored": false,
+   "angles": []
+  },
+  {
+   "id": "shoulderstand",
+   "name": "어깨서기",
+   "sanskrit": "Sarvangasana",
+   "category": "역자세",
+   "view": "side",
+   "difficulty": "중급",
+   "scored": false,
+   "angles": []
+  },
+  {
+   "id": "forearmstand",
+   "name": "전완 물구나무",
+   "sanskrit": "Pincha Mayurasana",
+   "category": "역자세",
+   "view": "side",
+   "difficulty": "고급",
+   "scored": false,
+   "angles": []
+  },
+  {
+   "id": "plow",
+   "name": "쟁기 자세",
+   "sanskrit": "Halasana",
+   "category": "역자세",
+   "view": "side",
+   "difficulty": "중급",
+   "scored": false,
+   "angles": []
+  },
+  {
+   "id": "legsupwall",
+   "name": "벽에 다리 올리기",
+   "sanskrit": "Viparita Karani",
+   "category": "역자세",
+   "view": "side",
+   "difficulty": "초급",
+   "scored": false,
+   "angles": []
+  },
+  {
+   "id": "scorpion",
+   "name": "전갈 자세",
+   "sanskrit": "Vrschikasana",
+   "category": "역자세",
+   "view": "side",
+   "difficulty": "고급",
+   "scored": false,
+   "angles": []
+  },
+  {
+   "id": "seatedfold",
+   "name": "앉아 전굴",
+   "sanskrit": "Paschimottanasana",
+   "category": "좌식",
+   "view": "side",
+   "difficulty": "초급",
+   "scored": false,
+   "angles": []
+  },
+  {
+   "id": "headtoknee",
+   "name": "머리-무릎 전굴",
+   "sanskrit": "Janu Sirsasana",
+   "category": "좌식",
+   "view": "side",
+   "difficulty": "초급",
+   "scored": false,
+   "angles": []
+  },
+  {
+   "id": "boundangle",
+   "name": "나비 자세",
+   "sanskrit": "Baddha Konasana",
+   "category": "좌식",
+   "view": "front",
+   "difficulty": "초급",
+   "scored": false,
+   "angles": []
+  },
+  {
+   "id": "widefoldseated",
+   "name": "넓은 좌식 전굴",
+   "sanskrit": "Upavistha Konasana",
+   "category": "좌식",
+   "view": "front",
+   "difficulty": "중급",
+   "scored": false,
+   "angles": []
+  },
+  {
+   "id": "staff",
+   "name": "막대 자세",
+   "sanskrit": "Dandasana",
+   "category": "좌식",
+   "view": "side",
+   "difficulty": "초급",
+   "scored": false,
+   "angles": []
+  },
+  {
+   "id": "hero",
+   "name": "영웅 자세",
+   "sanskrit": "Virasana",
+   "category": "좌식",
+   "view": "side",
+   "difficulty": "초급",
+   "scored": false,
+   "angles": []
+  },
+  {
+   "id": "cowface",
+   "name": "소얼굴 자세",
+   "sanskrit": "Gomukhasana",
+   "category": "좌식",
+   "view": "side",
+   "difficulty": "중급",
+   "scored": false,
+   "angles": []
+  },
+  {
+   "id": "halflord",
+   "name": "반 물고기왕 자세",
+   "sanskrit": "Ardha Matsyendrasana",
+   "category": "비틀기",
+   "view": "front",
+   "difficulty": "중급",
+   "scored": false,
+   "angles": []
+  },
+  {
+   "id": "revolvedtriangle",
+   "name": "회전 삼각 자세",
+   "sanskrit": "Parivrtta Trikonasana",
+   "category": "비틀기",
+   "view": "side",
+   "difficulty": "고급",
+   "scored": false,
+   "angles": []
+  },
+  {
+   "id": "noose",
+   "name": "올가미 자세",
+   "sanskrit": "Pasasana",
+   "category": "비틀기",
+   "view": "side",
+   "difficulty": "고급",
+   "scored": false,
+   "angles": []
+  },
+  {
+   "id": "bharadvaja",
+   "name": "현인 비틀기",
+   "sanskrit": "Bharadvajasana",
+   "category": "비틀기",
+   "view": "front",
+   "difficulty": "중급",
+   "scored": false,
+   "angles": []
+  },
+  {
+   "id": "child",
+   "name": "아기 자세",
+   "sanskrit": "Balasana",
+   "category": "휴식",
+   "view": "side",
+   "difficulty": "초급",
+   "scored": false,
+   "angles": []
+  },
+  {
+   "id": "corpse",
+   "name": "송장 자세",
+   "sanskrit": "Savasana",
+   "category": "휴식",
+   "view": "front",
+   "difficulty": "초급",
+   "scored": false,
+   "angles": []
+  },
+  {
+   "id": "happybaby",
+   "name": "행복한 아기",
+   "sanskrit": "Ananda Balasana",
+   "category": "휴식",
+   "view": "front",
+   "difficulty": "초급",
+   "scored": false,
+   "angles": []
+  },
+  {
+   "id": "recliningbound",
+   "name": "누운 나비",
+   "sanskrit": "Supta Baddha Konasana",
+   "category": "휴식",
+   "view": "front",
+   "difficulty": "초급",
+   "scored": false,
+   "angles": []
+  },
+  {
+   "id": "catcow",
+   "name": "고양이-소",
+   "sanskrit": "Marjaryasana",
+   "category": "워밍업",
+   "view": "side",
+   "difficulty": "초급",
+   "scored": false,
+   "angles": []
+  },
+  {
+   "id": "puppy",
+   "name": "강아지 자세",
+   "sanskrit": "Uttana Shishosana",
+   "category": "워밍업",
+   "view": "side",
+   "difficulty": "초급",
+   "scored": false,
+   "angles": []
+  },
+  {
+   "id": "gate",
+   "name": "문 자세",
+   "sanskrit": "Parighasana",
+   "category": "측면",
+   "view": "front",
+   "difficulty": "초급",
+   "scored": false,
+   "angles": []
+  },
+  {
+   "id": "pigeon",
+   "name": "비둘기 자세",
+   "sanskrit": "Eka Pada Rajakapotasana",
+   "category": "고관절",
+   "view": "side",
+   "difficulty": "중급",
+   "scored": false,
+   "angles": []
+  },
+  {
+   "id": "frog",
+   "name": "개구리 자세",
+   "sanskrit": "Bhekasana",
+   "category": "고관절",
+   "view": "front",
+   "difficulty": "중급",
+   "scored": false,
+   "angles": []
+  },
+  {
+   "id": "splits",
+   "name": "스플릿",
+   "sanskrit": "Hanumanasana",
+   "category": "고관절",
+   "view": "side",
+   "difficulty": "고급",
+   "scored": false,
+   "angles": []
+  },
+  {
+   "id": "crow",
+   "name": "까마귀 자세",
+   "sanskrit": "Bakasana",
+   "category": "팔균형",
+   "view": "side",
+   "difficulty": "고급",
+   "scored": false,
+   "angles": []
+  },
+  {
+   "id": "sidecrow",
+   "name": "사이드 까마귀",
+   "sanskrit": "Parsva Bakasana",
+   "category": "팔균형",
+   "view": "side",
+   "difficulty": "고급",
+   "scored": false,
+   "angles": []
+  },
+  {
+   "id": "firefly",
+   "name": "반딧불이 자세",
+   "sanskrit": "Tittibhasana",
+   "category": "팔균형",
+   "view": "front",
+   "difficulty": "고급",
+   "scored": false,
+   "angles": []
+  },
+  {
+   "id": "eightangle",
+   "name": "8각 자세",
+   "sanskrit": "Astavakrasana",
+   "category": "팔균형",
+   "view": "side",
+   "difficulty": "고급",
+   "scored": false,
+   "angles": []
+  },
+  {
+   "id": "peacock",
+   "name": "공작 자세",
+   "sanskrit": "Mayurasana",
+   "category": "팔균형",
+   "view": "side",
+   "difficulty": "고급",
+   "scored": false,
+   "angles": []
+  },
+  {
+   "id": "frogsquat",
+   "name": "개구리 스쿼트",
+   "sanskrit": "Bhekasana",
+   "category": "스쿼트",
+   "view": "front",
+   "difficulty": "중급",
+   "scored": false,
+   "angles": []
+  },
+  {
+   "id": "revolvedhead",
+   "name": "회전 머리-무릎",
+   "sanskrit": "Parivrtta Janu Sirsasana",
+   "category": "비틀기",
+   "view": "front",
+   "difficulty": "중급",
+   "scored": false,
+   "angles": []
+  },
+  {
+   "id": "tortoise",
+   "name": "거북 자세",
+   "sanskrit": "Kurmasana",
+   "category": "좌식",
+   "view": "front",
+   "difficulty": "고급",
+   "scored": false,
+   "angles": []
+  },
+  {
+   "id": "heron",
+   "name": "왜가리 자세",
+   "sanskrit": "Krounchasana",
+   "category": "좌식",
+   "view": "front",
+   "difficulty": "중급",
+   "scored": false,
+   "angles": []
+  },
+  {
+   "id": "supinetwist",
+   "name": "누운 비틀기",
+   "sanskrit": "Supta Matsyendrasana",
+   "category": "비틀기",
+   "view": "front",
+   "difficulty": "초급",
+   "scored": false,
+   "angles": []
+  },
+  {
+   "id": "reclinedtoe",
+   "name": "누운 엄지 잡기",
+   "sanskrit": "Supta Padangusthasana",
+   "category": "고관절",
+   "view": "front",
+   "difficulty": "초급",
+   "scored": false,
+   "angles": []
+  },
+  {
+   "id": "upwardplank",
+   "name": "위를 향한 판자",
+   "sanskrit": "Purvottanasana",
+   "category": "후굴",
+   "view": "side",
+   "difficulty": "중급",
+   "scored": false,
+   "angles": []
+  },
+  {
+   "id": "uptwofoot",
+   "name": "위를 향한 두발 막대",
+   "sanskrit": "Dwi Pada Viparita Dandasana",
+   "category": "후굴",
+   "view": "side",
+   "difficulty": "고급",
+   "scored": false,
+   "angles": []
+  },
+  {
+   "id": "praying",
+   "name": "합장",
+   "sanskrit": "Pranamasana",
+   "category": "워밍업",
+   "view": "front",
+   "difficulty": "초급",
+   "scored": false,
+   "angles": []
+  },
+  {
+   "id": "upsalute",
+   "name": "위를 향한 합장",
+   "sanskrit": "Urdhva Hastasana",
+   "category": "서기",
+   "view": "front",
+   "difficulty": "초급",
+   "scored": false,
+   "angles": []
+  },
+  {
+   "id": "standingsplit",
+   "name": "서서 스플릿",
+   "sanskrit": "Urdhva Prasarita Eka Padasana",
+   "category": "균형",
+   "view": "side",
+   "difficulty": "고급",
+   "scored": false,
+   "angles": []
+  },
+  {
+   "id": "scale",
+   "name": "저울 자세",
+   "sanskrit": "Tolasana",
+   "category": "팔균형",
+   "view": "front",
+   "difficulty": "고급",
+   "scored": false,
+   "angles": []
+  },
+  {
+   "id": "cockerel",
+   "name": "수탉 자세",
+   "sanskrit": "Kukkutasana",
+   "category": "팔균형",
+   "view": "front",
+   "difficulty": "고급",
+   "scored": false,
+   "angles": []
+  },
+  {
+   "id": "akarna",
+   "name": "활쏘기 자세",
+   "sanskrit": "Akarna Dhanurasana",
+   "category": "좌식",
+   "view": "front",
+   "difficulty": "고급",
+   "scored": false,
+   "angles": []
+  },
+  {
+   "id": "windrelieve",
+   "name": "가스 빼기 자세",
+   "sanskrit": "Pavanamuktasana",
+   "category": "휴식",
+   "view": "front",
+   "difficulty": "초급",
+   "scored": false,
+   "angles": []
+  }
+ ]
+}
