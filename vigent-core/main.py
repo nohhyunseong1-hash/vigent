@@ -41,6 +41,7 @@ if str(_HERE) not in sys.path:
     sys.path.insert(0, str(_HERE))
 
 from agents import build_agents          # noqa: E402
+import audit_store                        # noqa: E402
 import data_engine                       # noqa: E402
 import tbm_store                          # noqa: E402
 import vision_loader                     # noqa: E402
@@ -493,6 +494,99 @@ _TBM_NEW_HTML = r"""<!DOCTYPE html><html lang="ko"><head><meta charset="UTF-8">
 </script></body></html>"""
 
 
+# 안전 자동처리 콘솔 화면(plain 문자열 — JS 중괄호 보존). /*CSS*/ 만 치환된다.
+_AUTO_HTML = r"""<!DOCTYPE html><html lang="ko"><head><meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>VIGENT · 안전 자동처리 콘솔</title><style>/*CSS*/
+  .top{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px}
+  .stat{display:flex;gap:10px;margin:10px 0}
+  .stat .box{flex:1;background:#1e293b;border:1px solid #334155;border-radius:10px;padding:12px;text-align:center}
+  .stat .box b{display:block;font-size:24px;color:#7dd3fc}
+  .disc{background:#3a2a0b;border:1px solid #a16207;color:#fde68a;border-radius:8px;padding:10px 12px;font-size:12.5px;margin:10px 0;line-height:1.6}
+  .ev{background:#1e293b;border:1px solid #334155;border-radius:12px;padding:14px;margin-bottom:12px}
+  .ev .hd{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap}
+  .ev .rule{font-weight:700;font-size:15px}
+  .lv{padding:2px 8px;border-radius:6px;font-size:11px;font-weight:700}
+  .lv.high{background:#7f1d1d;color:#fecaca} .lv.mid{background:#78350f;color:#fed7aa} .lv.low{background:#14532d;color:#bbf7d0}
+  .pipe{display:flex;gap:6px;flex-wrap:wrap;margin:10px 0;font-size:12px}
+  .step{padding:4px 9px;border-radius:999px;border:1px solid #334155;color:#94a3b8;background:#0f172a}
+  .step.on{border-color:#15803d;color:#bbf7d0;background:#0f2a18}
+  .step.wait{border-color:#a16207;color:#fde68a;background:#3a2a0b}
+  .ev .meta{font-size:12.5px;color:#cbd5e1;margin:4px 0;line-height:1.6} .ev .meta b{color:#93c5fd}
+  .ev img{max-width:160px;border-radius:8px;border:1px solid #334155;margin-top:6px;display:block}
+  .acts{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+  .ok{color:#86efac;font-size:13px;align-self:center}
+</style></head><body><div class="wrap">
+  <div class="top">
+    <h1>🛡 안전 자동처리 콘솔</h1>
+    <div style="display:flex;gap:8px">
+      <a class="btn" href="/safety">← 실시간 관제</a>
+      <a class="btn" href="/safety/auto/audit">🧾 감사추적</a>
+    </div>
+  </div>
+  <div class="sub">실시간 관제(비전)에서 잡힌 위험이 여기로 모여, 증거·법령·위험성평가·조치로 자동 정리됩니다.</div>
+  <div class="disc">⚠ 본 콘솔의 판정·권고는 <b>보조 신호</b>입니다. 위험성평가·조치의 <b>최종 승인은 안전관리자</b>가 수행하며,
+    법적 책임은 사용자·사업주에게 있습니다. 인증 안전장치(비상정지 등)를 대체하지 않습니다(§8).</div>
+  <div class="stat" id="stat"></div>
+  <div id="feed"><div class="dim">불러오는 중…</div></div>
+</div>
+<script>
+  const esc = s => String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  const lvClass = l => (l==='high'?'high':((l==='mid'||l==='medium')?'mid':'low'));
+  let DATA = {events:[], summary:{}};
+  function step(label,on,wait){ return '<span class="step'+(on?' on':(wait?' wait':''))+'">'+esc(label)+'</span>'; }
+  function card(e,i){
+    const ok = e.approved;
+    const pipe = step('감지',true,false)+step('증거',!!e.evidence_url,false)+step('법령',!!e.law,false)+
+                 step(ok?'위험성평가 ✓':'위험성평가 승인대기', ok, !ok)+
+                 step(ok?'조치 ✓':'조치 권고', ok, !ok);
+    const img = e.evidence_url ? '<img src="'+esc(e.evidence_url)+'" alt="증거">' : '';
+    const acts = ok
+      ? '<span class="ok">✅ '+esc(e.approver||'안전관리자')+' 승인됨'+(e.ra_aid?' · <a href="/safety/risk-assessment/'+esc(e.ra_aid)+'" target="_blank">평가서 열기 ↗</a>':'')+'</span>'
+      : '<button class="btn primary" data-i="'+i+'" data-act="risk_assessment">위험성평가 승인·생성</button>'+
+        '<button class="btn" data-i="'+i+'" data-act="acknowledge">조치 확인</button>';
+    return '<div class="ev" id="ev'+i+'">'+
+      '<div class="hd"><span class="rule">'+esc(e.rule||'이벤트')+'</span>'+
+        '<span><span class="lv '+lvClass(e.level)+'">'+esc((e.level||'').toUpperCase()||'-')+'</span> '+
+        '<span class="dim">'+esc((e.date||'')+' '+(e.time||''))+' · '+esc(e.site||'-')+'</span></span></div>'+
+      '<div class="pipe">'+pipe+'</div>'+
+      (e.law?'<div class="meta"><b>관련 법령</b> '+esc(e.law)+'</div>':'')+
+      '<div class="meta"><b>권고 조치</b> '+esc(e.advisory)+'</div>'+ img +
+      '<div class="acts">'+acts+'</div></div>';
+  }
+  function render(){
+    const s = DATA.summary||{};
+    document.getElementById('stat').innerHTML =
+      '<div class="box"><b>'+(s['감지']||0)+'</b>감지</div>'+
+      '<div class="box"><b>'+(s['증거']||0)+'</b>증거</div>'+
+      '<div class="box"><b>'+(s['승인']||0)+'</b>승인(서류·조치)</div>';
+    const feed = document.getElementById('feed');
+    if(!(DATA.events||[]).length){ feed.innerHTML='<div class="dim">표시할 위험 이벤트가 없습니다. 실시간 관제에서 위험이 발생하면 여기에 쌓입니다.</div>'; return; }
+    feed.innerHTML = DATA.events.map((e,i)=>card(e,i)).join('');
+  }
+  async function load(){
+    try{ const r = await fetch('/safety/auto/feed'); DATA = await r.json(); render(); }
+    catch(e){ document.getElementById('feed').innerHTML = '<div class="dim">불러오기 오류: '+e+'</div>'; }
+  }
+  async function approve(i, action){
+    const e = DATA.events[i]; if(!e) return;
+    const btns = document.querySelectorAll('#ev'+i+' .acts button'); btns.forEach(b=>b.disabled=true);
+    try{
+      const r = await fetch('/safety/auto/approve',{method:'POST',headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({event_ts:e.ts, rule:e.rule, site:e.site, action:action})});
+      const j = await r.json();
+      if(j && j.ok){ if(j.ra_aid) window.open('/safety/risk-assessment/'+j.ra_aid,'_blank'); load(); }
+      else { alert('승인 실패'); btns.forEach(b=>b.disabled=false); }
+    }catch(err){ alert('오류: '+err); btns.forEach(b=>b.disabled=false); }
+  }
+  document.getElementById('feed').addEventListener('click', ev=>{
+    const b = ev.target.closest('button[data-act]'); if(!b) return;
+    approve(parseInt(b.dataset.i,10), b.dataset.act);
+  });
+  load();
+</script></body></html>"""
+
+
 @app.get("/safety/tbm", response_class=HTMLResponse)
 def tbm_list():
     """저장된 TBM 회의록 목록 + '새 회의록 작성' 버튼."""
@@ -633,6 +727,111 @@ def tbm_open(tid: str):
   </div>
   {_TBM_VIEW_SCRIPT.replace("__TID__", r.get("id", ""))}
 </div></body></html>"""
+
+
+# ─────────────────────────────────────────────────────────────
+# 안전 자동처리 콘솔 — 위험 감지 → 증거·법령·위험성평가·조치 자동 정리(사람 승인)
+# 책임 회피 설계: advisory(자동실행 X) + 안전관리자 승인 게이트 + 감사추적 + 면책 문구
+# ─────────────────────────────────────────────────────────────
+_ADVISORY = {
+    "fall_suspected": "작업자 상태 즉시 확인 · 추락방지(안전대·안전난간·작업발판) 점검 · 필요시 작업 일시중지 검토",
+    "ppe_missing": "보호구 착용 지도 · 미착용자 작업 제한 검토 · 보호구 비치 상태 확인",
+    "zone_intrusion": "출입통제 상태 확인 · 작업자 위험구역 이탈 안내 · 경고표지 점검",
+    "guard_bypass": "위험기계 정지상태 확인(1차 책임=인증 방호장치) · 작업자 신체 이탈 · 방호장치 점검",
+    "fire_smoke": "초기대응·대피 절차 확인 · 소화설비 점검 · 화기작업 허가 여부 확인",
+    "trip_hazard": "통로·바닥 정리정돈 · 전선·자재 제거 · 미끄럼 방지 조치",
+    "ergonomic_risk": "작업자세 개선 안내 · 중량물 보조기구 · 주기적 휴식 권고",
+}
+
+
+def _evidence_url(path: str | None) -> str | None:
+    """data/evidence/... 저장경로 → /evidence/... 서빙 URL."""
+    if path and path.startswith("data/evidence/"):
+        return "/evidence/" + path[len("data/evidence/"):]
+    return None
+
+
+@app.get("/safety/auto/feed")
+def safety_auto_feed(theme: str = DEFAULT_THEME, hours: float = 24, limit: int = 50):
+    """자동처리 피드 — 최근 위험 이벤트 + 증거·법령·승인상태(콘솔이 폴링)."""
+    bundle = STATE.get(theme) or _load_theme(theme)
+    copilot = bundle["agents"].get("Copilot")
+    events = data_engine.list_events(limit=limit, hours=hours)
+    audit_map = audit_store.by_event()
+    out, approved_n = [], 0
+    for e in events:
+        rule = e.get("rule", "")
+        law = ""
+        if copilot and rule:
+            cs = copilot.cite(rule).get("citations", []) or []
+            if cs:
+                law = f"{cs[0].get('source','')} {cs[0].get('clause','')}".strip()
+        appr = audit_map.get(audit_store.event_key(e.get("ts", ""), rule))
+        if appr:
+            approved_n += 1
+        out.append({
+            "ts": e.get("ts"), "time": e.get("time"), "date": e.get("date"),
+            "rule": rule, "level": e.get("level", ""), "site": e.get("site", ""),
+            "evidence_url": _evidence_url(e.get("evidence")),
+            "law": law,
+            "advisory": _ADVISORY.get(rule, "안전관리자 확인 후 현장 상황에 맞는 조치"),
+            "approved": bool(appr),
+            "ra_aid": (appr or {}).get("ra_aid", ""),
+            "approver": (appr or {}).get("approver", ""),
+        })
+    return {"events": out, "summary": {
+        "감지": len(out),
+        "증거": sum(1 for o in out if o["evidence_url"]),
+        "승인": approved_n}}
+
+
+@app.post("/safety/auto/approve")
+def safety_auto_approve(payload: dict = Body(...), theme: str = DEFAULT_THEME):
+    """안전관리자 승인 — 위험성평가 자동생성 또는 조치확인을 감사추적에 기록(사람이 최종판단).
+    payload={event_ts, rule, site?, approver?, action: 'risk_assessment'|'acknowledge'}"""
+    event_ts = payload.get("event_ts", "")
+    rule = payload.get("rule", "")
+    action = payload.get("action", "acknowledge")
+    approver = payload.get("approver") or "안전관리자"
+    site = payload.get("site", "")
+    ra_aid = ""
+    if action == "risk_assessment":
+        bundle = STATE.get(theme) or _load_theme(theme)
+        scribe = bundle["agents"].get("Scribe")
+        out = scribe.generate([{"rule": rule, "count": 1}],
+                              site=site or "자동처리 승인", process="-", save=True)
+        ra_aid = Path(out["saved_path"]).stem if out.get("saved_path") else ""
+    rec = audit_store.record(event_ts, rule, action, approver=approver, site=site, ra_aid=ra_aid)
+    return {"ok": True, "audit": rec, "ra_aid": ra_aid}
+
+
+@app.get("/safety/auto/audit", response_class=HTMLResponse)
+def safety_auto_audit():
+    """감사추적 — 누가·언제·무엇을 승인했는지(사람 최종판단 입증용)."""
+    items = audit_store.list_recent()
+    act_ko = {"risk_assessment": "위험성평가 승인·생성", "acknowledge": "조치 확인"}
+    rows = "".join(
+        f"""<tr><td>{i.get('at','')[:19].replace('T',' ')}</td><td>{i.get('approver','')}</td>
+        <td>{i.get('rule','')}</td><td>{act_ko.get(i.get('action',''), i.get('action',''))}</td>
+        <td>{i.get('site','') or '-'}</td>
+        <td>{('<a href="/safety/risk-assessment/'+i['ra_aid']+'" target="_blank">평가서 ↗</a>') if i.get('ra_aid') else '-'}</td></tr>"""
+        for i in items) or '<tr><td colspan="6" style="color:#64748b">아직 승인 이력이 없습니다.</td></tr>'
+    return f"""<!DOCTYPE html><html lang="ko"><head><meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>VIGENT · 감사추적</title><style>{_TBM_CSS}</style></head><body><div class="wrap">
+  <h1>🧾 감사추적(승인 이력)</h1>
+  <div class="sub">위험성평가·조치의 최종 승인은 안전관리자가 수행함을 기록합니다 · 저장 data/audit/ · 최신순</div>
+  <div class="card"><table>
+    <thead><tr><th>승인 일시</th><th>승인자</th><th>위험</th><th>조치 유형</th><th>현장</th><th>평가서</th></tr></thead>
+    <tbody>{rows}</tbody></table></div>
+  <a class="btn" href="/safety/auto">← 자동처리 콘솔</a>
+</div></body></html>"""
+
+
+@app.get("/safety/auto", response_class=HTMLResponse)
+def safety_auto_console():
+    """안전 자동처리 콘솔(읽기 + 승인). 비전이 잡은 위험 → 서류·조치 자동 정리."""
+    return _AUTO_HTML.replace("/*CSS*/", _TBM_CSS)
 
 
 @app.post("/alerts/test")
