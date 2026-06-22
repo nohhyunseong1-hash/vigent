@@ -133,24 +133,39 @@
         <button id="zoneClearBtn" class="zone-btn" style="position:static;">위험구역 삭제</button>
       </div>
       <div id="zoneHint" class="zone-hint">꼭짓점을 클릭해 구역을 그리세요 · 여러 개 추가 가능 · '삭제'로 전체 제거</div>
-      <button id="reportBtn" class="report-btn"
-        onclick="window.open(API_BASE+'/report/safety?site='+encodeURIComponent('현장')+'&hours=24','_blank')">
-        안전 증빙 리포트</button>
-      <button id="riskBtn" class="report-btn" style="bottom:98px;border-color:#f59e0b;color:#f59e0b"
-        onclick="window.open(API_BASE+'/report/safety?site='+encodeURIComponent('현장')+'&hours=24#riskassess','_blank')">
-        위험성평가 보기</button>
-      <button id="tbmBtn" class="report-btn" style="bottom:224px;border-color:#38bdf8;color:#7dd3fc"
-        onclick="window.open(API_BASE+'/safety/tbm','_blank')">
-        작업 전 TBM 회의록</button>
-      <button id="autoBtn" class="report-btn" style="bottom:266px;border-color:#34d399;color:#6ee7b7"
-        onclick="window.open(API_BASE+'/safety/auto','_blank')">
-        🛡 안전 자동처리 콘솔</button>
-      
-      <button id="calBtn" class="report-btn" style="bottom:140px;border-color:#a78bfa;color:#c4b5fd"
-        onclick="axStartCalibration()">거리 보정(m·km/h)</button>
+      <!-- 통합 메뉴: 영상 위 버튼 난립(6개)을 하나로 정리. 동작은 동일. -->
+      <style>
+        #vgMenuWrap{position:absolute;right:14px;bottom:56px;z-index:33}
+        #vgMenu{display:none;position:absolute;right:0;bottom:46px;min-width:212px;
+          background:rgba(10,16,26,.97);border:1px solid #334155;border-radius:12px;padding:6px;
+          box-shadow:0 10px 30px rgba(0,0,0,.55)}
+        #vgMenu.open{display:block}
+        .vg-mh{font-size:11px;color:#64748b;padding:6px 10px 3px}
+        .vg-mt{border-top:1px solid #29374a;margin-top:4px}
+        .vg-mi{display:block;padding:9px 10px;border-radius:8px;color:#e2e8f0;font-size:13.5px;
+          cursor:pointer;text-decoration:none}
+        .vg-mi:hover{background:#1e293b;color:#7dd3fc}
+      </style>
+      <div id="vgMenuWrap">
+        <button id="vgMenuBtn" class="report-btn" style="position:static;" onclick="vgToggleMenu(event)">☰ 메뉴</button>
+        <div id="vgMenu">
+          <div class="vg-mh">문서 · 콘솔</div>
+          <a class="vg-mi" onclick="vgGo('/report/safety?site='+encodeURIComponent('현장')+'&hours=24')">📄 안전 증빙 리포트</a>
+          <a class="vg-mi" onclick="vgGo('/report/safety?site='+encodeURIComponent('현장')+'&hours=24#riskassess')">📋 위험성평가 보기</a>
+          <a class="vg-mi" onclick="vgGo('/safety/tbm')">📝 작업 전 TBM 회의록</a>
+          <a class="vg-mi" onclick="vgGo('/safety/auto')">🛡 안전 자동처리 콘솔</a>
+          <div class="vg-mh vg-mt">현장 도구</div>
+          <a class="vg-mi" onclick="axStartCalibration();vgCloseMenu()">📏 거리 보정 (m·km/h)</a>
+          <a class="vg-mi" onclick="toggleTherm();vgCloseMenu()">🌡 온도 감지 (열화상)</a>
+        </div>
+      </div>
       <div id="calHint" class="cal-hint"></div>
-
-      <button id="thermBtn" class="report-btn" style="bottom:182px;border-color:#fb7185;color:#fda4af" onclick="toggleTherm()">온도 감지(열화상)</button>
+      <script>
+        function vgToggleMenu(e){ if(e)e.stopPropagation(); document.getElementById('vgMenu').classList.toggle('open'); }
+        function vgCloseMenu(){ var m=document.getElementById('vgMenu'); if(m) m.classList.remove('open'); }
+        function vgGo(path){ try{ window.open(API_BASE+path,'_blank'); }catch(e){ window.open(path,'_blank'); } vgCloseMenu(); }
+        document.addEventListener('click',function(ev){ var w=document.getElementById('vgMenuWrap'); if(w && !w.contains(ev.target)) vgCloseMenu(); });
+      </script>
       <div id="thermPanel" class="therm-panel">
         <div class="ttl">열화상 온도 감지</div>
         <label>최저(°C)<input type="number" id="thermMin" value="20" step="1"></label>
