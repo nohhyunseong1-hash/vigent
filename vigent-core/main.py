@@ -555,6 +555,46 @@ def tbm_suggest(process: str = "", theme: str = DEFAULT_THEME):
     return s
 
 
+@app.post("/safety/tbm/{tid}/risk-assessment")
+def tbm_to_risk_assessment(tid: str, theme: str = DEFAULT_THEME):
+    """TBM 회의록 1건 → 위험성평가서 자동 생성(이중입력 제거).
+    공종 매칭 규칙 + 작성자가 직접 적은 위험요인(키워드 매칭)을 합쳐 평가 이벤트로 변환한다."""
+    rec = tbm_store.get(tid)
+    if not rec:
+        raise HTTPException(status_code=404, detail=f"회의록 없음: {tid}")
+    bundle = STATE.get(theme) or _load_theme(theme)
+    scribe = bundle["agents"].get("Scribe")
+    copilot = bundle["agents"].get("Copilot")
+    # 1) 작업공종 → 추천 규칙
+    rules = list(tbm_store.suggest(rec.get("process", "")).get("rules", []))
+    # 2) 작성자가 직접 적은 위험요인 텍스트 → 규칙 매칭(추가 반영)
+    if copilot is not None:
+        for h in rec.get("hazards", []) or []:
+            for rid in copilot.match_rules(h):
+                if rid not in rules:
+                    rules.append(rid)
+    events = [{"rule": r, "count": 1} for r in rules]
+    out = scribe.generate(events, site=rec.get("site", "") or "TBM 연동",
+                          process=rec.get("process", ""), save=True)
+    aid = Path(out["saved_path"]).stem if out.get("saved_path") else None
+    return {"aid": aid, "saved_path": out.get("saved_path"),
+            "rules": rules, "row_count": out["assessment"]["summary"]["총항목"]}
+
+
+# TBM 열기 화면의 '위험성평가서 만들기' 버튼 스크립트(__TID__ 치환). f-string 중괄호 회피용 별도 상수.
+_TBM_VIEW_SCRIPT = """<script>
+  async function makeRA(ev){
+    const btn = ev.target; btn.disabled = true; btn.textContent = '생성 중…';
+    try{
+      const res = await fetch('/safety/tbm/__TID__/risk-assessment', {method:'POST'});
+      const j = await res.json();
+      if(j && j.aid){ window.open('/safety/risk-assessment/'+j.aid, '_blank'); btn.textContent = '✅ 평가서 생성됨('+j.row_count+'건)'; }
+      else { alert('생성 실패'); btn.disabled=false; btn.textContent='📋 위험성평가서 만들기'; }
+    }catch(e){ alert('오류: '+e); btn.disabled=false; btn.textContent='📋 위험성평가서 만들기'; }
+  }
+</script>"""
+
+
 @app.get("/safety/tbm/{tid}", response_class=HTMLResponse)
 def tbm_open(tid: str):
     """저장된 회의록 열기(인쇄 가능 HTML)."""
@@ -588,8 +628,10 @@ def tbm_open(tid: str):
   <div class="card"><h2>전달사항</h2><div style="white-space:pre-wrap;font-size:14px">{r.get('notes','') or '-'}</div></div>
   <div class="bar">
     <a class="btn" href="/safety/tbm">목록</a>
+    <button class="btn" onclick="makeRA(event)">📋 위험성평가서 만들기</button>
     <button class="btn primary" onclick="window.print()">🖨 인쇄 / PDF 저장</button>
   </div>
+  {_TBM_VIEW_SCRIPT.replace("__TID__", r.get("id", ""))}
 </div></body></html>"""
 
 
