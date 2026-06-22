@@ -1,0 +1,53 @@
+# ─────────────────────────────────────────────────────────────
+# VIGENT Sports 테마 — 1차 진입: 요가·필라테스 (홈 트레이닝)
+#
+# 좁은 진입: 천천히·정지된 동작이라 2D 포즈가 정확. 동작별 '정답 정렬'을 점수화.
+# 같은 코어를 쓰고, 다른 점은 이 설정 + 프론트(index.html) 뿐.
+# 정밀 스켈레톤(손가락까지)은 운동 폼 분석의 핵심 → Holistic 기본.
+# ─────────────────────────────────────────────────────────────
+theme: sports
+brand: VIGENT
+display_name: "VIGENT Sports · 요가/필라테스"
+focus: yoga_pilates
+
+perception:                       # ── 감지 — 사람·정밀 포즈
+  detectors:
+    - {id: person, model: vigent-core/weights/yolo11m.pt, fallback: vigent-core/weights/yolo11s.pt, classes: [person]}
+  pose:    {model: mediapipe_holistic, fallback: mediapipe_pose}   # 손가락까지(폼 분석 핵심)
+  tracker: none
+
+analysis:                         # ── 폼 분석(위험이 아니라 '정확도')
+  metrics:                        # 요가/필라테스 공통 폼 지표
+    symmetry:  {good: 8,  warn: 18}    # 좌우 대칭(팔·다리 각도 차, 도)
+    balance:   {good: 0.04, warn: 0.10} # 균형(몸 중심 좌우 흔들림, 정규화)
+    stability: {good: 0.02, warn: 0.05} # 안정성(자세 떨림, 정규화)
+  hold_target_sec: 15             # 자세 유지 목표(초)
+  framework: form_score
+
+asanas:                           # ── 동작별 정답 정렬(시작 라이브러리, 확장 예정)
+  - {id: mountain,  name: "산 자세(타다아사나)", focus: [symmetry, balance], desc: "발 모으고 척추 곧게, 어깨 수평, 양팔 대칭"}
+  - {id: tree,      name: "나무 자세(브륵샤아사나)", focus: [balance, stability], desc: "한 발로 균형, 골반 수평, 중심 안정"}
+  - {id: warrior2,  name: "전사 자세 II(비라바드라아사나)", focus: [symmetry], desc: "앞무릎 90도, 양팔 수평 일직선, 어깨 정렬"}
+  - {id: plank,     name: "플랭크(필라테스)", focus: [stability, symmetry], desc: "머리-엉덩이-발 일직선, 코어 안정"}
+
+vlm:                              # ── 영상→폼 분석(로컬, 요가 코치 톤)
+  model: mlx-community/Qwen2.5-VL-3B-Instruct-4bit
+  fallback: none
+  cooldown_sec: 20
+  language: ko
+  output_schema: [동작평가, 교정포인트, 칭찬, 다음팁]
+  prompt: |
+    당신은 친절하고 전문적인 요가·필라테스 코치다. 답변은 무조건 한국어로만 한다.
+    이 사람의 자세(아사나)를 보고 정렬·대칭·균형 관점에서 평가하라.
+    잘한 점은 칭찬하고, 다칠 위험이 있는 정렬 오류는 부드럽게 교정해줘라.
+    아래 JSON 하나만 출력하라(설명·코드블록 금지):
+    {"동작평가": "한국어", "교정포인트": "구체적 한국어", "칭찬": "한국어", "다음팁": "한국어"}
+    보이는 것에만 근거해 간결히 작성하라.
+
+privacy:                          # 소비자 자기사용 — 영상 미저장, 블러는 옵션
+  face_blur: false
+  notice: "영상은 저장·전송되지 않으며 분석은 이 브라우저에서만 수행됩니다."
+
+report:
+  templates: [practice_log_kr]    # 연습 기록(동작별 점수·유지시간)
+  output: [web]
