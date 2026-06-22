@@ -82,16 +82,19 @@ class GuardAgent(BaseAgent):
 
     @staticmethod
     def _pick_device() -> str:
-        """Apple GPU(MPS) > CUDA > CPU 순으로 추론 장치 선택."""
+        """추론 장치 선택. 기본은 cpu(서버 지속추론 안정성 — MPS는 ultralytics 다회 추론 시
+        네이티브 크래시 관찰됨). 속도가 필요하고 위험 감수 시 VIGENT_DETECT_DEVICE=mps 로 강제."""
+        import os
+        forced = os.environ.get("VIGENT_DETECT_DEVICE", "").strip().lower()
+        if forced in ("cpu", "mps", "cuda"):
+            return forced
         try:
             import torch
-            if torch.backends.mps.is_available():
-                return "mps"
-            if torch.cuda.is_available():
-                return "cuda"
+            if forced == "" and torch.cuda.is_available():
+                return "cuda"          # CUDA(리눅스/엔비디아)는 안정적 → 사용
         except Exception:  # noqa: BLE001
             pass
-        return "cpu"
+        return "cpu"                    # macOS 기본: 안정성 위해 CPU(MPS 회피)
 
     def status(self) -> dict[str, Any]:
         return {"name": self.name, "role": self.role, "implemented": True,

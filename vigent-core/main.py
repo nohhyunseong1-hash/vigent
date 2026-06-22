@@ -17,6 +17,7 @@ from __future__ import annotations
 
 import os
 import sys
+import threading
 from pathlib import Path
 
 import json
@@ -55,6 +56,11 @@ app = FastAPI(title="VIGENT Core", version="0.2.0")
 
 # 코어가 들고 있는 런타임 상태(테마별 파이프라인 + 에이전트)
 STATE: dict[str, dict] = {}
+
+# YOLO 추론 직렬화 락 — ultralytics 모델 로딩/추론은 동시성 안전하지 않다.
+# 브라우저가 6fps로 동시에 /detect/frame 을 호출하면 같은 모델을 여러 스레드가
+# 동시에 로드/추론하다 네이티브 크래시가 난다 → 락으로 한 번에 하나씩만.
+_DETECT_LOCK = threading.Lock()
 
 
 def _load_theme(theme: str) -> dict:
@@ -223,15 +229,39 @@ def _decode_data_url(image: str):
 
 @app.post("/detect/frame")
 def detect_frame(payload: dict = Body(...), theme: str = DEFAULT_THEME):
-    """Guard 딥러닝 정밀 탐지. payload={image: data URL, detectors?:[...], conf?:float}.
-    반환: 정규화 bbox·라벨·confidence 목록 + 파생 신호(ppe_missing 등).
+    """Guard 딥러닝 정밀 탐지(브라우저 백엔드 보강).
+    payload={image_base64(접두사 유무 무관) | image(data URL), ppe?:bool, conf?:float, detectors?:[...]}.
+    반환(프론트 계약): {success, detections:[{class,score,bbox:[x,y,w,h]px}], hazards:[...], person_count, signals}.
     모델 없으면 해당 검출기만 비활성(무중단)."""
     bundle = STATE.get(theme) or _load_theme(theme)
     guard = bundle["agents"].get("Guard")
-    img = _decode_data_url(payload.get("image", ""))
+    # image_base64(접두사 없는 base64) 우선 + 기존 image(data URL) 호환. 접두사 없으면 보정.
+    raw = payload.get("image_base64") or payload.get("image") or ""
+    if raw and not raw.startswith("data:"):
+        raw = "data:image/jpeg;base64," + raw
+    img = _decode_data_url(raw)
     if img is None:
-        raise HTTPException(status_code=400, detail="image(data URL) 디코딩 실패")
-    return guard.detect(img, detectors=payload.get("detectors"), conf=payload.get("conf"))
+        raise HTTPException(status_code=400, detail="이미지 디코딩 실패(image_base64/image 확인)")
+    # 안전 모드(ppe=true)면 PPE·지게차·화재 검출기까지, 아니면 사람만(실내 오탐 방지)
+    # 안정성: 기본은 사람만(백엔드 보강). PPE·지게차·화재 등 무거운 건설모델은 명시 요청(detectors)
+    # 시에만 — MPS에서 다모델 동시/반복 추론 시 네이티브 크래시가 관찰됨(추후 안정화 과제).
+    detectors = payload.get("detectors") or ["person"]
+    with _DETECT_LOCK:                       # 동시 추론 직렬화(로딩/추론 race 방지)
+        out = guard.detect(img, detectors=detectors, conf=payload.get("conf"))
+    # 정규화 bbox(0~1) → 전송 이미지 픽셀 [x,y,w,h] + 프론트 키(class/score)로 변환
+    H, W = img.shape[:2]
+    dets = []
+    for d in out.get("detections", []):
+        x1, y1, x2, y2 = d.get("bbox", [0, 0, 0, 0])
+        dets.append({"class": d.get("label"), "score": d.get("conf"),
+                     "bbox": [round(x1 * W, 1), round(y1 * H, 1),
+                              round((x2 - x1) * W, 1), round((y2 - y1) * H, 1)]})
+    hazards = [{"type": d.get("label", "").lower(), "label": d.get("label"),
+                "confidence": d.get("conf", 0),
+                "severity": "high" if d.get("conf", 0) >= 0.5 else "mid"}
+               for d in out.get("detections", []) if d.get("label", "").lower() in ("fire", "smoke")]
+    return {"success": True, "detections": dets, "hazards": hazards,
+            "person_count": out.get("person_count", 0), "signals": out.get("signals", {})}
 
 
 @app.post("/recognition/log")
