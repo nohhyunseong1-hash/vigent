@@ -107,6 +107,7 @@
     <div class="panel">
       <button id="btnMirror">🪞 거울 ON</button>
       <button id="btn3D">🧊 3D ON</button>
+      <button id="btnVoice" class="primary">🔊 음성 ON</button>
       <button id="btnEngine">⚡ 빠른 모드</button>
     </div>
   </div>
@@ -456,6 +457,7 @@ function onResults(r){
   updateForm(formMetrics(lm));   // 일반 지표(대칭·균형·안정성)
   const sa=scoreAsana(lm, cur);
   updateAngleChecks(sa);   // 동작별 정답 각도 비교
+  voiceCoach(sa);          // 음성 코칭(시작 안내 + 실시간 교정)
   if(calib){ collectCalib(sa); const left=Math.max(0,(calib?calib.until-performance.now():0)/1000);
     if(calib) hud.textContent=`📐 정답 자세 보정 중… ${left.toFixed(1)}초`; }
   // 측정 모드(정면/측면) — 동작 권장 뷰와 함께 안내
@@ -514,6 +516,40 @@ function collectCalib(res){   // onResults 의 scoreAsana 결과로 각도 수�
       }).catch(()=>flash('보정 저장 실패'));
   }
 }
+// ── 음성 코칭(TTS) ──
+let voiceOn=true, lastSpeak=0, lastMsg='', lastAnnounced=null;
+function speak(t, gap=4000){
+  if(!voiceOn || !('speechSynthesis' in window) || !t) return;
+  const now=performance.now();
+  if(t===lastMsg && now-lastSpeak<9000) return;   // 같은 말 반복 방지
+  if(now-lastSpeak<gap) return;
+  lastSpeak=now; lastMsg=t;
+  const u=new SpeechSynthesisUtterance(t); u.lang='ko-KR'; u.rate=1.05; u.pitch=1.0;
+  const v=(speechSynthesis.getVoices()||[]).find(x=>x.lang&&x.lang.toLowerCase().startsWith('ko'));
+  if(v)u.voice=v;
+  try{ speechSynthesis.cancel(); speechSynthesis.speak(u); }catch(e){}
+}
+function correctionPhrase(c){   // 부위·방향에 맞는 교정 문구
+  const n=c.name.replace(/\(.*?\)/g,'').trim(); const low=c.measured < c.ideal;
+  if(/위로|높/.test(n)) return low ? `${n.replace(/곧게|위로/g,'').trim()} 팔을 더 높이 드세요` : null;
+  if(/곧게|펴|일직선/.test(n)) return low ? `${n} 더 곧게 펴세요` : null;
+  if(/굽힘|굽/.test(n)) return low ? `${n.replace('굽힘','').trim()} 더 펴세요` : `${n.replace('굽힘','').trim()} 더 굽히세요`;
+  if(/벌|넓/.test(n)) return low ? `${n} 더 벌리세요` : null;
+  return low ? `${n} 각도를 더 키우세요` : `${n} 각도를 더 줄이세요`;
+}
+function voiceCoach(sa){
+  if(!voiceOn) return;
+  if(cur && cur.id!==lastAnnounced){ lastAnnounced=cur.id; speak(`${cur.name} 시작합니다`, 0); return; }
+  if(!sa || !sa.checks) return;
+  const bad=sa.checks.filter(c=>c.measured!=null && !c.ok).sort((a,b)=>b.err-a.err)[0];
+  if(bad){ const p=correctionPhrase(bad); if(p) speak(p, 4500); }
+  else if(sa.score>=85) speak('좋습니다. 호흡하며 자세를 유지하세요', 7000);
+}
+document.getElementById('btnVoice').onclick=function(){ voiceOn=!voiceOn;
+  this.textContent=voiceOn?'🔊 음성 ON':'🔇 음성 OFF'; this.className=voiceOn?'primary':'';
+  if(voiceOn){ lastAnnounced=null; speak('음성 코칭을 시작합니다',0); } else { try{speechSynthesis.cancel();}catch(e){} } };
+if('speechSynthesis' in window) speechSynthesis.getVoices();   // 음성 목록 미리 로드
+
 document.getElementById('btnMirror').onclick=function(){MIRROR=!MIRROR;this.textContent=MIRROR?'🪞 거울 ON':'🪞 거울 OFF';};
 document.getElementById('btn3D').onclick=function(){MODE3D=!MODE3D;this.textContent=MODE3D?'🧊 3D ON':'🧊 3D OFF';
   document.getElementById('cv3d').style.display=MODE3D?'block':'none'; if(!MODE3D)clear3D(); };
