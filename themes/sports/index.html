@@ -5,37 +5,60 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>VIGENT Sports · 요가/필라테스</title>
 <style>
-  :root{ --bg:#0e1118; --card:#161b26; --line:#283346; --tx:#eaf0f7; --mut:#8a99ad;
-         --good:#2ecc71; --warn:#f1c40f; --bad:#e74c3c; --accent:#9b6bff; }
-  *{box-sizing:border-box} body{margin:0;background:var(--bg);color:var(--tx);
-    font-family:-apple-system,"Apple SD Gothic Neo","Malgun Gothic",sans-serif}
-  header{padding:14px 20px;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:12px}
-  header b{font-size:18px} header .tag{font-size:12px;color:var(--mut)}
-  .wrap{display:grid;grid-template-columns:1fr 360px;gap:16px;padding:16px;max-width:1280px;margin:0 auto}
+  :root{ --bg:#0b0e15; --bg2:#0f1320; --card:#141a27; --card2:#1a2233;
+         --line:#243049; --tx:#eef2f9; --mut:#8493aa; --accent:#9b6bff; --accent2:#6b8bff;
+         --good:#33d98c; --warn:#f5c451; --bad:#f06363; }
+  *{box-sizing:border-box}
+  body{margin:0;color:var(--tx);font-family:-apple-system,"Apple SD Gothic Neo","Pretendard","Malgun Gothic",sans-serif;
+    background:radial-gradient(1200px 600px at 70% -10%, #1a1740 0%, transparent 55%), var(--bg);
+    letter-spacing:-0.01em}
+  header{padding:16px 24px;display:flex;align-items:center;gap:14px;
+    border-bottom:1px solid var(--line);background:rgba(15,19,32,.6);backdrop-filter:blur(8px)}
+  .logo{display:flex;align-items:center;gap:10px;font-size:19px;font-weight:800}
+  .logo .mark{width:30px;height:30px;border-radius:9px;display:grid;place-items:center;font-size:16px;
+    background:linear-gradient(135deg,var(--accent),var(--accent2));box-shadow:0 4px 16px rgba(123,107,255,.4)}
+  header .tag{font-size:12px;color:var(--mut)}
+  .wrap{display:grid;grid-template-columns:1fr 380px;gap:18px;padding:20px;max-width:1320px;margin:0 auto}
   @media(max-width:900px){.wrap{grid-template-columns:1fr}}
-  .stage{position:relative;background:#000;border-radius:14px;overflow:hidden;aspect-ratio:16/9}
+  .stage{position:relative;background:#000;border-radius:18px;overflow:hidden;aspect-ratio:16/9;
+    border:1px solid var(--line);box-shadow:0 20px 60px rgba(0,0,0,.45)}
   .stage canvas{width:100%;height:100%;display:block}
-  .stage .hud{position:absolute;left:12px;top:12px;font-size:12px;color:#cfe;background:rgba(0,0,0,.45);padding:4px 8px;border-radius:6px}
-  .panel{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px;margin-bottom:14px}
-  select{width:100%;background:#10151f;color:var(--tx);border:1px solid var(--line);border-radius:8px;padding:9px;font-size:14px}
-  .desc{font-size:13px;color:var(--mut);margin-top:8px;line-height:1.5}
-  .score{display:flex;align-items:baseline;gap:8px;margin:6px 0}
-  .score .num{font-size:42px;font-weight:800;color:var(--accent)} .score .u{color:var(--mut)}
-  .row{display:flex;justify-content:space-between;padding:9px 0;border-bottom:1px solid var(--line);font-size:14px}
-  .row .v{font-variant-numeric:tabular-nums}
-  .dot{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:6px}
-  .dot.good{background:var(--good)} .dot.warn{background:var(--warn)} .dot.bad{background:var(--bad)}
-  .hold{font-size:13px;color:var(--mut);margin-top:10px}
-  .holdbar{height:8px;background:#10151f;border-radius:5px;overflow:hidden;margin-top:6px}
-  .holdfill{height:100%;width:0;background:var(--accent);transition:width .2s}
-  .tip{font-size:13px;line-height:1.5;padding:8px 10px;border-radius:8px;margin-top:8px;background:#10151f;border-left:3px solid var(--accent)}
-  button{cursor:pointer;border:1px solid var(--line);border-radius:8px;padding:7px 10px;color:var(--tx);background:#202a3a}
+  .stage .hud{position:absolute;left:14px;top:14px;font-size:12px;font-weight:600;color:#dfe8ff;
+    background:rgba(10,12,20,.6);backdrop-filter:blur(6px);padding:6px 11px;border-radius:20px;border:1px solid rgba(255,255,255,.08)}
+  .panel{background:linear-gradient(180deg,var(--card),#10141f);border:1px solid var(--line);
+    border-radius:16px;padding:18px;margin-bottom:16px;box-shadow:0 8px 30px rgba(0,0,0,.25)}
+  .panel h4{margin:0 0 10px;font-size:12px;letter-spacing:.04em;text-transform:uppercase;color:var(--mut)}
+  select{width:100%;background:#0d1119;color:var(--tx);border:1px solid var(--line);border-radius:10px;
+    padding:11px;font-size:14px;font-weight:600;appearance:none;cursor:pointer}
+  .desc{font-size:13px;color:var(--mut);margin-top:8px;line-height:1.55}
+  /* 원형 점수 게이지 */
+  .gauge{display:flex;align-items:center;gap:16px;margin-bottom:6px}
+  .ring{position:relative;width:96px;height:96px;flex:none;border-radius:50%;
+    background:conic-gradient(var(--accent) var(--p,0%), #1e2638 0);
+    background:conic-gradient(var(--accent) var(--p,0%), #1e2638 0)}
+  .ring::after{content:'';position:absolute;inset:9px;border-radius:50%;background:var(--card)}
+  .ring .gv{position:absolute;inset:0;display:grid;place-items:center;flex-direction:column;z-index:1;text-align:center}
+  .ring .gv b{font-size:30px;font-weight:800} .ring .gv span{font-size:10px;color:var(--mut);display:block}
+  .gauge .gmeta{font-size:13px;color:var(--mut);line-height:1.5}
+  .row{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid rgba(255,255,255,.05);font-size:14px}
+  .row:last-child{border-bottom:none} .row .v{font-variant-numeric:tabular-nums;font-weight:600}
+  .dot{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:8px;box-shadow:0 0 8px currentColor}
+  .dot.good{background:var(--good);color:var(--good)} .dot.warn{background:var(--warn);color:var(--warn)} .dot.bad{background:var(--bad);color:var(--bad)}
+  .hold{font-size:13px;color:var(--mut);margin-top:12px}
+  .holdbar{height:8px;background:#0d1119;border-radius:6px;overflow:hidden;margin-top:7px}
+  .holdfill{height:100%;width:0;background:linear-gradient(90deg,var(--accent2),var(--accent));transition:width .25s;border-radius:6px}
+  .tip{font-size:13px;line-height:1.55;padding:11px 13px;border-radius:11px;margin-top:10px;
+    background:linear-gradient(180deg,rgba(155,107,255,.08),transparent);border:1px solid rgba(155,107,255,.18)}
+  button{cursor:pointer;border:1px solid var(--line);border-radius:10px;padding:9px 13px;color:var(--tx);
+    background:#171f2e;font-size:13px;font-weight:600;transition:.15s}
+  button:hover{background:#1e2738;border-color:var(--accent)}
+  .primary{background:linear-gradient(135deg,var(--accent),var(--accent2));border:none;color:#fff;box-shadow:0 4px 16px rgba(123,107,255,.35)}
 </style>
 </head>
 <body>
 <header>
-  <b>VIGENT <span style="color:var(--accent)">Sports</span></b>
-  <span class="tag">· 요가 / 필라테스 폼 코치 (베타)</span>
+  <div class="logo"><span class="mark">🧘</span>VIGENT <span style="color:var(--accent);font-weight:800">Sports</span></div>
+  <span class="tag">요가 · 필라테스 AI 폼 코치</span>
   <span class="tag" id="privacy" style="margin-left:auto"></span>
 </header>
 
@@ -48,11 +71,12 @@
 
   <div>
     <div class="panel">
-      <h4 style="margin:0 0 8px;font-size:13px;color:var(--mut)">동작 선택</h4>
+      <h4 style="margin:0 0 8px;font-size:13px;color:var(--mut);display:flex;justify-content:space-between">
+        <span>동작 선택</span><span id="libCount" style="font-weight:400;font-size:11px"></span></h4>
       <select id="asana"></select>
       <div class="desc" id="asanaDesc"></div>
       <div style="margin-top:10px;display:flex;gap:8px;align-items:center;flex-wrap:wrap">
-        <button id="btnRegister">📸 이 동작 등록</button>
+        <button id="btnRegister" class="primary">📸 이 동작 등록</button>
         <label style="font-size:13px;color:var(--mut)"><input type="checkbox" id="togAuto"> 자동 인식</label>
       </div>
       <div class="tip" id="recogBox" style="display:none">🎯 인식: <b id="recogName">-</b> <span id="recogConf" style="color:var(--mut)"></span></div>
@@ -60,7 +84,10 @@
     </div>
 
     <div class="panel">
-      <div class="score"><span class="num" id="formNum">--</span><span class="u">/100 폼 점수</span></div>
+      <div class="gauge">
+        <div class="ring" id="ring"><div class="gv"><div><b id="formNum">--</b><span>FORM</span></div></div></div>
+        <div class="gmeta" id="formMeta">동작을 선택하고<br>자세를 잡아보세요</div>
+      </div>
       <div class="row"><span><span class="dot good" id="dSym"></span>좌우 대칭</span><span class="v" id="vSym">--</span></div>
       <div class="row"><span><span class="dot good" id="dBal"></span>균형(중심)</span><span class="v" id="vBal">--</span></div>
       <div class="row"><span><span class="dot good" id="dStab"></span>안정성(떨림)</span><span class="v" id="vStab">--</span></div>
@@ -87,16 +114,35 @@
 const cv=document.getElementById('cv'), ctx=cv.getContext('2d'), hud=document.getElementById('hud');
 let MIRROR=true, asanas=[], cur=null, CFG={symmetry:{good:8,warn:18},balance:{good:.04,warn:.10},stability:{good:.02,warn:.05},hold:15};
 
-// 설정 로드(vision.yaml)
+// 설정 로드(vision.yaml) + 동작 라이브러리(Yoga-82)
 fetch('/theme/sports/raw').then(r=>r.json()).then(raw=>{
   const a=raw.analysis||{}; if(a.metrics){ CFG.symmetry=a.metrics.symmetry; CFG.balance=a.metrics.balance; CFG.stability=a.metrics.stability; }
   CFG.hold=a.hold_target_sec||15; document.getElementById('holdTarget').textContent=CFG.hold;
-  asanas=raw.asanas||[]; const sel=document.getElementById('asana');
-  asanas.forEach((x,i)=>{ const o=document.createElement('option'); o.value=i; o.textContent=x.name; sel.appendChild(o); });
-  setAsana(0);
   const p=(raw.privacy||{}).notice; if(p) document.getElementById('privacy').textContent=p;
 }).catch(()=>{});
-function setAsana(i){ cur=asanas[i]; if(cur) document.getElementById('asanaDesc').textContent='🎯 '+cur.desc; }
+
+fetch('/sports/asanas').then(r=>r.json()).then(lib=>{
+  asanas=lib.asanas||[]; const sel=document.getElementById('asana');
+  // 카테고리별 그룹(전문적 정렬)
+  const byCat={}; asanas.forEach((x,i)=>{ (byCat[x.category]=byCat[x.category]||[]).push(i); });
+  sel.innerHTML='';
+  for(const cat of Object.keys(byCat)){
+    const g=document.createElement('optgroup'); g.label=cat;
+    for(const i of byCat[cat]){ const x=asanas[i]; const o=document.createElement('option');
+      o.value=i; o.textContent=`${x.name}${x.scored?'':'  ·  인식용'}`; g.appendChild(o); }
+    sel.appendChild(g);
+  }
+  document.getElementById('libCount').textContent=`${asanas.length}개 동작 · 채점 ${asanas.filter(x=>x.scored).length}개`;
+  setAsana(0);
+}).catch(()=>{});
+
+const DIFF_COL={'초급':'#2ecc71','중급':'#f1c40f','고급':'#e74c3c'};
+function setAsana(i){ cur=asanas[i]; if(!cur)return;
+  const d=document.getElementById('asanaDesc');
+  const badge=`<span style="display:inline-block;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:700;background:${DIFF_COL[cur.difficulty]||'#888'}22;color:${DIFF_COL[cur.difficulty]||'#888'}">${cur.difficulty}</span>`;
+  const sans=`<span style="color:var(--mut);font-size:12px;font-style:italic">${cur.sanskrit}</span>`;
+  d.innerHTML=`${badge} ${sans}<div style="margin-top:6px">🎯 ${cur.desc||(cur.scored?'':'정밀 채점 준비 중 — 자세 인식·확인용 동작입니다.')}</div>`;
+}
 
 // ── A. 동작 자동 인식(few-shot, 브라우저 내 등록 → 최근접 매칭) ──
 const BODY_IDX=[11,12,13,14,15,16,23,24,25,26,27,28];   // 몸 관절(얼굴·손 제외, 안정적)
@@ -219,6 +265,15 @@ function formMetrics(lm){
 }
 function lvl(v,c){ if(v==null)return'good'; return v<=c.good?'good':v<=c.warn?'warn':'bad'; }
 function setDot(id,l){document.getElementById(id).className='dot '+l;}
+function setGauge(score){
+  document.getElementById('formNum').textContent=score;
+  const ring=document.getElementById('ring');
+  const col=score>=85?'var(--good)':score>=60?'var(--warn)':'var(--bad)';
+  ring.style.setProperty('--p', score+'%');
+  ring.style.background=`conic-gradient(${col} ${score}%, #1e2638 0)`;
+  const meta=document.getElementById('formMeta');
+  if(meta) meta.innerHTML = cur ? `<b style="color:var(--tx)">${cur.name}</b><br>${score>=85?'완벽해요 ✨':score>=60?'좋아요, 조금만 더':'정렬을 다듬어보세요'}` : '동작을 선택하세요';
+}
 
 let holdSec=0, lastT=performance.now();
 function updateForm(m){
@@ -227,7 +282,8 @@ function updateForm(m){
   document.getElementById('vBal').textContent=m.balance!=null?(m.balance*100).toFixed(1):'--'; setDot('dBal',lb);
   document.getElementById('vStab').textContent=m.stability!=null?(m.stability*100).toFixed(1):'--'; setDot('dStab',lst);
   const pts={good:0,warn:1,bad:2}; const avg=(pts[ls]+pts[lb]+pts[lst])/3;
-  const score=Math.round((1-avg/2)*100); document.getElementById('formNum').textContent=score;
+  const score=Math.round((1-avg/2)*100);
+  if(!cur || !cur.scored) setGauge(score);   // 채점동작은 정답각도 점수가 우선(updateAngleChecks)
   // 유지 시간: 폼 좋고 안정적이면 누적, 흐트러지면 리셋
   const now=performance.now(),dt=(now-lastT)/1000;lastT=now;
   if(score>=70 && lst!=='bad'){ holdSec+=dt; } else { holdSec=0; }
@@ -277,7 +333,7 @@ function onResults(r){
 
 function updateAngleChecks(res){
   const el=document.getElementById('angleChecks');
-  if(!res){ el.innerHTML='<div class="desc">이 동작은 정답각도가 아직 없습니다.</div>'; return; }
+  if(!res){ el.innerHTML='<div class="desc">📋 이 동작은 <b>정밀 채점 준비 중</b>이에요. 자세 인식·확인용으로 사용하세요. (대칭·균형·안정성 지표는 위에서 확인)</div>'; return; }
   let html='';
   for(const c of res.checks){
     const col=c.measured==null?'var(--mut)':c.ok?'var(--good)':(c.err<=c.ideal?'var(--warn)':'var(--bad)');
@@ -287,7 +343,7 @@ function updateAngleChecks(res){
   // 정답각도 종합을 폼 점수에 반영(동작 선택 시 우선)
   html+=`<div class="hold" style="margin-top:8px">정답 일치도 <b style="color:var(--accent)">${res.score}점</b></div>`;
   el.innerHTML=html;
-  document.getElementById('formNum').textContent=res.score;   // 동작 선택 시 정답각도 점수 우선
+  setGauge(res.score);   // 동작 선택 시 정답각도 점수를 게이지에 반영
 }
 
 document.getElementById('btnRegister').onclick=registerPose;
