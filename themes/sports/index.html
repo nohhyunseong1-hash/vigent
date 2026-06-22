@@ -252,19 +252,40 @@ function vok(p){return p&&(p.visibility==null?1:p.visibility)>=0.3;}
 function JCOL(i){ if(i===11||i===12)return'#ff9f43'; if(i===13||i===14)return'#feca57'; if(i===15||i===16)return'#10ac84';
   if(i>=17&&i<=22)return'#1dd1a1'; if(i===23||i===24)return'#a29bfe'; if(i===25||i===26)return'#ff6b9d';
   if(i===27||i===28)return'#ee5253'; if(i>=29)return'#54a0ff'; return'#9b6bff'; }
-function drawSkeleton(lm){ const W=cv.width,H=cv.height; ctx.lineCap='round';
-  for(const[a,b]of CONN){const p=lm[a],q=lm[b]; if(!vok(p)||!vok(q))continue;
-    ctx.lineWidth=7;ctx.strokeStyle='rgba(155,107,255,.16)';ctx.beginPath();ctx.moveTo(p.x*W,p.y*H);ctx.lineTo(q.x*W,q.y*H);ctx.stroke();
-    ctx.lineWidth=3;ctx.strokeStyle='rgba(190,160,255,.95)';ctx.beginPath();ctx.moveTo(p.x*W,p.y*H);ctx.lineTo(q.x*W,q.y*H);ctx.stroke();}
-  const mid=(a,b)=>vok(lm[a])&&vok(lm[b])?{x:(lm[a].x+lm[b].x)/2,y:(lm[a].y+lm[b].y)/2}:(vok(lm[a])?lm[a]:vok(lm[b])?lm[b]:null);
-  const shM=mid(11,12),earM=mid(7,8)||(vok(lm[0])?lm[0]:null);
-  if(shM&&earM){ctx.lineWidth=3;ctx.strokeStyle='rgba(190,160,255,.9)';ctx.beginPath();ctx.moveTo(shM.x*W,shM.y*H);ctx.lineTo(earM.x*W,earM.y*H);ctx.stroke();}
-  for(const i of JOINTS){const p=lm[i];if(!vok(p))continue;const x=p.x*W,y=p.y*H,sm=HANDS.has(i)||FEET.has(i),r=sm?3.5:6;
-    ctx.beginPath();ctx.arc(x,y,r+2,0,7);ctx.fillStyle=JCOL(i);ctx.fill();ctx.beginPath();ctx.arc(x,y,r,0,7);ctx.fillStyle='#fff';ctx.fill();}
+// ── 입체(3D 느낌) 렌더: MediaPipe z(깊이)로 크기·밝기·앞뒤 정렬 ──
+function hexRGB(h){h=h.replace('#','');return[parseInt(h.slice(0,2),16),parseInt(h.slice(2,4),16),parseInt(h.slice(4,6),16)];}
+function depthCol(hex,depth,alpha){const[r,g,b]=hexRGB(hex);const f=1.3-depth*0.85;  // 가까울수록 밝게
+  const m=c=>Math.max(0,Math.min(255,Math.round(c*f)));return`rgba(${m(r)},${m(g)},${m(b)},${alpha})`;}
+function zMap(lm){let mn=1e9,mx=-1e9;for(const i of JOINTS){const p=lm[i];if(!vok(p))continue;const z=p.z||0;if(z<mn)mn=z;if(z>mx)mx=z;}
+  const sp=(mx-mn)||1;return i=>{const p=lm[i];const z=(p&&p.z!=null)?p.z:0;return Math.max(0,Math.min(1,(z-mn)/sp));};}
+function joint3D(x,y,r,hex,depth){
+  ctx.beginPath();ctx.arc(x,y,r*2,0,7);ctx.fillStyle=depthCol(hex,depth,0.13);ctx.fill();   // 글로우
+  const g=ctx.createRadialGradient(x-r*0.38,y-r*0.38,r*0.1,x,y,r);                            // 구슬 음영
+  g.addColorStop(0,'rgba(255,255,255,0.95)');g.addColorStop(0.4,depthCol(hex,depth,1));g.addColorStop(1,depthCol(hex,Math.min(1,depth+0.45),1));
+  ctx.beginPath();ctx.arc(x,y,r,0,7);ctx.fillStyle=g;ctx.fill();
 }
-function drawHand(hlm){ if(!hlm||hlm.length<21)return; const W=cv.width,H=cv.height,m=hlm.map(p=>({x:MIRROR?1-p.x:p.x,y:p.y}));ctx.lineCap='round';
-  for(const[a,b]of HAND_CONN){const p=m[a],q=m[b];ctx.lineWidth=2;ctx.strokeStyle='rgba(140,255,210,.95)';ctx.beginPath();ctx.moveTo(p.x*W,p.y*H);ctx.lineTo(q.x*W,q.y*H);ctx.stroke();}
-  for(const p of m){ctx.beginPath();ctx.arc(p.x*W,p.y*H,3,0,7);ctx.fillStyle='#fff';ctx.fill();}}
+function drawSkeleton(lm){ const W=cv.width,H=cv.height; ctx.lineCap='round'; const dep=zMap(lm);
+  // 합성 척추·목
+  const mid=(a,b)=>vok(lm[a])&&vok(lm[b])?{x:(lm[a].x+lm[b].x)/2,y:(lm[a].y+lm[b].y)/2,z:((lm[a].z||0)+(lm[b].z||0))/2}:(vok(lm[a])?lm[a]:vok(lm[b])?lm[b]:null);
+  const shM=mid(11,12),earM=mid(7,8)||(vok(lm[0])?lm[0]:null);
+  // 뼈대: 평균 깊이로 정렬해 '먼 것 먼저'(앞뒤 가림 느낌)
+  const bones=[];
+  for(const[a,b]of CONN){if(vok(lm[a])&&vok(lm[b]))bones.push({p:lm[a],q:lm[b],d:(dep(a)+dep(b))/2});}
+  if(shM&&earM)bones.push({p:shM,q:earM,d:dep(11)});
+  bones.sort((x,y)=>y.d-x.d);
+  for(const bn of bones){const w=2.5+(1-bn.d)*4.5;
+    ctx.lineWidth=w+5;ctx.strokeStyle=`rgba(155,107,255,${0.08+(1-bn.d)*0.14})`;ctx.beginPath();ctx.moveTo(bn.p.x*W,bn.p.y*H);ctx.lineTo(bn.q.x*W,bn.q.y*H);ctx.stroke();
+    ctx.lineWidth=w;ctx.strokeStyle=`rgba(${180-bn.d*70|0},${150-bn.d*60|0},255,${0.55+(1-bn.d)*0.4})`;ctx.beginPath();ctx.moveTo(bn.p.x*W,bn.p.y*H);ctx.lineTo(bn.q.x*W,bn.q.y*H);ctx.stroke();}
+  // 관절: 먼 것 먼저, 깊이로 크기·밝기
+  const js=JOINTS.filter(i=>vok(lm[i])).map(i=>({i,d:dep(i)})).sort((a,b)=>b.d-a.d);
+  for(const{i,d}of js){const p=lm[i],x=p.x*W,y=p.y*H,sm=HANDS.has(i)||FEET.has(i);
+    const r=(sm?3:6.5)*(1.35-d*0.7);joint3D(x,y,Math.max(2,r),JCOL(i),d);}
+}
+function drawHand(hlm){ if(!hlm||hlm.length<21)return; const W=cv.width,H=cv.height,m=hlm.map(p=>({x:MIRROR?1-p.x:p.x,y:p.y,z:p.z||0}));ctx.lineCap='round';
+  let mn=1e9,mx=-1e9;for(const p of m){if(p.z<mn)mn=p.z;if(p.z>mx)mx=p.z;}const sp=(mx-mn)||1;
+  for(const[a,b]of HAND_CONN){const p=m[a],q=m[b],d=((p.z+q.z)/2-mn)/sp;
+    ctx.lineWidth=1.5+(1-d)*1.8;ctx.strokeStyle=`rgba(120,255,200,${0.55+(1-d)*0.4})`;ctx.beginPath();ctx.moveTo(p.x*W,p.y*H);ctx.lineTo(q.x*W,q.y*H);ctx.stroke();}
+  for(const p of m){const d=(p.z-mn)/sp,r=2+(1-d)*2;ctx.beginPath();ctx.arc(p.x*W,p.y*H,r,0,7);ctx.fillStyle=`rgba(255,255,255,${0.6+(1-d)*0.4})`;ctx.fill();}}
 
 // ── 요가 폼 지표 계산 ──
 function ang(a,b,c){ if(!vok(a)||!vok(b)||!vok(c))return null;
