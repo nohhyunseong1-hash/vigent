@@ -24,11 +24,35 @@ analysis:                         # ── 폼 분석(위험이 아니라 '정�
   hold_target_sec: 15             # 자세 유지 목표(초)
   framework: form_score
 
-asanas:                           # ── 동작별 정답 정렬(시작 라이브러리, 확장 예정)
-  - {id: mountain,  name: "산 자세(타다아사나)", focus: [symmetry, balance], desc: "발 모으고 척추 곧게, 어깨 수평, 양팔 대칭"}
-  - {id: tree,      name: "나무 자세(브륵샤아사나)", focus: [balance, stability], desc: "한 발로 균형, 골반 수평, 중심 안정"}
-  - {id: warrior2,  name: "전사 자세 II(비라바드라아사나)", focus: [symmetry], desc: "앞무릎 90도, 양팔 수평 일직선, 어깨 정렬"}
-  - {id: plank,     name: "플랭크(필라테스)", focus: [stability, symmetry], desc: "머리-엉덩이-발 일직선, 코어 안정"}
+asanas:                           # ── 동작별 정답 각도(규칙 기반 채점, 데이터 학습 불필요)
+  # pts = MediaPipe 랜드마크 3점[a,b,c] 의 b 각도. ideal=정답각도(도), tol=허용오차.
+  - id: mountain
+    name: "산 자세(타다아사나)"
+    desc: "발 모으고 척추 곧게, 양팔 자연스럽게 내리고 어깨 수평·대칭"
+    angles:
+      - {name: "왼팔 곧게",  pts: [11,13,15], ideal: 172, tol: 22}
+      - {name: "오른팔 곧게", pts: [12,14,16], ideal: 172, tol: 22}
+      - {name: "왼다리 곧게",  pts: [23,25,27], ideal: 176, tol: 14}
+      - {name: "오른다리 곧게", pts: [24,26,28], ideal: 176, tol: 14}
+  - id: tree
+    name: "나무 자세(브륵샤아사나)"
+    desc: "한 발로 서서 균형, 선 다리는 곧게, 반대 발은 허벅지에, 골반 수평"
+    angles:
+      - {name: "선 다리 곧게(한쪽)", pts: [23,25,27], ideal: 176, tol: 12, oneOf: [[23,25,27],[24,26,28]]}
+      - {name: "접은 무릎(한쪽)",   pts: [24,26,28], ideal: 60,  tol: 35, oneOf: [[23,25,27],[24,26,28]]}
+  - id: warrior2
+    name: "전사 자세 II(비라바드라아사나)"
+    desc: "앞무릎 약 100도로 굽히고, 양팔은 어깨 높이로 수평·곧게 펴기"
+    angles:
+      - {name: "앞 무릎 굽힘", pts: [23,25,27], ideal: 105, tol: 30, oneOf: [[23,25,27],[24,26,28]]}
+      - {name: "왼팔 곧게",   pts: [11,13,15], ideal: 174, tol: 18}
+      - {name: "오른팔 곧게",  pts: [12,14,16], ideal: 174, tol: 18}
+  - id: plank
+    name: "플랭크(필라테스)"
+    desc: "어깨-엉덩이-발목이 일직선, 허리 꺼지거나 솟지 않게 코어 안정"
+    angles:
+      - {name: "몸 일직선(좌)", pts: [11,23,27], ideal: 176, tol: 16}
+      - {name: "몸 일직선(우)", pts: [12,24,28], ideal: 176, tol: 16}
 
 vlm:                              # ── 영상→폼 분석(로컬, 요가 코치 톤)
   model: mlx-community/Qwen2.5-VL-3B-Instruct-4bit

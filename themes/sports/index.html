@@ -64,6 +64,11 @@
     </div>
 
     <div class="panel">
+      <h4 style="margin:0 0 8px;font-size:13px;color:var(--mut)">🎯 정답 각도 비교</h4>
+      <div id="angleChecks"><div class="desc">동작을 선택하면 부위별 정답 각도와 비교합니다.</div></div>
+    </div>
+
+    <div class="panel">
       <button id="btnMirror">🪞 거울 ON</button>
       <button id="btnEngine">⚡ 빠른 모드</button>
     </div>
@@ -85,6 +90,28 @@ fetch('/theme/sports/raw').then(r=>r.json()).then(raw=>{
   const p=(raw.privacy||{}).notice; if(p) document.getElementById('privacy').textContent=p;
 }).catch(()=>{});
 function setAsana(i){ cur=asanas[i]; if(cur) document.getElementById('asanaDesc').textContent='🎯 '+cur.desc; }
+
+// ── 동작별 '정답 각도' 채점 ──
+function angAt(lm,pts){ const[a,b,c]=pts; return ang(lm[a],lm[b],lm[c]); }
+function scoreAsana(lm, asana){
+  if(!asana||!asana.angles) return null;
+  const checks=[]; let sum=0,n=0;
+  for(const t of asana.angles){
+    // oneOf: 좌/우 중 정답에 더 가까운 쪽 채택(한 발 서기 등)
+    let measured=null;
+    if(t.oneOf){ let best=null,bestErr=1e9;
+      for(const p of t.oneOf){ const v=angAt(lm,p); if(v==null)continue; const e=Math.abs(v-t.ideal); if(e<bestErr){bestErr=e;best=v;} }
+      measured=best;
+    } else measured=angAt(lm,t.pts);
+    if(measured==null){ checks.push({name:t.name,measured:null,ok:false,score:0}); continue; }
+    const err=Math.abs(measured-t.ideal);
+    const sc=Math.max(0,1-err/(t.tol*2));   // tol 안=1, tol*2 밖=0
+    checks.push({name:t.name,measured:Math.round(measured),ideal:t.ideal,err:Math.round(err),
+                 ok:err<=t.tol, score:sc});
+    sum+=sc; n++;
+  }
+  return {checks, score: n?Math.round(sum/n*100):0};
+}
 document.getElementById('asana').onchange=e=>setAsana(+e.target.value);
 
 // ── 정밀 스켈레톤(office 와 동일: 전체 관절 + 손가락 + 색상) ──
@@ -165,8 +192,24 @@ function onResults(r){
   const lm=r.poseLandmarks; if(!lm){hud.textContent='사람을 찾는 중…';return;}
   const dlm=MIRROR?lm.map(p=>p?{x:1-p.x,y:p.y,z:p.z,visibility:p.visibility}:p):lm;
   drawSkeleton(dlm); drawHand(r.leftHandLandmarks); drawHand(r.rightHandLandmarks);
-  updateForm(formMetrics(lm));   // 지표는 원본 좌표로(대칭 영향 없음)
+  updateForm(formMetrics(lm));   // 일반 지표(대칭·균형·안정성)
+  updateAngleChecks(scoreAsana(lm, cur));   // 동작별 정답 각도 비교
   hud.textContent='폼 분석 중'+(cur?' · '+cur.name:'');
+}
+
+function updateAngleChecks(res){
+  const el=document.getElementById('angleChecks');
+  if(!res){ el.innerHTML='<div class="desc">이 동작은 정답각도가 아직 없습니다.</div>'; return; }
+  let html='';
+  for(const c of res.checks){
+    const col=c.measured==null?'var(--mut)':c.ok?'var(--good)':(c.err<=c.ideal?'var(--warn)':'var(--bad)');
+    const val=c.measured==null?'미검출':`${c.measured}° / 목표 ${c.ideal}°`;
+    html+=`<div class="row"><span><span class="dot ${c.ok?'good':'warn'}" style="background:${col}"></span>${c.name}</span><span class="v" style="color:${col}">${val}</span></div>`;
+  }
+  // 정답각도 종합을 폼 점수에 반영(동작 선택 시 우선)
+  html+=`<div class="hold" style="margin-top:8px">정답 일치도 <b style="color:var(--accent)">${res.score}점</b></div>`;
+  el.innerHTML=html;
+  document.getElementById('formNum').textContent=res.score;   // 동작 선택 시 정답각도 점수 우선
 }
 
 document.getElementById('btnMirror').onclick=function(){MIRROR=!MIRROR;this.textContent=MIRROR?'🪞 거울 ON':'🪞 거울 OFF';};
