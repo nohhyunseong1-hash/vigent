@@ -284,46 +284,49 @@ function getJoint(i,col,r){ let m=T3.joints[i];
       new THREE.MeshStandardMaterial({color:col,roughness:.35,metalness:.15,emissive:col,emissiveIntensity:.2}));
     T3.scene.add(m); T3.joints[i]=m; }
   m.material.color.set(col); m.material.emissive.set(col); m.scale.setScalar(r); m.visible=true; return m; }
-// 3D 근섬유: 부위(뼈) 축 둘레로 여러 가닥이 감싸고, 가운데 볼록(방추형 근육)
-const FIBERS=7, SAMP=8;
+// 온몸 3D 와이어프레임: 각 부위를 고리(ring)+세로선 튜브 격자로 감싼다
+const RINGS=4, SIDES=6;
 function perpBasis(axis){
   const up=Math.abs(axis.y)<0.98?new THREE.Vector3(0,1,0):new THREE.Vector3(1,0,0);
   const u=new THREE.Vector3().crossVectors(axis,up).normalize();
   const v=new THREE.Vector3().crossVectors(axis,u).normalize();
   return [u,v];
 }
-function getFiber(){ let f=T3.bones[T3.boneIx];
-  if(!f){ const geo=new THREE.BufferGeometry();
-    geo.setAttribute('position',new THREE.BufferAttribute(new Float32Array(SAMP*3),3));
-    f=new THREE.Line(geo,new THREE.LineBasicMaterial({transparent:true,opacity:0.62,blending:THREE.AdditiveBlending}));
-    T3.scene.add(f); T3.bones.push(f); }
-  T3.boneIx++; f.visible=true; return f; }
-function setFiber(f,A,C,B,col){ const pos=f.geometry.attributes.position.array;
-  for(let s=0;s<SAMP;s++){ const t=s/(SAMP-1),mt=1-t;
-    pos[s*3]  =mt*mt*A.x+2*mt*t*C.x+t*t*B.x;
-    pos[s*3+1]=mt*mt*A.y+2*mt*t*C.y+t*t*B.y;
-    pos[s*3+2]=mt*mt*A.z+2*mt*t*C.z+t*t*B.z; }
-  f.geometry.attributes.position.needsUpdate=true; f.geometry.computeBoundingSphere(); f.material.color.set(col); }
-function muscleBundle(A,B,hex){
+function ensureMesh(){
+  if(T3.mesh) return;
+  const geo=new THREE.BufferGeometry();
+  geo.setAttribute('position',new THREE.BufferAttribute(new Float32Array(12000),3));
+  geo.setAttribute('color',new THREE.BufferAttribute(new Float32Array(12000),3));
+  T3.mesh=new THREE.LineSegments(geo,new THREE.LineBasicMaterial({vertexColors:true,transparent:true,opacity:0.7,blending:THREE.AdditiveBlending}));
+  T3.scene.add(T3.mesh); T3.pos=geo.attributes.position; T3.col=geo.attributes.color;
+}
+function rgbOf(hex){const h=hex.replace('#','');return[parseInt(h.slice(0,2),16)/255,parseInt(h.slice(2,4),16)/255,parseInt(h.slice(4,6),16)/255];}
+function pushSeg(p,q,c){ const i=T3.segIx; const P=T3.pos.array,C=T3.col.array; if(i*6+5>=P.length)return;
+  P[i*6]=p.x;P[i*6+1]=p.y;P[i*6+2]=p.z; P[i*6+3]=q.x;P[i*6+4]=q.y;P[i*6+5]=q.z;
+  C[i*6]=c[0];C[i*6+1]=c[1];C[i*6+2]=c[2]; C[i*6+3]=c[0];C[i*6+4]=c[1];C[i*6+5]=c[2]; T3.segIx++; }
+function tubeWire(A,B,rgb){
   const axis=B.clone().sub(A); const len=axis.length()||1e-3; axis.normalize();
-  const [u,v]=perpBasis(axis); const belly=Math.min(len*0.22,0.13);
-  const mid=A.clone().add(B).multiplyScalar(.5);
-  for(let k=0;k<FIBERS;k++){ const ang=k/FIBERS*Math.PI*2;
-    const radial=u.clone().multiplyScalar(Math.cos(ang)).add(v.clone().multiplyScalar(Math.sin(ang)));
-    const C=mid.clone().add(radial.multiplyScalar(belly));
-    setFiber(getFiber(),A,C,B,hex);
-  }
+  const [u,v]=perpBasis(axis); const rad=Math.min(len*0.18,0.11);
+  const rings=[];
+  for(let ri=0;ri<RINGS;ri++){ const t=ri/(RINGS-1); const c=A.clone().lerp(B,t);
+    const r=rad*(0.3+Math.sin(Math.PI*t)*0.8); const pts=[];   // 가운데 볼록
+    for(let s=0;s<SIDES;s++){ const a=s/SIDES*Math.PI*2;
+      pts.push(c.clone().add(u.clone().multiplyScalar(Math.cos(a)*r)).add(v.clone().multiplyScalar(Math.sin(a)*r))); }
+    rings.push(pts); }
+  for(const rg of rings){ for(let s=0;s<SIDES;s++) pushSeg(rg[s],rg[(s+1)%SIDES],rgb); }      // 고리
+  for(let s=0;s<SIDES;s++){ for(let ri=0;ri<RINGS-1;ri++) pushSeg(rings[ri][s],rings[ri+1][s],rgb); } // 세로선
 }
 function render3D(lm){
-  if(!T3){ init3D(); if(!T3)return; } fit3D();
+  if(!T3){ init3D(); if(!T3)return; } fit3D(); ensureMesh();
   for(const k in T3.joints) T3.joints[k].visible=false;
-  for(const m of T3.bones) m.visible=false; T3.boneIx=0;
+  T3.segIx=0;
   const sh=(vok(lm[11])&&vok(lm[12]))?{x:(lm[11].x+lm[12].x)/2,y:(lm[11].y+lm[12].y)/2,z:((lm[11].z||0)+(lm[12].z||0))/2}:null;
   const ear=(vok(lm[7])&&vok(lm[8]))?{x:(lm[7].x+lm[8].x)/2,y:(lm[7].y+lm[8].y)/2,z:((lm[7].z||0)+(lm[8].z||0))/2}:null;
-  for(const[a,b]of CONN){ if(!vok(lm[a])||!vok(lm[b]))continue; muscleBundle(P3(lm[a]),P3(lm[b]),JCOL(a)); }
-  if(sh&&ear) muscleBundle(P3(sh),P3(ear),'#ff9f43');
+  for(const[a,b]of CONN){ if(!vok(lm[a])||!vok(lm[b]))continue; tubeWire(P3(lm[a]),P3(lm[b]),rgbOf(JCOL(a))); }
+  if(sh&&ear) tubeWire(P3(sh),P3(ear),rgbOf('#ff9f43'));
+  T3.pos.needsUpdate=true; T3.col.needsUpdate=true; T3.mesh.geometry.setDrawRange(0,T3.segIx*2);
   for(const i of JOINTS){ const p=lm[i]; if(!vok(p))continue; const sm=HANDS.has(i)||FEET.has(i);
-    getJoint(i, JCOL(i), sm?0.018:0.03).position.copy(P3(p)); }
+    getJoint(i, JCOL(i), sm?0.016:0.026).position.copy(P3(p)); }
   T3.renderer.render(T3.scene,T3.cam);
 }
 function clear3D(){ if(T3){ T3.renderer.clear(); } }
