@@ -57,6 +57,37 @@ asanas:                           # ── 동작별 정답 각도(규칙 기반
     angles:
       - {name: "몸 일직선(좌)", pts: [11,23,27], ideal: 176, tol: 16}
       - {name: "몸 일직선(우)", pts: [12,24,28], ideal: 176, tol: 16}
+  - id: downdog
+    name: "다운독(아도무카스바나아사나)"
+    desc: "엉덩이를 높이 들어 몸이 ∧자, 팔·등 일직선, 다리 곧게(역V자)"
+    view: side
+    angles:
+      - {name: "엉덩이 각(∧)",  pts: [11,23,25], ideal: 80, tol: 25, oneOf: [[11,23,25],[12,24,26]]}
+      - {name: "팔-등 일직선", pts: [15,11,23], ideal: 170, tol: 20, oneOf: [[15,11,23],[16,12,24]]}
+      - {name: "다리 곧게",    pts: [23,25,27], ideal: 172, tol: 18, oneOf: [[23,25,27],[24,26,28]]}
+  - id: cobra
+    name: "코브라(부장가아사나)"
+    desc: "엎드려 상체를 들어올리고, 팔로 받치며 등을 부드럽게 신전"
+    view: side
+    angles:
+      - {name: "팔꿈치 굽힘", pts: [11,13,15], ideal: 130, tol: 35, oneOf: [[11,13,15],[12,14,16]]}
+      - {name: "등 신전(상체)", pts: [13,11,23], ideal: 110, tol: 30, oneOf: [[13,11,23],[14,12,24]]}
+  - id: chair
+    name: "의자 자세(우트카타아사나)"
+    desc: "무릎을 굽혀 앉듯, 양팔을 위로 곧게, 척추는 길게"
+    view: side
+    angles:
+      - {name: "무릎 굽힘", pts: [23,25,27], ideal: 115, tol: 30, oneOf: [[23,25,27],[24,26,28]]}
+      - {name: "왼팔 위로", pts: [23,11,15], ideal: 160, tol: 25}
+      - {name: "오른팔 위로", pts: [24,12,16], ideal: 160, tol: 25}
+  - id: warrior1
+    name: "전사 자세 I(비라바드라아사나 I)"
+    desc: "앞무릎 굽히고 양팔을 위로 뻗어 합장, 골반 정면"
+    view: side
+    angles:
+      - {name: "앞 무릎 굽힘", pts: [23,25,27], ideal: 105, tol: 30, oneOf: [[23,25,27],[24,26,28]]}
+      - {name: "왼팔 위로", pts: [23,11,15], ideal: 165, tol: 22}
+      - {name: "오른팔 위로", pts: [24,12,16], ideal: 165, tol: 22}
 
 vlm:                              # ── 영상→폼 분석(로컬, 요가 코치 톤)
   model: mlx-community/Qwen2.5-VL-3B-Instruct-4bit
