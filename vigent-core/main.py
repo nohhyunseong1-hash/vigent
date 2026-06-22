@@ -798,7 +798,10 @@ def safety_auto_approve(payload: dict = Body(...), theme: str = DEFAULT_THEME):
     if action == "risk_assessment":
         bundle = STATE.get(theme) or _load_theme(theme)
         scribe = bundle["agents"].get("Scribe")
-        out = scribe.generate([{"rule": rule, "count": 1}],
+        # 이 이벤트(같은 ts+rule)의 증거 사진 경로 수집 → 평가서에 자동 첨부
+        ev_paths = [e.get("evidence") for e in data_engine.list_events(limit=2000)
+                    if e.get("ts") == event_ts and e.get("rule") == rule and e.get("evidence")]
+        out = scribe.generate([{"rule": rule, "count": 1, "evidence_paths": ev_paths}],
                               site=site or "자동처리 승인", process="-", save=True)
         ra_aid = Path(out["saved_path"]).stem if out.get("saved_path") else ""
     rec = audit_store.record(event_ts, rule, action, approver=approver, site=site, ra_aid=ra_aid)

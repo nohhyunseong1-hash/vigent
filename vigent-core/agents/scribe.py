@@ -77,6 +77,26 @@ def _level(score: int) -> tuple[str, str]:
     return "하", "#10b981"
 
 
+def _evidence_data_uri(relpath: str, max_bytes: int = 4_000_000) -> str | None:
+    """data/evidence 상대경로 → data URI(base64). 문서에 사진을 내장해 이동·이메일에도 보존.
+    없거나 너무 크면 None(저하 없이 사진만 생략)."""
+    if not relpath:
+        return None
+    p = _ROOT / relpath
+    if not p.exists() or not p.is_file():
+        return None
+    try:
+        raw = p.read_bytes()
+    except OSError:
+        return None
+    if not raw or len(raw) > max_bytes:
+        return None
+    import base64
+    ext = p.suffix.lower().lstrip(".") or "jpeg"
+    mime = "jpeg" if ext in ("jpg", "jpeg") else ext
+    return f"data:image/{mime};base64," + base64.b64encode(raw).decode()
+
+
 class ScribeAgent(BaseAgent):
     name = "Scribe"
     role = "보고서: 위험성평가서·증거 리포트 생성(HTML/PDF), 근거 인용 포함"
@@ -107,6 +127,9 @@ class ScribeAgent(BaseAgent):
             citations = []
             if self.copilot is not None:
                 citations = self.copilot.cite(rule).get("citations", [])
+            # 증거 사진(이벤트 캡쳐) 자동 첨부 — data URI 로 문서에 내장(최대 4장)
+            ev_paths = ev.get("evidence_paths") or ([ev["evidence"]] if ev.get("evidence") else [])
+            ev_imgs = [u for u in (_evidence_data_uri(p) for p in ev_paths[:4]) if u]
             rows.append({
                 # ── KOSHA KRAS 서식 11 컬럼 구조 ──
                 "rule": rule,
@@ -126,7 +149,7 @@ class ScribeAgent(BaseAgent):
                 "완료일": "",                                # 9. 완료일(검토자 기입)
                 "담당자": "",                                # 10. 담당자(검토자 기입)
                 "AI감지근거": f"AI {count}회 감지",
-                "citations": citations, "_color": color,
+                "citations": citations, "_color": color, "_evidence": ev_imgs,
             })
         rows.sort(key=lambda r: r["위험성"], reverse=True)
         high = [r for r in rows if r["위험성등급"] == "상"]
@@ -174,6 +197,15 @@ class ScribeAgent(BaseAgent):
                  '<span class="badge tmp">표준 항목 기반 임시 양식</span> (공식 서식 미확보)')
         source_line = (f'<div class="src">서식 출처: {e(assessment.get("form_source",""))}</div>'
                        if is_official else "")
+        # 📷 현장 증거 사진 섹션(이벤트 캡쳐 자동 첨부). 사진 없으면 섹션 자체를 생략.
+        ev_cards = ""
+        for r in assessment["rows"]:
+            for uri in r.get("_evidence", []) or []:
+                ev_cards += (f'<div class="evc"><img src="{uri}" alt="증거">'
+                             f'<div class="evcap">[{e(r["유해위험요인"])}] · {e(r.get("AI감지근거",""))}</div></div>')
+        ev_section = (f'<div class="evsec"><h3>📷 현장 증거 사진 '
+                      f'<span class="src">(이벤트 발생 시 자동 캡쳐 · 안전관리자 확인용)</span></h3>'
+                      f'<div class="evgrid">{ev_cards}</div></div>') if ev_cards else ""
         return f"""<!DOCTYPE html><html lang="ko"><head><meta charset="UTF-8">
 <title>VIGENT 위험성평가서(초안) — KOSHA KRAS 서식</title>
 <style>
@@ -194,6 +226,11 @@ class ScribeAgent(BaseAgent):
   .ai{{color:#64748b;font-size:10px;margin-top:3px}}
   .btn{{padding:9px 16px;border:1px solid #334155;border-radius:8px;background:#0f172a;color:#fff;cursor:pointer;text-decoration:none}}
   .foot{{margin-top:14px;font-size:11px;color:#64748b;line-height:1.7}}
+  .evsec{{margin-top:18px;break-inside:avoid}} .evsec h3{{font-size:14px;margin:0 0 8px}}
+  .evgrid{{display:flex;flex-wrap:wrap;gap:10px}}
+  .evc{{border:1px solid #94a3b8;border-radius:6px;padding:6px;width:240px;break-inside:avoid}}
+  .evc img{{width:100%;border-radius:4px;display:block}}
+  .evcap{{font-size:10.5px;color:#475569;margin-top:4px}}
   tr{{break-inside:avoid;page-break-inside:avoid}}
   @media print{{ .noprint{{display:none}} body{{margin:0}} }}
 </style></head><body>
@@ -235,6 +272,7 @@ class ScribeAgent(BaseAgent):
     <tbody>{rows_html}
     </tbody>
   </table>
+  {ev_section}
   <div class="foot">
     · 양식: KOSHA KRAS 표준 위험성평가 양식(서식 11) 구조. 위험성 = 가능성(빈도) × 중대성(강도). 등급: 6↑ 상 / 3~5 중 / 2↓ 하<br>
     · 관련근거(법령·조항)는 Copilot 자동 인용이며 초안 참고용입니다. 최신 개정·현장 적용은 안전관리자가 검증해야 합니다(§9 출처 표기 원칙).<br>
