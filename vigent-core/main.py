@@ -242,10 +242,12 @@ def detect_frame(payload: dict = Body(...), theme: str = DEFAULT_THEME):
     img = _decode_data_url(raw)
     if img is None:
         raise HTTPException(status_code=400, detail="이미지 디코딩 실패(image_base64/image 확인)")
-    # 안전 모드(ppe=true)면 PPE·지게차·화재 검출기까지, 아니면 사람만(실내 오탐 방지)
-    # 안정성: 기본은 사람만(백엔드 보강). PPE·지게차·화재 등 무거운 건설모델은 명시 요청(detectors)
-    # 시에만 — MPS에서 다모델 동시/반복 추론 시 네이티브 크래시가 관찰됨(추후 안정화 과제).
-    detectors = payload.get("detectors") or ["person"]
+    # 검출기 선택: 안전 모드(ppe=true)면 person+ppe(보호구), 아니면 person만.
+    # CPU에서 person+ppe 는 지속/동시 부하에서 안정 검증됨(~0.3s/호출). 더 무거운
+    # forklift·fire 는 MPS 다모델에서 크래시 이력이 있어 detectors 명시 시에만 켠다.
+    detectors = payload.get("detectors")
+    if detectors is None:
+        detectors = ["person", "ppe"] if payload.get("ppe") else ["person"]
     with _DETECT_LOCK:                       # 동시 추론 직렬화(로딩/추론 race 방지)
         out = guard.detect(img, detectors=detectors, conf=payload.get("conf"))
     # 정규화 bbox(0~1) → 전송 이미지 픽셀 [x,y,w,h] + 프론트 키(class/score)로 변환
