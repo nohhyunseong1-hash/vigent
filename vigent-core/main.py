@@ -752,8 +752,8 @@ def zone_intrusion_alert(payload: dict = Body(default={}), theme: str = DEFAULT_
     zone_name = payload.get("zone", "위험구역")
     msg = f"[{zone_name}] 위험구역 침입 — {', '.join(reasons)} · 구역 내 {people}명"
 
-    # 증거 이미지 저장(있으면)
-    saved = None
+    # 증거 이미지 저장(있으면). decoded 는 VLM 확정에도 재사용한다.
+    saved, decoded = None, None
     img = payload.get("image_base64")
     if img:
         try:
@@ -769,8 +769,22 @@ def zone_intrusion_alert(payload: dict = Body(default={}), theme: str = DEFAULT_
         except Exception:  # noqa: BLE001
             pass
 
-    result = dispatcher.dispatch("high", msg) if dispatcher else {"delivered": False, "fallback": True}
-    return {"ok": True, "message": msg,
+    # CNN→VLM 하이브리드 확정(opt-in: vlm_confirm). 고신뢰 오탐만 푸시 억제(증거·기록은 유지).
+    vlm_conf, suppressed = None, False
+    if payload.get("vlm_confirm"):
+        import vlm_confirm as _vc
+        vlm_conf = _vc.confirm(decoded, "zone_intrusion", reason=", ".join(reasons))
+        if vlm_conf.get("available"):
+            msg += f" · VLM 위험확률 {vlm_conf['risk']}% → {vlm_conf['verdict']}: {vlm_conf['reason']}"
+        suppressed = bool(vlm_conf.get("suppress"))
+
+    if suppressed:
+        result = {"delivered": False, "suppressed": True, "fallback": False}
+    elif dispatcher:
+        result = dispatcher.dispatch("high", msg)
+    else:
+        result = {"delivered": False, "fallback": True}
+    return {"ok": True, "message": msg, "vlm_confirm": vlm_conf, "suppressed": suppressed,
             "phone_sent": bool(result.get("delivered")),      # 텔레그램/웹훅 실제 발송 여부
             "fallback": result.get("fallback", True),         # 키 없으면 True(로그만)
             "evidence": saved}
@@ -792,8 +806,8 @@ def safety_fall_alert(payload: dict = Body(default={}), theme: str = DEFAULT_THE
     else:
         verdict = {"level": "high", "fired": [], "dispatch": []}
 
-    # 증거 이미지 저장(있으면)
-    saved = None
+    # 증거 이미지 저장(있으면). decoded 는 VLM 확정에도 재사용한다.
+    saved, decoded = None, None
     img = payload.get("image_base64")
     if img:
         try:
@@ -818,11 +832,38 @@ def safety_fall_alert(payload: dict = Body(default={}), theme: str = DEFAULT_THE
     if laws:
         msg += " · 근거 " + "; ".join(dict.fromkeys(laws))
 
-    result = dispatcher.dispatch(verdict.get("level", "high"), msg) if dispatcher \
-        else {"delivered": False, "fallback": True}
-    return {"ok": True, "message": msg, "verdict": verdict,
+    # CNN→VLM 하이브리드 확정(opt-in: vlm_confirm). 고신뢰 오탐만 푸시 억제(증거·기록은 유지).
+    vlm_conf, suppressed = None, False
+    if payload.get("vlm_confirm"):
+        import vlm_confirm as _vc
+        vlm_conf = _vc.confirm(decoded, "fall_suspected",
+                               reason=f"몸통각 {signals['torso_angle']:.0f}도")
+        if vlm_conf.get("available"):
+            msg += f" · VLM 위험확률 {vlm_conf['risk']}% → {vlm_conf['verdict']}: {vlm_conf['reason']}"
+        suppressed = bool(vlm_conf.get("suppress"))
+
+    if suppressed:
+        result = {"delivered": False, "suppressed": True, "fallback": False}
+    elif dispatcher:
+        result = dispatcher.dispatch(verdict.get("level", "high"), msg)
+    else:
+        result = {"delivered": False, "fallback": True}
+    return {"ok": True, "message": msg, "verdict": verdict, "vlm_confirm": vlm_conf,
+            "suppressed": suppressed,
             "phone_sent": bool(result.get("delivered")),
             "fallback": result.get("fallback", True), "evidence": saved}
+
+
+@app.post("/safety/confirm")
+def safety_confirm(payload: dict = Body(...)):
+    """CNN→VLM 하이브리드 확정(오탐 최소화) 단독 호출.
+    payload={rule, image|image_base64, reason?}. VLM 미가용이면 available:false 폴백."""
+    import vlm_confirm
+    raw = payload.get("image") or payload.get("image_base64") or ""
+    if raw and not raw.startswith("data:"):
+        raw = "data:image/jpeg;base64," + raw
+    return vlm_confirm.confirm(_decode_data_url(raw), payload.get("rule", ""),
+                               reason=payload.get("reason", ""))
 
 
 @app.post("/office/coach")
