@@ -1025,6 +1025,35 @@ def sports_templates():
     return json.loads(p.read_text(encoding="utf-8"))
 
 
+@app.post("/sports/calibrate")
+def sports_calibrate(payload: dict = Body(default={})):
+    """정답 자세 보정 — 시연으로 측정한 각도(중앙값·허용오차)로 해당 동작 정답각도 갱신.
+    payload={asana_id, angles:[{name, ideal, tol, n}]}. 데이터 기반 표시(user_calibrated)."""
+    aid = payload.get("asana_id")
+    measured = {m.get("name"): m for m in (payload.get("angles") or [])}
+    if not aid or not measured:
+        raise HTTPException(status_code=400, detail="asana_id·angles 필요")
+    p = _ROOT / "config" / "yoga_asanas.json"
+    lib = json.loads(p.read_text(encoding="utf-8"))
+    updated = 0
+    for a in lib["asanas"]:
+        if a.get("id") != aid:
+            continue
+        for ang in a.get("angles", []):
+            m = measured.get(ang["name"])
+            if m and m.get("n", 0) >= 10:
+                ang["ideal"] = round(float(m["ideal"]))
+                ang["tol"] = max(8, round(float(m["tol"])))
+                ang["data_based"] = True
+                ang["user_calibrated"] = True
+                ang["n"] = int(m["n"])
+                updated += 1
+        a["scored"] = len(a.get("angles", [])) > 0
+    if updated:
+        p.write_text(json.dumps(lib, ensure_ascii=False, indent=1), encoding="utf-8")
+    return {"ok": True, "updated": updated, "asana": aid}
+
+
 @app.get("/theme/{theme}/raw")
 def theme_raw(theme: str):
     """테마 vision.yaml 원본 반환(프론트가 ergonomics 등 설정을 읽어 설정주도 동작)."""

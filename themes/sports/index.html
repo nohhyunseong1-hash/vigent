@@ -77,6 +77,7 @@
       <div class="desc" id="asanaDesc"></div>
       <div style="margin-top:10px;display:flex;gap:8px;align-items:center;flex-wrap:wrap">
         <button id="btnRegister" class="primary">📸 이 동작 등록</button>
+        <button id="btnCalib">🎯 정답 자세 보정</button>
         <label style="font-size:13px;color:var(--mut)"><input type="checkbox" id="togAuto"> 자동 인식</label>
       </div>
       <div class="tip" id="recogBox" style="display:none">🎯 인식: <b id="recogName">-</b> <span id="recogConf" style="color:var(--mut)"></span></div>
@@ -376,7 +377,10 @@ function onResults(r){
   const dlm=MIRROR?lm.map(p=>p?{x:1-p.x,y:p.y,z:p.z,visibility:p.visibility}:p):lm;
   drawSkeleton(dlm); drawHand(r.leftHandLandmarks); drawHand(r.rightHandLandmarks);
   updateForm(formMetrics(lm));   // 일반 지표(대칭·균형·안정성)
-  updateAngleChecks(scoreAsana(lm, cur));   // 동작별 정답 각도 비교
+  const sa=scoreAsana(lm, cur);
+  updateAngleChecks(sa);   // 동작별 정답 각도 비교
+  if(calib){ collectCalib(sa); const left=Math.max(0,(calib?calib.until-performance.now():0)/1000);
+    if(calib) hud.textContent=`📐 정답 자세 보정 중… ${left.toFixed(1)}초`; }
   // 측정 모드(정면/측면) — 동작 권장 뷰와 함께 안내
   const vm=detectView(lm); const vmEl=document.getElementById('viewMode');
   if(vm){ vmEl.style.display='block'; const rec=cur&&cur.view;
@@ -406,6 +410,33 @@ function updateAngleChecks(res){
 
 document.getElementById('btnRegister').onclick=registerPose;
 updateRegCount();
+
+// ── 정답 자세 보정(시연 → 데이터 기반 정답각도) ──
+let calib=null;   // {until, buf:{angleName:[...]}}
+function median(a){const s=[...a].sort((x,y)=>x-y);const m=s.length>>1;return s.length%2?s[m]:(s[m-1]+s[m])/2;}
+function iqr(a){const s=[...a].sort((x,y)=>x-y);const q=p=>s[Math.floor(p*(s.length-1))];return q(0.75)-q(0.25);}
+document.getElementById('btnCalib').onclick=function(){
+  if(!cur||!cur.angles||!cur.angles.length){ flash('각도가 정의된 동작을 선택하세요'); return; }
+  calib={until:performance.now()+6000, buf:{}};
+  flash(`📐 ${cur.name} 정답 자세를 6초간 유지하세요…`);
+};
+function collectCalib(res){   // onResults 의 scoreAsana 결과로 각도 수집
+  if(!calib||!res) return;
+  for(const c of res.checks){ if(c.measured!=null){ (calib.buf[c.name]=calib.buf[c.name]||[]).push(c.measured); } }
+  if(performance.now()>=calib.until){
+    const angles=[]; for(const name in calib.buf){ const arr=calib.buf[name];
+      if(arr.length>=10) angles.push({name, ideal:Math.round(median(arr)), tol:Math.max(8,Math.round(iqr(arr))), n:arr.length}); }
+    const aid=cur.id; calib=null;
+    if(!angles.length){ flash('측정 표본 부족 — 다시 시도'); return; }
+    fetch('/sports/calibrate',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({asana_id:aid, angles})}).then(r=>r.json()).then(j=>{
+        flash(`✅ ${j.updated}개 각도 데이터 보정 완료`);
+        // 라이브러리 갱신 반영
+        fetch('/sports/asanas').then(r=>r.json()).then(lib=>{ asanas=lib.asanas||asanas;
+          const a=asanas.find(x=>x.id===aid); if(a&&cur&&cur.id===aid)cur=a; });
+      }).catch(()=>flash('보정 저장 실패'));
+  }
+}
 document.getElementById('btnMirror').onclick=function(){MIRROR=!MIRROR;this.textContent=MIRROR?'🪞 거울 ON':'🪞 거울 OFF';};
 const ENGINE=new URLSearchParams(location.search).get('engine')||localStorage.getItem('vigent_sports_engine')||'holistic';
 (function(){const b=document.getElementById('btnEngine');b.textContent=ENGINE==='pose'?'🖐️ 정밀(손가락)':'⚡ 빠른 모드';
