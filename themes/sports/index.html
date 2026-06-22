@@ -284,24 +284,46 @@ function getJoint(i,col,r){ let m=T3.joints[i];
       new THREE.MeshStandardMaterial({color:col,roughness:.35,metalness:.15,emissive:col,emissiveIntensity:.2}));
     T3.scene.add(m); T3.joints[i]=m; }
   m.material.color.set(col); m.material.emissive.set(col); m.scale.setScalar(r); m.visible=true; return m; }
-function getBone(){ let m=T3.bones[T3.boneIx];
-  if(!m){ m=new THREE.Mesh(new THREE.CylinderGeometry(1,1,1,12),
-      new THREE.MeshStandardMaterial({color:0xc0a8ff,roughness:.4,metalness:.1,emissive:0x6b5bff,emissiveIntensity:.18}));
-    T3.scene.add(m); T3.bones.push(m); }
-  T3.boneIx++; m.visible=true; return m; }
-function setBone(m,A,B,rad){ const mid=A.clone().add(B).multiplyScalar(.5); m.position.copy(mid);
-  const dir=B.clone().sub(A); const len=dir.length()||.001; m.scale.set(rad,len,rad);
-  m.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0), dir.normalize()); }
+// 3D 근섬유: 부위(뼈) 축 둘레로 여러 가닥이 감싸고, 가운데 볼록(방추형 근육)
+const FIBERS=7, SAMP=8;
+function perpBasis(axis){
+  const up=Math.abs(axis.y)<0.98?new THREE.Vector3(0,1,0):new THREE.Vector3(1,0,0);
+  const u=new THREE.Vector3().crossVectors(axis,up).normalize();
+  const v=new THREE.Vector3().crossVectors(axis,u).normalize();
+  return [u,v];
+}
+function getFiber(){ let f=T3.bones[T3.boneIx];
+  if(!f){ const geo=new THREE.BufferGeometry();
+    geo.setAttribute('position',new THREE.BufferAttribute(new Float32Array(SAMP*3),3));
+    f=new THREE.Line(geo,new THREE.LineBasicMaterial({transparent:true,opacity:0.62,blending:THREE.AdditiveBlending}));
+    T3.scene.add(f); T3.bones.push(f); }
+  T3.boneIx++; f.visible=true; return f; }
+function setFiber(f,A,C,B,col){ const pos=f.geometry.attributes.position.array;
+  for(let s=0;s<SAMP;s++){ const t=s/(SAMP-1),mt=1-t;
+    pos[s*3]  =mt*mt*A.x+2*mt*t*C.x+t*t*B.x;
+    pos[s*3+1]=mt*mt*A.y+2*mt*t*C.y+t*t*B.y;
+    pos[s*3+2]=mt*mt*A.z+2*mt*t*C.z+t*t*B.z; }
+  f.geometry.attributes.position.needsUpdate=true; f.geometry.computeBoundingSphere(); f.material.color.set(col); }
+function muscleBundle(A,B,hex){
+  const axis=B.clone().sub(A); const len=axis.length()||1e-3; axis.normalize();
+  const [u,v]=perpBasis(axis); const belly=Math.min(len*0.22,0.13);
+  const mid=A.clone().add(B).multiplyScalar(.5);
+  for(let k=0;k<FIBERS;k++){ const ang=k/FIBERS*Math.PI*2;
+    const radial=u.clone().multiplyScalar(Math.cos(ang)).add(v.clone().multiplyScalar(Math.sin(ang)));
+    const C=mid.clone().add(radial.multiplyScalar(belly));
+    setFiber(getFiber(),A,C,B,hex);
+  }
+}
 function render3D(lm){
   if(!T3){ init3D(); if(!T3)return; } fit3D();
   for(const k in T3.joints) T3.joints[k].visible=false;
   for(const m of T3.bones) m.visible=false; T3.boneIx=0;
   const sh=(vok(lm[11])&&vok(lm[12]))?{x:(lm[11].x+lm[12].x)/2,y:(lm[11].y+lm[12].y)/2,z:((lm[11].z||0)+(lm[12].z||0))/2}:null;
   const ear=(vok(lm[7])&&vok(lm[8]))?{x:(lm[7].x+lm[8].x)/2,y:(lm[7].y+lm[8].y)/2,z:((lm[7].z||0)+(lm[8].z||0))/2}:null;
-  for(const[a,b]of CONN){ if(!vok(lm[a])||!vok(lm[b]))continue; setBone(getBone(),P3(lm[a]),P3(lm[b]),0.02); }
-  if(sh&&ear) setBone(getBone(),P3(sh),P3(ear),0.017);
+  for(const[a,b]of CONN){ if(!vok(lm[a])||!vok(lm[b]))continue; muscleBundle(P3(lm[a]),P3(lm[b]),JCOL(a)); }
+  if(sh&&ear) muscleBundle(P3(sh),P3(ear),'#ff9f43');
   for(const i of JOINTS){ const p=lm[i]; if(!vok(p))continue; const sm=HANDS.has(i)||FEET.has(i);
-    getJoint(i, JCOL(i), sm?0.024:0.045).position.copy(P3(p)); }
+    getJoint(i, JCOL(i), sm?0.018:0.03).position.copy(P3(p)); }
   T3.renderer.render(T3.scene,T3.cam);
 }
 function clear3D(){ if(T3){ T3.renderer.clear(); } }
