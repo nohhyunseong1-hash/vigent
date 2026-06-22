@@ -348,9 +348,19 @@ _TBM_CSS = """
     padding:14px 20px;display:flex;justify-content:center;gap:10px}
   table{width:100%;border-collapse:collapse;font-size:13px;margin-top:6px}
   th,td{border:1px solid #334155;padding:8px 10px;text-align:left} th{background:#162133;color:#93c5fd}
+  .dim{color:#94a3b8;font-size:13px}
+  .suggest{margin-top:10px;background:#0b1628;border:1px solid #1d3a5f;border-radius:10px;padding:12px}
+  .sg-h{font-size:13px;color:#7dd3fc;font-weight:700;margin-bottom:6px}
+  .sg-sec{font-size:13px;color:#cbd5e1;margin:12px 0 5px;display:flex;align-items:center;gap:8px}
+  .tag.sg{cursor:pointer;background:#0f2a18;border-color:#15803d;color:#bbf7d0}
+  .tag.sg.added{opacity:.45;cursor:default;background:#1e293b;border-color:#334155;color:#94a3b8}
+  .btn.add.sm{padding:3px 9px;font-size:12px}
+  details.sg-sec summary{cursor:pointer;color:#93c5fd}
+  ul.cites{margin:6px 0 0;padding-left:18px;font-size:12.5px;line-height:1.5}
+  ul.cites b{color:#cbd5e1}
 """
 
-# 작성 화면(plain 문자열 — JS 중괄호 보존). /*CSS*/ 와 <!--CHECKLIST--> 만 치환된다.
+# 작성 화면(plain 문자열 — JS 중괄호 보존). /*CSS*/ <!--CHECKLIST--> <!--PROCESSLIST--> 가 치환된다.
 _TBM_NEW_HTML = r"""<!DOCTYPE html><html lang="ko"><head><meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>VIGENT · 새 TBM 회의록</title><style>/*CSS*/</style></head><body><div class="wrap">
@@ -359,7 +369,12 @@ _TBM_NEW_HTML = r"""<!DOCTYPE html><html lang="ko"><head><meta charset="UTF-8">
 
   <div class="card"><h2>작업 정보</h2>
     <label class="fld">현장</label><input id="site" type="text" placeholder="예: ○○변전소 22.9kV 개폐기 교체 현장">
-    <label class="fld">작업공종</label><input id="process" type="text" placeholder="예: 활선작업 / 고소작업 / 굴착작업">
+    <label class="fld">작업공종</label>
+    <div class="row"><input id="process" type="text" list="processList" placeholder="예: 활선작업 / 고소작업 / 굴착작업"
+      onkeydown="if(event.key==='Enter'){event.preventDefault();getSuggest();}">
+      <button class="btn add" onclick="getSuggest()">🔎 위험요인 추천</button></div>
+    <datalist id="processList"><!--PROCESSLIST--></datalist>
+    <div id="suggestBox" class="suggest" style="display:none"></div>
     <label class="fld">작업내용</label><textarea id="work_desc" placeholder="오늘 수행할 작업 내용을 적습니다"></textarea>
     <label class="fld">감독관</label><input id="supervisor" type="text" placeholder="예: 홍길동 감독관">
   </div>
@@ -395,6 +410,47 @@ _TBM_NEW_HTML = r"""<!DOCTYPE html><html lang="ko"><head><meta charset="UTF-8">
 <script>
   const hazards = [];
   const workers = [];
+  let lastSuggest = null;
+  function escHtml(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+  async function getSuggest(){
+    const process = document.getElementById('process').value.trim();
+    const box = document.getElementById('suggestBox');
+    box.style.display='block'; box.innerHTML='<div class="dim">추천 불러오는 중…</div>';
+    try{
+      const res = await fetch('/safety/tbm/suggest?process='+encodeURIComponent(process));
+      lastSuggest = await res.json(); renderSuggest(lastSuggest);
+    }catch(e){ box.innerHTML='<div class="dim">추천 오류: '+e+'</div>'; }
+  }
+  function renderSuggest(s){
+    const box = document.getElementById('suggestBox');
+    const label = s.fallback ? '⚠ 일반작업 기준(공종 미매칭) — 공종을 더 구체적으로 입력하면 정확해집니다' : ('✅ 매칭 공종: '+escHtml(s.matched));
+    const chip = (v)=>'<span class="tag sg" data-val="'+escHtml(v)+'" onclick="pickChip(this)">＋ '+escHtml(v)+'</span>';
+    const hazChips = (s.hazards||[]).map(chip).join('') || '<span class="dim">없음</span>';
+    const chkChips = (s.checklist||[]).map(chip).join('') || '<span class="dim">없음</span>';
+    const cites = (s.citations||[]).map(c=>'<li><b>'+escHtml(c.source)+'</b> '+escHtml(c.clause)+'<br><span class="dim">'+escHtml(c.snippet)+'</span></li>').join('') || '<li class="dim">근거 없음</li>';
+    box.innerHTML =
+      '<div class="sg-h">'+label+'</div>'+
+      '<div class="sg-sec">중점 위험요인 <button class="btn add sm" onclick="addAll(\'haz\')">모두 추가</button></div><div data-kind="haz">'+hazChips+'</div>'+
+      '<div class="sg-sec">작업 전 점검항목 <button class="btn add sm" onclick="addAll(\'chk\')">모두 추가</button></div><div data-kind="chk">'+chkChips+'</div>'+
+      '<details class="sg-sec"><summary>관련 법령 근거 ('+(s.citations||[]).length+')</summary><ul class="cites">'+cites+'</ul></details>';
+  }
+  function pickChip(el){
+    const v = el.dataset.val; const kind = el.parentElement.dataset.kind;
+    if(kind==='haz'){ if(!hazards.includes(v)){ hazards.push(v); renderHaz(); } }
+    else { addChkItem(v); }
+    el.classList.add('added'); el.setAttribute('onclick','');
+  }
+  function addAll(kind){
+    if(!lastSuggest) return;
+    document.querySelectorAll('#suggestBox [data-kind="'+kind+'"] .tag.sg:not(.added)').forEach(pickChip);
+  }
+  function chkExists(v){ return [...document.querySelectorAll('#chkList .chk input')].some(i=>i.dataset.item===v); }
+  function addChkItem(v){
+    if(chkExists(v)) return;
+    const lab=document.createElement('label'); lab.className='chk';
+    lab.innerHTML='<input type="checkbox" checked data-item="'+escHtml(v)+'"><span>'+escHtml(v)+'</span>';
+    document.getElementById('chkList').appendChild(lab);
+  }
   function renderHaz(){
     document.getElementById('hazList').innerHTML = hazards.map((h,idx)=>
       '<span class="tag">'+h+' <b onclick="delHaz('+idx+')">✕</b></span>').join('');
@@ -465,7 +521,10 @@ def tbm_new():
     checklist_html = "".join(
         '<label class="chk"><input type="checkbox" checked data-item="ITEM"><span>ITEM</span></label>'
         .replace("ITEM", item) for item in tbm_store.DEFAULT_CHECKLIST)
-    page = _TBM_NEW_HTML.replace("/*CSS*/", _TBM_CSS).replace("<!--CHECKLIST-->", checklist_html)
+    process_html = "".join(f'<option value="{j["name"]}">' for j in tbm_store.jsa_catalog())
+    page = (_TBM_NEW_HTML.replace("/*CSS*/", _TBM_CSS)
+            .replace("<!--CHECKLIST-->", checklist_html)
+            .replace("<!--PROCESSLIST-->", process_html))
     return page
 
 
@@ -474,6 +533,26 @@ def tbm_create(payload: dict = Body(...)):
     """회의록 1건 저장. payload={site,process,work_desc,supervisor,hazards[],checklist[],workers[],notes}."""
     rec = tbm_store.create(payload)
     return {"id": rec["id"], "saved_path": rec["saved_path"]}
+
+
+@app.get("/safety/tbm/suggest")
+def tbm_suggest(process: str = "", theme: str = DEFAULT_THEME):
+    """작업공종 → 중점 위험요인·점검항목 추천 + 법령 근거(규칙 인용).
+    매칭 실패 시 일반작업으로 폴백(빈손 방지). 근거는 기존 코퍼스에서만 인용한다(§9)."""
+    s = tbm_store.suggest(process)
+    bundle = STATE.get(theme) or _load_theme(theme)
+    copilot = bundle["agents"].get("Copilot")
+    citations, seen = [], set()
+    if copilot:
+        for rid in s.get("rules", []):
+            for c in copilot.cite(rid).get("citations", []) or []:
+                key = (c.get("source"), c.get("clause"))
+                if key in seen:
+                    continue
+                seen.add(key)
+                citations.append(c)
+    s["citations"] = citations
+    return s
 
 
 @app.get("/safety/tbm/{tid}", response_class=HTMLResponse)

@@ -64,6 +64,61 @@ def _norm_checklist(raw: Any) -> list[dict]:
     return out
 
 
+# ── 공종별 위험요인 추천 (JSA 대상작업 기반) ────────────────────────────
+_JSA_PATH = _ROOT / "config" / "corpus" / "jsa_hazards.json"
+_jsa_cache: dict | None = None
+
+
+def _load_jsa() -> list[dict]:
+    """jsa_hazards.json 의 공종 목록 로드(1회 캐시). 없으면 빈 목록(무중단)."""
+    global _jsa_cache
+    if _jsa_cache is None:
+        try:
+            _jsa_cache = json.loads(_JSA_PATH.read_text(encoding="utf-8"))
+        except (ValueError, OSError):
+            _jsa_cache = {"공종": []}
+    return _jsa_cache.get("공종", []) or []
+
+
+def jsa_catalog() -> list[dict]:
+    """작성 화면 드롭다운용 공종 이름 목록."""
+    return [{"id": j.get("id", ""), "name": j.get("name", "")} for j in _load_jsa()]
+
+
+def _match_process(process: str) -> dict | None:
+    """작업공종 자유텍스트 → 가장 잘 맞는 공종 1개. 매칭 없으면 None."""
+    text = (process or "").strip().lower()
+    if not text:
+        return None
+    best, best_score = None, 0
+    for j in _load_jsa():
+        score = 0
+        name = str(j.get("name", "")).lower()
+        if name and (name in text or text in name):
+            score += 3
+        for a in j.get("aliases", []) or []:
+            if a and str(a).lower() in text:
+                score += 1
+        if score > best_score:
+            best, best_score = j, score
+    return best
+
+
+def suggest(process: str) -> dict[str, Any]:
+    """공종 추천. 반환: {matched, hazards[], checklist[], rules[]}. 매칭 없으면 일반작업 폴백."""
+    j = _match_process(process)
+    fallback = j is None
+    if fallback:  # 매칭 실패 → 일반작업으로 폴백(빈손 방지)
+        j = next((x for x in _load_jsa() if x.get("id") == "general"), None) or {}
+    return {
+        "matched": None if fallback else j.get("name", ""),
+        "fallback": fallback,
+        "hazards": list(j.get("hazards", []) or []),
+        "checklist": list(j.get("checklist", []) or []),
+        "rules": list(j.get("rules", []) or []),
+    }
+
+
 def create(payload: dict) -> dict[str, Any]:
     """회의록 1건 저장. 항상 결과를 반환(예외로 죽지 않음). 반환: 저장된 record(+saved_path)."""
     ts = datetime.now(KST)
