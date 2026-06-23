@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>VIGENT · 동요/피로 지표 (참고용)</title>
+<style>
+  :root{--bg:#0B0F14;--panel:rgba(10,16,22,.72);--line:#1c2730;--txt:#E6EDF3;
+    --dim:#9CA8B4;--brand:#19E3B1;--warn:#F59E0B;--danger:#EF4444;--blue:#3B82F6}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--txt);
+    font-family:-apple-system,"Pretendard",system-ui,sans-serif}
+  .mono{font-family:ui-monospace,Menlo,Consolas,monospace}
+  header{display:flex;align-items:center;gap:12px;padding:12px 18px;
+    border-bottom:1px solid var(--line);background:#0d141b}
+  header b{color:var(--brand)}
+  .tag{margin-left:auto;font-size:12px;color:var(--warn);border:1px solid rgba(245,158,11,.4);
+    border-radius:20px;padding:3px 10px}
+  .wrap{display:grid;grid-template-columns:1fr 320px;gap:14px;padding:14px;
+    max-width:1100px;margin:0 auto}
+  @media(max-width:840px){.wrap{grid-template-columns:1fr}}
+  .stage{position:relative;background:#000;border:1px solid var(--line);
+    border-radius:12px;overflow:hidden;aspect-ratio:4/3}
+  video,canvas{position:absolute;inset:0;width:100%;height:100%}
+  video{object-fit:cover;transform:scaleX(-1)}
+  .disc{position:absolute;left:0;right:0;bottom:0;background:rgba(245,158,11,.12);
+    border-top:1px solid rgba(245,158,11,.35);color:#ffd28a;font-size:11px;padding:7px 10px}
+  aside{display:flex;flex-direction:column;gap:12px}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px}
+  .card h3{margin:0 0 10px;font-size:12px;color:var(--dim);letter-spacing:.5px;
+    text-transform:uppercase}
+  .metric{display:flex;justify-content:space-between;align-items:baseline;margin:8px 0}
+  .metric .v{font-size:26px;font-weight:800}
+  .metric .u{font-size:12px;color:var(--dim);margin-left:4px}
+  .bar{height:8px;background:#0a1117;border-radius:6px;overflow:hidden;margin-top:6px}
+  .bar > i{display:block;height:100%;width:0;background:var(--brand);transition:.2s}
+  .lvl{font-size:20px;font-weight:800;text-align:center;padding:10px;border-radius:10px;
+    background:#0a1117;border:1px solid var(--line)}
+  button{cursor:pointer;border:0;border-radius:8px;padding:10px;font-size:13px;
+    font-weight:600;width:100%;margin-top:8px}
+  .btn{background:var(--brand);color:#06241c}
+  .btn.ghost{background:transparent;border:1px solid var(--line);color:var(--txt)}
+</style>
+</head>
+<body>
+<header>
+  <div><b>VIGENT</b> · 동요/피로 지표</div>
+  <div class="tag">참고용 ADVISORY · 감정/거짓말 판별 아님</div>
+</header>
+
+<div class="wrap">
+  <div class="stage">
+    <video id="video" autoplay playsinline muted></video>
+    <canvas id="ov"></canvas>
+    <div class="disc" id="disc">측정을 시작하려면 '웹캠 시작'을 누르세요.</div>
+  </div>
+
+  <aside>
+    <div class="card">
+      <button class="btn" id="startBtn">웹캠 시작</button>
+      <button class="btn ghost" id="resetBtn">기준선 초기화</button>
+    </div>
+    <div class="card">
+      <h3>종합 상태(참고)</h3>
+      <div class="lvl" id="level">대기</div>
+    </div>
+    <div class="card">
+      <h3>동요 지수</h3>
+      <div class="metric"><span class="mono" id="tremor">—</span>
+        <span class="u" id="zval">z —</span></div>
+      <div class="bar"><i id="tbar"></i></div>
+    </div>
+    <div class="card">
+      <h3>심박 (rPPG)</h3>
+      <div class="metric"><span><span class="v mono" id="hr">—</span><span class="u">bpm</span></span>
+        <span class="u" id="hrq">품질 —</span></div>
+    </div>
+    <div class="card">
+      <h3 class="mono" style="text-transform:none">상태</h3>
+      <div class="mono" style="font-size:12px;color:var(--dim)" id="info">샘플 0</div>
+    </div>
+  </aside>
+</div>
+
+<script>
+const $=id=>document.getElementById(id);
+const video=$('video'), ov=$('ov'), octx=ov.getContext('2d');
+const cap=document.createElement('canvas');
+let running=false, busy=false, last=null;
+const T0=performance.now();
+
+async function start(){
+  try{
+    const s=await navigator.mediaDevices.getUserMedia({video:{width:640,height:480}});
+    video.srcObject=s; await video.play(); running=true;
+    $('disc').textContent='측정 중… 기준선 잡는 데 약 10초 걸립니다. (저장하지 않음)';
+    loop(); requestAnimationFrame(draw);
+  }catch(e){ alert('카메라 접근 실패: '+e.message); }
+}
+function grab(){
+  cap.width=video.videoWidth; cap.height=video.videoHeight;
+  cap.getContext('2d').drawImage(video,0,0);
+  return new Promise(r=>cap.toBlob(r,'image/jpeg',0.8));
+}
+async function loop(){
+  while(running){
+    if(!busy && video.videoWidth){
+      busy=true;
+      try{
+        const fd=new FormData();
+        fd.append('image', await grab(),'f.jpg');
+        fd.append('ts', ((performance.now()-T0)/1000).toFixed(3));
+        const r=await fetch('/wellbeing/frame',{method:'POST',body:fd});
+        last=await r.json(); render(last);
+      }catch(e){}
+      busy=false;
+    }
+    await new Promise(r=>setTimeout(r,80));   // ~12fps (rPPG에 적당)
+  }
+}
+function render(d){
+  const lv=$('level');
+  const colors={'안정':'var(--brand)','주의(참고)':'var(--warn)',
+    '휴식 권고(참고)':'var(--danger)','측정중':'var(--blue)','얼굴없음':'var(--dim)'};
+  lv.textContent=d.face?d.level:'얼굴 없음';
+  lv.style.color=colors[d.level]||'var(--txt)';
+  $('tremor').textContent=d.tremor??'—';
+  $('zval').textContent='z '+(d.tremor_z??'—');
+  $('tbar').style.width=Math.min(100,(d.tremor||0))+'%';
+  $('tbar').style.background=colors[d.level]||'var(--brand)';
+  $('hr').textContent=d.heart_rate_bpm??'—';
+  $('hrq').textContent='품질 '+(d.hr_quality??'—');
+  $('info').textContent=`샘플 ${d.samples} · 얼굴 ${d.face_px||0}px`;
+  if(d.disclaimer) $('disc').textContent='⚠ '+d.disclaimer;
+}
+function draw(){
+  ov.width=video.videoWidth||640; ov.height=video.videoHeight||480;
+  octx.clearRect(0,0,ov.width,ov.height);
+  if(running) requestAnimationFrame(draw);
+}
+$('startBtn').onclick=start;
+$('resetBtn').onclick=async()=>{ await fetch('/wellbeing/reset',{method:'POST'}); };
+</script>
+</body>
+</html>
