@@ -795,6 +795,7 @@ async function analyzeObjectsWithBackend(source,W,H){
     const data=await resp.json();
     if(!data.success) return;
     backendHazards=Array.isArray(data.hazards)?data.hazards:[];   // 화재/연기/흡연
+    try{ window.backendSignals=data.signals||{}; window.backendHazardsLive=backendHazards; }catch(_){}  // 라이브 이벤트 기록용 전역
     if(!Array.isArray(data.detections)) return;
     // 백엔드 박스(전송한 cw×ch 좌표) → 원본 소스(W×H) 좌표로 환원
     const invX=(W||cw)/cw, invY=(H||ch)/ch;

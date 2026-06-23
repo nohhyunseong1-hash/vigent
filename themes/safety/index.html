@@ -440,6 +440,41 @@
       }
     }catch(e){}
   }, 1000);
+
+  // ── 보호구 미착용(백엔드 PPE 신호) 지속 → 실제 이벤트 기록 ──
+  let _ppeBadSince=0,_ppeCool=0;
+  setInterval(async ()=>{
+    try{
+      if(!document.getElementById('togPPE')?.checked) return;
+      const miss=!!(window.backendSignals&&window.backendSignals.ppe_missing);
+      const now=Date.now();
+      if(!miss){ _ppeBadSince=0; return; }
+      if(!_ppeBadSince)_ppeBadSince=now;
+      if(now-_ppeBadSince>=2000 && now>=_ppeCool){          // 2초 지속 + 30초 쿨다운
+        _ppeCool=now+30000;
+        await fetch('/recognition/log',{method:'POST',headers:{'Content-Type':'application/json'},
+          body:JSON.stringify({rule:'ppe_missing',level:'high',site:'현장',note:'보호구 미착용 감지',image:captureEvidence()})});
+        console.info('[VIGENT] 🦺 보호구 미착용 기록');
+      }
+    }catch(e){}
+  }, 1000);
+
+  // ── 화재/연기(백엔드 감지) 지속 → 실제 이벤트 기록 ──
+  let _fireSince=0,_fireCool=0;
+  setInterval(async ()=>{
+    try{
+      const fire=(window.backendHazardsLive||[]).some(h=>['fire','smoke'].includes(String(h.type||'').toLowerCase()));
+      const now=Date.now();
+      if(!fire){ _fireSince=0; return; }
+      if(!_fireSince)_fireSince=now;
+      if(now-_fireSince>=2000 && now>=_fireCool){
+        _fireCool=now+30000;
+        await fetch('/recognition/log',{method:'POST',headers:{'Content-Type':'application/json'},
+          body:JSON.stringify({rule:'fire_smoke',level:'critical',site:'현장',note:'화재/연기 감지',image:captureEvidence()})});
+        console.warn('[VIGENT] 🔥 화재/연기 기록');
+      }
+    }catch(e){}
+  }, 1000);
 })();
 </script>
 </body>
