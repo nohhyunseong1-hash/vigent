@@ -108,6 +108,12 @@ def health():
     return {"status": "ok"}
 
 
+@app.get("/favicon.ico")
+def favicon():
+    """브라우저 자동요청 favicon — 없어서 나던 404 콘솔 노이즈 제거(내용은 비움)."""
+    return Response(status_code=204)
+
+
 @app.get("/system/capabilities")
 def capabilities(theme: str = DEFAULT_THEME):
     """파이프라인 상태표 + 에이전트 등록 현황(절대 저하 없음 가시화)."""

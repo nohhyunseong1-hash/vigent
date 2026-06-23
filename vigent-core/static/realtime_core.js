@@ -2284,7 +2284,7 @@ function _mergedObjects(browserObjs){
 // 모든 캔버스 그리기가 onHolisticResults(=MediaPipe Holistic 펌프)에만 묶여 있어,
 // Holistic 로딩/구동이 실패하면 객체 탐지가 정상이어도 박스가 화면에 안 그려진다.
 // → Holistic 결과가 일정시간 끊기면(또는 한 번도 안 오면) 객체 박스만이라도 직접 그린다. (절대 저하 없음)
-let _fallbackRafId=null;
+let _fallbackRafId=null, _mpStaleSince=0;
 const HOLISTIC_STALE_MS=700;
 function _startFallbackRender(){
   cancelAnimationFrame(_fallbackRafId);
@@ -2292,7 +2292,8 @@ function _startFallbackRender(){
     _fallbackRafId=requestAnimationFrame(loop);
     if(!cameraOn||paused) return;
     // Holistic가 최근에 그렸으면(=살아있으면) 폴백은 손대지 않는다(이중 그리기 방지)
-    if(lastHolisticAt && (performance.now()-lastHolisticAt) < HOLISTIC_STALE_MS) return;
+    if(lastHolisticAt && (performance.now()-lastHolisticAt) < HOLISTIC_STALE_MS){ _mpStaleSince=0; return; }
+    if(!_mpStaleSince) _mpStaleSince=Date.now();   // MediaPipe 미가동 시작 시각
     if(thermOn) return;                          // 열화상 모드는 자체 렌더
     if(!videoEl||videoEl.readyState<2) return;
     try{
@@ -2307,7 +2308,9 @@ function _startFallbackRender(){
              try{ drawObjects(_mergedObjects(latestObjects),W,H,leftHeldObjects,rightHeldObjects,scX,scY, personHasViz); }catch(e){}
              if(poseFresh()){ try{ drawBackendPoses(W,H,scX,scY); }catch(e){} } }
       try{ drawDangerZone(W,H); }catch(e){}
-      _detectDiag('카메라·객체 인식은 정상 동작 중입니다.<br>단 MediaPipe(자세/손/낙상) 로딩이 지연·실패해 포즈 분석은 일시 비활성입니다.<br>· 새로고침(⌘⇧R) 권장<br>· 콘솔(F12)의 빨간 에러를 알려주시면 포즈까지 복구합니다.');
+      // MediaPipe 진단은 '한 번도 안 떴고 + 12초 유예' 후에만(로딩 지연을 실패로 오인하지 않게)
+      if(!lastHolisticAt && _mpStaleSince && (Date.now()-_mpStaleSince > 12000))
+        _detectDiag('카메라·객체 인식은 정상 동작 중입니다.<br>단 MediaPipe(자세/손/낙상)가 12초 넘게 로딩되지 않았습니다(네트워크·CDN 지연).<br>· 새로고침(⌘⇧R) 권장<br>· 폐쇄망이면 로컬 번들이 필요합니다.');
     }catch(e){}
   };
   _fallbackRafId=requestAnimationFrame(loop);
