@@ -940,6 +940,27 @@ def workers_stop_all():
     return _w.manager.stop_all()
 
 
+@app.get("/safety/demo", response_class=HTMLResponse)
+def safety_demo():
+    """영업용 데모 — 카메라 없이 '감지→서류·조치 자동완성' 닫힌 루프 시연."""
+    import demo as _demo
+    return _demo.render()
+
+
+@app.post("/safety/demo/seed")
+def safety_demo_seed():
+    """데모 이벤트 주입(증거·법령·평가서가 자동처리 콘솔에 채워짐)."""
+    import demo as _demo
+    return _demo.seed()
+
+
+@app.post("/safety/demo/reset")
+def safety_demo_reset():
+    """데모 이벤트만 정리(실제 데이터 보존)."""
+    import demo as _demo
+    return _demo.reset()
+
+
 @app.get("/safety-local", response_class=HTMLResponse)
 def safety_local():
     """로컬 번들판 — CDN 없이 /static/vendor 에서 MediaPipe·TF 로드(폐쇄망·USB). CDN판(/safety)과 비교용."""
