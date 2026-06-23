@@ -17,6 +17,7 @@
 """
 from __future__ import annotations
 
+import socket
 import webbrowser
 from pathlib import Path
 
@@ -101,14 +102,29 @@ def evm_reset():
     return {"ok": True}
 
 
+def _free_port(host: str, start: int = 8090, tries: int = 40) -> int:
+    """start 부터 빈 포트를 찾는다(8010 코어 서버 등과 충돌 회피)."""
+    for p in range(start, start + tries):
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+            s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+            try:
+                s.bind((host, p))
+                return p
+            except OSError:
+                continue
+    return start
+
+
 def main() -> None:
     if not config.model_files_present():
         print("모델이 없습니다. 먼저: python -m vigentFacialRecognition.download_models")
         return
-    host, port = "127.0.0.1", 8010
+    host = "127.0.0.1"
+    port = _free_port(host)                 # 빈 포트 자동 선택(8010 코어와 충돌 방지)
     url = f"http://{host}:{port}"
     print(f"\n  VIGENT 통합 비전 데모 → {url}")
-    print("  탭: 얼굴인식 · 동요지표 · 모션확대  (데모 모드)\n")
+    print("  탭: 얼굴인식 · 동요지표 · 모션확대  (데모 모드)")
+    print("  ※ 브라우저가 안 열리면 위 주소를 직접 입력하세요.\n")
     try:
         webbrowser.open(url)
     except Exception:
