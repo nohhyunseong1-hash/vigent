@@ -36,6 +36,17 @@
   .bar > i{display:block;height:100%;width:0;background:var(--brand);transition:.2s}
   .lvl{font-size:20px;font-weight:800;text-align:center;padding:10px;border-radius:10px;
     background:#0a1117;border:1px solid var(--line)}
+  .basis{max-width:1100px;margin:0 auto 18px;padding:0 14px}
+  .basis summary{cursor:pointer;color:var(--brand);font-weight:700;font-size:14px;
+    padding:10px 14px;background:var(--panel);border:1px solid var(--line);border-radius:10px}
+  .bgrid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:12px}
+  @media(max-width:780px){.bgrid{grid-template-columns:1fr}}
+  .bgrid h4{margin:0 0 8px;color:var(--brand);font-size:14px}
+  .bgrid p{margin:6px 0;font-size:13px;line-height:1.55;color:var(--txt)}
+  .bgrid b{color:var(--brand)}
+  .bnote{max-width:1100px;font-size:12px;line-height:1.5;color:#ffd28a;margin-top:12px;
+    background:rgba(245,158,11,.10);border:1px solid rgba(245,158,11,.3);
+    border-radius:8px;padding:10px 12px}
   button{cursor:pointer;border:0;border-radius:8px;padding:10px;font-size:13px;
     font-weight:600;width:100%;margin-top:8px}
   .btn{background:var(--brand);color:#06241c}
@@ -85,6 +96,25 @@
     </div>
   </aside>
 </div>
+
+<details class="basis">
+  <summary>측정 근거 — 무엇을, 어떻게 재나요? (펼쳐보기)</summary>
+  <div class="bgrid">
+    <div>
+      <h4>① 동요 지수 (얼굴 미세떨림)</h4>
+      <p><b>근거:</b> 사람의 머리·얼굴은 가만히 있어도 미세하게 끊임없이 움직입니다(자세를 유지하려는 미동 + 생리적 떨림). 피로·긴장·각성 상태에서 이 미동의 양상이 달라질 수 있습니다.</p>
+      <p><b>방법:</b> 얼굴 5점(양눈·코·입)을 매 프레임 추적 → <b>두 눈 사이 거리로 정규화</b>(카메라 거리·얼굴 크기와 무관하게) → 단기 추세를 빼고 남은 잔떨림의 크기(RMS)를 동요 지수로 환산.</p>
+      <p><b>판정:</b> 절대값으로 단정하지 않고 <b>‘당신의 평소(기준선)’ 대비 상대값(z)</b>으로 안정/주의/휴식권고를 표시합니다. 그래서 처음 몇 초 ‘측정중(기준선 학습)’이 필요합니다.</p>
+    </div>
+    <div>
+      <h4>② 심박 (rPPG · 영상 광혈류측정)</h4>
+      <p><b>근거:</b> 심장이 뛸 때마다 피부 속 혈류량이 변해 <b>얼굴색이 아주 미세하게</b> 바뀝니다(맨눈엔 안 보임). 이 색 변화의 주기가 곧 심박수입니다. — 광혈류측정(PPG)을 카메라로 비접촉 수행하는 rPPG 원리.</p>
+      <p><b>방법:</b> 이마 영역의 RGB 시계열을 모아 <b>POS 알고리즘</b>(Wang et al., 2017)으로 맥파를 추출 → 0.7~4Hz(42~240bpm) 대역의 주파수 분석(FFT) 피크를 심박수로 환산. 신호가 약하면(SNR&lt;3) 표시하지 않고 폴백합니다.</p>
+      <p><b>참고 시각화:</b> ‘모션 확대’ 탭은 같은 미세 변화를 눈에 보이게 증폭(Eulerian Video Magnification, MIT Wu et al., 2012)합니다.</p>
+    </div>
+  </div>
+  <p class="bnote">⚠ 근거의 경계: 일반 웹캠 fps 한계로 고주파 떨림은 일부만 관측되고, 조명·움직임에 민감합니다. 이 지표는 <b>안전용 참고 신호</b>이며 감정·거짓말·위협 판별이나 의료 진단이 아닙니다. 출처: 생리적 떨림(physiological tremor), rPPG/PPG, POS(2017), EVM(2012).</p>
+</details>
 
 <script>
 const $=id=>document.getElementById(id);
