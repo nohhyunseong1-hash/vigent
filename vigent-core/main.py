@@ -879,6 +879,36 @@ def safety_auto_console():
     return _AUTO_HTML.replace("/*CSS*/", _TBM_CSS)
 
 
+# ── 서버사이드 추론 워커(브라우저 없이 서버가 영상 감시) ──
+@app.post("/worker/start")
+def worker_start(payload: dict = Body(...), theme: str = DEFAULT_THEME):
+    """추론 워커 시작. payload={source(RTSP/비디오/이미지 경로 또는 웹캠번호), name?, fps?}.
+    위험 감지 시 data_engine 에 기록 → 자동처리 콘솔에 자동 노출."""
+    import worker as _w
+    bundle = STATE.get(theme) or _load_theme(theme)
+    guard = bundle["agents"].get("Guard")
+    src = str(payload.get("source", "")).strip()
+    if not src:
+        raise HTTPException(status_code=400, detail="source(RTSP/비디오/이미지 경로 또는 웹캠번호) 필요")
+    return _w.worker.start(guard, _DETECT_LOCK, src,
+                           name=str(payload.get("name", "CAM")),
+                           fps=float(payload.get("fps", 2.0)))
+
+
+@app.post("/worker/stop")
+def worker_stop():
+    """추론 워커 중지."""
+    import worker as _w
+    return _w.worker.stop()
+
+
+@app.get("/worker/status")
+def worker_status():
+    """추론 워커 상태(실행여부·처리프레임·기록이벤트·마지막이벤트·오류)."""
+    import worker as _w
+    return _w.worker.status()
+
+
 @app.post("/alerts/test")
 def alerts_test(payload: dict = Body(default={}), theme: str = DEFAULT_THEME):
     """Dispatcher 경보 테스트. payload={level, message}. 키 없으면 폴백(로그)로 동작."""
