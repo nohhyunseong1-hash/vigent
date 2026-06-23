@@ -109,6 +109,16 @@
     </div>
 
     <div class="panel">
+      <h4>📈 연습 기록</h4>
+      <div style="display:flex;gap:10px">
+        <div style="flex:1;background:#0d1119;border-radius:10px;padding:10px;text-align:center"><div style="font-size:20px;font-weight:800;color:#feca57" id="spStreak">🔥0</div><div style="font-size:11px;color:var(--mut)">연속일</div></div>
+        <div style="flex:1;background:#0d1119;border-radius:10px;padding:10px;text-align:center"><div style="font-size:20px;font-weight:800;color:var(--accent)" id="spToday">0</div><div style="font-size:11px;color:var(--mut)">오늘 연습</div></div>
+        <div style="flex:1;background:#0d1119;border-radius:10px;padding:10px;text-align:center"><div style="font-size:20px;font-weight:800" id="spTotal">0</div><div style="font-size:11px;color:var(--mut)">총 세션</div></div>
+      </div>
+      <div id="spBars" style="display:flex;gap:4px;align-items:flex-end;height:44px;margin-top:10px"></div>
+    </div>
+
+    <div class="panel">
       <button id="btnMirror">🪞 거울 ON</button>
       <button id="btn3D">🧊 3D ON</button>
       <button id="btnVoice" class="primary">🔊 음성 ON</button>
@@ -453,6 +463,31 @@ function setGauge(score){
 }
 
 let holdSec=0, lastT=performance.now();
+// ── 연습 기록(익명) ──
+let STOKEN=localStorage.getItem('vigent_sports_token');
+if(!STOKEN){ STOKEN='sp-'+Math.random().toString(36).slice(2,10); localStorage.setItem('vigent_sports_token',STOKEN); }
+let holdLogged=false, curScore=0;
+function logSession(){
+  if(!cur) return;
+  fetch('/sports/session',{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({token:STOKEN, asana:cur.name, score:curScore, hold_sec:holdSec})})
+    .then(()=>loadProgress()).catch(()=>{});
+}
+function loadProgress(){
+  fetch(`/sports/progress?token=${STOKEN}&days=30`).then(r=>r.json()).then(j=>{
+    if(!j.ok) return;
+    document.getElementById('spStreak').textContent='🔥'+(j.streak||0);
+    document.getElementById('spToday').textContent=(j.today?j.today.sessions:0);
+    document.getElementById('spTotal').textContent=j.total_sessions||0;
+    const bars=document.getElementById('spBars'); bars.innerHTML='';
+    for(const s of (j.series||[]).slice(-14)){ const h=Math.max(4,s.avg_score*0.42);
+      const col=s.avg_score>=80?'var(--good)':s.avg_score>=60?'var(--warn)':'var(--bad)';
+      const d=document.createElement('div'); d.title=`${s.date}: 평균 ${s.avg_score}점 · ${s.sessions}회`;
+      d.style.cssText=`flex:1;min-width:10px;height:${h}px;background:${col};border-radius:3px 3px 0 0`;
+      bars.appendChild(d); }
+  }).catch(()=>{});
+}
+loadProgress();
 function updateForm(m){
   const ls=lvl(m.symmetry,CFG.symmetry),lb=lvl(m.balance,CFG.balance),lst=lvl(m.stability,CFG.stability);
   document.getElementById('vSym').textContent=m.symmetry!=null?m.symmetry.toFixed(0)+'°':'--'; setDot('dSym',ls);
@@ -463,7 +498,10 @@ function updateForm(m){
   if(!cur || !cur.scored) setGauge(score);   // 채점동작은 정답각도 점수가 우선(updateAngleChecks)
   // 유지 시간: 폼 좋고 안정적이면 누적, 흐트러지면 리셋
   const now=performance.now(),dt=(now-lastT)/1000;lastT=now;
-  if(score>=70 && lst!=='bad'){ holdSec+=dt; } else { holdSec=0; }
+  curScore=score;
+  if(score>=70 && lst!=='bad'){ holdSec+=dt; } else { holdSec=0; holdLogged=false; }
+  // 목표 시간 유지 완료 → 연습 1건 기록(1회)
+  if(holdSec>=CFG.hold && !holdLogged){ holdLogged=true; logSession(); }
   document.getElementById('holdSec').textContent=Math.floor(holdSec);
   document.getElementById('holdFill').style.width=Math.min(100,holdSec/CFG.hold*100)+'%';
   // 간단 코칭(가장 나쁜 지표)

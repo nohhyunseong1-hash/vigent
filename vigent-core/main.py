@@ -1326,6 +1326,22 @@ def sports_reference():
     return json.loads(p.read_text(encoding="utf-8"))
 
 
+@app.post("/sports/session")
+def sports_session(payload: dict = Body(default={})):
+    """연습 1건(동작·점수·유지시간) 익명 기록. 토큰은 브라우저 로컬 랜덤값."""
+    import sports_data
+    return sports_data.log_session(
+        token=payload.get("token", "anon"), asana=payload.get("asana", ""),
+        score=payload.get("score", 0), hold_sec=payload.get("hold_sec", 0))
+
+
+@app.get("/sports/progress")
+def sports_progress(token: str = "anon", days: int = 30):
+    """익명 토큰의 연습 진행도(추세·연속일·동작별 최고점)."""
+    import sports_data
+    return sports_data.progress(token, days)
+
+
 @app.get("/theme/{theme}/raw")
 def theme_raw(theme: str):
     """테마 vision.yaml 원본 반환(프론트가 ergonomics 등 설정을 읽어 설정주도 동작)."""
