@@ -100,7 +100,7 @@ class EnrollmentStore:
         eng = get_engine()
         vecs: list[np.ndarray] = []
         for img in images:
-            faces = [f for f in eng.detect(img) if eng.quality_ok(f)]
+            faces = [f for f in eng.detect(img) if eng.quality_ok(f, img)]
             if not faces:
                 continue
             # 가장 큰 얼굴 선택(가장 가까운/주피사체)

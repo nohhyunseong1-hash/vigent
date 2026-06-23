@@ -55,6 +55,17 @@ MAX_EMB_PER_PERSON = 10
 MIN_FACE_PX = int(os.environ.get("VIGENT_FR_MIN_FACE_PX", "60"))
 # 두 눈을 잇는 선의 최대 기울기(도). 초과하면 과회전/역상으로 보고 배제.
 MAX_EYE_TILT_DEG = float(os.environ.get("VIGENT_FR_MAX_TILT", "30"))
+# 흐림(블러) 최소치 = 얼굴영역 라플라시안 분산. 미만이면 흐릿 → 배제. 0이면 검사 끔.
+MIN_BLUR_VAR = float(os.environ.get("VIGENT_FR_MIN_BLUR", "0"))
+# 밝기 허용 범위(얼굴영역 평균 그레이 0~255). 벗어나면 너무 어둡/밝음 → 배제.
+MIN_BRIGHTNESS = float(os.environ.get("VIGENT_FR_MIN_BRIGHT", "40"))
+MAX_BRIGHTNESS = float(os.environ.get("VIGENT_FR_MAX_BRIGHT", "235"))
+
+# ── 멀티프레임 융합 · K-연속 일치 (정확도↑) ──────────────────
+# 키오스크/게이트에서 한 장이 아니라 N프레임 임베딩을 평균내 한 번에 판정.
+FUSION_FRAMES = int(os.environ.get("VIGENT_FR_FUSION_FRAMES", "5"))
+# 스트리밍에서 '같은 사람'이 연속 K프레임 일치해야 최종 확정(오수락 차단).
+VOTE_K = int(os.environ.get("VIGENT_FR_VOTE_K", "3"))
 
 
 def model_files_present() -> bool:

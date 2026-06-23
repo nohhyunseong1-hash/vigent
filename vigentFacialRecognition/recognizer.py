@@ -65,3 +65,82 @@ def identify_timed(frame: np.ndarray, **kw) -> tuple[list[Match], float]:
     t0 = time.perf_counter()
     out = identify(frame, **kw)
     return out, (time.perf_counter() - t0) * 1000.0
+
+
+def _match_embedding(emb: np.ndarray, gallery, owners, th: float):
+    """임베딩 1개를 갤러리와 비교 → (person_id, name, similarity)."""
+    if gallery.shape[0] == 0:
+        return None, None, 0.0
+    sims = gallery @ emb
+    j = int(np.argmax(sims))
+    sim = float(sims[j])
+    if sim >= th:
+        pid = owners[j]
+        return pid, get_store().name_of(pid), sim
+    return None, None, sim
+
+
+def identify_fused(frames: list[np.ndarray], *, threshold: float | None = None,
+                   audit: bool = True) -> Match | None:
+    """멀티프레임 융합 식별(키오스크/게이트 1인 시나리오).
+
+    여러 프레임에서 가장 크고 품질 좋은 얼굴 임베딩을 모아 평균(fuse)한 뒤 한 번만
+    매칭한다. 단일 프레임보다 흔들림·표정·조명 노이즈에 강해 정확도가 오른다.
+    얼굴을 한 번도 못 잡으면 None.
+    """
+    privacy.require_enabled()
+    th = config.COSINE_THRESHOLD if threshold is None else threshold
+    eng = get_engine()
+    gallery, owners = get_store().gallery_matrix()
+
+    probes: list[np.ndarray] = []
+    bbox = (0, 0, 0, 0)
+    score = 0.0
+    for fr in frames:
+        dets = eng.detect_and_embed(fr, quality_filter=True)
+        if not dets:
+            continue
+        face, emb = max(dets, key=lambda d: d[0].bbox[2] * d[0].bbox[3])
+        probes.append(emb)
+        bbox, score = face.bbox, face.score
+
+    if not probes:
+        return None
+    fused = eng.fuse(probes)
+    pid, name, sim = _match_embedding(fused, gallery, owners, th)
+    if audit:
+        privacy.audit("identify_fused", frames=len(frames), used=len(probes),
+                      matched=pid, similarity=round(sim, 4))
+    return Match(bbox=bbox, person_id=pid, name=name,
+                 similarity=round(sim, 4), detect_score=round(score, 4))
+
+
+class TemporalVoter:
+    """K-연속 일치 확정기(스트리밍용).
+
+    매 프레임의 식별 결과(person_id 또는 None)를 넣으면, 같은 사람이 연속 K번
+    나와야 비로소 '확정'을 돌려준다. 한 프레임짜리 오인식이 게이트를 여는 걸 막는다.
+
+        voter = TemporalVoter(k=3)
+        confirmed = voter.update(match.person_id)   # K번 연속 전에는 None
+    """
+
+    def __init__(self, k: int | None = None) -> None:
+        self.k = k or config.VOTE_K
+        self._last: str | None = None
+        self._count = 0
+        self._confirmed: str | None = None
+
+    def update(self, person_id: str | None) -> str | None:
+        if person_id is not None and person_id == self._last:
+            self._count += 1
+        else:
+            self._last = person_id
+            self._count = 1 if person_id is not None else 0
+        if self._count >= self.k:
+            self._confirmed = self._last
+            return self._confirmed
+        return None
+
+    def reset(self) -> None:
+        self._last, self._count, self._confirmed = None, 0, None

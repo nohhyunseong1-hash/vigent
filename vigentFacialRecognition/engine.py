@@ -81,32 +81,62 @@ class FaceEngine:
 
     # ── 품질 게이트 ───────────────────────────────────────────
     @staticmethod
-    def quality_ok(face: Face) -> bool:
-        """정확도 보호: 너무 작거나 과도하게 기울어진(역상 포함) 얼굴은 배제.
+    def quality_ok(face: Face, img: np.ndarray | None = None) -> bool:
+        """정확도 보호: 저품질 얼굴(작음·기울어짐·흐림·과암/과명)을 배제.
 
         - 크기: 얼굴 짧은 변 ≥ MIN_FACE_PX.
         - 정면성: 좌·우 눈 랜드마크를 잇는 선의 기울기 ≤ MAX_EYE_TILT_DEG.
+        - (img 주면) 흐림: 라플라시안 분산 ≥ MIN_BLUR_VAR.
+        - (img 주면) 밝기: 얼굴영역 평균 그레이 ∈ [MIN_BRIGHTNESS, MAX_BRIGHTNESS].
         """
-        w, h = face.bbox[2], face.bbox[3]
+        x, y, w, h = face.bbox
         if min(w, h) < config.MIN_FACE_PX:
             return False
         (rx, ry), (lx, ly) = face.landmarks[0], face.landmarks[1]   # 오른눈, 왼눈
         tilt = abs(np.degrees(np.arctan2(ly - ry, lx - rx)))
         tilt = min(tilt, abs(180 - tilt))     # 역상(≈180°)도 큰 기울기로 본다
-        return tilt <= config.MAX_EYE_TILT_DEG
+        if tilt > config.MAX_EYE_TILT_DEG:
+            return False
+        if img is not None and (config.MIN_BLUR_VAR > 0 or config.MIN_BRIGHTNESS > 0):
+            H, W = img.shape[:2]
+            x0, y0 = max(0, x), max(0, y)
+            x1, y1 = min(W, x + w), min(H, y + h)
+            crop = img[y0:y1, x0:x1]
+            if crop.size == 0:
+                return False
+            gray = cv2.cvtColor(crop, cv2.COLOR_BGR2GRAY)
+            if config.MIN_BLUR_VAR > 0:
+                if cv2.Laplacian(gray, cv2.CV_64F).var() < config.MIN_BLUR_VAR:
+                    return False        # 흐릿함
+            mean = float(gray.mean())
+            if mean < config.MIN_BRIGHTNESS or mean > config.MAX_BRIGHTNESS:
+                return False            # 너무 어둡거나 밝음
+        return True
 
     def detect_and_embed(self, img: np.ndarray, *, quality_filter: bool = False
                          ) -> list[tuple[Face, np.ndarray]]:
         """검출 + 각 얼굴 임베딩을 한 번에. quality_filter=True면 저품질 얼굴 제외."""
         faces = self.detect(img)
         if quality_filter:
-            faces = [f for f in faces if self.quality_ok(f)]
+            faces = [f for f in faces if self.quality_ok(f, img)]
         return [(f, self.embed(img, f)) for f in faces]
 
     @staticmethod
     def cosine(a: np.ndarray, b: np.ndarray) -> float:
         """두 (정규화된) 임베딩의 코사인 유사도."""
         return float(np.dot(a, b))
+
+    @staticmethod
+    def fuse(embeddings: list[np.ndarray]) -> np.ndarray | None:
+        """멀티프레임 융합: 여러 임베딩을 평균 후 재정규화 → 노이즈에 강한 1개 벡터.
+
+        한 장의 흔들림·표정·조명 노이즈가 평균으로 상쇄돼 인식률이 오른다.
+        """
+        if not embeddings:
+            return None
+        m = np.mean(np.stack(embeddings).astype(np.float32), axis=0)
+        n = np.linalg.norm(m)
+        return m / n if n > 0 else m
 
 
 # 모듈 전역 싱글턴(지연 로딩) — 무거운 모델을 매번 만들지 않는다.
