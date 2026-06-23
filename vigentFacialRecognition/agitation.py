@@ -26,6 +26,9 @@ from .engine import get_engine
 DISCLAIMER = ("참고용 동요/피로 지표입니다. 감정·거짓말·위협 판별이 아니며, "
               "의료 진단이 아닙니다. 불이익 결정의 근거로 쓰지 말고 사람이 확인하세요.")
 
+# 기준선(평소 상태) 학습에 필요한 동요 표본 수. 이만큼 모이면 '측정중' 종료.
+BASELINE_SAMPLES = 40
+
 
 class AgitationMonitor:
     """프레임을 순서대로 넣으면(update) 동요 지수·심박을 갱신해 돌려주는 상태 객체.
@@ -95,7 +98,7 @@ class AgitationMonitor:
 
     def _level(self, tremor: float | None) -> tuple[str, float]:
         """본인 세션 기준선 대비 상대 등급(z). 데이터 부족하면 '측정중'."""
-        if tremor is None or len(self.tremor_hist) < 40:
+        if tremor is None or len(self.tremor_hist) < BASELINE_SAMPLES:
             return "측정중", 0.0
         h = np.array(self.tremor_hist)
         med = float(np.median(h))
@@ -153,14 +156,29 @@ class AgitationMonitor:
         return round(float(bf[j] * 60.0), 1), round(snr, 2)
 
     # ── 출력 ──────────────────────────────────────────────────
+    def _fps_est(self) -> float:
+        if len(self.ts) >= 5:
+            span = self.ts[-1] - self.ts[0]
+            if span > 0:
+                return (len(self.ts) - 1) / span
+        return 12.0
+
     def _out(self, *, face: bool, tremor=None, hr=None, hr_quality=0.0,
              face_px: int = 0) -> dict:
         level, z = self._level(tremor)
+        # 기준선 캘리브레이션 진행률 + 남은 시간(얼굴 유지 가정)
+        have = len(self.tremor_hist)
+        progress = min(1.0, have / BASELINE_SAMPLES)
+        remaining = max(0, BASELINE_SAMPLES - have)
+        remaining_sec = round(remaining / max(self._fps_est(), 1.0), 1)
         return {
             "face": face,
             "tremor": None if tremor is None else round(tremor, 2),
             "tremor_z": round(z, 2),
             "level": level if face else "얼굴없음",
+            "calibrating": level == "측정중",
+            "baseline_progress": round(progress, 2),      # 0.0~1.0
+            "baseline_remaining_sec": remaining_sec,       # 약 N초 남음
             "heart_rate_bpm": hr,
             "hr_quality": hr_quality,
             "face_px": face_px,

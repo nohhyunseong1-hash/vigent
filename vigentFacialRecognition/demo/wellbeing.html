@@ -63,6 +63,10 @@
     <div class="card">
       <h3>종합 상태(참고)</h3>
       <div class="lvl" id="level">대기</div>
+      <div id="calib" style="margin-top:8px;display:none">
+        <div style="font-size:12px;color:var(--dim)" id="calibTxt">평소 상태 학습 중…</div>
+        <div class="bar"><i id="cbar" style="background:var(--blue)"></i></div>
+      </div>
     </div>
     <div class="card">
       <h3>동요 지수</h3>
@@ -124,6 +128,16 @@ function render(d){
     '휴식 권고(참고)':'var(--danger)','측정중':'var(--blue)','얼굴없음':'var(--dim)'};
   lv.textContent=d.face?d.level:'얼굴 없음';
   lv.style.color=colors[d.level]||'var(--txt)';
+  // 기준선 캘리브레이션 진행률 + 남은 시간
+  const cal=$('calib');
+  if(d.face && d.calibrating){
+    cal.style.display='block';
+    const pct=Math.round((d.baseline_progress||0)*100);
+    $('cbar').style.width=pct+'%';
+    $('calibTxt').textContent=`평소 상태 학습 중… ${pct}% · 약 ${d.baseline_remaining_sec}초 남음 (얼굴을 화면에 유지)`;
+  }else{
+    cal.style.display='none';
+  }
   $('tremor').textContent=d.tremor??'—';
   $('zval').textContent='z '+(d.tremor_z??'—');
   $('tbar').style.width=Math.min(100,(d.tremor||0))+'%';
