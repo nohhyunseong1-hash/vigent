@@ -66,6 +66,19 @@
   <div class="stage">
     <canvas id="cv"></canvas>
     <canvas id="cv3d" style="position:absolute;inset:0;width:100%;height:100%;pointer-events:none"></canvas>
+    <div id="intro" style="position:absolute;inset:0;background:rgba(8,10,18,.9);z-index:10;display:flex;align-items:center;justify-content:center;padding:24px">
+      <div style="max-width:440px;text-align:center">
+        <div style="font-size:44px">🧘</div>
+        <h2 style="margin:8px 0">VIGENT Sports · 요가 코치</h2>
+        <p style="color:var(--mut);font-size:14px;line-height:1.7;text-align:left;margin:14px 0">
+          ① <b>동작을 선택</b>하거나 그냥 자세를 취하면 <b>AI가 자동 인식</b>합니다<br>
+          ② 오른쪽 <b>목표 자세 그림</b>처럼 따라하면, <b>음성</b>이 교정해줍니다<br>
+          ③ 점수 <b>70점 이상으로 목표 시간 유지</b>하면 연습 1회 기록<br>
+          ④ 전신이 <b>카메라에 보이게</b> 한 발 물러서세요</p>
+        <p style="color:var(--mut);font-size:12px">📷 영상은 저장·전송되지 않습니다 · 분석은 이 브라우저에서만</p>
+        <button id="introStart" class="primary" style="margin-top:14px;padding:12px 28px;font-size:15px">시작하기</button>
+      </div>
+    </div>
     <div class="hud" id="hud">카메라 시작 중…</div>
     <div class="hud" id="viewMode" style="left:auto;right:12px;display:none"></div>
   </div>
@@ -642,6 +655,11 @@ document.getElementById('btnVoice').onclick=function(){ voiceOn=!voiceOn;
   this.textContent=voiceOn?'🔊 음성 ON':'🔇 음성 OFF'; this.className=voiceOn?'primary':'';
   if(voiceOn){ lastAnnounced=null; speak('음성 코칭을 시작합니다',0); } else { try{speechSynthesis.cancel();}catch(e){} } };
 if('speechSynthesis' in window) speechSynthesis.getVoices();   // 음성 목록 미리 로드
+// 첫 사용 안내 닫기(사용자 클릭 = 음성 허용 트리거)
+document.getElementById('introStart').onclick=function(){
+  document.getElementById('intro').style.display='none';
+  lastAnnounced=null; speak('요가 코치를 시작합니다',0);
+};
 
 document.getElementById('btnMirror').onclick=function(){MIRROR=!MIRROR;this.textContent=MIRROR?'🪞 거울 ON':'🪞 거울 OFF';};
 document.getElementById('btn3D').onclick=function(){MODE3D=!MODE3D;this.textContent=MODE3D?'🧊 3D ON':'🧊 3D OFF';

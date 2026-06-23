@@ -604,7 +604,15 @@ async function startApp(){
     if('Notification' in window && Notification.permission==='default') Notification.requestPermission();
     updateStreak(); renderBadges();   // 연속 사용일 + 뱃지
     hud.textContent='시작됨 · '+(ENGINE==='pose'?'빠른 모드':'정밀(손가락)');
-  }catch(e){ hud.textContent='시작 실패: '+e.message; }
+  }catch(e){
+    const m=(e&&e.name||'')+(e&&e.message||'');
+    let msg='시작 실패: '+(e&&e.message||e);
+    if(/NotAllowed|Permission|Denied/i.test(m)) msg='📷 카메라 권한이 거부되었습니다. 브라우저 주소창의 카메라 아이콘에서 허용 후 새로고침하세요.';
+    else if(/NotFound|Devices/i.test(m)) msg='📷 카메라를 찾을 수 없습니다. 카메라 연결을 확인하세요.';
+    else if(/NotReadable|in use/i.test(m)) msg='📷 다른 앱이 카메라를 사용 중입니다. 그 앱을 끄고 새로고침하세요.';
+    hud.textContent=msg;
+    hud.style.cssText+=';max-width:80%;white-space:normal;line-height:1.5';
+  }
 }
 // 동의 게이트: 이미 동의했으면 바로 시작, 아니면 동의 후 시작(카메라는 동의 전 미작동)
 const cAgree=document.getElementById('cAgree'), cStart=document.getElementById('cStart');
