@@ -425,12 +425,25 @@ function updateTracker(predictions){
   return stableTrackedObjects(result);
 }
 
+// 안전 특화 안정화: 안전 위험(사람·보호구·위험물)은 관대하게(놓치지 않음),
+// 일반 사물은 엄격하게(N프레임 확정 + 높은 임계 → 깜빡임/불안정 제거).
+// 임계값을 일괄로 올리면 진짜 위험을 놓치므로, '표시 임계'와 '안전 임계'를 분리한다.
+function _isSafetyCritical(c){
+  c = String(c||'').toLowerCase();
+  return c==='person' || isPpeClass(c) || DANGER_OBJ.includes(c)
+      || c==='fire' || c==='smoke' || c==='cigarette' || c==='forklift';
+}
 function stableTrackedObjects(tracked){
   if(!document.getElementById('togPrecision')?.checked) return tracked;
+  const safety = (typeof activeServiceMode!=='undefined' && activeServiceMode==='safety');
   return tracked.filter(o=>{
-    if(o.gone>0) return o.hits>=3&&o.gone<=3;
-    if(o.class==='person') return (o.hits||1)>=1||o.score>=0.35;
-    return (o.hits||1)>=2||o.score>=0.56;
+    const crit = safety && _isSafetyCritical(o.class);
+    if(o.gone>0){                                  // 사라진 직후 잔상(히스테리시스)
+      return crit ? (o.hits>=2 && o.gone<=4)       // 안전: 조금 더 오래 유지
+                  : (o.hits>=3 && o.gone<=2);       // 일반: 빨리 정리(깜빡임↓)
+    }
+    if(crit) return (o.hits||1)>=1 || o.score>=0.30;  // 안전 위험: 관대(미탐 방지)
+    return (o.hits||1)>=3 || o.score>=0.62;           // 일반 사물: 엄격(3프레임 확정/고신뢰)
   });
 }
 
