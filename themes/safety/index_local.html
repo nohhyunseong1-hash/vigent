@@ -1,18 +1,19 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
+<script>window.VIGENT_LOCAL=true;/* 로컬 번들판 */</script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>VIGENT Safety — 산업안전 관제 콘솔</title>
+<title>[로컬번들] VIGENT Safety — 산업안전 관제 콘솔</title>
 
 <!-- TF.js + 모델들 -->
-<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.14.0/dist/tf.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/coco-ssd@2.2.3/dist/coco-ssd.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/mobilenet@2.1.1/dist/mobilenet.min.js"></script>
+<script src="/static/vendor/tf/tf.min.js"></script>
+<script src="/static/vendor/tf/coco-ssd.min.js"></script>
+<script src="/static/vendor/tf/mobilenet.min.js"></script>
 <script src="/static/posture-model.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/@mediapipe/holistic@0.5.1675471629/holistic.js" crossorigin="anonymous"></script>
-<script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
-<script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js" crossorigin="anonymous"></script>
+<script src="/static/vendor/mediapipe/holistic.js" crossorigin="anonymous"></script>
+<script src="/static/vendor/mediapipe/camera_utils.js" crossorigin="anonymous"></script>
+<script src="/static/vendor/mediapipe/drawing_utils.js" crossorigin="anonymous"></script>
 <link rel="stylesheet" href="/static/realtime_shared.css">
 <link rel="stylesheet" href="/static/vigent-skin.css?v=1">
 <!-- Tapo(IP카메라) 입력 — URL 에 ?cam=tapo 일 때만 활성. 기본(웹캠)은 무변경(규칙 6).
@@ -156,7 +157,7 @@
           <a class="vg-mi" onclick="vgGo('/safety/tbm')">📝 작업 전 TBM 회의록</a>
           <a class="vg-mi" onclick="vgGo('/safety/auto')">🛡 안전 자동처리 콘솔</a>
           <div class="vg-mh vg-mt">현장 도구</div>
-          <a class="vg-mi" onclick="vgGo('/safety-local')">🔁 로컬 번들판(CDN 없이·비교)</a>
+          <a class="vg-mi" onclick="vgGo('/safety')">🔁 CDN판으로 비교</a>
           <a class="vg-mi" onclick="axStartCalibration();vgCloseMenu()">📏 거리 보정 (m·km/h)</a>
           <a class="vg-mi" onclick="toggleTherm();vgCloseMenu()">🌡 온도 감지 (열화상)</a>
         </div>

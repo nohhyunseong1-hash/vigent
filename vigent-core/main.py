@@ -940,6 +940,15 @@ def workers_stop_all():
     return _w.manager.stop_all()
 
 
+@app.get("/safety-local", response_class=HTMLResponse)
+def safety_local():
+    """로컬 번들판 — CDN 없이 /static/vendor 에서 MediaPipe·TF 로드(폐쇄망·USB). CDN판(/safety)과 비교용."""
+    p = _ROOT / "themes" / "safety" / "index_local.html"
+    if not p.exists():
+        raise HTTPException(status_code=404, detail="index_local.html 없음(생성 필요)")
+    return FileResponse(p)
+
+
 @app.get("/dashboard", response_class=HTMLResponse)
 def dashboard_page(theme: str = DEFAULT_THEME):
     """테마별 경영 대시보드 — 실제 이벤트 통계(발생건수·유형·현장·등급·이력·추이·처리현황)."""

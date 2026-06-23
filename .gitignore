@@ -31,3 +31,6 @@ env/
 .vscode/
 bin/
 config/site.yaml
+
+# 로컬 번들 자산(다운로드로 재생성: bin/download-vendor.sh)
+vigent-core/static/vendor/

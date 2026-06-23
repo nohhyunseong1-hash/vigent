@@ -232,17 +232,23 @@ async function initModels(){
   try{
     setTimeout(()=>{document.getElementById('loadingOverlay').style.display='none';if(!cameraOn)setCameraUI(false);},1400);
     loadStep(0,false);
-    holistic=new Holistic({locateFile:f=>`https://cdn.jsdelivr.net/npm/@mediapipe/holistic@0.5.1675471629/${f}`});
+    // VIGENT_LOCAL=true 이면 로컬 번들(/static/vendor)에서 로드(CDN 없이·폐쇄망), 아니면 CDN.
+    const _mpBase = window.VIGENT_LOCAL ? '/static/vendor/mediapipe/' : 'https://cdn.jsdelivr.net/npm/@mediapipe/holistic@0.5.1675471629/';
+    holistic=new Holistic({locateFile:f=>_mpBase+f});
     holistic.setOptions({modelComplexity:1,smoothLandmarks:true,enableSegmentation:false,refineFaceLandmarks:true,minDetectionConfidence:0.5,minTrackingConfidence:0.5});
     holistic.onResults(onHolisticResults);
     loadStep(0,true);
 
     loadStep(1,false);
-    cocoModel=await cocoSsd.load({base:'mobilenet_v2'});
+    cocoModel=await (window.VIGENT_LOCAL
+      ? cocoSsd.load({modelUrl:'/static/vendor/tf/cocossd/model.json'})
+      : cocoSsd.load({base:'mobilenet_v2'}));
     loadStep(1,true);
 
     loadStep(2,false);
-    mobileNetModel=await mobilenet.load({version:2,alpha:1.0});
+    mobileNetModel=await (window.VIGENT_LOCAL
+      ? mobilenet.load({version:2,alpha:1.0,modelUrl:'/static/vendor/tf/mobilenet/model.json'})
+      : mobilenet.load({version:2,alpha:1.0}));
     loadStep(2,true);
     {const _mn=document.getElementById('mnStatus'); if(_mn)_mn.textContent='✅ 준비 완료';}
 
