@@ -62,6 +62,9 @@ class GuardAgent(BaseAgent):
 
     # ── 인식 강화 튜닝(한 곳에서 조정) ──
     DEFAULT_CONF = 0.30      # 임계값(낮을수록 많이 잡음)
+    # 검출기별 임계값 — 사람은 낮게(잘 잡되), 건설모델(PPE·지게차·화재)은 높게(실내 오탐 컷).
+    # 화재는 오경보가 치명적이라 가장 높게. 명시 conf 가 오면 그걸 우선.
+    DETECTOR_CONF = {"person": 0.35, "ppe": 0.55, "forklift": 0.55, "fire_smoke": 0.62}
     IMGSZ = 960              # 추론 해상도(클수록 작은 객체↑). 워밍업 후 ~250ms/회로 빠름
     TRACK_TTL = 1.2          # 서버 추적 유지시간(초). 프론트 간격보다 길게 → 깜빡임 제거
     TRACK_IOU = 0.45         # 같은 객체로 볼 겹침 기준
@@ -155,7 +158,7 @@ class GuardAgent(BaseAgent):
         image_bgr: cv2 BGR numpy 배열
         detectors: 돌릴 검출기 id 목록(기본 person·ppe·forklift; fire 는 명시 시)
         """
-        conf = self.DEFAULT_CONF if conf is None else conf
+        conf_override = conf      # None 이면 검출기별 임계(DETECTOR_CONF) 사용
         # 기본은 '범용' 검출기(person=yolo11s, COCO 80종)만 — 어디서든 일상 사물 정확 인식.
         # 건설 전용(ppe·forklift·fire_smoke)은 사무실/실내에서 오탐을 일으키므로 기본 off.
         #   → 건설현장에서 쓸 때만 detectors=["person","ppe","forklift","fire_smoke"] 로 명시 호출.
@@ -168,9 +171,10 @@ class GuardAgent(BaseAgent):
             model = self._get_model(slot)
             if model is None:
                 continue
+            slot_conf = conf_override if conf_override is not None else self.DETECTOR_CONF.get(slot, self.DEFAULT_CONF)
             try:
-                # 해상도 ↑(imgsz) 단일 추론 + GPU(MPS) 가속 — 작은/먼 객체 회복, 4배 빠름
-                res = model.predict(image_bgr, verbose=False, conf=conf,
+                # 해상도 ↑(imgsz) 단일 추론 + 검출기별 임계(건설모델은 높게 → 오탐 컷)
+                res = model.predict(image_bgr, verbose=False, conf=slot_conf,
                                     imgsz=self.IMGSZ, device=self.device)[0]
             except Exception as ex:  # noqa: BLE001  추론 실패해도 나머지 진행
                 self._load_errors[slot] = f"predict: {type(ex).__name__}: {ex}"
