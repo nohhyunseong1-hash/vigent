@@ -1,0 +1,26 @@
+# VIGENT 현장 설정(USB/엣지 설치본) — 이 파일을 site.yaml 로 복사해 현장에 맞게 수정하세요.
+#   cp config/site.example.yaml config/site.yaml   후, 카메라 주소만 바꾸면 됩니다.
+# VIGENT_EDGE=1 로 실행하면(아래 bin/vigent-edge.command) 부팅 시 카메라들이 자동 감시 시작.
+
+site: "○○공장 1현장"          # 현장 이름(이벤트에 표시됨)
+central_url: ""               # (선택) 본사 이벤트 수집 서버 URL. 비우면 로컬에만 기록.
+
+cameras:
+  # source: RTSP 주소 / 비디오 파일 / 이미지 파일 / 웹캠번호("0")
+  - id: cam1
+    name: "정문"
+    source: "rtsp://아이디:비번@192.168.0.101:554/stream1"
+    fps: 2                     # 초당 분석 프레임(안전 이벤트는 2~5면 충분, 낮을수록 가벼움)
+    # zone: 위험구역 폴리곤(정규화 0~1, 선택). 없으면 config/danger_zone.json 사용.
+    zone: [[0.5, 0.3], [1.0, 0.3], [1.0, 0.9], [0.5, 0.9]]
+
+  - id: cam2
+    name: "작업장A"
+    source: "rtsp://아이디:비번@192.168.0.102:554/stream1"
+    fps: 2
+
+  # 테스트용(카메라 없이): 비디오/이미지 파일이나 웹캠번호로 시험
+  # - id: test
+  #   name: "테스트"
+  #   source: "0"            # 노트북 웹캠
+  #   fps: 2

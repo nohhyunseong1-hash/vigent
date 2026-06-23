@@ -88,8 +88,8 @@ class Worker:
             "running": False, "source": "", "name": "", "fps": 0,
             "frames": 0, "events": 0, "last_event": "", "error": ""}
 
-    def start(self, guard, lock, source: str, name: str = "CAM",
-              fps: float = 2.0, detectors: list | None = None) -> dict:
+    def start(self, guard, lock, source: str, name: str = "CAM", fps: float = 2.0,
+              detectors: list | None = None, zone: list | None = None) -> dict:
         if self.state["running"]:
             return {"ok": False, "error": "이미 실행 중 — 먼저 중지하세요."}
         self._stop.clear()
@@ -98,7 +98,7 @@ class Worker:
         self._thread = threading.Thread(
             target=self._loop,
             args=(guard, lock, source, name, fps,
-                  detectors or ["person", "ppe", "forklift", "fire_smoke"]),
+                  detectors or ["person", "ppe", "forklift", "fire_smoke"], zone),
             daemon=True)
         self._thread.start()
         return {"ok": True, "status": self.status()}
@@ -113,10 +113,10 @@ class Worker:
     def status(self) -> dict:
         return dict(self.state)
 
-    def _loop(self, guard, lock, source, name, fps, detectors):
+    def _loop(self, guard, lock, source, name, fps, detectors, zone=None):
         interval = 1.0 / max(0.2, fps)
         cooldown: dict[str, float] = {}
-        zone = _load_zone()
+        zone = [tuple(p) for p in zone] if zone else _load_zone()   # 카메라별 구역 or 전역
         is_image = Path(source).suffix.lower() in _IMG_EXT and Path(source).exists()
         static = cv2.imread(source) if is_image else None
         cap = None
@@ -162,4 +162,67 @@ class Worker:
             self.state["running"] = False
 
 
-worker = Worker()
+# ── 다중 워커 매니저(현장 N대) + 현장설정(site.yaml) 자동시작 ──
+def load_site_config() -> dict | None:
+    """config/site.yaml(현장 설정) 로드. 없으면 None."""
+    p = _ROOT / "config" / "site.yaml"
+    if not p.exists():
+        return None
+    try:
+        import yaml
+        return yaml.safe_load(p.read_text(encoding="utf-8")) or {}
+    except Exception:  # noqa: BLE001
+        return None
+
+
+class WorkerManager:
+    """카메라 N대 워커를 등록·관리(다현장 엔진). 카메라 1대 = Worker 1개."""
+
+    def __init__(self):
+        self._workers: dict[str, Worker] = {}
+        self._reg_lock = threading.Lock()
+        self.site = ""
+
+    def start(self, guard, infer_lock, cam_id: str, source: str, name: str = "",
+              fps: float = 2.0, zone: list | None = None, detectors: list | None = None) -> dict:
+        with self._reg_lock:
+            cur = self._workers.get(cam_id)
+            if cur and cur.state["running"]:
+                return {"ok": False, "error": f"{cam_id} 이미 실행 중"}
+            w = Worker()
+            self._workers[cam_id] = w
+        return w.start(guard, infer_lock, source, name=name or cam_id, fps=fps,
+                       detectors=detectors, zone=zone)
+
+    def stop(self, cam_id: str) -> dict:
+        w = self._workers.get(cam_id)
+        if not w:
+            return {"ok": False, "error": f"{cam_id} 없음"}
+        return w.stop()
+
+    def stop_all(self) -> dict:
+        for w in list(self._workers.values()):
+            w.stop()
+        return {"ok": True, "stopped": len(self._workers)}
+
+    def status(self) -> dict:
+        return {"site": self.site,
+                "cameras": {cid: w.status() for cid, w in self._workers.items()}}
+
+    def autostart(self, guard, infer_lock) -> dict:
+        """site.yaml 의 카메라들로 워커 일괄 시작(헤드리스 — USB/엣지 부팅 시)."""
+        cfg = load_site_config()
+        if not cfg:
+            return {"ok": False, "error": "config/site.yaml 없음", "started": []}
+        self.site = str(cfg.get("site", ""))
+        started = []
+        for cam in cfg.get("cameras", []) or []:
+            cid = str(cam.get("id") or f"cam{len(started)+1}")
+            r = self.start(guard, infer_lock, cid, str(cam.get("source", "")),
+                           name=str(cam.get("name", cid)), fps=float(cam.get("fps", 2)),
+                           zone=cam.get("zone"))
+            started.append({cid: r.get("ok", False)})
+        return {"ok": True, "site": self.site, "started": started}
+
+
+manager = WorkerManager()

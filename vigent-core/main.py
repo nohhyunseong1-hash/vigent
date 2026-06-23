@@ -79,6 +79,14 @@ def _startup() -> None:
     s = cfg.summary()
     print(f"[VIGENT] '{cfg.display_name}' 로드 완료 "
           f"(폴백 {s['fallback_count']}개 / 비활성 {s['disabled_count']}개)")
+    # 엣지/USB 설치본: VIGENT_EDGE=1 이면 site.yaml 의 카메라로 워커 자동시작(헤드리스)
+    if os.environ.get("VIGENT_EDGE") == "1":
+        try:
+            import worker as _w
+            res = _w.manager.autostart(bundle["agents"].get("Guard"), _DETECT_LOCK)
+            print(f"[VIGENT EDGE] 현장 워커 자동시작 → {res}")
+        except Exception as ex:  # noqa: BLE001  자동시작 실패해도 서버는 뜬다
+            print(f"[VIGENT EDGE] 자동시작 실패: {type(ex).__name__}: {ex}")
 
 
 # ─────────────────────────────────────────────────────────────
@@ -879,34 +887,51 @@ def safety_auto_console():
     return _AUTO_HTML.replace("/*CSS*/", _TBM_CSS)
 
 
-# ── 서버사이드 추론 워커(브라우저 없이 서버가 영상 감시) ──
+# ── 서버사이드 추론 워커(브라우저 없이 서버가 영상 감시) — 다현장 N대 관리 ──
 @app.post("/worker/start")
 def worker_start(payload: dict = Body(...), theme: str = DEFAULT_THEME):
-    """추론 워커 시작. payload={source(RTSP/비디오/이미지 경로 또는 웹캠번호), name?, fps?}.
-    위험 감지 시 data_engine 에 기록 → 자동처리 콘솔에 자동 노출."""
+    """카메라 1대 워커 시작. payload={id?, source(RTSP/비디오/이미지/웹캠번호), name?, fps?, zone?}.
+    위험 감지 시 data_engine 기록 → 자동처리 콘솔 자동 노출."""
     import worker as _w
     bundle = STATE.get(theme) or _load_theme(theme)
-    guard = bundle["agents"].get("Guard")
     src = str(payload.get("source", "")).strip()
     if not src:
         raise HTTPException(status_code=400, detail="source(RTSP/비디오/이미지 경로 또는 웹캠번호) 필요")
-    return _w.worker.start(guard, _DETECT_LOCK, src,
-                           name=str(payload.get("name", "CAM")),
-                           fps=float(payload.get("fps", 2.0)))
+    return _w.manager.start(bundle["agents"].get("Guard"), _DETECT_LOCK,
+                            str(payload.get("id", "cam1")), src,
+                            name=str(payload.get("name", "")),
+                            fps=float(payload.get("fps", 2.0)), zone=payload.get("zone"))
 
 
 @app.post("/worker/stop")
-def worker_stop():
-    """추론 워커 중지."""
+def worker_stop(payload: dict = Body(default={})):
+    """워커 중지. payload={id} 면 그 카메라만, 없으면 전체."""
     import worker as _w
-    return _w.worker.stop()
+    cid = payload.get("id")
+    return _w.manager.stop(cid) if cid else _w.manager.stop_all()
 
 
 @app.get("/worker/status")
+@app.get("/workers")
 def worker_status():
-    """추론 워커 상태(실행여부·처리프레임·기록이벤트·마지막이벤트·오류)."""
+    """전체 워커 상태(현장명 + 카메라별 처리프레임·이벤트·오류)."""
     import worker as _w
-    return _w.worker.status()
+    return _w.manager.status()
+
+
+@app.post("/workers/start-all")
+def workers_start_all(theme: str = DEFAULT_THEME):
+    """config/site.yaml 의 모든 카메라로 워커 일괄 시작(헤드리스/USB 부팅용)."""
+    import worker as _w
+    bundle = STATE.get(theme) or _load_theme(theme)
+    return _w.manager.autostart(bundle["agents"].get("Guard"), _DETECT_LOCK)
+
+
+@app.post("/workers/stop-all")
+def workers_stop_all():
+    """모든 워커 중지."""
+    import worker as _w
+    return _w.manager.stop_all()
 
 
 @app.post("/alerts/test")
