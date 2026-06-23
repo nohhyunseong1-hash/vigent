@@ -1277,7 +1277,23 @@ def sports_calibrate(payload: dict = Body(default={})):
         a["scored"] = len(a.get("angles", [])) > 0
     if updated:
         p.write_text(json.dumps(lib, ensure_ascii=False, indent=1), encoding="utf-8")
-    return {"ok": True, "updated": updated, "asana": aid}
+    # B: 정답 자세 키포인트(목표 자세 시연용)도 저장 — reference=[{x,y,z}, ...12점]
+    ref = payload.get("reference")
+    if isinstance(ref, list) and len(ref) >= 12:
+        rp = _ROOT / "config" / "yoga_reference.json"
+        refs = json.loads(rp.read_text(encoding="utf-8")) if rp.exists() else {}
+        refs[aid] = ref[:12]
+        rp.write_text(json.dumps(refs, ensure_ascii=False), encoding="utf-8")
+    return {"ok": True, "updated": updated, "asana": aid, "reference_saved": bool(ref)}
+
+
+@app.get("/sports/reference")
+def sports_reference():
+    """보정으로 저장된 정답 자세 키포인트(목표 자세 시연용). 없으면 빈값."""
+    p = _ROOT / "config" / "yoga_reference.json"
+    if not p.exists():
+        return {}
+    return json.loads(p.read_text(encoding="utf-8"))
 
 
 @app.get("/theme/{theme}/raw")

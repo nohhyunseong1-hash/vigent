@@ -83,6 +83,10 @@
       </div>
       <div class="tip" id="recogBox" style="display:none">🎯 인식: <b id="recogName">-</b> <span id="recogConf" style="color:var(--mut)"></span></div>
       <div class="desc" id="regCount" style="margin-top:6px"></div>
+      <div id="refWrap" style="margin-top:12px;display:none">
+        <h4 style="margin:0 0 6px;font-size:12px;color:var(--mut)">🎯 목표 자세 (이렇게 하세요)</h4>
+        <canvas id="refCv" width="280" height="220" style="width:100%;background:#0d1119;border:1px solid var(--line);border-radius:10px"></canvas>
+      </div>
     </div>
 
     <div class="panel">
@@ -141,12 +145,48 @@ fetch('/sports/asanas').then(r=>r.json()).then(lib=>{
   setAsana(0);
 }).catch(()=>{});
 
+// ── 목표 자세 figure(학습 템플릿/보정 데이터로 '이렇게 하세요' 시연) ──
+// BODY_IDX=[11,12,13,14,15,16,23,24,25,26,27,28] 순서. 그 12점 연결.
+const REF_CONN=[[0,1],[0,6],[1,7],[6,7],[0,2],[2,4],[1,3],[3,5],[6,8],[8,10],[7,9],[9,11]];
+let REFS={};   // 보정으로 저장된 정답자세(키포인트, z 포함 가능) — 서버에서 로드
+function meanTemplate(id){   // 학습 템플릿 평균(24수 → 12점 {x,y})
+  const vs=(PRETRAINED[id]||[]); if(!vs.length) return null;
+  const n=vs[0].length, acc=new Array(n).fill(0);
+  for(const v of vs) for(let i=0;i<n;i++) acc[i]+=v[i];
+  const pts=[]; for(let j=0;j<12;j++) pts.push({x:acc[j*2]/vs.length, y:acc[j*2+1]/vs.length});
+  return pts;
+}
+function referenceFor(id){ return (REFS[id]&&REFS[id].length) ? REFS[id] : meanTemplate(id); }
+function drawReference(pts){
+  const c=document.getElementById('refCv'), x=c.getContext('2d'); const W=c.width,H=c.height;
+  x.clearRect(0,0,W,H); if(!pts) return;
+  let mnx=1e9,mny=1e9,mxx=-1e9,mxy=-1e9;
+  for(const p of pts){ mnx=Math.min(mnx,p.x);mny=Math.min(mny,p.y);mxx=Math.max(mxx,p.x);mxy=Math.max(mxy,p.y); }
+  const sp=Math.max(mxx-mnx,mxy-mny)||1, sc=Math.min(W,H)*0.78/sp;
+  const ox=W/2-((mnx+mxx)/2)*sc, oy=H/2-((mny+mxy)/2)*sc;
+  const hasЗ=pts.some(p=>p.z!=null);
+  let zmn=1e9,zmx=-1e9; if(hasЗ)for(const p of pts){const z=p.z||0;if(z<zmn)zmn=z;if(z>zmx)zmx=z;}
+  const dep=p=>hasЗ?((p.z||0)-zmn)/((zmx-zmn)||1):0.3;
+  const P=p=>({x:ox+p.x*sc, y:oy+p.y*sc});
+  x.lineCap='round';
+  for(const[a,b]of REF_CONN){ const p=pts[a],q=pts[b]; if(!p||!q)continue; const d=(dep(p)+dep(q))/2;
+    const A=P(p),B=P(q); x.lineWidth=2+(1-d)*4; x.strokeStyle=`rgba(155,107,255,${0.6+(1-d)*0.4})`;
+    x.beginPath();x.moveTo(A.x,A.y);x.lineTo(B.x,B.y);x.stroke(); }
+  for(let i=0;i<pts.length;i++){ const p=P(pts[i]); const r=4+(1-dep(pts[i]))*3;
+    x.beginPath();x.arc(p.x,p.y,r,0,7);x.fillStyle='#fff';x.fill();
+    x.beginPath();x.arc(p.x,p.y,r-1.5,0,7);x.fillStyle='#9b6bff';x.fill(); }
+}
+
 const DIFF_COL={'초급':'#2ecc71','중급':'#f1c40f','고급':'#e74c3c'};
 function setAsana(i){ cur=asanas[i]; if(!cur)return;
   const d=document.getElementById('asanaDesc');
   const badge=`<span style="display:inline-block;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:700;background:${DIFF_COL[cur.difficulty]||'#888'}22;color:${DIFF_COL[cur.difficulty]||'#888'}">${cur.difficulty}</span>`;
   const sans=`<span style="color:var(--mut);font-size:12px;font-style:italic">${cur.sanskrit}</span>`;
   d.innerHTML=`${badge} ${sans}<div style="margin-top:6px">🎯 ${cur.desc||(cur.scored?'':'정밀 채점 준비 중 — 자세 인식·확인용 동작입니다.')}</div>`;
+  // 목표 자세 figure(데이터 있으면 표시)
+  const ref=referenceFor(cur.id);
+  document.getElementById('refWrap').style.display=ref?'block':'none';
+  if(ref) drawReference(ref);
 }
 
 // ── A. 동작 자동 인식(few-shot, 브라우저 내 등록 → 최근접 매칭) ──
@@ -165,8 +205,10 @@ function tplStore(){ let user={}; try{user=JSON.parse(localStorage.getItem('vige
   const merged={...PRETRAINED}; for(const k in user){ merged[k]=(merged[k]||[]).concat(user[k]); } return merged; }
 function tplSave(t){ /* 사용자 등록만 별도 저장 */ }
 // 학습 템플릿 로드 + 자동인식 기본 ON
+fetch('/sports/reference').then(r=>r.json()).then(d=>{ REFS=d||{}; if(cur)setAsana(asanas.indexOf(cur)); }).catch(()=>{});
 fetch('/sports/templates').then(r=>r.json()).then(d=>{
   PRETRAINED=d.templates||{};
+  if(cur) setAsana(asanas.indexOf(cur));   // 템플릿 로드 후 목표 자세 figure 갱신
   const n=Object.keys(PRETRAINED).length;
   if(n){ const a=document.getElementById('togAuto'); if(a)a.checked=true;
     const acc=d._meta&&d._meta.accuracy?` · 인식 정확도 ${Math.round(d._meta.accuracy*100)}%`:'';
@@ -499,17 +541,30 @@ document.getElementById('btnCalib').onclick=function(){
   calib={until:performance.now()+6000, buf:{}};
   flash(`📐 ${cur.name} 정답 자세를 6초간 유지하세요…`);
 };
-function collectCalib(res){   // onResults 의 scoreAsana 결과로 각도 수집
+function collectCalib(res){   // onResults 의 scoreAsana 결과로 각도 + 정답자세 키포인트 수집
   if(!calib||!res) return;
   for(const c of res.checks){ if(c.measured!=null){ (calib.buf[c.name]=calib.buf[c.name]||[]).push(c.measured); } }
+  // 정답 자세 키포인트(BODY_IDX, z 포함) 정규화해서 수집(목표자세 시연 B)
+  if(lastLM){ const v=featureVec(lastLM);
+    if(v){ const sh=lastLM[11],sh2=lastLM[12]; const cz=((sh.z||0)+(sh2.z||0))/2;
+      const s=Math.hypot(sh.x-sh2.x,sh.y-sh2.y)||1;
+      const pts=[]; for(let k=0;k<12;k++){ const idx=[11,12,13,14,15,16,23,24,25,26,27,28][k]; const p=lastLM[idx];
+        pts.push({x:v[k*2], y:v[k*2+1], z:((p.z||0)-cz)/s}); }
+      (calib.kp=calib.kp||[]).push(pts); } }
   if(performance.now()>=calib.until){
     const angles=[]; for(const name in calib.buf){ const arr=calib.buf[name];
       if(arr.length>=10) angles.push({name, ideal:Math.round(median(arr)), tol:Math.max(8,Math.round(iqr(arr))), n:arr.length}); }
+    // 정답 자세: 각 점의 좌표 중앙값
+    let reference=null; const kps=calib.kp||[];
+    if(kps.length>=10){ reference=[]; for(let j=0;j<12;j++){
+      reference.push({x:median(kps.map(f=>f[j].x)), y:median(kps.map(f=>f[j].y)), z:median(kps.map(f=>f[j].z))}); } }
     const aid=cur.id; calib=null;
     if(!angles.length){ flash('측정 표본 부족 — 다시 시도'); return; }
     fetch('/sports/calibrate',{method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({asana_id:aid, angles})}).then(r=>r.json()).then(j=>{
-        flash(`✅ ${j.updated}개 각도 데이터 보정 완료`);
+      body:JSON.stringify({asana_id:aid, angles, reference})}).then(r=>r.json()).then(j=>{
+        if(reference){ REFS[aid]=reference;
+          document.getElementById('refWrap').style.display='block'; drawReference(reference); }
+        flash(`✅ ${j.updated}개 각도 + 목표자세 보정 완료`);
         // 라이브러리 갱신 반영
         fetch('/sports/asanas').then(r=>r.json()).then(lib=>{ asanas=lib.asanas||asanas;
           const a=asanas.find(x=>x.id===aid); if(a&&cur&&cur.id===aid)cur=a; });
