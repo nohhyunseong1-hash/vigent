@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>VIGENT · 모션 확대(EVM) 떨림 시각화</title>
+<style>
+  :root{--bg:#0B0F14;--panel:rgba(10,16,22,.72);--line:#1c2730;--txt:#E6EDF3;
+    --dim:#9CA8B4;--brand:#19E3B1;--warn:#F59E0B}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--txt);
+    font-family:-apple-system,"Pretendard",system-ui,sans-serif}
+  .mono{font-family:ui-monospace,Menlo,monospace}
+  header{display:flex;align-items:center;gap:12px;padding:12px 18px;
+    border-bottom:1px solid var(--line);background:#0d141b}
+  header b{color:var(--brand)}
+  .tag{margin-left:auto;font-size:12px;color:var(--warn);
+    border:1px solid rgba(245,158,11,.4);border-radius:20px;padding:3px 10px}
+  .views{display:grid;grid-template-columns:1fr 1fr;gap:12px;padding:14px;
+    max-width:1100px;margin:0 auto}
+  @media(max-width:780px){.views{grid-template-columns:1fr}}
+  .panel{position:relative;background:#000;border:1px solid var(--line);
+    border-radius:12px;overflow:hidden;aspect-ratio:4/3}
+  .panel .lab{position:absolute;left:8px;top:8px;z-index:2;font-size:11px;
+    background:rgba(0,0,0,.55);border:1px solid var(--line);border-radius:6px;
+    padding:3px 8px;color:var(--dim)}
+  video,img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+  video{transform:scaleX(-1)} img{transform:scaleX(-1)}
+  .ctrl{max-width:1100px;margin:0 auto;padding:0 14px 16px;display:flex;
+    gap:18px;align-items:center;flex-wrap:wrap}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:12px;
+    padding:12px 16px;display:flex;gap:14px;align-items:center;flex-wrap:wrap}
+  button{cursor:pointer;border:0;border-radius:8px;padding:9px 14px;font-size:13px;
+    font-weight:600}
+  .btn{background:var(--brand);color:#06241c}
+  .btn.ghost{background:transparent;border:1px solid var(--line);color:var(--txt)}
+  label{font-size:12px;color:var(--dim)}
+  input[type=range]{width:160px;vertical-align:middle}
+  .val{color:var(--brand);font-weight:700;min-width:30px;display:inline-block}
+  .disc{max-width:1100px;margin:0 auto 18px;padding:8px 16px;font-size:11px;
+    color:#ffd28a;background:rgba(245,158,11,.10);border:1px solid rgba(245,158,11,.3);
+    border-radius:8px}
+</style>
+</head>
+<body>
+<header><div><b>VIGENT</b> · 모션 확대(EVM) 떨림 시각화</div>
+  <div class="tag">참고용 · 감정/거짓말 판별 아님</div></header>
+
+<div class="views">
+  <div class="panel"><div class="lab">원본</div><video id="video" autoplay playsinline muted></video></div>
+  <div class="panel"><div class="lab">모션 확대 (증폭 <span id="al">20</span>x)</div>
+    <img id="mag" alt="magnified" /></div>
+</div>
+
+<div class="ctrl">
+  <div class="card">
+    <button class="btn" id="startBtn">웹캠 시작</button>
+    <button class="btn ghost" id="resetBtn">초기화</button>
+  </div>
+  <div class="card">
+    <label>증폭 α <span class="val" id="alv">20</span></label>
+    <input type="range" id="alpha" min="5" max="60" value="20" />
+    <span class="mono" style="font-size:12px;color:var(--dim)">처리 <span id="fps">—</span> fps</span>
+  </div>
+</div>
+<div class="disc">⚠ 미세 떨림을 보이게 증폭하는 시각화 도구입니다. 감정·거짓말·위협을 판별하지 않으며 영상은 저장되지 않습니다. 증폭 영상에는 잔떨림·노이즈가 함께 과장될 수 있습니다.</div>
+
+<script>
+const $=id=>document.getElementById(id);
+const video=$('video'), magImg=$('mag');
+const cap=document.createElement('canvas');
+let running=false, busy=false, curUrl=null;
+const T0=performance.now();
+
+async function start(){
+  try{
+    const s=await navigator.mediaDevices.getUserMedia({video:{width:640,height:480}});
+    video.srcObject=s; await video.play(); running=true; loop();
+  }catch(e){ alert('카메라 접근 실패: '+e.message); }
+}
+function grab(){
+  cap.width=video.videoWidth; cap.height=video.videoHeight;
+  cap.getContext('2d').drawImage(video,0,0);
+  return new Promise(r=>cap.toBlob(r,'image/jpeg',0.8));
+}
+async function loop(){
+  while(running){
+    if(!busy && video.videoWidth){
+      busy=true;
+      try{
+        const fd=new FormData();
+        fd.append('image', await grab(),'f.jpg');
+        fd.append('ts', ((performance.now()-T0)/1000).toFixed(3));
+        fd.append('alpha', $('alpha').value);
+        const r=await fetch('/evm/frame',{method:'POST',body:fd});
+        $('fps').textContent=r.headers.get('X-FPS')||'—';
+        const blob=await r.blob();
+        const url=URL.createObjectURL(blob);
+        magImg.src=url;
+        if(curUrl) URL.revokeObjectURL(curUrl);
+        curUrl=url;
+      }catch(e){}
+      busy=false;
+    }
+    await new Promise(r=>setTimeout(r,70));
+  }
+}
+$('alpha').oninput=()=>{ $('alv').textContent=$('alpha').value; $('al').textContent=$('alpha').value; };
+$('startBtn').onclick=start;
+$('resetBtn').onclick=async()=>{ await fetch('/evm/reset',{method:'POST'}); };
+</script>
+</body>
+</html>
