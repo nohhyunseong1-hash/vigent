@@ -1,0 +1,192 @@
+"""dashboard.py — 테마별 경영 대시보드(이벤트 통계 집계 + 다크 HTML 렌더)
+
+data_engine(이벤트 로그)·tbm_store·audit_store·Scribe 의 실제 데이터를 집계해
+관제용 대시보드 카드(발생건수·유형별·현장별·등급별·이력·처리현황)를 그린다.
+외부 CDN 없이 순수 CSS/SVG(폐쇄망·USB 안전).
+"""
+from __future__ import annotations
+
+import html
+from datetime import datetime, timedelta, timezone
+
+import data_engine
+
+KST = timezone(timedelta(hours=9))
+
+# 규칙 → 한국어 라벨(테마 공통)
+RULE_KO = {
+    "zone_intrusion": "위험구역 침입", "ppe_missing": "보호구 미착용",
+    "fall_suspected": "낙상/추락", "guard_bypass": "방호구역 침입",
+    "fire_smoke": "화재/연기", "ergonomic_risk": "근골격계 부담",
+    "trip_hazard": "전도/미끄러짐", "forklift": "지게차 접근",
+}
+LEVEL_KO = {"low": ("주의", "#22c55e"), "mid": ("경계", "#f59e0b"),
+            "medium": ("경계", "#f59e0b"), "high": ("경계", "#f59e0b"),
+            "critical": ("심각", "#ef4444")}
+
+
+def _bar(label, n, mx, color="#3b82f6"):
+    w = int(round((n / mx) * 100)) if mx else 0
+    e = html.escape
+    return (f'<div class="bar"><span class="bl">{e(str(label))}</span>'
+            f'<span class="bt"><span class="bf" style="width:{w}%;background:{color}"></span></span>'
+            f'<span class="bn">{n}</span></div>')
+
+
+def aggregate(theme: str, scribe=None, tbm_count: int = 0, audit_count: int = 0) -> dict:
+    events = data_engine.list_events(limit=200000)
+    now = datetime.now(KST)
+    ym_now = now.strftime("%Y-%m")
+    ym_last = (now.replace(day=1) - timedelta(days=1)).strftime("%Y-%m")
+
+    by_rule: dict[str, int] = {}
+    by_site: dict[str, int] = {}
+    by_level: dict[str, int] = {}
+    rule_month: dict[str, dict[str, int]] = {}
+    by_day: dict[str, int] = {}
+    tot = tot_now = tot_last = 0
+    for e in events:
+        rule = e.get("rule", "") or "기타"
+        site = (e.get("site") or "미지정").strip() or "미지정"
+        lvl = (e.get("level") or "low").lower()
+        ym = (e.get("ts", "") or "")[:7]
+        day = e.get("date", "")
+        by_rule[rule] = by_rule.get(rule, 0) + 1
+        by_site[site] = by_site.get(site, 0) + 1
+        by_level[lvl] = by_level.get(lvl, 0) + 1
+        rm = rule_month.setdefault(rule, {"now": 0, "last": 0})
+        if ym == ym_now:
+            rm["now"] += 1
+            tot_now += 1
+        elif ym == ym_last:
+            rm["last"] += 1
+            tot_last += 1
+        if day:
+            by_day[day] = by_day.get(day, 0) + 1
+        tot += 1
+
+    recent = events[:8]
+    days14 = [(now - timedelta(days=i)).strftime("%Y-%m-%d") for i in range(13, -1, -1)]
+    trend = [(d[5:], by_day.get(d, 0)) for d in days14]
+    saved = scribe.list_saved() if scribe else []
+    return {
+        "theme": theme, "generated": now.strftime("%Y-%m-%d %H:%M KST"),
+        "total": tot, "total_now": tot_now, "total_last": tot_last,
+        "by_rule": sorted(by_rule.items(), key=lambda x: x[1], reverse=True),
+        "by_site": sorted(by_site.items(), key=lambda x: x[1], reverse=True)[:8],
+        "by_level": by_level, "rule_month": rule_month,
+        "recent": recent, "trend": trend,
+        "ra_count": len(saved), "tbm_count": tbm_count, "audit_count": audit_count,
+    }
+
+
+def render(theme: str, scribe=None, tbm_count: int = 0, audit_count: int = 0) -> str:
+    d = aggregate(theme, scribe, tbm_count, audit_count)
+    e = html.escape
+    title_map = {"safety": "안전 관제", "office": "오피스 관제", "sports": "스포츠 관제"}
+    title = title_map.get(theme, theme)
+
+    # 카드1: 발생건수(유형별 당월/전월)
+    rows = ""
+    for rule, _n in d["by_rule"][:6]:
+        rm = d["rule_month"].get(rule, {"now": 0, "last": 0})
+        rows += (f'<tr><td>{e(RULE_KO.get(rule, rule))}</td>'
+                 f'<td class="num">{rm["now"]}</td><td class="num dim">{rm["last"]}</td></tr>')
+    rows = rows or '<tr><td colspan="3" class="dim">데이터 없음</td></tr>'
+
+    # 카드2: 유형별 현황(bar)
+    mx_r = max([n for _, n in d["by_rule"]], default=1)
+    rule_bars = "".join(_bar(RULE_KO.get(r, r), n, mx_r, "#3b82f6") for r, n in d["by_rule"][:7]) \
+        or '<div class="dim">데이터 없음</div>'
+
+    # 카드3: 현장별 현황(bar)
+    mx_s = max([n for _, n in d["by_site"]], default=1)
+    site_bars = "".join(_bar(s, n, mx_s, "#22d3ee") for s, n in d["by_site"]) \
+        or '<div class="dim">데이터 없음</div>'
+
+    # 카드4: 최근 이력
+    hist = ""
+    for ev in d["recent"]:
+        lk, lc = LEVEL_KO.get((ev.get("level") or "low").lower(), ("주의", "#22c55e"))
+        hist += (f'<tr><td class="dim">{e((ev.get("ts","") or "")[:16].replace("T"," "))}</td>'
+                 f'<td>{e(ev.get("site") or "미지정")}</td>'
+                 f'<td><span class="lvl" style="background:{lc}">{lk}</span></td>'
+                 f'<td>{e(RULE_KO.get(ev.get("rule",""), ev.get("rule","")))}</td></tr>')
+    hist = hist or '<tr><td colspan="4" class="dim">발생 이력 없음</td></tr>'
+
+    # 카드5: 등급별 분포
+    lv = d["by_level"]
+    lv_low = lv.get("low", 0)
+    lv_mid = lv.get("mid", 0) + lv.get("medium", 0) + lv.get("high", 0)
+    lv_hi = lv.get("critical", 0)
+    lv_mx = max(lv_low, lv_mid, lv_hi, 1)
+    lvl_bars = (_bar("심각", lv_hi, lv_mx, "#ef4444")
+                + _bar("경계", lv_mid, lv_mx, "#f59e0b")
+                + _bar("주의", lv_low, lv_mx, "#22c55e"))
+
+    # 카드6: 추이(14일)
+    tmx = max([n for _, n in d["trend"]], default=1)
+    tcols = "".join(
+        f'<div class="tcol"><div class="tb" style="height:{int((n/tmx)*72) if tmx else 0}px"></div>'
+        f'<div class="tx">{e(lbl)}</div></div>' for lbl, n in d["trend"])
+
+    return f"""<!DOCTYPE html><html lang="ko"><head><meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>VIGENT {e(title)} 대시보드</title><style>
+  body{{margin:0;background:#0b0f17;color:#e5e7eb;font-family:"Apple SD Gothic Neo","Malgun Gothic",sans-serif}}
+  .top{{display:flex;justify-content:space-between;align-items:center;padding:14px 22px;border-bottom:1px solid #1f2937}}
+  .top .lg{{font-weight:800;letter-spacing:1px;color:#fff}} .top .lg b{{color:#38bdf8}}
+  .top a{{color:#93c5fd;text-decoration:none;font-size:13px;margin-left:14px}}
+  .grid{{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;padding:16px 22px}}
+  @media(max-width:1000px){{.grid{{grid-template-columns:1fr}}}}
+  .card{{background:#111827;border:1px solid #1f2937;border-radius:12px;padding:16px;min-height:210px}}
+  .card h3{{margin:0 0 12px;font-size:14px;color:#cbd5e1;display:flex;align-items:center;gap:7px}}
+  .card h3 .m{{font-size:10px;background:#1e293b;color:#7dd3fc;border-radius:4px;padding:1px 5px}}
+  .big{{text-align:right;font-size:13px;color:#94a3b8;margin-bottom:6px}} .big b{{font-size:34px;color:#f87171;margin-left:8px}}
+  table{{width:100%;border-collapse:collapse;font-size:13px}}
+  th,td{{padding:7px 6px;border-bottom:1px solid #1f2937;text-align:left}} th{{color:#64748b;font-weight:600;font-size:12px}}
+  td.num{{text-align:right;font-weight:700;font-variant-numeric:tabular-nums}} .dim{{color:#64748b}}
+  .bar{{display:flex;align-items:center;gap:8px;margin:7px 0;font-size:12.5px}}
+  .bar .bl{{width:96px;color:#cbd5e1;flex:none;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}}
+  .bar .bt{{flex:1;height:9px;background:#1f2937;border-radius:6px;overflow:hidden}}
+  .bar .bf{{display:block;height:100%;border-radius:6px}} .bar .bn{{width:34px;text-align:right;font-weight:700}}
+  .lvl{{color:#0b0f17;font-weight:800;font-size:11px;border-radius:5px;padding:1px 7px}}
+  .trend{{display:flex;align-items:flex-end;gap:4px;height:96px;margin-top:6px}}
+  .tcol{{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end}}
+  .tcol .tb{{width:62%;min-height:2px;background:linear-gradient(#38bdf8,#0ea5e9);border-radius:3px}}
+  .tcol .tx{{font-size:9px;color:#64748b;margin-top:4px;transform:rotate(-30deg)}}
+  .stat{{display:flex;gap:10px;margin-top:8px}} .stat .s{{flex:1;background:#0b1220;border:1px solid #1f2937;border-radius:10px;padding:14px;text-align:center}}
+  .stat .s b{{display:block;font-size:26px;color:#7dd3fc}} .stat .s span{{font-size:12px;color:#94a3b8}}
+  .foot{{padding:0 22px 22px;color:#475569;font-size:11px}}
+</style></head><body>
+  <div class="top">
+    <div class="lg">🛡 VIGENT <b>{e(title)}</b> 대시보드</div>
+    <div><a href="/{e(theme)}">실시간 관제</a><a href="/safety/auto">자동처리 콘솔</a><a href="/safety/reports">평가서</a></div>
+  </div>
+  <div class="grid">
+    <div class="card">
+      <h3><span class="m">통계</span> 위험 이벤트 발생건수</h3>
+      <div class="big">총 누적<b>{d['total']}건</b></div>
+      <table><thead><tr><th>유형</th><th class="num">당월</th><th class="num">전월</th></tr></thead>
+      <tbody>{rows}</tbody></table>
+    </div>
+    <div class="card"><h3><span class="m">분석</span> 위험 유형별 현황</h3>{rule_bars}</div>
+    <div class="card"><h3><span class="m">분석</span> 현장별 발생 현황</h3>{site_bars}</div>
+    <div class="card"><h3><span class="m">이력</span> 최근 발생 이력</h3>
+      <table><thead><tr><th>발생</th><th>현장</th><th>등급</th><th>유형</th></tr></thead><tbody>{hist}</tbody></table></div>
+    <div class="card"><h3><span class="m">분포</span> 위험등급별 분포</h3>{lvl_bars}
+      <div class="stat">
+        <div class="s"><b>{lv_hi}</b><span>심각</span></div>
+        <div class="s"><b>{lv_mid}</b><span>경계</span></div>
+        <div class="s"><b>{lv_low}</b><span>주의</span></div>
+      </div></div>
+    <div class="card"><h3><span class="m">추이</span> 최근 14일 발생 추이</h3>
+      <div class="trend">{tcols}</div>
+      <div class="stat">
+        <div class="s"><b>{d['tbm_count']}</b><span>TBM 회의록</span></div>
+        <div class="s"><b>{d['ra_count']}</b><span>위험성평가서</span></div>
+        <div class="s"><b>{d['audit_count']}</b><span>승인(감사추적)</span></div>
+      </div></div>
+  </div>
+  <div class="foot">생성 {e(d['generated'])} · 실제 누적 이벤트 기반 · 데이터 없으면 0으로 표시</div>
+</body></html>"""

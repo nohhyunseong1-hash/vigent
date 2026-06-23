@@ -934,6 +934,17 @@ def workers_stop_all():
     return _w.manager.stop_all()
 
 
+@app.get("/dashboard", response_class=HTMLResponse)
+def dashboard_page(theme: str = DEFAULT_THEME):
+    """테마별 경영 대시보드 — 실제 이벤트 통계(발생건수·유형·현장·등급·이력·추이·처리현황)."""
+    import dashboard as _dash
+    bundle = STATE.get(theme) or _load_theme(theme)
+    scribe = bundle["agents"].get("Scribe")
+    return _dash.render(theme, scribe=scribe,
+                        tbm_count=len(tbm_store.list_recent(limit=100000)),
+                        audit_count=len(audit_store.list_recent(limit=100000)))
+
+
 @app.post("/alerts/test")
 def alerts_test(payload: dict = Body(default={}), theme: str = DEFAULT_THEME):
     """Dispatcher 경보 테스트. payload={level, message}. 키 없으면 폴백(로그)로 동작."""

@@ -150,6 +150,7 @@
         <button id="vgMenuBtn" class="report-btn" style="position:static;" onclick="vgToggleMenu(event)">☰ 메뉴</button>
         <div id="vgMenu">
           <div class="vg-mh">문서 · 콘솔</div>
+          <a class="vg-mi" onclick="vgGo('/dashboard')">📊 경영 대시보드</a>
           <a class="vg-mi" onclick="vgGo('/report/safety?site='+encodeURIComponent('현장')+'&hours=24')">📄 안전 증빙 리포트</a>
           <a class="vg-mi" onclick="vgGo('/report/safety?site='+encodeURIComponent('현장')+'&hours=24#riskassess')">📋 위험성평가 보기</a>
           <a class="vg-mi" onclick="vgGo('/safety/tbm')">📝 작업 전 TBM 회의록</a>
