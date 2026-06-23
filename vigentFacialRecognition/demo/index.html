@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>VIGENT · Facial Recognition Demo</title>
+<style>
+  :root{
+    --bg:#0B0F14; --panel:rgba(10,16,22,.72); --line:#1c2730;
+    --txt:#E6EDF3; --dim:#9CA8B4; --brand:#19E3B1; --blue:#3B82F6;
+    --warn:#F59E0B; --danger:#EF4444;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--txt);
+    font-family:-apple-system,"Pretendard",system-ui,sans-serif;}
+  .mono{font-family:"SFMono-Regular",ui-monospace,Menlo,Consolas,monospace}
+  header{display:flex;align-items:center;gap:12px;padding:12px 18px;
+    border-bottom:1px solid var(--line);background:#0d141b}
+  header .logo{font-weight:800;letter-spacing:1px}
+  header .logo b{color:var(--brand)}
+  header .live{margin-left:auto;display:flex;align-items:center;gap:14px;
+    font-size:12px;color:var(--dim)}
+  .dot{width:8px;height:8px;border-radius:50%;background:var(--danger);
+    box-shadow:0 0 8px var(--danger);animation:blink 1.1s infinite}
+  @keyframes blink{50%{opacity:.25}}
+  .wrap{display:grid;grid-template-columns:1fr 320px;gap:14px;padding:14px;
+    max-width:1200px;margin:0 auto}
+  @media(max-width:880px){.wrap{grid-template-columns:1fr}}
+  .stage{position:relative;background:#000;border:1px solid var(--line);
+    border-radius:12px;overflow:hidden;aspect-ratio:4/3}
+  video,canvas.overlay{position:absolute;inset:0;width:100%;height:100%}
+  video{object-fit:cover}
+  .mirror{transform:scaleX(-1)}
+  .corner{position:absolute;width:22px;height:22px;border:2px solid var(--brand);opacity:.7}
+  .corner.tl{top:8px;left:8px;border-right:0;border-bottom:0}
+  .corner.tr{top:8px;right:8px;border-left:0;border-bottom:0}
+  .corner.bl{bottom:8px;left:8px;border-right:0;border-top:0}
+  .corner.br{bottom:8px;right:8px;border-left:0;border-top:0}
+  .hud{position:absolute;left:10px;top:10px;background:var(--panel);
+    backdrop-filter:blur(6px);border:1px solid var(--line);border-radius:10px;
+    padding:10px 12px;font-size:12px;min-width:160px}
+  .hud .row{display:flex;justify-content:space-between;gap:14px;margin:3px 0}
+  .hud .row b{color:var(--brand)}
+  .rec{position:absolute;right:12px;top:10px;display:flex;align-items:center;
+    gap:6px;font-size:12px;color:var(--dim)}
+  aside{display:flex;flex-direction:column;gap:12px}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px}
+  .card h3{margin:0 0 10px;font-size:13px;color:var(--dim);letter-spacing:.5px;
+    text-transform:uppercase;font-weight:600}
+  label{display:block;font-size:12px;color:var(--dim);margin:8px 0 3px}
+  input{width:100%;background:#0a1117;border:1px solid var(--line);border-radius:8px;
+    color:var(--txt);padding:8px;font-size:13px}
+  button{cursor:pointer;border:0;border-radius:8px;padding:9px 12px;font-size:13px;
+    font-weight:600;width:100%;margin-top:10px}
+  .btn{background:var(--brand);color:#06241c}
+  .btn.ghost{background:transparent;border:1px solid var(--line);color:var(--txt)}
+  .btn:disabled{opacity:.5;cursor:not-allowed}
+  .people{font-size:12px}
+  .people .p{display:flex;justify-content:space-between;align-items:center;
+    padding:6px 0;border-bottom:1px dashed var(--line)}
+  .people .p button{width:auto;margin:0;padding:3px 8px;font-size:11px;
+    background:transparent;border:1px solid var(--danger);color:var(--danger)}
+  .log{height:120px;overflow:auto;font-size:11px;line-height:1.5;color:var(--dim)}
+  .notice{font-size:11px;color:var(--warn);background:rgba(245,158,11,.08);
+    border:1px solid rgba(245,158,11,.3);border-radius:8px;padding:8px 10px;margin-top:4px}
+</style>
+</head>
+<body>
+<header>
+  <div class="logo"><b>VIGENT</b> · Facial Recognition</div>
+  <div class="live"><span class="dot"></span>LIVE DEMO</div>
+</header>
+
+<div class="wrap">
+  <!-- ── 영상 무대 ── -->
+  <div>
+    <div class="stage" id="stage">
+      <video id="video" class="mirror" autoplay playsinline muted></video>
+      <canvas id="overlay" class="overlay"></canvas>
+      <div class="corner tl"></div><div class="corner tr"></div>
+      <div class="corner bl"></div><div class="corner br"></div>
+      <div class="hud mono">
+        <div class="row"><span>FACES</span><b id="hFaces">0</b></div>
+        <div class="row"><span>KNOWN</span><b id="hKnown">0</b></div>
+        <div class="row"><span>UNKNOWN</span><b id="hUnknown">0</b></div>
+        <div class="row"><span>INFER</span><b id="hMs">— ms</b></div>
+        <div class="row"><span>THRESH</span><b id="hTh">0.40</b></div>
+      </div>
+      <div class="rec mono"><span class="dot"></span>REC</div>
+    </div>
+  </div>
+
+  <!-- ── 우측 패널 ── -->
+  <aside>
+    <div class="card">
+      <h3>카메라</h3>
+      <button class="btn" id="startBtn">웹캠 시작</button>
+      <button class="btn ghost" id="mirrorBtn">좌우반전 토글</button>
+    </div>
+
+    <div class="card">
+      <h3>얼굴 등록</h3>
+      <label>식별자(person_id)</label><input id="pid" placeholder="hong" />
+      <label>이름</label><input id="pname" placeholder="홍길동" />
+      <label>처리 목적</label><input id="purpose" value="현장 출입통제" />
+      <label>동의·책임자</label><input id="consenter" value="안전관리자" />
+      <button class="btn" id="enrollBtn">현재 얼굴로 등록(5장 캡처)</button>
+      <div class="notice">데모 모드: 옵트인 자동 ON. 실제 운영은 별도 동의·고지 절차 필요.</div>
+    </div>
+
+    <div class="card">
+      <h3>등록 인원 (<span id="pcount">0</span>)</h3>
+      <div class="people" id="people"></div>
+    </div>
+
+    <div class="card">
+      <h3>로그</h3>
+      <div class="log mono" id="log"></div>
+    </div>
+  </aside>
+</div>
+
+<script>
+const $ = id => document.getElementById(id);
+const video = $('video'), overlay = $('overlay'), octx = overlay.getContext('2d');
+const cap = document.createElement('canvas');          // 오프스크린: 원본 프레임 캡처
+let mirror = true, running = false, busy = false;
+let lastMatches = [], lastMs = 0;
+const INTERVAL = 250;                                   // 식별 주기(ms) ≈ 4fps
+
+function log(msg){
+  const el = $('log');
+  el.innerHTML = `> ${msg}<br>` + el.innerHTML;
+}
+
+async function startCam(){
+  try{
+    const stream = await navigator.mediaDevices.getUserMedia({video:{width:640,height:480}});
+    video.srcObject = stream;
+    await video.play();
+    running = true;
+    log('웹캠 시작됨');
+    loop();
+    requestAnimationFrame(draw);
+  }catch(e){ log('카메라 오류: '+e.message); alert('카메라 접근 실패: '+e.message); }
+}
+
+// 주기적으로 프레임을 서버에 보내 식별
+async function loop(){
+  while(running){
+    if(!busy && video.videoWidth){
+      busy = true;
+      try{ await identify(); }catch(e){ /* 무시 */ }
+      busy = false;
+    }
+    await new Promise(r=>setTimeout(r, INTERVAL));
+  }
+}
+
+function grabBlob(){
+  cap.width = video.videoWidth; cap.height = video.videoHeight;
+  cap.getContext('2d').drawImage(video, 0, 0);          // 원본 좌표(미반전)로 캡처
+  return new Promise(res => cap.toBlob(res, 'image/jpeg', 0.7));
+}
+
+async function identify(){
+  const blob = await grabBlob();
+  const fd = new FormData(); fd.append('image', blob, 'f.jpg');
+  const r = await fetch('/facial/identify', {method:'POST', body:fd});
+  if(!r.ok) return;
+  const j = await r.json();
+  lastMatches = j.faces || []; lastMs = j.elapsed_ms;
+  const known = lastMatches.filter(m=>m.person_id).length;
+  $('hFaces').textContent = lastMatches.length;
+  $('hKnown').textContent = known;
+  $('hUnknown').textContent = lastMatches.length - known;
+  $('hMs').textContent = (j.elapsed_ms ?? '—') + ' ms';
+}
+
+// 매 프레임 오버레이(영상은 video가 그려줌). 원본→표시 스케일 보정.
+function draw(){
+  overlay.width = video.videoWidth || 640;
+  overlay.height = video.videoHeight || 480;
+  octx.clearRect(0,0,overlay.width,overlay.height);
+  octx.font = '600 16px ui-monospace, monospace';
+  for(const m of lastMatches){
+    const [x,y,w,h] = m.bbox;
+    // 화면이 반전(셀카뷰)이면 박스 x좌표만 반전 보정 → 텍스트는 정상 방향 유지
+    const dx = mirror ? (overlay.width - (x + w)) : x;
+    const known = !!m.person_id;
+    const col = known ? '#19E3B1' : '#EF4444';
+    octx.lineWidth = 2; octx.strokeStyle = col;
+    octx.strokeRect(dx, y, w, h);
+    const label = known ? `${m.name} ${(m.similarity*100|0)}%` : `UNKNOWN ${(m.similarity*100|0)}%`;
+    const tw = octx.measureText(label).width + 10;
+    octx.fillStyle = col; octx.fillRect(dx, y-20, tw, 18);
+    octx.fillStyle = '#06120f'; octx.fillText(label, dx+5, y-6);
+  }
+  if(running) requestAnimationFrame(draw);
+}
+
+async function enroll(){
+  const pid = $('pid').value.trim(), name = $('pname').value.trim();
+  if(!pid || !name){ alert('식별자와 이름을 입력하세요'); return; }
+  $('enrollBtn').disabled = true;
+  try{
+    const fd = new FormData();
+    fd.append('person_id', pid); fd.append('name', name);
+    fd.append('purpose', $('purpose').value); fd.append('consented_by', $('consenter').value);
+    for(let i=0;i<5;i++){                                // 5장 캡처(각도/표정 다양화)
+      fd.append('images', await grabBlob(), `c${i}.jpg`);
+      await new Promise(r=>setTimeout(r,180));
+    }
+    const r = await fetch('/facial/enroll', {method:'POST', body:fd});
+    const j = await r.json();
+    if(r.ok){ log(`등록: ${name}(${pid}) · 임베딩 ${j.n_embeddings}개`); refreshPeople(); }
+    else { log('등록 실패: ' + (j.detail||r.status)); alert('등록 실패: '+(j.detail||r.status)); }
+  } finally { $('enrollBtn').disabled = false; }
+}
+
+async function refreshPeople(){
+  const r = await fetch('/facial/persons'); if(!r.ok) return;
+  const {persons} = await r.json();
+  $('pcount').textContent = persons.length;
+  $('people').innerHTML = persons.map(p =>
+    `<div class="p"><span>${p.name} <small style="color:var(--dim)">(${p.person_id}·${p.n_embeddings})</small></span>
+     <button onclick="delPerson('${p.person_id}')">삭제</button></div>`).join('') || '<div style="color:var(--dim)">없음</div>';
+}
+
+async function delPerson(pid){
+  if(!confirm(pid+' 데이터를 완전 삭제할까요?')) return;
+  const r = await fetch('/facial/persons/'+encodeURIComponent(pid), {method:'DELETE'});
+  if(r.ok){ log('삭제: '+pid); refreshPeople(); }
+}
+window.delPerson = delPerson;
+
+async function loadStatus(){
+  const r = await fetch('/facial/status'); const s = await r.json();
+  $('hTh').textContent = s.threshold;
+  log(`엔진 준비 · 임계 ${s.threshold} · 암호화 ${s.encryption}`);
+}
+
+$('startBtn').onclick = startCam;
+$('mirrorBtn').onclick = ()=>{ mirror=!mirror; video.classList.toggle('mirror',mirror); };
+$('enrollBtn').onclick = enroll;
+loadStatus(); refreshPeople();
+</script>
+</body>
+</html>
