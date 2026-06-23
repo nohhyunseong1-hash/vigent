@@ -179,7 +179,15 @@ function meanTemplate(id){   // 학습 템플릿 평균(24수 → 12점 {x,y})
   const pts=[]; for(let j=0;j<12;j++) pts.push({x:acc[j*2]/vs.length, y:acc[j*2+1]/vs.length});
   return pts;
 }
-function referenceFor(id){ return (REFS[id]&&REFS[id].length) ? REFS[id] : meanTemplate(id); }
+// 사용자별 보정(로컬) — 멀티유저 충돌 방지. 전역 데이터 기본값은 보존.
+function calibStore(){ try{return JSON.parse(localStorage.getItem('vigent_sports_calib'))||{};}catch(e){return{};} }
+function applyCalib(asana){ if(!asana)return asana; const c=calibStore()[asana.id]; if(!c)return asana;
+  for(const ang of (asana.angles||[])){ const o=c.angles&&c.angles[ang.name];
+    if(o){ ang.ideal=o.ideal; ang.tol=o.tol; ang.user_calibrated=true; } }
+  return asana; }
+function referenceFor(id){ const c=calibStore()[id];
+  if(c&&c.reference&&c.reference.length) return c.reference;   // 내 보정 우선
+  return (REFS[id]&&REFS[id].length) ? REFS[id] : meanTemplate(id); }
 function drawReference(pts){
   const c=document.getElementById('refCv'), x=c.getContext('2d'); const W=c.width,H=c.height;
   x.clearRect(0,0,W,H); if(!pts) return;
@@ -201,7 +209,7 @@ function drawReference(pts){
 }
 
 const DIFF_COL={'초급':'#2ecc71','중급':'#f1c40f','고급':'#e74c3c'};
-function setAsana(i){ cur=asanas[i]; if(!cur)return;
+function setAsana(i){ cur=asanas[i]; if(!cur)return; applyCalib(cur);   // 내 보정 반영
   const d=document.getElementById('asanaDesc');
   const badge=`<span style="display:inline-block;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:700;background:${DIFF_COL[cur.difficulty]||'#888'}22;color:${DIFF_COL[cur.difficulty]||'#888'}">${cur.difficulty}</span>`;
   const sans=`<span style="color:var(--mut);font-size:12px;font-style:italic">${cur.sanskrit}</span>`;
@@ -611,15 +619,13 @@ function collectCalib(res){   // onResults 의 scoreAsana 결과로 각도 + 정
       reference.push({x:median(kps.map(f=>f[j].x)), y:median(kps.map(f=>f[j].y)), z:median(kps.map(f=>f[j].z))}); } }
     const aid=cur.id; calib=null;
     if(!angles.length){ flash('측정 표본 부족 — 다시 시도'); return; }
-    fetch('/sports/calibrate',{method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({asana_id:aid, angles, reference})}).then(r=>r.json()).then(j=>{
-        if(reference){ REFS[aid]=reference;
-          document.getElementById('refWrap').style.display='block'; drawReference(reference); }
-        flash(`✅ ${j.updated}개 각도 + 목표자세 보정 완료`);
-        // 라이브러리 갱신 반영
-        fetch('/sports/asanas').then(r=>r.json()).then(lib=>{ asanas=lib.asanas||asanas;
-          const a=asanas.find(x=>x.id===aid); if(a&&cur&&cur.id===aid)cur=a; });
-      }).catch(()=>flash('보정 저장 실패'));
+    // 사용자별 로컬 저장(멀티유저 충돌 방지) — 전역 데이터 기본값은 보존
+    const cs=calibStore(); cs[aid]={angles:{}, reference};
+    for(const a of angles) cs[aid].angles[a.name]={ideal:a.ideal, tol:a.tol, n:a.n};
+    localStorage.setItem('vigent_sports_calib', JSON.stringify(cs));
+    applyCalib(cur);
+    if(reference){ document.getElementById('refWrap').style.display='block'; drawReference(reference); }
+    flash(`✅ ${angles.length}개 각도 + 목표자세 내 보정 저장`);
   }
 }
 // ── 음성 코칭(TTS) ──
