@@ -416,6 +416,27 @@
       }
     }catch(e){}
   }, 700);
+
+  // ── 근골격계 부담 자세 '지속' 감지 → 이벤트 기록(경보 아님, 콘솔·위험성평가 반영) ──
+  // stats.posture(나쁜 자세 프레임 카운터)만 폴링(엔진 무수정). 3초 지속 + 60초 쿨다운 → 1회 기록.
+  let _lastPosture=0, _postBadSince=0, _postCooldown=0;
+  setInterval(async ()=>{
+    try{
+      if(!document.getElementById('togPosture')?.checked){ _postBadSince=0; return; }
+      const p=(window.stats&&window.stats.posture)||0;
+      const bad = p>_lastPosture; _lastPosture=p;        // 직전 1초간 나쁜 자세 발생?
+      const now=Date.now();
+      if(!bad){ _postBadSince=0; return; }
+      if(!_postBadSince) _postBadSince=now;
+      if(now-_postBadSince>=3000 && now>=_postCooldown){  // 3초 지속 + 쿨다운
+        _postCooldown=now+60000;
+        const r=await fetch('/safety/posture',{method:'POST',headers:{'Content-Type':'application/json'},
+          body:JSON.stringify({image_base64:captureEvidence(), note:'근골격계 부담 자세 3초 이상 지속'})});
+        const j=await r.json();
+        console.info('[VIGENT] 🙇 근골격계 자세 기록:', j.message||'ergonomic_risk');
+      }
+    }catch(e){}
+  }, 1000);
 })();
 </script>
 </body>

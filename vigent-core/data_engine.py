@@ -26,7 +26,7 @@ _EVIDENCE = _ROOT / "data" / "evidence"
 _RECOG = _ROOT / "data" / "recognition"
 
 # 데이터엔진이 다루는 위험 이벤트(규칙) 화이트리스트
-HAZARD_RULES = {"zone_intrusion", "fall_suspected", "ppe_missing", "guard_bypass"}
+HAZARD_RULES = {"zone_intrusion", "fall_suspected", "ppe_missing", "guard_bypass", "ergonomic_risk"}
 
 _DATAURL = re.compile(r"^data:image/\w+;base64,(.+)$", re.S)
 

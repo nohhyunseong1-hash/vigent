@@ -1135,6 +1135,21 @@ def safety_fall_alert(payload: dict = Body(default={}), theme: str = DEFAULT_THE
             "fallback": result.get("fallback", True), "evidence": saved}
 
 
+@app.post("/safety/posture")
+def safety_posture_alert(payload: dict = Body(default={})):
+    """근골격계 부담 자세 '지속' 감지 → 기록(자동처리 콘솔·위험성평가 반영).
+    경보(텔레그램 푸시)는 보내지 않는다 — 근골격계는 누적 건강 이슈라 기록·평가 위주(알림 피로 방지).
+    payload={image_base64?, note?, site?}."""
+    img = payload.get("image_base64")
+    img_url = (img if (img or "").startswith("data:") else "data:image/jpeg;base64," + img) if img else None
+    rec = data_engine.log_event(rule="ergonomic_risk", level="low",
+                                site=payload.get("site", ""),
+                                note=payload.get("note", "근골격계 부담 자세"),
+                                image_data_url=img_url)
+    return {"ok": True, "message": "근골격계 부담 자세 기록", "rule": "ergonomic_risk",
+            "evidence": rec.get("evidence")}
+
+
 @app.post("/safety/confirm")
 def safety_confirm(payload: dict = Body(...)):
     """CNN→VLM 하이브리드 확정(오탐 최소화) 단독 호출.
