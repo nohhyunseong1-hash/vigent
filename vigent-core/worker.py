@@ -19,6 +19,7 @@ from pathlib import Path
 from typing import Any
 
 import cv2
+import numpy as np
 
 import data_engine
 
@@ -76,6 +77,58 @@ def _derive(out: dict, zone: list) -> list[tuple[str, str, str]]:
     if sig.get("fire_smoke"):
         fired.append(("fire_smoke", "critical", "화재/연기 감지"))
     return fired
+
+
+class _PoseFall:
+    """yolov8n-pose 기반 낙상(쓰러짐) 감지 — 워커용(서버사이드 포즈). 지연 로드·실패 시 무중단.
+    몸통(어깨중심→엉덩이중심)이 수직에서 크게 기울면(누움) 쓰러짐으로 본다."""
+
+    def __init__(self):
+        self._model = None
+        self._failed = False
+
+    def _ensure(self):
+        if self._model is not None or self._failed:
+            return
+        try:
+            from ultralytics import YOLO
+            self._model = YOLO(str(_ROOT / "vigent-core" / "weights" / "yolov8n-pose.pt"))
+        except Exception:  # noqa: BLE001  모델 없거나 로드 실패 → 낙상만 비활성(무중단)
+            self._failed = True
+
+    def check(self, frame, min_kp: float = 0.3, angle_thr: float = 60.0) -> bool:
+        """프레임에 쓰러진 사람이 있으면 True. 어떤 예외도 삼키고 False(무중단)."""
+        self._ensure()
+        if self._model is None:
+            return False
+        try:
+            import math
+            res = self._model.predict(frame, verbose=False, conf=0.4, device="cpu")[0]
+            kp = getattr(res, "keypoints", None)
+            if kp is None or kp.xy is None or len(kp.xy) == 0:
+                return False
+            xys = kp.xy.cpu().numpy()
+            cfs = kp.conf.cpu().numpy() if kp.conf is not None else None
+            for i in range(len(xys)):
+                xy = xys[i]
+                cf = cfs[i] if cfs is not None else np.ones(len(xy))
+                sh = [xy[j] for j in (5, 6) if cf[j] >= min_kp]      # 어깨
+                hp = [xy[j] for j in (11, 12) if cf[j] >= min_kp]    # 엉덩이
+                if not sh or not hp:
+                    continue
+                sc = np.mean(sh, axis=0)
+                hc = np.mean(hp, axis=0)
+                dx = abs(hc[0] - sc[0])
+                dy = abs(hc[1] - sc[1])
+                angle = math.degrees(math.atan2(dx, dy + 1e-6))     # 0=수직(서있음), 90=수평(누움)
+                if angle > angle_thr:
+                    return True
+            return False
+        except Exception:  # noqa: BLE001
+            return False
+
+
+_posefall = _PoseFall()
 
 
 class Worker:
@@ -142,8 +195,12 @@ class Worker:
                 self.state["frames"] += 1
                 with lock:                            # 코어 추론 직렬화(브라우저와 충돌 방지)
                     out = guard.detect(frame, detectors=detectors)
+                    fall = _posefall.check(frame)     # 서버사이드 포즈 낙상(쓰러짐)
+                fired = _derive(out, zone)
+                if fall:
+                    fired.append(("fall_suspected", "critical", "작업자 낙상 의심(자세)"))
                 now = time.time()
-                for rule, level, note in _derive(out, zone):
+                for rule, level, note in fired:
                     if now - cooldown.get(rule, 0) < _COOLDOWN_S:
                         continue
                     cooldown[rule] = now
