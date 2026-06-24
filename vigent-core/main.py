@@ -1002,6 +1002,42 @@ def safety_brain_assess(payload: dict = Body(...)):
                                image_bgr=img, use_vlm=bool(payload.get("use_vlm")))
 
 
+@app.post("/safety/brain/inspect")
+def safety_brain_inspect(payload: dict = Body(...), theme: str = DEFAULT_THEME):
+    """라이브 현장 점검 — 작업+감지객체(+이미지)로 추론 후, 위험 시 기록·알림(조치 연결).
+    payload={activity, present?:[], image_base64?, use_vlm?, site?, log?:bool, alert?:bool}."""
+    import safety_brain
+    raw = payload.get("image_base64") or payload.get("image")
+    img = None
+    if raw:
+        rawd = raw if str(raw).startswith("data:") else "data:image/jpeg;base64," + raw
+        img = _decode_data_url(rawd)
+    res = safety_brain.assess(payload.get("activity", ""), payload.get("present"),
+                              image_bgr=img, use_vlm=bool(payload.get("use_vlm")))
+    if not res.get("ok"):
+        return res
+    logged = alerted = False
+    # 위험(부족조치 확인)일 때만 기록 → 자동처리 콘솔/대시보드로 흐름(헛알림 방지)
+    if payload.get("log") and res["missing"] and res["risk"] in ("high", "mid"):
+        data_engine.log_event(rule="safety_measure_missing",
+                              level="high" if res["risk"] == "high" else "mid",
+                              site=payload.get("site", "현장"), note=res["summary"],
+                              image_data_url=(raw if raw and str(raw).startswith("data:")
+                                              else ("data:image/jpeg;base64," + raw) if raw else None))
+        logged = True
+    if payload.get("alert") and res["risk"] == "high":
+        bundle = STATE.get(theme) or _load_theme(theme)
+        disp = bundle["agents"].get("Dispatcher")
+        if disp:
+            try:
+                disp.dispatch("high", res["summary"])
+                alerted = True
+            except Exception:  # noqa: BLE001
+                pass
+    res["logged"], res["alerted"] = logged, alerted
+    return res
+
+
 @app.get("/safety/quote", response_class=HTMLResponse)
 def safety_quote():
     """VIGENT 견적서(1장, 인쇄/PDF) — 현장명·카메라 수 입력 시 자동 계산."""

@@ -57,19 +57,85 @@ def _shingles(s: str) -> set[str]:
     return {s[i:i + 2] for i in range(len(s) - 1)}
 
 
-def retrieve(query: str, k: int = 5) -> list[dict[str, Any]]:
-    """질의 → 관련 스니펫 top-k (점수·근거 포함). 코퍼스 비면 []."""
-    q = _shingles(query)
+# 안전 도메인 동의어 — 질의를 확장해 '의미스러운' 매칭(임베딩 없이도 동의어/약어 포착)
+_SYN = {
+    "추락": ["떨어짐", "낙하", "고소"], "협착": ["끼임", "말림", "충돌"],
+    "질식": ["산소결핍", "유해가스", "밀폐공간"], "감전": ["전격", "활선", "전기"],
+    "화재": ["불", "화기", "용접", "불티"], "붕괴": ["무너짐", "매몰", "굴착"],
+    "보호구": ["ppe", "안전장구"], "안전모": ["헬멧", "hardhat"],
+    "소화기": ["소화설비"], "환기": ["송풍", "배기"],
+    "안전대": ["안전벨트", "죔줄", "하네스"], "지게차": ["포크리프트", "차량계"],
+    "크레인": ["양중", "타워크레인", "인양", "줄걸이"], "굴착": ["터파기", "토공", "흙막이"],
+    "분진": ["먼지", "방진"], "소음": ["귀마개"], "교육": ["안전보건교육"],
+}
+
+
+def _expand(query: str) -> str:
+    q = query or ""
+    extra = []
+    for key, syns in _SYN.items():
+        if key in query:
+            extra += syns
+        for s in syns:
+            if s in query:
+                extra.append(key)
+                extra += [x for x in syns if x != s]
+    return q + " " + " ".join(dict.fromkeys(extra))   # 중복 제거 후 부착
+
+
+def _bigram_search(query: str, k: int) -> list[dict[str, Any]]:
+    q = _shingles(_expand(query))
     if not q:
         return []
     out = []
     for d in _corpus():
         weighted = (d["title"] + " ") * 3 + (" ".join(d.get("refs", [])) + " ") * 3 + d["text"]
-        dset = _shingles(weighted)
-        overlap = len(q & dset) / len(q)                        # 0~1 겹침 비율
-        boost = sum(0.25 for r in d.get("refs", []) if r and r in query)  # 정확 키워드 가산
+        overlap = len(q & _shingles(weighted)) / len(q)
+        boost = sum(0.25 for r in d.get("refs", []) if r and r in query)
         score = overlap + boost
         if score > 0:
             out.append({**d, "score": round(score, 3)})
     out.sort(key=lambda x: -x["score"])
     return out[:k]
+
+
+class _Embed:
+    """opt-in 의미검색 — sentence-transformers 가 설치돼 있으면 임베딩 코사인 사용.
+    미설치면 None 반환(자동으로 bigram 폴백). 설치: pip install sentence-transformers
+    (모델 다운로드 필요 → 폐쇄망에선 bigram 유지)."""
+    def __init__(self):
+        self.model = None
+        self.vecs = None
+        self.failed = False
+
+    def search(self, query: str, k: int):
+        if self.failed:
+            return None
+        try:
+            if self.model is None:
+                from sentence_transformers import SentenceTransformer
+                import numpy as np
+                self.model = SentenceTransformer("jhgan/ko-sroberta-multitask")
+                docs = _corpus()
+                texts = [d["title"] + " " + d["text"] + " " + " ".join(d.get("refs", [])) for d in docs]
+                self.vecs = np.asarray(self.model.encode(texts))
+            import numpy as np
+            qv = np.asarray(self.model.encode([query])[0])
+            sims = (self.vecs @ qv) / (np.linalg.norm(self.vecs, axis=1) * np.linalg.norm(qv) + 1e-9)
+            docs = _corpus()
+            idx = sims.argsort()[::-1][:k]
+            return [{**docs[i], "score": round(float(sims[i]), 3)} for i in idx]
+        except Exception:  # noqa: BLE001  미설치/실패 → bigram 폴백
+            self.failed = True
+            return None
+
+
+_EMBED = _Embed()
+
+
+def retrieve(query: str, k: int = 5) -> list[dict[str, Any]]:
+    """질의 → 관련 스니펫 top-k. 임베딩(있으면) → bigram+동의어(폴백). 코퍼스 비면 []."""
+    hits = _EMBED.search(query, k)          # opt-in 의미검색(설치 시)
+    if hits is not None:
+        return hits
+    return _bigram_search(query, k)         # 기본: 동의어 확장 + bigram(의존성 0)

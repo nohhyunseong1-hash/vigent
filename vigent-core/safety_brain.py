@@ -169,6 +169,18 @@ _PAGE = r"""<!DOCTYPE html><html lang="ko"><head><meta charset="UTF-8">
   <div id="out"></div>
 
   <div class="card">
+    <h3 style="margin:0 0 8px;font-size:14px;color:#93c5fd">📷 카메라 라이브 점검(현장 자동 감시)</h3>
+    <div class="dim" style="margin-bottom:8px">위에서 <b>작업을 선택</b>한 뒤 시작하면, 카메라로 ~7초마다 감지→추론하고 <b>위험(부족조치)이면 자동 기록·알림</b>(자동처리 콘솔로 흐름).</div>
+    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+      <button class="btn" id="liveBtn" onclick="toggleLive()">▶ 라이브 점검 시작</button>
+      <label class="ck"><input type="checkbox" id="liveVlm" checked> VLM 추론</label>
+      <label class="ck"><input type="checkbox" id="liveLog" checked> 위험 시 자동 기록·알림</label>
+    </div>
+    <video id="lv" autoplay muted playsinline style="width:100%;max-width:460px;margin-top:10px;border-radius:8px;background:#000;display:none"></video>
+    <div id="lstatus" class="dim" style="margin-top:8px"></div>
+  </div>
+
+  <div class="card">
     <h3 style="margin:0 0 8px;font-size:14px;color:#93c5fd">🔎 안전 규정·지식 검색(RAG)</h3>
     <div style="display:flex;gap:8px">
       <input id="q" placeholder="예: 밀폐공간 환기, 용접 화재, 추락 안전대…" style="flex:1;background:#0b1220;border:1px solid #334155;border-radius:8px;color:#e5e7eb;padding:9px 11px;font-size:14px" onkeydown="if(event.key==='Enter')search()">
@@ -216,6 +228,37 @@ _PAGE = r"""<!DOCTYPE html><html lang="ko"><head><meta charset="UTF-8">
     document.getElementById('sout').innerHTML=(j.results&&j.results.length)
       ? '<table style="margin-top:8px"><tbody>'+j.results.map(x=>`<tr><td><b>${x.title}</b> <span class="dim">[${x.type}]</span><br><span style="font-size:12.5px">${x.text}</span><br><span class="dim">${x.source} · 점수 ${x.score}</span></td></tr>`).join('')+'</tbody></table>'
       : '<div class="dim" style="margin-top:8px">결과 없음</div>';
+  }
+  // 라이브 점검: 카메라 → 감지(/detect/frame) → 추론·기록(/safety/brain/inspect)
+  let liveTimer=null, liveStream=null;
+  async function toggleLive(){
+    const btn=document.getElementById('liveBtn'), vid=document.getElementById('lv'), st=document.getElementById('lstatus');
+    if(liveTimer){ clearInterval(liveTimer); liveTimer=null; if(liveStream)liveStream.getTracks().forEach(t=>t.stop());
+      vid.style.display='none'; btn.textContent='▶ 라이브 점검 시작'; st.textContent=''; return; }
+    try{ liveStream=await navigator.mediaDevices.getUserMedia({video:true}); vid.srcObject=liveStream; vid.style.display='block'; }
+    catch(e){ alert('카메라 접근 실패: '+e); return; }
+    btn.textContent='■ 라이브 중지'; st.textContent='시작 중…';
+    const tick=async()=>{
+      try{
+        const c=document.createElement('canvas'); c.width=vid.videoWidth||640; c.height=vid.videoHeight||480;
+        if(!c.width||!c.height) return;
+        c.getContext('2d').drawImage(vid,0,0,c.width,c.height);
+        const b64=c.toDataURL('image/jpeg',0.7).split(',')[1];
+        const dj=await (await fetch('/detect/frame',{method:'POST',headers:{'Content-Type':'application/json'},
+          body:JSON.stringify({image_base64:b64,ppe:true,safety_only:true})})).json();
+        const present=(dj.detections||[]).map(x=>x.class);
+        const ij=await (await fetch('/safety/brain/inspect',{method:'POST',headers:{'Content-Type':'application/json'},
+          body:JSON.stringify({activity:document.getElementById('act').value, present, image_base64:b64,
+            use_vlm:document.getElementById('liveVlm').checked, log:document.getElementById('liveLog').checked,
+            alert:document.getElementById('liveLog').checked, site:'라이브 점검'})})).json();
+        if(!ij.ok){ st.textContent='오류: '+(ij.error||''); return; }
+        const cls=ij.risk==='high'?'st-missing':(ij.risk==='mid'?'st-unknown':'st-present');
+        st.innerHTML=`<span class="${cls}">[${RKO[ij.risk]||ij.risk}]</span> ${ij.summary} `
+          +(ij.logged?'<span class="st-missing">· 📋 기록됨</span>':'')+(ij.alerted?' · 🔔 알림':'')
+          +(ij.vlm_used?'':' <span class="dim">(VLM 미가용→사람확인)</span>');
+      }catch(e){ st.textContent='점검 오류'; }
+    };
+    tick(); liveTimer=setInterval(tick,7000);
   }
   run();
 </script></body></html>"""
