@@ -981,6 +981,38 @@ def dashboard_page(theme: str = DEFAULT_THEME):
                         audit_count=len(audit_store.list_recent(limit=100000)))
 
 
+# ── 현장 운영 설정 콘솔(현장·카메라·워커·알림을 화면에서) ──
+@app.get("/safety/setup", response_class=HTMLResponse)
+def safety_setup():
+    """현장 운영 설정 페이지 — site.yaml·notify.yaml 손편집 없이 화면에서 구성·운영."""
+    import setup_console
+    return setup_console.render()
+
+
+@app.get("/site/config")
+def site_config_get():
+    import setup_console
+    return setup_console.read_site()
+
+
+@app.post("/site/config")
+def site_config_post(payload: dict = Body(...)):
+    import setup_console
+    return setup_console.write_site(payload)
+
+
+@app.get("/notify/config")
+def notify_config_get():
+    import setup_console
+    return setup_console.read_notify_masked()
+
+
+@app.post("/notify/config")
+def notify_config_post(payload: dict = Body(...)):
+    import setup_console
+    return setup_console.write_notify(payload)
+
+
 @app.post("/alerts/test")
 def alerts_test(payload: dict = Body(default={}), theme: str = DEFAULT_THEME):
     """Dispatcher 경보 테스트. payload={level, message}. 키 없으면 폴백(로그)로 동작."""

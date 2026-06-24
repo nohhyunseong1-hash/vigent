@@ -1,16 +1,19 @@
-"""Dispatcher — [피드백·연동] 텔레그램/웹훅 경보, 관리자 통보 (§15-4)
+"""Dispatcher — [피드백·연동] 텔레그램/이메일/웹훅 경보, 관리자 통보 (§15-4)
 
-- 비밀키는 코드/채팅에 두지 않는다. .env 에서 환경변수로 읽는다(규칙 5).
-    TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID, WEBHOOK_URL
-- vision.yaml 의 dispatch.on_severity 에 따라 채널을 고른다.
-- 폴백: 키가 없거나 전송 실패해도 예외로 죽지 않고 로그만 남긴다(절대 저하 없음).
+- 알림 설정은 config/notify.yaml(UI 작성) 또는 .env 에서 읽는다(매번 신선하게 → 무재시작 반영).
+    텔레그램: telegram_token/telegram_chat (env: TELEGRAM_BOT_TOKEN/TELEGRAM_CHAT_ID)
+    이메일:   smtp_host/smtp_port/smtp_user/smtp_pass/email_to
+    웹훅:     webhook_url (env: WEBHOOK_URL)
+- 비밀키는 코드/채팅에 두지 않는다(규칙 5). notify.yaml 은 gitignore.
+- 폴백: 미설정/전송 실패해도 예외로 죽지 않고 로그만 남긴다(절대 저하 없음).
 
-⚠ §8 기능안전 경계: severity=critical 의 'safety_relay_signal' 은 인증 안전회로에
-   '보조 신호'를 남기는 로그/훅일 뿐, 비전이 1차 비상정지를 대체하지 않는다.
+⚠ §8 기능안전 경계: critical 의 'safety_relay_signal' 은 인증 안전회로에 '보조 신호'를
+   남기는 로그/훅일 뿐, 비전이 1차 비상정지를 대체하지 않는다.
 """
 from __future__ import annotations
 
 import os
+from pathlib import Path
 from typing import Any
 
 try:
@@ -20,92 +23,127 @@ except ImportError:  # requests 없으면 전송은 폴백(로그)만
 
 from .base import BaseAgent
 
+_ROOT = Path(__file__).resolve().parent.parent.parent
+
+
+def notify_cfg() -> dict[str, Any]:
+    """알림 설정 — config/notify.yaml(UI 작성) + .env 폴백. 매번 신선히 읽어 무재시작 반영."""
+    cfg: dict[str, Any] = {}
+    p = _ROOT / "config" / "notify.yaml"
+    if p.exists():
+        try:
+            import yaml
+            cfg = yaml.safe_load(p.read_text(encoding="utf-8")) or {}
+        except Exception:  # noqa: BLE001
+            cfg = {}
+
+    def pick(key: str, env: str | None = None):
+        v = cfg.get(key)
+        if v not in (None, ""):
+            return str(v).strip()
+        if env and os.environ.get(env):
+            return os.environ[env].strip()
+        return None
+
+    return {
+        "telegram_token": pick("telegram_token", "TELEGRAM_BOT_TOKEN"),
+        "telegram_chat": pick("telegram_chat", "TELEGRAM_CHAT_ID"),
+        "webhook_url": pick("webhook_url", "WEBHOOK_URL"),
+        "smtp_host": pick("smtp_host", "SMTP_HOST"),
+        "smtp_port": int(pick("smtp_port", "SMTP_PORT") or 587),
+        "smtp_user": pick("smtp_user", "SMTP_USER"),
+        "smtp_pass": pick("smtp_pass", "SMTP_PASS"),
+        "email_to": pick("email_to", "EMAIL_TO"),
+    }
+
 
 class DispatcherAgent(BaseAgent):
     name = "Dispatcher"
-    role = "연동: 텔레그램/웹훅 알림, 관리자 통보, (보조)방호 신호 — §8 경계 준수"
+    role = "연동: 텔레그램/이메일/웹훅 알림, 관리자 통보, (보조)방호 신호 — §8 경계 준수"
 
     def __init__(self, config: Any):
         super().__init__(config)
-        # vision.yaml dispatch.on_severity (없으면 안전한 기본값)
         d = (config.raw.get("dispatch", {}) or {})
         self.on_severity = d.get("on_severity", {}) or {
             "critical": ["alarm", "manager_call", "safety_relay_signal"],
             "high": ["alarm", "manager_call"], "medium": ["log"],
         }
 
-    # ── 비밀키는 호출 시점에 환경변수에서 읽는다(코드에 박지 않음) ──
-    @staticmethod
-    def _env(key: str) -> str | None:
-        v = os.environ.get(key)
-        return v.strip() if v else None
-
     def status(self) -> dict[str, Any]:
+        c = notify_cfg()
         return {"name": self.name, "role": self.role, "implemented": True,
-                "telegram": bool(self._env("TELEGRAM_BOT_TOKEN") and self._env("TELEGRAM_CHAT_ID")),
-                "webhook": bool(self._env("WEBHOOK_URL")),
+                "telegram": bool(c["telegram_token"] and c["telegram_chat"]),
+                "email": bool(c["smtp_host"] and c["smtp_user"] and c["email_to"]),
+                "webhook": bool(c["webhook_url"]),
                 "on_severity": self.on_severity}
 
     def _send_telegram(self, text: str) -> dict[str, Any]:
-        token, chat = self._env("TELEGRAM_BOT_TOKEN"), self._env("TELEGRAM_CHAT_ID")
-        if not (token and chat):
-            return {"channel": "telegram", "sent": False, "fallback": True, "reason": "키 없음(.env 미설정)"}
+        c = notify_cfg()
+        if not (c["telegram_token"] and c["telegram_chat"]):
+            return {"channel": "telegram", "sent": False, "fallback": True, "reason": "미설정"}
         if requests is None:
             return {"channel": "telegram", "sent": False, "fallback": True, "reason": "requests 미설치"}
         try:
-            r = requests.post(f"https://api.telegram.org/bot{token}/sendMessage",
-                              json={"chat_id": chat, "text": text}, timeout=5)
+            r = requests.post(f"https://api.telegram.org/bot{c['telegram_token']}/sendMessage",
+                              json={"chat_id": c["telegram_chat"], "text": text}, timeout=6)
             return {"channel": "telegram", "sent": r.ok, "fallback": not r.ok, "status": r.status_code}
-        except Exception as ex:  # noqa: BLE001  전송 실패해도 죽지 않는다
+        except Exception as ex:  # noqa: BLE001
             return {"channel": "telegram", "sent": False, "fallback": True, "reason": str(ex)}
 
+    def _send_email(self, subject: str, text: str) -> dict[str, Any]:
+        c = notify_cfg()
+        if not (c["smtp_host"] and c["smtp_user"] and c["email_to"]):
+            return {"channel": "email", "sent": False, "fallback": True, "reason": "SMTP 미설정"}
+        try:
+            import smtplib
+            from email.mime.text import MIMEText
+            msg = MIMEText(text, _charset="utf-8")
+            msg["Subject"], msg["From"], msg["To"] = subject, c["smtp_user"], c["email_to"]
+            with smtplib.SMTP(c["smtp_host"], c["smtp_port"], timeout=8) as s:
+                s.starttls()
+                if c["smtp_pass"]:
+                    s.login(c["smtp_user"], c["smtp_pass"])
+                s.send_message(msg)
+            return {"channel": "email", "sent": True, "fallback": False}
+        except Exception as ex:  # noqa: BLE001
+            return {"channel": "email", "sent": False, "fallback": True, "reason": str(ex)}
+
     def _send_webhook(self, payload: dict[str, Any]) -> dict[str, Any]:
-        url = self._env("WEBHOOK_URL")
-        if not url:
-            return {"channel": "webhook", "sent": False, "fallback": True, "reason": "URL 없음(.env 미설정)"}
+        c = notify_cfg()
+        if not c["webhook_url"]:
+            return {"channel": "webhook", "sent": False, "fallback": True, "reason": "미설정"}
         if requests is None:
             return {"channel": "webhook", "sent": False, "fallback": True, "reason": "requests 미설치"}
         try:
-            r = requests.post(url, json=payload, timeout=5)
+            r = requests.post(c["webhook_url"], json=payload, timeout=6)
             return {"channel": "webhook", "sent": r.ok, "fallback": not r.ok, "status": r.status_code}
         except Exception as ex:  # noqa: BLE001
             return {"channel": "webhook", "sent": False, "fallback": True, "reason": str(ex)}
 
     def dispatch(self, level: str, message: str, meta: dict[str, Any] | None = None) -> dict[str, Any]:
-        """severity 등급에 맞는 채널로 경보. 항상 결과를 반환(예외로 죽지 않음)."""
+        """severity 등급에 맞는 채널로 경보. 항상 결과 반환(예외로 죽지 않음)."""
         actions = self.on_severity.get(level, ["log"])
         results: list[dict[str, Any]] = []
         text = f"[VIGENT-SAFETY] {level.upper()} · {message}"
-
-        # alarm/manager_call → 텔레그램 + 웹훅으로 통보
         if any(a in actions for a in ("alarm", "manager_call")):
             results.append(self._send_telegram(text))
+            results.append(self._send_email(f"[VIGENT 안전경보] {level.upper()}", text))
             results.append(self._send_webhook({"level": level, "message": message, "meta": meta or {}}))
-        # safety_relay_signal → §8 보조 신호(로그/플래그만; 실제 비상정지 아님)
         if "safety_relay_signal" in actions:
-            results.append({"channel": "safety_relay_signal", "sent": True, "note": "§8 보조 신호 로그(인증 회로 대체 아님)"})
-        # log(medium 등) 는 항상 기록
+            results.append({"channel": "safety_relay_signal", "sent": True,
+                            "note": "§8 보조 신호 로그(인증 회로 대체 아님)"})
         results.append({"channel": "log", "sent": True, "text": text})
-
-        any_remote = any(r.get("sent") and r["channel"] in ("telegram", "webhook") for r in results)
+        remote = ("telegram", "email", "webhook")
+        any_remote = any(r.get("sent") and r["channel"] in remote for r in results)
         return {"level": level, "actions": actions, "results": results,
                 "delivered": any_remote, "fallback": not any_remote}
 
     def relay(self, event: str = "guard_bypass", meta: dict[str, Any] | None = None) -> dict[str, Any]:
-        """프레스/전단기 §8 '보조 방호신호'. 인증 안전회로(Type 4 광전자식 방호장치·안전 PLC)에
-        **추가 신호만** 제공한다. 비전이 1차 비상정지를 대체/구현하지 않는다(§8.1).
-
-        실제 릴레이 출력(GPIO/PLC)은 현장 인증 하드웨어 연동 시 이 지점에서 후킹한다.
-        지금은 보조 신호를 기록·통보하고, 동시에 관리자 경보(critical)를 발송한다."""
+        """프레스/전단기 §8 '보조 방호신호'. 인증 안전회로에 추가 신호만. 1차 비상정지 대체 아님(§8.1)."""
         alert = self.dispatch("critical", f"{event}: 프레스/전단기 위험구역 신체 진입 감지", meta)
-        return {
-            "relay": "auxiliary_signal",          # 보조 신호(1차 방호 아님)
-            "event": event,
-            "is_primary_safety": False,           # ⚠ 명시: 1차 안전기능 아님
-            "boundary": "§8.1 — 비전은 보조·감시 계층. 1차 정지는 인증 하드웨어(Type 4 PSD·안전 PLC) 책임.",
-            "delivered": alert["delivered"],
-            "alert": alert,
-        }
+        return {"relay": "auxiliary_signal", "event": event, "is_primary_safety": False,
+                "boundary": "§8.1 — 비전은 보조·감시 계층. 1차 정지는 인증 하드웨어 책임.",
+                "delivered": alert["delivered"], "alert": alert}
 
     def run(self, level: str = "medium", message: str = "", **kw) -> dict[str, Any]:
         return self.dispatch(level, message, kw.get("meta"))
