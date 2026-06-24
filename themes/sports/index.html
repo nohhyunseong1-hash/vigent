@@ -586,14 +586,16 @@ function updateForm(m){
   else tip.textContent='좋아요. 조금만 더 정렬을 다듬어보세요.';
 }
 
+let _sframe=0;
 function onResults(r){
+  _sframe++;
   cv.width=cv.clientWidth; cv.height=cv.clientHeight; const W=cv.width,H=cv.height;
   if(MIRROR){ctx.save();ctx.translate(W,0);ctx.scale(-1,1);ctx.drawImage(r.image,0,0,W,H);ctx.restore();}
   else ctx.drawImage(r.image,0,0,W,H);
   const lm=r.poseLandmarks; if(!lm){hud.textContent='사람을 찾는 중…';return;}
   lastLM=lm;   // 등록 버튼용 최근 포즈
-  // 자동 인식: 클래스 마진 + 시간 안정화(다수결) → 흔들림 없이 자동 선택
-  if(document.getElementById('togAuto').checked){
+  // 자동 인식: 2프레임에 1번(성능). 클래스 마진 + 시간 안정화(다수결)
+  if(_sframe%2===0 && document.getElementById('togAuto').checked){
     const rec=recognize(lm);
     const stable=stableRecog(rec);
     const box=document.getElementById('recogBox'); box.style.display='block';
@@ -607,13 +609,16 @@ function onResults(r){
   const dlm=MIRROR?lm.map(p=>p?{x:1-p.x,y:p.y,z:p.z,visibility:p.visibility}:p):lm;
   if(MODE3D){ render3D(dlm); }
   else { clear3D(); drawSkeleton(dlm); drawHand(r.leftHandLandmarks); drawHand(r.rightHandLandmarks); }
-  updateForm(formMetrics(lm));   // 일반 지표(대칭·균형·안정성)
-  if(!window._p3d && window.Pose3D) window._p3d=Pose3D(document.getElementById('pose3d'));
-  if(window._p3d) window._p3d.update(lm);   // 측면 3D 자세 뷰
-  const sa=scoreAsana(lm, cur);
-  updateAngleChecks(sa);   // 동작별 정답 각도 비교
-  voiceCoach(sa);          // 음성 코칭(시작 안내 + 실시간 교정)
-  if(cur&&(cur.work||cur.caution)) updateBodyMap(!!(sa&&sa.checks&&sa.checks.some(c=>c.measured!=null&&!c.ok)));
+  // 측면 3D 뷰는 보조 → 3프레임에 1번(성능)
+  if(_sframe%3===0){ if(!window._p3d && window.Pose3D) window._p3d=Pose3D(document.getElementById('pose3d'));
+    if(window._p3d) window._p3d.update(lm); }
+  const sa=scoreAsana(lm, cur);   // 매 프레임(가벼움, 보정·음성에 필요)
+  if(_sframe%2===0){   // 패널 갱신은 2프레임에 1번(성능)
+    updateForm(formMetrics(lm));
+    updateAngleChecks(sa);
+    if(cur&&(cur.work||cur.caution)) updateBodyMap(!!(sa&&sa.checks&&sa.checks.some(c=>c.measured!=null&&!c.ok)));
+  }
+  voiceCoach(sa);          // 음성 코칭(내부 throttle)
   if(calib){ collectCalib(sa); const left=Math.max(0,(calib?calib.until-performance.now():0)/1000);
     if(calib) hud.textContent=`📐 정답 자세 보정 중… ${left.toFixed(1)}초`; }
   // 측정 모드(정면/측면) — 동작 권장 뷰와 함께 안내

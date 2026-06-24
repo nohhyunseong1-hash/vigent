@@ -531,8 +531,9 @@ function fitCanvas(){
 }
 window.addEventListener('resize', fitCanvas);
 
+let _frame=0;
 function onResults(r){
-  fitCanvas();
+  fitCanvas(); _frame++;
   const W=cv.width, H=cv.height;
   // 거울 모드: 영상을 좌우 반전해 그린다(셀피처럼 직관적)
   ctx.save(); ctx.translate(W,0); ctx.scale(-1,1); ctx.drawImage(r.image,0,0,W,H); ctx.restore();
@@ -542,8 +543,9 @@ function onResults(r){
   const mlm=lm.map(p=>p?{x:1-p.x,y:p.y,z:p.z,visibility:p.visibility}:p);
   blurFace(mlm); drawSkeleton(mlm);
   drawHand(r.leftHandLandmarks); drawHand(r.rightHandLandmarks);   // 손가락 21점(Holistic)
-  if(!window._p3d && window.Pose3D) window._p3d=Pose3D(document.getElementById('pose3d'));
-  if(window._p3d) window._p3d.update(lm);   // 측면 3D 자세 뷰
+  // 측면 3D 뷰는 보조 → 3프레임에 1번만 렌더(성능)
+  if(_frame%3===0){ if(!window._p3d && window.Pose3D) window._p3d=Pose3D(document.getElementById('pose3d'));
+    if(window._p3d) window._p3d.update(lm); }
   const res=VIGENTErgo.score(lm);
   if(!res.ok){ hud.textContent=res.reason; return; }
   hud.textContent='자세 분석 중 · '+(res.framework||'RULA');
@@ -554,7 +556,7 @@ function onResults(r){
     else{ vmEl.textContent='🙂 정면 · 옆으로 앉으면 거북목 정밀'; vmEl.style.color='#feca57'; }
   }
   res._view=vm;
-  updatePanel(res);
+  if(_frame%2===0) updatePanel(res);   // 패널은 2프레임에 1번(자세는 천천히 변함)
   trackScore(res.score);   // 추세용 점수 누적(60초마다 익명 저장)
 
   // 누적 통계 + 나쁜 자세 지속 시 부드러운 알림(복지 톤)
