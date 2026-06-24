@@ -1199,7 +1199,7 @@ function drawObjects(objs,W,H,lHeld,rHeld,scX,scY,hidePerson){
     if(document.getElementById('togLabel').checked){
       ctx.font='bold 12px Segoe UI';
       const handTag=isLH?' 🟢L':isRH?' 🟠R':'';
-      const label=`${classIcon(o.class)} ${translateClass(o.class)}${handTag} ${(o.score*100).toFixed(0)}%`;
+      const label=`${translateClass(o.class)}${handTag} ${(o.score*100).toFixed(0)}%`;
       const tw=ctx.measureText(label).width+14; const ly=y>24?y-5:y+h+17;
       ctx.fillStyle=col; ctx.fillRect(x,ly-17,tw,20); ctx.fillStyle='#000'; ctx.fillText(label,x+5,ly-1);
     }
@@ -1225,7 +1225,7 @@ function drawBackendBoost(browserObjs,W,H,scX,scY){
     ctx.setLineDash([]);
     if(showLabel){
       ctx.font='bold 12px Segoe UI';
-      const label=`${classIcon(o.class)} ${translateClass(o.class)} ✓정밀 ${(o.score*100).toFixed(0)}%`;
+      const label=`${translateClass(o.class)} ✓정밀 ${(o.score*100).toFixed(0)}%`;
       const tw=ctx.measureText(label).width+14; const ly=y>24?y-5:y+h+17;
       ctx.fillStyle='#22d3ee'; ctx.fillRect(x,ly-17,tw,20);
       ctx.fillStyle='#003'; ctx.fillText(label,x+5,ly-1);
@@ -1258,7 +1258,7 @@ function drawSegments(W,H,scX,scY,onlyClass){
       const sx=s.points[0][0]*scX, sy=s.points[0][1]*scY;
       const lx=r.x+(flip? r.w-sx : sx), ly=r.y+sy;
       ctx.font='bold 12px Segoe UI';
-      const label=`${classIcon(s.class)} ${translateClass(s.class)} ${(s.score*100).toFixed(0)}%`;
+      const label=`${translateClass(s.class)} ${(s.score*100).toFixed(0)}%`;
       const tw=ctx.measureText(label).width+12;
       ctx.fillStyle=col; ctx.fillRect(lx,ly-18,tw,18);
       ctx.fillStyle='#001018'; ctx.fillText(label,lx+4,ly-5);
