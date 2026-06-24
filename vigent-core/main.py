@@ -967,6 +967,34 @@ def workers_stop_all():
     return _w.manager.stop_all()
 
 
+@app.get("/safety/brain", response_class=HTMLResponse)
+def safety_brain_page():
+    """안전 지식 추론 엔진 UI — 작업별 필수조치/법령/조치 + VLM '없는 조치' 추론."""
+    import safety_brain
+    return safety_brain.render()
+
+
+@app.get("/safety/brain/activities")
+def safety_brain_activities():
+    import safety_brain
+    return {"activities": safety_brain.list_activities()}
+
+
+@app.post("/safety/brain/assess")
+def safety_brain_assess(payload: dict = Body(...)):
+    """장면 점검 — payload={activity, present?:[classes], image_base64?, use_vlm?}.
+    반환: 필수조치 충족/부재(present/missing/unknown) + 위험·법령·조치."""
+    import safety_brain
+    img = None
+    raw = payload.get("image_base64") or payload.get("image")
+    if raw:
+        if not str(raw).startswith("data:"):
+            raw = "data:image/jpeg;base64," + raw
+        img = _decode_data_url(raw)
+    return safety_brain.assess(payload.get("activity", ""), payload.get("present"),
+                               image_bgr=img, use_vlm=bool(payload.get("use_vlm")))
+
+
 @app.get("/safety/quote", response_class=HTMLResponse)
 def safety_quote():
     """VIGENT 견적서(1장, 인쇄/PDF) — 현장명·카메라 수 입력 시 자동 계산."""

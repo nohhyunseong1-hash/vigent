@@ -1,0 +1,95 @@
+{
+  "_meta": {
+    "설명": "안전 지식 추론 엔진(safety_brain)용 지식베이스. 작업(activity)별로 '필수 안전조치(required_measures)'를 정의하고, 각 조치를 어떻게 확인하는지(객체감지 detect / VLM 질문 vlm_q)를 매핑한다. 엔진은 장면에서 '있어야 할 조치가 없음'을 추론해 위험·법령·조치를 제시한다.",
+    "확장": "새 작업/위험 추가 = 코드 수정 없이 이 JSON에 activity 항목만 추가.",
+    "오탐설계": "조치는 '확인된 부재(VLM/신뢰감지가 없다고 확정)'일 때만 missing(위험)으로 본다. 확인 불가 시 '사람 확인 필요'로 분류해 헛알림을 막는다.",
+    "주의": "초안이며 안전관리자 검토 필요(법적 자문 아님). 법령은 근거 제시용이며 정확한 조항은 현행 법령으로 확인할 것."
+  },
+  "activities": [
+    {
+      "id": "hot_work",
+      "name": "용접·화기작업",
+      "aliases": ["용접", "화기", "화기작업", "그라인딩", "절단", "불꽃", "용단"],
+      "detect_signals": ["fire", "smoke"],
+      "required_measures": [
+        {"id": "extinguisher", "name": "소화기", "critical": true,
+         "detect": ["fire extinguisher"], "vlm_q": "이 장면에 소화기(빨간 소화기)가 보이는가?"},
+        {"id": "spark_guard", "name": "불티 비산방지망·방화포", "critical": true,
+         "detect": [], "vlm_q": "불티 비산방지망이나 방화포(불꽃을 막는 천·막)가 설치돼 있는가?"},
+        {"id": "fire_watch", "name": "화기감시인", "critical": false,
+         "detect": [], "vlm_q": "용접 작업자 외에 화기감시인(지켜보는 사람)이 있는가?"},
+        {"id": "weld_ppe", "name": "용접 보호구(차광면·앞치마)", "critical": false,
+         "detect": [], "vlm_q": "작업자가 용접 차광면(용접 마스크)을 착용했는가?"}
+      ],
+      "hazards": ["화재", "폭발", "화상", "유해가스 흡입", "전격"],
+      "regulations": [
+        {"law": "산업안전보건기준에 관한 규칙 제241조(화재위험작업 시의 조치)", "desc": "화기작업 시 소화설비 비치·불티 비산방지 조치"},
+        {"law": "산업안전보건기준에 관한 규칙 제232조", "desc": "용접·용단 시 화재감시인 배치"},
+        {"law": "중대재해처벌법", "desc": "안전조치 미이행으로 인한 중대재해 시 사업주·경영책임자 처벌"}
+      ],
+      "actions": ["작업 일시중지 검토", "소화기 비치·압력 점검", "비산방지망·방화포 설치", "화기감시인 배치", "화기작업 허가서 확인", "주변 가연물 제거"]
+    },
+    {
+      "id": "confined_space",
+      "name": "밀폐공간 출입작업",
+      "aliases": ["밀폐공간", "맨홀", "탱크", "정화조", "지하피트", "질식"],
+      "detect_signals": [],
+      "required_measures": [
+        {"id": "gas_meter", "name": "가스농도 측정기", "critical": true,
+         "detect": [], "vlm_q": "산소·유해가스 농도 측정기가 사용되고 있는가?"},
+        {"id": "ventilation", "name": "환기설비", "critical": true,
+         "detect": [], "vlm_q": "송풍기·환기 덕트 등 환기설비가 설치돼 있는가?"},
+        {"id": "watcher", "name": "외부 감시인", "critical": true,
+         "detect": ["person"], "vlm_q": "밀폐공간 외부에 감시인이 대기하고 있는가?"},
+        {"id": "resp_ppe", "name": "호흡용 보호구", "critical": false,
+         "detect": [], "vlm_q": "작업자가 송기마스크 등 호흡용 보호구를 착용했는가?"}
+      ],
+      "hazards": ["산소결핍·유해가스 질식", "화재·폭발", "감전"],
+      "regulations": [
+        {"law": "산업안전보건기준에 관한 규칙 제619조", "desc": "밀폐공간 작업 전 산소·유해가스 농도 측정"},
+        {"law": "산업안전보건기준에 관한 규칙 제620조", "desc": "환기 및 감시인 배치"}
+      ],
+      "actions": ["산소·유해가스 농도 측정", "지속 환기", "외부 감시인 배치", "송기마스크 착용", "밀폐공간 작업허가서 확인"]
+    },
+    {
+      "id": "work_at_height",
+      "name": "고소작업(추락위험)",
+      "aliases": ["고소", "고소작업", "비계", "사다리", "지붕", "추락"],
+      "detect_signals": [],
+      "required_measures": [
+        {"id": "guardrail", "name": "안전난간", "critical": true,
+         "detect": [], "vlm_q": "작업발판 가장자리에 안전난간(난간대)이 설치돼 있는가?"},
+        {"id": "harness", "name": "안전대(안전벨트)", "critical": true,
+         "detect": [], "vlm_q": "작업자가 안전대(추락방지 벨트·죔줄)를 착용·체결했는가?"},
+        {"id": "safety_net", "name": "추락방지망", "critical": false,
+         "detect": [], "vlm_q": "하부에 추락방지망이 설치돼 있는가?"},
+        {"id": "helmet", "name": "안전모", "critical": false,
+         "detect": ["Hardhat", "helmet"], "vlm_q": "작업자가 안전모를 착용했는가?"}
+      ],
+      "hazards": ["추락", "낙하물", "전도"],
+      "regulations": [
+        {"law": "산업안전보건기준에 관한 규칙 제42조", "desc": "추락 위험 장소 안전난간·추락방지망 등 설치"},
+        {"law": "산업안전보건기준에 관한 규칙 제44조", "desc": "안전대 부착설비 및 착용"}
+      ],
+      "actions": ["안전난간 설치", "안전대 체결 확인", "추락방지망 설치", "작업발판 점검", "하부 출입통제"]
+    },
+    {
+      "id": "electrical",
+      "name": "전기작업(감전위험)",
+      "aliases": ["전기", "감전", "활선", "배전", "정전작업", "차단"],
+      "detect_signals": [],
+      "required_measures": [
+        {"id": "loto", "name": "전원차단·잠금표지(LOTO)", "critical": true,
+         "detect": [], "vlm_q": "전원 차단 및 잠금·표지(작업중 표지)가 부착돼 있는가?"},
+        {"id": "insul_ppe", "name": "절연 보호구", "critical": true,
+         "detect": [], "vlm_q": "작업자가 절연장갑 등 절연 보호구를 착용했는가?"}
+      ],
+      "hazards": ["감전", "아크 화상", "2차 추락"],
+      "regulations": [
+        {"law": "산업안전보건기준에 관한 규칙 제319조", "desc": "정전작업 시 전로 차단 및 잠금"},
+        {"law": "산업안전보건기준에 관한 규칙 제323조", "desc": "절연용 보호구 착용"}
+      ],
+      "actions": ["전원 차단·검전", "잠금·표지(LOTO)", "절연 보호구 착용", "활선 접근 통제"]
+    }
+  ]
+}
