@@ -279,7 +279,7 @@
           <div class="toggle-row"><span>위험 자세 감지</span><label class="toggle"><input type="checkbox" id="togPosture" checked><span class="toggle-slider"></span></label></div>
           <div class="toggle-row"><span>위험 사물 경고</span><label class="toggle"><input type="checkbox" id="togObjSafe" checked><span class="toggle-slider"></span></label></div>
           <div class="toggle-row"><span>경보 사운드</span><label class="toggle"><input type="checkbox" id="togSound"><span class="toggle-slider"></span></label></div>
-          <div class="toggle-row" title="건설현장 전용 탐지(보호구·중장비·화재). 실내·사무실에서 테스트할 땐 끄면 사람만 탐지해 오탐이 크게 줄어듭니다. 실제 현장에선 켜세요."><span>🏗 현장 모드(PPE·화재 탐지)</span><label class="toggle"><input type="checkbox" id="togFieldMode" checked><span class="toggle-slider"></span></label></div>
+          <div class="toggle-row" title="건설현장 전용 탐지(보호구·중장비·화재). 실내·사무실에서 테스트할 땐 끄면 사람만 탐지해 오탐이 크게 줄어듭니다. 실제 현장에선 켜세요."><span>🏗 현장 모드(PPE·화재 탐지)</span><label class="toggle"><input type="checkbox" id="togFieldMode" checked onchange="try{localStorage.setItem('vigent_field_mode',this.checked?'1':'0')}catch(e){}"><span class="toggle-slider"></span></label></div>
           <div class="toggle-row" title="VLM(AI 두뇌)이 감지 이벤트를 다시 보고 명백한 오탐을 걸러냅니다. 고신뢰 오탐만 알림을 억제하고 증거·기록은 그대로 저장합니다. VLM 추론이 끼어 다소 느려질 수 있습니다."><span>🧠 VLM 오탐 필터</span><label class="toggle"><input type="checkbox" id="togVlmConfirm"><span class="toggle-slider"></span></label></div>
         </div>
       </div>
@@ -478,6 +478,14 @@
       }
     }catch(e){}
   }, 1000);
+})();
+// 현장 모드 설정 기억 — 한 번 끄면 새로고침해도 계속 꺼져 있게(사무실 테스트 편의)
+(function(){
+  try{
+    const t=document.getElementById('togFieldMode');
+    const saved=localStorage.getItem('vigent_field_mode');
+    if(t && saved!==null) t.checked=(saved==='1');
+  }catch(e){}
 })();
 </script>
 </body>
