@@ -166,7 +166,7 @@ let backendHazards=[];   // 백엔드 화재/연기/흡연 등 위험요소 (색
 const BACKEND_BOOST_INTERVAL=250;     // 고정밀 백엔드 호출 최소간격(≈4fps) — 포즈/탐지 반응성↑(통합호출 ~70ms라 여유)
 const BACKEND_LOOP_INTERVAL=150;      // 루프 타이머(throttle가 모드별 실제 빈도 제어)
 const BACKEND_BOOST_TTL=3000;
-const BACKEND_PRIMARY_TTL=1700;       // 이 시간 내 백엔드 결과는 '주 탐지'로 우선 사용
+const BACKEND_PRIMARY_TTL=2800;       // 이 시간 내 백엔드 결과는 '주 탐지'로 우선 사용(CPU 지연 커버 → 깜빡임 방지)
 let backendLoopTimer=null;
 
 // 외곽선(인스턴스 세그멘테이션) 모드 — 박스 대신 객체 윤곽 폴리곤 표시
@@ -442,8 +442,8 @@ function stableTrackedObjects(tracked){
       return crit ? (o.hits>=2 && o.gone<=4)       // 안전: 조금 더 오래 유지
                   : (o.hits>=3 && o.gone<=2);       // 일반: 빨리 정리(깜빡임↓)
     }
-    if(crit) return (o.hits||1)>=1 || o.score>=0.30;  // 안전 위험: 관대(미탐 방지)
-    return (o.hits||1)>=3 || o.score>=0.62;           // 일반 사물: 엄격(3프레임 확정/고신뢰)
+    if(crit) return (o.hits||1)>=2 || (o.avgScore||o.score||0)>=0.45;  // 안전 위험: 2프레임 확정 or 평균신뢰(단발 헛것 제거, 미탐은 2프레임이면 즉시 통과)
+    return (o.hits||1)>=3 || (o.avgScore||o.score||0)>=0.62;           // 일반 사물: 엄격(3프레임/고신뢰)
   });
 }
 
@@ -769,6 +769,9 @@ async function analyzePPEWithBackend(source,W,H){
 // 완전 보조 기능: 실패하면 조용히 무시되어 기존 브라우저 탐지가 그대로 유지된다.
 async function analyzeObjectsWithBackend(source,W,H){
   if(backendBoostBusy) return;
+  // 좌표 안전: 실제 소스 해상도를 인자보다 우선(미준비/해상도 경계 시 1프레임 박스 붕괴 방지)
+  W=(source&&source.videoWidth)||W; H=(source&&source.videoHeight)||H;
+  if(!W||!H) return;
   const now=Date.now();
   // 스켈레톤 실시간성 위해 모든 테마 6.6fps(150ms)
   if(now-lastBackendBoostAt < 150) return;

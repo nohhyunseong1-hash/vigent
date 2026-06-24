@@ -64,7 +64,7 @@ class GuardAgent(BaseAgent):
     DEFAULT_CONF = 0.30      # 임계값(낮을수록 많이 잡음)
     # 검출기별 임계값 — 사람은 낮게(잘 잡되), 건설모델(PPE·지게차·화재)은 높게(실내 오탐 컷).
     # 화재는 오경보가 치명적이라 가장 높게. 명시 conf 가 오면 그걸 우선.
-    DETECTOR_CONF = {"person": 0.35, "ppe": 0.55, "forklift": 0.55, "fire_smoke": 0.62}
+    DETECTOR_CONF = {"person": 0.35, "ppe": 0.55, "forklift": 0.55, "fire_smoke": 0.70}
     IMGSZ = 960              # 추론 해상도(클수록 작은 객체↑). 워밍업 후 ~250ms/회로 빠름
     TRACK_TTL = 1.2          # 서버 추적 유지시간(초). 프론트 간격보다 길게 → 깜빡임 제거
     TRACK_IOU = 0.45         # 같은 객체로 볼 겹침 기준
