@@ -22,7 +22,7 @@ rsync -a \
   --exclude='.git' --exclude='data' --exclude='runs' --exclude='backup' \
   --exclude='destiny-matching' --exclude='실행' --exclude='colab' --exclude='docs' --exclude='tests' \
   --exclude='__pycache__' --exclude='*.pyc' --exclude='.DS_Store' \
-  --exclude='.env' --exclude='roboflow_key.txt' --exclude='config/site.yaml' \
+  --exclude='.env' --exclude='roboflow_key.txt' --exclude='config/site.yaml' --exclude='config/notify.yaml' \
   --exclude='themes' \
   "$SRC/" "$OUT/"
 cp -R "$SRC/themes/$THEME" "$OUT/themes/$THEME"
