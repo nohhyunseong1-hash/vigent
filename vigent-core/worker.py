@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import base64
 import json
+import math
 import threading
 import time
 from pathlib import Path
@@ -79,56 +80,131 @@ def _derive(out: dict, zone: list) -> list[tuple[str, str, str]]:
     return fired
 
 
-class _PoseFall:
-    """yolov8n-pose 기반 낙상(쓰러짐) 감지 — 워커용(서버사이드 포즈). 지연 로드·실패 시 무중단.
-    몸통(어깨중심→엉덩이중심)이 수직에서 크게 기울면(누움) 쓰러짐으로 본다."""
+def _person_metrics(xy, cf, H, min_kp=0.3):
+    """사람 1명의 키포인트 → 자세 지표. None 이면 판단 불가(어깨·엉덩이 미검출)."""
+    def gp(idxs):
+        pts = [xy[j] for j in idxs if cf[j] >= min_kp]
+        return np.mean(pts, axis=0) if pts else None
+    sc = gp([5, 6])          # 어깨중심
+    hc = gp([11, 12])        # 엉덩이중심
+    head = gp([0, 1, 2, 3, 4])  # 머리(코·눈·귀)
+    if sc is None or hc is None:
+        return None
+    angle = math.degrees(math.atan2(abs(hc[0] - sc[0]), abs(hc[1] - sc[1]) + 1e-6))  # 0수직~90수평
+    valid = [xy[j] for j in range(len(xy)) if cf[j] >= min_kp]
+    xs = [p[0] for p in valid]
+    ys = [p[1] for p in valid]
+    bw, bh = (max(xs) - min(xs)), (max(ys) - min(ys))
+    aspect = bw / (bh + 1e-6)
+    head_y = head[1] if head is not None else sc[1]
+    head_below_hip = head_y > hc[1]                  # 머리가 엉덩이보다 아래(주저앉음/거꾸로)
+    pose_fallen = (angle > 55) or (aspect > 1.3) or head_below_hip
+    return {"centroid": ((min(xs) + max(xs)) / 2, (min(ys) + max(ys)) / 2),
+            "ref_y": sc[1] / H, "angle": angle, "aspect": aspect,
+            "head_below_hip": head_below_hip, "pose_fallen": pose_fallen}
+
+
+class _PoseModel:
+    """yolov8n-pose 1회 로드(공유). 프레임 → 사람별 자세 지표. 실패 시 [](무중단)."""
 
     def __init__(self):
-        self._model = None
+        self._m = None
         self._failed = False
 
-    def _ensure(self):
-        if self._model is not None or self._failed:
-            return
+    def persons(self, frame, min_kp=0.3):
+        if self._m is None and not self._failed:
+            try:
+                from ultralytics import YOLO
+                self._m = YOLO(str(_ROOT / "vigent-core" / "weights" / "yolov8n-pose.pt"))
+            except Exception:  # noqa: BLE001
+                self._failed = True
+        if self._m is None:
+            return []
         try:
-            from ultralytics import YOLO
-            self._model = YOLO(str(_ROOT / "vigent-core" / "weights" / "yolov8n-pose.pt"))
-        except Exception:  # noqa: BLE001  모델 없거나 로드 실패 → 낙상만 비활성(무중단)
-            self._failed = True
-
-    def check(self, frame, min_kp: float = 0.3, angle_thr: float = 60.0) -> bool:
-        """프레임에 쓰러진 사람이 있으면 True. 어떤 예외도 삼키고 False(무중단)."""
-        self._ensure()
-        if self._model is None:
-            return False
-        try:
-            import math
-            res = self._model.predict(frame, verbose=False, conf=0.4, device="cpu")[0]
+            H = frame.shape[0]
+            res = self._m.predict(frame, verbose=False, conf=0.4, device="cpu")[0]
             kp = getattr(res, "keypoints", None)
             if kp is None or kp.xy is None or len(kp.xy) == 0:
-                return False
+                return []
             xys = kp.xy.cpu().numpy()
             cfs = kp.conf.cpu().numpy() if kp.conf is not None else None
+            out = []
             for i in range(len(xys)):
-                xy = xys[i]
-                cf = cfs[i] if cfs is not None else np.ones(len(xy))
-                sh = [xy[j] for j in (5, 6) if cf[j] >= min_kp]      # 어깨
-                hp = [xy[j] for j in (11, 12) if cf[j] >= min_kp]    # 엉덩이
-                if not sh or not hp:
-                    continue
-                sc = np.mean(sh, axis=0)
-                hc = np.mean(hp, axis=0)
-                dx = abs(hc[0] - sc[0])
-                dy = abs(hc[1] - sc[1])
-                angle = math.degrees(math.atan2(dx, dy + 1e-6))     # 0=수직(서있음), 90=수평(누움)
-                if angle > angle_thr:
-                    return True
-            return False
+                m = _person_metrics(xys[i], cfs[i] if cfs is not None else np.ones(len(xys[i])), H, min_kp)
+                if m:
+                    out.append(m)
+            return out
         except Exception:  # noqa: BLE001
-            return False
+            return []
 
 
-_posefall = _PoseFall()
+_posemodel = _PoseModel()
+
+
+class FallTracker:
+    """카메라 1대용 낙상 추적(상태 유지). 낙상을 '모양'이 아니라 '사건'으로 본다:
+       ① 다중 단서(몸통각·머리위치·박스비율)로 '쓰러진 자세' 판정
+       ② 모션: 머리/어깨가 갑자기 뚝 내려가고(급강하) → 그 뒤 정지
+       ③ (선택) VLM 확정 — 애매하면 '쓰러진 거 맞나?' 재판정.
+    자세 무관(기댐·걸침·주저앉음)하게 잡으려면 ②급강하가 핵심."""
+    DROP = 0.12          # 급강하: 0.5~2초 전 대비 화면높이의 12%↑ 하강
+    MATCH = 0.18         # 사람 프레임간 매칭 거리(대각선 정규화)
+    HIST_S = 3.0
+
+    def __init__(self, vlm=False):
+        self._tracks = []
+        self._vlm = vlm
+
+    def update(self, frame, ts):
+        """프레임 처리 → (낙상여부, 사유). 모델/키포인트 없으면 (False,'')."""
+        H, W = frame.shape[:2]
+        diag = (W * W + H * H) ** 0.5
+        persons = _posemodel.persons(frame)
+        used = set()
+        for p in persons:
+            cx, cy = p["centroid"]
+            best, bd = None, 1e9
+            for k, tr in enumerate(self._tracks):
+                if k in used:
+                    continue
+                d = ((cx - tr["cx"]) ** 2 + (cy - tr["cy"]) ** 2) ** 0.5 / diag
+                if d < bd:
+                    bd, best = d, k
+            if best is not None and bd < self.MATCH:
+                tr = self._tracks[best]
+                used.add(best)
+            else:
+                tr = {"hist": []}
+                self._tracks.append(tr)
+                used.add(len(self._tracks) - 1)
+            tr["cx"], tr["cy"] = cx, cy
+            tr["hist"].append((ts, p["ref_y"], p["pose_fallen"]))
+            tr["hist"] = [h for h in tr["hist"] if ts - h[0] <= self.HIST_S]
+        self._tracks = [tr for tr in self._tracks if tr.get("hist") and ts - tr["hist"][-1][0] < 2.0]
+
+        for tr in self._tracks:
+            hist = tr["hist"]
+            if not hist:
+                continue
+            cur_ref, pose_fallen = hist[-1][1], hist[-1][2]
+            past = [h[1] for h in hist if 0.5 <= ts - h[0] <= 2.0]
+            drop = bool(past) and (cur_ref - min(past) > self.DROP) and pose_fallen     # ② 급강하
+            recent = [h for h in hist if ts - h[0] <= 2.0]
+            allfall = len(recent) >= 3 and all(h[2] for h in recent[-3:])
+            still = len(recent) >= 3 and (max(h[1] for h in recent[-3:]) - min(h[1] for h in recent[-3:]) < 0.05)
+            static_fall = allfall and still                                            # ① 자세 지속+정지
+            if drop or static_fall:
+                reason = "급강하 후 쓰러짐" if drop else "쓰러진 자세 지속"
+                if self._vlm:                                                          # ③ VLM 확정(옵션)
+                    try:
+                        import vlm_confirm as _vc
+                        v = _vc.confirm(frame, "fall_suspected", reason=reason)
+                        if v.get("available") and v.get("suppress"):
+                            continue
+                    except Exception:  # noqa: BLE001
+                        pass
+                return True, reason
+        return False, ""
 
 
 class Worker:
@@ -169,6 +245,7 @@ class Worker:
     def _loop(self, guard, lock, source, name, fps, detectors, zone=None):
         interval = 1.0 / max(0.2, fps)
         cooldown: dict[str, float] = {}
+        ftrack = FallTracker(vlm=getattr(self, "_vlm_fall", False))   # 카메라별 낙상 추적(상태 유지)
         zone = [tuple(p) for p in zone] if zone else _load_zone()   # 카메라별 구역 or 전역
         is_image = Path(source).suffix.lower() in _IMG_EXT and Path(source).exists()
         static = cv2.imread(source) if is_image else None
@@ -195,10 +272,10 @@ class Worker:
                 self.state["frames"] += 1
                 with lock:                            # 코어 추론 직렬화(브라우저와 충돌 방지)
                     out = guard.detect(frame, detectors=detectors)
-                    fall = _posefall.check(frame)     # 서버사이드 포즈 낙상(쓰러짐)
+                    fall, freason = ftrack.update(frame, t0)   # 다중단서+모션 낙상
                 fired = _derive(out, zone)
                 if fall:
-                    fired.append(("fall_suspected", "critical", "작업자 낙상 의심(자세)"))
+                    fired.append(("fall_suspected", "critical", f"작업자 낙상 의심 — {freason}"))
                 now = time.time()
                 for rule, level, note in fired:
                     if now - cooldown.get(rule, 0) < _COOLDOWN_S:
