@@ -90,6 +90,101 @@
         {"law": "산업안전보건기준에 관한 규칙 제323조", "desc": "절연용 보호구 착용"}
       ],
       "actions": ["전원 차단·검전", "잠금·표지(LOTO)", "절연 보호구 착용", "활선 접근 통제"]
+    },
+    {
+      "id": "excavation",
+      "name": "굴착·흙막이작업",
+      "aliases": ["굴착", "터파기", "흙막이", "토공", "매설", "지반"],
+      "detect_signals": [],
+      "required_measures": [
+        {"id": "shoring", "name": "흙막이 지보공", "critical": true, "detect": [],
+         "vlm_q": "굴착면에 흙막이 지보공(토류판·버팀대)이 설치돼 있는가?"},
+        {"id": "access_ladder", "name": "승강설비", "critical": false, "detect": [],
+         "vlm_q": "굴착구덩이 출입용 사다리·승강설비가 있는가?"},
+        {"id": "edge_barrier", "name": "굴착부 방호울·접근통제", "critical": true, "detect": [],
+         "vlm_q": "굴착부 가장자리에 방호울이나 접근통제 표시가 있는가?"}
+      ],
+      "hazards": ["토사 붕괴·매몰", "추락", "지하매설물 손상", "건설기계 협착"],
+      "regulations": [
+        {"law": "산업안전보건기준에 관한 규칙 제338조", "desc": "굴착면 기울기 기준 및 흙막이 지보공 설치"},
+        {"law": "산업안전보건기준에 관한 규칙 제340조", "desc": "지반 붕괴 위험 시 흙막이 지보공·방호망"}
+      ],
+      "actions": ["굴착면 기울기·지보공 점검", "출입 승강설비 설치", "굴착부 방호울·통제", "지하매설물 사전확인", "우천 후 붕괴위험 점검"]
+    },
+    {
+      "id": "lifting",
+      "name": "중량물 양중(크레인)작업",
+      "aliases": ["양중", "크레인", "리프팅", "줄걸이", "인양", "타워크레인"],
+      "detect_signals": ["forklift"],
+      "required_measures": [
+        {"id": "exclusion_zone", "name": "하부 출입통제(작업반경)", "critical": true, "detect": [],
+         "vlm_q": "크레인 인양물 하부·작업반경에 사람 출입을 통제하고 있는가?"},
+        {"id": "rigging", "name": "줄걸이 상태(슬링·후크 해지장치)", "critical": true, "detect": [],
+         "vlm_q": "줄걸이(슬링)와 후크 해지장치가 정상으로 보이는가?"},
+        {"id": "signalman", "name": "신호수", "critical": false, "detect": ["person"],
+         "vlm_q": "양중작업을 유도하는 신호수가 배치돼 있는가?"}
+      ],
+      "hazards": ["낙하물 충돌", "협착", "전도·붕괴", "충전부 접촉(감전)"],
+      "regulations": [
+        {"law": "산업안전보건기준에 관한 규칙 제20조", "desc": "낙하·비래 위험구간 출입금지"},
+        {"law": "산업안전보건기준에 관한 규칙 제146조", "desc": "크레인 방호장치·줄걸이 작업 기준"}
+      ],
+      "actions": ["인양 하부 출입통제", "줄걸이·후크 해지장치 점검", "신호수 배치", "정격하중 준수", "충전전로 이격거리 확보"]
+    },
+    {
+      "id": "vehicle_machine",
+      "name": "차량계 건설기계작업",
+      "aliases": ["굴삭기", "백호", "지게차", "건설기계", "롤러", "협착"],
+      "detect_signals": ["forklift"],
+      "required_measures": [
+        {"id": "guide", "name": "유도자(신호수)", "critical": true, "detect": ["person"],
+         "vlm_q": "건설기계 주변에 유도자(신호수)가 배치돼 있는가?"},
+        {"id": "work_zone", "name": "작업반경 출입통제", "critical": true, "detect": [],
+         "vlm_q": "건설기계 작업반경에 근로자 출입을 통제하고 있는가?"}
+      ],
+      "hazards": ["협착·충돌", "전도", "낙하물", "접촉(감전)"],
+      "regulations": [
+        {"law": "산업안전보건기준에 관한 규칙 제200조", "desc": "차량계 건설기계 작업반경 내 출입금지"},
+        {"law": "산업안전보건기준에 관한 규칙 제201조", "desc": "유도자 배치 및 제한속도"}
+      ],
+      "actions": ["작업반경 출입통제", "유도자 배치", "전도방지(평탄·지반)", "후방 경보·카메라 확인"]
+    },
+    {
+      "id": "demolition",
+      "name": "해체·철거작업",
+      "aliases": ["해체", "철거", "구조물 해체", "비산", "분진"],
+      "detect_signals": [],
+      "required_measures": [
+        {"id": "exclusion", "name": "출입통제·방호", "critical": true, "detect": [],
+         "vlm_q": "해체구간 주변에 출입통제·방호시설(가설울타리)이 있는가?"},
+        {"id": "dust_control", "name": "비산먼지 살수설비", "critical": false, "detect": [],
+         "vlm_q": "분진 억제용 살수설비가 가동되고 있는가?"}
+      ],
+      "hazards": ["구조물 붕괴", "낙하물", "분진(호흡기)", "소음"],
+      "regulations": [
+        {"law": "산업안전보건기준에 관한 규칙 제443조", "desc": "해체작업계획 및 출입금지 조치"}
+      ],
+      "actions": ["해체작업계획서 확인", "출입통제·방호", "살수 등 분진억제", "잔재물 낙하방지"]
+    },
+    {
+      "id": "scaffold",
+      "name": "비계 조립·해체작업",
+      "aliases": ["비계", "시스템비계", "발판", "조립", "해체"],
+      "detect_signals": [],
+      "required_measures": [
+        {"id": "guardrail", "name": "안전난간(발판 가장자리)", "critical": true, "detect": [],
+         "vlm_q": "비계 작업발판 가장자리에 안전난간이 설치돼 있는가?"},
+        {"id": "harness", "name": "안전대 체결", "critical": true, "detect": [],
+         "vlm_q": "작업자가 안전대를 비계에 체결했는가?"},
+        {"id": "footboard", "name": "작업발판 고정", "critical": false, "detect": [],
+         "vlm_q": "작업발판이 빈틈 없이 깔리고 고정돼 있는가?"}
+      ],
+      "hazards": ["추락", "비계 전도·붕괴", "낙하물"],
+      "regulations": [
+        {"law": "산업안전보건기준에 관한 규칙 제56조", "desc": "작업발판 설치 기준(폭·틈)"},
+        {"law": "산업안전보건기준에 관한 규칙 제59조", "desc": "비계 조립·해체 시 안전대·난간"}
+      ],
+      "actions": ["안전난간·발판 점검", "안전대 체결", "벽이음·전도방지", "조립도 준수", "하부 출입통제"]
     }
   ]
 }

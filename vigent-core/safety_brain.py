@@ -105,12 +105,23 @@ def assess(activity_key: str, present_classes: list[str] | None = None,
         parts.append("필수 안전조치 충족 확인")
     summary = f"[{act['name']}] " + " / ".join(parts)
 
+    # RAG: 작업 + 부족조치로 관련 규정·가이드 검색해 근거 보강(폴백: 빈 목록)
+    related = []
+    try:
+        import safety_rag
+        q = act["name"] + " " + " ".join(m["name"] for m in (missing or measures))
+        related = [{"title": r["title"], "text": r["text"], "source": r["source"], "type": r["type"]}
+                   for r in safety_rag.retrieve(q, k=3)]
+    except Exception:  # noqa: BLE001
+        related = []
+
     return {"ok": True, "activity": act["name"], "activity_id": act["id"],
             "risk": risk, "summary": summary,
             "measures": measures, "missing": missing, "unknown": unknown,
             "hazards": act.get("hazards", []),
             "regulations": act.get("regulations", []),
             "actions": act.get("actions", []),
+            "related": related,
             "vlm_used": bool(use_vlm and image_bgr is not None),
             "disclaimer": "AI 초안 — 안전관리자 확인 필요. 확인불가 항목은 사람이 직접 점검."}
 
@@ -156,6 +167,15 @@ _PAGE = r"""<!DOCTYPE html><html lang="ko"><head><meta charset="UTF-8">
   </div>
 
   <div id="out"></div>
+
+  <div class="card">
+    <h3 style="margin:0 0 8px;font-size:14px;color:#93c5fd">🔎 안전 규정·지식 검색(RAG)</h3>
+    <div style="display:flex;gap:8px">
+      <input id="q" placeholder="예: 밀폐공간 환기, 용접 화재, 추락 안전대…" style="flex:1;background:#0b1220;border:1px solid #334155;border-radius:8px;color:#e5e7eb;padding:9px 11px;font-size:14px" onkeydown="if(event.key==='Enter')search()">
+      <button class="btn g" onclick="search()">검색</button>
+    </div>
+    <div id="sout"></div>
+  </div>
 </div>
 <script>
   const RKO={high:'위험 높음',mid:'주의',low:'양호'};
@@ -184,8 +204,18 @@ _PAGE = r"""<!DOCTYPE html><html lang="ko"><head><meta charset="UTF-8">
       <div class="sec"><h3>⚠ 위험요인</h3><ul>${j.hazards.map(h=>'<li>'+h+'</li>').join('')}</ul></div>
       <div class="sec"><h3>📖 관련 법령(근거)</h3><ul>${regs}</ul></div>
       <div class="sec"><h3>✅ 권장 조치</h3><ul>${acts}</ul></div>
+      ${(j.related&&j.related.length)?'<div class="sec"><h3>🔎 관련 지식(RAG)</h3><ul>'+j.related.map(x=>`<li><b>${x.title}</b> <span class="dim">[${x.type}]</span> — ${x.text} <span class="dim">(${x.source})</span></li>`).join('')+'</ul></div>':''}
       <div class="dim" style="margin-top:10px">${j.disclaimer}${j.vlm_used?' · VLM 추론 사용됨':' · 지식 조회(이미지/VLM 미사용)'}</div>
     </div>`;
+  }
+  async function search(){
+    const q=document.getElementById('q').value.trim(); if(!q)return;
+    document.getElementById('sout').innerHTML='<div class="dim" style="margin-top:8px">검색 중…</div>';
+    const r=await fetch('/safety/brain/search?q='+encodeURIComponent(q)+'&k=5');
+    const j=await r.json();
+    document.getElementById('sout').innerHTML=(j.results&&j.results.length)
+      ? '<table style="margin-top:8px"><tbody>'+j.results.map(x=>`<tr><td><b>${x.title}</b> <span class="dim">[${x.type}]</span><br><span style="font-size:12.5px">${x.text}</span><br><span class="dim">${x.source} · 점수 ${x.score}</span></td></tr>`).join('')+'</tbody></table>'
+      : '<div class="dim" style="margin-top:8px">결과 없음</div>';
   }
   run();
 </script></body></html>"""

@@ -980,6 +980,13 @@ def safety_brain_activities():
     return {"activities": safety_brain.list_activities()}
 
 
+@app.get("/safety/brain/search")
+def safety_brain_search(q: str, k: int = 5):
+    """안전 지식 RAG 검색 — 법령·KOSHA 가이드·작업지식에서 관련 스니펫 top-k."""
+    import safety_rag
+    return {"query": q, "results": safety_rag.retrieve(q, k=k)}
+
+
 @app.post("/safety/brain/assess")
 def safety_brain_assess(payload: dict = Body(...)):
     """장면 점검 — payload={activity, present?:[classes], image_base64?, use_vlm?}.
