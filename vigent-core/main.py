@@ -54,6 +54,30 @@ DEFAULT_THEME = os.environ.get("VIGENT_THEME", "safety")
 
 app = FastAPI(title="VIGENT Core", version="0.2.0")
 
+
+@app.middleware("http")
+async def _no_cache_dynamic(request, call_next):
+    """HTML·JS 는 캐시 금지 → 코드 수정이 새로고침 즉시 반영(브라우저가 옛 인식코드 물고 있는 문제 차단)."""
+    resp = await call_next(request)
+    p = request.url.path
+    if p.endswith(".js") or p.endswith(".html") or resp.headers.get("content-type", "").startswith("text/html"):
+        resp.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
+    return resp
+
+
+# 안전 모드에서 '그릴' 객체 화이트리스트(서버단 강제) — 프론트 캐시와 무관하게 잡동사니 제거.
+# 일상 사물(노트북·TV·의자 등)은 빼고, 사람·위험물·차량/중장비·화재·보호구(PPE)만 남긴다.
+_SAFETY_KEEP = {"person", "knife", "scissors", "car", "truck", "bus", "motorcycle",
+                "bicycle", "forklift", "train", "boat", "fire", "smoke", "cigarette"}
+
+
+def _is_safety_label(label: str) -> bool:
+    l = (label or "").lower()
+    if l in _SAFETY_KEEP:
+        return True
+    return any(k in l for k in ("hardhat", "helmet", "vest", "mask", "glove", "goggle", "boots"))
+
+
 # 코어가 들고 있는 런타임 상태(테마별 파이프라인 + 에이전트)
 STATE: dict[str, dict] = {}
 
@@ -272,6 +296,9 @@ def detect_frame(payload: dict = Body(...), theme: str = DEFAULT_THEME):
         dets.append({"class": d.get("label"), "score": d.get("conf"),
                      "bbox": [round(x1 * W, 1), round(y1 * H, 1),
                               round((x2 - x1) * W, 1), round((y2 - y1) * H, 1)]})
+    # 안전 전용: 잡동사니(노트북·TV·의자 등) 서버단에서 제거 → 사람·위험물·차량·화재·보호구만
+    if payload.get("safety_only"):
+        dets = [d for d in dets if _is_safety_label(d.get("class"))]
     hazards = [{"type": d.get("label", "").lower(), "label": d.get("label"),
                 "confidence": d.get("conf", 0),
                 "severity": "high" if d.get("conf", 0) >= 0.5 else "mid"}

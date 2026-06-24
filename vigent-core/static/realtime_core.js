@@ -792,7 +792,7 @@ async function analyzeObjectsWithBackend(source,W,H){
     const resp=await fetch(`${API_BASE}/detect/frame`,{
       method:'POST',
       headers:{'content-type':'application/json'},
-      body:JSON.stringify({image_base64, ppe: activeServiceMode==='safety' && (document.getElementById('togFieldMode')?.checked ?? true), seg: wantSeg, pose: wantPose})
+      body:JSON.stringify({image_base64, ppe: activeServiceMode==='safety' && (document.getElementById('togFieldMode')?.checked ?? true), safety_only: activeServiceMode==='safety', seg: wantSeg, pose: wantPose})
     });
     if(!resp.ok) return;
     const data=await resp.json();
@@ -850,7 +850,7 @@ async function analyzeSegments(source,W,H){
     const image_base64=oc.toDataURL('image/jpeg',0.72).split(',')[1];
     const resp=await fetch(`${API_BASE}/segment/frame`,{
       method:'POST',headers:{'content-type':'application/json'},
-      body:JSON.stringify({image_base64, ppe: activeServiceMode==='safety' && (document.getElementById('togFieldMode')?.checked ?? true)})
+      body:JSON.stringify({image_base64, ppe: activeServiceMode==='safety' && (document.getElementById('togFieldMode')?.checked ?? true), safety_only: activeServiceMode==='safety'})
     });
     if(!resp.ok) return;
     const data=await resp.json();
