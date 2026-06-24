@@ -129,6 +129,10 @@
 
     <div class="ideal" id="ideal">
       <h4 style="margin:14px 0 8px;font-size:13px;color:var(--mut)">✅ 이상적인 자세 (목표)</h4>
+      <div style="display:flex;gap:12px;align-items:center;margin-bottom:8px">
+        <canvas id="idealCv" width="110" height="150" style="background:#10202f;border:1px solid var(--line);border-radius:10px;flex:none"></canvas>
+        <div class="desc" style="flex:1">옆에서 봤을 때 <b>귀–어깨–골반이 일직선</b>인 게 목표예요. 내 측면 3D와 비교해보세요.</div>
+      </div>
       <div class="tip good" style="border-left-color:var(--accent)">
         ① 화면 상단을 <b>눈높이</b>에 — 고개를 숙이지 않게<br>
         ② <b>귀–어깨–골반</b>을 옆에서 봤을 때 <b>일직선</b><br>
@@ -167,6 +171,7 @@
     </div>
     <div class="ctrl">
       <label><input type="checkbox" id="togBlur"> 얼굴 블러</label>
+      <button id="btnVoice">🔊 음성 ON</button>
       <button id="btnEngine">⚡ 빠른 모드</button>
       <button id="btnShare">💬 슬랙 공유</button>
       <button id="btnReset">통계 초기화</button>
@@ -259,6 +264,10 @@ fetch('/theme/office/raw').then(r=>r.json()).then(raw=>{
 let goodSec=0, badSec=0, badStreak=0, lastT=performance.now(), notified=false;
 function fmt(s){ return Math.floor(s/60)+'분'; }
 document.getElementById('btnReset').onclick=()=>{goodSec=badSec=badStreak=0;};
+document.getElementById('btnVoice').onclick=function(){ voiceOn=!voiceOn;
+  this.textContent=voiceOn?'🔊 음성 ON':'🔇 음성 OFF';
+  if(voiceOn) speak('음성 코칭을 시작합니다',0); else { try{speechSynthesis.cancel();}catch(e){} } };
+if('speechSynthesis' in window) speechSynthesis.getVoices();
 // A-2. 슬랙/Teams 공유 — 오늘 자세 요약을 워크플로로
 document.getElementById('btnShare').onclick=async ()=>{
   const gm=Math.round(goodSec/60), bm=Math.round(badSec/60);
@@ -458,10 +467,52 @@ function updatePanel(res){
       const d=document.createElement('div'); d.className='tip '+f.level;
       d.textContent='['+f.joint+'] '+f.msg; tips.appendChild(d); }
   }
+  voiceCoach(res);   // 음성 코칭(나쁜 부위 교정 발화)
+}
+
+// ── 음성 코칭(TTS) — 일하는 중에도 귀로 교정 ──
+let voiceOn=true, lastSpeak=0, lastMsg='';
+function speak(t, gap=5000){
+  if(!voiceOn || !('speechSynthesis' in window) || !t) return;
+  const now=performance.now();
+  if(t===lastMsg && now-lastSpeak<12000) return;
+  if(now-lastSpeak<gap) return;
+  lastSpeak=now; lastMsg=t;
+  const u=new SpeechSynthesisUtterance(t); u.lang='ko-KR'; u.rate=1.05;
+  const v=(speechSynthesis.getVoices()||[]).find(x=>x.lang&&x.lang.toLowerCase().startsWith('ko'));
+  if(v)u.voice=v;
+  try{ speechSynthesis.cancel(); speechSynthesis.speak(u); }catch(e){}
+}
+function voiceCoach(res){
+  if(!voiceOn || !res) return;
+  if(res.level==='bad'){
+    const bad=(res.feedback||[]).find(f=>f.level==='bad'&&f.joint!=='전체');
+    if(bad) speak(bad.msg, 6000);
+  }
 }
 
 function toast(msg){ const t=document.getElementById('toast'); t.textContent=msg; t.classList.add('on');
   setTimeout(()=>t.classList.remove('on'),5000); }
+
+// 이상적 측면 자세 figure(귀-어깨-골반 일직선) — 한 번 그림
+(function drawIdeal(){ const c=document.getElementById('idealCv'); if(!c)return; const x=c.getContext('2d');
+  x.clearRect(0,0,110,150);
+  // 의자
+  x.strokeStyle='#33485f'; x.lineWidth=2;
+  x.beginPath(); x.moveTo(40,150);x.lineTo(40,95);x.lineTo(75,95); x.moveTo(40,118);x.lineTo(78,118); x.stroke();
+  // 모니터(눈높이)
+  x.fillStyle='#1f3a55'; x.fillRect(6,28,22,30); x.strokeStyle='#4aa3ff'; x.strokeRect(6,28,22,30);
+  // 사람 측면: 골반(40,95)-어깨(40,55)-귀(40,40)-머리, 일직선(초록)
+  x.strokeStyle='#2ecc71'; x.lineWidth=3; x.lineCap='round';
+  x.beginPath(); x.moveTo(40,95); x.lineTo(40,55); x.lineTo(40,42); x.stroke();   // 골반-어깨-목 일직선
+  x.beginPath(); x.arc(40,32,9,0,7); x.fillStyle='#2ecc71'; x.globalAlpha=.85; x.fill(); x.globalAlpha=1;
+  // 허벅지·정강이
+  x.strokeStyle='#2ecc71'; x.beginPath(); x.moveTo(40,95);x.lineTo(72,95); x.moveTo(72,95);x.lineTo(72,128); x.stroke();
+  // 관절점
+  x.fillStyle='#fff'; for(const p of [[40,42],[40,55],[40,95],[72,95]]){ x.beginPath();x.arc(p[0],p[1],3,0,7);x.fill(); }
+  // 라벨
+  x.fillStyle='#8aa0b8'; x.font='9px sans-serif'; x.fillText('귀',48,40); x.fillText('어깨',48,57); x.fillText('골반',48,97);
+})();
 
 // ── A-1. 데스크톱 알림(다른 앱 쓰는 중에도 뜸 — 참여율 핵심) ──
 function notify(title, body){
