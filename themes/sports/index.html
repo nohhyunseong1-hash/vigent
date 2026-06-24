@@ -100,6 +100,10 @@
         <h4 style="margin:0 0 6px;font-size:12px;color:var(--mut)">🎯 목표 자세 (이렇게 하세요)</h4>
         <canvas id="refCv" width="280" height="220" style="width:100%;background:#0d1119;border:1px solid var(--line);border-radius:10px"></canvas>
       </div>
+      <div style="margin-top:12px">
+        <h4 style="margin:0 0 6px;font-size:12px;color:var(--mut)">🧊 측면 3D 자세 (회전)</h4>
+        <canvas id="pose3d" width="320" height="220" style="width:100%;height:180px;background:#0d141f;border:1px solid var(--line);border-radius:10px"></canvas>
+      </div>
       <div id="bodyWrap" style="margin-top:12px;display:none">
         <h4 style="margin:0 0 6px;font-size:12px;color:var(--mut)">💪 자극·통증 부위</h4>
         <div style="display:flex;gap:10px;align-items:flex-start">
@@ -152,6 +156,7 @@
 
 <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
+<script src="/static/pose3d.js"></script>
 <script>
 const cv=document.getElementById('cv'), ctx=cv.getContext('2d'), hud=document.getElementById('hud');
 let MIRROR=true, asanas=[], cur=null, CFG={symmetry:{good:8,warn:18},balance:{good:.04,warn:.10},stability:{good:.02,warn:.05},hold:15};
@@ -603,6 +608,8 @@ function onResults(r){
   if(MODE3D){ render3D(dlm); }
   else { clear3D(); drawSkeleton(dlm); drawHand(r.leftHandLandmarks); drawHand(r.rightHandLandmarks); }
   updateForm(formMetrics(lm));   // 일반 지표(대칭·균형·안정성)
+  if(!window._p3d && window.Pose3D) window._p3d=Pose3D(document.getElementById('pose3d'));
+  if(window._p3d) window._p3d.update(lm);   // 측면 3D 자세 뷰
   const sa=scoreAsana(lm, cur);
   updateAngleChecks(sa);   // 동작별 정답 각도 비교
   voiceCoach(sa);          // 음성 코칭(시작 안내 + 실시간 교정)

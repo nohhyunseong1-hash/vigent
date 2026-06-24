@@ -113,6 +113,12 @@
       <div id="tips"><div class="tip good">자세를 측정하면 교정 조언이 표시됩니다.</div></div>
     </div>
 
+    <div class="coach" style="margin-top:12px">
+      <h4 style="font-size:13px;color:var(--mut)">🧊 측면 3D 자세 (회전)</h4>
+      <canvas id="pose3d" width="320" height="240" style="width:100%;height:200px;background:#0d141f;border:1px solid var(--line);border-radius:10px"></canvas>
+      <div class="desc" style="margin-top:4px">옆에서 본 입체 자세 — 거북목·앞뒤 정렬 확인 (관절색=신뢰도)</div>
+    </div>
+
     <div class="coach" id="bodyWrap" style="margin-top:12px">
       <h4 style="font-size:13px;color:var(--mut)">🩹 부담·통증 위험 부위</h4>
       <div style="display:flex;gap:12px;align-items:flex-start">
@@ -203,6 +209,8 @@
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
+<script src="/static/pose3d.js"></script>
 <script src="/static/ergonomics.js"></script>
 <script>
 const cv=document.getElementById('cv'), ctx=cv.getContext('2d');
@@ -483,6 +491,8 @@ function onResults(r){
   const mlm=lm.map(p=>p?{x:1-p.x,y:p.y,z:p.z,visibility:p.visibility}:p);
   blurFace(mlm); drawSkeleton(mlm);
   drawHand(r.leftHandLandmarks); drawHand(r.rightHandLandmarks);   // 손가락 21점(Holistic)
+  if(!window._p3d && window.Pose3D) window._p3d=Pose3D(document.getElementById('pose3d'));
+  if(window._p3d) window._p3d.update(lm);   // 측면 3D 자세 뷰
   const res=VIGENTErgo.score(lm);
   if(!res.ok){ hud.textContent=res.reason; return; }
   hud.textContent='자세 분석 중 · '+(res.framework||'RULA');
