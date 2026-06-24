@@ -1033,6 +1033,15 @@ const KO={'person':'사람','car':'자동차','bicycle':'자전거','motorcycle'
 const ICONS={'person':'🧑','car':'🚗','bicycle':'🚲','motorcycle':'🏍','bus':'🚌','truck':'🚚','chair':'🪑','couch':'🛋','laptop':'💻','tv':'📺','book':'📖','bottle':'🍶','cup':'☕','knife':'🔪','fork':'🍴','spoon':'🥄','bowl':'🍜','cell phone':'📱','keyboard':'⌨','mouse':'🖱','dog':'🐶','cat':'🐱','bird':'🐦','umbrella':'☂','backpack':'🎒','sports ball':'⚽','scissors':'✂','clock':'🕐','handbag':'👜','traffic light':'🚦','bench':'🪵','potted plant':'🪴','vase':'🏺','remote':'📡','suitcase':'🧳','wine glass':'🍷','dining table':'🍽','refrigerator':'🧊','pizza':'🍕','banana':'🍌','apple':'🍎','orange':'🍊','sandwich':'🥪','cake':'🎂','cigarette':'🚬','glasses':'👓','snack':'🍪'};
 const DANGER_OBJ=['knife','scissors'];
 const CAUTION_OBJ=['car','truck','bus','motorcycle','cigarette'];
+// 안전 모드에서 '그릴' 객체 화이트리스트 — 사람·위험물·차량/중장비·화재. 일상 잡동사니(의자·컵·노트북 등)는 숨겨 화면을 깔끔하게.
+const SAFETY_SHOW=new Set(['person','knife','scissors','car','truck','bus','motorcycle','bicycle','forklift','train','boat','fire','smoke','cigarette']);
+function _safetyVisible(objs){
+  if(typeof activeServiceMode==='undefined' || activeServiceMode!=='safety') return objs;  // 다른 테마는 그대로
+  return (objs||[]).filter(o=>{
+    const c=String(o.class||'').toLowerCase();
+    return SAFETY_SHOW.has(c) || isPpeClass(o.class) || o.danger || o.hazard;  // 안전 관련 + 보호구 + 위험/화재 표시만
+  });
+}
 const SCENE_MAP={'사무실':['laptop','keyboard','mouse','chair','book','cell phone'],'도로/교통':['car','truck','bus','motorcycle','bicycle','traffic light'],'주방/식당':['cup','bowl','knife','spoon','fork','bottle','oven','refrigerator'],'스포츠':['sports ball','tennis racket','baseball bat','skateboard'],'거실':['couch','tv','remote','potted plant'],'야외/공원':['bench','bird','dog','cat','umbrella','backpack']};
 function translateClass(c){return KO[c]||c;}
 function classIcon(c){return ICONS[c]||'📦';}
@@ -2293,14 +2302,21 @@ function _detectDiag(msg){
 function backendActive(){ return activeServiceMode==='safety' || !!document.getElementById('togBackendBoost')?.checked; }
 function _mergedObjects(browserObjs){
   browserObjs = browserObjs || latestObjects || [];
-  if(!backendActive()) return browserObjs; // 백엔드 미사용 시 기존 브라우저 그대로(저하 없음)
-  const fresh = (Date.now()-backendBoostAt <= BACKEND_PRIMARY_TTL) ? backendBoostDets : [];
-  if(!fresh.length) return browserObjs;                       // 백엔드 결과 없으면 저하 없이 브라우저 유지
-  const out = fresh.map(d=>({...d}));                         // 백엔드(고정밀) 우선 = 라벨/정밀도 보정
-  for(const b of browserObjs){                               // 백엔드가 못 잡은 영역만 브라우저로 보충
-    if(!fresh.some(f=> iou(f.bbox,b.bbox)>0.45)) out.push(b);
+  let out;
+  if(!backendActive()){
+    out = browserObjs;                                        // 백엔드 미사용 시 기존 브라우저 그대로(저하 없음)
+  }else{
+    const fresh = (Date.now()-backendBoostAt <= BACKEND_PRIMARY_TTL) ? backendBoostDets : [];
+    if(!fresh.length){
+      out = browserObjs;                                      // 백엔드 결과 없으면 저하 없이 브라우저 유지
+    }else{
+      out = fresh.map(d=>({...d}));                           // 백엔드(고정밀) 우선 = 라벨/정밀도 보정
+      for(const b of browserObjs){                            // 백엔드가 못 잡은 영역만 브라우저로 보충
+        if(!fresh.some(f=> iou(f.bbox,b.bbox)>0.45)) out.push(b);
+      }
+    }
   }
-  return out;
+  return _safetyVisible(out);                                 // 안전 모드: 안전 관련 객체만 그림(잡동사니 숨김)
 }
 
 // ── 폴백 렌더 ──────────────────────────────────────────
