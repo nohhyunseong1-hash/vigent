@@ -100,6 +100,16 @@
         <h4 style="margin:0 0 6px;font-size:12px;color:var(--mut)">🎯 목표 자세 (이렇게 하세요)</h4>
         <canvas id="refCv" width="280" height="220" style="width:100%;background:#0d1119;border:1px solid var(--line);border-radius:10px"></canvas>
       </div>
+      <div id="bodyWrap" style="margin-top:12px;display:none">
+        <h4 style="margin:0 0 6px;font-size:12px;color:var(--mut)">💪 자극·통증 부위</h4>
+        <div style="display:flex;gap:10px;align-items:flex-start">
+          <canvas id="bodyCv" width="120" height="200" style="background:#0d1119;border:1px solid var(--line);border-radius:10px;flex:none"></canvas>
+          <div style="flex:1;font-size:12.5px;line-height:1.6">
+            <div id="workList" style="color:var(--good)"></div>
+            <div id="cautionList" style="color:var(--warn);margin-top:6px"></div>
+          </div>
+        </div>
+      </div>
     </div>
 
     <div class="panel">
@@ -208,8 +218,45 @@ function drawReference(pts){
     x.beginPath();x.arc(p.x,p.y,r-1.5,0,7);x.fillStyle='#9b6bff';x.fill(); }
 }
 
+// ── 자극·통증 부위 몸 그림(앞모습 실루엣 + 부위 하이라이트) ──
+// region → 캔버스 영역(120x200) 다각형/원
+const BODY_REGIONS={
+  neck:[[52,30,68,42]], shoulder:[[30,42,52,58],[68,42,90,58]],
+  arm:[[24,58,38,108],[82,58,96,108]], chest:[[44,46,76,70]],
+  core:[[44,70,76,100]], back:[[44,62,76,98]], side:[[38,62,46,98],[74,62,82,98]],
+  hip:[[42,98,78,116]], thigh:[[44,116,57,158],[63,116,76,158]],
+  knee:[[44,156,57,168],[63,156,76,168]], calf:[[45,168,56,196],[64,168,75,196]],
+  ankle:[[45,194,56,200],[64,194,75,200]],
+};
+function drawBodyMap(work, caution){
+  const c=document.getElementById('bodyCv'), x=c.getContext('2d'); x.clearRect(0,0,120,200);
+  // 실루엣
+  x.fillStyle='#1a2233'; x.strokeStyle='#2a3650'; x.lineWidth=1;
+  x.beginPath(); x.arc(60,22,12,0,7); x.fill();                        // 머리
+  x.fillRect(40,40,40,62); x.fillRect(24,46,16,60); x.fillRect(80,46,16,60); // 몸통+팔
+  x.fillRect(42,100,16,98); x.fillRect(62,100,16,98);                  // 다리
+  // 하이라이트
+  const paint=(keys,col,al)=>{ for(const k of keys){ const rs=BODY_REGIONS[k]||[];
+    x.fillStyle=col; x.globalAlpha=al; for(const r of rs) x.fillRect(r[0],r[1],r[2]-r[0],r[3]-r[1]); } x.globalAlpha=1; };
+  paint(work,'#2ecc71',0.55);       // 자극=초록
+  paint(caution,'#e74c3c',0.6);     // 통증주의=빨강
+}
+function updateBodyMap(formBad){
+  const w=document.getElementById('bodyWrap');
+  if(!cur || (!cur.work && !cur.caution)){ w.style.display='none'; return; }
+  w.style.display='block';
+  const work=(cur.work||[]).map(x=>x[0]);
+  const cautKeys=(cur.caution||[]).map(x=>x[0]);
+  drawBodyMap(work, formBad?cautKeys:[]);   // 통증주의는 자세 틀어졌을 때 강조
+  document.getElementById('workList').innerHTML =
+    (cur.work||[]).length? '💪 자극: '+(cur.work.map(x=>x[1]).join(', ')) : '';
+  document.getElementById('cautionList').innerHTML =
+    (cur.caution||[]).length? '⚠️ 주의: '+(cur.caution.map(x=>x[1]).join(' · ')) : '';
+}
+
 const DIFF_COL={'초급':'#2ecc71','중급':'#f1c40f','고급':'#e74c3c'};
 function setAsana(i){ cur=asanas[i]; if(!cur)return; applyCalib(cur);   // 내 보정 반영
+  updateBodyMap(false);
   const d=document.getElementById('asanaDesc');
   const badge=`<span style="display:inline-block;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:700;background:${DIFF_COL[cur.difficulty]||'#888'}22;color:${DIFF_COL[cur.difficulty]||'#888'}">${cur.difficulty}</span>`;
   const sans=`<span style="color:var(--mut);font-size:12px;font-style:italic">${cur.sanskrit}</span>`;
@@ -559,6 +606,7 @@ function onResults(r){
   const sa=scoreAsana(lm, cur);
   updateAngleChecks(sa);   // 동작별 정답 각도 비교
   voiceCoach(sa);          // 음성 코칭(시작 안내 + 실시간 교정)
+  if(cur&&(cur.work||cur.caution)) updateBodyMap(!!(sa&&sa.checks&&sa.checks.some(c=>c.measured!=null&&!c.ok)));
   if(calib){ collectCalib(sa); const left=Math.max(0,(calib?calib.until-performance.now():0)/1000);
     if(calib) hud.textContent=`📐 정답 자세 보정 중… ${left.toFixed(1)}초`; }
   // 측정 모드(정면/측면) — 동작 권장 뷰와 함께 안내
