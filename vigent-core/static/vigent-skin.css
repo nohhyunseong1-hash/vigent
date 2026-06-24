@@ -19,8 +19,11 @@ main{ display:block !important; max-width:none !important; margin:0 !important; 
 .video-panel{ margin:0 !important; padding:0 !important; }
 #videoContainer{ position:fixed !important; inset:0 !important; width:100vw !important; height:100vh !important;
   border:0 !important; border-radius:0 !important; box-shadow:none !important; background:#000 !important; }
+/* object-fit 은 반드시 contain — 좌표 계산(mediaRect)이 contain(레터박스) 기준이라
+   cover 로 두면 영상은 채워서 잘리는데 박스는 contain 기준으로 그려져 어긋난다(박스 부정확).
+   contain = 화면 전체가 보여 가장자리 위험도 안 잘림(안전상 유리). */
 #videoEl, #outputCanvas, #imageEl{ position:absolute !important; inset:0 !important;
-  width:100% !important; height:100% !important; object-fit:cover !important; }
+  width:100% !important; height:100% !important; object-fit:contain !important; }
 
 /* ── VIGENT 시그니처 오버레이(CSS) : 스캔라인 + 비네팅 ── */
 #videoContainer::before{ content:""; position:absolute; inset:0; z-index:6; pointer-events:none;

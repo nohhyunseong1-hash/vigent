@@ -60,7 +60,7 @@ async def _no_cache_dynamic(request, call_next):
     """HTML·JS 는 캐시 금지 → 코드 수정이 새로고침 즉시 반영(브라우저가 옛 인식코드 물고 있는 문제 차단)."""
     resp = await call_next(request)
     p = request.url.path
-    if p.endswith(".js") or p.endswith(".html") or resp.headers.get("content-type", "").startswith("text/html"):
+    if p.endswith(".js") or p.endswith(".css") or p.endswith(".html") or resp.headers.get("content-type", "").startswith("text/html"):
         resp.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
     return resp
 
