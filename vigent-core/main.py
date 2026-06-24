@@ -116,6 +116,14 @@ def _startup() -> None:
 # ─────────────────────────────────────────────────────────────
 # 엔드포인트 (최소)
 # ─────────────────────────────────────────────────────────────
+@app.get("/home", response_class=HTMLResponse)
+@app.get("/hub", response_class=HTMLResponse)
+def hub_home():
+    """VIGENT 홈(허브) — 가장 좋은 기능들을 타일로 한눈에."""
+    import hub
+    return hub.render()
+
+
 @app.get("/")
 def root():
     return {
