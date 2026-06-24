@@ -1020,10 +1020,21 @@ def safety_brain_inspect(payload: dict = Body(...), theme: str = DEFAULT_THEME):
     if raw:
         rawd = raw if str(raw).startswith("data:") else "data:image/jpeg;base64," + raw
         img = _decode_data_url(rawd)
-    res = safety_brain.assess(payload.get("activity", ""), payload.get("present"),
+    activity = payload.get("activity", "")
+    detected = None
+    if activity == "auto":                          # 작업을 스스로 인식
+        detected = safety_brain.detect_activity(img, payload.get("present"),
+                                                use_vlm=bool(payload.get("use_vlm")))
+        if not detected:
+            return {"ok": True, "activity": None, "detected": None, "risk": "low",
+                    "summary": "작업 미인식(대기) — 인식되면 자동 점검", "measures": [],
+                    "missing": [], "unknown": [], "logged": False, "alerted": False}
+        activity = detected
+    res = safety_brain.assess(activity, payload.get("present"),
                               image_bgr=img, use_vlm=bool(payload.get("use_vlm")))
     if not res.get("ok"):
         return res
+    res["detected"] = detected                      # 자동 인식된 작업(있으면)
     logged = alerted = False
     # 위험(부족조치 확인)일 때만 기록 → 자동처리 콘솔/대시보드로 흐름(헛알림 방지)
     if payload.get("log") and res["missing"] and res["risk"] in ("high", "mid"):

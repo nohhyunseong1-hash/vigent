@@ -66,6 +66,37 @@ def _vlm_present(image_bgr, question: str) -> bool | None:
     return None
 
 
+def detect_activity(image_bgr=None, present_classes: list[str] | None = None,
+                    use_vlm: bool = False) -> str | None:
+    """장면에서 '무슨 작업인지' 스스로 인식 → activity id (불명확하면 None).
+    ① VLM 분류(가능 시, 가장 유연) ② 감지신호 휴리스틱(폴백: 화재→화기, 지게차→양중 등)."""
+    acts = _kb().get("activities", [])
+    if not acts:
+        return None
+    # ① VLM 으로 작업 분류
+    if use_vlm and image_bgr is not None:
+        names = [a["name"] for a in acts]
+        prompt = ("너는 산업안전 점검 AI다. 이 장면에서 진행 중인 작업을 아래 목록에서 하나만 골라 "
+                  "그 이름만 답하라. 해당 없거나 불확실하면 '없음'이라고만 답하라.\n작업 목록: "
+                  + ", ".join(names))
+        try:
+            import rfdetr_service
+            data = rfdetr_service.vlm.summarize_bgr(image_bgr, prompt=prompt)
+            txt = str(data.get("raw") or " ".join(str(v) for k, v in data.items()
+                                                   if not str(k).startswith("_"))) if isinstance(data, dict) else ""
+            for a in acts:
+                if a["name"] in txt or any(al in txt for al in a.get("aliases", [])):
+                    return a["id"]
+        except Exception:  # noqa: BLE001  VLM 실패 → 신호 폴백
+            pass
+    # ② 감지신호 휴리스틱(화재/연기→화기작업, 지게차→양중/차량계 …)
+    sig = {str(c).lower() for c in (present_classes or [])}
+    for a in acts:
+        if any(s.lower() in sig for s in a.get("detect_signals", [])):
+            return a["id"]
+    return None
+
+
 def assess(activity_key: str, present_classes: list[str] | None = None,
            image_bgr=None, use_vlm: bool = False) -> dict[str, Any]:
     """작업 + (감지된 객체 / 이미지) → 필수 안전조치 충족/부재 추론.
@@ -129,8 +160,9 @@ def assess(activity_key: str, present_classes: list[str] | None = None,
 # ── UI ─────────────────────────────────────────────────────────────
 def render() -> str:
     import html
-    opts = "".join(f'<option value="{html.escape(a["id"])}">{html.escape(a["name"])}</option>'
-                   for a in list_activities())
+    opts = '<option value="auto">🤖 자동 인식(작업 스스로 판단)</option>' + "".join(
+        f'<option value="{html.escape(a["id"])}">{html.escape(a["name"])}</option>'
+        for a in list_activities())
     return _PAGE.replace("{{OPTS}}", opts)
 
 
