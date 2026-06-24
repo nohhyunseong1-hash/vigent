@@ -1036,7 +1036,9 @@ const CAUTION_OBJ=['car','truck','bus','motorcycle','cigarette'];
 // 안전 모드에서 '그릴' 객체 화이트리스트 — 사람·위험물·차량/중장비·화재. 일상 잡동사니(의자·컵·노트북 등)는 숨겨 화면을 깔끔하게.
 const SAFETY_SHOW=new Set(['person','knife','scissors','car','truck','bus','motorcycle','bicycle','forklift','train','boat','fire','smoke','cigarette']);
 function _safetyVisible(objs){
-  if(typeof activeServiceMode==='undefined' || activeServiceMode!=='safety') return objs;  // 다른 테마는 그대로
+  // 안전 테마 판정 — activeServiceMode 설정 타이밍에 의존하지 않게 AX_LOCK_THEME 도 함께 본다(누수 방지)
+  const isSafety=(typeof activeServiceMode!=='undefined'&&activeServiceMode==='safety')||(typeof window!=='undefined'&&window.AX_LOCK_THEME==='safety');
+  if(!isSafety) return objs;  // 다른 테마는 그대로
   return (objs||[]).filter(o=>{
     const c=String(o.class||'').toLowerCase();
     return SAFETY_SHOW.has(c) || isPpeClass(o.class) || o.danger || o.hazard;  // 안전 관련 + 보호구 + 위험/화재 표시만
