@@ -967,6 +967,13 @@ def workers_stop_all():
     return _w.manager.stop_all()
 
 
+@app.get("/safety/quote", response_class=HTMLResponse)
+def safety_quote():
+    """VIGENT 견적서(1장, 인쇄/PDF) — 현장명·카메라 수 입력 시 자동 계산."""
+    import quote
+    return quote.render()
+
+
 @app.get("/safety/demo", response_class=HTMLResponse)
 def safety_demo():
     """영업용 데모 — 카메라 없이 '감지→서류·조치 자동완성' 닫힌 루프 시연."""
