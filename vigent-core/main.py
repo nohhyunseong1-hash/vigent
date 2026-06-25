@@ -366,8 +366,9 @@ def recognition_log_download():
 
 
 @app.get("/report/safety", response_class=HTMLResponse)
-def report_safety(theme: str = DEFAULT_THEME, hours: float = 24):
+def report_safety(theme: str = DEFAULT_THEME, hours: float = 24, vlm: bool = False):
     """최근 N시간 누적 이벤트(데이터엔진 집계) 기반 위험성평가서 HTML(인쇄→PDF).
+    중대성=실제 등급 분포 산출, 증거사진·정황 반영. vlm=true 면 증거 VLM 장면설명 추가.
     누적 이벤트가 없으면 데모 샘플로 렌더(빈 화면 방지)."""
     bundle = STATE.get(theme) or _load_theme(theme)
     scribe = bundle["agents"].get("Scribe")
@@ -377,7 +378,7 @@ def report_safety(theme: str = DEFAULT_THEME, hours: float = 24):
         events = [{"rule": "zone_intrusion", "count": 5}, {"rule": "ppe_missing", "count": 9},
                   {"rule": "fall_suspected", "count": 1}]
         site = "데모 현장(누적 이벤트 없음)"
-    return scribe.generate(events, site=site, process="-", save=False)["html"]
+    return scribe.generate(events, site=site, process="-", save=False, use_vlm=vlm)["html"]
 
 
 @app.get("/safety/risk-assessment/list")

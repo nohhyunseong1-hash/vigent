@@ -98,11 +98,26 @@ def list_events(limit: int = 100, hours: float | None = None) -> list[dict[str, 
 
 
 def aggregate(hours: float = 24) -> list[dict[str, Any]]:
-    """최근 N시간 이벤트를 규칙별로 집계 → [{rule, count}] (위험성평가 빈도 산정용)."""
+    """최근 N시간 이벤트를 규칙별로 집계 → [{rule, count, levels, evidence_paths, notes}].
+    위험성평가에서 빈도(count)·중대성(levels: 실제 등급 분포)·증거(evidence_paths)를 쓴다."""
     counts: dict[str, int] = {}
+    levels: dict[str, dict[str, int]] = {}
+    evidence: dict[str, list[str]] = {}
+    notes: dict[str, list[str]] = {}
     for rec in _read_all(hours):
         r = rec.get("rule")
-        if r in HAZARD_RULES:
-            counts[r] = counts.get(r, 0) + 1
-    return [{"rule": r, "count": c} for r, c in
-            sorted(counts.items(), key=lambda kv: kv[1], reverse=True)]
+        if r not in HAZARD_RULES:
+            continue
+        counts[r] = counts.get(r, 0) + 1
+        lv = (rec.get("level") or "low").lower()
+        levels.setdefault(r, {})[lv] = levels.get(r, {}).get(lv, 0) + 1
+        ev = rec.get("evidence")
+        if ev:
+            evidence.setdefault(r, []).append(ev)
+        nt = rec.get("note")
+        if nt:
+            notes.setdefault(r, []).append(nt)
+    return [{"rule": r, "count": c, "levels": levels.get(r, {}),
+             "evidence_paths": evidence.get(r, [])[-4:],     # 최근 증거 최대 4장
+             "notes": notes.get(r, [])[-4:]}
+            for r, c in sorted(counts.items(), key=lambda kv: kv[1], reverse=True)]

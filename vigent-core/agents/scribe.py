@@ -94,6 +94,23 @@ def _likelihood(count: int) -> int:
     return 1 if count <= 2 else (2 if count <= 8 else 3)
 
 
+def _severity_from_levels(levels: dict[str, int], default: int) -> int:
+    """실제 이벤트 등급 분포 → 중대성(1~3). 위험유형 고유 중대성(default)과 max 로 결합
+    → '이 유형은 원래 위험' + '실제로도 심각했나' 둘 다 반영(고정값 아님)."""
+    if not levels:
+        return default
+    crit = levels.get("critical", 0)
+    high = levels.get("high", 0)
+    mid = levels.get("mid", 0) + levels.get("medium", 0)
+    if crit > 0 or high > 0:
+        observed = 3
+    elif mid > 0:
+        observed = 2
+    else:
+        observed = 1
+    return max(int(default), observed)
+
+
 def _level(score: int) -> tuple[str, str]:
     if score >= 6:
         return "상", "#ef4444"
@@ -135,8 +152,9 @@ class ScribeAgent(BaseAgent):
                 "templates": ["risk_assessment_kr", "incident_evidence"]}
 
     def build_assessment(self, events: list[dict[str, Any]],
-                         site: str = "", process: str = "") -> dict[str, Any]:
-        """이벤트 목록 → 위험성평가표(초안). events=[{rule, count}, ...]"""
+                         site: str = "", process: str = "", use_vlm: bool = False) -> dict[str, Any]:
+        """이벤트 목록 → 위험성평가표(초안). events=[{rule, count, levels, evidence_paths, notes}].
+        중대성=실제 등급 분포로 산출(고정값 아님), 증거사진·정황·(옵션)VLM 장면설명 반영."""
         rows: list[dict[str, Any]] = []
         for ev in events or []:
             rule = ev.get("rule") or ev.get("type")
@@ -145,7 +163,7 @@ class ScribeAgent(BaseAgent):
             if not kb:
                 continue
             likely = _likelihood(count)
-            sev = int(kb["sev"])
+            sev = _severity_from_levels(ev.get("levels") or {}, int(kb["sev"]))  # 실제 등급 기반
             score = likely * sev
             lvl, color = _level(score)
             # Copilot 근거(법령 인용) 삽입 — 출처 포함(§9)
@@ -158,12 +176,25 @@ class ScribeAgent(BaseAgent):
                 pairs = [(it.get("path"), it.get("note", "")) for it in ev_items]
             else:
                 _paths = ev.get("evidence_paths") or ([ev["evidence"]] if ev.get("evidence") else [])
-                pairs = [(p, "") for p in _paths]
+                _notes = ev.get("notes") or []
+                pairs = [(p, (_notes[i] if i < len(_notes) else "")) for i, p in enumerate(_paths)]
             ev_imgs = []
             for _p, _note in pairs[:4]:
                 _uri = _evidence_data_uri(_p)
                 if _uri:
                     ev_imgs.append({"uri": _uri, "note": _note})
+            # (옵션) VLM 장면설명 — 첫 증거 사진을 보고 정황 한 줄(느림, opt-in)
+            if use_vlm and ev_imgs and pairs:
+                try:
+                    import cv2
+                    import vlm_confirm
+                    _img = cv2.imread(str(_ROOT / pairs[0][0]))
+                    _desc = vlm_confirm.describe_scene(_img) if _img is not None else ""
+                    if _desc:
+                        _n = ev_imgs[0]["note"]
+                        ev_imgs[0]["note"] = (_n + " · " if _n else "") + "AI 장면분석: " + _desc
+                except Exception:  # noqa: BLE001
+                    pass
             rows.append({
                 # ── KOSHA KRAS 서식 11 컬럼 구조 ──
                 "rule": rule,
@@ -182,7 +213,13 @@ class ScribeAgent(BaseAgent):
                 "개선예정일": "",                            # 8. 개선 예정일(검토자 기입)
                 "완료일": "",                                # 9. 완료일(검토자 기입)
                 "담당자": "",                                # 10. 담당자(검토자 기입)
-                "AI감지근거": f"AI {count}회 감지",
+                "AI감지근거": (f"AI {count}회 감지" + (
+                    " (" + ", ".join(p for p in [
+                        f"심각 {(ev.get('levels') or {}).get('critical')}" if (ev.get('levels') or {}).get('critical') else "",
+                        f"높음 {(ev.get('levels') or {}).get('high')}" if (ev.get('levels') or {}).get('high') else "",
+                        f"경계 {(ev.get('levels') or {}).get('mid', 0) + (ev.get('levels') or {}).get('medium', 0)}" if ((ev.get('levels') or {}).get('mid', 0) + (ev.get('levels') or {}).get('medium', 0)) else "",
+                        f"주의 {(ev.get('levels') or {}).get('low')}" if (ev.get('levels') or {}).get('low') else "",
+                    ] if p) + ")" if (ev.get('levels')) else "")),
                 "citations": citations, "_color": color, "_evidence": ev_imgs,
             })
         rows.sort(key=lambda r: r["위험성"], reverse=True)
@@ -320,9 +357,9 @@ class ScribeAgent(BaseAgent):
 </body></html>"""
 
     def generate(self, events: list[dict[str, Any]], site: str = "", process: str = "",
-                 save: bool = True) -> dict[str, Any]:
+                 save: bool = True, use_vlm: bool = False) -> dict[str, Any]:
         """이벤트 → 평가표 + HTML 생성(+저장). 반환: {assessment, html, saved_path}"""
-        assessment = self.build_assessment(events, site, process)
+        assessment = self.build_assessment(events, site, process, use_vlm=use_vlm)
         page = self.render_html(assessment)
         saved_path = None
         if save:
