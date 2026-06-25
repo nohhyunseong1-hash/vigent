@@ -60,6 +60,9 @@ DEFAULT_POLICIES: dict[str, Policy] = {
     # 고보안: 3요소(카드+얼굴+PIN)
     "high": Policy("고보안구역", [["card", "face", "pin"]],
                    "최고보안. 카드+얼굴+PIN 모두."),
+    # 최고보안(홍채): 홍채+카드, 또는 홍채+PIN. 쌍둥이·노화·마스크에 강함.
+    "vault": Policy("최고보안구역", [["iris", "card"], ["iris", "pin"]],
+                    "NIR 홍채 기반. 홍채+카드 또는 홍채+PIN. (홍채 하드웨어 필요)"),
 }
 
 
@@ -238,10 +241,24 @@ class FaceFactor:
 
 
 class IrisFactor:
-    """확장 스텁: 근적외선 홍채(별도 하드웨어). 기본 비활성."""
+    """근적외선 홍채. iris.IrisRecognizer 사용. 하드웨어 미연결/비활성이면 판정불가."""
 
-    def check(self, *_args) -> FactorResult:
-        return FactorResult("iris", False, reason="홍채 모듈 미연결(NIR 하드웨어 필요)")
+    def __init__(self, recognizer=None):
+        self._rec = recognizer
+
+    def check(self, iris_capture) -> FactorResult:
+        if iris_capture is None:
+            return FactorResult("iris", False, reason="홍채 미제시")
+        from .iris import IrisRecognizer
+        rec = self._rec or IrisRecognizer()
+        try:
+            pid, hd, reason = rec.identify(iris_capture)
+        except Exception as e:
+            return FactorResult("iris", False, reason=f"홍채 처리 오류: {e}")
+        if pid is None:
+            return FactorResult("iris", False, confidence=1.0 - hd, reason=reason)
+        return FactorResult("iris", True, subject_id=pid, confidence=1.0 - hd,
+                            reason=f"{reason}(HD {hd:.3f})")
 
 
 # ── 오케스트레이션 ───────────────────────────────────────────
@@ -253,19 +270,22 @@ class Authenticator:
         self.card = CardFactor()
         self.pin = PinFactor()
         self.face = FaceFactor()
+        self.iris = IrisFactor()
         self.engine = PolicyEngine()
 
     def authenticate(self, *, face_frames=None, card_id=None, pin=None,
-                     audit: bool = True) -> AuthDecision:
+                     iris=None, audit: bool = True) -> AuthDecision:
         results: dict[str, FactorResult] = {}
-        # 식별 요소(카드/얼굴) 먼저 → 신원 확정 후 PIN 검증
+        # 식별 요소(카드/홍채/얼굴) 먼저 → 신원 확정 후 PIN 검증
         if card_id is not None:
             results["card"] = self.card.check(card_id)
+        if iris is not None:
+            results["iris"] = self.iris.check(iris)
         if face_frames is not None:
             results["face"] = self.face.check(face_frames)
 
         subject = None
-        for n in ("card", "face"):
+        for n in ("card", "iris", "face"):
             r = results.get(n)
             if r and r.ok and r.subject_id:
                 subject = r.subject_id

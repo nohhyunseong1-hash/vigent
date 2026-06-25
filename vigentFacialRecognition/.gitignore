@@ -12,3 +12,4 @@ __pycache__/
 *.pyc
 data/mfa_cards.json
 data/mfa_pins.json
+data/iris_templates.npz

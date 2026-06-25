@@ -58,7 +58,32 @@ else:
 - **개인정보**: 얼굴은 옵트인(기존 규칙), PIN 해시 저장, 카드/PIN 파일 권한 0600, 전 판정 감사.
 - **모델/하드웨어 불가지**: 카드 리더·홍채기는 `card_id`/스텁 인터페이스로 교체만.
 
+## 홍채(iris) 요소 — 활성화 완료 (`iris.py`)
+쌍둥이·노화·마스크에 강한 최고 정밀 생체. **NIR 하드웨어 플러그형**으로 설계해, 장비가
+꽂히면 코드 수정 없이 동작한다.
+
+- **프로바이더 추상화** `IrisProvider`: NIR 카메라+코드추출 SDK 자리.
+  - `NullIrisProvider`(기본): 미연결 → 홍채요소 '판정불가'.
+  - `SimIrisProvider`: 파이프라인(등록·매칭·정책) 검증용 시뮬레이터. **실제 인식 아님**.
+  - 실장비: 이 인터페이스만 구현해 `set_provider()` 로 주입.
+- **매칭**: Daugman 방식 — 홍채코드(비트)+마스크 → **정규화 해밍거리** < `IRIS_HAMMING_THRESHOLD`(0.32) 이면 동일인. 가림 비트는 마스크 교집합으로 제외.
+- **정책**: `vault`(최고보안) = `[iris+card]` 또는 `[iris+pin]`. iris 도 식별요소라 신원일치·step-up 그대로 적용.
+- **법적**: 홍채는 민감 생체정보 → **별도 옵트인** `VIGENT_IRIS_ENABLED=1`(얼굴과 독립),
+  템플릿 암호화 저장(`privacy.encrypt_bytes`), 파일 0600, 등록·판정 감사.
+- 환경변수: `VIGENT_IRIS_PROVIDER = null(기본) | sim`, `VIGENT_IRIS_HD`(임계값).
+
+```python
+from vigentFacialRecognition.mfa import Authenticator
+auth = Authenticator(policy="vault")
+d = auth.authenticate(iris={"seed": eye_capture}, card_id="EMP-1024")
+```
+
+### NIR 홍채 하드웨어 요건(실장비 도입 시)
+- 근적외선(700~900nm) 조명 + NIR 카메라, 근접(10~30cm) 협조 촬영.
+- 갈색·짙은 홍채도 NIR에서 무늬 선명(가시광 웹캠은 부적합).
+- 라이브니스(인쇄/콘택트렌즈 위조 방지) 권장.
+
 ## 다음 단계(선택)
 - 카드 리더(RFID/QR)·키패드 실연동, 게이트 릴레이 신호(§8 경계: 보조 신호만)
 - 웹 데모(카드=QR/입력, PIN=키패드, 얼굴=웹캠)로 step-up 흐름 시연
-- `iris` 활성화(NIR 하드웨어) — 고보안 정책에 `[iris+card]` 추가
+- NIR 홍채 실장비 `IrisProvider` 구현·연결(현재는 Null/Sim 프로바이더)

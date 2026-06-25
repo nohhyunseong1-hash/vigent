@@ -47,6 +47,11 @@ RETENTION_DAYS = int(os.environ.get("VIGENT_FR_RETENTION_DAYS", "365"))
 # 임베딩 암호화 키(있으면 cryptography 로 암호화 저장). 없으면 평문+파일권한 0600 폴백.
 ENCRYPTION_KEY = os.environ.get("VIGENT_FR_KEY", "")
 
+# ── 홍채(iris) — 별도 옵트인(민감 생체정보, NIR 하드웨어) ─────
+IRIS_ENABLED = os.environ.get("VIGENT_IRIS_ENABLED", "0") == "1"
+# 정규화 해밍거리 임계값. Daugman 관례 ~0.32 미만이면 동일 홍채.
+IRIS_HAMMING_THRESHOLD = float(os.environ.get("VIGENT_IRIS_HD", "0.32"))
+
 # 한 사람당 보관할 최대 임베딩 수(여러 각도/조명으로 정확도↑, 과다 저장 방지).
 MAX_EMB_PER_PERSON = 10
 
