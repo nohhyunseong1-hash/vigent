@@ -73,6 +73,13 @@ class GuardAgent(BaseAgent):
 
     def __init__(self, config: Any):
         super().__init__(config)
+        # 현장 튜닝값(config/tuning.yaml)으로 conf·해상도 덮기(없으면 클래스 기본값)
+        try:
+            import tuning
+            self.DETECTOR_CONF = {**self.DETECTOR_CONF, **(tuning.section("detect").get("conf") or {})}
+            self.IMGSZ = int(tuning.val("detect", "imgsz", self.IMGSZ))
+        except Exception:  # noqa: BLE001
+            pass
         self._models: dict[str, Any] = {}      # id → YOLO (지연 로드 캐시)
         self._load_errors: dict[str, str] = {}
         self._tracks: list[dict[str, Any]] = []  # 서버측 추적 박스(깜빡임 제거)

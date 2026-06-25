@@ -313,7 +313,9 @@ def detect_frame(payload: dict = Body(...), theme: str = DEFAULT_THEME):
                for d in out.get("detections", []) if d.get("label", "").lower() in ("fire", "smoke")]
     # 동적 작업반경(협착) — 지게차·차량 근처 사람 진입(거리 자동추정)
     import proximity as _prox
-    prox = _prox.detect(out.get("detections", []), float(payload.get("radius_m") or 3))
+    import tuning as _tun
+    radius_m = float(payload.get("radius_m") or _tun.val("proximity", "radius_m", 3.0, env="VIGENT_RADIUS_M"))
+    prox = _prox.detect(out.get("detections", []), radius_m)
     return {"success": True, "detections": dets, "hazards": hazards,
             "person_count": out.get("person_count", 0), "signals": out.get("signals", {}),
             "proximity": prox}

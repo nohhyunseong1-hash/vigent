@@ -1,0 +1,32 @@
+# VIGENT 현장 튜닝값 — 현장·카메라마다 이 파일만 고치면 됨(코드 수정 불필요)
+# 값을 바꾸면 서버 재시작 시 적용. 환경변수가 있으면 환경변수가 우선(예: VIGENT_RADIUS_M).
+
+proximity:                  # 협착(작업반경) 감지
+  radius_m: 3.0             # 위험반경(m) — 사람이 이 거리 안에 들어오면 경보
+  vehicle_ref_m:            # 장비 실제 가로폭(m) — 거리 추정 기준자(장비 모델 맞춰 조정)
+    forklift: 2.5
+    truck: 6.0
+    car: 4.5
+    bus: 11.0
+    crane: 8.0
+    excavator: 6.0
+
+fall:                       # 낙상 감지
+  angle_deg: 55             # 몸통 각도 임계(클수록 둔감) — 카메라 각도 맞춰 조정
+  drop: 0.12                # 급강하 임계(화면 높이 비율)
+
+motion:                     # 무동작·급이동
+  immobile_s: 45            # 이 시간(초) 이상 안 움직이면 쓰러짐 의심
+  rapid_dist: 0.15          # 짧은 시간 이만큼 이동하면 급이동(돌진)
+
+crowd:
+  threshold: 6              # 인원 이 수 이상 몰리면 군집 위험
+
+detect:                     # 탐지 공통
+  cooldown_s: 15            # 같은 위험 재기록 최소 간격(초)
+  imgsz: 960                # 추론 해상도(클수록 작은 객체↑·느림)
+  conf:                     # 검출기별 신뢰도 임계(낮을수록 많이 잡음=오탐↑)
+    person: 0.35
+    ppe: 0.55
+    forklift: 0.55
+    fire_smoke: 0.70

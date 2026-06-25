@@ -24,10 +24,12 @@ import numpy as np
 
 import data_engine
 import proximity
+import tuning
 
 _ROOT = Path(__file__).resolve().parent.parent
 _IMG_EXT = {".jpg", ".jpeg", ".png", ".bmp", ".webp"}
-_COOLDOWN_S = 15.0
+_COOLDOWN_S = float(tuning.val("detect", "cooldown_s", 15.0))
+_FALL_ANGLE = float(tuning.val("fall", "angle_deg", 55))   # 쓰러짐 몸통각 임계
 
 
 def _point_in_poly(x: float, y: float, poly) -> bool:
@@ -80,14 +82,14 @@ def _derive(out: dict, zone: list) -> list[tuple[str, str, str]]:
         fired.append(("fire_smoke", "critical", "화재/연기 감지"))
     # 동적 작업반경(협착) — 지게차·차량 근처에 사람 진입(거리 자동추정)
     import os
-    radius = float(os.environ.get("VIGENT_RADIUS_M", "3"))
+    radius = float(tuning.val("proximity", "radius_m", 3.0, env="VIGENT_RADIUS_M"))
     for hz in proximity.detect(out.get("detections", []), radius):
         fired.append(("proximity_hazard", "high",
                       f"{hz['vehicle']} 작업반경 침입 — 사람 약 {hz['distance_m']}m"))
         break
     # 군집 밀집 — 인원이 임계 이상 몰림(혼잡·압사·동선 위험)
     pc = out.get("person_count", 0)
-    if pc >= int(os.environ.get("VIGENT_CROWD", "6")):
+    if pc >= int(tuning.val("crowd", "threshold", 6, env="VIGENT_CROWD")):
         fired.append(("crowd_density", "mid", f"인원 밀집 — {pc}명 감지"))
     return fired
 
@@ -110,7 +112,7 @@ def _person_metrics(xy, cf, H, min_kp=0.3):
     aspect = bw / (bh + 1e-6)
     head_y = head[1] if head is not None else sc[1]
     head_below_hip = head_y > hc[1]                  # 머리가 엉덩이보다 아래(주저앉음/거꾸로)
-    pose_fallen = (angle > 55) or (aspect > 1.3) or head_below_hip
+    pose_fallen = (angle > _FALL_ANGLE) or (aspect > 1.3) or head_below_hip
     return {"centroid": ((min(xs) + max(xs)) / 2, (min(ys) + max(ys)) / 2),
             "ref_y": sc[1] / H, "angle": angle, "aspect": aspect,
             "head_below_hip": head_below_hip, "pose_fallen": pose_fallen}
@@ -159,7 +161,7 @@ class FallTracker:
        ② 모션: 머리/어깨가 갑자기 뚝 내려가고(급강하) → 그 뒤 정지
        ③ (선택) VLM 확정 — 애매하면 '쓰러진 거 맞나?' 재판정.
     자세 무관(기댐·걸침·주저앉음)하게 잡으려면 ②급강하가 핵심."""
-    DROP = 0.12          # 급강하: 0.5~2초 전 대비 화면높이의 12%↑ 하강
+    DROP = float(tuning.val("fall", "drop", 0.12))   # 급강하: 화면높이 비율(설정)
     MATCH = 0.18         # 사람 프레임간 매칭 거리(대각선 정규화)
     HIST_S = 3.0
 
@@ -223,9 +225,9 @@ class MotionTracker:
     """사람 움직임 추적 → ① 장시간 무동작(쓰러짐·실신 의심, SOS) ② 급격한 이동(돌진·이상행동).
     낙상(FallTracker)과 보완: 낙상=급강하 순간, 무동작=쓰러진 뒤 오래 안 움직임."""
     MATCH = 0.32            # 사람 매칭 거리(급이동도 같은 사람으로 추적되게 넉넉히)
-    IMMOBILE_S = 45.0       # 이 시간 이상 거의 안 움직이면 무동작
+    IMMOBILE_S = float(tuning.val("motion", "immobile_s", 45.0))   # 무동작 시간(설정)
     IMMOBILE_SPREAD = 0.03  # 이동 범위(정규화) 이하면 정지로 간주
-    RAPID_DIST = 0.15       # 짧은 시간 내 이만큼 이동하면 급이동
+    RAPID_DIST = float(tuning.val("motion", "rapid_dist", 0.15))   # 급이동 거리(설정)
     RAPID_T = 1.0
     HIST_S = 60.0
 

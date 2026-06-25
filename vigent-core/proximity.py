@@ -10,12 +10,13 @@
 """
 from __future__ import annotations
 
-# 작업장비 실제 가로 길이(m) 근사 — 거리 추정 기준자
-VEHICLE_REF_M = {
-    "forklift": 2.5, "truck": 6.0, "car": 4.5, "bus": 11.0,
-    "motorcycle": 2.0, "crane": 8.0, "excavator": 6.0,
-}
-DEFAULT_RADIUS_M = 3.0
+import tuning
+
+# 작업장비 실제 가로 길이(m) 근사 — 거리 추정 기준자. config/tuning.yaml 로 현장 조정.
+_DEFAULT_REF = {"forklift": 2.5, "truck": 6.0, "car": 4.5, "bus": 11.0,
+                "motorcycle": 2.0, "crane": 8.0, "excavator": 6.0}
+VEHICLE_REF_M = {**_DEFAULT_REF, **(tuning.section("proximity").get("vehicle_ref_m") or {})}
+DEFAULT_RADIUS_M = float(tuning.val("proximity", "radius_m", 3.0))
 
 
 def _gap(a: list[float], b: list[float]) -> float:
