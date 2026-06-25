@@ -5,7 +5,7 @@
   --bg:#05070a; --surface:#0a1018; --surface2:#0e1622;
   --border:rgba(80,130,170,.35); --line:rgba(80,130,170,.22);
   --text:#cfe9ff; --text2:#7fa6c4; --muted:#5b7891;
-  --accent:#39d0ff; --green:#39d98a; --yellow:#ffb020; --red:#ff3b3b; --orange:#ff8c1a;
+  --accent:#ffb000; --green:#39d98a; --yellow:#ffb020; --red:#ff3b3b; --orange:#ff8c1a;
   --font:"SF Mono","JetBrains Mono","Consolas","Menlo",monospace;
 }
 html,body{ margin:0; padding:0; background:#000 !important; overflow:hidden !important;

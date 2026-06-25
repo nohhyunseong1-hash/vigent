@@ -44,7 +44,7 @@ body.theme-fitness .live-service-card{position:relative;overflow:hidden;}
 body.theme-fitness .live-service-card::before{content:'';position:absolute;left:0;top:0;bottom:0;width:4px;background:linear-gradient(180deg,var(--accent),#ffb000);}
 body.theme-fitness .metric-pill{background:rgba(34,211,238,.1);border-color:rgba(34,211,238,.24);color:#cffafe;}
 body.theme-fitness .angle-item{border:1px solid rgba(34,211,238,.16);background:rgba(2,13,24,.42);}
-body.theme-fitness .angle-item .av{color:#67e8f9;}
+body.theme-fitness .angle-item .av{color:#d4a017;}
 body.theme-safety .analysis-board{grid-template-columns:minmax(190px,250px) 1fr minmax(90px,112px);}
 body.theme-safety .analysis-tile{border-color:rgba(34,197,94,.28);background:rgba(3,20,13,.82);}
 body.theme-safety .analysis-focus{color:#dcfce7;}
@@ -461,7 +461,7 @@ body.theme-office .live-service-card{border-color:rgba(245,158,11,.34);backgroun
   --bg:#080b11; --surface:#0e141d; --surface2:#131b27; --surface3:#1a2433;
   --border:#243042; --line:rgba(148,163,184,.12);
   --text:#e9eef5; --text2:#93a1b5; --muted:#64748b;
-  --accent:#5b8cff; --accent2:#6366f1;
+  --accent:#d4a017; --accent2:#8a6817;
   --green:#10b981; --yellow:#e0a93b; --red:#ef5350; --orange:#f59e0b; --purple:#8b9bf4;
   --shadow:0 10px 30px rgba(0,0,0,.35);
   --font:'Pretendard','Inter','Apple SD Gothic Neo','Segoe UI',system-ui,-apple-system,sans-serif;
