@@ -219,6 +219,63 @@ class FallTracker:
         return False, ""
 
 
+class MotionTracker:
+    """사람 움직임 추적 → ① 장시간 무동작(쓰러짐·실신 의심, SOS) ② 급격한 이동(돌진·이상행동).
+    낙상(FallTracker)과 보완: 낙상=급강하 순간, 무동작=쓰러진 뒤 오래 안 움직임."""
+    MATCH = 0.32            # 사람 매칭 거리(급이동도 같은 사람으로 추적되게 넉넉히)
+    IMMOBILE_S = 45.0       # 이 시간 이상 거의 안 움직이면 무동작
+    IMMOBILE_SPREAD = 0.03  # 이동 범위(정규화) 이하면 정지로 간주
+    RAPID_DIST = 0.15       # 짧은 시간 내 이만큼 이동하면 급이동
+    RAPID_T = 1.0
+    HIST_S = 60.0
+
+    def __init__(self):
+        self._tracks: list[dict] = []
+
+    def update(self, detections, ts) -> list[tuple[str, str, str]]:
+        persons = []
+        for d in detections:
+            if str(d.get("label", "")).lower() != "person":
+                continue
+            bb = d.get("bbox", [0, 0, 0, 0])
+            persons.append(((bb[0] + bb[2]) / 2, (bb[1] + bb[3]) / 2))
+        used = set()
+        for cx, cy in persons:
+            best, bd = None, 1e9
+            for k, tr in enumerate(self._tracks):
+                if k in used:
+                    continue
+                dd = ((cx - tr["cx"]) ** 2 + (cy - tr["cy"]) ** 2) ** 0.5
+                if dd < bd:
+                    bd, best = dd, k
+            if best is not None and bd < self.MATCH:
+                tr = self._tracks[best]
+                used.add(best)
+            else:
+                tr = {"hist": []}
+                self._tracks.append(tr)
+                used.add(len(self._tracks) - 1)
+            tr["cx"], tr["cy"] = cx, cy
+            tr["hist"].append((ts, cx, cy))
+            tr["hist"] = [h for h in tr["hist"] if ts - h[0] <= self.HIST_S]
+        self._tracks = [tr for tr in self._tracks if tr.get("hist") and ts - tr["hist"][-1][0] < 3.0]
+        out: dict[str, tuple[str, str, str]] = {}
+        for tr in self._tracks:
+            h = tr["hist"]
+            rec = [x for x in h if 0 <= ts - x[0] <= self.RAPID_T]
+            if len(rec) >= 2:
+                dx, dy = rec[-1][1] - rec[0][1], rec[-1][2] - rec[0][2]
+                if (dx * dx + dy * dy) ** 0.5 > self.RAPID_DIST:
+                    out["rapid_motion"] = ("rapid_motion", "mid", "급격한 이동 감지 — 돌진·이상행동")
+            win = [x for x in h if ts - x[0] <= self.IMMOBILE_S]
+            if len(win) >= 5 and (ts - h[0][0]) >= self.IMMOBILE_S:   # 트랙이 충분히 오래 + 최근 정지
+                xs = [x[1] for x in win]
+                ys = [x[2] for x in win]
+                if max(max(xs) - min(xs), max(ys) - min(ys)) < self.IMMOBILE_SPREAD:
+                    out["immobility"] = ("immobility", "high", "장시간 무동작 — 쓰러짐·실신 의심")
+        return list(out.values())
+
+
 class Worker:
     """1대용 추론 워커(지연 시작·정지·상태). 서버 전역 싱글톤으로 사용."""
 
@@ -264,6 +321,7 @@ class Worker:
         dataset_dir = _ROOT / "data" / "dataset" / "images"
         last_collect = 0.0
         ftrack = FallTracker(vlm=getattr(self, "_vlm_fall", False))   # 카메라별 낙상 추적(상태 유지)
+        mtrack = MotionTracker()                                       # 무동작·급이동 추적
         zone = [tuple(p) for p in zone] if zone else _load_zone()   # 카메라별 구역 or 전역
         is_image = Path(source).suffix.lower() in _IMG_EXT and Path(source).exists()
         static = cv2.imread(source) if is_image else None
@@ -303,6 +361,7 @@ class Worker:
                 fired = _derive(out, zone)
                 if fall:
                     fired.append(("fall_suspected", "critical", f"작업자 낙상 의심 — {freason}"))
+                fired += mtrack.update(out.get("detections", []), t0)   # 무동작·급이동
                 now = time.time()
                 for rule, level, note in fired:
                     if now - cooldown.get(rule, 0) < _COOLDOWN_S:
