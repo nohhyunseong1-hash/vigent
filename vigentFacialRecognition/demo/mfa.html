@@ -72,7 +72,10 @@
       </div>
       <label>홍채 시드(시뮬레이터)</label><input id="aIris" placeholder="hong-eye" />
       <div class="chk"><input type="checkbox" id="mask" /><label for="mask" style="margin:0">얼굴 가림 시뮬레이트(마스크 — 얼굴 제외)</label></div>
-      <button class="btn" id="authBtn">인증하기</button>
+      <div class="chk"><input type="checkbox" id="needPulse" /><label for="needPulse" style="margin:0">맥박(rPPG)까지 요구 — 사진 차단 강화</label></div>
+      <button class="btn ghost" id="liveBtn">① 라이브니스 확인(고개 좌우)</button>
+      <div class="desc" id="liveStatus">사진 위조 차단: 인증 전 '살아있는 사람'인지 확인합니다.</div>
+      <button class="btn" id="authBtn">② 인증하기</button>
       <div class="factors" id="factors" style="margin-top:10px"></div>
     </div>
 
@@ -131,12 +134,37 @@ async function register(){
   $('regOut').textContent='등록됨: '+JSON.stringify(j);
 }
 
+let liveOK=false, liveBusy=false;
+async function runLiveness(){
+  if(!video.videoWidth){ alert('먼저 웹캠을 시작하세요'); return; }
+  liveOK=false; liveBusy=true; $('liveBtn').disabled=true;
+  const t0=performance.now();
+  const r0=await fetch('/liveness/start',{method:'POST',
+    body:new URLSearchParams({require_pulse:$('needPulse').checked})});
+  const j0=await r0.json();
+  $('liveStatus').textContent='🔵 '+j0.instruction;
+  while(liveBusy){
+    const fd=new FormData();
+    fd.append('image',await grab(),'l.jpg');
+    fd.append('ts',((performance.now()-t0)/1000).toFixed(3));
+    const r=await fetch('/liveness/frame',{method:'POST',body:fd});
+    const d=await r.json();
+    const pulse=d.require_pulse?` · 맥박 ${d.pulse_detected?'감지✅':'측정중…'}`:'';
+    $('liveStatus').textContent=`🔵 ${d.instruction} · 진행 ${Math.round(d.progress*100)}% · ${d.remaining_sec}s${pulse}`;
+    if(d.passed){ liveOK=true; $('liveStatus').textContent='✅ 살아있는 사람 확인됨 — 인증 진행하세요'; break; }
+    if(d.failed){ liveOK=false; $('liveStatus').textContent='❌ 라이브니스 실패(사진/화면 의심) — 다시 시도'; break; }
+    await new Promise(r=>setTimeout(r,80));
+  }
+  liveBusy=false; $('liveBtn').disabled=false;
+}
+
 async function authenticate(){
   const fd=new FormData();
   fd.append('policy',$('policy').value);
   if($('aCard').value) fd.append('card_id',$('aCard').value.trim());
   if($('aPin').value) fd.append('pin',$('aPin').value.trim());
   if($('aIris').value) fd.append('iris_seed',$('aIris').value.trim());
+  fd.append('live', liveOK ? 'true':'false');
   if(!$('mask').checked && video.videoWidth) fd.append('image',await grab(),'f.jpg');
   const r=await fetch('/mfa/authenticate',{method:'POST',body:fd}); const d=await r.json();
   const colors={GRANT:'var(--brand)',DENY:'var(--danger)',STEP_UP:'var(--warn)'};
@@ -153,6 +181,7 @@ async function authenticate(){
 
 $('camBtn').onclick=startCam;
 $('regBtn').onclick=register;
+$('liveBtn').onclick=runLiveness;
 $('authBtn').onclick=authenticate;
 loadPolicies();
 </script>

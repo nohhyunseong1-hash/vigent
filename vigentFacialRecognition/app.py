@@ -31,6 +31,7 @@ from . import iris as iris_mod
 from .agitation import AgitationMonitor
 from .api import router as facial_router
 from .evm import MotionMagnifier
+from .liveness import LivenessSession
 from .mfa import Authenticator, CardStore, DEFAULT_POLICIES, PinStore
 
 config.ENABLED = True                 # 데모 한정(운영 금지 — demo_server 와 동일 주석)
@@ -118,12 +119,31 @@ async def mfa_register(person_id: str = Form(...), name: str = Form(""),
     return {"ok": True, **out}
 
 
+live_session = LivenessSession()
+
+
+@app.post("/liveness/start")
+def liveness_start(require_pulse: bool = Form(False)):
+    live_session.require_pulse = require_pulse
+    live_session.reset()
+    return {"ok": True, "instruction": live_session.instruction,
+            "require_pulse": require_pulse}
+
+
+@app.post("/liveness/frame")
+async def liveness_frame(image: UploadFile = File(...), ts: float = Form(None)):
+    img = _decode(await image.read())
+    if img is None:
+        return {"face": False, "error": "decode"}
+    return live_session.update(img, ts or 0.0)
+
+
 @app.post("/mfa/authenticate")
 async def mfa_authenticate(policy: str = Form("dusty"), card_id: str = Form(None),
                            pin: str = Form(None), iris_seed: str = Form(None),
-                           image: UploadFile = File(None)):
+                           image: UploadFile = File(None), live: bool = Form(True)):
     frames = None
-    if image is not None:
+    if image is not None and live:        # 라이브니스 미통과면 얼굴 신뢰 안 함(사진 차단)
         img = _decode(await image.read())
         frames = [img] if img is not None else None
     iris = {"seed": iris_seed} if iris_seed else None
