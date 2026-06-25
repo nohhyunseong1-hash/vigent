@@ -513,9 +513,10 @@
       const useVlm=document.getElementById('togVlmConfirm')?.checked ?? false;   // VLM 켜면 '없음'까지 추론
       const st=document.getElementById('ctxStatus');
       if(act==='auto'){
-        // 완전 자동: 환경 + 작업 동시 인식 → 환경 맞춰 현장모드 자동 설정 → 점검
+        // 완전 자동: 환경 + 작업 동시 인식 → 환경 맞춰 현장모드 자동 → 점검
+        // 자동 인식은 VLM이 필수(장면을 봐야 환경·작업 판단) → 항상 VLM 사용. 미설치면 폴백.
         const cx=await (await fetch('/safety/context',{method:'POST',headers:{'Content-Type':'application/json'},
-          body:JSON.stringify({present,image_base64:b64,use_vlm:useVlm,log:true,site:'실시간 안전점검'})})).json();
+          body:JSON.stringify({present,image_base64:b64,use_vlm:true,log:true,site:'실시간 안전점검'})})).json();
         const env=cx.environment, actId=cx.activity_detected, a=cx.assessment;
         // 환경에 맞춰 현장모드 자동(프로그램 설정 → 사용자 수동값은 localStorage 유지)
         if(env){ const t=document.getElementById('togFieldMode'); if(t) t.checked=!!env.field_mode; }
