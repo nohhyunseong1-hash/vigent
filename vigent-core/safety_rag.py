@@ -53,6 +53,12 @@ def _corpus() -> list[dict[str, Any]]:
                      "source": "; ".join(r.get("law", "") for r in ind.get("regulations", [])),
                      "refs": ind.get("aliases", []) + ind.get("hazards", []),
                      "topic": ind["name"], "type": "업종지식"})
+    for mc in _load("safety_knowledge.json").get("machines", []):
+        text = ("위험: " + ", ".join(mc.get("hazards", []))
+                + ". 방호: " + ", ".join(mc.get("guards", [])) + ". 구분: " + mc.get("category", ""))
+        docs.append({"id": "mc_" + mc["id"], "title": mc["name"] + " 안전", "text": text,
+                     "source": mc.get("law", ""), "refs": [mc["name"]] + mc.get("hazards", []),
+                     "topic": mc["name"], "type": "유해위험기계"})
     _CACHE = docs
     return docs
 
