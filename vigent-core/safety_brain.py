@@ -166,11 +166,17 @@ def assess_context(present_classes=None, image_bgr=None, use_vlm: bool = False) 
     env = detect_environment(image_bgr, present_classes, use_vlm)
     act_id = detect_activity(image_bgr, present_classes, use_vlm)
     env_id = env["id"] if env else None
+    # 단독작업(2인1조 위반) — 감시인 필요한 고위험 작업에 사람이 1명뿐
+    solo_risk = {"confined_space", "sewer", "electrical", "diving", "hot_work"}
+    pcount = sum(1 for c in (present_classes or []) if str(c).lower() == "person")
+    lone = bool(act_id in solo_risk and pcount == 1)
     out: dict[str, Any] = {
         "ok": True,
         "environment": ({"id": env_id, "name": env["name"], "field_mode": env["field_mode"]} if env else None),
         "activity_detected": act_id,
         "accident_warnings": accident_warnings(env_id, act_id, present_classes),
+        "lone_worker": lone,
+        "person_count": pcount,
     }
     if act_id:
         out["assessment"] = assess(act_id, present_classes, image_bgr=image_bgr, use_vlm=use_vlm)

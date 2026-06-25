@@ -6,35 +6,665 @@
     "매칭": "industry=환경id, activities=작업id, signals=감지 클래스. 하나라도 맞으면 관련 경고로 제시."
   },
   "cases": [
-    {"id":"mfg_lockout","industry":"factory","accident":"끼임","activities":["press_work","material_handling"],"signals":["person"],
-     "situation":"기계 정비·청소 중 전원을 차단하지 않아 가동부에 협착","cause":"정비 시 전원 미차단(LOTO 미실시)·방호장치 임의 해제","prevention":"정비·청소 시 전원 차단·잠금(LOTO), 방호장치 유지, 비상정지 확인"},
-    {"id":"mfg_roller","industry":"factory","accident":"끼임","activities":[],"signals":[],"keywords":["롤러","컨베이어","말림"],
-     "situation":"롤러·컨베이어에 손·옷·장갑이 말려 들어감","cause":"급정지장치·덮개 미설치, 가동 중 이물 제거","prevention":"급정지장치·덮개, 가동 중 손대지 않기, 정지 후 작업"},
-    {"id":"mfg_forklift","industry":"factory","accident":"부딪힘·깔림","activities":["vehicle_machine","material_handling"],"signals":["forklift"],
-     "situation":"지게차가 보행자를 충돌하거나 화물이 떨어져 깔림","cause":"보행자-차량 동선 미분리·후방 사각·과적","prevention":"보행자/차량 통로 분리, 후방경보·유도자, 적재 안정·제한속도"},
-    {"id":"mfg_confined","industry":"factory","accident":"질식","activities":["confined_space"],"signals":[],"keywords":["탱크","맨홀","밀폐"],
-     "situation":"탱크·반응기 등 밀폐공간 출입 중 산소결핍·유해가스 질식","cause":"가스측정·환기 없이 출입, 감시인 부재","prevention":"출입 전 가스측정·지속환기, 외부 감시인, 송기마스크"},
-    {"id":"mfg_weldfire","industry":"factory","accident":"화재·폭발","activities":["hot_work"],"signals":["fire","smoke"],
-     "situation":"용접 불티가 인화물·유증기에 옮겨붙어 화재·폭발","cause":"주변 가연물·비산방지 미흡, 소화기·감시인 부재","prevention":"가연물 제거·비산방지망, 소화기·화재감시인, 화기작업 허가"},
-    {"id":"con_fall_scaffold","industry":"construction","accident":"떨어짐","activities":["work_at_height","scaffold"],"signals":[],
-     "situation":"비계·작업발판·말단부에서 추락(건설 사망 1위)","cause":"안전난간·작업발판 미흡, 안전대 미체결","prevention":"안전난간·작업발판, 안전대 체결, 개구부 덮개"},
-    {"id":"con_fall_roof","industry":"construction","accident":"떨어짐","activities":["roof_work"],"signals":[],"keywords":["지붕","채광창"],
-     "situation":"지붕 단부·채광창(슬레이트) 밟고 추락","cause":"추락방호망·안전대 미설치, 채광창 취약부 미표시","prevention":"추락방호망·안전대, 채광창 덮개·표시, 강풍 시 중지"},
-    {"id":"con_collapse","industry":"construction","accident":"무너짐","activities":["excavation","piling"],"signals":[],"keywords":["굴착","흙막이","매몰"],
-     "situation":"굴착 사면·흙막이 붕괴로 매몰","cause":"기울기 미준수·지보공 미흡, 우천 후 점검 부재","prevention":"기울기·흙막이 지보공, 계측·점검, 굴착부 출입통제"},
-    {"id":"con_formwork","industry":"construction","accident":"무너짐","activities":["concrete_pour"],"signals":[],"keywords":["거푸집","동바리","타설"],
-     "situation":"콘크리트 타설 중 거푸집·동바리 붕괴","cause":"구조검토·조립 불량, 타설 순서·속도 미준수","prevention":"조립도·구조검토, 타설 감시, 하부 출입통제"},
-    {"id":"con_struckby","industry":"construction","accident":"물체에 맞음","activities":["lifting"],"signals":[],"keywords":["낙하","인양","크레인"],
-     "situation":"크레인 인양물·자재 낙하에 맞음","cause":"줄걸이 불량·작업반경 출입, 낙하물 방지 미흡","prevention":"줄걸이·해지장치 점검, 하부 출입통제, 낙하물 방지망"},
-    {"id":"con_machine","industry":"construction","accident":"부딪힘·깔림","activities":["vehicle_machine"],"signals":["forklift"],
-     "situation":"굴착기·덤프 등 건설기계에 부딪히거나 전도에 깔림","cause":"작업반경 출입·유도자 부재, 지반·전도방지 미흡","prevention":"작업반경 출입통제, 유도자, 전도방지(평탄지반)"},
-    {"id":"con_electric","industry":"construction","accident":"감전","activities":["electrical"],"signals":[],"keywords":["활선","가설전기","감전"],
-     "situation":"활선·가설전기 충전부 접촉으로 감전","cause":"정전·검전 미흡, 누전차단기·절연 미흡","prevention":"정전작업 LOTO·검전, 누전차단기·절연보호구, 활선 이격"},
-    {"id":"gen_vehicle_rollover","industry":"general","accident":"깔림·뒤집힘","activities":["vehicle_machine"],"signals":["forklift"],
-     "situation":"차량·트랙터·지게차 전도(뒤집힘)에 깔림","cause":"경사지·과속·과적, 안전벨트 미착용","prevention":"전도방지(평탄·저속), 안전벨트·ROPS, 적재 제한"},
-    {"id":"waste_h2s","industry":"waste","accident":"질식","activities":["confined_space","sewer"],"signals":[],"keywords":["정화조","하수","황화수소"],
-     "situation":"정화조·하수도·맨홀에서 황화수소·메탄 질식","cause":"가스측정·환기 없이 출입, 구조 시 2차 재해","prevention":"가스측정·환기·감시인, 송기마스크, 무리한 구조 금지"},
-    {"id":"con_ladder","industry":"construction","accident":"떨어짐","activities":["work_at_height"],"signals":[],"keywords":["사다리","말비계"],
-     "situation":"이동식 사다리에서 추락","cause":"고정·미끄럼방지 미흡, 최상부 작업","prevention":"사다리 고정, 2m↑는 작업발판/말비계, 사다리 위 작업 최소화"}
+    {
+      "id": "mfg_lockout",
+      "industry": "factory",
+      "accident": "끼임",
+      "activities": [
+        "press_work",
+        "material_handling"
+      ],
+      "signals": [
+        "person"
+      ],
+      "situation": "기계 정비·청소 중 전원을 차단하지 않아 가동부에 협착",
+      "cause": "정비 시 전원 미차단(LOTO 미실시)·방호장치 임의 해제",
+      "prevention": "정비·청소 시 전원 차단·잠금(LOTO), 방호장치 유지, 비상정지 확인"
+    },
+    {
+      "id": "mfg_roller",
+      "industry": "factory",
+      "accident": "끼임",
+      "activities": [],
+      "signals": [],
+      "keywords": [
+        "롤러",
+        "컨베이어",
+        "말림"
+      ],
+      "situation": "롤러·컨베이어에 손·옷·장갑이 말려 들어감",
+      "cause": "급정지장치·덮개 미설치, 가동 중 이물 제거",
+      "prevention": "급정지장치·덮개, 가동 중 손대지 않기, 정지 후 작업"
+    },
+    {
+      "id": "mfg_forklift",
+      "industry": "factory",
+      "accident": "부딪힘·깔림",
+      "activities": [
+        "vehicle_machine",
+        "material_handling"
+      ],
+      "signals": [
+        "forklift"
+      ],
+      "situation": "지게차가 보행자를 충돌하거나 화물이 떨어져 깔림",
+      "cause": "보행자-차량 동선 미분리·후방 사각·과적",
+      "prevention": "보행자/차량 통로 분리, 후방경보·유도자, 적재 안정·제한속도"
+    },
+    {
+      "id": "mfg_confined",
+      "industry": "factory",
+      "accident": "질식",
+      "activities": [
+        "confined_space"
+      ],
+      "signals": [],
+      "keywords": [
+        "탱크",
+        "맨홀",
+        "밀폐"
+      ],
+      "situation": "탱크·반응기 등 밀폐공간 출입 중 산소결핍·유해가스 질식",
+      "cause": "가스측정·환기 없이 출입, 감시인 부재",
+      "prevention": "출입 전 가스측정·지속환기, 외부 감시인, 송기마스크"
+    },
+    {
+      "id": "mfg_weldfire",
+      "industry": "factory",
+      "accident": "화재·폭발",
+      "activities": [
+        "hot_work"
+      ],
+      "signals": [
+        "fire",
+        "smoke"
+      ],
+      "situation": "용접 불티가 인화물·유증기에 옮겨붙어 화재·폭발",
+      "cause": "주변 가연물·비산방지 미흡, 소화기·감시인 부재",
+      "prevention": "가연물 제거·비산방지망, 소화기·화재감시인, 화기작업 허가"
+    },
+    {
+      "id": "con_fall_scaffold",
+      "industry": "construction",
+      "accident": "떨어짐",
+      "activities": [
+        "work_at_height",
+        "scaffold"
+      ],
+      "signals": [],
+      "situation": "비계·작업발판·말단부에서 추락(건설 사망 1위)",
+      "cause": "안전난간·작업발판 미흡, 안전대 미체결",
+      "prevention": "안전난간·작업발판, 안전대 체결, 개구부 덮개"
+    },
+    {
+      "id": "con_fall_roof",
+      "industry": "construction",
+      "accident": "떨어짐",
+      "activities": [
+        "roof_work"
+      ],
+      "signals": [],
+      "keywords": [
+        "지붕",
+        "채광창"
+      ],
+      "situation": "지붕 단부·채광창(슬레이트) 밟고 추락",
+      "cause": "추락방호망·안전대 미설치, 채광창 취약부 미표시",
+      "prevention": "추락방호망·안전대, 채광창 덮개·표시, 강풍 시 중지"
+    },
+    {
+      "id": "con_collapse",
+      "industry": "construction",
+      "accident": "무너짐",
+      "activities": [
+        "excavation",
+        "piling"
+      ],
+      "signals": [],
+      "keywords": [
+        "굴착",
+        "흙막이",
+        "매몰"
+      ],
+      "situation": "굴착 사면·흙막이 붕괴로 매몰",
+      "cause": "기울기 미준수·지보공 미흡, 우천 후 점검 부재",
+      "prevention": "기울기·흙막이 지보공, 계측·점검, 굴착부 출입통제"
+    },
+    {
+      "id": "con_formwork",
+      "industry": "construction",
+      "accident": "무너짐",
+      "activities": [
+        "concrete_pour"
+      ],
+      "signals": [],
+      "keywords": [
+        "거푸집",
+        "동바리",
+        "타설"
+      ],
+      "situation": "콘크리트 타설 중 거푸집·동바리 붕괴",
+      "cause": "구조검토·조립 불량, 타설 순서·속도 미준수",
+      "prevention": "조립도·구조검토, 타설 감시, 하부 출입통제"
+    },
+    {
+      "id": "con_struckby",
+      "industry": "construction",
+      "accident": "물체에 맞음",
+      "activities": [
+        "lifting"
+      ],
+      "signals": [],
+      "keywords": [
+        "낙하",
+        "인양",
+        "크레인"
+      ],
+      "situation": "크레인 인양물·자재 낙하에 맞음",
+      "cause": "줄걸이 불량·작업반경 출입, 낙하물 방지 미흡",
+      "prevention": "줄걸이·해지장치 점검, 하부 출입통제, 낙하물 방지망"
+    },
+    {
+      "id": "con_machine",
+      "industry": "construction",
+      "accident": "부딪힘·깔림",
+      "activities": [
+        "vehicle_machine"
+      ],
+      "signals": [
+        "forklift"
+      ],
+      "situation": "굴착기·덤프 등 건설기계에 부딪히거나 전도에 깔림",
+      "cause": "작업반경 출입·유도자 부재, 지반·전도방지 미흡",
+      "prevention": "작업반경 출입통제, 유도자, 전도방지(평탄지반)"
+    },
+    {
+      "id": "con_electric",
+      "industry": "construction",
+      "accident": "감전",
+      "activities": [
+        "electrical"
+      ],
+      "signals": [],
+      "keywords": [
+        "활선",
+        "가설전기",
+        "감전"
+      ],
+      "situation": "활선·가설전기 충전부 접촉으로 감전",
+      "cause": "정전·검전 미흡, 누전차단기·절연 미흡",
+      "prevention": "정전작업 LOTO·검전, 누전차단기·절연보호구, 활선 이격"
+    },
+    {
+      "id": "gen_vehicle_rollover",
+      "industry": "general",
+      "accident": "깔림·뒤집힘",
+      "activities": [
+        "vehicle_machine"
+      ],
+      "signals": [
+        "forklift"
+      ],
+      "situation": "차량·트랙터·지게차 전도(뒤집힘)에 깔림",
+      "cause": "경사지·과속·과적, 안전벨트 미착용",
+      "prevention": "전도방지(평탄·저속), 안전벨트·ROPS, 적재 제한"
+    },
+    {
+      "id": "waste_h2s",
+      "industry": "waste",
+      "accident": "질식",
+      "activities": [
+        "confined_space",
+        "sewer"
+      ],
+      "signals": [],
+      "keywords": [
+        "정화조",
+        "하수",
+        "황화수소"
+      ],
+      "situation": "정화조·하수도·맨홀에서 황화수소·메탄 질식",
+      "cause": "가스측정·환기 없이 출입, 구조 시 2차 재해",
+      "prevention": "가스측정·환기·감시인, 송기마스크, 무리한 구조 금지"
+    },
+    {
+      "id": "con_ladder",
+      "industry": "construction",
+      "accident": "떨어짐",
+      "activities": [
+        "work_at_height"
+      ],
+      "signals": [],
+      "keywords": [
+        "사다리",
+        "말비계"
+      ],
+      "situation": "이동식 사다리에서 추락",
+      "cause": "고정·미끄럼방지 미흡, 최상부 작업",
+      "prevention": "사다리 고정, 2m↑는 작업발판/말비계, 사다리 위 작업 최소화"
+    },
+    {
+      "id": "mfg_mixer",
+      "industry": "factory",
+      "accident": "끼임",
+      "activities": [
+        "press_work"
+      ],
+      "signals": [],
+      "keywords": [
+        "혼합기",
+        "교반기"
+      ],
+      "situation": "혼합기·교반기 날개에 손·옷 말림",
+      "cause": "가동 중 투입·청소, 덮개·인터록 미흡",
+      "prevention": "정지·잠금 후 투입, 덮개·인터록"
+    },
+    {
+      "id": "mfg_crusher",
+      "industry": "factory",
+      "accident": "끼임",
+      "activities": [],
+      "signals": [],
+      "keywords": [
+        "파쇄기",
+        "분쇄기"
+      ],
+      "situation": "파쇄기 투입부에 손·신체 협착",
+      "cause": "이물 제거 시 미정지, 가드 미흡",
+      "prevention": "투입구 가드·비상정지, 정지·잠금(LOTO)"
+    },
+    {
+      "id": "mfg_press_die",
+      "industry": "factory",
+      "accident": "끼임",
+      "activities": [
+        "press_work"
+      ],
+      "signals": [],
+      "keywords": [
+        "금형",
+        "프레스"
+      ],
+      "situation": "프레스 금형 교체·이물제거 중 슬라이드 하강 협착",
+      "cause": "전원 미차단·안전블록 미사용",
+      "prevention": "금형작업 전원차단·안전블록, 양수조작"
+    },
+    {
+      "id": "mfg_machinetool",
+      "industry": "factory",
+      "accident": "끼임",
+      "activities": [],
+      "signals": [],
+      "keywords": [
+        "선반",
+        "드릴",
+        "밀링",
+        "회전부"
+      ],
+      "situation": "공작기계 회전부에 장갑·소매·머리카락 말림",
+      "cause": "장갑 착용·회전부 가드 미흡",
+      "prevention": "장갑 금지, 회전부 가드, 비상정지"
+    },
+    {
+      "id": "mfg_dust_expl",
+      "industry": "factory",
+      "accident": "화재·폭발",
+      "activities": [],
+      "signals": [],
+      "keywords": [
+        "분진",
+        "폭발"
+      ],
+      "situation": "가연성 분진(곡물·금속·목재) 부유 중 점화로 분진폭발",
+      "cause": "점화원·정전기 관리 미흡, 환기 부족",
+      "prevention": "분진 제거·환기, 점화원·정전기 차단, 방폭"
+    },
+    {
+      "id": "mfg_vapor",
+      "industry": "chemical",
+      "accident": "화재·폭발",
+      "activities": [
+        "hot_work",
+        "painting"
+      ],
+      "signals": [],
+      "keywords": [
+        "유증기",
+        "인화성"
+      ],
+      "situation": "유증기·인화성액체 부근 화기·정전기로 화재폭발",
+      "cause": "환기·점화원·정전기 관리 미흡",
+      "prevention": "환기, 점화원 제거, 접지·본딩, 화기작업 허가"
+    },
+    {
+      "id": "chem_reactor",
+      "industry": "chemical",
+      "accident": "질식",
+      "activities": [
+        "confined_space"
+      ],
+      "signals": [],
+      "keywords": [
+        "반응기",
+        "질소",
+        "아르곤"
+      ],
+      "situation": "반응기·탱크 질소·아르곤 퍼지구역 산소결핍 질식",
+      "cause": "산소측정·환기 없이 출입",
+      "prevention": "출입 전 산소측정·환기, 감시인, 송기마스크"
+    },
+    {
+      "id": "chem_leak",
+      "industry": "chemical",
+      "accident": "중독·화학",
+      "activities": [],
+      "signals": [],
+      "keywords": [
+        "누출",
+        "독성가스"
+      ],
+      "situation": "유해화학물질 누출에 노출·중독",
+      "cause": "배관 차단·퍼지·보호구 미흡",
+      "prevention": "PTW·배관차단·퍼지, 가스감지, 보호구"
+    },
+    {
+      "id": "con_aerial",
+      "industry": "construction",
+      "accident": "떨어짐",
+      "activities": [
+        "work_at_height"
+      ],
+      "signals": [],
+      "keywords": [
+        "고소작업대",
+        "차량탑재"
+      ],
+      "situation": "고소작업대 전도·작업대에서 추락",
+      "cause": "아웃트리거·안전대 미흡, 과상승·경사",
+      "prevention": "아웃트리거, 안전대 체결, 적재·경사 준수"
+    },
+    {
+      "id": "con_mobilescaffold",
+      "industry": "construction",
+      "accident": "떨어짐",
+      "activities": [
+        "scaffold",
+        "work_at_height"
+      ],
+      "signals": [],
+      "keywords": [
+        "이동식비계",
+        "바퀴"
+      ],
+      "situation": "이동식 비계 탑승 이동 중 전도·추락",
+      "cause": "바퀴 미고정·아웃트리거 미설치, 탑승이동",
+      "prevention": "바퀴 고정·아웃트리거, 탑승이동 금지, 난간"
+    },
+    {
+      "id": "con_suspended",
+      "industry": "construction",
+      "accident": "떨어짐",
+      "activities": [
+        "facade_clean",
+        "work_at_height"
+      ],
+      "signals": [],
+      "keywords": [
+        "달비계",
+        "로프"
+      ],
+      "situation": "달비계·로프작업 중 로프 파단·미체결로 추락",
+      "cause": "로프·안전대 이중확보·앵커 미흡",
+      "prevention": "로프·안전대 이중확보, 앵커 점검"
+    },
+    {
+      "id": "con_steel_fall",
+      "industry": "construction",
+      "accident": "떨어짐",
+      "activities": [
+        "steel_erection"
+      ],
+      "signals": [],
+      "keywords": [
+        "철골",
+        "보"
+      ],
+      "situation": "철골 보 위 이동·접합 중 추락",
+      "cause": "안전대 부착설비·수평구명줄 미설치",
+      "prevention": "수평구명줄, 안전대, 강풍 시 중지"
+    },
+    {
+      "id": "con_rebar",
+      "industry": "construction",
+      "accident": "찔림·전도",
+      "activities": [
+        "rebar"
+      ],
+      "signals": [],
+      "keywords": [
+        "철근",
+        "배근"
+      ],
+      "situation": "노출 철근에 찔리거나 철근 더미 전도",
+      "cause": "철근 보호캡·정리 미흡",
+      "prevention": "철근 보호캡, 적치 안정, 운반 협착 주의"
+    },
+    {
+      "id": "con_opening",
+      "industry": "construction",
+      "accident": "떨어짐",
+      "activities": [
+        "work_at_height",
+        "roof_work"
+      ],
+      "signals": [],
+      "keywords": [
+        "개구부",
+        "채광창"
+      ],
+      "situation": "바닥 개구부·채광창 밟고 추락",
+      "cause": "덮개·표시·방호망 미흡",
+      "prevention": "개구부 덮개·표시, 추락방호망"
+    },
+    {
+      "id": "con_demolition",
+      "industry": "construction",
+      "accident": "무너짐",
+      "activities": [
+        "demolition"
+      ],
+      "signals": [],
+      "keywords": [
+        "해체",
+        "철거"
+      ],
+      "situation": "구조물 해체 중 예상치 못한 붕괴",
+      "cause": "해체계획·순서·출입통제 미흡",
+      "prevention": "해체계획서, 순서 준수, 출입통제"
+    },
+    {
+      "id": "power_arc",
+      "industry": "power",
+      "accident": "감전·화상",
+      "activities": [
+        "electrical"
+      ],
+      "signals": [],
+      "keywords": [
+        "아크",
+        "활선",
+        "고압"
+      ],
+      "situation": "고압 활선·차단기 작업 중 아크 플래시 화상",
+      "cause": "정전·검전·접지 미흡, 아크보호복 미착용",
+      "prevention": "정전·검전·접지, 아크보호복, 이격거리"
+    },
+    {
+      "id": "power_tower",
+      "industry": "power",
+      "accident": "떨어짐",
+      "activities": [
+        "work_at_height"
+      ],
+      "signals": [],
+      "keywords": [
+        "송전탑",
+        "전주",
+        "통신주"
+      ],
+      "situation": "송전탑·전주 승주 작업 중 추락",
+      "cause": "안전대·승주기구 미흡",
+      "prevention": "안전대 체결, 승주기구, 2인 작업"
+    },
+    {
+      "id": "waste_sewer",
+      "industry": "waste",
+      "accident": "질식",
+      "activities": [
+        "sewer",
+        "confined_space"
+      ],
+      "signals": [],
+      "keywords": [
+        "정화조",
+        "하수",
+        "황화수소",
+        "맨홀"
+      ],
+      "situation": "정화조·맨홀 황화수소·메탄 질식(구조자 2차 재해 빈발)",
+      "cause": "가스측정·환기·감시인 부재, 무리한 구조",
+      "prevention": "가스측정·환기·감시인, 송기마스크, 구조장비"
+    },
+    {
+      "id": "agri_tractor",
+      "industry": "agriculture",
+      "accident": "깔림·뒤집힘",
+      "activities": [
+        "vehicle_machine"
+      ],
+      "signals": [],
+      "keywords": [
+        "트랙터",
+        "경운기",
+        "전도"
+      ],
+      "situation": "트랙터·경운기 경사지 전도에 깔림·말림(PTO)",
+      "cause": "ROPS·안전벨트·회전부 덮개 미흡",
+      "prevention": "ROPS·안전벨트, PTO 덮개, 경사지 주의"
+    },
+    {
+      "id": "agri_pesticide",
+      "industry": "agriculture",
+      "accident": "중독",
+      "activities": [],
+      "signals": [],
+      "keywords": [
+        "농약",
+        "살포",
+        "중독"
+      ],
+      "situation": "농약 살포 중 흡입·피부노출로 중독",
+      "cause": "보호구·풍향·세척 미흡",
+      "prevention": "보호구, 바람 등지고 살포, 세척"
+    },
+    {
+      "id": "log_tree",
+      "industry": "construction",
+      "accident": "물체에 맞음",
+      "activities": [
+        "logging"
+      ],
+      "signals": [],
+      "keywords": [
+        "벌목",
+        "나무",
+        "가지"
+      ],
+      "situation": "벌목 중 쓰러지는 나무·가지에 맞음",
+      "cause": "벌도방향·대피로·경계 미흡",
+      "prevention": "벌도방향·대피로, 경계·출입통제"
+    },
+    {
+      "id": "trans_unload",
+      "industry": "logistics",
+      "accident": "떨어짐·깔림",
+      "activities": [
+        "material_handling"
+      ],
+      "signals": [
+        "forklift"
+      ],
+      "keywords": [
+        "상하차",
+        "화물",
+        "도크"
+      ],
+      "situation": "화물차 상하차 중 추락하거나 화물에 깔림",
+      "cause": "적재 결속·도크 추락방지 미흡",
+      "prevention": "적재 결속, 도크 추락방지, 동선분리"
+    },
+    {
+      "id": "food_burn",
+      "industry": "foodservice",
+      "accident": "화상·미끄럼",
+      "activities": [],
+      "signals": [],
+      "keywords": [
+        "주방",
+        "튀김",
+        "스팀",
+        "미끄럼"
+      ],
+      "situation": "주방 고온유·스팀 화상, 바닥 미끄럼 넘어짐",
+      "cause": "미끄럼방지·화상방호 미흡",
+      "prevention": "미끄럼방지 바닥·신발, 화상방호, 환기"
+    },
+    {
+      "id": "med_needle",
+      "industry": "medical",
+      "accident": "감염·자상",
+      "activities": [],
+      "signals": [],
+      "keywords": [
+        "주삿바늘",
+        "감염",
+        "자상"
+      ],
+      "situation": "의료폐기물·주삿바늘 자상으로 혈액매개 감염",
+      "cause": "안전기구·폐기 절차 미흡",
+      "prevention": "안전주사기·전용 용기, 폐기 절차, 예방접종"
+    },
+    {
+      "id": "gen_heatstroke",
+      "industry": "general",
+      "accident": "온열질환",
+      "activities": [],
+      "signals": [],
+      "keywords": [
+        "폭염",
+        "온열",
+        "고온"
+      ],
+      "situation": "폭염·고온 작업 중 온열질환(열사병)",
+      "cause": "물·그늘·휴식·시간조정 미흡",
+      "prevention": "물·그늘·휴식, 무더위시간 조정, 단독작업 금지"
+    },
+    {
+      "id": "gen_drowning",
+      "industry": "general",
+      "accident": "익사·빠짐",
+      "activities": [
+        "diving"
+      ],
+      "signals": [],
+      "keywords": [
+        "수중",
+        "익사",
+        "빠짐"
+      ],
+      "situation": "수상·수중·집수정 작업 중 빠짐·익사",
+      "cause": "구명조끼·감시·펜스 미흡",
+      "prevention": "구명조끼, 감시인, 추락방지 펜스"
+    }
   ]
 }

@@ -85,6 +85,10 @@ def _derive(out: dict, zone: list) -> list[tuple[str, str, str]]:
         fired.append(("proximity_hazard", "high",
                       f"{hz['vehicle']} 작업반경 침입 — 사람 약 {hz['distance_m']}m"))
         break
+    # 군집 밀집 — 인원이 임계 이상 몰림(혼잡·압사·동선 위험)
+    pc = out.get("person_count", 0)
+    if pc >= int(os.environ.get("VIGENT_CROWD", "6")):
+        fired.append(("crowd_density", "mid", f"인원 밀집 — {pc}명 감지"))
     return fired
 
 

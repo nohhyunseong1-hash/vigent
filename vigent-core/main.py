@@ -1070,6 +1070,12 @@ def safety_context(payload: dict = Body(...), theme: str = DEFAULT_THEME):
                               image_data_url=(raw if raw and str(raw).startswith("data:")
                                               else ("data:image/jpeg;base64," + raw) if raw else None))
         ctx["logged"] = True
+    img_url = (raw if raw and str(raw).startswith("data:")
+               else ("data:image/jpeg;base64," + raw) if raw else None)
+    if payload.get("log") and ctx.get("lone_worker"):     # 단독작업(2인1조 위반) 자율 기록
+        data_engine.log_event(rule="lone_worker", level="high", site=payload.get("site", "현장"),
+                              note="단독작업 감지 — 감시인 없는 고위험 작업(2인1조 필요)", image_data_url=img_url)
+        ctx["logged"] = True
     return ctx
 
 
