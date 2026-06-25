@@ -520,9 +520,11 @@
         const env=cx.environment, actId=cx.activity_detected, a=cx.assessment;
         // 환경에 맞춰 현장모드 자동(프로그램 설정 → 사용자 수동값은 localStorage 유지)
         if(env){ const t=document.getElementById('togFieldMode'); if(t) t.checked=!!env.field_mode; }
+        const aw=cx.accident_warnings||[];
         if(st){ st.style.display='block';
           st.innerHTML='🌐 환경: <b>'+(env?env.name:'인식 중…')+'</b> · 🔧 작업: <b>'+(actId||'미인식')+'</b>'
             +(a&&a.missing&&a.missing.length?' · <span style="color:#fca5a5">부족: '+a.missing.map(m=>m.name).join(', ')+'</span>':'')
+            +(aw.length?'<br><span style="color:#ffb000">⚠ 유사 중대재해: '+aw[0].accident+' — '+aw[0].prevention+'</span>':'')
             +(cx.logged?' 📋':''); }
         console.info('[VIGENT 🧠 자동맥락]','환경:',env?env.name:'-','작업:',actId||'-',a?'· '+a.summary:'',cx.logged?'· 기록':'');
       }else{

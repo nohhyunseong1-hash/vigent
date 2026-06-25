@@ -130,14 +130,47 @@ def detect_environment(image_bgr=None, present_classes: list[str] | None = None,
     return None
 
 
+_CASES_CACHE: list[dict[str, Any]] | None = None
+
+
+def _cases() -> list[dict[str, Any]]:
+    global _CASES_CACHE
+    if _CASES_CACHE is None:
+        try:
+            p = _ROOT / "config" / "corpus" / "accident_cases.json"
+            _CASES_CACHE = json.loads(p.read_text(encoding="utf-8")).get("cases", [])
+        except Exception:  # noqa: BLE001
+            _CASES_CACHE = []
+    return _CASES_CACHE
+
+
+def accident_warnings(environment_id=None, activity_id=None, present_classes=None) -> list[dict[str, Any]]:
+    """현재 맥락(환경·작업·감지객체)에 해당하는 '반복 중대재해 패턴'을 경고로 반환.
+    '이 상황에서 ○○ 재해가 자주 발생 → 예방하세요' 용도. 매칭 안 되면 []."""
+    present = {str(c).lower() for c in (present_classes or [])}
+    out = []
+    for c in _cases():
+        match = (
+            (environment_id and c.get("industry") == environment_id)
+            or (activity_id and activity_id in c.get("activities", []))
+            or bool(present & {s.lower() for s in c.get("signals", [])})
+        )
+        if match:
+            out.append({"accident": c.get("accident", ""), "situation": c.get("situation", ""),
+                        "cause": c.get("cause", ""), "prevention": c.get("prevention", "")})
+    return out[:4]
+
+
 def assess_context(present_classes=None, image_bgr=None, use_vlm: bool = False) -> dict[str, Any]:
-    """완전 자동 — 환경 + 작업을 스스로 인식하고 안전조치까지 점검."""
+    """완전 자동 — 환경 + 작업 인식 → 안전조치 점검 + 과거 중대재해 패턴 예방경고."""
     env = detect_environment(image_bgr, present_classes, use_vlm)
     act_id = detect_activity(image_bgr, present_classes, use_vlm)
+    env_id = env["id"] if env else None
     out: dict[str, Any] = {
         "ok": True,
-        "environment": ({"id": env["id"], "name": env["name"], "field_mode": env["field_mode"]} if env else None),
+        "environment": ({"id": env_id, "name": env["name"], "field_mode": env["field_mode"]} if env else None),
         "activity_detected": act_id,
+        "accident_warnings": accident_warnings(env_id, act_id, present_classes),
     }
     if act_id:
         out["assessment"] = assess(act_id, present_classes, image_bgr=image_bgr, use_vlm=use_vlm)

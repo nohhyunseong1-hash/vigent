@@ -59,6 +59,12 @@ def _corpus() -> list[dict[str, Any]]:
         docs.append({"id": "mc_" + mc["id"], "title": mc["name"] + " 안전", "text": text,
                      "source": mc.get("law", ""), "refs": [mc["name"]] + mc.get("hazards", []),
                      "topic": mc["name"], "type": "유해위험기계"})
+    for c in _load("accident_cases.json").get("cases", []):
+        text = ("상황: " + c.get("situation", "") + ". 원인: " + c.get("cause", "")
+                + ". 예방: " + c.get("prevention", ""))
+        docs.append({"id": "case_" + c["id"], "title": c.get("accident", "") + " 재해 — " + c.get("situation", "")[:18],
+                     "text": text, "source": "중대재해 패턴", "refs": [c.get("accident", "")] + c.get("keywords", []),
+                     "topic": c.get("accident", ""), "type": "중대재해사례"})
     _CACHE = docs
     return docs
 
