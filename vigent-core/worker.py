@@ -243,8 +243,14 @@ class Worker:
         return dict(self.state)
 
     def _loop(self, guard, lock, source, name, fps, detectors, zone=None):
+        import os
         interval = 1.0 / max(0.2, fps)
         cooldown: dict[str, float] = {}
+        # 데이터 수집 모드(파일럿 학습용) — VIGENT_COLLECT=1 이면 일정 간격으로 프레임 저장
+        collect_on = os.environ.get("VIGENT_COLLECT", "0") == "1"
+        collect_every = float(os.environ.get("VIGENT_COLLECT_EVERY", "30"))
+        dataset_dir = _ROOT / "data" / "dataset" / "images"
+        last_collect = 0.0
         ftrack = FallTracker(vlm=getattr(self, "_vlm_fall", False))   # 카메라별 낙상 추적(상태 유지)
         zone = [tuple(p) for p in zone] if zone else _load_zone()   # 카메라별 구역 or 전역
         is_image = Path(source).suffix.lower() in _IMG_EXT and Path(source).exists()
@@ -270,6 +276,15 @@ class Worker:
                     time.sleep(0.5)
                     continue
                 self.state["frames"] += 1
+                if collect_on and (t0 - last_collect) >= collect_every:   # 학습용 프레임 수집
+                    last_collect = t0
+                    try:
+                        dataset_dir.mkdir(parents=True, exist_ok=True)
+                        safe = "".join(c if c.isalnum() else "_" for c in str(name))[:20]
+                        cv2.imwrite(str(dataset_dir / f"{safe}_{int(t0)}.jpg"), frame)
+                        self.state["collected"] = self.state.get("collected", 0) + 1
+                    except Exception:  # noqa: BLE001
+                        pass
                 with lock:                            # 코어 추론 직렬화(브라우저와 충돌 방지)
                     out = guard.detect(frame, detectors=detectors)
                     fall, freason = ftrack.update(frame, t0)   # 다중단서+모션 낙상
