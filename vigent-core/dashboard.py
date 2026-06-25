@@ -162,13 +162,13 @@ def render_terminal(theme: str, scribe=None, tbm_count: int = 0, audit_count: in
   *{{box-sizing:border-box}}
   body{{margin:0;background:#000;color:var(--ink);
     font-family:"SF Mono","Roboto Mono",Menlo,Consolas,"D2Coding",monospace;font-size:13px}}
-  .hdr{{display:flex;justify-content:space-between;align-items:center;padding:8px 14px;background:#000;border-bottom:2px solid var(--amber)}}
-  .hdr .l{{color:var(--grn);font-weight:700;letter-spacing:1px}}
+  .hdr{{display:flex;justify-content:space-between;align-items:center;padding:8px 14px;background:#000;border-bottom:1px solid #5a4a18}}
+  .hdr .l{{color:#7bbf8a;font-weight:700;letter-spacing:1px}}
   .hdr .r{{color:var(--amber);font-weight:800;letter-spacing:2px;font-size:15px}}
   .fbar{{display:flex;gap:1px;background:#000}}
-  .fbar a{{flex:1;text-align:center;padding:7px 4px;text-decoration:none;font-weight:700;font-size:12px;color:#000}}
-  .fbar a.g{{background:var(--grn)}} .fbar a.r{{background:var(--red);color:#fff}} .fbar a.a{{background:var(--amber)}}
-  .fbar a:hover{{filter:brightness(1.15)}}
+  .fbar a{{flex:1;text-align:center;padding:6px 4px;text-decoration:none;font-weight:700;font-size:12px;color:#e9dfc8;border-right:1px solid #000}}
+  .fbar a.g{{background:#235e34}} .fbar a.r{{background:#8f2820}} .fbar a.a{{background:#8a6817}}
+  .fbar a:hover{{filter:brightness(1.4)}}
   .wrap{{display:grid;grid-template-columns:260px 1fr;gap:10px;padding:10px}}
   @media(max-width:900px){{.wrap{{grid-template-columns:1fr}}}}
   .pnl{{background:var(--pnl);border:1px solid var(--ln);padding:12px}}
