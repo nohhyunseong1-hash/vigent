@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>VIGENT · 출입 인증(MFA)</title>
+<style>
+  :root{--bg:#0B0F14;--panel:rgba(10,16,22,.72);--line:#1c2730;--txt:#E6EDF3;
+    --dim:#9CA8B4;--brand:#19E3B1;--warn:#F59E0B;--danger:#EF4444;--blue:#3B82F6}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--txt);
+    font-family:-apple-system,"Pretendard",system-ui,sans-serif}
+  .mono{font-family:ui-monospace,Menlo,monospace}
+  header{display:flex;align-items:center;gap:10px;padding:12px 18px;
+    border-bottom:1px solid var(--line);background:#0d141b}
+  header b{color:var(--brand)}
+  .tag{margin-left:auto;font-size:12px;color:var(--warn);
+    border:1px solid rgba(245,158,11,.4);border-radius:20px;padding:3px 10px}
+  .wrap{display:grid;grid-template-columns:1fr 340px;gap:14px;padding:14px;
+    max-width:1100px;margin:0 auto}
+  @media(max-width:860px){.wrap{grid-template-columns:1fr}}
+  .stage{position:relative;background:#000;border:1px solid var(--line);
+    border-radius:12px;overflow:hidden;aspect-ratio:4/3}
+  video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;transform:scaleX(-1)}
+  .result{position:absolute;left:0;right:0;bottom:0;padding:14px;backdrop-filter:blur(6px)}
+  .verdict{font-size:30px;font-weight:800}
+  .reasons{font-size:12px;color:var(--dim);margin-top:4px}
+  aside{display:flex;flex-direction:column;gap:12px}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px}
+  .card h3{margin:0 0 10px;font-size:12px;color:var(--dim);letter-spacing:.5px;text-transform:uppercase}
+  label{display:block;font-size:12px;color:var(--dim);margin:8px 0 3px}
+  input,select{width:100%;background:#0a1117;border:1px solid var(--line);border-radius:8px;
+    color:var(--txt);padding:8px;font-size:13px}
+  .row2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+  button{cursor:pointer;border:0;border-radius:8px;padding:10px;font-size:13px;font-weight:600;width:100%;margin-top:10px}
+  .btn{background:var(--brand);color:#06241c}
+  .btn.ghost{background:transparent;border:1px solid var(--line);color:var(--txt)}
+  .chk{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--dim);margin-top:8px}
+  .chk input{width:auto}
+  .factors{font-size:12px}
+  .factors .f{display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px dashed var(--line)}
+  .ok{color:var(--brand)} .no{color:var(--danger)}
+  .desc{font-size:12px;color:var(--dim);margin-top:6px;min-height:30px}
+</style>
+</head>
+<body>
+<header><div><b>VIGENT</b> · 출입 인증(MFA)</div>
+  <div class="tag">데모 · 홍채=시뮬레이터</div></header>
+
+<div class="wrap">
+  <div class="stage">
+    <video id="video" autoplay playsinline muted></video>
+    <div class="result" id="result" style="display:none">
+      <div class="verdict" id="verdict">—</div>
+      <div class="reasons" id="reasons"></div>
+    </div>
+  </div>
+
+  <aside>
+    <div class="card">
+      <h3>구역(보안 정책)</h3>
+      <select id="policy"></select>
+      <div class="desc" id="policyDesc"></div>
+      <button class="btn ghost" id="camBtn">웹캠 시작</button>
+    </div>
+
+    <div class="card">
+      <h3>② 인증</h3>
+      <div class="row2">
+        <div><label>카드(사번)</label><input id="aCard" placeholder="EMP-1024" /></div>
+        <div><label>PIN</label><input id="aPin" type="password" placeholder="****" /></div>
+      </div>
+      <label>홍채 시드(시뮬레이터)</label><input id="aIris" placeholder="hong-eye" />
+      <div class="chk"><input type="checkbox" id="mask" /><label for="mask" style="margin:0">얼굴 가림 시뮬레이트(마스크 — 얼굴 제외)</label></div>
+      <button class="btn" id="authBtn">인증하기</button>
+      <div class="factors" id="factors" style="margin-top:10px"></div>
+    </div>
+
+    <details class="card">
+      <summary style="cursor:pointer;color:var(--brand);font-weight:700">① 등록(처음 한 번) 펼치기</summary>
+      <div class="row2" style="margin-top:10px">
+        <div><label>식별자</label><input id="rId" placeholder="hong" /></div>
+        <div><label>이름</label><input id="rName" placeholder="홍길동" /></div>
+      </div>
+      <div class="row2">
+        <div><label>카드(사번)</label><input id="rCard" placeholder="EMP-1024" /></div>
+        <div><label>PIN</label><input id="rPin" placeholder="8273" /></div>
+      </div>
+      <label>홍채 시드(시뮬레이터)</label><input id="rIris" placeholder="hong-eye" />
+      <button class="btn" id="regBtn">현재 얼굴 5장 + 위 정보로 등록</button>
+      <div class="desc" id="regOut"></div>
+    </details>
+  </aside>
+</div>
+
+<script>
+const $=id=>document.getElementById(id);
+const video=$('video'), cap=document.createElement('canvas');
+let policies={};
+
+async function loadPolicies(){
+  const r=await fetch('/mfa/policies'); const {policies:ps}=await r.json();
+  const sel=$('policy'); sel.innerHTML='';
+  ps.forEach(p=>{ policies[p.key]=p; const o=document.createElement('option');
+    o.value=p.key; o.textContent=p.name; sel.appendChild(o); });
+  sel.value='dusty'; showDesc();
+}
+function showDesc(){ const p=policies[$('policy').value];
+  $('policyDesc').textContent=`${p.desc}  ·  조합: ${p.combos.map(c=>c.join('+')).join(' 또는 ')}`; }
+$('policy').onchange=showDesc;
+
+async function startCam(){
+  try{ const s=await navigator.mediaDevices.getUserMedia({video:{width:640,height:480}});
+    video.srcObject=s; await video.play();
+  }catch(e){ alert('카메라 접근 실패: '+e.message); }
+}
+function grab(){ cap.width=video.videoWidth; cap.height=video.videoHeight;
+  cap.getContext('2d').drawImage(video,0,0);
+  return new Promise(r=>cap.toBlob(r,'image/jpeg',0.85)); }
+
+async function register(){
+  const fd=new FormData();
+  fd.append('person_id',$('rId').value.trim());
+  fd.append('name',$('rName').value.trim());
+  if($('rCard').value) fd.append('card_id',$('rCard').value.trim());
+  if($('rPin').value) fd.append('pin',$('rPin').value.trim());
+  if($('rIris').value) fd.append('iris_seed',$('rIris').value.trim());
+  if(video.videoWidth){ for(let i=0;i<5;i++){ fd.append('images',await grab(),`c${i}.jpg`);
+    await new Promise(r=>setTimeout(r,160)); } }
+  const r=await fetch('/mfa/register',{method:'POST',body:fd}); const j=await r.json();
+  $('regOut').textContent='등록됨: '+JSON.stringify(j);
+}
+
+async function authenticate(){
+  const fd=new FormData();
+  fd.append('policy',$('policy').value);
+  if($('aCard').value) fd.append('card_id',$('aCard').value.trim());
+  if($('aPin').value) fd.append('pin',$('aPin').value.trim());
+  if($('aIris').value) fd.append('iris_seed',$('aIris').value.trim());
+  if(!$('mask').checked && video.videoWidth) fd.append('image',await grab(),'f.jpg');
+  const r=await fetch('/mfa/authenticate',{method:'POST',body:fd}); const d=await r.json();
+  const colors={GRANT:'var(--brand)',DENY:'var(--danger)',STEP_UP:'var(--warn)'};
+  const labels={GRANT:'✅ 통과',DENY:'⛔ 거부',STEP_UP:'➕ 추가 인증 필요'};
+  $('result').style.display='block';
+  $('verdict').textContent=(labels[d.decision]||d.decision)+(d.subject?` · ${d.subject}`:'');
+  $('verdict').style.color=colors[d.decision]||'#fff';
+  let msg=d.reasons.join(' / ');
+  if(d.decision==='STEP_UP') msg+=` → 필요: ${d.needed.join(', ')}`;
+  $('reasons').textContent=msg;
+  $('factors').innerHTML=(d.factors||[]).map(f=>
+    `<div class="f"><span>${f.name}</span><span class="${f.ok?'ok':'no'}">${f.ok?'OK':'✕'} ${f.reason||''}</span></div>`).join('');
+}
+
+$('camBtn').onclick=startCam;
+$('regBtn').onclick=register;
+$('authBtn').onclick=authenticate;
+loadPolicies();
+</script>
+</body>
+</html>

@@ -27,11 +27,22 @@ from fastapi import FastAPI, File, Form, UploadFile
 from fastapi.responses import FileResponse, Response
 
 from . import config
+from . import iris as iris_mod
 from .agitation import AgitationMonitor
 from .api import router as facial_router
 from .evm import MotionMagnifier
+from .mfa import Authenticator, CardStore, DEFAULT_POLICIES, PinStore
 
 config.ENABLED = True                 # 데모 한정(운영 금지 — demo_server 와 동일 주석)
+config.IRIS_ENABLED = True            # 데모 한정: 홍채 시뮬레이터 사용
+iris_mod.set_provider(iris_mod.SimIrisProvider())
+
+
+def _decode(data: bytes):
+    import cv2
+    import numpy as np
+    img = cv2.imdecode(np.frombuffer(data, np.uint8), cv2.IMREAD_COLOR)
+    return img
 
 HERE = Path(__file__).resolve().parent
 DEMO = HERE / "demo"
@@ -62,6 +73,66 @@ def page_wellbeing():
 @app.get("/demo/evm")
 def page_evm():
     return FileResponse(DEMO / "evm.html")
+
+
+@app.get("/demo/mfa")
+def page_mfa():
+    return FileResponse(DEMO / "mfa.html")
+
+
+# ── 다중 인증(MFA) 엔드포인트 ────────────────────────────────
+@app.get("/mfa/policies")
+def mfa_policies():
+    return {"policies": [{"key": k, "name": p.name, "combos": p.combos,
+                          "desc": p.description} for k, p in DEFAULT_POLICIES.items()]}
+
+
+@app.post("/mfa/register")
+async def mfa_register(person_id: str = Form(...), name: str = Form(""),
+                       card_id: str = Form(None), pin: str = Form(None),
+                       iris_seed: str = Form(None),
+                       images: list[UploadFile] = File(None)):
+    out = {"person_id": person_id}
+    if images:
+        from .enrollment import get_store
+        from .privacy import Consent
+        imgs = [_decode(await f.read()) for f in images]
+        imgs = [i for i in imgs if i is not None]
+        if imgs:
+            try:
+                p = get_store().add_person(person_id, name or person_id, imgs,
+                                           Consent(purpose="MFA 데모", consented_by="demo"))
+                out["face"] = p.n_embeddings
+            except Exception as e:
+                out["face_error"] = str(e)
+    if card_id:
+        CardStore().register(card_id, person_id); out["card"] = card_id
+    if pin:
+        PinStore().set_pin(person_id, pin); out["pin"] = True
+    if iris_seed:
+        try:
+            iris_mod.IrisRecognizer().enroll(person_id, {"seed": iris_seed})
+            out["iris"] = True
+        except Exception as e:
+            out["iris_error"] = str(e)
+    return {"ok": True, **out}
+
+
+@app.post("/mfa/authenticate")
+async def mfa_authenticate(policy: str = Form("dusty"), card_id: str = Form(None),
+                           pin: str = Form(None), iris_seed: str = Form(None),
+                           image: UploadFile = File(None)):
+    frames = None
+    if image is not None:
+        img = _decode(await image.read())
+        frames = [img] if img is not None else None
+    iris = {"seed": iris_seed} if iris_seed else None
+    auth = Authenticator(policy=policy if policy in DEFAULT_POLICIES else "dusty")
+    d = auth.authenticate(face_frames=frames, card_id=card_id or None,
+                          pin=pin or None, iris=iris)
+    return {"decision": d.decision, "subject": d.subject_id, "policy": d.policy,
+            "satisfied": d.satisfied, "needed": d.needed, "reasons": d.reasons,
+            "factors": d.factors}
 
 
 # ── 동요/피로 엔드포인트 ──────────────────────────────────────
