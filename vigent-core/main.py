@@ -1010,6 +1010,41 @@ def safety_brain_assess(payload: dict = Body(...)):
                                image_bgr=img, use_vlm=bool(payload.get("use_vlm")))
 
 
+@app.get("/safety/voice", response_class=HTMLResponse)
+def safety_voice_page():
+    """음성 안전 비서 — 근로자가 음성으로 묻고 스피커로 답을 듣는다."""
+    import voice
+    return voice.render()
+
+
+@app.post("/safety/voice/ask")
+def safety_voice_ask(payload: dict = Body(...)):
+    """음성 질문(텍스트) → 안전 지식 엔진 답변(음성 읽기용·근거 포함)."""
+    import safety_rag
+    import safety_brain
+    q = (payload.get("question") or "").strip()
+    if not q:
+        return {"ok": False, "answer": "질문을 다시 말씀해 주세요."}
+    act = safety_brain.get_activity(q)
+    if act:                                          # 작업이 매칭되면 필수조치 우선
+        measures = [m["name"] for m in act.get("required_measures", [])]
+        law = (act.get("regulations") or [{}])[0].get("law", "")
+        answer = f"{act['name']}을 안전하게 하려면 {', '.join(measures)}를 확인하세요."
+        if law:
+            answer += f" 관련 법령은 {law}입니다."
+        sources = [{"title": act["name"], "source": law}]
+    else:                                            # 아니면 RAG 검색 결과
+        hits = safety_rag.retrieve(q, k=2)
+        if hits:
+            answer = hits[0]["text"]
+            sources = [{"title": h["title"], "source": h["source"]} for h in hits]
+        else:
+            answer = "관련 안전 정보를 찾지 못했습니다. 안전관리자에게 문의하세요."
+            sources = []
+    return {"ok": True, "question": q, "answer": answer, "sources": sources,
+            "disclaimer": "보조 안내입니다. 최종 판단·조치는 안전관리자 확인 하에 이뤄집니다."}
+
+
 @app.post("/safety/context")
 def safety_context(payload: dict = Body(...), theme: str = DEFAULT_THEME):
     """완전 자동 — 환경 + 작업을 스스로 인식하고 안전조치 점검 + 위험 시 기록.
