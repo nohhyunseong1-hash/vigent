@@ -1016,6 +1016,36 @@ def safety_brain_assess(payload: dict = Body(...)):
                                image_bgr=img, use_vlm=bool(payload.get("use_vlm")))
 
 
+@app.get("/safety/incident", response_class=HTMLResponse)
+def safety_incident_page():
+    """재해 원인분석(보조) — 사고 사진/영상 → 상황·빠진 조치·법령·유사재해·예방."""
+    import incident
+    return incident.render()
+
+
+@app.post("/safety/incident/analyze")
+def safety_incident_analyze(payload: dict = Body(...), theme: str = DEFAULT_THEME):
+    """재해 영상/사진 원인분석 — 탐지 + VLM + 지식. 책임 비율 판정은 하지 않음."""
+    import incident
+    raw = payload.get("image_base64") or payload.get("image")
+    if not raw:
+        return {"ok": False, "error": "이미지 없음"}
+    rawd = raw if str(raw).startswith("data:") else "data:image/jpeg;base64," + raw
+    img = _decode_data_url(rawd)
+    if img is None:
+        return {"ok": False, "error": "이미지 디코딩 실패"}
+    bundle = STATE.get(theme) or _load_theme(theme)
+    guard = bundle["agents"].get("Guard")
+    present = []
+    try:
+        with _DETECT_LOCK:
+            out = guard.detect(img, detectors=["person", "ppe", "forklift", "fire_smoke"])
+        present = [d.get("label") for d in out.get("detections", [])]
+    except Exception:  # noqa: BLE001
+        present = []
+    return incident.analyze(img, present_classes=present, use_vlm=bool(payload.get("use_vlm")))
+
+
 @app.get("/safety/voice", response_class=HTMLResponse)
 def safety_voice_page():
     """음성 안전 비서 — 근로자가 음성으로 묻고 스피커로 답을 듣는다."""
