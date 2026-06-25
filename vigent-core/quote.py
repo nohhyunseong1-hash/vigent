@@ -14,9 +14,9 @@ def render() -> str:
 _PAGE = r"""<!DOCTYPE html><html lang="ko"><head><meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>VIGENT 견적서</title><style>
-  :root{--ink:#0f172a;--line:#cbd5e1;--blue:#1d4ed8;--muted:#64748b}
+  :root{--ink:#0e0c08;--line:#cbd5e1;--blue:#8a6817;--muted:#64748b}
   *{box-sizing:border-box}
-  body{margin:0;background:#e2e8f0;color:var(--ink);font-family:"Apple SD Gothic Neo","Malgun Gothic",sans-serif}
+  body{margin:0;background:#e2e8f0;color:var(--ink);font-family:"SF Mono","D2Coding","Apple SD Gothic Neo","Malgun Gothic",monospace}
   .sheet{max-width:820px;margin:18px auto;background:#fff;padding:36px 40px;border-radius:6px;box-shadow:0 4px 24px rgba(0,0,0,.12)}
   .top{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:3px solid var(--blue);padding-bottom:14px}
   .brand{font-size:24px;font-weight:900;color:var(--blue);letter-spacing:1px}
@@ -32,7 +32,7 @@ _PAGE = r"""<!DOCTYPE html><html lang="ko"><head><meta charset="UTF-8">
   input.num{width:78px;text-align:right;border:1px solid var(--line);border-radius:4px;padding:4px 6px;font-size:13px}
   .tot td{font-weight:800;background:#eff6ff;font-size:14px}
   .opt{accent-color:var(--blue);transform:scale(1.15)}
-  .inc{font-size:12.5px;color:#334155;line-height:1.9;margin:6px 0 0;padding-left:18px}
+  .inc{font-size:12.5px;color:#2a2a2e;line-height:1.9;margin:6px 0 0;padding-left:18px}
   .note{font-size:11px;color:var(--muted);line-height:1.7;margin-top:14px;border-top:1px solid var(--line);padding-top:10px}
   .bar{max-width:820px;margin:0 auto 24px;display:flex;gap:10px;justify-content:flex-end}
   .btn{padding:9px 18px;border:1px solid var(--blue);background:var(--blue);color:#fff;border-radius:8px;font-size:14px;cursor:pointer;font-weight:700}

@@ -37,19 +37,19 @@ def render() -> str:
 _PAGE = r"""<!DOCTYPE html><html lang="ko"><head><meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>VIGENT — 산업안전 AI</title><style>
-  body{margin:0;background:radial-gradient(1200px 600px at 50% -10%,#13243f,#0b0f17 60%);color:#e5e7eb;
-       font-family:"Apple SD Gothic Neo","Malgun Gothic",sans-serif;min-height:100vh}
+  body{margin:0;background:radial-gradient(1200px 600px at 50% -10%,#0c0c0e,#000000 60%);color:#e5e7eb;
+       font-family:"SF Mono","D2Coding","Apple SD Gothic Neo","Malgun Gothic",monospace;min-height:100vh}
   .wrap{max-width:980px;margin:0 auto;padding:38px 22px 70px}
   .hero{text-align:center;margin-bottom:26px}
-  .logo{font-size:34px;font-weight:900;color:#38bdf8;letter-spacing:2px}
+  .logo{font-size:34px;font-weight:900;color:#ffb000;letter-spacing:2px}
   .logo small{display:block;font-size:13px;color:#94a3b8;font-weight:600;letter-spacing:1px;margin-top:4px}
   .stat{color:#64748b;font-size:12.5px;margin-top:10px}
   .grp{margin-bottom:22px}
-  .gh{font-size:13px;color:#7dd3fc;font-weight:800;margin:0 0 10px;letter-spacing:1px}
+  .gh{font-size:13px;color:#d4a017;font-weight:800;margin:0 0 10px;letter-spacing:1px}
   .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:12px}
-  .tile{display:block;background:#111827;border:1px solid #1f2937;border-radius:14px;padding:18px;
+  .tile{display:block;background:#0c0c0e;border:1px solid #1c1c20;border-radius:14px;padding:18px;
         text-decoration:none;color:#e5e7eb;transition:.15s;position:relative}
-  .tile:hover{border-color:#2563eb;background:#15203a;transform:translateY(-2px)}
+  .tile:hover{border-color:#8a6817;background:#16140d;transform:translateY(-2px)}
   .ic{font-size:28px;margin-bottom:8px}
   .tt{font-size:15px;font-weight:800}
   .ds{font-size:12.5px;color:#94a3b8;margin-top:3px;line-height:1.5}

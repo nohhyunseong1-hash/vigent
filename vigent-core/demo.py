@@ -91,23 +91,23 @@ def render() -> str:
     return f"""<!DOCTYPE html><html lang="ko"><head><meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>VIGENT 데모 — 감지에서 서류·조치까지 자동</title><style>
-  body{{margin:0;background:#0b0f17;color:#e5e7eb;font-family:"Apple SD Gothic Neo","Malgun Gothic",sans-serif}}
+  body{{margin:0;background:#000000;color:#e5e7eb;font-family:"SF Mono","D2Coding","Apple SD Gothic Neo","Malgun Gothic",monospace}}
   .wrap{{max-width:920px;margin:0 auto;padding:28px 20px 70px}}
-  .hero h1{{font-size:26px;margin:0 0 6px;line-height:1.35}} .hero h1 b{{color:#38bdf8}}
+  .hero h1{{font-size:26px;margin:0 0 6px;line-height:1.35}} .hero h1 b{{color:#ffb000}}
   .hero p{{color:#94a3b8;font-size:15px;margin:0 0 18px}}
   .cmp{{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:18px 0}}
   @media(max-width:720px){{.cmp{{grid-template-columns:1fr}}}}
-  .cmp .b{{border-radius:12px;padding:16px;border:1px solid #334155}}
+  .cmp .b{{border-radius:12px;padding:16px;border:1px solid #2a2a2e}}
   .cmp .before{{background:#1a1212;border-color:#7f1d1d}} .cmp .after{{background:#0f1f17;border-color:#15803d}}
   .cmp h3{{margin:0 0 8px;font-size:14px}} .cmp ul{{margin:0;padding-left:18px;font-size:13px;line-height:1.7;color:#cbd5e1}}
   .flow{{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:18px 0;font-size:12.5px}}
-  .flow .s{{background:#1e293b;border:1px solid #334155;border-radius:999px;padding:6px 12px}}
+  .flow .s{{background:#17150e;border:1px solid #2a2a2e;border-radius:999px;padding:6px 12px}}
   .flow .ar{{color:#64748b}}
-  .card{{background:#111827;border:1px solid #1f2937;border-radius:12px;padding:18px;margin:16px 0}}
-  .btn{{display:inline-block;padding:12px 20px;border-radius:10px;border:1px solid #334155;background:#0f172a;color:#e5e7eb;font-size:15px;cursor:pointer;text-decoration:none}}
-  .btn.primary{{background:#2563eb;border-color:#2563eb;color:#fff;font-weight:800;font-size:16px}}
+  .card{{background:#0c0c0e;border:1px solid #1c1c20;border-radius:12px;padding:18px;margin:16px 0}}
+  .btn{{display:inline-block;padding:12px 20px;border-radius:10px;border:1px solid #2a2a2e;background:#0e0c08;color:#e5e7eb;font-size:15px;cursor:pointer;text-decoration:none}}
+  .btn.primary{{background:#8a6817;border-color:#8a6817;color:#fff;font-weight:800;font-size:16px}}
   table{{width:100%;border-collapse:collapse;font-size:13px;margin-top:6px}}
-  td{{border-bottom:1px solid #1f2937;padding:7px 6px}} .dim{{color:#64748b}}
+  td{{border-bottom:1px solid #1c1c20;padding:7px 6px}} .dim{{color:#64748b}}
   #result{{display:none;margin-top:14px}} .links a{{margin-right:10px}}
   .ok{{color:#86efac;font-weight:700}}
 </style></head><body><div class="wrap">

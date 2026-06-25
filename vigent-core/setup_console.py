@@ -91,17 +91,17 @@ def render() -> str:
 _PAGE = r"""<!DOCTYPE html><html lang="ko"><head><meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>VIGENT · 현장 운영 설정</title><style>
-  body{margin:0;background:#0b0f17;color:#e5e7eb;font-family:"Apple SD Gothic Neo","Malgun Gothic",sans-serif}
+  body{margin:0;background:#000000;color:#e5e7eb;font-family:"SF Mono","D2Coding","Apple SD Gothic Neo","Malgun Gothic",monospace}
   .wrap{max-width:860px;margin:0 auto;padding:26px 20px 70px}
   h1{font-size:21px;margin:0 0 4px} .sub{color:#94a3b8;font-size:13px;margin-bottom:18px}
-  .card{background:#111827;border:1px solid #1f2937;border-radius:12px;padding:18px;margin-bottom:16px}
-  .card h2{font-size:15px;margin:0 0 12px;color:#93c5fd}
+  .card{background:#0c0c0e;border:1px solid #1c1c20;border-radius:12px;padding:18px;margin-bottom:16px}
+  .card h2{font-size:15px;margin:0 0 12px;color:#d4a017}
   label{display:block;font-size:12.5px;color:#cbd5e1;margin:9px 0 4px}
-  input{width:100%;box-sizing:border-box;background:#0b1220;border:1px solid #334155;border-radius:8px;color:#e5e7eb;padding:9px 11px;font-size:13.5px}
+  input{width:100%;box-sizing:border-box;background:#0a0a0c;border:1px solid #2a2a2e;border-radius:8px;color:#e5e7eb;padding:9px 11px;font-size:13.5px}
   .row{display:flex;gap:8px;align-items:flex-end} .row>div{flex:1}
   .cam{display:grid;grid-template-columns:1fr 1.4fr 2.4fr 0.7fr auto;gap:8px;align-items:center;margin-bottom:8px}
-  .btn{padding:9px 15px;border:1px solid #334155;border-radius:8px;background:#0f172a;color:#e5e7eb;font-size:13.5px;cursor:pointer}
-  .btn.p{background:#2563eb;border-color:#2563eb;color:#fff;font-weight:700}
+  .btn{padding:9px 15px;border:1px solid #2a2a2e;border-radius:8px;background:#0e0c08;color:#e5e7eb;font-size:13.5px;cursor:pointer}
+  .btn.p{background:#8a6817;border-color:#8a6817;color:#fff;font-weight:700}
   .btn.x{border-color:#7f1d1d;color:#fca5a5;padding:9px 11px}
   .st{font-size:12.5px;margin-top:8px} .ok{color:#86efac} .dim{color:#64748b}
   .grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}

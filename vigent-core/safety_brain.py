@@ -216,20 +216,20 @@ def render() -> str:
 _PAGE = r"""<!DOCTYPE html><html lang="ko"><head><meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>VIGENT · 안전 지식 추론 엔진</title><style>
-  body{margin:0;background:#0b0f17;color:#e5e7eb;font-family:"Apple SD Gothic Neo","Malgun Gothic",sans-serif}
+  body{margin:0;background:#000000;color:#e5e7eb;font-family:"SF Mono","D2Coding","Apple SD Gothic Neo","Malgun Gothic",monospace}
   .wrap{max-width:880px;margin:0 auto;padding:26px 20px 70px}
   h1{font-size:21px;margin:0 0 4px} .sub{color:#94a3b8;font-size:13px;margin-bottom:18px}
-  .card{background:#111827;border:1px solid #1f2937;border-radius:12px;padding:18px;margin-bottom:16px}
-  select,input[type=file]{background:#0b1220;border:1px solid #334155;border-radius:8px;color:#e5e7eb;padding:9px 11px;font-size:14px}
-  .btn{padding:10px 18px;border:1px solid #2563eb;background:#2563eb;color:#fff;border-radius:8px;font-size:14px;cursor:pointer;font-weight:700}
-  .btn.g{background:#0f172a;color:#e5e7eb;border-color:#334155}
+  .card{background:#0c0c0e;border:1px solid #1c1c20;border-radius:12px;padding:18px;margin-bottom:16px}
+  select,input[type=file]{background:#0a0a0c;border:1px solid #2a2a2e;border-radius:8px;color:#e5e7eb;padding:9px 11px;font-size:14px}
+  .btn{padding:10px 18px;border:1px solid #8a6817;background:#8a6817;color:#fff;border-radius:8px;font-size:14px;cursor:pointer;font-weight:700}
+  .btn.g{background:#0e0c08;color:#e5e7eb;border-color:#2a2a2e}
   label.ck{font-size:13px;color:#cbd5e1;margin-left:10px}
   .risk{display:inline-block;padding:3px 12px;border-radius:999px;font-weight:800;font-size:13px}
   .high{background:#7f1d1d;color:#fecaca} .mid{background:#78350f;color:#fde68a} .low{background:#14532d;color:#bbf7d0}
   table{width:100%;border-collapse:collapse;font-size:13.5px;margin-top:8px}
-  td,th{border-bottom:1px solid #1f2937;padding:8px 6px;text-align:left}
+  td,th{border-bottom:1px solid #1c1c20;padding:8px 6px;text-align:left}
   .st-present{color:#86efac} .st-missing{color:#fca5a5;font-weight:700} .st-unknown{color:#fbbf24}
-  .sec h3{font-size:14px;color:#93c5fd;margin:16px 0 6px} .sec ul{margin:0;padding-left:18px;font-size:13px;line-height:1.8;color:#cbd5e1}
+  .sec h3{font-size:14px;color:#d4a017;margin:16px 0 6px} .sec ul{margin:0;padding-left:18px;font-size:13px;line-height:1.8;color:#cbd5e1}
   .dim{color:#64748b;font-size:12px}
 </style></head><body><div class="wrap">
   <h1>🧠 안전 지식 추론 엔진</h1>
@@ -248,7 +248,7 @@ _PAGE = r"""<!DOCTYPE html><html lang="ko"><head><meta charset="UTF-8">
   <div id="out"></div>
 
   <div class="card">
-    <h3 style="margin:0 0 8px;font-size:14px;color:#93c5fd">📷 카메라 라이브 점검(현장 자동 감시)</h3>
+    <h3 style="margin:0 0 8px;font-size:14px;color:#d4a017">📷 카메라 라이브 점검(현장 자동 감시)</h3>
     <div class="dim" style="margin-bottom:8px">위에서 <b>작업을 선택</b>한 뒤 시작하면, 카메라로 ~7초마다 감지→추론하고 <b>위험(부족조치)이면 자동 기록·알림</b>(자동처리 콘솔로 흐름).</div>
     <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
       <button class="btn" id="liveBtn" onclick="toggleLive()">▶ 라이브 점검 시작</button>
@@ -260,9 +260,9 @@ _PAGE = r"""<!DOCTYPE html><html lang="ko"><head><meta charset="UTF-8">
   </div>
 
   <div class="card">
-    <h3 style="margin:0 0 8px;font-size:14px;color:#93c5fd">🔎 안전 규정·지식 검색(RAG)</h3>
+    <h3 style="margin:0 0 8px;font-size:14px;color:#d4a017">🔎 안전 규정·지식 검색(RAG)</h3>
     <div style="display:flex;gap:8px">
-      <input id="q" placeholder="예: 밀폐공간 환기, 용접 화재, 추락 안전대…" style="flex:1;background:#0b1220;border:1px solid #334155;border-radius:8px;color:#e5e7eb;padding:9px 11px;font-size:14px" onkeydown="if(event.key==='Enter')search()">
+      <input id="q" placeholder="예: 밀폐공간 환기, 용접 화재, 추락 안전대…" style="flex:1;background:#0a0a0c;border:1px solid #2a2a2e;border-radius:8px;color:#e5e7eb;padding:9px 11px;font-size:14px" onkeydown="if(event.key==='Enter')search()">
       <button class="btn g" onclick="search()">검색</button>
     </div>
     <div id="sout"></div>

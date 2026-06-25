@@ -25,7 +25,7 @@ LEVEL_KO = {"low": ("주의", "#22c55e"), "mid": ("경계", "#f59e0b"),
             "critical": ("심각", "#ef4444")}
 
 
-def _bar(label, n, mx, color="#3b82f6"):
+def _bar(label, n, mx, color="#b8841a"):
     w = int(round((n / mx) * 100)) if mx else 0
     e = html.escape
     return (f'<div class="bar"><span class="bl">{e(str(label))}</span>'
@@ -118,9 +118,9 @@ def render_terminal(theme: str, scribe=None, tbm_count: int = 0, audit_count: in
         + ro("경계", lv_mid, "#ffb000")
         + ro("주의", lv_low, "#00d26a")
         + '<div class="rsep"></div>'
-        + ro("TBM 회의록", d["tbm_count"], "#7dd3fc")
-        + ro("위험성평가서", d["ra_count"], "#7dd3fc")
-        + ro("승인·감사추적", d["audit_count"], "#7dd3fc")
+        + ro("TBM 회의록", d["tbm_count"], "#d4a017")
+        + ro("위험성평가서", d["ra_count"], "#d4a017")
+        + ro("승인·감사추적", d["audit_count"], "#d4a017")
     )
 
     # 위험 유형별(bar)
@@ -233,12 +233,12 @@ def render(theme: str, scribe=None, tbm_count: int = 0, audit_count: int = 0) ->
 
     # 카드2: 유형별 현황(bar)
     mx_r = max([n for _, n in d["by_rule"]], default=1)
-    rule_bars = "".join(_bar(RULE_KO.get(r, r), n, mx_r, "#3b82f6") for r, n in d["by_rule"][:7]) \
+    rule_bars = "".join(_bar(RULE_KO.get(r, r), n, mx_r, "#b8841a") for r, n in d["by_rule"][:7]) \
         or '<div class="dim">데이터 없음</div>'
 
     # 카드3: 현장별 현황(bar)
     mx_s = max([n for _, n in d["by_site"]], default=1)
-    site_bars = "".join(_bar(s, n, mx_s, "#22d3ee") for s, n in d["by_site"]) \
+    site_bars = "".join(_bar(s, n, mx_s, "#d4a017") for s, n in d["by_site"]) \
         or '<div class="dim">데이터 없음</div>'
 
     # 카드4: 최근 이력
@@ -270,30 +270,30 @@ def render(theme: str, scribe=None, tbm_count: int = 0, audit_count: int = 0) ->
     return f"""<!DOCTYPE html><html lang="ko"><head><meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>VIGENT {e(title)} 대시보드</title><style>
-  body{{margin:0;background:#0b0f17;color:#e5e7eb;font-family:"Apple SD Gothic Neo","Malgun Gothic",sans-serif}}
-  .top{{display:flex;justify-content:space-between;align-items:center;padding:14px 22px;border-bottom:1px solid #1f2937}}
-  .top .lg{{font-weight:800;letter-spacing:1px;color:#fff}} .top .lg b{{color:#38bdf8}}
-  .top a{{color:#93c5fd;text-decoration:none;font-size:13px;margin-left:14px}}
+  body{{margin:0;background:#000000;color:#e5e7eb;font-family:"SF Mono","D2Coding","Apple SD Gothic Neo","Malgun Gothic",monospace}}
+  .top{{display:flex;justify-content:space-between;align-items:center;padding:14px 22px;border-bottom:1px solid #1c1c20}}
+  .top .lg{{font-weight:800;letter-spacing:1px;color:#fff}} .top .lg b{{color:#ffb000}}
+  .top a{{color:#d4a017;text-decoration:none;font-size:13px;margin-left:14px}}
   .grid{{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;padding:16px 22px}}
   @media(max-width:1000px){{.grid{{grid-template-columns:1fr}}}}
-  .card{{background:#111827;border:1px solid #1f2937;border-radius:12px;padding:16px;min-height:210px}}
+  .card{{background:#0c0c0e;border:1px solid #1c1c20;border-radius:12px;padding:16px;min-height:210px}}
   .card h3{{margin:0 0 12px;font-size:14px;color:#cbd5e1;display:flex;align-items:center;gap:7px}}
-  .card h3 .m{{font-size:10px;background:#1e293b;color:#7dd3fc;border-radius:4px;padding:1px 5px}}
+  .card h3 .m{{font-size:10px;background:#17150e;color:#d4a017;border-radius:4px;padding:1px 5px}}
   .big{{text-align:right;font-size:13px;color:#94a3b8;margin-bottom:6px}} .big b{{font-size:34px;color:#f87171;margin-left:8px}}
   table{{width:100%;border-collapse:collapse;font-size:13px}}
-  th,td{{padding:7px 6px;border-bottom:1px solid #1f2937;text-align:left}} th{{color:#64748b;font-weight:600;font-size:12px}}
+  th,td{{padding:7px 6px;border-bottom:1px solid #1c1c20;text-align:left}} th{{color:#64748b;font-weight:600;font-size:12px}}
   td.num{{text-align:right;font-weight:700;font-variant-numeric:tabular-nums}} .dim{{color:#64748b}}
   .bar{{display:flex;align-items:center;gap:8px;margin:7px 0;font-size:12.5px}}
   .bar .bl{{width:96px;color:#cbd5e1;flex:none;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}}
-  .bar .bt{{flex:1;height:9px;background:#1f2937;border-radius:6px;overflow:hidden}}
+  .bar .bt{{flex:1;height:9px;background:#1c1c20;border-radius:6px;overflow:hidden}}
   .bar .bf{{display:block;height:100%;border-radius:6px}} .bar .bn{{width:34px;text-align:right;font-weight:700}}
-  .lvl{{color:#0b0f17;font-weight:800;font-size:11px;border-radius:5px;padding:1px 7px}}
+  .lvl{{color:#000000;font-weight:800;font-size:11px;border-radius:5px;padding:1px 7px}}
   .trend{{display:flex;align-items:flex-end;gap:4px;height:96px;margin-top:6px}}
   .tcol{{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end}}
-  .tcol .tb{{width:62%;min-height:2px;background:linear-gradient(#38bdf8,#0ea5e9);border-radius:3px}}
+  .tcol .tb{{width:62%;min-height:2px;background:linear-gradient(#ffb000,#c8941a);border-radius:3px}}
   .tcol .tx{{font-size:9px;color:#64748b;margin-top:4px;transform:rotate(-30deg)}}
-  .stat{{display:flex;gap:10px;margin-top:8px}} .stat .s{{flex:1;background:#0b1220;border:1px solid #1f2937;border-radius:10px;padding:14px;text-align:center}}
-  .stat .s b{{display:block;font-size:26px;color:#7dd3fc}} .stat .s span{{font-size:12px;color:#94a3b8}}
+  .stat{{display:flex;gap:10px;margin-top:8px}} .stat .s{{flex:1;background:#0a0a0c;border:1px solid #1c1c20;border-radius:10px;padding:14px;text-align:center}}
+  .stat .s b{{display:block;font-size:26px;color:#d4a017}} .stat .s span{{font-size:12px;color:#94a3b8}}
   .foot{{padding:0 22px 22px;color:#475569;font-size:11px}}
 </style></head><body>
   <div class="top">

@@ -38,7 +38,9 @@ lsof -ti tcp:${PORT} | xargs kill -9 2>/dev/null
 cd "$DIR/vigent-core" || { echo "[오류] 폴더 없음: $DIR/vigent-core"; read -r; exit 1; }
 
 echo "서버 시작 중 (최대 30초 대기)..."
-"$PY" -m uvicorn main:app --host 127.0.0.1 --port ${PORT} &
+# --reload: main.py 등 파이썬 코드를 저장하면 서버가 자동 재시작(수동 재시작 불필요).
+#           화면 파일(html/js)은 원래 새로고침만으로 반영됨.
+"$PY" -m uvicorn main:app --host 127.0.0.1 --port ${PORT} --reload --reload-dir "$DIR/vigent-core" &
 SRV=$!
 
 # /safety 가 200 으로 응답할 때까지 대기

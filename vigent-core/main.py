@@ -384,11 +384,11 @@ def safety_reports(theme: str = DEFAULT_THEME):
         for i in items) or '<tr><td colspan="5" style="color:#94a3b8">저장된 평가서가 없습니다. 아래 버튼으로 생성하세요.</td></tr>'
     return f"""<!DOCTYPE html><html lang="ko"><head><meta charset="UTF-8">
 <title>VIGENT 위험성평가서 목록</title><style>
-  body{{font-family:"Apple SD Gothic Neo",sans-serif;margin:32px;color:#0f172a}}
-  h1{{font-size:20px}} a{{color:#2563eb}}
+  body{{font-family:"Apple SD Gothic Neo",sans-serif;margin:32px;color:#0e0c08}}
+  h1{{font-size:20px}} a{{color:#8a6817}}
   table{{width:100%;border-collapse:collapse;margin-top:14px;font-size:13px}}
   th,td{{border:1px solid #cbd5e1;padding:8px 10px;text-align:left}} th{{background:#f1f5f9}}
-  .btn{{display:inline-block;margin-top:16px;padding:10px 18px;background:#0f172a;color:#fff;
+  .btn{{display:inline-block;margin-top:16px;padding:10px 18px;background:#0e0c08;color:#fff;
         border-radius:8px;text-decoration:none}}
 </style></head><body>
   <h1>📁 위험성평가서 목록</h1>
@@ -403,41 +403,41 @@ def safety_reports(theme: str = DEFAULT_THEME):
 # 작업 전 TBM(안전점검 회의) — 작성·저장·열기 (한전 스마트TBM '작업 전' 단계)
 # ─────────────────────────────────────────────────────────────
 _TBM_CSS = """
-  body{font-family:"Apple SD Gothic Neo",sans-serif;margin:0;background:#0f172a;color:#e2e8f0}
+  body{font-family:"Apple SD Gothic Neo",sans-serif;margin:0;background:#0e0c08;color:#e2e8f0}
   .wrap{max-width:760px;margin:0 auto;padding:28px 20px 80px}
   h1{font-size:21px;margin:4px 0 2px} .sub{color:#94a3b8;font-size:13px;margin-bottom:20px}
-  a{color:#60a5fa;text-decoration:none}
-  .card{background:#1e293b;border:1px solid #334155;border-radius:12px;padding:18px;margin-bottom:14px}
-  .card h2{font-size:15px;margin:0 0 12px;color:#93c5fd}
+  a{color:#d4a017;text-decoration:none}
+  .card{background:#17150e;border:1px solid #2a2a2e;border-radius:12px;padding:18px;margin-bottom:14px}
+  .card h2{font-size:15px;margin:0 0 12px;color:#d4a017}
   label.fld{display:block;font-size:13px;color:#cbd5e1;margin:10px 0 4px}
-  input[type=text],textarea{width:100%;box-sizing:border-box;background:#0f172a;border:1px solid #334155;
+  input[type=text],textarea{width:100%;box-sizing:border-box;background:#0e0c08;border:1px solid #2a2a2e;
     border-radius:8px;color:#e2e8f0;padding:9px 11px;font-size:14px;font-family:inherit}
   textarea{min-height:64px;resize:vertical}
   .row{display:flex;gap:8px} .row input{flex:1}
   .chk{display:flex;align-items:center;gap:8px;font-size:13.5px;padding:7px 0;border-bottom:1px solid #29374a}
   .chk:last-child{border-bottom:none}
   .chk input{width:17px;height:17px;accent-color:#22c55e}
-  .tag{display:inline-flex;align-items:center;gap:6px;background:#0b2545;border:1px solid #1d4ed8;
+  .tag{display:inline-flex;align-items:center;gap:6px;background:#0b2545;border:1px solid #8a6817;
     color:#bfdbfe;border-radius:999px;padding:5px 10px;font-size:13px;margin:4px 6px 0 0}
-  .tag b{cursor:pointer;color:#93c5fd}
+  .tag b{cursor:pointer;color:#d4a017}
   .wk{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid #29374a}
   .wk .nm{flex:1} .wk small{color:#94a3b8}
-  .btn{display:inline-block;padding:10px 16px;border-radius:8px;border:1px solid #334155;
-    background:#0f172a;color:#e2e8f0;font-size:14px;cursor:pointer}
+  .btn{display:inline-block;padding:10px 16px;border-radius:8px;border:1px solid #2a2a2e;
+    background:#0e0c08;color:#e2e8f0;font-size:14px;cursor:pointer}
   .btn.add{padding:9px 14px}
-  .btn.primary{background:#2563eb;border-color:#2563eb;color:#fff;font-weight:700}
-  .bar{position:fixed;left:0;right:0;bottom:0;background:#0b1220;border-top:1px solid #334155;
+  .btn.primary{background:#8a6817;border-color:#8a6817;color:#fff;font-weight:700}
+  .bar{position:fixed;left:0;right:0;bottom:0;background:#0a0a0c;border-top:1px solid #2a2a2e;
     padding:14px 20px;display:flex;justify-content:center;gap:10px}
   table{width:100%;border-collapse:collapse;font-size:13px;margin-top:6px}
-  th,td{border:1px solid #334155;padding:8px 10px;text-align:left} th{background:#162133;color:#93c5fd}
+  th,td{border:1px solid #2a2a2e;padding:8px 10px;text-align:left} th{background:#162133;color:#d4a017}
   .dim{color:#94a3b8;font-size:13px}
   .suggest{margin-top:10px;background:#0b1628;border:1px solid #1d3a5f;border-radius:10px;padding:12px}
-  .sg-h{font-size:13px;color:#7dd3fc;font-weight:700;margin-bottom:6px}
+  .sg-h{font-size:13px;color:#d4a017;font-weight:700;margin-bottom:6px}
   .sg-sec{font-size:13px;color:#cbd5e1;margin:12px 0 5px;display:flex;align-items:center;gap:8px}
   .tag.sg{cursor:pointer;background:#0f2a18;border-color:#15803d;color:#bbf7d0}
-  .tag.sg.added{opacity:.45;cursor:default;background:#1e293b;border-color:#334155;color:#94a3b8}
+  .tag.sg.added{opacity:.45;cursor:default;background:#17150e;border-color:#2a2a2e;color:#94a3b8}
   .btn.add.sm{padding:3px 9px;font-size:12px}
-  details.sg-sec summary{cursor:pointer;color:#93c5fd}
+  details.sg-sec summary{cursor:pointer;color:#d4a017}
   ul.cites{margin:6px 0 0;padding-left:18px;font-size:12.5px;line-height:1.5}
   ul.cites b{color:#cbd5e1}
 """
@@ -581,20 +581,20 @@ _AUTO_HTML = r"""<!DOCTYPE html><html lang="ko"><head><meta charset="UTF-8">
 <title>VIGENT · 안전 자동처리 콘솔</title><style>/*CSS*/
   .top{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px}
   .stat{display:flex;gap:10px;margin:10px 0}
-  .stat .box{flex:1;background:#1e293b;border:1px solid #334155;border-radius:10px;padding:12px;text-align:center}
-  .stat .box b{display:block;font-size:24px;color:#7dd3fc}
+  .stat .box{flex:1;background:#17150e;border:1px solid #2a2a2e;border-radius:10px;padding:12px;text-align:center}
+  .stat .box b{display:block;font-size:24px;color:#d4a017}
   .disc{background:#3a2a0b;border:1px solid #a16207;color:#fde68a;border-radius:8px;padding:10px 12px;font-size:12.5px;margin:10px 0;line-height:1.6}
-  .ev{background:#1e293b;border:1px solid #334155;border-radius:12px;padding:14px;margin-bottom:12px}
+  .ev{background:#17150e;border:1px solid #2a2a2e;border-radius:12px;padding:14px;margin-bottom:12px}
   .ev .hd{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap}
   .ev .rule{font-weight:700;font-size:15px}
   .lv{padding:2px 8px;border-radius:6px;font-size:11px;font-weight:700}
   .lv.high{background:#7f1d1d;color:#fecaca} .lv.mid{background:#78350f;color:#fed7aa} .lv.low{background:#14532d;color:#bbf7d0}
   .pipe{display:flex;gap:6px;flex-wrap:wrap;margin:10px 0;font-size:12px}
-  .step{padding:4px 9px;border-radius:999px;border:1px solid #334155;color:#94a3b8;background:#0f172a}
+  .step{padding:4px 9px;border-radius:999px;border:1px solid #2a2a2e;color:#94a3b8;background:#0e0c08}
   .step.on{border-color:#15803d;color:#bbf7d0;background:#0f2a18}
   .step.wait{border-color:#a16207;color:#fde68a;background:#3a2a0b}
-  .ev .meta{font-size:12.5px;color:#cbd5e1;margin:4px 0;line-height:1.6} .ev .meta b{color:#93c5fd}
-  .ev img{max-width:160px;border-radius:8px;border:1px solid #334155;margin-top:6px;display:block}
+  .ev .meta{font-size:12.5px;color:#cbd5e1;margin:4px 0;line-height:1.6} .ev .meta b{color:#d4a017}
+  .ev img{max-width:160px;border-radius:8px;border:1px solid #2a2a2e;margin-top:6px;display:block}
   .acts{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
   .ok{color:#86efac;font-size:13px;align-self:center}
 </style></head><body><div class="wrap">
