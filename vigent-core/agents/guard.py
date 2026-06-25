@@ -28,6 +28,8 @@ LABEL_NORMALIZE = {
     "Safety-Vest": "Safety-Vest",
     "Hardhat": "Hardhat", "NO-Hardhat": "NO-Hardhat",
     "Fire": "fire",   # 화재 모델 대문자 → 표준 소문자
+    "Person": "person", "PERSON": "person",   # PPE모델 'Person' ↔ COCO 'person' 통일(중복 박스 방지)
+    "Forklift": "forklift", "Smoke": "smoke",
 }
 # PPE 미착용 판정에 쓰는 표준 라벨(안전모·조끼·마스크)
 PPE_MISSING_LABELS = {"NO-Hardhat", "NO-Safety-Vest", "NO-Mask"}

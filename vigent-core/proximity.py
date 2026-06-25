@@ -36,6 +36,10 @@ def detect(detections, radius_m: float = DEFAULT_RADIUS_M) -> list[dict]:
         if len(bb) != 4:
             continue
         if cls in VEHICLE_REF_M:
+            vw, vh = bb[2] - bb[0], bb[3] - bb[1]
+            # 비현실적으로 큰 박스(오탐, 화면 절반 이상)는 거리추정 불가 → 제외
+            if vw > 0.6 or vh > 0.7 or vw * vh > 0.4:
+                continue
             vehicles.append((cls, bb))
         elif cls == "person":
             persons.append(bb)

@@ -96,7 +96,7 @@ _PAGE = r"""<!DOCTYPE html><html lang="ko"><head><meta charset="UTF-8">
   function capFrame(vid){ const c=document.createElement('canvas'); c.width=vid.videoWidth; c.height=vid.videoHeight;
     c.getContext('2d').drawImage(vid,0,0); return c.toDataURL('image/jpeg',0.8).split(',')[1]; }
   function seekTo(vid,t){ return new Promise(res=>{ const h=()=>{ vid.removeEventListener('seeked',h); res(); }; vid.addEventListener('seeked',h); vid.currentTime=t; }); }
-  function ko(c){ const m={person:'사람',forklift:'지게차',truck:'트럭',car:'차량',bus:'버스',fire:'화재',smoke:'연기','NO-Hardhat':'안전모 미착용','NO-Mask':'마스크 미착용','NO-Safety-Vest':'안전조끼 미착용',Hardhat:'안전모'}; return m[c]||c; }
+  function ko(c){ const m={person:'사람',forklift:'지게차',truck:'트럭',car:'차량',bus:'버스',train:'차량',boat:'차량',motorcycle:'오토바이',bicycle:'자전거',fire:'화재',smoke:'연기','no-hardhat':'안전모 미착용','no-mask':'마스크 미착용','no-safety-vest':'안전조끼 미착용',hardhat:'안전모',knife:'칼',scissors:'가위'}; return m[String(c||'').toLowerCase()]||c; }
   // 위험요인에 박스 그리기(위험=빨강, 일반=앰버)
   function drawAnnotated(b64, boxes){
     return new Promise(res=>{
