@@ -1023,6 +1023,41 @@ def safety_incident_page():
     return incident.render()
 
 
+@app.post("/safety/incident/frame")
+def safety_incident_frame(payload: dict = Body(...), theme: str = DEFAULT_THEME):
+    """한 프레임의 위험도 채점(빠름, VLM 없음) — 영상 타임라인 분석용.
+    반환: {score, person_count, hazards:[유형], detections:[클래스]}."""
+    import proximity as _prox
+    raw = payload.get("image_base64") or payload.get("image") or ""
+    rawd = raw if str(raw).startswith("data:") else "data:image/jpeg;base64," + raw
+    img = _decode_data_url(rawd)
+    if img is None:
+        return {"score": 0, "hazards": []}
+    bundle = STATE.get(theme) or _load_theme(theme)
+    guard = bundle["agents"].get("Guard")
+    try:
+        with _DETECT_LOCK:
+            out = guard.detect(img, detectors=["person", "ppe", "forklift", "fire_smoke"])
+    except Exception:  # noqa: BLE001
+        return {"score": 0, "hazards": []}
+    sig = out.get("signals", {}) or {}
+    pc = out.get("person_count", 0)
+    prox = _prox.detect(out.get("detections", []))
+    hz = []
+    score = pc * 5
+    if prox:
+        score += 55
+        hz.append("작업반경 침입(협착)")
+    if sig.get("fire_smoke"):
+        score += 45
+        hz.append("화재·연기")
+    if sig.get("ppe_missing"):
+        score += 25
+        hz.append("보호구 미착용")
+    return {"score": score, "person_count": pc, "hazards": hz,
+            "detections": [d.get("label") for d in out.get("detections", [])]}
+
+
 @app.post("/safety/incident/analyze")
 def safety_incident_analyze(payload: dict = Body(...), theme: str = DEFAULT_THEME):
     """재해 영상/사진 원인분석 — 탐지 + VLM + 지식. 책임 비율 판정은 하지 않음."""
