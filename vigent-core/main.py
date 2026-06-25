@@ -71,6 +71,26 @@ _SAFETY_KEEP = {"person", "knife", "scissors", "car", "truck", "bus", "motorcycl
                 "bicycle", "forklift", "train", "boat", "fire", "smoke", "cigarette"}
 
 
+def _incident_boxes(out: dict, prox: list) -> list:
+    """탐지 결과 → 박스 목록(정규화 bbox + 위험여부). 협착쌍·화재·보호구미착용을 위험으로 표시."""
+    def overlap(a, b):
+        ix = max(0.0, min(a[2], b[2]) - max(a[0], b[0]))
+        iy = max(0.0, min(a[3], b[3]) - max(a[1], b[1]))
+        return ix * iy > 0
+    prox_persons = [p.get("person_bbox") for p in (prox or [])]
+    has_prox = bool(prox)
+    boxes = []
+    for d in out.get("detections", []):
+        cls = (d.get("label") or "")
+        cl = cls.lower()
+        bb = d.get("bbox", [0, 0, 0, 0])
+        hazard = (cl in ("fire", "smoke") or cl.startswith("no-")
+                  or (cl == "forklift" and has_prox)
+                  or any(pb and overlap(bb, pb) for pb in prox_persons))
+        boxes.append({"class": cls, "bbox": [round(v, 4) for v in bb], "hazard": bool(hazard)})
+    return boxes
+
+
 def _is_safety_label(label: str) -> bool:
     l = (label or "").lower()
     if l in _SAFETY_KEEP:
@@ -1055,7 +1075,8 @@ def safety_incident_frame(payload: dict = Body(...), theme: str = DEFAULT_THEME)
         score += 25
         hz.append("보호구 미착용")
     return {"score": score, "person_count": pc, "hazards": hz,
-            "detections": [d.get("label") for d in out.get("detections", [])]}
+            "detections": [d.get("label") for d in out.get("detections", [])],
+            "boxes": _incident_boxes(out, prox)}
 
 
 @app.post("/safety/incident/analyze")
@@ -1077,8 +1098,11 @@ def safety_incident_analyze(payload: dict = Body(...), theme: str = DEFAULT_THEM
             out = guard.detect(img, detectors=["person", "ppe", "forklift", "fire_smoke"])
         present = [d.get("label") for d in out.get("detections", [])]
     except Exception:  # noqa: BLE001
-        present = []
-    return incident.analyze(img, present_classes=present, use_vlm=bool(payload.get("use_vlm")))
+        out, present = {"detections": []}, []
+    result = incident.analyze(img, present_classes=present, use_vlm=bool(payload.get("use_vlm")))
+    import proximity as _prox
+    result["boxes"] = _incident_boxes(out, _prox.detect(out.get("detections", [])))
+    return result
 
 
 @app.get("/safety/voice", response_class=HTMLResponse)

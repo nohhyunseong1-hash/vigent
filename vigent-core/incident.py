@@ -96,6 +96,29 @@ _PAGE = r"""<!DOCTYPE html><html lang="ko"><head><meta charset="UTF-8">
   function capFrame(vid){ const c=document.createElement('canvas'); c.width=vid.videoWidth; c.height=vid.videoHeight;
     c.getContext('2d').drawImage(vid,0,0); return c.toDataURL('image/jpeg',0.8).split(',')[1]; }
   function seekTo(vid,t){ return new Promise(res=>{ const h=()=>{ vid.removeEventListener('seeked',h); res(); }; vid.addEventListener('seeked',h); vid.currentTime=t; }); }
+  function ko(c){ const m={person:'사람',forklift:'지게차',truck:'트럭',car:'차량',bus:'버스',fire:'화재',smoke:'연기','NO-Hardhat':'안전모 미착용','NO-Mask':'마스크 미착용','NO-Safety-Vest':'안전조끼 미착용',Hardhat:'안전모'}; return m[c]||c; }
+  // 위험요인에 박스 그리기(위험=빨강, 일반=앰버)
+  function drawAnnotated(b64, boxes){
+    return new Promise(res=>{
+      const img=new Image();
+      img.onload=()=>{
+        const c=document.createElement('canvas'); c.width=img.naturalWidth||640; c.height=img.naturalHeight||480;
+        const x=c.getContext('2d'); x.drawImage(img,0,0);
+        x.lineWidth=Math.max(2,c.width/280); x.font='bold '+Math.max(13,Math.round(c.width/42))+'px sans-serif';
+        (boxes||[]).forEach(b=>{
+          const bb=b.bbox; const px=bb[0]*c.width, py=bb[1]*c.height, pw=(bb[2]-bb[0])*c.width, ph=(bb[3]-bb[1])*c.height;
+          const col=b.hazard?'#ff3b3b':'#ffb000';
+          x.strokeStyle=col; x.strokeRect(px,py,pw,ph);
+          const lbl=(b.hazard?'⚠ ':'')+ko(b.class); const tw=x.measureText(lbl).width+8;
+          x.fillStyle=col; x.fillRect(px, Math.max(0,py-22), tw, 22);
+          x.fillStyle=b.hazard?'#fff':'#000'; x.fillText(lbl, px+4, Math.max(15,py-6));
+        });
+        res(c.toDataURL('image/jpeg',0.85));
+      };
+      img.onerror=()=>res(null);
+      img.src='data:image/jpeg;base64,'+b64;
+    });
+  }
   function preview(){
     const f=document.getElementById('file').files[0]; if(!f)return;
     const pv=document.getElementById('pv'), vid=document.getElementById('vid');
@@ -149,8 +172,10 @@ _PAGE = r"""<!DOCTYPE html><html lang="ko"><head><meta charset="UTF-8">
     const sec=(tt,html)=> html?`<div class="card"><h3>${tt}</h3>${html}</div>`:'';
     const regs=(j.regulations||[]).map(x=>`<li><b>${x.law||x}</b>${x.desc?' — '+x.desc:''}</li>`).join('');
     const pat=(j.accident_patterns||[]).map(x=>`<li><b>${x.accident}</b>: ${x.situation} <span class="dim">→ ${x.prevention}</span></li>`).join('');
+    const annotated=await drawAnnotated(b64, j.boxes||[]);  // 위험요인 박스 표시
+    const imgHtml=annotated?'<img src="'+annotated+'" style="max-width:100%;width:100%;border-radius:6px;border:1px solid #1c1c20;margin-bottom:8px"><div class="dim" style="margin-bottom:6px">🔴 빨강=위험요인 · 🟡 앰버=감지객체</div>':'';
     document.getElementById('out').innerHTML=pre+
-      sec('🔍 장면 분석'+(t!=null?' ('+t.toFixed(1)+'초)':''), (j.scene?'<div class="scene">'+j.scene+'</div>':'<span class="dim">VLM 미사용/미인식</span>')
+      sec('🔍 위험요인 표시 + 장면 분석'+(t!=null?' ('+t.toFixed(1)+'초)':''), imgHtml+(j.scene?'<div class="scene">'+j.scene+'</div>':'<span class="dim">VLM 미사용/미인식</span>')
           +'<div class="dim" style="margin-top:6px">감지: '+((j.detected||[]).join(', ')||'-')+' · 환경: '+(j.environment||'-')+' · 작업: '+(j.activity||'-')+'</div>')
       +sec('⚠ 재해 원인(빠진 안전조치)', (j.missing_measures&&j.missing_measures.length)?'<ul>'+j.missing_measures.map(m=>'<li class="miss">'+m+' 미확인/없음</li>').join('')+'</ul>':'<span class="dim">VLM 켜면 \'없는 조치\'까지 추론</span>')
       +sec('📖 관련 법령', regs?'<ul>'+regs+'</ul>':'')
