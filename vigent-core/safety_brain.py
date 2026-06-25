@@ -97,6 +97,53 @@ def detect_activity(image_bgr=None, present_classes: list[str] | None = None,
     return None
 
 
+def list_environments() -> list[dict[str, Any]]:
+    return _kb().get("environments", [])
+
+
+def detect_environment(image_bgr=None, present_classes: list[str] | None = None,
+                       use_vlm: bool = False) -> dict[str, Any] | None:
+    """장면에서 '어떤 작업환경인지' 스스로 인식 → 환경 dict(field_mode 포함) 또는 None.
+    ① VLM 장면 분류(가능 시) ② 감지신호 휴리스틱(건설 신호 있으면 현장계열) 폴백."""
+    envs = _kb().get("environments", [])
+    if not envs:
+        return None
+    if use_vlm and image_bgr is not None:
+        names = [e["name"] for e in envs]
+        prompt = ("너는 산업안전 점검 AI다. 이 장면의 작업환경을 아래 중 하나로만 골라 그 이름만 답하라. "
+                  "불확실하면 '불확실'이라고만 답하라.\n환경 목록: " + ", ".join(names))
+        try:
+            import rfdetr_service
+            data = rfdetr_service.vlm.summarize_bgr(image_bgr, prompt=prompt)
+            txt = str(data.get("raw") or " ".join(str(v) for k, v in data.items()
+                                                   if not str(k).startswith("_"))) if isinstance(data, dict) else ""
+            for e in envs:
+                if e["name"] in txt or any(kw in txt for kw in e.get("keywords", [])):
+                    return e
+        except Exception:  # noqa: BLE001
+            pass
+    # 폴백: 건설/현장 신호(화재·지게차·보호구)가 보이면 '현장 계열'로 추정(사무실 아님)
+    sig = {str(c).lower() for c in (present_classes or [])}
+    field_signals = {"fire", "smoke", "forklift", "hardhat", "no-hardhat", "vest", "no-safety-vest"}
+    if sig & field_signals:
+        return next((e for e in envs if e["id"] == "construction"), None)
+    return None
+
+
+def assess_context(present_classes=None, image_bgr=None, use_vlm: bool = False) -> dict[str, Any]:
+    """완전 자동 — 환경 + 작업을 스스로 인식하고 안전조치까지 점검."""
+    env = detect_environment(image_bgr, present_classes, use_vlm)
+    act_id = detect_activity(image_bgr, present_classes, use_vlm)
+    out: dict[str, Any] = {
+        "ok": True,
+        "environment": ({"id": env["id"], "name": env["name"], "field_mode": env["field_mode"]} if env else None),
+        "activity_detected": act_id,
+    }
+    if act_id:
+        out["assessment"] = assess(act_id, present_classes, image_bgr=image_bgr, use_vlm=use_vlm)
+    return out
+
+
 def assess(activity_key: str, present_classes: list[str] | None = None,
            image_bgr=None, use_vlm: bool = False) -> dict[str, Any]:
     """작업 + (감지된 객체 / 이미지) → 필수 안전조치 충족/부재 추론.

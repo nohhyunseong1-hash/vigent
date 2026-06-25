@@ -186,5 +186,24 @@
       ],
       "actions": ["안전난간·발판 점검", "안전대 체결", "벽이음·전도방지", "조립도 준수", "하부 출입통제"]
     }
+  ],
+  "environments": [
+    {"id": "office", "name": "사무실·실내", "field_mode": false,
+     "keywords": ["사무실", "책상", "모니터", "노트북", "실내 사무"], "likely": []},
+    {"id": "construction", "name": "건설현장", "field_mode": true,
+     "keywords": ["건설", "공사", "비계", "골조", "철근", "콘크리트 현장"],
+     "likely": ["work_at_height", "excavation", "lifting", "scaffold", "hot_work"]},
+    {"id": "factory", "name": "제조공장", "field_mode": true,
+     "keywords": ["공장", "생산라인", "기계설비", "제조"],
+     "likely": ["vehicle_machine", "lifting", "hot_work", "electrical"]},
+    {"id": "confined", "name": "밀폐공간", "field_mode": true,
+     "keywords": ["맨홀", "탱크 내부", "좁은 공간", "지하 피트", "밀폐"],
+     "likely": ["confined_space"]},
+    {"id": "warehouse", "name": "창고·물류", "field_mode": true,
+     "keywords": ["창고", "적재", "팔레트", "물류", "지게차"],
+     "likely": ["vehicle_machine", "lifting"]},
+    {"id": "outdoor", "name": "옥외·도로", "field_mode": true,
+     "keywords": ["야외", "옥외", "도로", "노상"],
+     "likely": ["excavation", "vehicle_machine", "electrical"]}
   ]
 }

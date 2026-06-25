@@ -1010,6 +1010,30 @@ def safety_brain_assess(payload: dict = Body(...)):
                                image_bgr=img, use_vlm=bool(payload.get("use_vlm")))
 
 
+@app.post("/safety/context")
+def safety_context(payload: dict = Body(...), theme: str = DEFAULT_THEME):
+    """완전 자동 — 환경 + 작업을 스스로 인식하고 안전조치 점검 + 위험 시 기록.
+    payload={present?:[], image_base64?, use_vlm?, site?, log?}. 반환: 환경·작업·점검결과."""
+    import safety_brain
+    raw = payload.get("image_base64") or payload.get("image")
+    img = None
+    if raw:
+        rawd = raw if str(raw).startswith("data:") else "data:image/jpeg;base64," + raw
+        img = _decode_data_url(rawd)
+    ctx = safety_brain.assess_context(payload.get("present"), image_bgr=img,
+                                      use_vlm=bool(payload.get("use_vlm")))
+    res = ctx.get("assessment")
+    ctx["logged"] = False
+    if payload.get("log") and res and res.get("missing") and res.get("risk") in ("high", "mid"):
+        data_engine.log_event(rule="safety_measure_missing",
+                              level="high" if res["risk"] == "high" else "mid",
+                              site=payload.get("site", "현장"), note=res["summary"],
+                              image_data_url=(raw if raw and str(raw).startswith("data:")
+                                              else ("data:image/jpeg;base64," + raw) if raw else None))
+        ctx["logged"] = True
+    return ctx
+
+
 @app.post("/safety/brain/inspect")
 def safety_brain_inspect(payload: dict = Body(...), theme: str = DEFAULT_THEME):
     """라이브 현장 점검 — 작업+감지객체(+이미지)로 추론 후, 위험 시 기록·알림(조치 연결).
