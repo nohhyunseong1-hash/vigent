@@ -929,5 +929,322 @@
         "electrical"
       ]
     }
+  ],
+  "industries": [
+    {
+      "id": "construction",
+      "name": "건설업",
+      "aliases": [
+        "건설",
+        "공사",
+        "현장",
+        "토목",
+        "건축"
+      ],
+      "hazards": [
+        "추락",
+        "낙하물",
+        "붕괴·매몰",
+        "협착(건설기계)",
+        "감전"
+      ],
+      "key_activities": [
+        "work_at_height",
+        "excavation",
+        "lifting",
+        "scaffold",
+        "steel_erection",
+        "concrete_pour",
+        "demolition",
+        "piling"
+      ],
+      "key_points": "추락이 사망 1위. 안전난간·안전대·작업발판·개구부 덮개 철저. 굴착 붕괴·중장비 협착·낙하물 관리.",
+      "regulations": [
+        {
+          "law": "산업안전보건기준에 관한 규칙(건설)",
+          "desc": "추락·붕괴·낙하 방지"
+        }
+      ]
+    },
+    {
+      "id": "shipbuilding",
+      "name": "조선업",
+      "aliases": [
+        "조선",
+        "조선소",
+        "선박건조",
+        "블록",
+        "의장"
+      ],
+      "hazards": [
+        "밀폐공간 질식·폭발",
+        "고소 추락",
+        "용접 화재·흄",
+        "족장(발판) 붕괴",
+        "중량물 협착"
+      ],
+      "key_activities": [
+        "confined_space",
+        "hot_work",
+        "work_at_height",
+        "painting",
+        "lifting"
+      ],
+      "key_points": "선박 블록 내부=밀폐공간 다수→가스측정·환기 필수. 족장 안전, 용접·도장 동시작업 시 화재·중독 위험.",
+      "regulations": [
+        {
+          "law": "조선업 안전보건 가이드(KOSHA)",
+          "desc": "밀폐공간·족장·동시작업 관리"
+        }
+      ]
+    },
+    {
+      "id": "chemical",
+      "name": "화학·석유화학",
+      "aliases": [
+        "화학",
+        "석유화학",
+        "플랜트",
+        "정유",
+        "공정"
+      ],
+      "hazards": [
+        "유해물질 누출·중독",
+        "화재·폭발",
+        "질소 질식",
+        "배관 개방 분출",
+        "정비보수 사고"
+      ],
+      "key_activities": [
+        "hot_work",
+        "confined_space",
+        "electrical",
+        "painting"
+      ],
+      "key_points": "정비보수 시 안전작업허가(PTW)·LOTO·배관 차단·퍼지 필수. 누출·폭발 대비 가스감지·방폭. 질소 등 불활성가스 질식 주의.",
+      "regulations": [
+        {
+          "law": "공정안전관리(PSM)·화관법",
+          "desc": "공정안전·유해화학물질 관리"
+        }
+      ]
+    },
+    {
+      "id": "steel",
+      "name": "철강·금속제조",
+      "aliases": [
+        "철강",
+        "제철",
+        "금속",
+        "압연",
+        "주조",
+        "용해"
+      ],
+      "hazards": [
+        "용융금속 비산·화상",
+        "고열",
+        "크레인(래들) 낙하",
+        "분진",
+        "협착(압연)"
+      ],
+      "key_activities": [
+        "lifting",
+        "hot_work",
+        "material_handling"
+      ],
+      "key_points": "용융금속·고열 화상 주의(내열보호구). 래들·중량물 크레인 양중 안전, 압연·롤러 협착, 분진·소음 관리.",
+      "regulations": [
+        {
+          "law": "산업안전보건기준에 관한 규칙(고열·양중)",
+          "desc": "고열작업·크레인 안전"
+        }
+      ]
+    },
+    {
+      "id": "logistics",
+      "name": "물류·창고",
+      "aliases": [
+        "물류",
+        "창고",
+        "택배",
+        "상하차",
+        "적재",
+        "센터"
+      ],
+      "hazards": [
+        "지게차 협착·충돌",
+        "적재물·랙 붕괴",
+        "컨베이어 끼임",
+        "도크 추락",
+        "근골격계"
+      ],
+      "key_activities": [
+        "material_handling",
+        "vehicle_machine",
+        "lifting"
+      ],
+      "key_points": "지게차-보행자 동선 분리가 핵심. 랙·적재 안정, 컨베이어 방호, 상하차 도크 추락·끼임 주의.",
+      "regulations": [
+        {
+          "law": "산업안전보건기준에 관한 규칙(하역·차량계)",
+          "desc": "하역·지게차 안전"
+        }
+      ]
+    },
+    {
+      "id": "manufacturing",
+      "name": "기계·자동차 제조",
+      "aliases": [
+        "제조",
+        "공장",
+        "자동차",
+        "기계",
+        "조립",
+        "가공"
+      ],
+      "hazards": [
+        "프레스·기계 협착(끼임)",
+        "산업용 로봇 충돌",
+        "컨베이어 말림",
+        "감전",
+        "소음"
+      ],
+      "key_activities": [
+        "press_work",
+        "material_handling",
+        "electrical",
+        "hot_work"
+      ],
+      "key_points": "프레스·로봇·자동화설비 협착이 핵심. 방호장치·인터록·LOTO(정비 시 전원차단) 철저.",
+      "regulations": [
+        {
+          "law": "산업안전보건기준에 관한 규칙(기계)",
+          "desc": "방호장치·정비 시 운전정지"
+        }
+      ]
+    },
+    {
+      "id": "power",
+      "name": "전기·발전·송배전",
+      "aliases": [
+        "전기",
+        "발전",
+        "송전",
+        "배전",
+        "변전",
+        "한전",
+        "통신주"
+      ],
+      "hazards": [
+        "감전(활선)",
+        "아크 플래시",
+        "고소(송전탑) 추락",
+        "맨홀 질식",
+        "화재"
+      ],
+      "key_activities": [
+        "electrical",
+        "work_at_height",
+        "confined_space"
+      ],
+      "key_points": "활선 접근한계거리·정전작업 LOTO·검전 필수. 송전탑 고소 추락, 지중 맨홀 밀폐공간 질식 주의.",
+      "regulations": [
+        {
+          "law": "산업안전보건기준에 관한 규칙(전기)",
+          "desc": "정전작업·활선 이격"
+        }
+      ]
+    },
+    {
+      "id": "foodservice",
+      "name": "식품·외식",
+      "aliases": [
+        "식품",
+        "외식",
+        "주방",
+        "급식",
+        "조리",
+        "제과"
+      ],
+      "hazards": [
+        "화상(고온유·스팀)",
+        "미끄러짐·넘어짐",
+        "조리기계 끼임·베임",
+        "가스 누출·CO",
+        "근골격계"
+      ],
+      "key_activities": [
+        "material_handling"
+      ],
+      "key_points": "바닥 미끄럼·화상이 빈발. 미끄럼방지 바닥·신발, 튀김기·스팀 화상, 식품기계(슬라이서) 베임 방호, 가스·환기 관리.",
+      "regulations": [
+        {
+          "law": "산업안전보건기준에 관한 규칙(기계·미끄럼)",
+          "desc": "기계 방호·바닥 관리"
+        }
+      ]
+    },
+    {
+      "id": "waste",
+      "name": "폐기물·환경",
+      "aliases": [
+        "폐기물",
+        "환경",
+        "재활용",
+        "분류",
+        "소각",
+        "하수"
+      ],
+      "hazards": [
+        "분류라인 협착",
+        "유해물질 노출",
+        "메탄·황화수소 질식",
+        "화재",
+        "중장비 충돌"
+      ],
+      "key_activities": [
+        "confined_space",
+        "material_handling",
+        "vehicle_machine"
+      ],
+      "key_points": "하수·정화조·매립장=밀폐공간 유해가스(황화수소·메탄) 질식 위험. 분류 컨베이어 협착, 유해물질 보호구.",
+      "regulations": [
+        {
+          "law": "산업안전보건기준에 관한 규칙(밀폐공간)",
+          "desc": "유해가스 측정·환기"
+        }
+      ]
+    },
+    {
+      "id": "agriculture",
+      "name": "농업·임업",
+      "aliases": [
+        "농업",
+        "임업",
+        "농촌",
+        "트랙터",
+        "경운기",
+        "벌목",
+        "축산"
+      ],
+      "hazards": [
+        "농기계 전도·협착",
+        "농약 중독",
+        "축사 분뇨가스 질식",
+        "벌목 낙하",
+        "온열질환"
+      ],
+      "key_activities": [
+        "vehicle_machine",
+        "confined_space"
+      ],
+      "key_points": "트랙터·경운기 전도·말림이 빈번. 농약 보호구·중독, 분뇨처리조 황화수소 질식, 폭염 온열질환 주의.",
+      "regulations": [
+        {
+          "law": "농업인 안전 가이드",
+          "desc": "농기계·농약·밀폐공간 안전"
+        }
+      ]
+    }
   ]
 }
