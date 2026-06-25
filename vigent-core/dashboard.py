@@ -19,6 +19,7 @@ RULE_KO = {
     "fall_suspected": "낙상/추락", "guard_bypass": "방호구역 침입",
     "fire_smoke": "화재/연기", "ergonomic_risk": "근골격계 부담",
     "trip_hazard": "전도/미끄러짐", "forklift": "지게차 접근",
+    "proximity_hazard": "작업반경 침입(협착)", "safety_measure_missing": "안전조치 미흡",
 }
 LEVEL_KO = {"low": ("주의", "#22c55e"), "mid": ("경계", "#f59e0b"),
             "medium": ("경계", "#f59e0b"), "high": ("경계", "#f59e0b"),

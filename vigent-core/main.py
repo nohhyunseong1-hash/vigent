@@ -311,8 +311,12 @@ def detect_frame(payload: dict = Body(...), theme: str = DEFAULT_THEME):
                 "confidence": d.get("conf", 0),
                 "severity": "high" if d.get("conf", 0) >= 0.5 else "mid"}
                for d in out.get("detections", []) if d.get("label", "").lower() in ("fire", "smoke")]
+    # 동적 작업반경(협착) — 지게차·차량 근처 사람 진입(거리 자동추정)
+    import proximity as _prox
+    prox = _prox.detect(out.get("detections", []), float(payload.get("radius_m") or 3))
     return {"success": True, "detections": dets, "hazards": hazards,
-            "person_count": out.get("person_count", 0), "signals": out.get("signals", {})}
+            "person_count": out.get("person_count", 0), "signals": out.get("signals", {}),
+            "proximity": prox}
 
 
 @app.post("/recognition/log")

@@ -23,6 +23,7 @@ import cv2
 import numpy as np
 
 import data_engine
+import proximity
 
 _ROOT = Path(__file__).resolve().parent.parent
 _IMG_EXT = {".jpg", ".jpeg", ".png", ".bmp", ".webp"}
@@ -77,6 +78,13 @@ def _derive(out: dict, zone: list) -> list[tuple[str, str, str]]:
         fired.append(("ppe_missing", "high", "보호구 미착용 감지"))
     if sig.get("fire_smoke"):
         fired.append(("fire_smoke", "critical", "화재/연기 감지"))
+    # 동적 작업반경(협착) — 지게차·차량 근처에 사람 진입(거리 자동추정)
+    import os
+    radius = float(os.environ.get("VIGENT_RADIUS_M", "3"))
+    for hz in proximity.detect(out.get("detections", []), radius):
+        fired.append(("proximity_hazard", "high",
+                      f"{hz['vehicle']} 작업반경 침입 — 사람 약 {hz['distance_m']}m"))
+        break
     return fired
 
 

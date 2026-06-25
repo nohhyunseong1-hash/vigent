@@ -335,7 +335,7 @@
 </main>
 
 <script>window.AX_LOCK_THEME="safety";</script>
-<script src="/static/realtime_core.js?v=20260625-terminal"></script>
+<script src="/static/realtime_core.js?v=20260625-proximity"></script>
 
 <!-- 스켈레톤 스무딩 고도화: 기존 이동평균 smoothPose 를 One-Euro 필터로 교체.
      (realtime_core.js 는 안 건드리고 전역 함수만 덮어씀 — AX 엔진 그대로) -->
@@ -481,6 +481,25 @@
         await fetch('/recognition/log',{method:'POST',headers:{'Content-Type':'application/json'},
           body:JSON.stringify({rule:'fire_smoke',level:'critical',site:'현장',note:'화재/연기 감지',image:captureEvidence()})});
         console.warn('[VIGENT] 🔥 화재/연기 기록');
+      }
+    }catch(e){}
+  }, 1000);
+
+  // ── 동적 작업반경(협착) — 지게차·차량 근처 사람 진입 지속 → 자율 기록 ──
+  let _proxSince=0,_proxCool=0;
+  setInterval(async ()=>{
+    try{
+      const px=(window.proximityHazards||[]);
+      const now=Date.now();
+      if(!px.length){ _proxSince=0; return; }
+      if(!_proxSince)_proxSince=now;
+      if(now-_proxSince>=2000 && now>=_proxCool){          // 2초 지속 + 30초 쿨다운
+        _proxCool=now+30000;
+        const h=px[0];
+        await fetch('/recognition/log',{method:'POST',headers:{'Content-Type':'application/json'},
+          body:JSON.stringify({rule:'proximity_hazard',level:'high',site:'현장',
+            note:h.vehicle+' 작업반경 침입 — 사람 약 '+h.distance_m+'m',image:captureEvidence()})});
+        console.warn('[VIGENT] 🚧 작업반경 침입(협착) 기록:', h.vehicle, h.distance_m+'m');
       }
     }catch(e){}
   }, 1000);

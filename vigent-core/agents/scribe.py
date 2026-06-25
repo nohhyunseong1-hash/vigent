@@ -26,6 +26,11 @@ _SAVE_DIR = _ROOT / "data" / "risk_assessments"
 
 # vision.yaml 규칙 id → 위험성평가 KB (BODA RISK_ASSESS 이식)
 RULE_KB: dict[str, dict[str, Any]] = {
+    "proximity_hazard": {
+        "hazard": "작업반경 침입(협착·충돌)", "work": "지게차·차량계·크레인 작업 인접", "cat": "협착·충돌·깔림",
+        "harm": "지게차·중장비 작업반경에 근로자 진입으로 협착·충돌·깔림 중대재해",
+        "law": "산업안전보건법 제38조·안전보건규칙 제20·172~200조(차량계·출입금지)", "sev": 3,
+        "act": "작업반경 출입통제, 보행자-차량 동선 분리, 유도자 배치, 후방경보·접근경보"},
     "zone_intrusion": {
         "hazard": "위험구역 접근/침입", "work": "위험구역 인접 작업", "cat": "협착·충돌·추락",
         "harm": "위험구역 진입으로 협착·충돌·추락 등 중대재해",
