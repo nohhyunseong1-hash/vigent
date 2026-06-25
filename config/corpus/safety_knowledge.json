@@ -9,201 +9,925 @@
     {
       "id": "hot_work",
       "name": "용접·화기작업",
-      "aliases": ["용접", "화기", "화기작업", "그라인딩", "절단", "불꽃", "용단"],
-      "detect_signals": ["fire", "smoke"],
+      "aliases": [
+        "용접",
+        "화기",
+        "화기작업",
+        "그라인딩",
+        "절단",
+        "불꽃",
+        "용단"
+      ],
+      "detect_signals": [
+        "fire",
+        "smoke"
+      ],
       "required_measures": [
-        {"id": "extinguisher", "name": "소화기", "critical": true,
-         "detect": ["fire extinguisher"], "vlm_q": "이 장면에 소화기(빨간 소화기)가 보이는가?"},
-        {"id": "spark_guard", "name": "불티 비산방지망·방화포", "critical": true,
-         "detect": [], "vlm_q": "불티 비산방지망이나 방화포(불꽃을 막는 천·막)가 설치돼 있는가?"},
-        {"id": "fire_watch", "name": "화기감시인", "critical": false,
-         "detect": [], "vlm_q": "용접 작업자 외에 화기감시인(지켜보는 사람)이 있는가?"},
-        {"id": "weld_ppe", "name": "용접 보호구(차광면·앞치마)", "critical": false,
-         "detect": [], "vlm_q": "작업자가 용접 차광면(용접 마스크)을 착용했는가?"}
+        {
+          "id": "extinguisher",
+          "name": "소화기",
+          "critical": true,
+          "detect": [
+            "fire extinguisher"
+          ],
+          "vlm_q": "이 장면에 소화기(빨간 소화기)가 보이는가?"
+        },
+        {
+          "id": "spark_guard",
+          "name": "불티 비산방지망·방화포",
+          "critical": true,
+          "detect": [],
+          "vlm_q": "불티 비산방지망이나 방화포(불꽃을 막는 천·막)가 설치돼 있는가?"
+        },
+        {
+          "id": "fire_watch",
+          "name": "화기감시인",
+          "critical": false,
+          "detect": [],
+          "vlm_q": "용접 작업자 외에 화기감시인(지켜보는 사람)이 있는가?"
+        },
+        {
+          "id": "weld_ppe",
+          "name": "용접 보호구(차광면·앞치마)",
+          "critical": false,
+          "detect": [],
+          "vlm_q": "작업자가 용접 차광면(용접 마스크)을 착용했는가?"
+        }
       ],
-      "hazards": ["화재", "폭발", "화상", "유해가스 흡입", "전격"],
+      "hazards": [
+        "화재",
+        "폭발",
+        "화상",
+        "유해가스 흡입",
+        "전격"
+      ],
       "regulations": [
-        {"law": "산업안전보건기준에 관한 규칙 제241조(화재위험작업 시의 조치)", "desc": "화기작업 시 소화설비 비치·불티 비산방지 조치"},
-        {"law": "산업안전보건기준에 관한 규칙 제232조", "desc": "용접·용단 시 화재감시인 배치"},
-        {"law": "중대재해처벌법", "desc": "안전조치 미이행으로 인한 중대재해 시 사업주·경영책임자 처벌"}
+        {
+          "law": "산업안전보건기준에 관한 규칙 제241조(화재위험작업 시의 조치)",
+          "desc": "화기작업 시 소화설비 비치·불티 비산방지 조치"
+        },
+        {
+          "law": "산업안전보건기준에 관한 규칙 제232조",
+          "desc": "용접·용단 시 화재감시인 배치"
+        },
+        {
+          "law": "중대재해처벌법",
+          "desc": "안전조치 미이행으로 인한 중대재해 시 사업주·경영책임자 처벌"
+        }
       ],
-      "actions": ["작업 일시중지 검토", "소화기 비치·압력 점검", "비산방지망·방화포 설치", "화기감시인 배치", "화기작업 허가서 확인", "주변 가연물 제거"]
+      "actions": [
+        "작업 일시중지 검토",
+        "소화기 비치·압력 점검",
+        "비산방지망·방화포 설치",
+        "화기감시인 배치",
+        "화기작업 허가서 확인",
+        "주변 가연물 제거"
+      ]
     },
     {
       "id": "confined_space",
       "name": "밀폐공간 출입작업",
-      "aliases": ["밀폐공간", "맨홀", "탱크", "정화조", "지하피트", "질식"],
+      "aliases": [
+        "밀폐공간",
+        "맨홀",
+        "탱크",
+        "정화조",
+        "지하피트",
+        "질식"
+      ],
       "detect_signals": [],
       "required_measures": [
-        {"id": "gas_meter", "name": "가스농도 측정기", "critical": true,
-         "detect": [], "vlm_q": "산소·유해가스 농도 측정기가 사용되고 있는가?"},
-        {"id": "ventilation", "name": "환기설비", "critical": true,
-         "detect": [], "vlm_q": "송풍기·환기 덕트 등 환기설비가 설치돼 있는가?"},
-        {"id": "watcher", "name": "외부 감시인", "critical": true,
-         "detect": ["person"], "vlm_q": "밀폐공간 외부에 감시인이 대기하고 있는가?"},
-        {"id": "resp_ppe", "name": "호흡용 보호구", "critical": false,
-         "detect": [], "vlm_q": "작업자가 송기마스크 등 호흡용 보호구를 착용했는가?"}
+        {
+          "id": "gas_meter",
+          "name": "가스농도 측정기",
+          "critical": true,
+          "detect": [],
+          "vlm_q": "산소·유해가스 농도 측정기가 사용되고 있는가?"
+        },
+        {
+          "id": "ventilation",
+          "name": "환기설비",
+          "critical": true,
+          "detect": [],
+          "vlm_q": "송풍기·환기 덕트 등 환기설비가 설치돼 있는가?"
+        },
+        {
+          "id": "watcher",
+          "name": "외부 감시인",
+          "critical": true,
+          "detect": [
+            "person"
+          ],
+          "vlm_q": "밀폐공간 외부에 감시인이 대기하고 있는가?"
+        },
+        {
+          "id": "resp_ppe",
+          "name": "호흡용 보호구",
+          "critical": false,
+          "detect": [],
+          "vlm_q": "작업자가 송기마스크 등 호흡용 보호구를 착용했는가?"
+        }
       ],
-      "hazards": ["산소결핍·유해가스 질식", "화재·폭발", "감전"],
+      "hazards": [
+        "산소결핍·유해가스 질식",
+        "화재·폭발",
+        "감전"
+      ],
       "regulations": [
-        {"law": "산업안전보건기준에 관한 규칙 제619조", "desc": "밀폐공간 작업 전 산소·유해가스 농도 측정"},
-        {"law": "산업안전보건기준에 관한 규칙 제620조", "desc": "환기 및 감시인 배치"}
+        {
+          "law": "산업안전보건기준에 관한 규칙 제619조",
+          "desc": "밀폐공간 작업 전 산소·유해가스 농도 측정"
+        },
+        {
+          "law": "산업안전보건기준에 관한 규칙 제620조",
+          "desc": "환기 및 감시인 배치"
+        }
       ],
-      "actions": ["산소·유해가스 농도 측정", "지속 환기", "외부 감시인 배치", "송기마스크 착용", "밀폐공간 작업허가서 확인"]
+      "actions": [
+        "산소·유해가스 농도 측정",
+        "지속 환기",
+        "외부 감시인 배치",
+        "송기마스크 착용",
+        "밀폐공간 작업허가서 확인"
+      ]
     },
     {
       "id": "work_at_height",
       "name": "고소작업(추락위험)",
-      "aliases": ["고소", "고소작업", "비계", "사다리", "지붕", "추락"],
+      "aliases": [
+        "고소",
+        "고소작업",
+        "비계",
+        "사다리",
+        "지붕",
+        "추락"
+      ],
       "detect_signals": [],
       "required_measures": [
-        {"id": "guardrail", "name": "안전난간", "critical": true,
-         "detect": [], "vlm_q": "작업발판 가장자리에 안전난간(난간대)이 설치돼 있는가?"},
-        {"id": "harness", "name": "안전대(안전벨트)", "critical": true,
-         "detect": [], "vlm_q": "작업자가 안전대(추락방지 벨트·죔줄)를 착용·체결했는가?"},
-        {"id": "safety_net", "name": "추락방지망", "critical": false,
-         "detect": [], "vlm_q": "하부에 추락방지망이 설치돼 있는가?"},
-        {"id": "helmet", "name": "안전모", "critical": false,
-         "detect": ["Hardhat", "helmet"], "vlm_q": "작업자가 안전모를 착용했는가?"}
+        {
+          "id": "guardrail",
+          "name": "안전난간",
+          "critical": true,
+          "detect": [],
+          "vlm_q": "작업발판 가장자리에 안전난간(난간대)이 설치돼 있는가?"
+        },
+        {
+          "id": "harness",
+          "name": "안전대(안전벨트)",
+          "critical": true,
+          "detect": [],
+          "vlm_q": "작업자가 안전대(추락방지 벨트·죔줄)를 착용·체결했는가?"
+        },
+        {
+          "id": "safety_net",
+          "name": "추락방지망",
+          "critical": false,
+          "detect": [],
+          "vlm_q": "하부에 추락방지망이 설치돼 있는가?"
+        },
+        {
+          "id": "helmet",
+          "name": "안전모",
+          "critical": false,
+          "detect": [
+            "Hardhat",
+            "helmet"
+          ],
+          "vlm_q": "작업자가 안전모를 착용했는가?"
+        }
       ],
-      "hazards": ["추락", "낙하물", "전도"],
+      "hazards": [
+        "추락",
+        "낙하물",
+        "전도"
+      ],
       "regulations": [
-        {"law": "산업안전보건기준에 관한 규칙 제42조", "desc": "추락 위험 장소 안전난간·추락방지망 등 설치"},
-        {"law": "산업안전보건기준에 관한 규칙 제44조", "desc": "안전대 부착설비 및 착용"}
+        {
+          "law": "산업안전보건기준에 관한 규칙 제42조",
+          "desc": "추락 위험 장소 안전난간·추락방지망 등 설치"
+        },
+        {
+          "law": "산업안전보건기준에 관한 규칙 제44조",
+          "desc": "안전대 부착설비 및 착용"
+        }
       ],
-      "actions": ["안전난간 설치", "안전대 체결 확인", "추락방지망 설치", "작업발판 점검", "하부 출입통제"]
+      "actions": [
+        "안전난간 설치",
+        "안전대 체결 확인",
+        "추락방지망 설치",
+        "작업발판 점검",
+        "하부 출입통제"
+      ]
     },
     {
       "id": "electrical",
       "name": "전기작업(감전위험)",
-      "aliases": ["전기", "감전", "활선", "배전", "정전작업", "차단"],
+      "aliases": [
+        "전기",
+        "감전",
+        "활선",
+        "배전",
+        "정전작업",
+        "차단"
+      ],
       "detect_signals": [],
       "required_measures": [
-        {"id": "loto", "name": "전원차단·잠금표지(LOTO)", "critical": true,
-         "detect": [], "vlm_q": "전원 차단 및 잠금·표지(작업중 표지)가 부착돼 있는가?"},
-        {"id": "insul_ppe", "name": "절연 보호구", "critical": true,
-         "detect": [], "vlm_q": "작업자가 절연장갑 등 절연 보호구를 착용했는가?"}
+        {
+          "id": "loto",
+          "name": "전원차단·잠금표지(LOTO)",
+          "critical": true,
+          "detect": [],
+          "vlm_q": "전원 차단 및 잠금·표지(작업중 표지)가 부착돼 있는가?"
+        },
+        {
+          "id": "insul_ppe",
+          "name": "절연 보호구",
+          "critical": true,
+          "detect": [],
+          "vlm_q": "작업자가 절연장갑 등 절연 보호구를 착용했는가?"
+        }
       ],
-      "hazards": ["감전", "아크 화상", "2차 추락"],
+      "hazards": [
+        "감전",
+        "아크 화상",
+        "2차 추락"
+      ],
       "regulations": [
-        {"law": "산업안전보건기준에 관한 규칙 제319조", "desc": "정전작업 시 전로 차단 및 잠금"},
-        {"law": "산업안전보건기준에 관한 규칙 제323조", "desc": "절연용 보호구 착용"}
+        {
+          "law": "산업안전보건기준에 관한 규칙 제319조",
+          "desc": "정전작업 시 전로 차단 및 잠금"
+        },
+        {
+          "law": "산업안전보건기준에 관한 규칙 제323조",
+          "desc": "절연용 보호구 착용"
+        }
       ],
-      "actions": ["전원 차단·검전", "잠금·표지(LOTO)", "절연 보호구 착용", "활선 접근 통제"]
+      "actions": [
+        "전원 차단·검전",
+        "잠금·표지(LOTO)",
+        "절연 보호구 착용",
+        "활선 접근 통제"
+      ]
     },
     {
       "id": "excavation",
       "name": "굴착·흙막이작업",
-      "aliases": ["굴착", "터파기", "흙막이", "토공", "매설", "지반"],
+      "aliases": [
+        "굴착",
+        "터파기",
+        "흙막이",
+        "토공",
+        "매설",
+        "지반"
+      ],
       "detect_signals": [],
       "required_measures": [
-        {"id": "shoring", "name": "흙막이 지보공", "critical": true, "detect": [],
-         "vlm_q": "굴착면에 흙막이 지보공(토류판·버팀대)이 설치돼 있는가?"},
-        {"id": "access_ladder", "name": "승강설비", "critical": false, "detect": [],
-         "vlm_q": "굴착구덩이 출입용 사다리·승강설비가 있는가?"},
-        {"id": "edge_barrier", "name": "굴착부 방호울·접근통제", "critical": true, "detect": [],
-         "vlm_q": "굴착부 가장자리에 방호울이나 접근통제 표시가 있는가?"}
+        {
+          "id": "shoring",
+          "name": "흙막이 지보공",
+          "critical": true,
+          "detect": [],
+          "vlm_q": "굴착면에 흙막이 지보공(토류판·버팀대)이 설치돼 있는가?"
+        },
+        {
+          "id": "access_ladder",
+          "name": "승강설비",
+          "critical": false,
+          "detect": [],
+          "vlm_q": "굴착구덩이 출입용 사다리·승강설비가 있는가?"
+        },
+        {
+          "id": "edge_barrier",
+          "name": "굴착부 방호울·접근통제",
+          "critical": true,
+          "detect": [],
+          "vlm_q": "굴착부 가장자리에 방호울이나 접근통제 표시가 있는가?"
+        }
       ],
-      "hazards": ["토사 붕괴·매몰", "추락", "지하매설물 손상", "건설기계 협착"],
+      "hazards": [
+        "토사 붕괴·매몰",
+        "추락",
+        "지하매설물 손상",
+        "건설기계 협착"
+      ],
       "regulations": [
-        {"law": "산업안전보건기준에 관한 규칙 제338조", "desc": "굴착면 기울기 기준 및 흙막이 지보공 설치"},
-        {"law": "산업안전보건기준에 관한 규칙 제340조", "desc": "지반 붕괴 위험 시 흙막이 지보공·방호망"}
+        {
+          "law": "산업안전보건기준에 관한 규칙 제338조",
+          "desc": "굴착면 기울기 기준 및 흙막이 지보공 설치"
+        },
+        {
+          "law": "산업안전보건기준에 관한 규칙 제340조",
+          "desc": "지반 붕괴 위험 시 흙막이 지보공·방호망"
+        }
       ],
-      "actions": ["굴착면 기울기·지보공 점검", "출입 승강설비 설치", "굴착부 방호울·통제", "지하매설물 사전확인", "우천 후 붕괴위험 점검"]
+      "actions": [
+        "굴착면 기울기·지보공 점검",
+        "출입 승강설비 설치",
+        "굴착부 방호울·통제",
+        "지하매설물 사전확인",
+        "우천 후 붕괴위험 점검"
+      ]
     },
     {
       "id": "lifting",
       "name": "중량물 양중(크레인)작업",
-      "aliases": ["양중", "크레인", "리프팅", "줄걸이", "인양", "타워크레인"],
-      "detect_signals": ["forklift"],
+      "aliases": [
+        "양중",
+        "크레인",
+        "리프팅",
+        "줄걸이",
+        "인양",
+        "타워크레인"
+      ],
+      "detect_signals": [
+        "forklift"
+      ],
       "required_measures": [
-        {"id": "exclusion_zone", "name": "하부 출입통제(작업반경)", "critical": true, "detect": [],
-         "vlm_q": "크레인 인양물 하부·작업반경에 사람 출입을 통제하고 있는가?"},
-        {"id": "rigging", "name": "줄걸이 상태(슬링·후크 해지장치)", "critical": true, "detect": [],
-         "vlm_q": "줄걸이(슬링)와 후크 해지장치가 정상으로 보이는가?"},
-        {"id": "signalman", "name": "신호수", "critical": false, "detect": ["person"],
-         "vlm_q": "양중작업을 유도하는 신호수가 배치돼 있는가?"}
+        {
+          "id": "exclusion_zone",
+          "name": "하부 출입통제(작업반경)",
+          "critical": true,
+          "detect": [],
+          "vlm_q": "크레인 인양물 하부·작업반경에 사람 출입을 통제하고 있는가?"
+        },
+        {
+          "id": "rigging",
+          "name": "줄걸이 상태(슬링·후크 해지장치)",
+          "critical": true,
+          "detect": [],
+          "vlm_q": "줄걸이(슬링)와 후크 해지장치가 정상으로 보이는가?"
+        },
+        {
+          "id": "signalman",
+          "name": "신호수",
+          "critical": false,
+          "detect": [
+            "person"
+          ],
+          "vlm_q": "양중작업을 유도하는 신호수가 배치돼 있는가?"
+        }
       ],
-      "hazards": ["낙하물 충돌", "협착", "전도·붕괴", "충전부 접촉(감전)"],
+      "hazards": [
+        "낙하물 충돌",
+        "협착",
+        "전도·붕괴",
+        "충전부 접촉(감전)"
+      ],
       "regulations": [
-        {"law": "산업안전보건기준에 관한 규칙 제20조", "desc": "낙하·비래 위험구간 출입금지"},
-        {"law": "산업안전보건기준에 관한 규칙 제146조", "desc": "크레인 방호장치·줄걸이 작업 기준"}
+        {
+          "law": "산업안전보건기준에 관한 규칙 제20조",
+          "desc": "낙하·비래 위험구간 출입금지"
+        },
+        {
+          "law": "산업안전보건기준에 관한 규칙 제146조",
+          "desc": "크레인 방호장치·줄걸이 작업 기준"
+        }
       ],
-      "actions": ["인양 하부 출입통제", "줄걸이·후크 해지장치 점검", "신호수 배치", "정격하중 준수", "충전전로 이격거리 확보"]
+      "actions": [
+        "인양 하부 출입통제",
+        "줄걸이·후크 해지장치 점검",
+        "신호수 배치",
+        "정격하중 준수",
+        "충전전로 이격거리 확보"
+      ]
     },
     {
       "id": "vehicle_machine",
       "name": "차량계 건설기계작업",
-      "aliases": ["굴삭기", "백호", "지게차", "건설기계", "롤러", "협착"],
-      "detect_signals": ["forklift"],
+      "aliases": [
+        "굴삭기",
+        "백호",
+        "지게차",
+        "건설기계",
+        "롤러",
+        "협착"
+      ],
+      "detect_signals": [
+        "forklift"
+      ],
       "required_measures": [
-        {"id": "guide", "name": "유도자(신호수)", "critical": true, "detect": ["person"],
-         "vlm_q": "건설기계 주변에 유도자(신호수)가 배치돼 있는가?"},
-        {"id": "work_zone", "name": "작업반경 출입통제", "critical": true, "detect": [],
-         "vlm_q": "건설기계 작업반경에 근로자 출입을 통제하고 있는가?"}
+        {
+          "id": "guide",
+          "name": "유도자(신호수)",
+          "critical": true,
+          "detect": [
+            "person"
+          ],
+          "vlm_q": "건설기계 주변에 유도자(신호수)가 배치돼 있는가?"
+        },
+        {
+          "id": "work_zone",
+          "name": "작업반경 출입통제",
+          "critical": true,
+          "detect": [],
+          "vlm_q": "건설기계 작업반경에 근로자 출입을 통제하고 있는가?"
+        }
       ],
-      "hazards": ["협착·충돌", "전도", "낙하물", "접촉(감전)"],
+      "hazards": [
+        "협착·충돌",
+        "전도",
+        "낙하물",
+        "접촉(감전)"
+      ],
       "regulations": [
-        {"law": "산업안전보건기준에 관한 규칙 제200조", "desc": "차량계 건설기계 작업반경 내 출입금지"},
-        {"law": "산업안전보건기준에 관한 규칙 제201조", "desc": "유도자 배치 및 제한속도"}
+        {
+          "law": "산업안전보건기준에 관한 규칙 제200조",
+          "desc": "차량계 건설기계 작업반경 내 출입금지"
+        },
+        {
+          "law": "산업안전보건기준에 관한 규칙 제201조",
+          "desc": "유도자 배치 및 제한속도"
+        }
       ],
-      "actions": ["작업반경 출입통제", "유도자 배치", "전도방지(평탄·지반)", "후방 경보·카메라 확인"]
+      "actions": [
+        "작업반경 출입통제",
+        "유도자 배치",
+        "전도방지(평탄·지반)",
+        "후방 경보·카메라 확인"
+      ]
     },
     {
       "id": "demolition",
       "name": "해체·철거작업",
-      "aliases": ["해체", "철거", "구조물 해체", "비산", "분진"],
+      "aliases": [
+        "해체",
+        "철거",
+        "구조물 해체",
+        "비산",
+        "분진"
+      ],
       "detect_signals": [],
       "required_measures": [
-        {"id": "exclusion", "name": "출입통제·방호", "critical": true, "detect": [],
-         "vlm_q": "해체구간 주변에 출입통제·방호시설(가설울타리)이 있는가?"},
-        {"id": "dust_control", "name": "비산먼지 살수설비", "critical": false, "detect": [],
-         "vlm_q": "분진 억제용 살수설비가 가동되고 있는가?"}
+        {
+          "id": "exclusion",
+          "name": "출입통제·방호",
+          "critical": true,
+          "detect": [],
+          "vlm_q": "해체구간 주변에 출입통제·방호시설(가설울타리)이 있는가?"
+        },
+        {
+          "id": "dust_control",
+          "name": "비산먼지 살수설비",
+          "critical": false,
+          "detect": [],
+          "vlm_q": "분진 억제용 살수설비가 가동되고 있는가?"
+        }
       ],
-      "hazards": ["구조물 붕괴", "낙하물", "분진(호흡기)", "소음"],
+      "hazards": [
+        "구조물 붕괴",
+        "낙하물",
+        "분진(호흡기)",
+        "소음"
+      ],
       "regulations": [
-        {"law": "산업안전보건기준에 관한 규칙 제443조", "desc": "해체작업계획 및 출입금지 조치"}
+        {
+          "law": "산업안전보건기준에 관한 규칙 제443조",
+          "desc": "해체작업계획 및 출입금지 조치"
+        }
       ],
-      "actions": ["해체작업계획서 확인", "출입통제·방호", "살수 등 분진억제", "잔재물 낙하방지"]
+      "actions": [
+        "해체작업계획서 확인",
+        "출입통제·방호",
+        "살수 등 분진억제",
+        "잔재물 낙하방지"
+      ]
     },
     {
       "id": "scaffold",
       "name": "비계 조립·해체작업",
-      "aliases": ["비계", "시스템비계", "발판", "조립", "해체"],
+      "aliases": [
+        "비계",
+        "시스템비계",
+        "발판",
+        "조립",
+        "해체"
+      ],
       "detect_signals": [],
       "required_measures": [
-        {"id": "guardrail", "name": "안전난간(발판 가장자리)", "critical": true, "detect": [],
-         "vlm_q": "비계 작업발판 가장자리에 안전난간이 설치돼 있는가?"},
-        {"id": "harness", "name": "안전대 체결", "critical": true, "detect": [],
-         "vlm_q": "작업자가 안전대를 비계에 체결했는가?"},
-        {"id": "footboard", "name": "작업발판 고정", "critical": false, "detect": [],
-         "vlm_q": "작업발판이 빈틈 없이 깔리고 고정돼 있는가?"}
+        {
+          "id": "guardrail",
+          "name": "안전난간(발판 가장자리)",
+          "critical": true,
+          "detect": [],
+          "vlm_q": "비계 작업발판 가장자리에 안전난간이 설치돼 있는가?"
+        },
+        {
+          "id": "harness",
+          "name": "안전대 체결",
+          "critical": true,
+          "detect": [],
+          "vlm_q": "작업자가 안전대를 비계에 체결했는가?"
+        },
+        {
+          "id": "footboard",
+          "name": "작업발판 고정",
+          "critical": false,
+          "detect": [],
+          "vlm_q": "작업발판이 빈틈 없이 깔리고 고정돼 있는가?"
+        }
       ],
-      "hazards": ["추락", "비계 전도·붕괴", "낙하물"],
+      "hazards": [
+        "추락",
+        "비계 전도·붕괴",
+        "낙하물"
+      ],
       "regulations": [
-        {"law": "산업안전보건기준에 관한 규칙 제56조", "desc": "작업발판 설치 기준(폭·틈)"},
-        {"law": "산업안전보건기준에 관한 규칙 제59조", "desc": "비계 조립·해체 시 안전대·난간"}
+        {
+          "law": "산업안전보건기준에 관한 규칙 제56조",
+          "desc": "작업발판 설치 기준(폭·틈)"
+        },
+        {
+          "law": "산업안전보건기준에 관한 규칙 제59조",
+          "desc": "비계 조립·해체 시 안전대·난간"
+        }
       ],
-      "actions": ["안전난간·발판 점검", "안전대 체결", "벽이음·전도방지", "조립도 준수", "하부 출입통제"]
+      "actions": [
+        "안전난간·발판 점검",
+        "안전대 체결",
+        "벽이음·전도방지",
+        "조립도 준수",
+        "하부 출입통제"
+      ]
+    },
+    {
+      "id": "painting",
+      "name": "도장작업(유기용제)",
+      "aliases": [
+        "도장",
+        "페인트",
+        "스프레이",
+        "유기용제",
+        "방청"
+      ],
+      "detect_signals": [],
+      "required_measures": [
+        {
+          "id": "ventilation",
+          "name": "환기·국소배기",
+          "critical": true,
+          "detect": [],
+          "vlm_q": "도장 작업장에 환기·국소배기 설비가 가동되는가?"
+        },
+        {
+          "id": "resp",
+          "name": "방독마스크",
+          "critical": true,
+          "detect": [],
+          "vlm_q": "작업자가 유기증기용 방독마스크를 착용했는가?"
+        },
+        {
+          "id": "ignition",
+          "name": "점화원 제거",
+          "critical": false,
+          "detect": [],
+          "vlm_q": "주변에 화기·점화원이 없는가?"
+        }
+      ],
+      "hazards": [
+        "유기용제 중독",
+        "화재·폭발",
+        "피부·호흡기 자극"
+      ],
+      "regulations": [
+        {
+          "law": "산업안전보건기준에 관한 규칙 제420~430조",
+          "desc": "유기화합물 취급 시 환기·보호구·점화원 관리"
+        }
+      ],
+      "actions": [
+        "환기·국소배기 가동",
+        "방독마스크 착용",
+        "점화원 제거",
+        "MSDS·경고표지 비치"
+      ]
+    },
+    {
+      "id": "steel_erection",
+      "name": "철골 조립작업",
+      "aliases": [
+        "철골",
+        "철골조립",
+        "빔",
+        "보 설치"
+      ],
+      "detect_signals": [],
+      "required_measures": [
+        {
+          "id": "lifeline",
+          "name": "안전대 부착설비(수평구명줄)",
+          "critical": true,
+          "detect": [],
+          "vlm_q": "수평구명줄 등 안전대 부착설비가 설치돼 있는가?"
+        },
+        {
+          "id": "harness",
+          "name": "안전대 체결",
+          "critical": true,
+          "detect": [],
+          "vlm_q": "작업자가 안전대를 체결했는가?"
+        },
+        {
+          "id": "wind",
+          "name": "강풍 시 작업중지",
+          "critical": false,
+          "detect": [],
+          "vlm_q": "강풍 등 악천후 징후가 없는가?"
+        }
+      ],
+      "hazards": [
+        "추락",
+        "낙하물",
+        "구조물 전도"
+      ],
+      "regulations": [
+        {
+          "law": "산업안전보건기준에 관한 규칙 제380~383조",
+          "desc": "철골작업 안전대 부착설비 및 악천후 중지"
+        }
+      ],
+      "actions": [
+        "수평구명줄 설치",
+        "안전대 체결",
+        "강풍(10m/s↑) 시 중지",
+        "승강통로 확보"
+      ]
+    },
+    {
+      "id": "material_handling",
+      "name": "하역·운반작업",
+      "aliases": [
+        "하역",
+        "운반",
+        "상하차",
+        "적재",
+        "팔레트"
+      ],
+      "detect_signals": [
+        "forklift"
+      ],
+      "required_measures": [
+        {
+          "id": "path",
+          "name": "운반 통로·보행 분리",
+          "critical": true,
+          "detect": [],
+          "vlm_q": "운반장비와 보행자 통로가 분리·통제되어 있는가?"
+        },
+        {
+          "id": "stack",
+          "name": "적재 안정(붕괴방지)",
+          "critical": false,
+          "detect": [],
+          "vlm_q": "적재물이 무너지지 않게 안정적으로 쌓여 있는가?"
+        }
+      ],
+      "hazards": [
+        "협착·충돌",
+        "적재물 붕괴·낙하",
+        "근골격계 부담"
+      ],
+      "regulations": [
+        {
+          "law": "산업안전보건기준에 관한 규칙 제20·173조",
+          "desc": "하역·운반 시 출입통제 및 차량계 하역기계 안전"
+        }
+      ],
+      "actions": [
+        "보행·운반 통로 분리",
+        "적재 안정 확인",
+        "중량물 운반기구 사용",
+        "유도자 배치"
+      ]
+    },
+    {
+      "id": "press_work",
+      "name": "프레스·전단작업",
+      "aliases": [
+        "프레스",
+        "전단기",
+        "금형",
+        "찍기"
+      ],
+      "detect_signals": [],
+      "required_measures": [
+        {
+          "id": "guard",
+          "name": "방호장치(광전자식·양수조작)",
+          "critical": true,
+          "detect": [],
+          "vlm_q": "프레스에 광전자식·양수조작식 방호장치가 작동하는가?"
+        },
+        {
+          "id": "block",
+          "name": "안전블록(금형작업)",
+          "critical": true,
+          "detect": [],
+          "vlm_q": "금형 교체·정비 시 안전블록·전원차단이 되어 있는가?"
+        }
+      ],
+      "hazards": [
+        "손·신체 협착(끼임)",
+        "금형 낙하"
+      ],
+      "regulations": [
+        {
+          "law": "산업안전보건기준에 관한 규칙 제103~110조",
+          "desc": "프레스 방호장치 및 금형작업 안전"
+        }
+      ],
+      "actions": [
+        "방호장치 작동확인",
+        "금형작업 시 전원차단·안전블록",
+        "양수조작 준수"
+      ]
+    },
+    {
+      "id": "concrete_pour",
+      "name": "콘크리트 타설작업",
+      "aliases": [
+        "타설",
+        "콘크리트",
+        "펌프카",
+        "양생"
+      ],
+      "detect_signals": [],
+      "required_measures": [
+        {
+          "id": "formwork",
+          "name": "거푸집·동바리 점검",
+          "critical": true,
+          "detect": [],
+          "vlm_q": "거푸집·동바리가 조립도대로 견고히 설치돼 있는가?"
+        },
+        {
+          "id": "watch",
+          "name": "붕괴 감시",
+          "critical": true,
+          "detect": [],
+          "vlm_q": "타설 중 거푸집 변형·붕괴를 감시하는 인원이 있는가?"
+        }
+      ],
+      "hazards": [
+        "거푸집 붕괴",
+        "협착",
+        "추락"
+      ],
+      "regulations": [
+        {
+          "law": "산업안전보건기준에 관한 규칙 제331~334조",
+          "desc": "거푸집·동바리 안전 및 타설 감시"
+        }
+      ],
+      "actions": [
+        "거푸집·동바리 점검",
+        "타설 순서 준수",
+        "붕괴 감시인 배치",
+        "하부 출입통제"
+      ]
+    },
+    {
+      "id": "piling",
+      "name": "항타·항발작업",
+      "aliases": [
+        "항타",
+        "항발",
+        "파일",
+        "말뚝"
+      ],
+      "detect_signals": [],
+      "required_measures": [
+        {
+          "id": "outrigger",
+          "name": "전도방지(아웃트리거·지반)",
+          "critical": true,
+          "detect": [],
+          "vlm_q": "항타기 전도방지(아웃트리거·평탄지반)가 되어 있는가?"
+        },
+        {
+          "id": "zone",
+          "name": "작업반경 출입통제",
+          "critical": true,
+          "detect": [],
+          "vlm_q": "항타 작업반경에 출입을 통제하는가?"
+        }
+      ],
+      "hazards": [
+        "장비 전도·도괴",
+        "낙하물",
+        "협착",
+        "소음·진동"
+      ],
+      "regulations": [
+        {
+          "law": "산업안전보건기준에 관한 규칙 제207~211조",
+          "desc": "항타기·항발기 전도·도괴 방지"
+        }
+      ],
+      "actions": [
+        "아웃트리거·지반보강",
+        "작업반경 출입통제",
+        "권상장치 점검",
+        "소음·진동 보호구"
+      ]
     }
   ],
   "environments": [
-    {"id": "office", "name": "사무실·실내", "field_mode": false,
-     "keywords": ["사무실", "책상", "모니터", "노트북", "실내 사무"], "likely": []},
-    {"id": "construction", "name": "건설현장", "field_mode": true,
-     "keywords": ["건설", "공사", "비계", "골조", "철근", "콘크리트 현장"],
-     "likely": ["work_at_height", "excavation", "lifting", "scaffold", "hot_work"]},
-    {"id": "factory", "name": "제조공장", "field_mode": true,
-     "keywords": ["공장", "생산라인", "기계설비", "제조"],
-     "likely": ["vehicle_machine", "lifting", "hot_work", "electrical"]},
-    {"id": "confined", "name": "밀폐공간", "field_mode": true,
-     "keywords": ["맨홀", "탱크 내부", "좁은 공간", "지하 피트", "밀폐"],
-     "likely": ["confined_space"]},
-    {"id": "warehouse", "name": "창고·물류", "field_mode": true,
-     "keywords": ["창고", "적재", "팔레트", "물류", "지게차"],
-     "likely": ["vehicle_machine", "lifting"]},
-    {"id": "outdoor", "name": "옥외·도로", "field_mode": true,
-     "keywords": ["야외", "옥외", "도로", "노상"],
-     "likely": ["excavation", "vehicle_machine", "electrical"]}
+    {
+      "id": "office",
+      "name": "사무실·실내",
+      "field_mode": false,
+      "keywords": [
+        "사무실",
+        "책상",
+        "모니터",
+        "노트북",
+        "실내 사무"
+      ],
+      "likely": []
+    },
+    {
+      "id": "construction",
+      "name": "건설현장",
+      "field_mode": true,
+      "keywords": [
+        "건설",
+        "공사",
+        "비계",
+        "골조",
+        "철근",
+        "콘크리트 현장"
+      ],
+      "likely": [
+        "work_at_height",
+        "excavation",
+        "lifting",
+        "scaffold",
+        "hot_work"
+      ]
+    },
+    {
+      "id": "factory",
+      "name": "제조공장",
+      "field_mode": true,
+      "keywords": [
+        "공장",
+        "생산라인",
+        "기계설비",
+        "제조"
+      ],
+      "likely": [
+        "vehicle_machine",
+        "lifting",
+        "hot_work",
+        "electrical"
+      ]
+    },
+    {
+      "id": "confined",
+      "name": "밀폐공간",
+      "field_mode": true,
+      "keywords": [
+        "맨홀",
+        "탱크 내부",
+        "좁은 공간",
+        "지하 피트",
+        "밀폐"
+      ],
+      "likely": [
+        "confined_space"
+      ]
+    },
+    {
+      "id": "warehouse",
+      "name": "창고·물류",
+      "field_mode": true,
+      "keywords": [
+        "창고",
+        "적재",
+        "팔레트",
+        "물류",
+        "지게차"
+      ],
+      "likely": [
+        "vehicle_machine",
+        "lifting"
+      ]
+    },
+    {
+      "id": "outdoor",
+      "name": "옥외·도로",
+      "field_mode": true,
+      "keywords": [
+        "야외",
+        "옥외",
+        "도로",
+        "노상"
+      ],
+      "likely": [
+        "excavation",
+        "vehicle_machine",
+        "electrical"
+      ]
+    }
   ]
 }
