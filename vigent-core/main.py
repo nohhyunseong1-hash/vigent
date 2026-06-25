@@ -1119,14 +1119,15 @@ def safety_local():
 
 
 @app.get("/dashboard", response_class=HTMLResponse)
-def dashboard_page(theme: str = DEFAULT_THEME):
-    """테마별 경영 대시보드 — 실제 이벤트 통계(발생건수·유형·현장·등급·이력·추이·처리현황)."""
+def dashboard_page(theme: str = DEFAULT_THEME, style: str = "default"):
+    """테마별 경영 대시보드 — 실제 이벤트 통계. style=terminal 이면 모던 터미널 스킨."""
     import dashboard as _dash
     bundle = STATE.get(theme) or _load_theme(theme)
     scribe = bundle["agents"].get("Scribe")
-    return _dash.render(theme, scribe=scribe,
-                        tbm_count=len(tbm_store.list_recent(limit=100000)),
-                        audit_count=len(audit_store.list_recent(limit=100000)))
+    fn = _dash.render_terminal if style == "terminal" else _dash.render
+    return fn(theme, scribe=scribe,
+              tbm_count=len(tbm_store.list_recent(limit=100000)),
+              audit_count=len(audit_store.list_recent(limit=100000)))
 
 
 # ── 현장 운영 설정 콘솔(현장·카메라·워커·알림을 화면에서) ──

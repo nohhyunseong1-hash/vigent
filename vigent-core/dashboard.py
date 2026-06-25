@@ -80,6 +80,143 @@ def aggregate(theme: str, scribe=None, tbm_count: int = 0, audit_count: int = 0)
     }
 
 
+def render_terminal(theme: str, scribe=None, tbm_count: int = 0, audit_count: int = 0) -> str:
+    """모던 터미널 스킨(블룸버그 단말 감성 — 검정·앰버/초록/빨강·모노스페이스·고밀도)."""
+    d = aggregate(theme, scribe, tbm_count, audit_count)
+    e = html.escape
+    title_map = {"safety": "SAFETY", "office": "OFFICE", "sports": "SPORTS"}
+    code = title_map.get(theme, theme.upper())
+
+    def lvl_color(lv):
+        lv = (lv or "low").lower()
+        if lv == "critical":
+            return "#ff3b3b", "심각"
+        if lv in ("high", "mid", "medium"):
+            return "#ffb000", "경계"
+        return "#00d26a", "주의"
+
+    # 좌측 모노 리드아웃
+    lv = d["by_level"]
+    lv_low = lv.get("low", 0)
+    lv_mid = lv.get("mid", 0) + lv.get("medium", 0) + lv.get("high", 0)
+    lv_hi = lv.get("critical", 0)
+    delta = d["total_now"] - d["total_last"]
+    dcol = "#ff3b3b" if delta > 0 else "#00d26a"
+    dsign = "▲" if delta > 0 else ("▼" if delta < 0 else "·")
+
+    def ro(label, val, color="#ffb000"):
+        return (f'<div class="ro"><span class="rl">{e(str(label))}</span>'
+                f'<span class="rv" style="color:{color}">{e(str(val))}</span></div>')
+
+    readout = (
+        ro("총 누적", f"{d['total']:,}", "#e8e8e8")
+        + ro("당월", f"{d['total_now']:,}")
+        + ro("전월", f"{d['total_last']:,}", "#6b7280")
+        + ro("전월대비", f"{dsign} {abs(delta):,}", dcol)
+        + '<div class="rsep"></div>'
+        + ro("심각", lv_hi, "#ff3b3b")
+        + ro("경계", lv_mid, "#ffb000")
+        + ro("주의", lv_low, "#00d26a")
+        + '<div class="rsep"></div>'
+        + ro("TBM 회의록", d["tbm_count"], "#7dd3fc")
+        + ro("위험성평가서", d["ra_count"], "#7dd3fc")
+        + ro("승인·감사추적", d["audit_count"], "#7dd3fc")
+    )
+
+    # 위험 유형별(bar)
+    mx_r = max([n for _, n in d["by_rule"]], default=1)
+    rule_rows = ""
+    for r, n in d["by_rule"][:8]:
+        w = int(n / mx_r * 100)
+        rule_rows += (f'<div class="tb"><span class="tbl">{e(RULE_KO.get(r, r))}</span>'
+                      f'<span class="tbar"><i style="width:{w}%;background:#ffb000"></i></span>'
+                      f'<span class="tbn">{n}</span></div>')
+    rule_rows = rule_rows or '<div class="dim">DATA 없음</div>'
+
+    # 현장별
+    site_rows = ""
+    for s, n in d["by_site"]:
+        site_rows += f'<tr><td>{e(s)}</td><td class="num amber">{n}</td></tr>'
+    site_rows = site_rows or '<tr><td colspan="2" class="dim">DATA 없음</td></tr>'
+
+    # 최근 이력
+    hist = ""
+    for ev in d["recent"]:
+        c, k = lvl_color(ev.get("level"))
+        hist += (f'<tr><td class="dim">{e((ev.get("ts","") or "")[:16].replace("T"," "))}</td>'
+                 f'<td>{e(ev.get("site") or "미지정")}</td>'
+                 f'<td style="color:{c};font-weight:700">{k}</td>'
+                 f'<td>{e(RULE_KO.get(ev.get("rule",""), ev.get("rule","")))}</td></tr>')
+    hist = hist or '<tr><td colspan="4" class="dim">발생 이력 없음</td></tr>'
+
+    # 14일 추이
+    tmx = max([n for _, n in d["trend"]], default=1)
+    tcols = "".join(
+        f'<div class="tc"><i style="height:{int((n/tmx)*70) if tmx else 0}px"></i>'
+        f'<span>{e(lbl)}</span></div>' for lbl, n in d["trend"])
+
+    return f"""<!DOCTYPE html><html lang="ko"><head><meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>VIGENT {code} TERMINAL</title><style>
+  :root{{--amber:#ffb000;--grn:#00d26a;--red:#ff3b3b;--ink:#e8e8e8;--dim:#6b7280;--pnl:#0c0c0e;--ln:#1c1c20}}
+  *{{box-sizing:border-box}}
+  body{{margin:0;background:#000;color:var(--ink);
+    font-family:"SF Mono","Roboto Mono",Menlo,Consolas,"D2Coding",monospace;font-size:13px}}
+  .hdr{{display:flex;justify-content:space-between;align-items:center;padding:8px 14px;background:#000;border-bottom:2px solid var(--amber)}}
+  .hdr .l{{color:var(--grn);font-weight:700;letter-spacing:1px}}
+  .hdr .r{{color:var(--amber);font-weight:800;letter-spacing:2px;font-size:15px}}
+  .fbar{{display:flex;gap:1px;background:#000}}
+  .fbar a{{flex:1;text-align:center;padding:7px 4px;text-decoration:none;font-weight:700;font-size:12px;color:#000}}
+  .fbar a.g{{background:var(--grn)}} .fbar a.r{{background:var(--red);color:#fff}} .fbar a.a{{background:var(--amber)}}
+  .fbar a:hover{{filter:brightness(1.15)}}
+  .wrap{{display:grid;grid-template-columns:260px 1fr;gap:10px;padding:10px}}
+  @media(max-width:900px){{.wrap{{grid-template-columns:1fr}}}}
+  .pnl{{background:var(--pnl);border:1px solid var(--ln);padding:12px}}
+  .pnl h3{{margin:0 0 10px;font-size:11px;color:var(--dim);letter-spacing:1px;text-transform:uppercase;border-bottom:1px solid var(--ln);padding-bottom:6px}}
+  .ro{{display:flex;justify-content:space-between;padding:5px 0;font-size:13px}}
+  .ro .rl{{color:#9aa0a6}} .ro .rv{{font-weight:700;font-variant-numeric:tabular-nums}}
+  .rsep{{height:1px;background:var(--ln);margin:8px 0}}
+  .right{{display:grid;grid-template-columns:1fr 1fr;gap:10px}}
+  @media(max-width:900px){{.right{{grid-template-columns:1fr}}}}
+  .span2{{grid-column:1 / -1}}
+  .tb{{display:flex;align-items:center;gap:8px;margin:6px 0}}
+  .tbl{{width:120px;color:#cfd3d8;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:none}}
+  .tbar{{flex:1;height:12px;background:#17171a;border:1px solid var(--ln)}}
+  .tbar i{{display:block;height:100%}} .tbn{{width:30px;text-align:right;color:var(--amber);font-weight:700}}
+  table{{width:100%;border-collapse:collapse;font-size:12.5px}}
+  th,td{{padding:5px 6px;border-bottom:1px solid var(--ln);text-align:left}}
+  th{{color:var(--dim);font-weight:600;font-size:11px;text-transform:uppercase}}
+  td.num{{text-align:right;font-variant-numeric:tabular-nums;font-weight:700}} .amber{{color:var(--amber)}}
+  .dim{{color:var(--dim)}}
+  .trend{{display:flex;align-items:flex-end;gap:3px;height:88px;margin-top:4px}}
+  .tc{{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end}}
+  .tc i{{width:70%;min-height:2px;background:var(--grn);box-shadow:0 0 6px rgba(0,210,106,.4)}}
+  .tc span{{font-size:8px;color:var(--dim);margin-top:3px;transform:rotate(-35deg);white-space:nowrap}}
+  .stat{{padding:6px 14px;background:#000;border-top:1px solid var(--ln);color:var(--dim);font-size:11px;
+    display:flex;justify-content:space-between;letter-spacing:.5px}}
+  .blink{{color:var(--grn)}} .blink b{{animation:bk 1.4s steps(1) infinite}} @keyframes bk{{50%{{opacity:.25}}}}
+</style></head><body>
+  <div class="hdr"><div class="l">&lt;VIGENT&gt; 산업안전 관제 터미널</div><div class="r">Equity {code}</div></div>
+  <div class="fbar">
+    <a class="a" href="/{e(theme)}">01) 실시간 관제</a>
+    <a class="r" href="/safety/auto">02) 자동처리 콘솔</a>
+    <a class="g" href="/safety/brain">03) 안전 추론 엔진</a>
+    <a class="a" href="/safety/reports">04) 위험성평가</a>
+    <a class="g" href="/home">99) 홈</a>
+  </div>
+  <div class="wrap">
+    <div class="pnl"><h3>위험 현황 요약</h3>{readout}</div>
+    <div class="right">
+      <div class="pnl"><h3>위험 유형별 발생</h3>{rule_rows}</div>
+      <div class="pnl"><h3>현장별 발생</h3><table><thead><tr><th>현장</th><th style="text-align:right">건수</th></tr></thead><tbody>{site_rows}</tbody></table></div>
+      <div class="pnl span2"><h3>최근 발생 이력</h3><table><thead><tr><th>시각</th><th>현장</th><th>등급</th><th>유형</th></tr></thead><tbody>{hist}</tbody></table></div>
+      <div class="pnl span2"><h3>최근 14일 발생 추이</h3><div class="trend">{tcols}</div></div>
+    </div>
+  </div>
+  <div class="stat"><span class="blink"><b>●</b> LIVE · 실제 누적 이벤트 기반</span><span>생성 {e(d['generated'])} · GMT+9</span><span>VIGENT © 산업안전 AI</span></div>
+</body></html>"""
+
+
 def render(theme: str, scribe=None, tbm_count: int = 0, audit_count: int = 0) -> str:
     d = aggregate(theme, scribe, tbm_count, audit_count)
     e = html.escape
