@@ -10,3 +10,5 @@ data/raw_faces/
 # 캐시
 __pycache__/
 *.pyc
+data/mfa_cards.json
+data/mfa_pins.json
