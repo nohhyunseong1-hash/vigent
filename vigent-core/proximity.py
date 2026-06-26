@@ -37,8 +37,9 @@ def detect(detections, radius_m: float = DEFAULT_RADIUS_M) -> list[dict]:
             continue
         if cls in VEHICLE_REF_M:
             vw, vh = bb[2] - bb[0], bb[3] - bb[1]
-            # 비현실적으로 큰 박스(오탐, 화면 절반 이상)는 거리추정 불가 → 제외
-            if vw > 0.6 or vh > 0.7 or vw * vh > 0.4:
+            # 명백한 오탐(화면 거의 전체)만 제외. 가까운 장비는 박스가 커도 정상이므로 살린다
+            # (안전상 '놓침'이 '헛알람'보다 위험 → 보수적으로 살리는 쪽).
+            if vw > 0.9 or vw * vh > 0.7:
                 continue
             vehicles.append((cls, bb))
         elif cls == "person":
