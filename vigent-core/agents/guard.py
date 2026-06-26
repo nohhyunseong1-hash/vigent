@@ -58,6 +58,19 @@ def _nms(dets: list[dict[str, Any]], iou_thr: float = 0.55) -> list[dict[str, An
     return out
 
 
+_COCO_VEHICLES = {"bus", "truck", "car", "train", "boat"}
+
+
+def _suppress_vehicle_dupes(dets: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """지게차로 더 정확히 잡힌 물체를 COCO가 '버스/트럭'으로 오인한 중복 박스 제거."""
+    forks = [d for d in dets if d["label"].lower() == "forklift"]
+    if not forks:
+        return dets
+    return [d for d in dets if not (
+        d["label"].lower() in _COCO_VEHICLES
+        and any(_iou(d["bbox"], f["bbox"]) > 0.45 for f in forks))]
+
+
 class GuardAgent(BaseAgent):
     name = "Guard"
     role = "감지: 실시간 탐지·추적·이벤트 스트림 생성"
@@ -208,6 +221,7 @@ class GuardAgent(BaseAgent):
 
         # 여러 모델/클래스 간 중복 박스 정리 → 서버측 추적으로 안정화(깜빡임 제거)
         detections = _nms(detections)
+        detections = _suppress_vehicle_dupes(detections)   # 지게차↔버스 오인 중복 제거
         detections = self._track(detections)
 
         # 파생 신호(딥러닝 → 규칙 가산용)
