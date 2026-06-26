@@ -1054,21 +1054,30 @@ def safety_eval_run(payload: dict = Body(...), theme: str = DEFAULT_THEME):
         return {"ok": False, "error": "사진 없음"}
     bundle = STATE.get(theme) or _load_theme(theme)
     guard = bundle["agents"].get("Guard")
-    results = []
-    for it in items:
+    import proximity as _prox
+    results, details = [], []
+    for idx, it in enumerate(items):
         raw = it.get("image_base64") or ""
         rawd = raw if str(raw).startswith("data:") else "data:image/jpeg;base64," + raw
         img = _decode_data_url(rawd)
         if img is None:
             continue
+        boxes = []
         try:
             with _DETECT_LOCK:
                 out = guard.detect(img, detectors=["person", "ppe", "forklift", "fire_smoke"])
             pred = evaluator.predict(out.get("detections", []), metric)
+            boxes = _incident_boxes(out, _prox.detect(out.get("detections", [])))
         except Exception:  # noqa: BLE001
             pred = False
-        results.append({"truth": bool(it.get("truth")), "pred": bool(pred)})
-    return {"ok": True, "metric": metric, "summary": evaluator.summarize(results)}
+        truth = bool(it.get("truth"))
+        outcome = ("TP" if truth and pred else "FN" if truth and not pred
+                   else "FP" if (not truth) and pred else "TN")
+        results.append({"truth": truth, "pred": bool(pred)})
+        details.append({"idx": idx, "truth": truth, "pred": bool(pred),
+                        "outcome": outcome, "boxes": boxes})
+    return {"ok": True, "metric": metric,
+            "summary": evaluator.summarize(results), "details": details}
 
 
 @app.post("/safety/behavior/analyze")
