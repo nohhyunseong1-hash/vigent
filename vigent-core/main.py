@@ -1088,6 +1088,33 @@ def safety_eval_run(payload: dict = Body(...), theme: str = DEFAULT_THEME):
             "summary": evaluator.summarize(results), "details": details}
 
 
+@app.get("/safety/guide", response_class=HTMLResponse)
+def safety_guide_page():
+    """현장 음성 안전 안내 — 카메라 화면을 분석해 위험·작업을 음성으로."""
+    import liveguide
+    return liveguide.render()
+
+
+@app.post("/safety/voice/scene")
+def safety_voice_scene(payload: dict = Body(...), theme: str = DEFAULT_THEME):
+    """실시간 프레임 → 위험·작업 인식 → 음성 안내 메시지(speak)."""
+    import liveguide
+    raw = payload.get("image_base64") or payload.get("image") or ""
+    rawd = raw if str(raw).startswith("data:") else "data:image/jpeg;base64," + raw
+    img = _decode_data_url(rawd)
+    if img is None:
+        return {"ok": False, "error": "이미지 없음"}
+    bundle = STATE.get(theme) or _load_theme(theme)
+    guard = bundle["agents"].get("Guard")
+    try:
+        with _DETECT_LOCK:
+            out = guard.detect(img, detectors=["person", "ppe", "forklift", "fire_smoke"])
+        dets = out.get("detections", [])
+    except Exception:  # noqa: BLE001
+        dets = []
+    return liveguide.build_guidance(dets, bool(payload.get("use_vlm")), image_bgr=img)
+
+
 @app.post("/safety/behavior/analyze")
 def safety_behavior_analyze(payload: dict = Body(...)):
     """VLM 행동분석 — 흡연·졸음·통화·폭력·절차위반 + 규칙행동 재확인. use_vlm 권장."""
