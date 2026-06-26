@@ -1037,6 +1037,19 @@ def safety_brain_assess(payload: dict = Body(...)):
                                image_bgr=img, use_vlm=bool(payload.get("use_vlm")))
 
 
+@app.post("/safety/behavior/analyze")
+def safety_behavior_analyze(payload: dict = Body(...)):
+    """VLM 행동분석 — 흡연·졸음·통화·폭력·절차위반 + 규칙행동 재확인. use_vlm 권장."""
+    import behavior
+    raw = payload.get("image_base64") or payload.get("image") or ""
+    rawd = raw if str(raw).startswith("data:") else "data:image/jpeg;base64," + raw
+    img = _decode_data_url(rawd)
+    if img is None:
+        return {"ok": False, "error": "이미지 없음"}
+    return behavior.analyze(img, use_vlm=bool(payload.get("use_vlm", True)),
+                            rule_hits=payload.get("rule_hits"))
+
+
 @app.get("/safety/incident", response_class=HTMLResponse)
 def safety_incident_page():
     """재해 원인분석(보조) — 사고 사진/영상 → 상황·빠진 조치·법령·유사재해·예방."""

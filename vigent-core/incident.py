@@ -29,9 +29,16 @@ def analyze(image_bgr, present_classes: list[str] | None = None, use_vlm: bool =
                   if act_id else None)
     warnings = safety_brain.accident_warnings(env_id, act_id, present)
     missing = assessment.get("missing", []) if assessment else []
+    behaviors = []
+    try:
+        import behavior as _bhv
+        behaviors = _bhv.analyze(image_bgr, use_vlm=use_vlm).get("behaviors", [])
+    except Exception:  # noqa: BLE001
+        behaviors = []
     return {
         "ok": True,
         "scene": scene,
+        "behaviors": behaviors,
         "detected": present,
         "environment": (env["name"] if env else None),
         "activity": (assessment["activity"] if assessment else act_id),
@@ -177,6 +184,7 @@ _PAGE = r"""<!DOCTYPE html><html lang="ko"><head><meta charset="UTF-8">
     document.getElementById('out').innerHTML=pre+
       sec('🔍 위험요인 표시 + 장면 분석'+(t!=null?' ('+t.toFixed(1)+'초)':''), imgHtml+(j.scene?'<div class="scene">'+j.scene+'</div>':'<span class="dim">VLM 미사용/미인식</span>')
           +'<div class="dim" style="margin-top:6px">감지: '+((j.detected||[]).join(', ')||'-')+' · 환경: '+(j.environment||'-')+' · 작업: '+(j.activity||'-')+'</div>')
+      +sec('🎬 감지된 위험 행동', (j.behaviors&&j.behaviors.length)?'<ul>'+j.behaviors.map(b=>'<li'+(b.confirmed?' class="miss"':'')+'>'+b.label+' <span class="dim">['+b.confidence+']</span></li>').join('')+'</ul>':'<span class="dim">VLM 켜면 흡연·졸음·통화·폭력·절차위반 등 행동 분석</span>')
       +sec('⚠ 재해 원인(빠진 안전조치)', (j.missing_measures&&j.missing_measures.length)?'<ul>'+j.missing_measures.map(m=>'<li class="miss">'+m+' 미확인/없음</li>').join('')+'</ul>':'<span class="dim">VLM 켜면 \'없는 조치\'까지 추론</span>')
       +sec('📖 관련 법령', regs?'<ul>'+regs+'</ul>':'')
       +sec('🔁 유사 중대재해 패턴', pat?'<ul>'+pat+'</ul>':'')
