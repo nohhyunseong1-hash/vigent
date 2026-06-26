@@ -1037,6 +1037,40 @@ def safety_brain_assess(payload: dict = Body(...)):
                                image_bgr=img, use_vlm=bool(payload.get("use_vlm")))
 
 
+@app.get("/safety/eval", response_class=HTMLResponse)
+def safety_eval_page():
+    """정확도 측정 도구 — 위험/정상 사진으로 재현율·정밀도 자체 측정."""
+    import evaluator
+    return evaluator.render()
+
+
+@app.post("/safety/eval/run")
+def safety_eval_run(payload: dict = Body(...), theme: str = DEFAULT_THEME):
+    """위험/정상 사진 묶음 → 각 사진 경보여부 판정 → 재현율·정밀도 집계."""
+    import evaluator
+    metric = payload.get("metric", "proximity")
+    items = payload.get("items", [])
+    if not items:
+        return {"ok": False, "error": "사진 없음"}
+    bundle = STATE.get(theme) or _load_theme(theme)
+    guard = bundle["agents"].get("Guard")
+    results = []
+    for it in items:
+        raw = it.get("image_base64") or ""
+        rawd = raw if str(raw).startswith("data:") else "data:image/jpeg;base64," + raw
+        img = _decode_data_url(rawd)
+        if img is None:
+            continue
+        try:
+            with _DETECT_LOCK:
+                out = guard.detect(img, detectors=["person", "ppe", "forklift", "fire_smoke"])
+            pred = evaluator.predict(out.get("detections", []), metric)
+        except Exception:  # noqa: BLE001
+            pred = False
+        results.append({"truth": bool(it.get("truth")), "pred": bool(pred)})
+    return {"ok": True, "metric": metric, "summary": evaluator.summarize(results)}
+
+
 @app.post("/safety/behavior/analyze")
 def safety_behavior_analyze(payload: dict = Body(...)):
     """VLM 행동분석 — 흡연·졸음·통화·폭력·절차위반 + 규칙행동 재확인. use_vlm 권장."""
