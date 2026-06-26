@@ -1062,20 +1062,28 @@ def safety_eval_run(payload: dict = Body(...), theme: str = DEFAULT_THEME):
         img = _decode_data_url(rawd)
         if img is None:
             continue
-        boxes = []
+        boxes, dets, hazards = [], [], []
         try:
             with _DETECT_LOCK:
                 out = guard.detect(img, detectors=["person", "ppe", "forklift", "fire_smoke"])
-            pred = evaluator.predict(out.get("detections", []), metric)
-            boxes = _incident_boxes(out, _prox.detect(out.get("detections", [])))
+            dets = out.get("detections", [])
+            boxes = _incident_boxes(out, _prox.detect(dets))
+            pred = evaluator.predict(dets, metric) if metric != "auto" else False
+            if metric == "auto":
+                hazards = evaluator.detected_hazards(dets)
         except Exception:  # noqa: BLE001
             pred = False
+        if metric == "auto":
+            details.append({"idx": idx, "boxes": boxes, "hazards": hazards})
+            continue
         truth = bool(it.get("truth"))
         outcome = ("TP" if truth and pred else "FN" if truth and not pred
                    else "FP" if (not truth) and pred else "TN")
         results.append({"truth": truth, "pred": bool(pred)})
         details.append({"idx": idx, "truth": truth, "pred": bool(pred),
                         "outcome": outcome, "boxes": boxes})
+    if metric == "auto":
+        return {"ok": True, "metric": "auto", "summary": None, "details": details}
     return {"ok": True, "metric": metric,
             "summary": evaluator.summarize(results), "details": details}
 

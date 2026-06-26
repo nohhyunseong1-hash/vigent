@@ -15,6 +15,7 @@ from typing import Any
 
 # 평가 대상(무엇을 '경보'로 볼지)
 METRICS: dict[str, dict[str, str]] = {
+    "auto": {"label": "🔍 자동 분석 (점수 없이 — 무엇이 보이는지만)", "desc": "대상 안 정하고 사진의 모든 위험을 박스로 표시"},
     "proximity": {"label": "협착(차량 근접)", "desc": "지게차·차량 작업반경 안에 사람 — KOSHA 충돌방지 기준"},
     "person": {"label": "사람 감지", "desc": "사람이 보이면 감지(인체감지 기본 성능)"},
     "ppe": {"label": "보호구 미착용", "desc": "안전모·조끼·마스크 미착용"},
@@ -35,6 +36,29 @@ def predict(detections: list[dict], metric: str) -> bool:
         import proximity
         return len(proximity.detect(detections)) > 0
     return False
+
+
+def detected_hazards(detections: list[dict]) -> list[str]:
+    """사진에서 자동으로 발견한 위험을 사람 말로 요약(대상 선택 없이)."""
+    import proximity
+    labels = [str(d.get("label") or d.get("class") or "") for d in detections]
+    low = [l.lower() for l in labels]
+    out = []
+    npeople = sum(1 for l in low if l == "person")
+    if npeople:
+        out.append(f"사람 {npeople}명")
+    prox = proximity.detect(detections)
+    for h in prox[:3]:
+        out.append(f"⚠ 협착 위험: {h['vehicle']} ↔ 사람 약 {h['distance_m']}m")
+    if any(l in ("fire", "smoke") for l in low):
+        out.append("⚠ 화재·연기")
+    ppe = [l for l in labels if l.lower().startswith("no-")]
+    if ppe:
+        out.append("⚠ 보호구 미착용: " + ", ".join(sorted(set(ppe))))
+    veh = sorted({l for l in low if l in proximity.VEHICLE_REF_M})
+    if veh:
+        out.append("장비: " + ", ".join(veh))
+    return out or ["감지된 위험 없음"]
 
 
 def summarize(results: list[dict]) -> dict[str, Any]:
@@ -129,6 +153,19 @@ _PAGE = r"""<!DOCTYPE html><html lang="ko"><head><meta charset="UTF-8">
     const r=await fetch('/safety/eval/run',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({metric,items})});
     const j=await r.json(); document.getElementById('prog').textContent='';
     if(!j.ok){ document.getElementById('out').innerHTML='<div class="card">측정 실패: '+(j.error||'')+'</div>'; return; }
+    if(!j.summary){  // 자동 분석 모드 — 점수 없이 위험만 표시
+      document.getElementById('out').innerHTML='<div class="card"><h3>🔍 자동 분석 결과 (점수 없음)</h3><div id="gal" class="dim">분석 중…</div></div>';
+      const gal=document.getElementById('gal'); let html='';
+      for(const d of (j.details||[])){
+        const it=items[d.idx]; const ann=await drawAnnotated(it.image_base64, d.boxes||[]);
+        const hz=(d.hazards||[]).map(h=>'<li'+(h.indexOf('⚠')>=0?' class="bad"':'')+'>'+h+'</li>').join('');
+        html+='<div style="margin-bottom:14px;border:1px solid #1c1c20;border-radius:8px;overflow:hidden">'
+          +(ann?'<img src="'+ann+'" style="width:100%;display:block">':'')
+          +'<div style="padding:8px 10px"><b style="color:#d4a017;font-size:12px">감지된 위험</b><ul style="margin:4px 0">'+hz+'</ul></div></div>';
+      }
+      gal.innerHTML=html||'<span class="dim">사진 없음</span>';
+      return;
+    }
     const s=j.summary; const cls=v=> v==null?'':(v>=90?'ok':v>=75?'mid':'bad');
     const verdict = s.pass_90
       ? '<div class="verdict ok" style="background:#0f2a1a">✅ 재현율·정밀도 <b>둘 다</b> 90% 이상 — KOSHA 인증 기준 후보!</div>'
