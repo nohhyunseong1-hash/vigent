@@ -20,11 +20,14 @@ _RULES = _ROOT / "config" / "ppe_rules.yaml"
 # 보호구 카탈로그 — 현장이 이 중에서 '필수'를 고른다
 PPE_CATALOG: list[dict[str, Any]] = [
     {"id": "hardhat", "label": "안전모", "method": "yolo",
-     "miss": "no-hardhat", "have": "hardhat"},
+     "miss": "no-hardhat", "have": "hardhat",
+     "q": "작업자가 안전모(헬멧)를 착용했는가?"},
     {"id": "safety_vest", "label": "안전조끼", "method": "yolo",
-     "miss": "no-safety-vest", "have": "safety-vest"},
+     "miss": "no-safety-vest", "have": "safety-vest",
+     "q": "작업자가 안전조끼(반사 조끼)를 착용했는가?"},
     {"id": "mask", "label": "마스크", "method": "yolo",
-     "miss": "no-mask", "have": "mask"},
+     "miss": "no-mask", "have": "mask",
+     "q": "작업자가 마스크를 착용했는가?"},
     {"id": "safety_shoes", "label": "안전화", "method": "vlm",
      "q": "작업자가 안전화(작업용 보호 신발)를 신고 있는가?"},
     {"id": "gloves", "label": "보호장갑", "method": "vlm",
@@ -84,20 +87,22 @@ def check(detections: list[dict], image_bgr=None, required: list[str] | None = N
         if not item:
             continue
         status = "unknown"
+        via = item["method"]
         if item["method"] == "yolo":
             if item["miss"] in low:
                 status = "missing"
             elif item["have"] in low:
                 status = "present"
-        else:  # vlm
-            if use_vlm and image_bgr is not None:
-                try:
-                    import safety_brain
-                    v = safety_brain._vlm_present(image_bgr, item["q"])
-                    status = "present" if v is True else "missing" if v is False else "unknown"
-                except Exception:  # noqa: BLE001
-                    status = "unknown"
-        results.append({"id": pid, "label": item["label"], "method": item["method"], "status": status})
+        # VLM 점검: 전용 VLM 항목 또는 YOLO가 신호 못 낸 경우(폴백)
+        if status == "unknown" and use_vlm and image_bgr is not None and item.get("q"):
+            try:
+                import safety_brain
+                v = safety_brain._vlm_present(image_bgr, item["q"])
+                status = "present" if v is True else "missing" if v is False else "unknown"
+                via = "vlm"
+            except Exception:  # noqa: BLE001
+                status = "unknown"
+        results.append({"id": pid, "label": item["label"], "method": via, "status": status})
     missing = [r for r in results if r["status"] == "missing"]
     return {"ok": True, "results": results, "missing": missing,
             "warn": ("보호구 미착용: " + ", ".join(r["label"] for r in missing)) if missing else ""}
