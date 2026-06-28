@@ -75,24 +75,35 @@ def save_rules(required: list[str], site: str = "") -> dict[str, Any]:
     return {"ok": True, "required": req, "site": site}
 
 
-def _vlm_missing_batch(image_bgr, items: list[dict]) -> set[str]:
-    """VLM 1회 호출로 '미착용' 보호구를 한꺼번에 판정 → 미착용 id 집합(실시간용)."""
+def _vlm_status_batch(image_bgr, items: list[dict]) -> dict[str, str]:
+    """VLM 1회 호출로 보호구별 착용 상태 판정 → {id: present/missing/unknown}.
+    안전 우선: 명확하지 않으면 'present'가 아니라 'unknown'(거짓 안심 방지)."""
+    out = {it["id"]: "unknown" for it in items}
     if not items or image_bgr is None:
-        return set()
-    labels = [it["label"] for it in items]
-    prompt = ("작업자 사진이다. 아래 보호구 중 작업자가 '착용하지 않은(미착용)' 것만 "
-              "한국어로 정확한 명칭 그대로 쉼표로 나열하라. 모두 착용했으면 정확히 '없음'이라 답하라. "
-              "추측 금지.\n보호구 목록: " + ", ".join(labels))
+        return out
+    lines = "\n".join(f"- {it['label']}:" for it in items)
+    prompt = ("작업자 사진을 보고 각 보호구의 착용 여부를 판단하라. "
+              "명확히 착용했으면 '착용', 명확히 안 했으면 '미착용', "
+              "가려지거나 안 보이거나 확신 없으면 '불확실'. 추측 금지.\n"
+              "반드시 아래 각 줄 뒤에 '착용/미착용/불확실' 중 하나만 적어라:\n" + lines)
     try:
         import rfdetr_service
         data = rfdetr_service.vlm.summarize_bgr(image_bgr, prompt=prompt)
         txt = str(data.get("raw") or " ".join(str(v) for k, v in data.items()
                                                if not str(k).startswith("_")))
     except Exception:  # noqa: BLE001
-        return set()
-    if "없음" in txt and not any(it["label"] in txt for it in items):
-        return set()
-    return {it["id"] for it in items if it["label"] in txt}
+        return out
+    for ln in txt.splitlines():
+        for it in items:
+            if it["label"] in ln:
+                if "미착용" in ln or "안 착용" in ln or "없" in ln:
+                    out[it["id"]] = "missing"
+                elif "불확실" in ln or "불명" in ln:
+                    out[it["id"]] = "unknown"
+                elif "착용" in ln:
+                    out[it["id"]] = "present"
+                break
+    return out
 
 
 def check(detections: list[dict], image_bgr=None, required: list[str] | None = None,
@@ -118,12 +129,12 @@ def check(detections: list[dict], image_bgr=None, required: list[str] | None = N
             need_vlm.append(item)        # VLM 일괄 처리 대상
             via = "vlm"
         results.append({"id": pid, "label": item["label"], "method": via, "status": status})
-    # VLM 한 번에 — 미착용 일괄 판정
+    # VLM 한 번에 — 보호구별 착용 상태 일괄 판정(불확실은 unknown 유지)
     if need_vlm:
-        miss_ids = _vlm_missing_batch(image_bgr, need_vlm)
+        st = _vlm_status_batch(image_bgr, need_vlm)
         for r in results:
             if r["status"] == "unknown" and r["method"] == "vlm":
-                r["status"] = "missing" if r["id"] in miss_ids else "present"
+                r["status"] = st.get(r["id"], "unknown")
     missing = [r for r in results if r["status"] == "missing"]
     return {"ok": True, "results": results, "missing": missing,
             "warn": ("보호구 미착용: " + ", ".join(r["label"] for r in missing)) if missing else ""}
