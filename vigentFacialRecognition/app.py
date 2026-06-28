@@ -134,6 +134,19 @@ async def loto_remove(person_id: str = Form(None), image: UploadFile = File(None
         return {"ok": False, "error": str(e)}
 
 
+@app.post("/loto/arm")
+async def loto_arm(action: str = Form("TOGGLE"), person_id: str = Form(None),
+                   name: str = Form(""), image: UploadFile = File(None),
+                   live: bool = Form(True)):
+    """얼굴 인증된 작업자만 무장. 무장 후 10초 내 물리 버튼을 누르면 서보 작동."""
+    pid, nm, err = await _resolve_worker(person_id, name, image, live)
+    if err:
+        return {"ok": False, "error": err, "armed": False}
+    loto_controller.arm(action)
+    return {"ok": True, "armed": True, "by": pid, "action": action,
+            "hint": "10초 내에 기계의 물리 버튼을 누르세요"}
+
+
 @app.post("/loto/energize")
 def loto_energize(by: str = Form("operator")):
     try:

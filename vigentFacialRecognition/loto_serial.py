@@ -60,6 +60,13 @@ class LotoController:
         self.locked = locked
         self._send("LOCK" if locked else "UNLOCK")
 
+    def arm(self, action: str = "TOGGLE") -> str:
+        """무장: 다음 물리 버튼 1회로 서보 작동(act=LOCK/UNLOCK/TOGGLE). 10초 후 자동 해제."""
+        return self._send(f"ARM:{action}")
+
+    def disarm(self) -> str:
+        return self._send("DISARM")
+
     def ping(self) -> bool:
         return self._send("PING") in ("PONG", "SIM:PING")
 

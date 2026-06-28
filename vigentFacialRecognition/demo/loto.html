@@ -69,6 +69,13 @@
     <button class="btn" id="energizeBtn">▶ 기동(energize)</button>
     <button class="btn danger" id="shutdownBtn">■ 정지(안전)</button>
     <div class="msg" id="msg"></div>
+
+    <h3 style="margin-top:18px">물리 버튼 모드</h3>
+    <label>버튼 동작</label>
+    <select id="armAction"><option value="TOGGLE">토글(잠금↔해제)</option>
+      <option value="UNLOCK">해제</option><option value="LOCK">잠금</option></select>
+    <button class="btn" id="armBtn">🟢 얼굴 인증 후 무장(ARM)</button>
+    <div class="msg" id="armMsg">무장 후 10초 내에 기계의 <b>물리 버튼</b>을 누르면 서보가 작동합니다. (무장 없이 버튼만 누르면 무반응)</div>
   </div>
 </div>
 
@@ -109,6 +116,16 @@ async function post(url){
   $('msg').textContent = j.ok ? '✅ 완료' : '⚠ '+(j.error||'실패');
   if(j.machine_id) render(j); else refresh();
 }
+$('armBtn').onclick=async()=>{
+  const fd=new FormData();
+  fd.append('action',$('armAction').value);
+  if($('useFace').checked && camOn){ fd.append('image',await grab(),'f.jpg'); fd.append('live','true'); }
+  if($('pid').value) fd.append('person_id',$('pid').value.trim());
+  const j=await (await fetch('/loto/arm',{method:'POST',body:fd})).json();
+  $('armMsg').innerHTML = j.armed
+    ? `✅ <b>${j.by}</b> 무장됨 — 지금 <b>물리 버튼</b>을 누르세요(10초)`
+    : `⚠ 무장 실패: ${j.error||'인증 안 됨'} (버튼 눌러도 작동 안 함)`;
+};
 $('useFace').onchange=()=>{ if($('useFace').checked) startCam(); };
 $('applyBtn').onclick=()=>post('/loto/apply');
 $('removeBtn').onclick=()=>post('/loto/remove');
