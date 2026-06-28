@@ -123,8 +123,21 @@ Arduino UNO
 - `tests/test_smartloto.py` — 상태머신 검증(가짜 컨트롤러).
 - (다음) `/loto/*` 엔드포인트 + 통합 데모 탭.
 
+## 8.1 업로드 방법 (arduino-cli, 검증됨)
+IDE 없이 명령줄로 업로드. 보드 = ATmega328P(Uno/Nano 클론, 신 부트로더), 포트 예시
+`/dev/cu.usbserial-3120`(꽂을 때마다 바뀔 수 있음 → `arduino-cli board list`로 확인).
+```bash
+export PATH="$HOME/bin:$PATH"
+arduino-cli lib install Servo                      # 최초 1회
+cd vigentFacialRecognition/arduino
+arduino-cli compile --fqbn arduino:avr:uno smart_loto
+arduino-cli upload -p /dev/cu.usbserial-3120 --fqbn arduino:avr:uno smart_loto
+```
+> 클론 보드라 `board list`엔 FQBN이 Unknown으로 떠도 `arduino:avr:uno`로 업로드됨.
+> 구형 Nano면 `arduino:avr:nano:cpu=atmega328old`(57600)로 시도.
+
 ## 9. 빌드 순서
-1. 아두이노에 `smart_loto.ino` 업로드 → 시리얼 모니터로 `LOCK`/`UNLOCK` 수동 시험.
+1. 아두이노에 `smart_loto/` 업로드(§8.1) → 시리얼 9600으로 `LOCK`/`UNLOCK` 시험.
 2. `pip install pyserial` → `loto_serial.py`로 PC에서 서보 제어(포트 `VIGENT_LOTO_PORT`).
 3. `smartloto.py` 상태머신 + 인증(MFA/라이브니스) 연결.
 4. 웹 데모 탭(잠금/해제/기동, 그룹 잠금 현황) — 다음 단계.
