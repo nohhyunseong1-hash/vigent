@@ -126,6 +126,13 @@
       <video id="videoEl" autoplay muted playsinline></video>
       <img id="imageEl" alt=""/>
       <canvas id="outputCanvas"></canvas>
+      <!-- 🦺 보호구 실시간 점검 HUD(메뉴 토글 시 표시) -->
+      <div id="ppeHud" style="display:none;position:absolute;top:12px;left:12px;z-index:30;min-width:170px;
+        background:rgba(8,8,10,.82);border:1px solid #2a2a2e;border-radius:8px;padding:10px 12px;
+        font-family:'SF Mono','D2Coding',monospace;font-size:12.5px;backdrop-filter:blur(3px)">
+        <div style="color:#d4a017;font-weight:800;margin-bottom:6px;letter-spacing:.5px">🦺 보호구 점검</div>
+        <div id="ppeHudBody" style="color:#6b7280">대기…</div>
+      </div>
 
       <div id="recogPanel" class="recog-panel"><h4>지금 인식 중</h4><div class="dim" style="font-size:13px;">카메라를 켜면 표시됩니다</div></div>
       <div class="zone-btns" style="position:absolute;right:14px;bottom:14px;z-index:31;display:flex;gap:6px;">
@@ -275,6 +282,7 @@
         </div>
         <div class="card">
           <div class="card-title">⚙️ 안전 설정</div>
+          <div class="toggle-row" title="현장 보호구 설정(/safety/ppe)에서 지정한 필수 보호구를 VLM이 실시간 점검합니다. 미착용 시 화면에 표시됩니다(근실시간, 수초 간격)."><span>🦺 보호구 실시간 점검(VLM)</span><label class="toggle"><input type="checkbox" id="togPpeLive"><span class="toggle-slider"></span></label></div>
           <div class="toggle-row"><span>안전모/조끼 알림</span><label class="toggle"><input type="checkbox" id="togPPE" checked><span class="toggle-slider"></span></label></div>
           <div class="toggle-row"><span>낙상 감지 (6프레임)</span><label class="toggle"><input type="checkbox" id="togFall" checked><span class="toggle-slider"></span></label></div>
           <div class="toggle-row"><span>위험 자세 감지</span><label class="toggle"><input type="checkbox" id="togPosture" checked><span class="toggle-slider"></span></label></div>
@@ -335,7 +343,7 @@
 </main>
 
 <script>window.AX_LOCK_THEME="safety";</script>
-<script src="/static/realtime_core.js?v=20260625-proximity"></script>
+<script src="/static/realtime_core.js?v=20260628-ppehud"></script>
 
 <!-- 스켈레톤 스무딩 고도화: 기존 이동평균 smoothPose 를 One-Euro 필터로 교체.
      (realtime_core.js 는 안 건드리고 전역 함수만 덮어씀 — AX 엔진 그대로) -->
@@ -554,6 +562,34 @@
       }
     }catch(e){}finally{ busy=false; }
   }, 20000);
+
+  // ── 🦺 보호구 실시간 점검(VLM) → 화면 HUD 표시 ──
+  let _ppeBusy=false;
+  setInterval(async ()=>{
+    const tog=document.getElementById('togPpeLive');
+    const hud=document.getElementById('ppeHud'), body=document.getElementById('ppeHudBody');
+    if(!tog||!hud) return;
+    if(!tog.checked){ hud.style.display='none'; return; }
+    hud.style.display='block';
+    if(_ppeBusy || typeof captureEvidence!=='function') return;
+    const dataUrl=captureEvidence(); if(!dataUrl){ return; }
+    _ppeBusy=true;
+    try{
+      const b64=String(dataUrl).split(',')[1];
+      const j=await (await fetch('/safety/ppe/check',{method:'POST',headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({image_base64:b64,use_vlm:true})})).json();
+      if(!j.ok || !(j.results||[]).length){ body.innerHTML='<span style="color:#6b7280">필수 보호구 미설정 — /safety/ppe</span>'; }
+      else{
+        const ico={present:'✅',missing:'⚠️',unknown:'❔'};
+        const col={present:'#34d399',missing:'#ff6b6b',unknown:'#6b7280'};
+        body.innerHTML=j.results.map(r=>'<div style="color:'+col[r.status]+';margin:2px 0">'+ico[r.status]+' '+r.label+'</div>').join('');
+        if(j.missing&&j.missing.length){
+          body.innerHTML='<div style="color:#ff5252;font-weight:800;margin-bottom:4px">⚠ '+j.warn+'</div>'+body.innerHTML;
+        }
+      }
+    }catch(e){ body.innerHTML='<span style="color:#6b7280">점검 실패</span>'; }
+    finally{ _ppeBusy=false; }
+  }, 3000);
 })();
 </script>
 </body>
