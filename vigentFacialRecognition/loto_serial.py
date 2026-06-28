@@ -14,12 +14,23 @@ import time
 
 class LotoController:
     def __init__(self, port: str | None = None, baud: int = 9600):
-        self.port = port or os.environ.get("VIGENT_LOTO_PORT")
+        self.port = port or os.environ.get("VIGENT_LOTO_PORT") or self._autodetect()
         self.baud = baud
         self.locked = True                 # 페일세이프 기본
         self._serial = None
         self.simulated = True
         self._connect()
+
+    @staticmethod
+    def _autodetect() -> str | None:
+        """USB 시리얼 보드 포트를 자동 탐색(아두이노 클론 포함)."""
+        import glob
+        for pat in ("/dev/cu.usbserial*", "/dev/cu.usbmodem*",
+                    "/dev/cu.wchusbserial*", "/dev/cu.SLAB_USBtoUART*"):
+            hits = glob.glob(pat)
+            if hits:
+                return hits[0]
+        return None
 
     def _connect(self) -> None:
         if not self.port:
