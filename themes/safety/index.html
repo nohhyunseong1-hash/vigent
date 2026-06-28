@@ -343,7 +343,7 @@
 </main>
 
 <script>window.AX_LOCK_THEME="safety";</script>
-<script src="/static/realtime_core.js?v=20260628-ppehud2"></script>
+<script src="/static/realtime_core.js?v=20260629-ppefast"></script>
 
 <!-- 스켈레톤 스무딩 고도화: 기존 이동평균 smoothPose 를 One-Euro 필터로 교체.
      (realtime_core.js 는 안 건드리고 전역 함수만 덮어씀 — AX 엔진 그대로) -->
@@ -585,8 +585,9 @@
     _ppeBusy=true;
     try{
       const b64=String(dataUrl).split(',')[1];
+      // 실시간 HUD는 빠른 YOLO 위주(즉시 갱신). VLM 전용 보호구는 확인불가(❔)로 표시.
       const j=await (await fetch('/safety/ppe/check',{method:'POST',headers:{'Content-Type':'application/json'},
-        body:JSON.stringify({image_base64:b64,use_vlm:true})})).json();
+        body:JSON.stringify({image_base64:b64,use_vlm:false})})).json();
       if(!j.ok || !(j.results||[]).length){ body.innerHTML='<span style="color:#6b7280">필수 보호구 미설정 — /safety/ppe</span>'; }
       else{
         const ico={present:'✅',missing:'⚠️',unknown:'❔'};
