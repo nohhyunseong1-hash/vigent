@@ -1115,6 +1115,46 @@ def safety_voice_scene(payload: dict = Body(...), theme: str = DEFAULT_THEME):
     return liveguide.build_guidance(dets, bool(payload.get("use_vlm")), image_bgr=img)
 
 
+@app.get("/safety/ppe", response_class=HTMLResponse)
+def safety_ppe_page():
+    """현장 보호구 설정 — 현장별 필수 보호구 선택."""
+    import ppe_check
+    return ppe_check.render()
+
+
+@app.get("/safety/ppe/rules")
+def safety_ppe_rules_get():
+    import ppe_check
+    return ppe_check.get_rules()
+
+
+@app.post("/safety/ppe/rules")
+def safety_ppe_rules_set(payload: dict = Body(...)):
+    import ppe_check
+    return ppe_check.save_rules(payload.get("required") or [], payload.get("site", ""))
+
+
+@app.post("/safety/ppe/check")
+def safety_ppe_check(payload: dict = Body(...), theme: str = DEFAULT_THEME):
+    """이미지 → 현장 필수 보호구 착용 점검(미착용 경고). use_vlm 권장."""
+    import ppe_check
+    raw = payload.get("image_base64") or payload.get("image") or ""
+    rawd = raw if str(raw).startswith("data:") else "data:image/jpeg;base64," + raw
+    img = _decode_data_url(rawd)
+    if img is None:
+        return {"ok": False, "error": "이미지 없음"}
+    bundle = STATE.get(theme) or _load_theme(theme)
+    guard = bundle["agents"].get("Guard")
+    try:
+        with _DETECT_LOCK:
+            out = guard.detect(img, detectors=["person", "ppe"])
+        dets = out.get("detections", [])
+    except Exception:  # noqa: BLE001
+        dets = []
+    return ppe_check.check(dets, image_bgr=img, required=payload.get("required"),
+                           use_vlm=bool(payload.get("use_vlm", True)))
+
+
 @app.post("/safety/behavior/analyze")
 def safety_behavior_analyze(payload: dict = Body(...)):
     """VLM 행동분석 — 흡연·졸음·통화·폭력·절차위반 + 규칙행동 재확인. use_vlm 권장."""

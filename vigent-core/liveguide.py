@@ -27,8 +27,15 @@ def build_guidance(detections: list[dict], use_vlm: bool, image_bgr=None) -> dic
         urgent.append(f"주의. {v} 작업 반경에 작업자가 접근했습니다. 거리를 유지하세요.")
     if any(l in ("fire", "smoke") for l in low):
         urgent.append("화재 또는 연기가 감지되었습니다. 즉시 확인하세요.")
-    if any(l.startswith("no-") for l in low):
-        urgent.append("보호구 미착용이 감지되었습니다. 안전모와 보호구를 착용하세요.")
+    # 현장별 설정된 필수 보호구 점검(미착용 경고)
+    try:
+        import ppe_check
+        ppe = ppe_check.check(detections, image_bgr=image_bgr, use_vlm=use_vlm)
+        if ppe.get("missing"):
+            names = ", ".join(m["label"] for m in ppe["missing"])
+            urgent.append(f"{names} 미착용이 감지되었습니다. 착용하세요.")
+    except Exception:  # noqa: BLE001
+        pass
 
     info = ""
     act_id = safety_brain.detect_activity(image_bgr, present, use_vlm)
