@@ -126,11 +126,11 @@
       <video id="videoEl" autoplay muted playsinline></video>
       <img id="imageEl" alt=""/>
       <canvas id="outputCanvas"></canvas>
-      <!-- 🦺 보호구 실시간 점검 HUD(메뉴 토글 시 표시) -->
-      <div id="ppeHud" style="display:none;position:absolute;top:12px;left:12px;z-index:30;min-width:170px;
-        background:rgba(8,8,10,.82);border:1px solid #2a2a2e;border-radius:8px;padding:10px 12px;
-        font-family:'SF Mono','D2Coding',monospace;font-size:12.5px;backdrop-filter:blur(3px)">
-        <div style="color:#d4a017;font-weight:800;margin-bottom:6px;letter-spacing:.5px">🦺 보호구 점검</div>
+      <!-- 🦺 보호구 실시간 점검 HUD(좌하단 — 로고·패널과 겹치지 않게) -->
+      <div id="ppeHud" style="display:none;position:absolute;left:14px;bottom:64px;z-index:30;min-width:150px;max-width:220px;
+        background:rgba(8,8,10,.72);border:1px solid #1c1c20;border-radius:8px;padding:8px 11px;
+        font-family:'SF Mono','D2Coding',monospace;font-size:12px;backdrop-filter:blur(4px)">
+        <div style="color:#8a6817;font-weight:700;font-size:11px;margin-bottom:5px;letter-spacing:.5px;text-transform:uppercase">🦺 보호구</div>
         <div id="ppeHudBody" style="color:#6b7280">대기…</div>
       </div>
 
@@ -343,7 +343,7 @@
 </main>
 
 <script>window.AX_LOCK_THEME="safety";</script>
-<script src="/static/realtime_core.js?v=20260628-ppeauto"></script>
+<script src="/static/realtime_core.js?v=20260628-ppehud2"></script>
 
 <!-- 스켈레톤 스무딩 고도화: 기존 이동평균 smoothPose 를 One-Euro 필터로 교체.
      (realtime_core.js 는 안 건드리고 전역 함수만 덮어씀 — AX 엔진 그대로) -->
