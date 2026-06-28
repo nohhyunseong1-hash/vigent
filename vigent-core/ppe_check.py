@@ -75,37 +75,66 @@ def save_rules(required: list[str], site: str = "") -> dict[str, Any]:
     return {"ok": True, "required": req, "site": site}
 
 
+def _vlm_missing_batch(image_bgr, items: list[dict]) -> set[str]:
+    """VLM 1회 호출로 '미착용' 보호구를 한꺼번에 판정 → 미착용 id 집합(실시간용)."""
+    if not items or image_bgr is None:
+        return set()
+    labels = [it["label"] for it in items]
+    prompt = ("작업자 사진이다. 아래 보호구 중 작업자가 '착용하지 않은(미착용)' 것만 "
+              "한국어로 정확한 명칭 그대로 쉼표로 나열하라. 모두 착용했으면 정확히 '없음'이라 답하라. "
+              "추측 금지.\n보호구 목록: " + ", ".join(labels))
+    try:
+        import rfdetr_service
+        data = rfdetr_service.vlm.summarize_bgr(image_bgr, prompt=prompt)
+        txt = str(data.get("raw") or " ".join(str(v) for k, v in data.items()
+                                               if not str(k).startswith("_")))
+    except Exception:  # noqa: BLE001
+        return set()
+    if "없음" in txt and not any(it["label"] in txt for it in items):
+        return set()
+    return {it["id"] for it in items if it["label"] in txt}
+
+
 def check(detections: list[dict], image_bgr=None, required: list[str] | None = None,
           use_vlm: bool = True) -> dict[str, Any]:
-    """필수 보호구별 착용 상태 점검. 반환: {results:[{id,label,status}], missing:[...]}.
+    """필수 보호구 착용 점검(실시간 최적화: VLM은 1회 호출로 일괄).
+    반환: {results:[{id,label,status,method}], missing:[...], warn}.
     status: present(착용)/missing(미착용)/unknown(판단불가)."""
     req = required if required is not None else get_rules()["required"]
     low = [str(d.get("label") or "").lower() for d in detections]
     results = []
+    need_vlm = []
     for pid in req:
         item = _BY_ID.get(pid)
         if not item:
             continue
-        status = "unknown"
-        via = item["method"]
+        status, via = "unknown", item["method"]
         if item["method"] == "yolo":
             if item["miss"] in low:
                 status = "missing"
             elif item["have"] in low:
                 status = "present"
-        # VLM 점검: 전용 VLM 항목 또는 YOLO가 신호 못 낸 경우(폴백)
         if status == "unknown" and use_vlm and image_bgr is not None and item.get("q"):
-            try:
-                import safety_brain
-                v = safety_brain._vlm_present(image_bgr, item["q"])
-                status = "present" if v is True else "missing" if v is False else "unknown"
-                via = "vlm"
-            except Exception:  # noqa: BLE001
-                status = "unknown"
+            need_vlm.append(item)        # VLM 일괄 처리 대상
+            via = "vlm"
         results.append({"id": pid, "label": item["label"], "method": via, "status": status})
+    # VLM 한 번에 — 미착용 일괄 판정
+    if need_vlm:
+        miss_ids = _vlm_missing_batch(image_bgr, need_vlm)
+        for r in results:
+            if r["status"] == "unknown" and r["method"] == "vlm":
+                r["status"] = "missing" if r["id"] in miss_ids else "present"
     missing = [r for r in results if r["status"] == "missing"]
     return {"ok": True, "results": results, "missing": missing,
             "warn": ("보호구 미착용: " + ", ".join(r["label"] for r in missing)) if missing else ""}
+
+
+def render_live() -> str:
+    rules = get_rules()
+    chips = "".join(f'<span class="chip">{_BY_ID[pid]["label"]}</span>'
+                    for pid in rules["required"] if pid in _BY_ID) \
+        or '<span class="dim">설정된 필수 보호구 없음 — 먼저 설정하세요</span>'
+    return _LIVE.replace("{{CHIPS}}", chips).replace("{{SITE}}", rules.get("site") or "현장")
 
 
 def render() -> str:
@@ -140,6 +169,7 @@ _PAGE = r"""<!DOCTYPE html><html lang="ko"><head><meta charset="UTF-8">
   <input type="text" id="site" placeholder="현장명 (예: ○○건설 A동)" value="{{SITE}}">
   <div id="list">{{ROWS}}</div>
   <button class="btn" onclick="save()">저장</button>
+  <button class="btn" style="background:#235e34;border-color:#235e34;margin-top:8px" onclick="location.href='/safety/ppe/live'">▶ 실시간 감지 시작</button>
   <div id="msg"></div>
   <div class="dim">🟢 YOLO 직접 = 모델이 바로 감지(빠름) · 🟡 VLM 보조 = AI가 보고 판단(느림·확률적)<br>
     ⚠ 보조 알림이며 인증 안전장치를 대체하지 않습니다.</div>
@@ -151,5 +181,66 @@ _PAGE = r"""<!DOCTYPE html><html lang="ko"><head><meta charset="UTF-8">
     const r=await fetch('/safety/ppe/rules',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({required:req,site})});
     const j=await r.json();
     document.getElementById('msg').innerHTML='<span style="color:#34d399">✓ 저장됨: '+(j.required||[]).length+'개 필수 보호구</span>';
+  }
+</script></body></html>"""
+
+
+_LIVE = r"""<!DOCTYPE html><html lang="ko"><head><meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>VIGENT · 실시간 보호구 감지</title><style>
+  body{margin:0;background:#000;color:#e8e8e8;font-family:"SF Mono","D2Coding","Apple SD Gothic Neo",monospace}
+  .wrap{max-width:740px;margin:0 auto;padding:20px 16px 50px}
+  h1{font-size:18px;color:#ffb000;margin:0 0 2px} .sub{color:#6b7280;font-size:12px;margin-bottom:12px}
+  video{width:100%;border-radius:8px;background:#000;border:1px solid #1c1c20}
+  .row{display:flex;gap:10px;margin:12px 0}
+  .btn{flex:1;padding:13px;border-radius:8px;border:1px solid #2a2a2e;background:#0e0c08;color:#e8e8e8;font-size:15px;font-weight:700;cursor:pointer;font-family:inherit}
+  .btn.start{background:#8a6817;border-color:#8a6817;color:#fff}
+  .chip{display:inline-block;background:#1c1c20;color:#9aa0a6;padding:4px 10px;border-radius:12px;font-size:12px;margin:2px}
+  .pitem{display:flex;align-items:center;gap:10px;padding:11px 14px;border-radius:8px;margin-bottom:7px;font-size:15px;font-weight:700;border:1px solid #1c1c20}
+  .present{background:#0f2a1a;color:#34d399} .missing{background:#2a0f0f;color:#ff6b6b} .unknown{background:#0c0c0e;color:#6b7280}
+  .ico{font-size:18px} #banner{padding:14px;border-radius:8px;text-align:center;font-size:17px;font-weight:800;margin-bottom:10px}
+  .ok{background:#0f2a1a;color:#34d399} .bad{background:#3a0f0f;color:#ff5252} .wait{background:#0c0c0e;color:#6b7280}
+  .dim{color:#6b7280;font-size:12px;margin-top:10px;line-height:1.6}
+</style></head><body><div class="wrap">
+  <h1>🦺 실시간 보호구 감지 · {{SITE}}</h1>
+  <div class="sub">필수: {{CHIPS}}</div>
+  <video id="vid" autoplay playsinline muted></video>
+  <div class="row">
+    <button class="btn start" id="cam" onclick="toggle()">● 감지 시작</button>
+    <button class="btn" id="voice" onclick="voiceOn=!voiceOn;this.classList.toggle('start',voiceOn);this.textContent=voiceOn?'🔊 음성 켬':'🔊 음성 끔'">🔊 음성 끔</button>
+  </div>
+  <div id="banner" class="wait">카메라를 켜세요</div>
+  <div class="status" id="status"></div>
+  <div class="dim">VLM이 보호구를 확인하는 데 약 5~10초 걸려 그 간격으로 갱신됩니다(근실시간).<br>⚠ 보조 알림 — 인증 안전장치 아님. 최종 확인은 안전관리자.</div>
+</div>
+<script>
+  let stream=null,busy=false,timer=null,voiceOn=false,lastWarn='',lastT=0;
+  const vid=document.getElementById('vid');
+  async function toggle(){
+    if(stream){ stream.getTracks().forEach(t=>t.stop()); stream=null; clearInterval(timer);
+      document.getElementById('cam').textContent='● 감지 시작'; document.getElementById('cam').classList.add('start');
+      banner('wait','감지 중지'); return; }
+    try{ stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:'environment'}}); }
+    catch(e){ try{ stream=await navigator.mediaDevices.getUserMedia({video:true}); }catch(e2){ alert('카메라 실패'); return; } }
+    vid.srcObject=stream; document.getElementById('cam').textContent='■ 감지 중지'; document.getElementById('cam').classList.remove('start');
+    banner('wait','보호구 확인 중…'); timer=setInterval(tick,3000); tick();
+  }
+  function banner(c,t){ const b=document.getElementById('banner'); b.className=c; b.textContent=t; }
+  function cap(){ const c=document.createElement('canvas'); c.width=vid.videoWidth||640; c.height=vid.videoHeight||480;
+    if(!c.width)return null; c.getContext('2d').drawImage(vid,0,0); return c.toDataURL('image/jpeg',0.7).split(',')[1]; }
+  function speak(t){ if(!voiceOn)return; const n=Date.now(); if(t===lastWarn&&n-lastT<10000)return; lastWarn=t;lastT=n;
+    try{ speechSynthesis.cancel(); const u=new SpeechSynthesisUtterance(t); u.lang='ko-KR'; speechSynthesis.speak(u);}catch(e){} }
+  async function tick(){
+    if(busy)return; const b64=cap(); if(!b64)return; busy=true;
+    try{
+      const j=await (await fetch('/safety/ppe/check',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({image_base64:b64,use_vlm:true})})).json();
+      const ico={present:'✅',missing:'⚠️',unknown:'❔'};
+      document.getElementById('status').innerHTML=(j.results||[]).map(r=>
+        '<div class="pitem '+r.status+'"><span class="ico">'+ico[r.status]+'</span>'+r.label+
+        '<span style="margin-left:auto;font-size:12px;color:#6b7280">'+({present:'착용',missing:'미착용',unknown:'확인불가'}[r.status])+'</span></div>').join('');
+      if(j.missing&&j.missing.length){ banner('bad','⚠ '+j.warn); speak(j.warn); }
+      else if((j.results||[]).some(r=>r.status==='present')){ banner('ok','✅ 보호구 착용 정상'); }
+      else{ banner('wait','작업자·보호구 확인 중…'); }
+    }catch(e){} busy=false;
   }
 </script></body></html>"""

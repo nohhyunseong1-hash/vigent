@@ -1122,6 +1122,13 @@ def safety_ppe_page():
     return ppe_check.render()
 
 
+@app.get("/safety/ppe/live", response_class=HTMLResponse)
+def safety_ppe_live_page():
+    """실시간 보호구 감지 — 카메라 + 주기 점검(VLM)."""
+    import ppe_check
+    return ppe_check.render_live()
+
+
 @app.get("/safety/ppe/rules")
 def safety_ppe_rules_get():
     import ppe_check
