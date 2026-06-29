@@ -345,7 +345,7 @@
 </main>
 
 <script>window.AX_LOCK_THEME="safety";</script>
-<script src="/static/realtime_core.js?v=20260629-ppevlmauto"></script>
+<script src="/static/realtime_core.js?v=20260629-sharedframe"></script>
 
 <!-- 스켈레톤 스무딩 고도화: 기존 이동평균 smoothPose 를 One-Euro 필터로 교체.
      (realtime_core.js 는 안 건드리고 전역 함수만 덮어씀 — AX 엔진 그대로) -->
@@ -422,6 +422,10 @@
       c.getContext('2d').drawImage(videoEl,0,0,c.width,c.height); return c.toDataURL('image/jpeg',0.7);
     }catch(e){ return null; }
   }
+  // 프레임 공유: 짧은 시간(500ms) 내 여러 폴링이 같은 프레임을 재사용 → 중복 캡처·인코딩 제거(성능↑)
+  let _frmCache=null,_frmTs=0;
+  function sharedFrame(){ const now=Date.now(); if(_frmCache && now-_frmTs<500) return _frmCache;
+    _frmCache=captureEvidence(); _frmTs=now; return _frmCache; }
   setInterval(async ()=>{
     try{
       const f = (window.stats&&window.stats.fall)||0;
@@ -431,7 +435,7 @@
         _fallCooldown=Date.now()+10000;
         const vlmOn = !!document.getElementById('togVlmConfirm')?.checked;
         const r=await fetch('/safety/fall',{method:'POST',headers:{'Content-Type':'application/json'},
-          body:JSON.stringify({image_base64:captureEvidence(), vlm_confirm:vlmOn})});
+          body:JSON.stringify({image_base64:sharedFrame(), vlm_confirm:vlmOn})});
         const j=await r.json();
         if(j.suppressed) console.info('[VIGENT] 🧠 VLM 오탐 필터 — 낙상 알림 억제(증거는 저장):',j.message);
         else console.warn('[VIGENT] 🚨 낙상 알림:',j.message,'· 휴대폰발송='+j.phone_sent);
@@ -453,7 +457,7 @@
       if(now-_postBadSince>=3000 && now>=_postCooldown){  // 3초 지속 + 쿨다운
         _postCooldown=now+60000;
         const r=await fetch('/safety/posture',{method:'POST',headers:{'Content-Type':'application/json'},
-          body:JSON.stringify({image_base64:captureEvidence(), note:'근골격계 부담 자세 3초 이상 지속'})});
+          body:JSON.stringify({image_base64:sharedFrame(), note:'근골격계 부담 자세 3초 이상 지속'})});
         const j=await r.json();
         console.info('[VIGENT] 🙇 근골격계 자세 기록:', j.message||'ergonomic_risk');
       }
@@ -472,7 +476,7 @@
       if(now-_ppeBadSince>=2000 && now>=_ppeCool){          // 2초 지속 + 30초 쿨다운
         _ppeCool=now+30000;
         await fetch('/recognition/log',{method:'POST',headers:{'Content-Type':'application/json'},
-          body:JSON.stringify({rule:'ppe_missing',level:'high',site:'현장',note:'보호구 미착용 감지',image:captureEvidence()})});
+          body:JSON.stringify({rule:'ppe_missing',level:'high',site:'현장',note:'보호구 미착용 감지',image:sharedFrame()})});
         console.info('[VIGENT] 🦺 보호구 미착용 기록');
       }
     }catch(e){}
@@ -489,7 +493,7 @@
       if(now-_fireSince>=2000 && now>=_fireCool){
         _fireCool=now+30000;
         await fetch('/recognition/log',{method:'POST',headers:{'Content-Type':'application/json'},
-          body:JSON.stringify({rule:'fire_smoke',level:'critical',site:'현장',note:'화재/연기 감지',image:captureEvidence()})});
+          body:JSON.stringify({rule:'fire_smoke',level:'critical',site:'현장',note:'화재/연기 감지',image:sharedFrame()})});
         console.warn('[VIGENT] 🔥 화재/연기 기록');
       }
     }catch(e){}
@@ -508,7 +512,7 @@
         const h=px[0];
         await fetch('/recognition/log',{method:'POST',headers:{'Content-Type':'application/json'},
           body:JSON.stringify({rule:'proximity_hazard',level:'high',site:'현장',
-            note:h.vehicle+' 작업반경 침입 — 사람 약 '+h.distance_m+'m',image:captureEvidence()})});
+            note:h.vehicle+' 작업반경 침입 — 사람 약 '+h.distance_m+'m',image:sharedFrame()})});
         console.warn('[VIGENT] 🚧 작업반경 침입(협착) 기록:', h.vehicle, h.distance_m+'m');
       }
     }catch(e){}
@@ -533,7 +537,7 @@
     try{
       const act=document.getElementById('brainActivity')?.value;
       if(!act || busy || typeof captureEvidence!=='function') return;
-      const dataUrl=captureEvidence(); if(!dataUrl) return;
+      const dataUrl=sharedFrame(); if(!dataUrl) return;
       busy=true;
       const b64=String(dataUrl).split(',')[1];
       let present=[];
@@ -602,7 +606,7 @@
     if(!tog.checked){ hud.style.display='none'; return; }
     hud.style.display='block';
     if(_ppeBusy || typeof captureEvidence!=='function') return;
-    const dataUrl=captureEvidence(); if(!dataUrl){ return; }
+    const dataUrl=sharedFrame(); if(!dataUrl){ return; }
     _ppeBusy=true;
     try{
       const b64=String(dataUrl).split(',')[1];

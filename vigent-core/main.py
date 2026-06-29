@@ -293,6 +293,15 @@ def _decode_data_url(image: str):
         return None
 
 
+def _img_from_b64(raw):
+    """base64 또는 data:URL 문자열 → BGR numpy(없거나 실패 시 None). data: 접두어 자동 보정.
+    여러 엔드포인트의 동일 디코드 블록을 한 곳으로 통합."""
+    if not raw:
+        return None
+    rawd = raw if str(raw).startswith("data:") else "data:image/jpeg;base64," + raw
+    return _decode_data_url(rawd)
+
+
 @app.post("/detect/frame")
 def detect_frame(payload: dict = Body(...), theme: str = DEFAULT_THEME):
     """Guard 딥러닝 정밀 탐지(브라우저 백엔드 보강).
@@ -1058,8 +1067,7 @@ def safety_eval_run(payload: dict = Body(...), theme: str = DEFAULT_THEME):
     results, details = [], []
     for idx, it in enumerate(items):
         raw = it.get("image_base64") or ""
-        rawd = raw if str(raw).startswith("data:") else "data:image/jpeg;base64," + raw
-        img = _decode_data_url(rawd)
+        img = _img_from_b64(raw)
         if img is None:
             continue
         boxes, dets, hazards = [], [], []
@@ -1100,8 +1108,7 @@ def safety_voice_scene(payload: dict = Body(...), theme: str = DEFAULT_THEME):
     """실시간 프레임 → 위험·작업 인식 → 음성 안내 메시지(speak)."""
     import liveguide
     raw = payload.get("image_base64") or payload.get("image") or ""
-    rawd = raw if str(raw).startswith("data:") else "data:image/jpeg;base64," + raw
-    img = _decode_data_url(rawd)
+    img = _img_from_b64(raw)
     if img is None:
         return {"ok": False, "error": "이미지 없음"}
     bundle = STATE.get(theme) or _load_theme(theme)
@@ -1155,8 +1162,7 @@ def safety_ppe_check(payload: dict = Body(...), theme: str = DEFAULT_THEME):
     """이미지 → 현장 필수 보호구 착용 점검(미착용 경고). use_vlm 권장."""
     import ppe_check
     raw = payload.get("image_base64") or payload.get("image") or ""
-    rawd = raw if str(raw).startswith("data:") else "data:image/jpeg;base64," + raw
-    img = _decode_data_url(rawd)
+    img = _img_from_b64(raw)
     if img is None:
         return {"ok": False, "error": "이미지 없음"}
     bundle = STATE.get(theme) or _load_theme(theme)
@@ -1176,8 +1182,7 @@ def safety_behavior_analyze(payload: dict = Body(...)):
     """VLM 행동분석 — 흡연·졸음·통화·폭력·절차위반 + 규칙행동 재확인. use_vlm 권장."""
     import behavior
     raw = payload.get("image_base64") or payload.get("image") or ""
-    rawd = raw if str(raw).startswith("data:") else "data:image/jpeg;base64," + raw
-    img = _decode_data_url(rawd)
+    img = _img_from_b64(raw)
     if img is None:
         return {"ok": False, "error": "이미지 없음"}
     return behavior.analyze(img, use_vlm=bool(payload.get("use_vlm", True)),
@@ -1197,8 +1202,7 @@ def safety_incident_frame(payload: dict = Body(...), theme: str = DEFAULT_THEME)
     반환: {score, person_count, hazards:[유형], detections:[클래스]}."""
     import proximity as _prox
     raw = payload.get("image_base64") or payload.get("image") or ""
-    rawd = raw if str(raw).startswith("data:") else "data:image/jpeg;base64," + raw
-    img = _decode_data_url(rawd)
+    img = _img_from_b64(raw)
     if img is None:
         return {"score": 0, "hazards": []}
     bundle = STATE.get(theme) or _load_theme(theme)
@@ -1234,8 +1238,7 @@ def safety_incident_analyze(payload: dict = Body(...), theme: str = DEFAULT_THEM
     raw = payload.get("image_base64") or payload.get("image")
     if not raw:
         return {"ok": False, "error": "이미지 없음"}
-    rawd = raw if str(raw).startswith("data:") else "data:image/jpeg;base64," + raw
-    img = _decode_data_url(rawd)
+    img = _img_from_b64(raw)
     if img is None:
         return {"ok": False, "error": "이미지 디코딩 실패"}
     bundle = STATE.get(theme) or _load_theme(theme)
@@ -1296,8 +1299,7 @@ def safety_context(payload: dict = Body(...), theme: str = DEFAULT_THEME):
     raw = payload.get("image_base64") or payload.get("image")
     img = None
     if raw:
-        rawd = raw if str(raw).startswith("data:") else "data:image/jpeg;base64," + raw
-        img = _decode_data_url(rawd)
+        img = _img_from_b64(raw)
     ctx = safety_brain.assess_context(payload.get("present"), image_bgr=img,
                                       use_vlm=bool(payload.get("use_vlm")))
     res = ctx.get("assessment")
@@ -1326,8 +1328,7 @@ def safety_brain_inspect(payload: dict = Body(...), theme: str = DEFAULT_THEME):
     raw = payload.get("image_base64") or payload.get("image")
     img = None
     if raw:
-        rawd = raw if str(raw).startswith("data:") else "data:image/jpeg;base64," + raw
-        img = _decode_data_url(rawd)
+        img = _img_from_b64(raw)
     activity = payload.get("activity", "")
     detected = None
     if activity == "auto":                          # 작업을 스스로 인식
