@@ -170,6 +170,8 @@
           <a class="vg-mi" onclick="vgGo('/safety-local')">🔁 로컬 번들판(CDN 없이·비교)</a>
           <a class="vg-mi" onclick="axStartCalibration();vgCloseMenu()">📏 거리 보정 (m·km/h)</a>
           <a class="vg-mi" onclick="toggleTherm();vgCloseMenu()">🌡 온도 감지 (열화상)</a>
+          <div class="vg-mh vg-mt">🦺 필수 보호구 (체크 시 즉시 적용)</div>
+          <div id="ppeCfgList" style="padding:4px 10px 8px;display:flex;flex-wrap:wrap;gap:5px;font-size:11px;color:#dbe6f1">불러오는 중…</div>
         </div>
       </div>
       <div id="calHint" class="cal-hint"></div>
@@ -282,11 +284,7 @@
         </div>
         <div class="card">
           <div class="card-title">⚙️ 안전 설정</div>
-          <div class="toggle-row" title="아래에서 고른 필수 보호구를 실시간 점검합니다. 미착용 시 영상 좌하단에 표시됩니다."><span>🦺 보호구 실시간 점검</span><label class="toggle"><input type="checkbox" id="togPpeLive"><span class="toggle-slider"></span></label></div>
-          <div id="ppeCfgBox" style="padding:2px 2px 8px;border-bottom:1px solid var(--border);margin-bottom:6px">
-            <div style="font-size:11px;color:var(--text-dim,#94a3b8);margin-bottom:5px">필수 보호구 선택 (체크 시 즉시 적용)</div>
-            <div id="ppeCfgList" style="display:flex;flex-wrap:wrap;gap:5px;font-size:11px">불러오는 중…</div>
-          </div>
+          <div class="toggle-row" title="☰ 메뉴 하단 '필수 보호구'에서 고른 항목을 실시간 점검합니다. 미착용 시 영상 좌하단에 표시됩니다."><span>🦺 보호구 실시간 점검</span><label class="toggle"><input type="checkbox" id="togPpeLive"><span class="toggle-slider"></span></label></div>
           <div class="toggle-row"><span>안전모/조끼 알림</span><label class="toggle"><input type="checkbox" id="togPPE" checked><span class="toggle-slider"></span></label></div>
           <div class="toggle-row"><span>낙상 감지 (6프레임)</span><label class="toggle"><input type="checkbox" id="togFall" checked><span class="toggle-slider"></span></label></div>
           <div class="toggle-row"><span>위험 자세 감지</span><label class="toggle"><input type="checkbox" id="togPosture" checked><span class="toggle-slider"></span></label></div>
@@ -347,7 +345,7 @@
 </main>
 
 <script>window.AX_LOCK_THEME="safety";</script>
-<script src="/static/realtime_core.js?v=20260629-ppecfg"></script>
+<script src="/static/realtime_core.js?v=20260629-ppemenu"></script>
 
 <!-- 스켈레톤 스무딩 고도화: 기존 이동평균 smoothPose 를 One-Euro 필터로 교체.
      (realtime_core.js 는 안 건드리고 전역 함수만 덮어씀 — AX 엔진 그대로) -->
