@@ -1129,6 +1129,15 @@ def safety_ppe_live_page():
     return ppe_check.render_live()
 
 
+@app.get("/safety/ppe/catalog")
+def safety_ppe_catalog():
+    """보호구 카탈로그(id·라벨·방식) — 메인 화면 메뉴에서 선택용."""
+    import ppe_check
+    return {"catalog": [{"id": p["id"], "label": p["label"], "method": p["method"]}
+                        for p in ppe_check.PPE_CATALOG],
+            "rules": ppe_check.get_rules()}
+
+
 @app.get("/safety/ppe/rules")
 def safety_ppe_rules_get():
     import ppe_check

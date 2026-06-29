@@ -282,7 +282,11 @@
         </div>
         <div class="card">
           <div class="card-title">⚙️ 안전 설정</div>
-          <div class="toggle-row" title="현장 보호구 설정(/safety/ppe)에서 지정한 필수 보호구를 VLM이 실시간 점검합니다. 미착용 시 화면에 표시됩니다(근실시간, 수초 간격)."><span>🦺 보호구 실시간 점검(VLM)</span><label class="toggle"><input type="checkbox" id="togPpeLive"><span class="toggle-slider"></span></label></div>
+          <div class="toggle-row" title="아래에서 고른 필수 보호구를 실시간 점검합니다. 미착용 시 영상 좌하단에 표시됩니다."><span>🦺 보호구 실시간 점검</span><label class="toggle"><input type="checkbox" id="togPpeLive"><span class="toggle-slider"></span></label></div>
+          <div id="ppeCfgBox" style="padding:2px 2px 8px;border-bottom:1px solid var(--border);margin-bottom:6px">
+            <div style="font-size:11px;color:var(--text-dim,#94a3b8);margin-bottom:5px">필수 보호구 선택 (체크 시 즉시 적용)</div>
+            <div id="ppeCfgList" style="display:flex;flex-wrap:wrap;gap:5px;font-size:11px">불러오는 중…</div>
+          </div>
           <div class="toggle-row"><span>안전모/조끼 알림</span><label class="toggle"><input type="checkbox" id="togPPE" checked><span class="toggle-slider"></span></label></div>
           <div class="toggle-row"><span>낙상 감지 (6프레임)</span><label class="toggle"><input type="checkbox" id="togFall" checked><span class="toggle-slider"></span></label></div>
           <div class="toggle-row"><span>위험 자세 감지</span><label class="toggle"><input type="checkbox" id="togPosture" checked><span class="toggle-slider"></span></label></div>
@@ -343,7 +347,7 @@
 </main>
 
 <script>window.AX_LOCK_THEME="safety";</script>
-<script src="/static/realtime_core.js?v=20260629-ppefast"></script>
+<script src="/static/realtime_core.js?v=20260629-ppecfg"></script>
 
 <!-- 스켈레톤 스무딩 고도화: 기존 이동평균 smoothPose 를 One-Euro 필터로 교체.
      (realtime_core.js 는 안 건드리고 전역 함수만 덮어씀 — AX 엔진 그대로) -->
@@ -564,14 +568,27 @@
   }, 20000);
 
   // ── 🦺 보호구 실시간 점검(VLM) → 화면 HUD 표시 ──
-  // 현장 보호구 설정(/safety/ppe)에 필수 보호구가 있으면 자동으로 켠다(설정 즉시 적용).
+  // 메뉴에서 필수 보호구 선택 → 저장 → 즉시 적용. 설정 있으면 자동 켜짐.
+  async function ppeSaveFromMenu(){
+    const ids=[...document.querySelectorAll('#ppeCfgList input:checked')].map(c=>c.value);
+    try{ await fetch('/safety/ppe/rules',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({required:ids,site:'현장'})}); }catch(e){}
+    const t=document.getElementById('togPpeLive'), hud=document.getElementById('ppeHud');
+    if(ids.length){ if(t)t.checked=true; if(hud)hud.style.display='block'; }
+  }
   (async ()=>{ try{
-    const rl=await (await fetch('/safety/ppe/rules')).json();
-    const t=document.getElementById('togPpeLive');
-    if(t && rl && (rl.required||[]).length>0){ t.checked=true;
-      const hud=document.getElementById('ppeHud'); if(hud) hud.style.display='block';
-      console.info('[VIGENT] 🦺 보호구 실시간 점검 자동 켜짐 — 필수:', (rl.required||[]).join(', '));
+    const d=await (await fetch('/safety/ppe/catalog')).json();
+    const req=new Set((d.rules&&d.rules.required)||[]);
+    const list=document.getElementById('ppeCfgList');
+    if(list){ list.innerHTML=(d.catalog||[]).map(p=>
+      '<label style="display:inline-flex;align-items:center;gap:3px;background:var(--surface2,#0c1521);border:1px solid var(--border);border-radius:12px;padding:3px 8px;cursor:pointer">'
+      +'<input type="checkbox" value="'+p.id+'"'+(req.has(p.id)?' checked':'')+' style="width:13px;height:13px;accent-color:#d4a017">'
+      +p.label+'</label>').join('');
+      list.querySelectorAll('input').forEach(c=>c.addEventListener('change', ppeSaveFromMenu));
     }
+    const t=document.getElementById('togPpeLive'), hud=document.getElementById('ppeHud');
+    if(req.size>0){ if(t)t.checked=true; if(hud)hud.style.display='block';
+      console.info('[VIGENT] 🦺 보호구 실시간 점검 자동 켜짐 — 필수:', [...req].join(', ')); }
   }catch(e){} })();
   let _ppeBusy=false;
   setInterval(async ()=>{
