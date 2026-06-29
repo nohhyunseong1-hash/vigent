@@ -16,7 +16,10 @@ perception:                       # ── Guard (감지)
     - {id: person, model: vigent-core/weights/yolo11m.pt, fallback: vigent-core/weights/yolo11s.pt, classes: [person]}
     # PPE: 25클래스 주력 모델. 안전모·조끼·마스크 착용/미착용 직접 감지 + 차량·중장비.
     #   라벨은 공백형으로 출력(Safety Vest 등) → guard.py 가 표준형(Safety-Vest)으로 정규화.
-    - {id: ppe, model: vigent-core/weights/ppe_construction_v30.pt, fallback: heuristic,
+    # ppe_css_v1: CSS 상업데이터(CC BY 4.0) 학습. 실측 mAP50 — 마스크/조끼 91%, 안전모 86%,
+    #   미착용 NO-Hardhat 72%·NO-Mask 79%·NO-Safety Vest 82% (구 v30 대비 미착용 감지 대폭↑).
+    #   되돌리려면 model 을 weights/ppe_construction_v30.pt 로 바꾸면 됨(구 모델 보존).
+    - {id: ppe, model: vigent-core/weights/ppe_css_v1.pt, fallback: heuristic,
        classes: [Hardhat, NO-Hardhat, Safety-Vest, NO-Safety-Vest, Mask, NO-Mask]}
     # 화재/연기: fire_smoke_boda(Fire/smoke 2종, smoke mAP 0.896). 폴백은 HSV 색공간 휴리스틱
     - {id: fire_smoke, model: vigent-core/weights/fire_smoke_boda.pt, fallback: hsv_heuristic}
