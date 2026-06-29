@@ -1567,6 +1567,210 @@
         "vehicle_machine",
         "electrical"
       ]
+    },
+    {
+      "id": "port",
+      "name": "항만·하역",
+      "field_mode": true,
+      "keywords": [
+        "항만",
+        "부두",
+        "하역",
+        "컨테이너",
+        "크레인",
+        "선적"
+      ],
+      "likely": [
+        "lifting",
+        "vehicle_machine",
+        "material_handling"
+      ]
+    },
+    {
+      "id": "tunnel_site",
+      "name": "터널·지하",
+      "field_mode": true,
+      "keywords": [
+        "터널",
+        "지하",
+        "갱내",
+        "굴진",
+        "발파"
+      ],
+      "likely": [
+        "tunnel",
+        "excavation",
+        "blasting",
+        "confined_space"
+      ]
+    },
+    {
+      "id": "scaffold_height",
+      "name": "고소·비계",
+      "field_mode": true,
+      "keywords": [
+        "비계",
+        "고소",
+        "높은곳",
+        "사다리",
+        "발판"
+      ],
+      "likely": [
+        "work_at_height",
+        "scaffold",
+        "steel_erection",
+        "roof_work"
+      ]
+    },
+    {
+      "id": "electrical_site",
+      "name": "전기설비·발전",
+      "field_mode": true,
+      "keywords": [
+        "전기",
+        "배전",
+        "변전",
+        "활선",
+        "발전",
+        "송전"
+      ],
+      "likely": [
+        "electrical"
+      ]
+    },
+    {
+      "id": "chemical_plant",
+      "name": "화학플랜트",
+      "field_mode": true,
+      "keywords": [
+        "화학",
+        "플랜트",
+        "배관",
+        "약품",
+        "반응기",
+        "가스"
+      ],
+      "likely": [
+        "gas_piping",
+        "hot_work",
+        "confined_space"
+      ]
+    },
+    {
+      "id": "rooftop",
+      "name": "옥상·지붕",
+      "field_mode": true,
+      "keywords": [
+        "옥상",
+        "지붕",
+        "방수",
+        "채광창",
+        "처마"
+      ],
+      "likely": [
+        "roof_work",
+        "work_at_height",
+        "facade_clean"
+      ]
+    },
+    {
+      "id": "shipyard",
+      "name": "조선소",
+      "field_mode": true,
+      "keywords": [
+        "조선",
+        "선박",
+        "블록",
+        "도크",
+        "용접"
+      ],
+      "likely": [
+        "hot_work",
+        "work_at_height",
+        "painting",
+        "confined_space"
+      ]
+    },
+    {
+      "id": "food_factory",
+      "name": "식품가공",
+      "field_mode": true,
+      "keywords": [
+        "식품",
+        "가공",
+        "주방",
+        "슬라이서",
+        "냉동"
+      ],
+      "likely": [
+        "material_handling",
+        "cold_storage"
+      ]
+    },
+    {
+      "id": "hospital",
+      "name": "의료·보건",
+      "field_mode": false,
+      "keywords": [
+        "병원",
+        "의료",
+        "방사선",
+        "환자",
+        "요양"
+      ],
+      "likely": [
+        "radiation",
+        "material_handling"
+      ]
+    },
+    {
+      "id": "farm",
+      "name": "농지·임야",
+      "field_mode": true,
+      "keywords": [
+        "농업",
+        "임업",
+        "트랙터",
+        "벌목",
+        "농약"
+      ],
+      "likely": [
+        "logging",
+        "vehicle_machine"
+      ]
+    },
+    {
+      "id": "waste_site",
+      "name": "폐기물처리",
+      "field_mode": true,
+      "keywords": [
+        "폐기물",
+        "재활용",
+        "소각",
+        "매립",
+        "분쇄"
+      ],
+      "likely": [
+        "vehicle_machine",
+        "sewer"
+      ]
+    },
+    {
+      "id": "road_work",
+      "name": "도로공사",
+      "field_mode": true,
+      "keywords": [
+        "도로",
+        "포장",
+        "차선",
+        "교통",
+        "공사구간"
+      ],
+      "likely": [
+        "road_traffic",
+        "excavation",
+        "vehicle_machine"
+      ]
     }
   ],
   "industries": [
@@ -1965,6 +2169,62 @@
         {
           "law": "정보통신 안전 가이드",
           "desc": "고소·감전·소화설비"
+        }
+      ]
+    },
+    {
+      "id": "port_logistics",
+      "name": "항만하역업",
+      "aliases": [
+        "항만",
+        "하역",
+        "부두",
+        "컨테이너"
+      ],
+      "hazards": [
+        "협착(하역기계)",
+        "낙하물",
+        "추락",
+        "끼임"
+      ],
+      "key_activities": [
+        "lifting",
+        "material_handling",
+        "vehicle_machine"
+      ],
+      "key_points": "컨테이너·중량물 양중 협착·낙하물 위험. 신호수·출입통제·줄걸이 점검.",
+      "regulations": [
+        {
+          "law": "항만안전특별법·산업안전보건기준에 관한 규칙",
+          "desc": "하역·양중 안전"
+        }
+      ]
+    },
+    {
+      "id": "building_mgmt",
+      "name": "건물관리·청소",
+      "aliases": [
+        "건물관리",
+        "미화",
+        "청소",
+        "시설관리"
+      ],
+      "hazards": [
+        "추락(고소청소)",
+        "감전",
+        "미끄러짐",
+        "화학물질"
+      ],
+      "key_activities": [
+        "facade_clean",
+        "work_at_height",
+        "electrical"
+      ],
+      "key_points": "고소 외벽청소 추락·감전 위험. 안전대·달비계 점검·세제 취급주의.",
+      "regulations": [
+        {
+          "law": "산업안전보건기준에 관한 규칙",
+          "desc": "추락·전기·화학물질"
         }
       ]
     }
