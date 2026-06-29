@@ -1091,6 +1091,94 @@
       "situation": "환자 이동·들기 반복으로 요추 손상(근골격계)",
       "cause": "이동보조기구·인력 부족",
       "prevention": "이동 리프트·보조기구, 2인 작업, 자세 교육"
+    },
+    {
+      "id": "con_falling_object",
+      "industry": "construction",
+      "accident": "물체에맞음",
+      "activities": [
+        "lifting",
+        "height_work"
+      ],
+      "signals": [
+        "person",
+        "forklift"
+      ],
+      "situation": "고소작업 하부에서 상부 낙하물(자재·공구)에 맞아 재해",
+      "cause": "낙하물 방지망·방호선반 미설치, 하부 출입통제 미흡, 자재 미결속",
+      "prevention": "낙하물 방지망·방호선반, 하부 출입통제, 자재 결속·정리, 안전모 착용"
+    },
+    {
+      "id": "con_height_fall",
+      "industry": "construction",
+      "accident": "떨어짐",
+      "activities": [
+        "height_work",
+        "scaffold"
+      ],
+      "signals": [
+        "person"
+      ],
+      "situation": "비계·지붕·개구부 가장자리에서 추락(건설 사망재해 1위)",
+      "cause": "안전대 미체결, 안전난간·개구부 덮개 미설치, 작업발판 불량",
+      "prevention": "안전대 체결·안전난간·개구부 덮개·추락방호망, 작업발판 확보"
+    },
+    {
+      "id": "mfg_entangle",
+      "industry": "factory",
+      "accident": "끼임",
+      "activities": [
+        "machine_work"
+      ],
+      "signals": [
+        "person"
+      ],
+      "situation": "롤러·컨베이어 등 회전·가동부에 손·옷이 말려들어 끼임",
+      "cause": "방호덮개 미설치·임의해제, 헐렁한 옷·장갑, 가동 중 청소",
+      "prevention": "방호덮개·비상정지, 가동 중 청소 금지, 정비 시 LOTO, 끼임 유발 복장 금지"
+    },
+    {
+      "id": "con_asphyxia",
+      "industry": "construction",
+      "accident": "질식",
+      "activities": [
+        "confined_space",
+        "sewer"
+      ],
+      "signals": [
+        "person"
+      ],
+      "situation": "맨홀·정화조·탱크 등 밀폐공간 산소결핍·유해가스로 질식(구조자 동반사고)",
+      "cause": "출입 전 가스측정·환기 미실시, 감시인 부재, 송기마스크 미착용",
+      "prevention": "출입 전·중 가스측정·환기, 감시인 배치, 송기마스크, 구조장비·무리한 구조 금지"
+    },
+    {
+      "id": "all_electric",
+      "industry": "factory",
+      "accident": "감전",
+      "activities": [
+        "electrical"
+      ],
+      "signals": [
+        "person"
+      ],
+      "situation": "활선 접촉·누전으로 감전 사망·화상",
+      "cause": "정전작업 미실시(활선작업), 절연보호구 미착용, 누전차단기 미설치",
+      "prevention": "정전작업·잠금(LOTO), 절연보호구, 누전차단기, 활선 이격거리 유지"
+    },
+    {
+      "id": "out_heat",
+      "industry": "construction",
+      "accident": "온열질환",
+      "activities": [
+        "outdoor"
+      ],
+      "signals": [
+        "person"
+      ],
+      "situation": "폭염 옥외작업 중 열사병으로 쓰러짐",
+      "cause": "무더위 휴식 미준수, 그늘·물 미제공, 건강상태 미확인",
+      "prevention": "그늘·휴식·물·소금, 무더위시간 작업조정, 건강상태 확인, 2인1조"
     }
   ]
 }

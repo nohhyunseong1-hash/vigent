@@ -1177,6 +1177,49 @@ def safety_ppe_check(payload: dict = Body(...), theme: str = DEFAULT_THEME):
                            use_vlm=bool(payload.get("use_vlm", True)))
 
 
+@app.post("/safety/sensor")
+def safety_sensor(payload: dict = Body(...), theme: str = DEFAULT_THEME):
+    """IoT 센서 값 수신 → 임계 초과 시 위험 기록 + 알림.
+    카메라로 못 보는 영역(질식·가스·온열). 외부 센서가 주기적으로 값을 POST.
+    payload: {type:'o2'|'co'|'h2s'|'gas'|'temp', value:float, site?, threshold?}
+    """
+    stype = str(payload.get("type") or "").lower()
+    try:
+        value = float(payload.get("value"))
+    except (TypeError, ValueError):
+        return {"ok": False, "error": "value(숫자) 필요"}
+    site = payload.get("site") or "현장"
+    th = payload.get("threshold")
+    spec = {
+        "o2":   ("asphyxiation", lambda v: v < (th or 18.0) or v > 23.5, "산소농도 {v}% (안전 18~23.5%)"),
+        "co":   ("gas_alarm",    lambda v: v >= (th or 30),  "일산화탄소(CO) {v}ppm"),
+        "h2s":  ("asphyxiation", lambda v: v >= (th or 10),  "황화수소(H2S) {v}ppm"),
+        "gas":  ("gas_alarm",    lambda v: v >= (th or 10),  "가연성가스 {v}%LEL"),
+        "temp": ("heat_stress",  lambda v: v >= (th or 33),  "체감온도/WBGT {v}℃"),
+    }
+    if stype not in spec:
+        return {"ok": False, "error": f"지원 센서: {', '.join(spec)}"}
+    rule, danger_fn, msg_t = spec[stype]
+    danger = bool(danger_fn(value))
+    result = {"ok": True, "type": stype, "value": value, "danger": danger, "rule": rule}
+    if danger:
+        msg = msg_t.format(v=value) + " — 위험 임계 초과"
+        try:
+            data_engine.log_event(rule, level="critical", score=value, site=site, note=msg)
+        except Exception:  # noqa: BLE001
+            pass
+        try:
+            bundle = STATE.get(theme) or _load_theme(theme)
+            disp = bundle["agents"].get("Dispatcher")
+            if disp:
+                r = disp.dispatch("critical", f"[{site}] {msg}", {"sensor": stype, "value": value})
+                result["alert_sent"] = bool(r.get("sent")) if isinstance(r, dict) else None
+        except Exception:  # noqa: BLE001
+            pass
+        result["message"] = msg
+    return result
+
+
 @app.post("/safety/behavior/analyze")
 def safety_behavior_analyze(payload: dict = Body(...)):
     """VLM 행동분석 — 흡연·졸음·통화·폭력·절차위반 + 규칙행동 재확인. use_vlm 권장."""

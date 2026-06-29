@@ -29,7 +29,10 @@ _RECOG = _ROOT / "data" / "recognition"
 HAZARD_RULES = {"zone_intrusion", "fall_suspected", "ppe_missing", "guard_bypass",
                 "ergonomic_risk", "fire_smoke", "trip_hazard", "safety_measure_missing",
                 "proximity_hazard", "crowd_density", "lone_worker",
-                "immobility", "rapid_motion"}
+                "immobility", "rapid_motion",
+                # 신규(사망재해 주요 유형) — 비전 훅 + 센서 연동
+                "falling_object", "height_fall_risk", "machine_entanglement",
+                "asphyxiation", "gas_alarm", "heat_stress", "electrical_hazard"}
 
 _DATAURL = re.compile(r"^data:image/\w+;base64,(.+)$", re.S)
 
