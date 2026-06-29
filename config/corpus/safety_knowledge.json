@@ -1468,6 +1468,421 @@
         "고소 안전대",
         "운반 시 협착주의"
       ]
+    },
+    {
+      "id": "maintenance_loto",
+      "name": "기계 정비·점검(LOTO)",
+      "aliases": [
+        "정비",
+        "점검",
+        "수리",
+        "청소",
+        "잠금",
+        "LOTO"
+      ],
+      "detect_signals": [
+        "person"
+      ],
+      "required_measures": [
+        {
+          "id": "loto",
+          "name": "전원차단·잠금(LOTO)",
+          "critical": true,
+          "detect": [],
+          "vlm_q": "기계 정비 중 전원 차단·잠금장치(LOTO)나 작업중 표지가 보이는가?"
+        },
+        {
+          "id": "guard",
+          "name": "방호덮개 유지",
+          "critical": true,
+          "detect": [],
+          "vlm_q": "회전·가동부에 방호덮개가 설치돼 있는가?"
+        },
+        {
+          "id": "estop",
+          "name": "비상정지 확인",
+          "critical": false,
+          "detect": [],
+          "vlm_q": "비상정지 버튼이 가까이 있는가?"
+        }
+      ],
+      "hazards": [
+        "기계 끼임",
+        "감전",
+        "불시 가동"
+      ],
+      "regulations": [
+        {
+          "law": "산업안전보건기준 제87·92조",
+          "desc": "정비 시 운전정지·잠금"
+        }
+      ],
+      "actions": [
+        "전원차단·잠금(LOTO)",
+        "방호덮개 유지",
+        "불시가동 방지",
+        "2인 작업"
+      ]
+    },
+    {
+      "id": "chemical_handling",
+      "name": "화학물질 취급",
+      "aliases": [
+        "화학",
+        "약품",
+        "유기용제",
+        "시약",
+        "MSDS"
+      ],
+      "detect_signals": [
+        "person"
+      ],
+      "required_measures": [
+        {
+          "id": "respirator",
+          "name": "방독마스크·호흡보호구",
+          "critical": true,
+          "detect": [],
+          "vlm_q": "작업자가 방독마스크/호흡보호구를 착용했는가?"
+        },
+        {
+          "id": "ventilation",
+          "name": "국소배기·환기",
+          "critical": true,
+          "detect": [],
+          "vlm_q": "국소배기장치나 환기설비가 가동되는가?"
+        },
+        {
+          "id": "chem_gloves",
+          "name": "내화학 보호장갑",
+          "critical": false,
+          "detect": [],
+          "vlm_q": "작업자가 화학용 보호장갑을 착용했는가?"
+        }
+      ],
+      "hazards": [
+        "중독",
+        "화상",
+        "화재폭발"
+      ],
+      "regulations": [
+        {
+          "law": "산업안전보건기준 제420~450조",
+          "desc": "관리대상 유해물질"
+        }
+      ],
+      "actions": [
+        "MSDS 비치·교육",
+        "방독마스크·보호장갑",
+        "국소배기·환기",
+        "누출 대비"
+      ]
+    },
+    {
+      "id": "forklift_op",
+      "name": "지게차 운전",
+      "aliases": [
+        "지게차",
+        "포크리프트",
+        "운반차"
+      ],
+      "detect_signals": [
+        "forklift",
+        "person"
+      ],
+      "required_measures": [
+        {
+          "id": "seatbelt",
+          "name": "좌석안전띠",
+          "critical": true,
+          "detect": [],
+          "vlm_q": "지게차 운전자가 안전띠를 착용했는가?"
+        },
+        {
+          "id": "hornlight",
+          "name": "후방경보·경광등",
+          "critical": false,
+          "detect": [],
+          "vlm_q": "지게차에 후방경보음·경광등이 있는가?"
+        },
+        {
+          "id": "spotter",
+          "name": "유도자·출입통제",
+          "critical": false,
+          "detect": [],
+          "vlm_q": "지게차 주변에 유도자나 출입통제가 있는가?"
+        }
+      ],
+      "hazards": [
+        "협착",
+        "충돌",
+        "전도",
+        "낙하물"
+      ],
+      "regulations": [
+        {
+          "law": "산업안전보건기준 제172~200조",
+          "desc": "차량계 하역운반기계"
+        }
+      ],
+      "actions": [
+        "작업반경 출입통제",
+        "후방경보·유도자",
+        "안전띠",
+        "제한속도"
+      ]
+    },
+    {
+      "id": "pole_work",
+      "name": "전주·철탑 작업",
+      "aliases": [
+        "전주",
+        "철탑",
+        "송전",
+        "배전",
+        "고소전기"
+      ],
+      "detect_signals": [
+        "person"
+      ],
+      "required_measures": [
+        {
+          "id": "harness",
+          "name": "안전대(하네스) 체결",
+          "critical": true,
+          "detect": [],
+          "vlm_q": "고소작업자가 안전대(하네스)를 체결했는가?"
+        },
+        {
+          "id": "deenergize",
+          "name": "정전작업·검전",
+          "critical": true,
+          "detect": [],
+          "vlm_q": "활선이 차단(정전)되었는지 검전기로 확인했는가?"
+        },
+        {
+          "id": "insulation",
+          "name": "절연보호구",
+          "critical": true,
+          "detect": [],
+          "vlm_q": "작업자가 절연장갑 등 절연보호구를 착용했는가?"
+        }
+      ],
+      "hazards": [
+        "추락",
+        "감전"
+      ],
+      "regulations": [
+        {
+          "law": "산업안전보건기준 제301~310·42조",
+          "desc": "전기작업·추락"
+        }
+      ],
+      "actions": [
+        "안전대 체결",
+        "정전작업·검전",
+        "절연보호구",
+        "이격거리"
+      ]
+    },
+    {
+      "id": "aerial_platform",
+      "name": "고소작업대 작업",
+      "aliases": [
+        "고소작업대",
+        "스카이",
+        "차량탑재형",
+        "시저리프트"
+      ],
+      "detect_signals": [
+        "person"
+      ],
+      "required_measures": [
+        {
+          "id": "harness2",
+          "name": "안전대 체결",
+          "critical": true,
+          "detect": [],
+          "vlm_q": "고소작업대 탑승자가 안전대를 체결했는가?"
+        },
+        {
+          "id": "outrigger",
+          "name": "아웃트리거·수평",
+          "critical": true,
+          "detect": [],
+          "vlm_q": "고소작업대의 아웃트리거가 펴져 수평이 유지되는가?"
+        },
+        {
+          "id": "overload",
+          "name": "적재·과상승 금지",
+          "critical": false,
+          "detect": [],
+          "vlm_q": "정원·적재하중을 초과하지 않았는가?"
+        }
+      ],
+      "hazards": [
+        "추락",
+        "전도",
+        "협착"
+      ],
+      "regulations": [
+        {
+          "law": "산업안전보건기준 제186조",
+          "desc": "고소작업대"
+        }
+      ],
+      "actions": [
+        "안전대 체결",
+        "아웃트리거·수평",
+        "정원·하중 준수",
+        "상부 장애물 확인"
+      ]
+    },
+    {
+      "id": "material_unload",
+      "name": "하역·양중 하부작업",
+      "aliases": [
+        "하역",
+        "양중",
+        "인양",
+        "줄걸이",
+        "적재"
+      ],
+      "detect_signals": [
+        "forklift",
+        "person"
+      ],
+      "required_measures": [
+        {
+          "id": "no_under",
+          "name": "인양물 하부 출입금지",
+          "critical": true,
+          "detect": [],
+          "vlm_q": "인양물·적재물 하부에 사람이 없는가?"
+        },
+        {
+          "id": "rigging",
+          "name": "줄걸이·결속 점검",
+          "critical": true,
+          "detect": [],
+          "vlm_q": "줄걸이·결속 상태가 안전한가?"
+        },
+        {
+          "id": "signal",
+          "name": "신호수",
+          "critical": false,
+          "detect": [],
+          "vlm_q": "양중 작업에 신호수가 있는가?"
+        }
+      ],
+      "hazards": [
+        "낙하물",
+        "협착",
+        "전도"
+      ],
+      "regulations": [
+        {
+          "law": "산업안전보건기준 제14·163조",
+          "desc": "낙하물·줄걸이"
+        }
+      ],
+      "actions": [
+        "하부 출입금지",
+        "줄걸이 점검",
+        "신호수",
+        "안전모"
+      ]
+    },
+    {
+      "id": "pesticide_spray",
+      "name": "농약 살포",
+      "aliases": [
+        "농약",
+        "방제",
+        "살포",
+        "제초"
+      ],
+      "detect_signals": [
+        "person"
+      ],
+      "required_measures": [
+        {
+          "id": "resp_ag",
+          "name": "방독마스크",
+          "critical": true,
+          "detect": [],
+          "vlm_q": "농약 살포자가 방독마스크/호흡보호구를 착용했는가?"
+        },
+        {
+          "id": "cover",
+          "name": "보호복·장갑",
+          "critical": true,
+          "detect": [],
+          "vlm_q": "작업자가 보호복과 장갑을 착용했는가?"
+        }
+      ],
+      "hazards": [
+        "중독",
+        "피부노출"
+      ],
+      "regulations": [
+        {
+          "law": "산업안전보건기준 제420조 등",
+          "desc": "유해물질"
+        }
+      ],
+      "actions": [
+        "방독마스크·보호복",
+        "바람방향 고려",
+        "살포 후 세척",
+        "단독작업 주의"
+      ]
+    },
+    {
+      "id": "night_work",
+      "name": "야간작업",
+      "aliases": [
+        "야간",
+        "심야",
+        "조명",
+        "어두운"
+      ],
+      "detect_signals": [
+        "person"
+      ],
+      "required_measures": [
+        {
+          "id": "lighting",
+          "name": "충분한 조명",
+          "critical": true,
+          "detect": [],
+          "vlm_q": "작업구역에 충분한 조명이 확보돼 있는가?"
+        },
+        {
+          "id": "reflective",
+          "name": "야광·반사 보호구",
+          "critical": false,
+          "detect": [],
+          "vlm_q": "작업자가 야광·반사조끼를 착용했는가?"
+        }
+      ],
+      "hazards": [
+        "충돌",
+        "추락",
+        "피로"
+      ],
+      "regulations": [
+        {
+          "law": "산업안전보건기준 제8조",
+          "desc": "조도"
+        }
+      ],
+      "actions": [
+        "조명 확보",
+        "반사조끼",
+        "2인1조",
+        "휴식·교대"
+      ]
     }
   ],
   "environments": [
@@ -2526,6 +2941,91 @@
         "정지 후 청소"
       ],
       "law": "산업안전보건기준 제87조"
+    },
+    {
+      "id": "forklift",
+      "name": "지게차",
+      "category": "차량계 하역운반기계",
+      "hazards": [
+        "협착",
+        "충돌",
+        "전도",
+        "낙하물"
+      ],
+      "guards": [
+        "후방경보·경광등",
+        "좌석안전띠",
+        "헤드가드·백레스트"
+      ],
+      "law": "산업안전보건기준 제172~200조"
+    },
+    {
+      "id": "excavator",
+      "name": "굴착기",
+      "category": "차량계 건설기계",
+      "hazards": [
+        "협착",
+        "충돌",
+        "전도",
+        "붕괴"
+      ],
+      "guards": [
+        "후방감지·경보",
+        "작업반경 출입통제",
+        "용도외 사용금지"
+      ],
+      "law": "산업안전보건기준 제196~200조"
+    },
+    {
+      "id": "mobile_crane",
+      "name": "이동식 크레인",
+      "category": "안전검사",
+      "hazards": [
+        "협착",
+        "낙하물",
+        "전도"
+      ],
+      "guards": [
+        "아웃트리거",
+        "과부하방지",
+        "줄걸이 점검",
+        "신호수"
+      ],
+      "law": "산업안전보건기준 제132~146조"
+    },
+    {
+      "id": "pile_driver",
+      "name": "항타기·항발기",
+      "category": "차량계 건설기계",
+      "hazards": [
+        "전도",
+        "낙하물",
+        "협착"
+      ],
+      "guards": [
+        "지반 보강",
+        "권상장치 점검",
+        "작업반경 통제"
+      ],
+      "law": "산업안전보건기준 제207~209조"
+    },
+    {
+      "id": "welding_machine",
+      "name": "용접기",
+      "category": "화기·전기",
+      "hazards": [
+        "감전",
+        "화재",
+        "아크광",
+        "흄"
+      ],
+      "guards": [
+        "자동전격방지기",
+        "접지",
+        "국소배기",
+        "차광보호구"
+      ],
+      "law": "산업안전보건기준 제241·301조"
     }
   ]
 }
