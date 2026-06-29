@@ -345,7 +345,7 @@
 </main>
 
 <script>window.AX_LOCK_THEME="safety";</script>
-<script src="/static/realtime_core.js?v=20260629-ppemenu"></script>
+<script src="/static/realtime_core.js?v=20260629-ppevlmauto"></script>
 
 <!-- 스켈레톤 스무딩 고도화: 기존 이동평균 smoothPose 를 One-Euro 필터로 교체.
      (realtime_core.js 는 안 건드리고 전역 함수만 덮어씀 — AX 엔진 그대로) -->
@@ -567,8 +567,12 @@
 
   // ── 🦺 보호구 실시간 점검(VLM) → 화면 HUD 표시 ──
   // 메뉴에서 필수 보호구 선택 → 저장 → 즉시 적용. 설정 있으면 자동 켜짐.
+  window._ppeMethods={};      // id→'yolo'/'vlm'
+  window._ppeNeedVlm=false;   // 선택 항목에 VLM 보호구가 있으면 true(자동 VLM)
+  function _ppeRecalcVlm(ids){ window._ppeNeedVlm = ids.some(id=>window._ppeMethods[id]==='vlm'); }
   async function ppeSaveFromMenu(){
     const ids=[...document.querySelectorAll('#ppeCfgList input:checked')].map(c=>c.value);
+    _ppeRecalcVlm(ids);
     try{ await fetch('/safety/ppe/rules',{method:'POST',headers:{'Content-Type':'application/json'},
       body:JSON.stringify({required:ids,site:'현장'})}); }catch(e){}
     const t=document.getElementById('togPpeLive'), hud=document.getElementById('ppeHud');
@@ -576,7 +580,9 @@
   }
   (async ()=>{ try{
     const d=await (await fetch('/safety/ppe/catalog')).json();
+    (d.catalog||[]).forEach(p=>{ window._ppeMethods[p.id]=p.method; });
     const req=new Set((d.rules&&d.rules.required)||[]);
+    _ppeRecalcVlm([...req]);
     const list=document.getElementById('ppeCfgList');
     if(list){ list.innerHTML=(d.catalog||[]).map(p=>
       '<label style="display:inline-flex;align-items:center;gap:3px;background:var(--surface2,#0c1521);border:1px solid var(--border);border-radius:12px;padding:3px 8px;cursor:pointer">'
@@ -602,7 +608,7 @@
       const b64=String(dataUrl).split(',')[1];
       // 실시간 HUD는 빠른 YOLO 위주(즉시 갱신). VLM 전용 보호구는 확인불가(❔)로 표시.
       const j=await (await fetch('/safety/ppe/check',{method:'POST',headers:{'Content-Type':'application/json'},
-        body:JSON.stringify({image_base64:b64,use_vlm:false})})).json();
+        body:JSON.stringify({image_base64:b64,use_vlm:!!window._ppeNeedVlm})})).json();
       if(!j.ok || !(j.results||[]).length){ body.innerHTML='<span style="color:#6b7280">필수 보호구 미설정 — /safety/ppe</span>'; }
       else{
         const ico={present:'✅',missing:'⚠️',unknown:'❔'};
