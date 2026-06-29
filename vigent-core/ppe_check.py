@@ -88,7 +88,8 @@ def _vlm_status_batch(image_bgr, items: list[dict]) -> dict[str, str]:
               "반드시 아래 각 줄 뒤에 '착용/미착용/불확실' 중 하나만 적어라:\n" + lines)
     try:
         import rfdetr_service
-        data = rfdetr_service.vlm.summarize_bgr(image_bgr, prompt=prompt)
+        # PPE 단답 → 빠른 경로(작은 이미지·짧은 토큰·재시도/법령보강 없음)
+        data = rfdetr_service.vlm.quick_bgr(image_bgr, prompt, max_tokens=128, max_side=768)
         txt = str(data.get("raw") or " ".join(str(v) for k, v in data.items()
                                                if not str(k).startswith("_")))
     except Exception:  # noqa: BLE001

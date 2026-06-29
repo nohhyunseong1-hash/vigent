@@ -116,14 +116,28 @@ class RiskVLM:
         self.config = load_config(MODEL)
         print(f"[vlm] 모델 로드 {time.time()-t0:.1f}s")
 
-    def _ask(self, safe: str, prompt: str) -> dict:
+    def _ask(self, safe: str, prompt: str, max_tokens: int = 200) -> dict:
         fmt = self._apply(self.processor, self.config, prompt, num_images=1)
         # 안정성: 낮은 temperature + 반복 억제(같은 말 반복/degeneration 방지)
         res = self._generate(self.model, self.processor, fmt, image=safe,
-                             max_tokens=200, temperature=0.2, repetition_penalty=1.15,
+                             max_tokens=max_tokens, temperature=0.2, repetition_penalty=1.15,
                              verbose=False)
         text = res if isinstance(res, str) else getattr(res, "text", str(res))
         return extract_json(text)
+
+    def quick(self, img_path: str, prompt: str, max_tokens: int = 64, max_side: int = 640) -> dict:
+        """빠른 단발 질의 — 작은 이미지·짧은 토큰·재시도/법령보강 없음(PPE 등 단답용).
+        반환: {"raw": 원문텍스트}. 절대 예외로 죽지 않는다."""
+        try:
+            safe = _safe_image(img_path, max_side=max_side)
+            fmt = self._apply(self.processor, self.config, prompt, num_images=1)
+            res = self._generate(self.model, self.processor, fmt, image=safe,
+                                 max_tokens=max_tokens, temperature=0.0, repetition_penalty=1.1,
+                                 verbose=False)
+            text = res if isinstance(res, str) else getattr(res, "text", str(res))
+            return {"raw": text}
+        except Exception as ex:  # noqa: BLE001
+            return {"_error": f"VLM quick 실패: {type(ex).__name__}"}
 
     def summarize(self, img_path: str, prompt: str | None = None) -> dict:
         """이벤트 프레임 → 위험요약 JSON. 절대 예외로 죽지 않는다(모니터링 안정성).

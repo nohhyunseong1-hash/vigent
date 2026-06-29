@@ -130,6 +130,19 @@ class VLMService:
         cv2.imwrite(str(tmp), image_bgr)
         return self._vlm.summarize(str(tmp), prompt=prompt)
 
+    def quick_bgr(self, image_bgr: np.ndarray, prompt: str,
+                  max_tokens: int = 64, max_side: int = 640) -> dict[str, Any]:
+        """빠른 단발 질의(PPE 등 단답) — 작은 이미지·짧은 토큰·재시도 없음."""
+        import sys
+        import cv2
+        sys.path.insert(0, str(Path(__file__).resolve().parent / "ml"))
+        if self._vlm is None:
+            from vlm_risk_summary import RiskVLM
+            self._vlm = RiskVLM()
+        tmp = Path("/tmp/vigent_vlm_quick.jpg")
+        cv2.imwrite(str(tmp), image_bgr)
+        return self._vlm.quick(str(tmp), prompt, max_tokens=max_tokens, max_side=max_side)
+
 
 # 서버 전역 싱글톤
 rfdetr = RFDetrService()
