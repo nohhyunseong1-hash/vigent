@@ -1,0 +1,39 @@
+# VIGENT 설치 의존성 — 2026-06-30 기준, 현재 동작 중인 노트북에 설치된 실제 버전으로 고정.
+# 설치:  python3 -m pip install -r requirements.txt
+# (코드 import 스캔 + pip 설치버전 실측으로 작성. 지어낸 버전 아님.)
+
+# ── 웹서버 / 기본 ────────────────────────────────
+fastapi==0.137.2
+uvicorn==0.23.2
+python-multipart==0.0.32
+python-dotenv==1.1.0
+PyYAML==6.0.3
+websockets==16.0
+
+# ── 영상 / 수치 ──────────────────────────────────
+numpy==2.4.6
+opencv-python==4.13.0.92
+Pillow==12.0.0
+
+# ── AI 감지(YOLO/RF-DETR/추적) — 필수 ────────────
+# ⚠️ torch/torchvision은 플랫폼마다 설치법이 다름:
+#    - Mac/일반 PC: 아래 버전 그대로 OK
+#    - NVIDIA Jetson/CUDA 박스: 해당 기기용 torch를 따로 설치해야 함(공식 휠 사용)
+torch==2.12.0
+torchvision==0.27.0
+ultralytics==8.3.253
+supervision==0.29.0.post0
+rfdetr==1.8.0
+trackers==2.4.0
+
+# ── VLM(보호구 2차확인·작업 자동인식) — 선택, ⚠️ Apple Silicon(Mac) 전용 ──
+# Linux/Windows 박스에서는 이 3줄을 주석 처리(#)하세요.
+# 없으면 VLM 기능만 자동 폴백(끄기)되고 나머지는 정상 동작합니다.
+mlx==0.31.2
+mlx-vlm==0.6.3
+mlx-lm==0.31.3
+
+# ── RAG 의미검색(안전규정 검색 정확도↑) — 선택 ───
+# 현재 노트북엔 미설치 상태(없어도 키워드 폴백으로 동작).
+# 켜려면 아래 주석 해제:
+# sentence-transformers

@@ -291,10 +291,15 @@ _PAGE = r"""<!DOCTYPE html><html lang="ko"><head><meta charset="UTF-8">
     <div class="dim" style="margin-bottom:8px">위에서 <b>작업을 선택</b>한 뒤 시작하면, 카메라로 ~7초마다 감지→추론하고 <b>위험(부족조치)이면 자동 기록·알림</b>(자동처리 콘솔로 흐름).</div>
     <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
       <button class="btn" id="liveBtn" onclick="toggleLive()">▶ 라이브 점검 시작</button>
+      <input id="liveSite" placeholder="현장명 (예: 1공장 용접장)" value="현장" style="background:#0a0a0c;border:1px solid #2a2a2e;border-radius:8px;color:#e5e7eb;padding:7px 10px;font-size:13px;width:170px">
       <label class="ck"><input type="checkbox" id="liveVlm" checked> VLM 추론</label>
       <label class="ck"><input type="checkbox" id="liveLog" checked> 위험 시 자동 기록·알림</label>
     </div>
-    <video id="lv" autoplay muted playsinline style="width:100%;max-width:460px;margin-top:10px;border-radius:8px;background:#000;display:none"></video>
+    <div class="dim" style="margin-top:6px">작업을 <b>🤖 자동 인식</b>으로 두면 장면에서 작업을 스스로 추정합니다(VLM 추론 켜야 정확). 현장명은 기록·표시에 쓰입니다.</div>
+    <div id="lvwrap" style="position:relative;width:100%;max-width:460px;margin-top:10px;display:none">
+      <video id="lv" autoplay muted playsinline style="width:100%;display:block;border-radius:8px;background:#000;transform:scaleX(-1)"></video>
+      <canvas id="lvov" style="position:absolute;left:0;top:0;width:100%;height:100%;pointer-events:none"></canvas>
+    </div>
     <div id="lstatus" class="dim" style="margin-top:8px"></div>
   </div>
 
@@ -310,9 +315,26 @@ _PAGE = r"""<!DOCTYPE html><html lang="ko"><head><meta charset="UTF-8">
 <script>
   const RKO={high:'위험 높음',mid:'주의',low:'양호'};
   const SKO={present:'있음',missing:'없음 ⚠',unknown:'확인 필요'};
+  const CLS_KO={Hardhat:'안전모','NO-Hardhat':'안전모 미착용','Safety-Vest':'안전조끼','NO-Safety-Vest':'안전조끼 미착용',Mask:'마스크','NO-Mask':'마스크 미착용',Gloves:'장갑','NO-Gloves':'장갑 미착용',Goggles:'보안경','NO-Goggles':'보안경 미착용',Boots:'안전화','NO-Boots':'안전화 미착용',Person:'사람'};
+  // 감지 박스를 영상 위에 그림. 영상이 거울(scaleX-1)이라 x좌표를 뒤집어 맞추고, 글자는 정상으로 보이게 캔버스는 안 뒤집음.
+  function drawDets(dets,W,H){
+    const ov=document.getElementById('lvov'); if(!ov)return;
+    ov.width=W; ov.height=H; const g=ov.getContext('2d'); g.clearRect(0,0,W,H);
+    (dets||[]).forEach(d=>{
+      const b=d.bbox||[0,0,0,0], w=b[2], h=b[3], y=b[1], fx=W-(b[0]+w);
+      const no=String(d.class||'').toUpperCase().startsWith('NO-')||['fire','smoke'].includes(String(d.class||'').toLowerCase());
+      const col=no?'#ef4444':'#22c55e';
+      g.lineWidth=Math.max(2,W/240); g.strokeStyle=col; g.strokeRect(fx,y,w,h);
+      const t=(CLS_KO[d.class]||d.class||'?'), fh=Math.max(15,W/30);
+      g.font=Math.max(13,W/38)+'px sans-serif'; const tw=g.measureText(t).width;
+      g.fillStyle=col; g.fillRect(fx,Math.max(0,y-fh),tw+8,fh);
+      g.fillStyle='#000'; g.fillText(t,fx+4,Math.max(fh-3,y-4));
+    });
+  }
   function fileToB64(f){return new Promise(r=>{if(!f)return r(null);const x=new FileReader();x.onload=()=>r(String(x.result).split(',')[1]);x.readAsDataURL(f);});}
   async function run(){
     const act=document.getElementById('act').value;
+    if(act==='auto'){ document.getElementById('out').innerHTML='<div class="card dim">작업을 선택하면 작업별 <b>필수 안전조치</b>를 점검합니다. (📷 아래 라이브 점검은 작업을 자동 인식해요.)</div>'; return; }
     const useVlm=document.getElementById('vlm').checked;
     const f=document.getElementById('img').files[0];
     const b64=await fileToB64(f);
@@ -348,35 +370,64 @@ _PAGE = r"""<!DOCTYPE html><html lang="ko"><head><meta charset="UTF-8">
       : '<div class="dim" style="margin-top:8px">결과 없음</div>';
   }
   // 라이브 점검: 카메라 → 감지(/detect/frame) → 추론·기록(/safety/brain/inspect)
-  let liveTimer=null, liveStream=null;
+  let liveTimer=null, liveSlow=null, liveStream=null;
+  // B) 표시 필터: 낮은 신뢰도 제거 + 같은 클래스 겹친 중복 박스 제거(NMS). 화면 표시용일 뿐 감지/기록엔 영향 없음.
+  function iou(a,b){const ax2=a[0]+a[2],ay2=a[1]+a[3],bx2=b[0]+b[2],by2=b[1]+b[3];
+    const ix=Math.max(0,Math.min(ax2,bx2)-Math.max(a[0],b[0])), iy=Math.max(0,Math.min(ay2,by2)-Math.max(a[1],b[1]));
+    const inter=ix*iy, uni=a[2]*a[3]+b[2]*b[3]-inter; return uni>0?inter/uni:0;}
+  function cleanDets(dets){
+    const CONF=0.6, IOU=0.45;
+    const d=(dets||[]).filter(x=>(x.score||0)>=CONF).sort((a,b)=>(b.score||0)-(a.score||0));
+    const keep=[]; d.forEach(x=>{ if(!keep.some(k=>k.class===x.class && iou(k.bbox||[0,0,0,0],x.bbox||[0,0,0,0])>IOU)) keep.push(x); });
+    return keep;
+  }
   async function toggleLive(){
-    const btn=document.getElementById('liveBtn'), vid=document.getElementById('lv'), st=document.getElementById('lstatus');
-    if(liveTimer){ clearInterval(liveTimer); liveTimer=null; if(liveStream)liveStream.getTracks().forEach(t=>t.stop());
-      vid.style.display='none'; btn.textContent='▶ 라이브 점검 시작'; st.textContent=''; return; }
-    try{ liveStream=await navigator.mediaDevices.getUserMedia({video:true}); vid.srcObject=liveStream; vid.style.display='block'; }
+    const btn=document.getElementById('liveBtn'), vid=document.getElementById('lv'), st=document.getElementById('lstatus'), wrap=document.getElementById('lvwrap');
+    if(liveTimer){ clearInterval(liveTimer); clearInterval(liveSlow); liveTimer=null; if(liveStream)liveStream.getTracks().forEach(t=>t.stop());
+      const ov=document.getElementById('lvov'); if(ov)ov.getContext('2d').clearRect(0,0,ov.width,ov.height);
+      wrap.style.display='none'; btn.textContent='▶ 라이브 점검 시작'; st.textContent=''; return; }
+    try{ liveStream=await navigator.mediaDevices.getUserMedia({video:true}); vid.srcObject=liveStream; wrap.style.display='block'; }
     catch(e){ alert('카메라 접근 실패: '+e); return; }
     btn.textContent='■ 라이브 중지'; st.textContent='시작 중…';
-    const tick=async()=>{
+    let lastDets=[], lastB64=null, fastBusy=false, slowBusy=false;
+    // A) 빠른 루프(~1초): 감지+박스만 그림 — 실시간 느낌. 가벼움(YOLO).
+    const fastTick=async()=>{
+      if(fastBusy) return; fastBusy=true;
       try{
         const c=document.createElement('canvas'); c.width=vid.videoWidth||640; c.height=vid.videoHeight||480;
         if(!c.width||!c.height) return;
         c.getContext('2d').drawImage(vid,0,0,c.width,c.height);
-        const b64=c.toDataURL('image/jpeg',0.7).split(',')[1];
+        const b64=c.toDataURL('image/jpeg',0.75).split(',')[1]; lastB64=b64;
         const dj=await (await fetch('/detect/frame',{method:'POST',headers:{'Content-Type':'application/json'},
           body:JSON.stringify({image_base64:b64,ppe:true,safety_only:true})})).json();
-        const present=(dj.detections||[]).map(x=>x.class);
+        lastDets=cleanDets(dj.detections||[]);
+        drawDets(lastDets, c.width, c.height);
+      }catch(e){}finally{ fastBusy=false; }
+    };
+    // B) 느린 루프(7초): VLM 위험판정·기록 — 무거움. 마지막 감지결과를 재사용.
+    const slowTick=async()=>{
+      if(slowBusy||!lastB64) return; slowBusy=true;
+      try{
+        const present=lastDets.map(x=>x.class);
         const ij=await (await fetch('/safety/brain/inspect',{method:'POST',headers:{'Content-Type':'application/json'},
-          body:JSON.stringify({activity:document.getElementById('act').value, present, image_base64:b64,
+          body:JSON.stringify({activity:document.getElementById('act').value, present, image_base64:lastB64,
             use_vlm:document.getElementById('liveVlm').checked, log:document.getElementById('liveLog').checked,
-            alert:document.getElementById('liveLog').checked, site:'라이브 점검'})})).json();
+            alert:document.getElementById('liveLog').checked,
+            site:(document.getElementById('liveSite').value||'현장').trim()||'현장'})})).json();
         if(!ij.ok){ st.textContent='오류: '+(ij.error||''); return; }
         const cls=ij.risk==='high'?'st-missing':(ij.risk==='mid'?'st-unknown':'st-present');
-        st.innerHTML=`<span class="${cls}">[${RKO[ij.risk]||ij.risk}]</span> ${ij.summary} `
+        const site=(document.getElementById('liveSite').value||'현장').trim()||'현장';
+        const actName=ij.activity||'작업 미인식';
+        const autoTag=ij.detected?' <span class="dim">(자동인식)</span>':'';
+        st.innerHTML=`<span class="dim">[현장: ${site}]</span> 🔧 <b>${actName}</b>${autoTag} · `
+          +`<span class="${cls}">[${RKO[ij.risk]||ij.risk}]</span> ${ij.summary} `
+          +' <span class="dim">· 감지 '+present.length+'개</span>'
           +(ij.logged?'<span class="st-missing">· 📋 기록됨</span>':'')+(ij.alerted?' · 🔔 알림':'')
           +(ij.vlm_used?'':' <span class="dim">(VLM 미가용→사람확인)</span>');
-      }catch(e){ st.textContent='점검 오류'; }
+      }catch(e){ st.textContent='점검 오류'; }finally{ slowBusy=false; }
     };
-    tick(); liveTimer=setInterval(tick,7000);
+    fastTick(); slowTick();
+    liveTimer=setInterval(fastTick,1500); liveSlow=setInterval(slowTick,7000);
   }
   run();
 </script></body></html>"""
