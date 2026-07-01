@@ -180,6 +180,7 @@ let backendLoopTimer=null;
 const _TUNE=(typeof window!=='undefined' && window.VIGENT_TUNING) || {};
 let STALE_FADE_START_MS = _TUNE.staleFadeStartMs ?? 350;   // 이 시간까지는 완전 불투명(정상 갱신 주기 커버 → 깜빡임 방지)
 let STALE_TTL_MS        = _TUNE.staleTtlMs        ?? 700;   // 이 시간 지나면 렌더에서 완전 제외(잔상 제거)
+let SAME_PERSON_RADIUS_K= _TUNE.samePersonRadiusK ?? 1.8;  // 같은 사람으로 볼 가로 반경(박스폭 배수). 지연 중복 흡수, 실제 타인은 더 멂
 // detection의 관측 시각(seenAt)으로 알파(0~1) 계산. seenAt 없으면 저하 방지 위해 1(그대로 표시).
 function _staleAlpha(seenAt){
   if(!seenAt) return 1;
@@ -194,9 +195,89 @@ function _staleAlpha(seenAt){
 function _dropTrailingStale(list){
   if(!Array.isArray(list) || list.length<2) return list;
   const now=Date.now();
+  // 사람: 트래커가 빠른 이동 시 옛 위치 트랙을 gone>0으로 남겨 꼬리 잔상을 만든다.
+  // '실제 감지 중(gone 0)'인 사람이 하나라도 있으면, gone>0 사람 박스는 꼬리이므로 즉시 제거.
+  // 실제로 여러 사람은 각자 gone 0이라 안 지워지고, 전부 놓친 경우(살아있는 사람 없음)엔
+  // 남겨서 seenAt 페이드로 처리 → 저사양 깜빡임 보호 유지.
+  const livePerson = list.some(o=>o.class==='person' && !(o.gone>0));
   return list.filter(o=>{
-    if(!o.seenAt || now-o.seenAt < STALE_FADE_START_MS) return true;   // 신선하면 무조건 유지
+    if(o.class==='person'){
+      return !(livePerson && o.gone>0);            // 살아있는 사람 존재 → 이 gone 트랙은 꼬리 잔상 → 드롭
+    }
+    // 비-사람(지게차/PPE 등): 기존 로직 유지(같은 클래스의 더 신선한 박스가 있으면 오래된 것 드롭)
+    if(!o.seenAt || now-o.seenAt < STALE_FADE_START_MS) return true;
     return !list.some(f=> f!==o && f.class===o.class && (f.seenAt||0) > o.seenAt + 60);
+  });
+}
+// 같은 사람의 '살아있는' 중복 박스 제거: 한 사람에 대해 pose-follow 박스, 지연된 백엔드 detection 박스,
+// 브라우저 COCO 박스가 서로 안 겹치며 동시에 남을 수 있다(꼬리). 가까운(=같은 사람) person 박스끼리는
+// 권위 높은 하나만 유지(pose-follow > 최신 seenAt). 멀리 떨어진 박스는 다른 사람으로 보고 유지(멀티 대응).
+function _dedupePersons(list){
+  if(!Array.isArray(list)) return list;
+  const idx=[];
+  for(let k=0;k<list.length;k++) if(list[k] && list[k].class==='person') idx.push(k);
+  if(idx.length<2) return list;
+  const auth=o=>(o._poseFollow?1e15:0)+(o.seenAt||0);      // pose-follow 최우선, 그다음 최신 관측
+  const drop=new Set();
+  for(let a=0;a<idx.length;a++){
+    for(let b=a+1;b<idx.length;b++){
+      if(drop.has(idx[a]) || drop.has(idx[b])) continue;
+      const oa=list[idx[a]], ob=list[idx[b]];
+      const aw=oa.bbox[2]||1, ah=oa.bbox[3]||1, bw=ob.bbox[2]||1, bh=ob.bbox[3]||1;
+      const dx=Math.abs((oa.bbox[0]+aw/2)-(ob.bbox[0]+bw/2));
+      const dy=Math.abs((oa.bbox[1]+ah/2)-(ob.bbox[1]+bh/2));
+      if(dx < Math.max(aw,bw)*SAME_PERSON_RADIUS_K && dy < Math.max(ah,bh)){  // 가까움 = 같은 사람
+        drop.add( auth(oa)>=auth(ob) ? idx[b] : idx[a] );   // 권위 낮은 쪽 드롭
+      }
+    }
+  }
+  if(!drop.size) return list;
+  return list.filter((o,k)=>!drop.has(k));
+}
+// 겹치는 같은-클래스 중복 박스 제거(비-사람). 백엔드가 한 대상(예: 머리)에 NO-Hardhat 박스를
+// 크기 다르게 여러 개 반환할 때, IoU(겹침) 또는 containment(한 박스가 다른 걸 품음)로 중복 판정 → 최고 점수 하나만.
+// 사람은 pose-follow/_dedupePersons가 별도 처리하므로 건드리지 않는다.
+function _ios(a,b){                                            // intersection over smaller (포함 비율)
+  const ix=Math.max(0, Math.min(a[0]+a[2],b[0]+b[2])-Math.max(a[0],b[0]));
+  const iy=Math.max(0, Math.min(a[1]+a[3],b[1]+b[3])-Math.max(a[1],b[1]));
+  const inter=ix*iy; if(inter<=0) return 0;
+  return inter/Math.max(1, Math.min(a[2]*a[3], b[2]*b[3]));
+}
+function _dedupOverlapping(list){
+  if(!Array.isArray(list) || list.length<2) return list;
+  const sorted=[...list].sort((x,y)=>(y.score||0)-(x.score||0));   // 높은 점수 우선 유지
+  const keep=[];
+  for(const o of sorted){
+    if(!o || o.class==='person'){ keep.push(o); continue; }        // 사람은 별도 처리
+    const dup=keep.some(k=> k.class===o.class && (iou(k.bbox,o.bbox)>0.4 || _ios(k.bbox,o.bbox)>0.55));
+    if(!dup) keep.push(o);
+  }
+  return keep;
+}
+// 백엔드 포즈(COCO-17, 소스좌표)의 bounding extent
+function _poseKpExtent(p){
+  const pts=p&&p.points, cf=(p&&p.conf)||[];
+  if(!pts||!pts.length) return null;
+  let minX=1e9,minY=1e9,maxX=-1e9,maxY=-1e9,n=0;
+  for(let i=0;i<pts.length;i++){ if((cf[i]??1)<0.3||!pts[i])continue; const x=pts[i][0],y=pts[i][1];
+    if(x<minX)minX=x; if(x>maxX)maxX=x; if(y<minY)minY=y; if(y>maxY)maxY=y; n++; }
+  if(n<3) return null;
+  return [minX,minY,maxX-minX,maxY-minY];
+}
+// 보호구(PPE) 위반 오탐 억제: 위반은 '사람' 위에서만 의미가 있다. 프레임에 사람 신호가 있는데
+// PPE 박스가 어떤 사람과도 겹치지 않으면(빈 벽 오탐) 숨긴다. 사람 신호가 전혀 없으면 판단 불가 →
+// 그대로 둔다(놓침 방지 fail-safe). 좌표는 모두 소스(VW×VH) 기준이라 직접 비교 가능.
+function _filterOrphanPPE(list){
+  if(!Array.isArray(list)) return list;
+  const persons=[];
+  for(const o of list) if(o && o.class==='person' && o.bbox) persons.push(o.bbox);
+  if(posePersonExtentBox && Date.now()-posePersonExtentAt<=STALE_TTL_MS) persons.push(posePersonExtentBox);
+  if(poseFresh()) for(const p of backendPoses){ const e=_poseKpExtent(p); if(e) persons.push(e); }
+  if(!persons.length) return list;                       // 사람 신호 없음 → 판단 불가, 그대로(오탐 억제 안 함)
+  const pad=b=>[b[0]-b[2]*0.2, b[1]-b[3]*0.35, b[2]*1.4, b[3]*1.45];   // 머리 위(안전모)·주변 여유
+  return list.filter(o=>{
+    if(!o || !(isPpeClass(o.class)||isViolation(o.class))) return true;      // PPE/위반만 대상
+    return persons.some(pb=> iou(pad(pb),o.bbox)>0 || _ios(o.bbox,pad(pb))>0.25);   // 어떤 사람과도 안 겹치면 오탐 → 제거
   });
 }
 
@@ -240,7 +321,7 @@ function _applyPoseFollow(objs){
   }
   if(!owner) return objs;
   return objs.map(o=> o===owner
-    ? {...o, bbox:posePersonExtentBox.slice(), seenAt:posePersonExtentAt, _poseFollow:true}
+    ? {...o, bbox:posePersonExtentBox.slice(), seenAt:posePersonExtentAt, gone:0, _poseFollow:true}  // pose가 매 프레임 위치 확정 = 살아있음
     : o);
 }
 
@@ -2415,8 +2496,11 @@ function _mergedObjects(browserObjs){
       }
     }
   }
+  out = _dedupOverlapping(out);                               // 겹침+포함 중복 제거(백엔드가 NO-Hardhat 등 한 대상에 여러 박스 반환하는 것 방지)
   out = _applyPoseFollow(out);                                // 사람 박스 위치를 신선한 pose extent로 교체(지연 0)
-  out = _dropTrailingStale(out);                              // 이동으로 생긴 여러 개의 꼬리 잔상 제거
+  out = _dropTrailingStale(out);                              // 트래커 gone 꼬리 제거
+  out = _dedupePersons(out);                                  // 같은 사람의 '살아있는' 중복 박스(지연 백엔드+브라우저+pose)를 하나로
+  out = _filterOrphanPPE(out);                                // 사람과 동떨어진 보호구 위반(빈 벽 오탐) 제거
   return _safetyVisible(out);                                 // 안전 모드: 안전 관련 객체만 그림(잡동사니 숨김)
 }
 
@@ -2448,6 +2532,9 @@ function _startFallbackRender(){
              try{ drawObjects(_mergedObjects(latestObjects),W,H,leftHeldObjects,rightHeldObjects,scX,scY, personHasViz); }catch(e){}
              if(poseFresh()){ try{ drawBackendPoses(W,H,scX,scY); }catch(e){} } }
       try{ drawDangerZone(W,H); }catch(e){}
+      // 위험구역 침입 판정/경보 — 폴백 경로에서도 반드시 실행. (기존엔 메인 렌더에만 있어 MediaPipe 로딩 실패 시
+      // 구역은 그려지지만 침입 판정이 아예 안 돌아 경고가 안 떴다. 백엔드 포즈/탐지는 MediaPipe와 무관하게 독립 동작.)
+      try{ handleDangerZone({W,H,scX,scY,VW,VH,rect,latestObjects,timestamp:Date.now()}); }catch(e){}
       // MediaPipe 진단은 '한 번도 안 떴고 + 12초 유예' 후에만(로딩 지연을 실패로 오인하지 않게)
       if(!lastHolisticAt && _mpStaleSince && (Date.now()-_mpStaleSince > 12000))
         _detectDiag('카메라·객체 인식은 정상 동작 중입니다.<br>단 MediaPipe(자세/손/낙상)가 12초 넘게 로딩되지 않았습니다(네트워크·CDN 지연).<br>· 새로고침(⌘⇧R) 권장<br>· 폐쇄망이면 로컬 번들이 필요합니다.');
