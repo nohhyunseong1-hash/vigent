@@ -162,12 +162,87 @@ let backendBoostDets=[];
 // 보호구(PPE) 클래스 — 안전 테마에서만 표시/사용 (오피스·피트니스에선 제외)
 const PPE_CLASSES=new Set(['helmet','hardhat','hard hat','gloves','glove','vest','safety vest','reflective vest','boots','goggles','goggle','none','no helmet','no hardhat','no goggle','no gloves','no boots','no vest','no safety vest','mask','no mask']);
 function isPpeClass(c){ return PPE_CLASSES.has(String(c).toLowerCase().replace(/[-_]/g,' ')); }
+// 미착용(NO-*)·화재/연기·흉기 등 '위반/위험'은 빨강으로 표시. 착용/정상 보호구는 빨강 아님.
+function isViolation(c){ const s=String(c||'').toLowerCase().replace(/[-_]/g,' ').trim();
+  return s.startsWith('no ') || ['fire','smoke','cigarette','knife','scissors'].includes(s); }
 let backendHazards=[];   // 백엔드 화재/연기/흡연 등 위험요소 (색상 휴리스틱)
 const BACKEND_BOOST_INTERVAL=250;     // 고정밀 백엔드 호출 최소간격(≈4fps) — 포즈/탐지 반응성↑(통합호출 ~70ms라 여유)
 const BACKEND_LOOP_INTERVAL=150;      // 루프 타이머(throttle가 모드별 실제 빈도 제어)
 const BACKEND_BOOST_TTL=3000;
 const BACKEND_PRIMARY_TTL=2800;       // 이 시간 내 백엔드 결과는 '주 탐지'로 우선 사용(CPU 지연 커버 → 깜빡임 방지)
 let backendLoopTimer=null;
+
+// ── 잔상(staleness) 지연 예산 ──────────────────────────────────────────────
+// 렌더는 매 프레임 신선하지만 detection 박스는 저빈도(≈150~300ms) 캐시라, 갱신이 끊기면
+// 옛 위치에 박스가 잔상처럼 남는다. 정상 갱신 주기보다 '뒤에서' 페이드를 시작하면
+// 깜빡임 없이 긴 잔상만 사라진다(하드컷 대신 알파 페이드). 값은 config로 노출(4단계) —
+// 잠정 기본값이며 실제 테스트 클립으로 튜닝해야 한다.
+const _TUNE=(typeof window!=='undefined' && window.VIGENT_TUNING) || {};
+let STALE_FADE_START_MS = _TUNE.staleFadeStartMs ?? 350;   // 이 시간까지는 완전 불투명(정상 갱신 주기 커버 → 깜빡임 방지)
+let STALE_TTL_MS        = _TUNE.staleTtlMs        ?? 700;   // 이 시간 지나면 렌더에서 완전 제외(잔상 제거)
+// detection의 관측 시각(seenAt)으로 알파(0~1) 계산. seenAt 없으면 저하 방지 위해 1(그대로 표시).
+function _staleAlpha(seenAt){
+  if(!seenAt) return 1;
+  const age=Date.now()-seenAt;
+  if(age<=STALE_FADE_START_MS) return 1;
+  if(age>=STALE_TTL_MS) return 0;
+  return 1-(age-STALE_FADE_START_MS)/(STALE_TTL_MS-STALE_FADE_START_MS);
+}
+// 이동으로 생긴 '따라오는' 꼬리 잔상 제거: 오래된(페이드 중) 박스에 대해, 같은 클래스의
+// 더 신선한 박스가 이미 있으면 = 객체가 새 위치로 옮겨간 것 → 옛 박스는 페이드하지 말고 즉시 드롭.
+// 더 신선한 형제가 없으면(진짜로 사라진 객체) 그대로 두어 페이드로 부드럽게 정리(깜빡임 보호 유지).
+function _dropTrailingStale(list){
+  if(!Array.isArray(list) || list.length<2) return list;
+  const now=Date.now();
+  return list.filter(o=>{
+    if(!o.seenAt || now-o.seenAt < STALE_FADE_START_MS) return true;   // 신선하면 무조건 유지
+    return !list.some(f=> f!==o && f.class===o.class && (f.seenAt||0) > o.seenAt + 60);
+  });
+}
+
+// ── 2단계: 사람 박스를 매 프레임 MediaPipe pose extent로 따라가게 ─────────────
+// detection(YOLO/COCO)은 "이게 사람인가/클래스/ID"만 제공하고, 위치는 매 렌더 프레임
+// 신선한 MediaPipe 랜드마크의 bounding extent로 다시 계산 → 추가 지연 0.
+let posePersonExtentBox=null;   // 마지막 유효 pose extent [x,y,w,h] (소스 픽셀). 미검출 프레임엔 값 유지(hold)
+let posePersonExtentAt=0;       // 그 extent 관측 시각(Date.now)
+const _POSE_EXTENT_IDX=[0,11,12,13,14,15,16,23,24,25,26,27,28];  // 코+어깨+팔+엉덩이+무릎+발목
+function posePersonExtent(lm,VW,VH){
+  if(!lm || !lm.length) return null;
+  let minX=1e9,minY=1e9,maxX=-1e9,maxY=-1e9,n=0;
+  for(const i of _POSE_EXTENT_IDX){
+    const p=lm[i]; if(!p || (p.visibility!=null && p.visibility<0.3)) continue;
+    const x=p.x*VW, y=p.y*VH;
+    if(x<minX)minX=x; if(x>maxX)maxX=x; if(y<minY)minY=y; if(y>maxY)maxY=y; n++;
+  }
+  if(n<4) return null;                                   // 랜드마크 부족 → 무효(폴백)
+  const w=maxX-minX, h=maxY-minY;
+  if(w<10 || h<10) return null;
+  const padX=Math.max(12,w*0.12), padTop=Math.max(20,h*0.22), padBot=Math.max(8,h*0.06);  // 머리 위 여유 크게
+  const x0=Math.max(0,minX-padX), y0=Math.max(0,minY-padTop);
+  const x1=Math.min(VW,maxX+padX), y1=Math.min(VH,maxY+padBot);
+  return [x0,y0,x1-x0,y1-y0];
+}
+// 소유권 부여 + 위치 교체: pose extent에 가장 가까운 person detection을 찾아, 그 박스의 위치만
+// 신선한 pose extent로 바꾸고 seenAt을 갱신(→ 페이드/꼬리억제 대상에서 제외). 클래스/ID/score는 detection 유지.
+function _applyPoseFollow(objs){
+  if(!posePersonExtentBox || !posePersonExtentAt) return objs;
+  if(Date.now()-posePersonExtentAt > STALE_TTL_MS) return objs;   // pose 끊긴 지 오래 → 폴백(detection 박스+페이드)
+  const persons=objs.filter(o=>o.class==='person');
+  if(!persons.length) return objs;                                // 매칭할 detection 없음 → 가짜 박스 만들지 않음(안전)
+  const pcx=posePersonExtentBox[0]+posePersonExtentBox[2]/2;
+  const pcy=posePersonExtentBox[1]+posePersonExtentBox[3]/2;
+  let owner=null,bd=1e9;
+  for(const o of persons){
+    const cx=o.bbox[0]+o.bbox[2]/2, cy=o.bbox[1]+o.bbox[3]/2;
+    const diag=Math.hypot(o.bbox[2]||0,o.bbox[3]||0);
+    const d=Math.hypot(cx-pcx,cy-pcy);
+    if(d<bd && d < Math.max(250, diag*1.5)){ bd=d; owner=o; }     // 빠른 이동으로 detection이 뒤처져도 매칭 유지
+  }
+  if(!owner) return objs;
+  return objs.map(o=> o===owner
+    ? {...o, bbox:posePersonExtentBox.slice(), seenAt:posePersonExtentAt, _poseFollow:true}
+    : o);
+}
 
 // 외곽선(인스턴스 세그멘테이션) 모드 — 박스 대신 객체 윤곽 폴리곤 표시
 let segBusy=false, segAt=0, lastSegAt=0;
@@ -235,7 +310,12 @@ async function initModels(){
     // VIGENT_LOCAL=true 이면 로컬 번들(/static/vendor)에서 로드(CDN 없이·폐쇄망), 아니면 CDN.
     const _mpBase = window.VIGENT_LOCAL ? '/static/vendor/mediapipe/' : 'https://cdn.jsdelivr.net/npm/@mediapipe/holistic@0.5.1675471629/';
     holistic=new Holistic({locateFile:f=>_mpBase+f});
-    holistic.setOptions({modelComplexity:1,smoothLandmarks:true,enableSegmentation:false,refineFaceLandmarks:true,minDetectionConfidence:0.5,minTrackingConfidence:0.5});
+    // 현장 끊김 대응: 안전 테마는 얼굴메시가 불필요하므로 Holistic을 경량화(복잡도 0·얼굴정밀 off)
+    // → 렌더 펌프(onHolisticResults)가 가벼워져 FPS↑, 카메라 부드러워짐. fitness/office는 기존(정밀) 유지.
+    const _liteSafety=(typeof activeServiceMode!=='undefined'&&activeServiceMode==='safety')
+      ||(typeof window!=='undefined'&&_normServiceMode(window.AX_LOCK_THEME)==='safety');
+    holistic.setOptions({modelComplexity:_liteSafety?0:1,smoothLandmarks:true,enableSegmentation:false,
+      refineFaceLandmarks:_liteSafety?false:true,minDetectionConfidence:0.5,minTrackingConfidence:0.5});
     holistic.onResults(onHolisticResults);
     loadStep(0,true);
 
@@ -379,11 +459,12 @@ function centroid(bbox){return{x:bbox[0]+bbox[2]/2, y:bbox[1]+bbox[3]/2};}
 
 function updateTracker(predictions){
   const MAX_DIST=80, MAX_GONE=10;
+  const now=Date.now();   // 관측 시각 — 매칭된 트랙은 갱신, 미매칭(gone)은 옛 값 유지 → 잔상 페이드
   // 현재 감지 결과의 centroid
   const currCentroids=predictions.map(p=>centroid(p.bbox));
 
   if(objTracker.tracked.length===0){
-    objTracker.tracked=predictions.map((p,i)=>({...p,id:objTracker.nextId++,gone:0,hits:1,avgScore:p.score}));
+    objTracker.tracked=predictions.map((p,i)=>({...p,id:objTracker.nextId++,gone:0,hits:1,avgScore:p.score,seenAt:now}));
     return stableTrackedObjects(objTracker.tracked);
   }
 
@@ -411,15 +492,16 @@ function updateTracker(predictions){
         id:t.id,
         gone:0,
         hits:(t.hits||1)+1,
-        avgScore:((t.avgScore||p.score)*0.7+p.score*0.3)
+        avgScore:((t.avgScore||p.score)*0.7+p.score*0.3),
+        seenAt:now                                  // 매칭됨 = 방금 관측 → 갱신
       });
     } else {
-      if(t.gone<MAX_GONE) result.push({...t,gone:t.gone+1});
+      if(t.gone<MAX_GONE) result.push({...t,gone:t.gone+1});   // 미매칭 = 옛 seenAt 유지 → 페이드
     }
   }
   // 새로운 객체
   for(let j=0;j<predictions.length;j++){
-    if(!matched.has(j)) result.push({...predictions[j],id:objTracker.nextId++,gone:0,hits:1,avgScore:predictions[j].score});
+    if(!matched.has(j)) result.push({...predictions[j],id:objTracker.nextId++,gone:0,hits:1,avgScore:predictions[j].score,seenAt:now});
   }
   objTracker.tracked=result;
   return stableTrackedObjects(result);
@@ -802,13 +884,14 @@ async function analyzeObjectsWithBackend(source,W,H){
     if(!Array.isArray(data.detections)) return;
     // 백엔드 박스(전송한 cw×ch 좌표) → 원본 소스(W×H) 좌표로 환원
     const invX=(W||cw)/cw, invY=(H||ch)/ch;
+    const _seenAt=Date.now();                     // 이 배치 detection의 관측 시각(잔상 페이드 기준)
     backendBoostDets=data.detections
       .filter(d=> activeServiceMode==='safety' || !isPpeClass(d.class))   // 보호구는 안전 테마에서만
       .map(d=>{
         const[x,y,w,h]=d.bbox;
-        return {class:d.class, score:d.score, bbox:[x*invX,y*invY,w*invX,h*invY], source:'backend'};
+        return {class:d.class, score:d.score, bbox:[x*invX,y*invY,w*invX,h*invY], source:'backend', seenAt:_seenAt};
       });
-    backendBoostAt=Date.now();
+    backendBoostAt=_seenAt;
     // 세그멘테이션 폴리곤(통합 응답) — 좌표 환원 후 저장. detect와 같은 프레임이라 추가 인코딩 없음.
     if(wantSeg && Array.isArray(data.segments) && data.segments.length){
       segPolys=data.segments
@@ -1184,7 +1267,10 @@ function drawObjects(objs,W,H,lHeld,rHeld,scX,scY,hidePerson){
   // 인원수·PPE·위험구역 판정은 탐지 데이터로 동작하므로 박스 생략과 무관하게 유지된다.
   const cmap={safe:'#10b981',caution:'#f59e0b',danger:'#ef4444'};
   for(const o of objs){
-    if(hidePerson && o.class==='person') continue;
+    if(hidePerson && o.class==='person' && !o._poseFollow) continue;   // pose 따라가는 사람 박스는 표시(2단계), 나머지 사람은 기존대로 스켈레톤에 양보
+    const _fa=_staleAlpha(o.seenAt);            // 잔상 페이드: 오래된 박스는 알파↓ 후 제외
+    if(_fa<=0) continue;                          // STALE_TTL 초과 → 렌더 제외(옛 자리 고정 잔상 제거)
+    ctx.save(); ctx.globalAlpha=_fa;
     const[x,y,w,h]=displayBboxArray(scaleBbox(o.bbox,scX,scY),W,H);
     const tag=safetyTag(o.class);
     const isLH=lHeld.some(l=>iou(l.bbox,o.bbox)>.3);
@@ -1192,6 +1278,7 @@ function drawObjects(objs,W,H,lHeld,rHeld,scX,scY,hidePerson){
     let col=cmap[tag.cls];
     if(isLH) col='#10b981';
     if(isRH) col='#f97316';
+    if(isViolation(o.class)) col='#ef4444';   // 미착용·화재 등 위반은 항상 빨강(우선)
     ctx.fillStyle=col+'18'; ctx.fillRect(x,y,w,h);
     ctx.strokeStyle=col; ctx.lineWidth=isLH||isRH?3:2; ctx.strokeRect(x,y,w,h);
     const cs=14; ctx.lineWidth=3;
@@ -1204,6 +1291,7 @@ function drawObjects(objs,W,H,lHeld,rHeld,scX,scY,hidePerson){
       ctx.fillStyle=col; ctx.fillRect(x,ly-17,tw,20); ctx.fillStyle='#000'; ctx.fillText(label,x+5,ly-1);
     }
     if(o.id){ctx.font='bold 9px Segoe UI';ctx.fillStyle='rgba(255,255,255,.5)';ctx.fillText('#'+o.id,x+3,y+11);}
+    ctx.restore();                                // globalAlpha 복원(잔상 페이드)
   }
 }
 
@@ -1218,17 +1306,22 @@ function drawBackendBoost(browserObjs,W,H,scX,scY){
   for(const o of backendBoostDets){
     const covered=browserObjs.some(b=>b.class===o.class && iou(b.bbox,o.bbox)>0.45);
     if(covered) continue;
+    // 화면 정리: '착용(정상)' 보호구 박스는 숨겨 잡다함↓ → 미착용(빨강)·사람·차량·화재만 강조.
+    // 착용 여부 판정·기록은 백엔드 데이터로 계속 동작(표시만 생략).
+    if(isPpeClass(o.class) && !isViolation(o.class)) continue;
     const[x,y,w,h]=displayBboxArray(scaleBbox(o.bbox,scX,scY),W,H);
+    const viol=isViolation(o.class);                 // 미착용·화재 등은 빨강, 그 외는 시안
+    const bcol=viol?'#ef4444':'#22d3ee';
     ctx.save();
     ctx.setLineDash([6,4]);
-    ctx.strokeStyle='#22d3ee'; ctx.lineWidth=2; ctx.strokeRect(x,y,w,h);
+    ctx.strokeStyle=bcol; ctx.lineWidth=viol?3:2; ctx.strokeRect(x,y,w,h);
     ctx.setLineDash([]);
     if(showLabel){
       ctx.font='bold 12px Segoe UI';
-      const label=`${translateClass(o.class)} ✓정밀 ${(o.score*100).toFixed(0)}%`;
+      const label=`${translateClass(o.class)} ${viol?'⚠':'✓정밀'} ${(o.score*100).toFixed(0)}%`;
       const tw=ctx.measureText(label).width+14; const ly=y>24?y-5:y+h+17;
-      ctx.fillStyle='#22d3ee'; ctx.fillRect(x,ly-17,tw,20);
-      ctx.fillStyle='#003'; ctx.fillText(label,x+5,ly-1);
+      ctx.fillStyle=bcol; ctx.fillRect(x,ly-17,tw,20);
+      ctx.fillStyle=viol?'#fff':'#003'; ctx.fillText(label,x+5,ly-1);
     }
     ctx.restore();
   }
@@ -2270,6 +2363,10 @@ async function onHolisticResults(results){
   cachedLBBox=getHandBBox(lHandLM,VW,VH);
   cachedRBBox=getHandBBox(rHandLM,VW,VH);
 
+  // 2단계: 사람 박스 위치를 매 프레임 신선한 pose extent로 갱신. 못 잡은 프레임은 마지막값 hold(아래 _applyPoseFollow가 STALE_TTL까지 유지 후 페이드).
+  const _pe=posePersonExtent(sm,VW,VH);
+  if(_pe){ posePersonExtentBox=_pe; posePersonExtentAt=Date.now(); }
+
   // ── 그리기 (TF.js 추론은 별도 루프 - 캐시된 데이터 사용) ──
   // 영상→캔버스 스케일
   const rect=mediaRect(W,H);
@@ -2318,6 +2415,8 @@ function _mergedObjects(browserObjs){
       }
     }
   }
+  out = _applyPoseFollow(out);                                // 사람 박스 위치를 신선한 pose extent로 교체(지연 0)
+  out = _dropTrailingStale(out);                              // 이동으로 생긴 여러 개의 꼬리 잔상 제거
   return _safetyVisible(out);                                 // 안전 모드: 안전 관련 객체만 그림(잡동사니 숨김)
 }
 
