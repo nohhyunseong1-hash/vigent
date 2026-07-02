@@ -83,8 +83,15 @@ class GuardAgent(BaseAgent):
     IMGSZ = 960              # 추론 해상도(클수록 작은 객체↑). 워밍업 후 ~250ms/회로 빠름
     TRACK_TTL = 1.2          # 서버 추적 유지시간(초). 프론트 간격보다 길게 → 깜빡임 제거
     TRACK_IOU = 0.45         # 같은 객체로 볼 겹침 기준
-    EMA = 0.5                # 박스 위치 스무딩(0~1, 클수록 새 위치 빨리 반영). 떨림 완화
+    EMA = 0.75               # 박스 위치 스무딩(0~1, 클수록 새 위치 빨리 반영). 0.5→0.75: 움직임 추종↑(현장 반응성)
     MIN_HITS = 1             # 1=즉시 표시(움직이는 객체도 바로 보임). 헛것은 임계값으로 거름
+    # 잔상 제거(옵션 B): 이번 프레임에 새 탐지가 없는(미매칭) 트랙이 이 프레임 수를 넘기면 즉시 폐기.
+    #   1 = 1프레임 놓침은 브리지(깜빡임 방지), 2번째 연속 미매칭에 삭제 → 사람 이탈 후 옛 박스 ~2프레임 내 소멸.
+    #   (기존엔 TRACK_TTL=1.2s 동안 미매칭 트랙을 계속 진짜 박스로 반환 → 잔상·빈 벽 PPE 오탐.
+    #    이제 TTL 은 '프레임이 뜸할 때'를 위한 절대 백스톱으로만 유지.)
+    # ⚠ 참고(옵션 A 범위): self._tracks 는 STATE[theme] 에 1회 로드돼 모든 카메라/요청이 공유하는 전역 상태.
+    #    다중 카메라 동시 사용 시 서로 오염될 수 있어, 스트림별 트랙 격리는 별도 과제로 남김.
+    STALE_MAX_MISSES = 1
 
     def __init__(self, config: Any):
         super().__init__(config)
@@ -93,6 +100,7 @@ class GuardAgent(BaseAgent):
             import tuning
             self.DETECTOR_CONF = {**self.DETECTOR_CONF, **(tuning.section("detect").get("conf") or {})}
             self.IMGSZ = int(tuning.val("detect", "imgsz", self.IMGSZ))
+            self.STALE_MAX_MISSES = int(tuning.val("detect", "stale_max_misses", self.STALE_MAX_MISSES))
         except Exception:  # noqa: BLE001
             pass
         self._models: dict[str, Any] = {}      # id → YOLO (지연 로드 캐시)
@@ -107,19 +115,14 @@ class GuardAgent(BaseAgent):
 
     @staticmethod
     def _pick_device() -> str:
-        """추론 장치 선택. 기본은 cpu(서버 지속추론 안정성 — MPS는 ultralytics 다회 추론 시
-        네이티브 크래시 관찰됨). 속도가 필요하고 위험 감수 시 VIGENT_DETECT_DEVICE=mps 로 강제."""
-        import os
-        forced = os.environ.get("VIGENT_DETECT_DEVICE", "").strip().lower()
-        if forced in ("cpu", "mps", "cuda"):
-            return forced
-        try:
-            import torch
-            if forced == "" and torch.cuda.is_available():
-                return "cuda"          # CUDA(리눅스/엔비디아)는 안정적 → 사용
-        except Exception:  # noqa: BLE001
-            pass
-        return "cpu"                    # macOS 기본: 안정성 위해 CPU(MPS 회피)
+        """추론 장치 선택(단일 소스 device.pick_device 사용, 감사 C-2).
+        YOLO는 macOS MPS 다회추론 크래시가 관찰돼 prefer_mps=False(맥=CPU). CUDA는 사용.
+        속도가 필요하고 위험 감수 시 VIGENT_DETECT_DEVICE=mps 로 강제."""
+        import sys
+        from pathlib import Path
+        sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+        import device as _device
+        return _device.pick_device(prefer_mps=False)
 
     def status(self) -> dict[str, Any]:
         return {"name": self.name, "role": self.role, "implemented": True,
@@ -131,14 +134,18 @@ class GuardAgent(BaseAgent):
         """서버측 추적/스무딩: 새 탐지를 기존 트랙과 IoU 매칭해 갱신(위치 EMA 평활),
         새것은 추가, TTL 지난 트랙은 제거. 잠깐 놓친 프레임에도 박스를 유지해 깜빡임 제거."""
         now = time.time()
+        used: set[int] = set()   # 감사 E-2: 한 트랙에 복수 검출이 중복 매칭돼 인원 과소집계되던 문제 → 1:1 강제
         for f in fresh:
             best, best_iou = None, self.TRACK_IOU
             for t in self._tracks:
+                if id(t) in used:
+                    continue                       # 이번 프레임에 이미 매칭된 트랙은 제외
                 if t["label"].lower() == f["label"].lower():
                     i = _iou(t["bbox"], f["bbox"])
                     if i >= best_iou:
                         best, best_iou = t, i
             if best is not None:
+                used.add(id(best))
                 # 위치 EMA 평활(떨림 완화) — 새 bbox 를 일부만 반영
                 a = self.EMA
                 best["bbox"] = [round(best["bbox"][k] * (1 - a) + f["bbox"][k] * a, 4)
@@ -148,13 +155,21 @@ class GuardAgent(BaseAgent):
                 best["raw_label"] = f.get("raw_label", best.get("raw_label"))
                 best["seen"] = now
                 best["hits"] = best.get("hits", 1) + 1   # 연속 확인 횟수 증가
+                best["misses"] = 0                        # 이번 프레임에 매칭됨 → 미매칭 카운터 리셋
             else:
-                f = dict(f); f["seen"] = now; f["hits"] = 1
+                f = dict(f); f["seen"] = now; f["hits"] = 1; f["misses"] = 0
                 self._tracks.append(f)
-        # TTL 만료 제거(유령 박스 방지)
-        self._tracks = [t for t in self._tracks if now - t["seen"] <= self.TRACK_TTL]
-        # MIN_HITS 이상 '확인된' 트랙만 표시(한 프레임 헛것 제거). 내부필드(seen·hits)는 빼고 반환
-        return [{k: v for k, v in t.items() if k not in ("seen", "hits")}
+                used.add(id(f))          # 새 트랙도 같은 프레임 내 재매칭 방지
+        # 이번 프레임에 매칭/신규가 아닌(미매칭) 트랙은 연속 미매칭 횟수 증가
+        for t in self._tracks:
+            if id(t) not in used:
+                t["misses"] = t.get("misses", 0) + 1
+        # 잔상 제거(옵션 B): 연속 미매칭이 STALE_MAX_MISSES 초과면 즉시 폐기(사람 이탈→옛 박스 ~2프레임 내 소멸).
+        #   + TRACK_TTL 은 프레임이 뜸할 때를 위한 절대 백스톱으로 병행 유지.
+        self._tracks = [t for t in self._tracks
+                        if t.get("misses", 0) <= self.STALE_MAX_MISSES and now - t["seen"] <= self.TRACK_TTL]
+        # MIN_HITS 이상 '확인된' 트랙만 표시(한 프레임 헛것 제거). 내부필드(seen·hits·misses)는 빼고 반환
+        return [{k: v for k, v in t.items() if k not in ("seen", "hits", "misses")}
                 for t in self._tracks if t["hits"] >= self.MIN_HITS]
 
     def _get_model(self, slot: str):
@@ -174,11 +189,14 @@ class GuardAgent(BaseAgent):
             return None
 
     def detect(self, image_bgr: np.ndarray, detectors: list[str] | None = None,
-               conf: float | None = None) -> dict[str, Any]:
+               conf: float | None = None, imgsz: int | None = None,
+               augment: bool = False) -> dict[str, Any]:
         """프레임 추론. 반환: 정규화 라벨·confidence·정규화 bbox(0~1) 목록 + 파생 신호.
 
         image_bgr: cv2 BGR numpy 배열
         detectors: 돌릴 검출기 id 목록(기본 person·ppe·forklift; fire 는 명시 시)
+        imgsz: 추론 해상도 override(None=기본 self.IMGSZ). 오프라인 정밀분석은 높게(예 1280).
+        augment: TTA(다중스케일·좌우반전 추론). 오프라인에서 True → 정확도↑·느림(실시간 금지).
         """
         conf_override = conf      # None 이면 검출기별 임계(DETECTOR_CONF) 사용
         # 기본은 '범용' 검출기(person=yolo11s, COCO 80종)만 — 어디서든 일상 사물 정확 인식.
@@ -195,9 +213,10 @@ class GuardAgent(BaseAgent):
                 continue
             slot_conf = conf_override if conf_override is not None else self.DETECTOR_CONF.get(slot, self.DEFAULT_CONF)
             try:
-                # 해상도 ↑(imgsz) 단일 추론 + 검출기별 임계(건설모델은 높게 → 오탐 컷)
+                # 해상도 ↑(imgsz) + (오프라인) TTA 추론 + 검출기별 임계(건설모델은 높게 → 오탐 컷)
                 res = model.predict(image_bgr, verbose=False, conf=slot_conf,
-                                    imgsz=self.IMGSZ, device=self.device)[0]
+                                    imgsz=imgsz or self.IMGSZ, augment=augment,
+                                    device=self.device)[0]
             except Exception as ex:  # noqa: BLE001  추론 실패해도 나머지 진행
                 self._load_errors[slot] = f"predict: {type(ex).__name__}: {ex}"
                 continue
