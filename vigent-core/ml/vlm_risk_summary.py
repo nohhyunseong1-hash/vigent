@@ -116,7 +116,7 @@ class RiskVLM:
         self.config = load_config(MODEL)
         print(f"[vlm] 모델 로드 {time.time()-t0:.1f}s")
 
-    def _ask(self, safe: str, prompt: str, max_tokens: int = 200) -> dict:
+    def _ask(self, safe: str, prompt: str, max_tokens: int = 260) -> dict:
         fmt = self._apply(self.processor, self.config, prompt, num_images=1)
         # 안정성: 낮은 temperature + 반복 억제(같은 말 반복/degeneration 방지)
         res = self._generate(self.model, self.processor, fmt, image=safe,
@@ -139,22 +139,25 @@ class RiskVLM:
         except Exception as ex:  # noqa: BLE001
             return {"_error": f"VLM quick 실패: {type(ex).__name__}"}
 
-    def summarize(self, img_path: str, prompt: str | None = None) -> dict:
+    def summarize(self, img_path: str, prompt: str | None = None,
+                  max_tokens: int = 260, enrich: bool = True) -> dict:
         """이벤트 프레임 → 위험요약 JSON. 절대 예외로 죽지 않는다(모니터링 안정성).
         prompt 를 주면 그 테마 프롬프트로(office·sports). 없으면 기본(safety).
+        max_tokens: 긴 통합 JSON을 받을 때 늘림(기본 260). enrich=False면 법령보강 생략(통합호출용).
         한국어가 아니면 1회 재시도. 끝으로 Copilot 으로 '관련법령'을 보강(빈 값일 때만)."""
         p = prompt or PROMPT
         try:
             safe = _safe_image(img_path)
-            data = self._ask(safe, p)
+            data = self._ask(safe, p, max_tokens=max_tokens)
             if not _is_korean(data):
-                data2 = self._ask(safe, p + "\n주의: 이전 답이 한국어가 아니었다. 반드시 한국어로만.")
+                data2 = self._ask(safe, p + "\n주의: 이전 답이 한국어가 아니었다. 반드시 한국어로만.",
+                                  max_tokens=max_tokens)
                 if _is_korean(data2):
                     data = data2
                 else:
                     data2.setdefault("_warn", "VLM이 한국어로 답하지 않음(작은 모델 한계)")
                     data = data2
-            return _enrich_with_law(data)
+            return _enrich_with_law(data) if enrich else data
         except Exception as ex:   # noqa: BLE001  VLM 실패가 파이프라인을 멈추지 않게
             return {"_error": f"VLM 요약 실패: {type(ex).__name__}", "위험등급": "미상"}
 

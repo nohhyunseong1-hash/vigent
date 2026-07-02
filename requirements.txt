@@ -33,7 +33,7 @@ mlx==0.31.2
 mlx-vlm==0.6.3
 mlx-lm==0.31.3
 
-# ── RAG 의미검색(안전규정 검색 정확도↑) — 선택 ───
-# 현재 노트북엔 미설치 상태(없어도 키워드 폴백으로 동작).
-# 켜려면 아래 주석 해제:
-# sentence-transformers
+# ── RAG 의미검색(안전규정·재해원인 검색 정확도↑) — 설치됨 ───
+# 최초 1회 한국어 임베딩 모델(jhgan/ko-sroberta-multitask, ~400MB) 자동 다운로드.
+# 폐쇄망/오프라인 박스면 이 줄 주석 처리 → 자동으로 키워드(bigram) 폴백.
+sentence-transformers==5.6.0

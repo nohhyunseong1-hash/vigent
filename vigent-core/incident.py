@@ -12,38 +12,112 @@ from __future__ import annotations
 from typing import Any
 
 
+def _vlm_accident(image_bgr) -> dict[str, Any] | None:
+    """VLM에게 '무슨 작업/어떤 재해/원인'을 직접 물음 — 하드코딩 목록에 가두지 않는 딥러닝 분석."""
+    prompt = (
+        "너는 산업재해 조사관 AI다. 이 현장/CCTV 사진을 보고 아래 JSON으로만 답하라.\n"
+        '{"work":"무슨 작업을 하는 장면인지 한국어로","accident_type":"재해유형(끼임/추락/부딪힘/감전/화재/질식/전도/낙하물/무너짐/없음 중 하나)",'
+        '"what_happened":"벌어지는(또는 임박한) 상황을 한 문장으로","cause":"추정 원인","evidence":"그렇게 판단한 근거"}\n'
+        "불확실한 값은 '불명확'이라고 쓰라. 다른 설명 문장 없이 JSON만 출력."
+    )
+    keys = ("work", "accident_type", "what_happened", "cause", "evidence")
+    try:
+        import rfdetr_service
+        data = rfdetr_service.vlm.summarize_bgr(image_bgr, prompt=prompt)
+        if not isinstance(data, dict):
+            return None
+        # summarize_bgr 는 VLM의 JSON을 파싱해 그대로 dict로 돌려준다 → 기대 키가 있으면 사용
+        if any(k in data for k in keys):
+            return {k: str(data.get(k, "") or "") for k in keys}
+        # 혹시 raw 텍스트로 오면 JSON 파싱 시도(폴백)
+        raw = data.get("raw")
+        if raw:
+            import json
+            import re
+            m = re.search(r"\{.*\}", str(raw), re.S)
+            if m:
+                obj = json.loads(m.group(0))
+                if isinstance(obj, dict):
+                    return {k: str(obj.get(k, "") or "") for k in keys}
+        return None
+    except Exception:  # noqa: BLE001
+        return None
+
+
 def analyze(image_bgr, present_classes: list[str] | None = None, use_vlm: bool = False) -> dict[str, Any]:
     import safety_brain
     present = present_classes or []
     scene = ""
+    ai = None
+    shared = None
     if use_vlm and image_bgr is not None:
+        # 감사 D-1: 장면을 1회 VLM 통합호출로 이해 → 아래 모듈들이 재사용(개별 VLM 7~9회 제거).
+        # 통합 실패(None)면 각 모듈이 기존 개별호출로 폴백 → 절대 저하 없음.
         try:
-            import vlm_confirm
-            scene = vlm_confirm.describe_scene(image_bgr)
+            import scene_vlm
+            shared = scene_vlm.understand(image_bgr)
         except Exception:  # noqa: BLE001
-            scene = ""
-    env = safety_brain.detect_environment(image_bgr, present, use_vlm)
+            shared = None
+        if shared:
+            scene = shared.get("scene", "")
+            if any(shared.get(k) for k in ("accident_type", "what_happened", "cause", "evidence")) \
+                    or shared.get("activity"):
+                ai = {"work": shared.get("activity", ""),
+                      "accident_type": shared.get("accident_type", ""),
+                      "what_happened": shared.get("what_happened", ""),
+                      "cause": shared.get("cause", ""),
+                      "evidence": shared.get("evidence", "")}
+        else:  # 폴백: 통합 실패 시 기존 개별 VLM 호출
+            try:
+                import vlm_confirm
+                scene = vlm_confirm.describe_scene(image_bgr)
+            except Exception:  # noqa: BLE001
+                scene = ""
+            ai = _vlm_accident(image_bgr)
+    env = safety_brain.detect_environment(image_bgr, present, use_vlm, shared=shared)
     env_id = env["id"] if env else None
-    act_id = safety_brain.detect_activity(image_bgr, present, use_vlm)
-    assessment = (safety_brain.assess(act_id, present, image_bgr=image_bgr, use_vlm=use_vlm)
+    act_id = safety_brain.detect_activity(image_bgr, present, use_vlm, shared=shared)
+    assessment = (safety_brain.assess(act_id, present, image_bgr=image_bgr, use_vlm=use_vlm, shared=shared)
                   if act_id else None)
     warnings = safety_brain.accident_warnings(env_id, act_id, present)
     missing = assessment.get("missing", []) if assessment else []
     behaviors = []
     try:
         import behavior as _bhv
-        behaviors = _bhv.analyze(image_bgr, use_vlm=use_vlm).get("behaviors", [])
+        behaviors = _bhv.analyze(image_bgr, use_vlm=use_vlm, shared=shared).get("behaviors", [])
     except Exception:  # noqa: BLE001
         behaviors = []
+    # 관련 법령·중대재해 사례(RAG 의미검색) — 장면·행동·빠진조치로 근거 보강
+    related = []
+    try:
+        import safety_rag
+        # 영어 감지라벨 → 한국어(한국어 임베딩 모델이 이해하도록)
+        _cls_ko = {"NO-Hardhat": "안전모 미착용", "Hardhat": "안전모", "NO-Safety-Vest": "안전조끼 미착용",
+                   "Safety-Vest": "안전조끼", "NO-Mask": "마스크 미착용", "Mask": "마스크",
+                   "NO-Gloves": "장갑 미착용", "Gloves": "장갑", "NO-Goggles": "보안경 미착용",
+                   "Goggles": "보안경", "NO-Boots": "안전화 미착용", "Boots": "안전화",
+                   "Person": "작업자", "fire": "화재", "smoke": "연기", "forklift": "지게차"}
+        present_ko = [_cls_ko.get(c, c) for c in present]
+        q_parts = ([scene] + [b.get("label", "") for b in behaviors]
+                   + [m["name"] for m in missing] + present_ko)
+        if assessment:
+            q_parts.append(assessment.get("activity", "") or "")
+        query = " ".join(p for p in q_parts if p).strip()
+        if query:
+            related = safety_rag.retrieve(query, k=4)
+    except Exception:  # noqa: BLE001
+        related = []
     return {
         "ok": True,
         "scene": scene,
+        "ai_analysis": ai,
         "behaviors": behaviors,
         "detected": present,
         "environment": (env["name"] if env else None),
         "activity": (assessment["activity"] if assessment else act_id),
         "missing_measures": [m["name"] for m in missing],
         "regulations": (assessment.get("regulations", []) if assessment else []),
+        "related": related,
         "accident_patterns": warnings,
         "actions": (assessment.get("actions", []) if assessment else []),
         "vlm_used": bool(use_vlm),
@@ -53,7 +127,8 @@ def analyze(image_bgr, present_classes: list[str] | None = None, use_vlm: bool =
 
 
 def render() -> str:
-    return _PAGE
+    import labels
+    return _PAGE.replace("{{LABELS_KO}}", labels.js_snippet())
 
 
 _PAGE = r"""<!DOCTYPE html><html lang="ko"><head><meta charset="UTF-8">
@@ -102,8 +177,13 @@ _PAGE = r"""<!DOCTYPE html><html lang="ko"><head><meta charset="UTF-8">
   let _b64=null, _isVideo=false;
   function capFrame(vid){ const c=document.createElement('canvas'); c.width=vid.videoWidth; c.height=vid.videoHeight;
     c.getContext('2d').drawImage(vid,0,0); return c.toDataURL('image/jpeg',0.8).split(',')[1]; }
+  // 모션 시그니처(32x32 흑백) — 프레임 간 급변(사고 순간) 감지용
+  function frameSig(vid){ const c=document.createElement('canvas'); c.width=32; c.height=32;
+    const x=c.getContext('2d'); x.drawImage(vid,0,0,32,32); const d=x.getImageData(0,0,32,32).data;
+    const g=new Float32Array(1024); for(let i=0;i<1024;i++) g[i]=(d[i*4]+d[i*4+1]+d[i*4+2])/3; return g; }
+  function sigDiff(a,b){ if(!a||!b) return 0; let s=0; for(let i=0;i<a.length;i++) s+=Math.abs(a[i]-b[i]); return s/a.length; }
   function seekTo(vid,t){ return new Promise(res=>{ const h=()=>{ vid.removeEventListener('seeked',h); res(); }; vid.addEventListener('seeked',h); vid.currentTime=t; }); }
-  function ko(c){ const m={person:'사람',forklift:'지게차',truck:'트럭',car:'차량',bus:'버스',train:'차량',boat:'차량',motorcycle:'오토바이',bicycle:'자전거',fire:'화재',smoke:'연기','no-hardhat':'안전모 미착용','no-mask':'마스크 미착용','no-safety-vest':'안전조끼 미착용',hardhat:'안전모',knife:'칼',scissors:'가위'}; return m[String(c||'').toLowerCase()]||c; }
+  {{LABELS_KO}}   // 라벨 한국어맵 단일 소스(labels.py) 주입 — ko() 정의
   // 위험요인에 박스 그리기(위험=빨강, 일반=앰버)
   function drawAnnotated(b64, boxes){
     return new Promise(res=>{
@@ -151,23 +231,28 @@ _PAGE = r"""<!DOCTYPE html><html lang="ko"><head><meta charset="UTF-8">
     const bars=[]; for(let i=0;i<N;i++){ const b=document.createElement('div'); b.className='b'; tl.appendChild(b); bars.push(b); }
     const frames=[];
     for(let i=0;i<N;i++){
-      const t=dur*i/(N-1); await seekTo(vid,t); const b64=capFrame(vid);
+      const t=dur*i/(N-1); await seekTo(vid,t); const b64=capFrame(vid); const sig=frameSig(vid);
       document.getElementById('prog').textContent='위험요인 탐색 중… '+(i+1)+'/'+N;
       let risk={score:0,hazards:[]};
       try{ risk=await (await fetch('/safety/incident/frame',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({image_base64:b64})})).json(); }catch(e){}
-      frames.push({t,b64,risk});
-      const h=Math.min(38, 4+risk.score*0.6);
-      bars[i].style.height=h+'px';
-      bars[i].style.background= risk.score>=55?'#ff3b3b': risk.score>=25?'#ffb000':'#2a4a2a';
-      bars[i].title=t.toFixed(1)+'s · 위험도 '+risk.score+(risk.hazards.length?' ('+risk.hazards.join(',')+')':'');
+      frames.push({t,b64,risk,sig});
       bars[i].onclick=()=>{ vid.currentTime=t; vid.play(); };
     }
+    // 모션 스파이크(급격한 변화=사고 순간) + 하드코딩 위험점수 결합 → 사고 시점 추정
+    let maxMotion=0;
+    for(let i=1;i<frames.length;i++){ frames[i].motion=sigDiff(frames[i].sig,frames[i-1].sig); if(frames[i].motion>maxMotion)maxMotion=frames[i].motion; }
+    if(frames[0]) frames[0].motion=0;
+    frames.forEach((f,i)=>{ const mScore=maxMotion>0?(f.motion/maxMotion)*60:0; f.combined=(f.risk.score||0)+mScore;
+      if(bars[i]){ bars[i].style.height=Math.min(38,4+f.combined*0.5)+'px';
+        bars[i].style.background= f.combined>=60?'#ff3b3b': f.combined>=30?'#ffb000':'#2a4a2a';
+        bars[i].title=f.t.toFixed(1)+'s · 종합 '+Math.round(f.combined)+' (위험 '+(f.risk.score||0)+' + 모션 '+Math.round(mScore)+')'; } });
     document.getElementById('prog').textContent='';
-    const peak=frames.reduce((a,b)=> b.risk.score>a.risk.score?b:a, frames[0]);
-    vid.currentTime=peak.t;  // 위험 발생 시점으로 점프
-    const peakHtml = peak.risk.score>0
-      ? '<div class="peak">⚠ 위험요인 발생 추정 시점: <b>'+peak.t.toFixed(1)+'초</b> · '+(peak.risk.hazards.join(', ')||'위험 신호')+' (위험도 '+peak.risk.score+')<br><span class="dim">위 영상이 그 시점으로 이동했습니다. 재생해 확인하세요.</span></div>'
-      : '<div class="peak dim">뚜렷한 위험요인 시점을 못 찾음(영상 화질·각도 또는 위험 신호 미검출)</div>';
+    const peak=frames.reduce((a,b)=> b.combined>a.combined?b:a, frames[0]);
+    vid.currentTime=peak.t;  // 사고 추정 시점으로 점프
+    const motionDriven = maxMotion>0 && peak.motion>=maxMotion*0.6;
+    const peakHtml = peak.combined>0
+      ? '<div class="peak">⚠ 사고 추정 시점: <b>'+peak.t.toFixed(1)+'초</b> · '+(peak.risk.hazards.join(', ')||(motionDriven?'급격한 움직임(사고 의심)':'위험 신호'))+'<br><span class="dim">위 영상이 그 시점으로 이동했습니다. 재생해 확인하세요.</span></div>'
+      : '<div class="peak dim">뚜렷한 사고 시점을 못 찾음(영상 화질·각도)</div>';
     document.getElementById('out').innerHTML='<div class="card"><h3>⏱ 위험 발생 시점</h3>'+peakHtml+'</div>';
     await analyzeFrame(peak.b64, vlm, peak.t);  // 그 시점 정밀 원인분석
   }
@@ -181,13 +266,23 @@ _PAGE = r"""<!DOCTYPE html><html lang="ko"><head><meta charset="UTF-8">
     const pat=(j.accident_patterns||[]).map(x=>`<li><b>${x.accident}</b>: ${x.situation} <span class="dim">→ ${x.prevention}</span></li>`).join('');
     const annotated=await drawAnnotated(b64, j.boxes||[]);  // 위험요인 박스 표시
     const imgHtml=annotated?'<img src="'+annotated+'" style="max-width:100%;width:100%;border-radius:6px;border:1px solid #1c1c20;margin-bottom:8px"><div class="dim" style="margin-bottom:6px">🔴 빨강=위험요인 · 🟡 앰버=감지객체</div>':'';
+    const ai=j.ai_analysis;
+    const aiHtml = ai ? ('<div style="line-height:1.95">'
+        +'<b>🔧 작업:</b> '+(ai.work||'불명확')+'<br>'
+        +'<b>🚨 재해유형:</b> <span class="miss">'+(ai.accident_type||'불명확')+'</span><br>'
+        +'<b>📌 상황:</b> '+(ai.what_happened||'불명확')+'<br>'
+        +'<b>🔎 추정 원인:</b> '+(ai.cause||'불명확')
+        +(ai.evidence?'<br><span class="dim">↳ 근거: '+ai.evidence+'</span>':'')+'</div>')
+      : (vlm?'<span class="dim">VLM이 장면을 분석하지 못했습니다(재시도 또는 다른 프레임)</span>':'<span class="dim">⚠ VLM 분석 체크를 켜야 작업·재해를 분석합니다</span>');
     document.getElementById('out').innerHTML=pre+
-      sec('🔍 위험요인 표시 + 장면 분석'+(t!=null?' ('+t.toFixed(1)+'초)':''), imgHtml+(j.scene?'<div class="scene">'+j.scene+'</div>':'<span class="dim">VLM 미사용/미인식</span>')
+      sec('🧠 AI 사고 분석 (VLM 직접 판단)', aiHtml)
+      +sec('🔍 위험요인 표시 + 장면 분석'+(t!=null?' ('+t.toFixed(1)+'초)':''), imgHtml+(j.scene?'<div class="scene">'+j.scene+'</div>':'<span class="dim">VLM 미사용/미인식</span>')
           +'<div class="dim" style="margin-top:6px">감지: '+((j.detected||[]).join(', ')||'-')+' · 환경: '+(j.environment||'-')+' · 작업: '+(j.activity||'-')+'</div>')
-      +sec('🎬 감지된 위험 행동', (j.behaviors&&j.behaviors.length)?'<ul>'+j.behaviors.map(b=>'<li'+(b.confirmed?' class="miss"':'')+'>'+b.label+' <span class="dim">['+b.confidence+']</span></li>').join('')+'</ul>':'<span class="dim">VLM 켜면 흡연·졸음·통화·폭력·절차위반 등 행동 분석</span>')
+      +sec('🎬 감지된 위험 행동 (VLM 판단)', (j.behaviors&&j.behaviors.length)?'<ul>'+j.behaviors.map(b=>'<li'+(b.confirmed?' class="miss"':'')+'>'+b.label+' <span class="dim">['+b.confidence+']</span>'+(b.evidence?'<br><span class="dim" style="font-size:12px">↳ 근거: '+b.evidence+'</span>':'')+'</li>').join('')+'</ul>':'<span class="dim">VLM 켜면 위험행동을 딥러닝(VLM)이 직접 판단·근거와 함께 분석합니다</span>')
       +sec('⚠ 재해 원인(빠진 안전조치)', (j.missing_measures&&j.missing_measures.length)?'<ul>'+j.missing_measures.map(m=>'<li class="miss">'+m+' 미확인/없음</li>').join('')+'</ul>':'<span class="dim">VLM 켜면 \'없는 조치\'까지 추론</span>')
       +sec('📖 관련 법령', regs?'<ul>'+regs+'</ul>':'')
       +sec('🔁 유사 중대재해 패턴', pat?'<ul>'+pat+'</ul>':'')
+      +sec('🔎 관련 지식·법령·사례 (의미검색 RAG)', (j.related&&j.related.length)?'<ul>'+j.related.map(r=>`<li><b>${r.title}</b> <span class="dim">[${r.type}]</span><br><span style="font-size:12.5px">${r.text}</span>${r.source?'<br><span class="dim">근거: '+r.source+'</span>':''}</li>`).join('')+'</ul>':'')
       +sec('✅ 예방 방법', (j.actions&&j.actions.length)?'<ul>'+j.actions.map(a=>'<li>'+a+'</li>').join('')+'</ul>':'')
       +'<div class="card dim">'+j.disclaimer+(j.vlm_used?' · VLM 사용':' · VLM 미사용')+'</div>';
   }

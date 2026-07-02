@@ -323,8 +323,12 @@ def detect_frame(payload: dict = Body(...), theme: str = DEFAULT_THEME):
     detectors = payload.get("detectors")
     if detectors is None:
         detectors = ["person", "ppe", "forklift", "fire_smoke"] if payload.get("ppe") else ["person"]
+    # 라이브 반응성: 프론트가 이미 640px로 줄여 보내므로(realtime_core.js) 감지도 640으로 맞춘다.
+    # 960으로 upscale하면 없는 디테일 만들려 2배 느려질 뿐(정확도 이득 없음) → 640이 거의 순수 이득.
+    # (오프라인 재해분석은 별도로 imgsz=1280 유지). payload.imgsz 로 현장서 조정 가능.
+    live_imgsz = int(payload.get("imgsz") or 640)
     with _DETECT_LOCK:                       # 동시 추론 직렬화(로딩/추론 race 방지)
-        out = guard.detect(img, detectors=detectors, conf=payload.get("conf"))
+        out = guard.detect(img, detectors=detectors, conf=payload.get("conf"), imgsz=live_imgsz)
     # 정규화 bbox(0~1) → 전송 이미지 픽셀 [x,y,w,h] + 프론트 키(class/score)로 변환
     H, W = img.shape[:2]
     dets = []
@@ -344,7 +348,7 @@ def detect_frame(payload: dict = Body(...), theme: str = DEFAULT_THEME):
     import proximity as _prox
     import tuning as _tun
     radius_m = float(payload.get("radius_m") or _tun.val("proximity", "radius_m", 3.0, env="VIGENT_RADIUS_M"))
-    prox = _prox.detect(out.get("detections", []), radius_m)
+    prox = _prox.detect(out.get("detections", []), radius_m, aspect_hw=H / W)   # 감사 E-1: 종횡비 보정
     return {"success": True, "detections": dets, "hazards": hazards,
             "person_count": out.get("person_count", 0), "signals": out.get("signals", {}),
             "proximity": prox}
@@ -1257,7 +1261,7 @@ def safety_incident_frame(payload: dict = Body(...), theme: str = DEFAULT_THEME)
         return {"score": 0, "hazards": []}
     sig = out.get("signals", {}) or {}
     pc = out.get("person_count", 0)
-    prox = _prox.detect(out.get("detections", []))
+    prox = _prox.detect(out.get("detections", []), aspect_hw=img.shape[0] / img.shape[1])  # 감사 E-1
     hz = []
     score = pc * 5
     if prox:
@@ -1289,13 +1293,17 @@ def safety_incident_analyze(payload: dict = Body(...), theme: str = DEFAULT_THEM
     present = []
     try:
         with _DETECT_LOCK:
-            out = guard.detect(img, detectors=["person", "ppe", "forklift", "fire_smoke"])
+            # 재해원인분석은 실시간이 아님 → 고해상도(1280)로 인식 정확도↑(느려도 됨).
+            # ⚠ TTA(augment)는 약한 커스텀 모델(지게차·PPE)의 오탐을 증폭시켜 제거함(2026-07). 고해상도만 유지.
+            out = guard.detect(img, detectors=["person", "ppe", "forklift", "fire_smoke"],
+                               imgsz=1280, augment=False)
         present = [d.get("label") for d in out.get("detections", [])]
     except Exception:  # noqa: BLE001
         out, present = {"detections": []}, []
     result = incident.analyze(img, present_classes=present, use_vlm=bool(payload.get("use_vlm")))
     import proximity as _prox
-    result["boxes"] = _incident_boxes(out, _prox.detect(out.get("detections", [])))
+    result["boxes"] = _incident_boxes(out, _prox.detect(
+        out.get("detections", []), aspect_hw=img.shape[0] / img.shape[1]))   # 감사 E-1
     return result
 
 

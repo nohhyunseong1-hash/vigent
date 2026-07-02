@@ -64,7 +64,7 @@ def _frame_to_dataurl(frame) -> str | None:
     return ("data:image/jpeg;base64," + base64.b64encode(buf.tobytes()).decode()) if ok else None
 
 
-def _derive(out: dict, zone: list) -> list[tuple[str, str, str]]:
+def _derive(out: dict, zone: list, aspect_hw: float | None = None) -> list[tuple[str, str, str]]:
     """guard.detect 출력 → 발화한 위험 [(rule, level, note)]."""
     fired: list[tuple[str, str, str]] = []
     sig = out.get("signals", {}) or {}
@@ -83,7 +83,7 @@ def _derive(out: dict, zone: list) -> list[tuple[str, str, str]]:
     # 동적 작업반경(협착) — 지게차·차량 근처에 사람 진입(거리 자동추정)
     import os
     radius = float(tuning.val("proximity", "radius_m", 3.0, env="VIGENT_RADIUS_M"))
-    for hz in proximity.detect(out.get("detections", []), radius):
+    for hz in proximity.detect(out.get("detections", []), radius, aspect_hw=aspect_hw):  # 감사 E-1
         fired.append(("proximity_hazard", "high",
                       f"{hz['vehicle']} 작업반경 침입 — 사람 약 {hz['distance_m']}m"))
         break
@@ -124,19 +124,24 @@ class _PoseModel:
     def __init__(self):
         self._m = None
         self._failed = False
+        self._device = "cpu"
 
     def persons(self, frame, min_kp=0.3):
         if self._m is None and not self._failed:
             try:
                 from ultralytics import YOLO
                 self._m = YOLO(str(_ROOT / "vigent-core" / "weights" / "yolov8n-pose.pt"))
+                import sys
+                sys.path.insert(0, str(_ROOT / "vigent-core"))
+                import device as _device
+                self._device = _device.pick_device(prefer_mps=False)  # 감사 C-2: YOLO 맥=CPU/리눅스=CUDA
             except Exception:  # noqa: BLE001
                 self._failed = True
         if self._m is None:
             return []
         try:
             H = frame.shape[0]
-            res = self._m.predict(frame, verbose=False, conf=0.4, device="cpu")[0]
+            res = self._m.predict(frame, verbose=False, conf=0.4, device=self._device)[0]
             kp = getattr(res, "keypoints", None)
             if kp is None or kp.xy is None or len(kp.xy) == 0:
                 return []
@@ -360,7 +365,7 @@ class Worker:
                 with lock:                            # 코어 추론 직렬화(브라우저와 충돌 방지)
                     out = guard.detect(frame, detectors=detectors)
                     fall, freason = ftrack.update(frame, t0)   # 다중단서+모션 낙상
-                fired = _derive(out, zone)
+                fired = _derive(out, zone, frame.shape[0] / frame.shape[1])
                 if fall:
                     fired.append(("fall_suspected", "critical", f"작업자 낙상 의심 — {freason}"))
                 fired += mtrack.update(out.get("detections", []), t0)   # 무동작·급이동

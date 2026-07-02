@@ -19,16 +19,23 @@ VEHICLE_REF_M = {**_DEFAULT_REF, **(tuning.section("proximity").get("vehicle_ref
 DEFAULT_RADIUS_M = float(tuning.val("proximity", "radius_m", 3.0))
 
 
-def _gap(a: list[float], b: list[float]) -> float:
-    """두 박스([x1,y1,x2,y2])의 최단 거리(겹치면 0). 입력 단위 그대로 반환."""
+def _gap(a: list[float], b: list[float], aspect_hw: float = 1.0) -> float:
+    """두 박스([x1,y1,x2,y2])의 최단 거리(겹치면 0). 입력 단위 그대로 반환.
+    ⚠ bbox는 x=폭(w)·y=높이(h)로 각각 정규화되어 x·y 스케일이 다르다(감사 E-1).
+    거리계산은 x(폭) 기준이므로, y는 종횡비 h/w(aspect_hw)로 스케일을 맞춰야 정확하다.
+    aspect_hw=1.0(기본)이면 무보정(정사각 가정) — 종횡비를 모르는 호출부의 안전 폴백."""
     dx = max(a[0] - b[2], b[0] - a[2], 0.0)
-    dy = max(a[1] - b[3], b[1] - a[3], 0.0)
+    dy = max(a[1] - b[3], b[1] - a[3], 0.0) * aspect_hw   # y를 x(폭) 스케일로 환산
     return (dx * dx + dy * dy) ** 0.5
 
 
-def detect(detections, radius_m: float = DEFAULT_RADIUS_M) -> list[dict]:
+def detect(detections, radius_m: float = DEFAULT_RADIUS_M,
+           aspect_hw: float | None = None) -> list[dict]:
     """detections: [{label|class, bbox:[x1,y1,x2,y2] 정규화 0~1}]
+    aspect_hw: 프레임 세로/가로 비(h/w). 주면 세로거리 과대추정을 바로잡는다(감사 E-1).
+      없으면 1.0(무보정) — 회귀 없음(기존과 동일). 안전상 세로거리 과대→미탐이므로 넣는 게 좋다.
     반환: 반경 내 (장비-사람) 쌍 [{vehicle, distance_m, person_bbox}], 가까운 순."""
+    ar = 1.0 if aspect_hw is None else max(1e-3, float(aspect_hw))
     vehicles, persons = [], []
     for d in detections:
         cls = str(d.get("label") or d.get("class") or "").lower()
@@ -49,7 +56,7 @@ def detect(detections, radius_m: float = DEFAULT_RADIUS_M) -> list[dict]:
         vw = max(1e-4, vbox[2] - vbox[0])        # 장비 가로폭(정규화)
         m_per_unit = VEHICLE_REF_M[vcls] / vw    # 단위(정규화)당 미터
         for pbox in persons:
-            dist_m = _gap(vbox, pbox) * m_per_unit
+            dist_m = _gap(vbox, pbox, ar) * m_per_unit
             if dist_m <= radius_m:
                 out.append({"vehicle": vcls, "distance_m": round(dist_m, 1), "person_bbox": pbox})
     out.sort(key=lambda x: x["distance_m"])

@@ -66,15 +66,28 @@ def _vlm_present(image_bgr, question: str) -> bool | None:
     return None
 
 
+def _match_activity(txt: str, acts: list[dict[str, Any]]) -> str | None:
+    for a in acts:
+        if a["name"] in txt or any(al in txt for al in a.get("aliases", [])):
+            return a["id"]
+    return None
+
+
 def detect_activity(image_bgr=None, present_classes: list[str] | None = None,
-                    use_vlm: bool = False) -> str | None:
+                    use_vlm: bool = False, shared: dict[str, Any] | None = None) -> str | None:
     """장면에서 '무슨 작업인지' 스스로 인식 → activity id (불명확하면 None).
+    ⓪ 통합결과(shared) 있으면 재사용(VLM 재호출 없음, 감사 D-1)
     ① VLM 분류(가능 시, 가장 유연) ② 감지신호 휴리스틱(폴백: 화재→화기, 지게차→양중 등)."""
     acts = _kb().get("activities", [])
     if not acts:
         return None
+    # ⓪ 통합 장면이해 결과 재사용(있으면 VLM 개별호출 생략)
+    if shared and str(shared.get("activity", "")).strip():
+        hit = _match_activity(str(shared["activity"]), acts)
+        if hit:
+            return hit
     # ① VLM 으로 작업 분류
-    if use_vlm and image_bgr is not None:
+    if use_vlm and image_bgr is not None and not shared:
         names = [a["name"] for a in acts]
         prompt = ("너는 산업안전 점검 AI다. 이 장면에서 진행 중인 작업을 아래 목록에서 하나만 골라 "
                   "그 이름만 답하라. 해당 없거나 불확실하면 '없음'이라고만 답하라.\n작업 목록: "
@@ -102,13 +115,19 @@ def list_environments() -> list[dict[str, Any]]:
 
 
 def detect_environment(image_bgr=None, present_classes: list[str] | None = None,
-                       use_vlm: bool = False) -> dict[str, Any] | None:
+                       use_vlm: bool = False, shared: dict[str, Any] | None = None) -> dict[str, Any] | None:
     """장면에서 '어떤 작업환경인지' 스스로 인식 → 환경 dict(field_mode 포함) 또는 None.
-    ① VLM 장면 분류(가능 시) ② 감지신호 휴리스틱(건설 신호 있으면 현장계열) 폴백."""
+    ⓪ 통합결과(shared) 재사용 ① VLM 장면 분류 ② 감지신호 휴리스틱(현장계열) 폴백."""
     envs = _kb().get("environments", [])
     if not envs:
         return None
-    if use_vlm and image_bgr is not None:
+    # ⓪ 통합 장면이해 결과 재사용(있으면 VLM 개별호출 생략)
+    if shared and str(shared.get("environment", "")).strip():
+        etxt = str(shared["environment"])
+        for e in envs:
+            if e["name"] in etxt or any(kw in etxt for kw in e.get("keywords", [])):
+                return e
+    if use_vlm and image_bgr is not None and not shared:
         names = [e["name"] for e in envs]
         prompt = ("너는 산업안전 점검 AI다. 이 장면의 작업환경을 아래 중 하나로만 골라 그 이름만 답하라. "
                   "불확실하면 '불확실'이라고만 답하라.\n환경 목록: " + ", ".join(names))
@@ -184,20 +203,50 @@ def assess_context(present_classes=None, image_bgr=None, use_vlm: bool = False) 
 
 
 def assess(activity_key: str, present_classes: list[str] | None = None,
-           image_bgr=None, use_vlm: bool = False) -> dict[str, Any]:
+           image_bgr=None, use_vlm: bool = False,
+           shared: dict[str, Any] | None = None) -> dict[str, Any]:
     """작업 + (감지된 객체 / 이미지) → 필수 안전조치 충족/부재 추론.
-    반환: 작업·조치별 상태(present/missing/unknown)·위험등급·위험요인·법령·권장조치."""
+    반환: 작업·조치별 상태(present/missing/unknown)·위험등급·위험요인·법령·권장조치.
+    shared(통합 장면이해) 있으면 조치 예/아니오를 1회 배치호출로 처리(감사 D-1). 없으면 조치별 개별호출(기존)."""
     act = get_activity(activity_key)
     if not act:
         return {"ok": False, "error": f"알 수 없는 작업: {activity_key}",
                 "activities": [a["id"] for a in _kb().get("activities", [])]}
     present = {str(c).lower() for c in (present_classes or [])}
+    req = act.get("required_measures", [])
+    visible = (shared.get("visible_safety_items", []) if isinstance(shared, dict) else [])
+
+    # shared 경로: 감지로 못 정한 조치들의 vlm_q 를 '한 번에' 묻는다(개별 2~4회 → 배치 1회)
+    batch_ans: dict[str, bool | None] = {}
+    if shared is not None:
+        import scene_vlm
+        if use_vlm and image_bgr is not None:
+            pend = [m for m in req
+                    if not [d for d in m.get("detect", []) if d.lower() in present]
+                    and m.get("vlm_q")
+                    and not scene_vlm.match_visible(m["name"], visible)]
+            if pend:
+                answers = scene_vlm.answer_questions(image_bgr, [m["vlm_q"] for m in pend])
+                batch_ans = {m["id"]: a for m, a in zip(pend, answers)}
+
     measures = []
-    for m in act.get("required_measures", []):
+    for m in req:
         status, via = "unknown", "확인불가(사람 확인 필요)"
         det = [d for d in m.get("detect", []) if d.lower() in present]
         if det:
             status, via = "present", "객체감지"
+        elif shared is not None:
+            # 통합결과 경로: 확인장구 목록 → 배치 예/아니오 순으로 판정
+            if m.get("name") and scene_vlm.match_visible(m["name"], visible):
+                status, via = "present", "VLM(통합)"
+            elif m["id"] in batch_ans:
+                v = batch_ans[m["id"]]
+                if v is True:
+                    status, via = "present", "VLM(통합)"
+                elif v is False:
+                    status, via = "missing", "VLM(통합)"
+                else:
+                    status, via = "unknown", "VLM 불확실(사람 확인)"
         elif use_vlm and image_bgr is not None and m.get("vlm_q"):
             v = _vlm_present(image_bgr, m["vlm_q"])
             if v is True:
@@ -249,7 +298,8 @@ def render() -> str:
     opts = '<option value="auto">🤖 자동 인식(작업 스스로 판단)</option>' + "".join(
         f'<option value="{html.escape(a["id"])}">{html.escape(a["name"])}</option>'
         for a in list_activities())
-    return _PAGE.replace("{{OPTS}}", opts)
+    import labels
+    return _PAGE.replace("{{OPTS}}", opts).replace("{{LABELS_KO}}", labels.js_snippet())
 
 
 _PAGE = r"""<!DOCTYPE html><html lang="ko"><head><meta charset="UTF-8">
@@ -315,7 +365,7 @@ _PAGE = r"""<!DOCTYPE html><html lang="ko"><head><meta charset="UTF-8">
 <script>
   const RKO={high:'위험 높음',mid:'주의',low:'양호'};
   const SKO={present:'있음',missing:'없음 ⚠',unknown:'확인 필요'};
-  const CLS_KO={Hardhat:'안전모','NO-Hardhat':'안전모 미착용','Safety-Vest':'안전조끼','NO-Safety-Vest':'안전조끼 미착용',Mask:'마스크','NO-Mask':'마스크 미착용',Gloves:'장갑','NO-Gloves':'장갑 미착용',Goggles:'보안경','NO-Goggles':'보안경 미착용',Boots:'안전화','NO-Boots':'안전화 미착용',Person:'사람'};
+  {{LABELS_KO}}   // 라벨 한국어맵 단일 소스(labels.py) 주입 — ko() 정의
   // 감지 박스를 영상 위에 그림. 영상이 거울(scaleX-1)이라 x좌표를 뒤집어 맞추고, 글자는 정상으로 보이게 캔버스는 안 뒤집음.
   function drawDets(dets,W,H){
     const ov=document.getElementById('lvov'); if(!ov)return;
@@ -325,7 +375,7 @@ _PAGE = r"""<!DOCTYPE html><html lang="ko"><head><meta charset="UTF-8">
       const no=String(d.class||'').toUpperCase().startsWith('NO-')||['fire','smoke'].includes(String(d.class||'').toLowerCase());
       const col=no?'#ef4444':'#22c55e';
       g.lineWidth=Math.max(2,W/240); g.strokeStyle=col; g.strokeRect(fx,y,w,h);
-      const t=(CLS_KO[d.class]||d.class||'?'), fh=Math.max(15,W/30);
+      const t=(ko(d.class)||'?'), fh=Math.max(15,W/30);
       g.font=Math.max(13,W/38)+'px sans-serif'; const tw=g.measureText(t).width;
       g.fillStyle=col; g.fillRect(fx,Math.max(0,y-fh),tw+8,fh);
       g.fillStyle='#000'; g.fillText(t,fx+4,Math.max(fh-3,y-4));

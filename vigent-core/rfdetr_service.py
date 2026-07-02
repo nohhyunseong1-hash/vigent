@@ -54,10 +54,10 @@ class RFDetrService:
     def _ensure(self):
         if self._model is not None:
             return
-        import torch
         from rfdetr import RFDETRNano
         from trackers import SORTTracker
-        dev = "mps" if torch.backends.mps.is_available() else "cpu"
+        import device as _device
+        dev = _device.pick_device(prefer_mps=True)   # 감사 C-1: CUDA→MPS→CPU (리눅스서 GPU 사용)
         self._model = RFDETRNano(device=dev)
         try:
             self._model.optimize_for_inference()
@@ -78,6 +78,15 @@ class RFDetrService:
         pts, thr = _load_zone("safety")              # 매 프레임 설정 반영(화면서 구역 바꾸면 즉시)
         det = self._model.predict(
             Image.fromarray(cv2.cvtColor(image_bgr, cv2.COLOR_BGR2RGB)), threshold=thr)
+        # 추적: SORTTracker 로 프레임 간 track id 부여(침입자 식별). 감사 A: 과거엔 생성만 하고
+        # 호출하지 않아 id 가 항상 -1이었음 → 실제 update 로 배선. 실패/빈 결과면 raw 탐지 유지(폴백).
+        try:
+            tracked = self._tracker.update(det)
+            if tracked is not None and len(tracked) > 0:
+                det = tracked
+        except Exception:  # noqa: BLE001  추적 실패해도 탐지는 유지(절대 저하 없음)
+            pass
+        tids = getattr(det, "tracker_id", None)
         names = [COCO_CLASSES[c] for c in det.class_id]   # 80종 전부 유지(사람만 거르지 않음)
 
         # 위험구역 침입은 '사람'에만 적용 → 좌표가 구역 안인지 판정
@@ -93,23 +102,26 @@ class RFDetrService:
             cx, cy = (box[0] + box[2]) / 2, box[3]          # 발 위치(하단 중앙)
             return bool(_point_in_poly(cx, cy, poly))
 
-        out, n_in = [], 0
+        out, n_in, ids_in = [], 0, []
         for i in range(len(det)):
             label = names[i]
             x1, y1, x2, y2 = (float(v) for v in det.xyxy[i])
+            tid = int(tids[i]) if tids is not None and tids[i] is not None else -1
             inz = (label == "person") and _in_zone((x1, y1, x2, y2))
             if inz:
                 n_in += 1
+                if tid >= 0:
+                    ids_in.append(tid)
             out.append({
                 "label": label,
                 "conf": round(float(det.confidence[i]), 2),
-                "id": -1,
+                "id": tid,
                 "in_zone": inz,
                 "bbox": [round(x1 / w, 4), round(y1 / h, 4), round(x2 / w, 4), round(y2 / h, 4)],
             })
         person_count = sum(1 for d in out if d["label"] == "person")
         return {"detections": out, "person_count": person_count,
-                "intrusion": {"count": n_in, "ids": []},
+                "intrusion": {"count": n_in, "ids": ids_in},
                 "device": getattr(self, "device", "?")}
 
 
@@ -119,27 +131,31 @@ class VLMService:
     def __init__(self):
         self._vlm = None
 
-    def summarize_bgr(self, image_bgr: np.ndarray, prompt: str | None = None) -> dict[str, Any]:
+    def summarize_bgr(self, image_bgr: np.ndarray, prompt: str | None = None,
+                      max_tokens: int = 260, enrich: bool = True) -> dict[str, Any]:
+        import os
         import sys
         sys.path.insert(0, str(Path(__file__).resolve().parent / "ml"))
         import cv2
         if self._vlm is None:
             from vlm_risk_summary import RiskVLM
             self._vlm = RiskVLM()
-        tmp = Path("/tmp/vigent_vlm_event.jpg")
+        # 고유 파일명(PID) — 동시요청이 서로의 프레임을 덮어써 오분석하는 레이스 방지(감사 E-3/C-4)
+        tmp = Path("/tmp") / f"vigent_vlm_event_{os.getpid()}.jpg"
         cv2.imwrite(str(tmp), image_bgr)
-        return self._vlm.summarize(str(tmp), prompt=prompt)
+        return self._vlm.summarize(str(tmp), prompt=prompt, max_tokens=max_tokens, enrich=enrich)
 
     def quick_bgr(self, image_bgr: np.ndarray, prompt: str,
                   max_tokens: int = 64, max_side: int = 640) -> dict[str, Any]:
         """빠른 단발 질의(PPE 등 단답) — 작은 이미지·짧은 토큰·재시도 없음."""
+        import os
         import sys
         import cv2
         sys.path.insert(0, str(Path(__file__).resolve().parent / "ml"))
         if self._vlm is None:
             from vlm_risk_summary import RiskVLM
             self._vlm = RiskVLM()
-        tmp = Path("/tmp/vigent_vlm_quick.jpg")
+        tmp = Path("/tmp") / f"vigent_vlm_quick_{os.getpid()}.jpg"
         cv2.imwrite(str(tmp), image_bgr)
         return self._vlm.quick(str(tmp), prompt, max_tokens=max_tokens, max_side=max_side)
 

@@ -63,8 +63,10 @@ def main(source: str, use_vlm: bool = True, max_frames: int = 0) -> None:
         pts_norm = [(0.0, 0.0), (0.6, 0.0), (0.6, 1.0), (0.0, 1.0)]
     zone = sv.PolygonZone(polygon=(np.array(pts_norm) * [W, H]).astype(int))
 
-    device = "mps" if torch.backends.mps.is_available() else "cpu"
-    model = RFDETRNano(device=device)
+    sys.path.insert(0, str(ROOT / "vigent-core"))
+    import device as _device
+    dev = _device.pick_device(prefer_mps=True)   # 감사 C-1: CUDA→MPS→CPU 단일 소스
+    model = RFDETRNano(device=dev)
     try: model.optimize_for_inference()
     except Exception: pass
     tracker = SORTTracker()

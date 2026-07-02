@@ -85,7 +85,8 @@ def summarize(results: list[dict]) -> dict[str, Any]:
 def render() -> str:
     rows = "".join(f'<option value="{k}">{v["label"]} — {v["desc"]}</option>'
                    for k, v in METRICS.items())
-    return _PAGE.replace("{{METRICS}}", rows)
+    import labels
+    return _PAGE.replace("{{METRICS}}", rows).replace("{{LABELS_KO}}", labels.js_snippet())
 
 
 _PAGE = r"""<!DOCTYPE html><html lang="ko"><head><meta charset="UTF-8">
@@ -127,7 +128,7 @@ _PAGE = r"""<!DOCTYPE html><html lang="ko"><head><meta charset="UTF-8">
 <script>
   function readAll(input){ return Promise.all([...input.files].map(f=>new Promise(res=>{
     const r=new FileReader(); r.onload=()=>res(String(r.result).split(',')[1]); r.readAsDataURL(f); }))); }
-  function ko(c){ const m={person:'사람',forklift:'지게차',truck:'트럭',car:'차량',bus:'차량',train:'차량',fire:'화재',smoke:'연기','no-hardhat':'안전모 미착용','no-mask':'마스크 미착용','no-safety-vest':'안전조끼 미착용',hardhat:'안전모'}; return m[String(c||'').toLowerCase()]||c; }
+  {{LABELS_KO}}   // 라벨 한국어맵 단일 소스(labels.py) 주입 — ko() 정의
   function drawAnnotated(b64, boxes){
     return new Promise(res=>{
       const img=new Image();
