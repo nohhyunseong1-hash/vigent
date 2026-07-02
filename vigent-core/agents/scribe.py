@@ -259,7 +259,7 @@ class ScribeAgent(BaseAgent):
             })
         rows.sort(key=lambda r: r["위험성"], reverse=True)
         high = [r for r in rows if r["위험성등급"] == "상"]
-        return {
+        _result = {
             "site": site, "process": process,
             "generated_at": datetime.now(KST).strftime("%Y-%m-%d %H:%M KST"),
             "method": "위험성 = 가능성(빈도) × 중대성(강도)",
@@ -272,6 +272,55 @@ class ScribeAgent(BaseAgent):
                         "주요위험": [r["유해위험요인"] for r in high]},
             "rows": rows,
         }
+        # 가산식: 종합의견 서술(Claude 있으면 그걸로, 없으면 로컬 폴백). 표 11칸은 위 그대로 유지.
+        _narr, _src = self._narrative(_result)
+        _result["narrative"] = _narr
+        _result["narrative_source"] = _src
+        return _result
+
+    def _narrative(self, a: dict[str, Any]) -> tuple[str, str]:
+        """종합의견 서술 → (text, source). Claude(llm_provider) 있으면 사용, 실패/미설정이면 로컬 폴백.
+        프롬프트엔 비식별 집계만 사용(실명·사번·연락처 금지 — 구역/공정·위험요인·등급·빈도·법령만)."""
+        s = a.get("summary", {}) or {}
+        rows = a.get("rows", []) or []
+        site = a.get("site") or "현장"
+        process = a.get("process") or ""
+        total = s.get("총항목", len(rows))
+        high_n = s.get("상_높음", 0)
+        main = s.get("주요위험", []) or []
+        # ── 비식별 집계 텍스트(개인정보 없음) ──
+        lines = [f"- {r.get('유해위험요인')}: 등급 {r.get('위험성등급')}"
+                 f"(위험성 {r.get('위험성')}), {r.get('AI감지근거', '')}, 근거 {r.get('관련근거', '')}"
+                 for r in rows[:12]]
+        agg = (f"현장/구역: {site}\n공정: {process or '(미지정)'}\n"
+               f"총 위험항목 {total}개 · 상(높음) {high_n}개 · 주요위험: "
+               f"{', '.join(main) if main else '없음'}\n" + "\n".join(lines))
+        system = ("당신은 한국 산업안전보건 위험성평가 전문가다. 아래 '집계 데이터에만' 근거해 "
+                  "위험성평가 종합의견을 한국어로 6~10문장으로 간결·전문적으로 작성한다. "
+                  "데이터에 없는 수치·법령·사실을 지어내지 말고, 개인정보(실명·사번)는 언급하지 마라. "
+                  "우선순위 개선방향과 관리적 권고를 포함하되, 최종 판단은 안전관리자 확인이 필요함을 명시하라.")
+        prompt = "다음 위험성평가 집계로 '종합의견'을 작성하라:\n\n" + agg
+        try:
+            import llm_provider
+            txt = llm_provider.reason_text(prompt, system)
+        except Exception:  # noqa: BLE001  provider 자체 문제도 폴백
+            txt = None
+        if txt:
+            return txt, "AI(Claude)"
+        # ── 로컬 폴백(결정적 템플릿, 항상 동작) ──
+        parts = [f"본 위험성평가는 {site}{(' ' + process) if process else ''}에서 "
+                 f"AI가 감지·기록한 위험 {total}개 항목을 분석한 결과다."]
+        if high_n:
+            parts.append(f"이 중 '상(높음)' 등급이 {high_n}개로 우선 개선이 필요하다.")
+        if main:
+            parts.append(f"주요 위험요인은 {', '.join(main[:5])} 등이다.")
+        if rows:
+            top = rows[0]
+            parts.append(f"가장 위험성이 높은 항목은 '{top.get('유해위험요인')}'"
+                         f"(위험성 {top.get('위험성')}, {top.get('관련근거', '')})로, "
+                         f"해당 감소대책의 즉시 이행이 권고된다.")
+        parts.append("본 종합의견은 AI 초안이며, 최종 위험성 판단과 조치는 안전관리자 확인 하에 이뤄져야 한다.")
+        return " ".join(parts), "로컬"
 
     def render_html(self, assessment: dict[str, Any]) -> str:
         """위험성평가표 → KOSHA KRAS 서식 11 구조의 인쇄/PDF용 자체 완결형 HTML."""
@@ -316,6 +365,17 @@ class ScribeAgent(BaseAgent):
         ev_section = (f'<div class="evsec"><h3>📷 현장 증거 사진 '
                       f'<span class="src">(이벤트 발생 시 자동 캡쳐 · 안전관리자 확인용)</span></h3>'
                       f'<div class="evgrid">{ev_cards}</div></div>') if ev_cards else ""
+        # 종합의견(narrative) — 있을 때만 렌더. 출처(AI/로컬) 배지 표기.
+        _narr = assessment.get("narrative")
+        narr_section = ""
+        if _narr:
+            _src = e(assessment.get("narrative_source", ""))
+            narr_section = (
+                '<div style="margin:16px 0;padding:14px 16px;border:1px solid #d0d7de;'
+                'border-left:4px solid #d4a017;border-radius:8px;background:#fbfaf5">'
+                f'<h3 style="margin:0 0 8px;font-size:15px">📝 종합의견 '
+                f'<span class="src">(AI 초안 · 출처: {_src} · 안전관리자 검토 필요)</span></h3>'
+                f'<div style="line-height:1.7;white-space:pre-wrap;font-size:13.5px">{e(_narr)}</div></div>')
         return f"""<!DOCTYPE html><html lang="ko"><head><meta charset="UTF-8">
 <title>VIGENT 위험성평가서(초안) — KOSHA KRAS 서식</title>
 <style>
@@ -383,6 +443,7 @@ class ScribeAgent(BaseAgent):
     <tbody>{rows_html}
     </tbody>
   </table>
+  {narr_section}
   {ev_section}
   <div class="foot">
     · 양식: KOSHA KRAS 표준 위험성평가 양식(서식 11) 구조. 위험성 = 가능성(빈도) × 중대성(강도). 등급: 6↑ 상 / 3~5 중 / 2↓ 하<br>

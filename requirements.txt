@@ -37,3 +37,7 @@ mlx-lm==0.31.3
 # 최초 1회 한국어 임베딩 모델(jhgan/ko-sroberta-multitask, ~400MB) 자동 다운로드.
 # 폐쇄망/오프라인 박스면 이 줄 주석 처리 → 자동으로 키워드(bigram) 폴백.
 sentence-transformers==5.6.0
+
+# ── LLM API(위험성평가 종합의견 서술 품질↑) — 선택, 폴백 있음 ───
+# ANTHROPIC_API_KEY(.env) 있을 때만 Claude 호출. 키 없음/오프라인이면 로컬 서술로 자동 폴백(저하 0).
+anthropic==0.115.1
