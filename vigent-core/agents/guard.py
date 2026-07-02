@@ -92,13 +92,23 @@ class GuardAgent(BaseAgent):
     # ⚠ 참고(옵션 A 범위): self._tracks 는 STATE[theme] 에 1회 로드돼 모든 카메라/요청이 공유하는 전역 상태.
     #    다중 카메라 동시 사용 시 서로 오염될 수 있어, 스트림별 트랙 격리는 별도 과제로 남김.
     STALE_MAX_MISSES = 1
+    # 보호구 클래스별 임계(후필터) — ppe 모델을 맵 최저 conf로 추론한 뒤 클래스별 임계로 거른다.
+    #   최약체(NO-Hardhat)만 낮춰 재현율↑, 나머지는 유지. tuning.yaml detect.conf.ppe_per_class 로 조정.
+    #   비어 있으면(기본) 기존 동작(단일 ppe conf) 그대로 → 저하 없음.
+    PPE_PER_CLASS: dict[str, float] = {}
 
     def __init__(self, config: Any):
         super().__init__(config)
         # 현장 튜닝값(config/tuning.yaml)으로 conf·해상도 덮기(없으면 클래스 기본값)
         try:
             import tuning
-            self.DETECTOR_CONF = {**self.DETECTOR_CONF, **(tuning.section("detect").get("conf") or {})}
+            conf_cfg = tuning.section("detect").get("conf") or {}
+            # ppe_per_class 는 검출기 임계가 아니라 클래스별 후필터 맵 → DETECTOR_CONF 병합에서 제외
+            self.DETECTOR_CONF = {**self.DETECTOR_CONF,
+                                  **{k: v for k, v in conf_cfg.items() if k != "ppe_per_class"}}
+            # 클래스별 후필터 맵(라벨 표준화해서 저장) — 예: {"NO-Hardhat":0.30, "NO-Mask":0.50, ...}
+            self.PPE_PER_CLASS = {LABEL_NORMALIZE.get(str(k), str(k)): float(v)
+                                  for k, v in (conf_cfg.get("ppe_per_class") or {}).items()}
             self.IMGSZ = int(tuning.val("detect", "imgsz", self.IMGSZ))
             self.STALE_MAX_MISSES = int(tuning.val("detect", "stale_max_misses", self.STALE_MAX_MISSES))
         except Exception:  # noqa: BLE001
@@ -212,9 +222,13 @@ class GuardAgent(BaseAgent):
             if model is None:
                 continue
             slot_conf = conf_override if conf_override is not None else self.DETECTOR_CONF.get(slot, self.DEFAULT_CONF)
+            # 클래스별 후필터(ppe): 맵의 최저 임계로 추론해 후보를 확보하고, 아래 박스 루프에서 클래스별로 거른다.
+            run_conf = slot_conf
+            if slot == "ppe" and self.PPE_PER_CLASS:
+                run_conf = min([slot_conf, *self.PPE_PER_CLASS.values()])
             try:
                 # 해상도 ↑(imgsz) + (오프라인) TTA 추론 + 검출기별 임계(건설모델은 높게 → 오탐 컷)
-                res = model.predict(image_bgr, verbose=False, conf=slot_conf,
+                res = model.predict(image_bgr, verbose=False, conf=run_conf,
                                     imgsz=imgsz or self.IMGSZ, augment=augment,
                                     device=self.device)[0]
             except Exception as ex:  # noqa: BLE001  추론 실패해도 나머지 진행
@@ -227,6 +241,10 @@ class GuardAgent(BaseAgent):
                 raw = names.get(cls_id, str(cls_id))
                 label = LABEL_NORMALIZE.get(raw, raw)
                 if label in JUNK_LABELS:        # 'default' 등 잡음 클래스 버림
+                    continue
+                # 클래스별 임계 후필터(ppe 낮은 conf 추론 보정): 맵에 있으면 그 임계, 없으면(착용/Person 등)
+                #   기존 slot_conf 로 거른다 → 착용 클래스는 기존 동작 유지, NO-* 만 개별 임계 적용.
+                if slot == "ppe" and self.PPE_PER_CLASS and float(b.conf[0]) < self.PPE_PER_CLASS.get(label, slot_conf):
                     continue
                 x1, y1, x2, y2 = (float(v) for v in b.xyxy[0])
                 detections.append({
