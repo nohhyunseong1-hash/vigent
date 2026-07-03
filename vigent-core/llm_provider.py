@@ -25,8 +25,15 @@ def available() -> bool:
     return provider == "ollama"
 
 
+def _is_korean_clean(text: str) -> bool:
+    """한국어 오염 가드(공용) — 소형 로컬모델이 중국어/낱자 한자로 새는 경우 차단.
+    한자(CJK Unified Ideographs, U+4E00~U+9FFF)가 1글자라도 있으면 오염으로 본다('안전帽' 같은 치환까지 차단).
+    한글(U+AC00~U+D7A3)은 절대 트리거하지 않는다. (incident 등의 중복 가드를 이 공용층으로 이관)"""
+    return not any("一" <= ch <= "鿿" for ch in text)
+
+
 def _ollama_reason(prompt: str, system: str = "") -> tuple[str | None, str | None]:
-    """로컬 Ollama(무료, 키 불필요)로 추론 1회 → (text, backend). 실패 → (None, None)."""
+    """로컬 Ollama(무료, 키 불필요)로 추론 1회 → (text, backend). 실패/한국어오염 → (None, None)."""
     import json
     import urllib.request
     model = os.getenv("VIGENT_OLLAMA_MODEL", "qwen2.5:7b")
@@ -46,7 +53,9 @@ def _ollama_reason(prompt: str, system: str = "") -> tuple[str | None, str | Non
         with urllib.request.urlopen(req, timeout=30) as resp:  # noqa: S310  로컬 고정 URL
             data = json.loads(resp.read().decode("utf-8"))
         text = ((data.get("message") or {}).get("content") or "").strip()
-        return (text, f"Ollama:{model}") if text else (None, None)
+        if not text or not _is_korean_clean(text):
+            return None, None   # 빈 응답 또는 한국어 오염(중국어 누출) → 호출자가 폴백
+        return text, f"Ollama:{model}"
     except Exception:  # noqa: BLE001  연결·타임아웃·파싱 등 전부 폴백
         return None, None
 

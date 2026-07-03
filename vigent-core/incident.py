@@ -95,6 +95,7 @@ def infer_cause(hazard_list: list[dict[str, Any]] | None = None, environment: st
                   "직접원인과 근본원인을 각각 1~2문장 한국어로 작성하라. "
                   "사실에 없는 것·법조항·책임비율(누가 몇 %)을 지어내지 마라. 불명확하면 불명확이라 하라. "
                   '아래 JSON 하나만 출력: {"direct":"...","root":"..."}')
+        # 한국어 오염 가드는 llm_provider 공용층에서 처리(중국어 누출 시 (None,None) 폴백) — 중복 로직 제거
         text, backend = llm_provider.reason_text("확인된 사실:\n" + facts, system)
         if text:
             m = re.search(r"\{.*\}", text, re.S)
@@ -102,11 +103,7 @@ def infer_cause(hazard_list: list[dict[str, Any]] | None = None, environment: st
                 obj = json.loads(m.group(0))
                 d = str(obj.get("direct", "")).strip()
                 r = str(obj.get("root", "")).strip()
-                # 한국어 가드: 소형 모델이 중국어/영어로 새면 규칙 초안으로 폴백(저하 0)
-                blob = d + " " + r
-                kr = sum(1 for ch in blob if "가" <= ch <= "힣")
-                cjk = sum(1 for ch in blob if "一" <= ch <= "鿿")
-                if (d or r) and kr >= 3 and kr >= cjk:
+                if d or r:
                     return {"direct": d or draft["direct"], "root": r or draft["root"],
                             "source": backend or "LLM"}
     except Exception:  # noqa: BLE001  LLM/파싱 실패 → 결정적 초안 폴백(저하 0)
