@@ -249,6 +249,7 @@ class ErgonomicsTracker:
             self._hold_sec = float(cfg.get("hold_sec", 3)) if isinstance(cfg, dict) else 3.0
         except Exception:  # noqa: BLE001
             self._hold_sec = 3.0
+        self._corrob = bool(cfg.get("neck_requires_corroboration", False)) if isinstance(cfg, dict) else False
         self._enabled = bool(self._joints)       # 설정 없으면 조용히 비활성(저하 0)
         self._tracks: list[dict] = []
         self._last_ts = 0.0
@@ -278,7 +279,9 @@ class ErgonomicsTracker:
                 continue
             if not a:
                 continue
-            bad = a.get("worst") in ("warn", "bad")
+            # 발화용 유효등급(목 보조조건 적용) — 허리·어깨 판정은 그대로, 목 단독 warn만 억제
+            eff = self._erg.effective_worst(a.get("grades", {}), self._corrob)
+            bad = eff in ("warn", "bad")
             cx, cy = p["centroid"]
             best, bd = None, 1e9                          # 중심점 매칭(독립 트랙)
             for k, tr in enumerate(self._tracks):
@@ -301,8 +304,9 @@ class ErgonomicsTracker:
                 held = ts - tr["bad_since"]
                 if held >= self._hold_sec and not tr.get("fired"):   # 지속 확정 시 1회만
                     tr["fired"] = True
+                    level = {"warn": "중간", "bad": "높음"}.get(eff, a.get("level", "낮음"))
                     note = f"{a['note']} · {held:.0f}초 지속"
-                    out.append(("ergonomic_risk", a["level"], note))
+                    out.append(("ergonomic_risk", level, note))
             else:                                        # 자세 회복 → 상태 리셋
                 tr["bad_since"] = None
                 tr["fired"] = False

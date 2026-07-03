@@ -107,6 +107,23 @@ def assess(keypoints_xy, conf, thresholds, min_conf: float = _MIN_CONF) -> dict[
             "note": note, "reba_hint": reba_hint, "worst": worst}
 
 
+def effective_worst(grades: dict[str, str], neck_requires_corroboration: bool = False) -> str:
+    """발화(위험)용 '유효 최악 등급'. 목 보조조건이 켜지면 목의 '위험 기여'만 조건부로 무시한다.
+    허리·어깨 판정 로직은 불변 — 오직 목이 단독으로 발화하는 것만 억제한다.
+      · 목 bad(각도>warn) → 그대로 기여
+      · 목 warn → 허리/어깨 중 warn 이상 동반일 때만 기여, 아니면 무시(선 채 원근 오탐 억제)
+    grades 예: {"neck":"warn","trunk":"good","shoulder":"good"} → (보조조건 on) "good".
+    """
+    order = {"good": 0, "warn": 1, "bad": 2}
+    inv = {0: "good", 1: "warn", 2: "bad"}
+    worst_other = max((order[g] for j, g in grades.items() if j != "neck"), default=0)
+    neck = grades.get("neck")
+    neck_c = order.get(neck, 0) if neck else 0
+    if neck_requires_corroboration and neck == "warn" and worst_other < 1:
+        neck_c = 0                                   # 목 warn 단독 → 기여 억제
+    return inv[max(worst_other, neck_c)]
+
+
 def load_ergonomics(theme: str = "safety") -> dict[str, Any]:
     """vision.yaml(judgment.ergonomics) 블록 로드 — joints·hold_sec 등. 실패 시 {}(호출부 폴백)."""
     try:
