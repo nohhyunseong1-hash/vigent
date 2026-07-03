@@ -25,8 +25,18 @@ perception:                       # ── Guard (감지)
     - {id: fire_smoke, model: vigent-core/weights/fire_smoke_boda.pt, fallback: hsv_heuristic}
     # 지게차/중장비: 폴백 없음(모델 없으면 해당 기능만 비활성, 나머지는 정상)
     - {id: forklift, model: vigent-core/weights/forklift_boda_ax.pt, fallback: none}
+  # [정직화] pose 슬롯은 '정보성' — vision_loader 는 detector 슬롯(person/ppe/fire_smoke/forklift)만
+  #   모델로딩에 소비하고 pose 는 소비하지 않는다(guard.py). 실제 포즈 동작:
+  #     · 백엔드(낙상·근골격) = worker.py 가 weights/yolov8n-pose.pt 를 직접 로드(하드코딩)
+  #     · 브라우저 라이브뷰   = MediaPipe Holistic(CDN, index.html)
+  #   rtmpose 는 미설치·미사용(향후 업그레이드 후보). 아래 값 변경은 실제 동작과 무관(참고 표기).
   pose:    {model: rtmpose, fallback: [mediapipe_holistic, vigent-core/weights/yolov8n-pose.pt]}
+  # [정직화] ByteTrack 미구현·미사용. vision_loader 는 tracker 슬롯을 처리하지 않는다(no-op).
+  #   실제 객체추적: 브라우저 realtime_core.js(IoU+중심점 매칭) · rfdetr_service(SORTTracker) ·
+  #   worker 낙상/근골격(중심점 매칭). ByteTrack 은 도입 후보일 뿐 현재 코드에 없음.
   tracker: bytetrack
+  # [정직화] mmaction2_fall 미구현. 실제 낙상은 worker.py FallTracker 의 몸통각+급강하 모션 규칙
+  #   (torso_angle_rule 계열)으로 동작한다. 로더도 이 슬롯을 fallback: torso_angle_rule 로 해석함.
   temporal: {model: mmaction2_fall, fallback: torso_angle_rule}
 
 judgment:                         # ── Analyst (판단), 가산식
