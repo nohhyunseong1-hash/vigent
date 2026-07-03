@@ -12,34 +12,63 @@ from __future__ import annotations
 from typing import Any
 
 
+_ACCIDENT_PROMPT = (
+    "너는 산업재해 조사관 AI다. 이 현장/CCTV 사진을 보고 아래 JSON으로만 답하라.\n"
+    '{"work":"무슨 작업을 하는 장면인지 한국어로","accident_type":"재해유형(끼임/추락/부딪힘/감전/화재/질식/전도/낙하물/무너짐/없음 중 하나)",'
+    '"what_happened":"벌어지는(또는 임박한) 상황을 한 문장으로","cause":"추정 원인","evidence":"그렇게 판단한 근거"}\n'
+    "불확실한 값은 '불명확'이라고 쓰라. 다른 설명 문장 없이 JSON만 출력."
+)
+_ACCIDENT_KEYS = ("work", "accident_type", "what_happened", "cause", "evidence")
+
+
+def _parse_accident(text_or_dict) -> dict[str, Any] | None:
+    """VLM/LLM 응답(텍스트 또는 dict) → 사고분석 dict. 파싱 실패면 None. (OpenAI·로컬 공용)"""
+    import json
+    import re
+    obj = None
+    if isinstance(text_or_dict, dict):
+        if any(k in text_or_dict for k in _ACCIDENT_KEYS):
+            obj = text_or_dict
+        else:  # {"raw": 원문텍스트} 형태면 한번 더 파싱
+            raw = text_or_dict.get("raw")
+            m = re.search(r"\{.*\}", str(raw), re.S) if raw else None
+            if m:
+                try:
+                    obj = json.loads(m.group(0))
+                except Exception:  # noqa: BLE001
+                    obj = None
+    else:
+        m = re.search(r"\{.*\}", str(text_or_dict or ""), re.S)
+        if m:
+            try:
+                obj = json.loads(m.group(0))
+            except Exception:  # noqa: BLE001
+                obj = None
+    if not isinstance(obj, dict):
+        return None
+    return {k: str(obj.get(k, "") or "") for k in _ACCIDENT_KEYS}
+
+
+def _openai_accident(image_bgr) -> tuple[dict[str, Any] | None, str | None]:
+    """OpenAI 비전으로 사고분석(OPENAI_API_KEY 있을 때만) → (dict|None, backend|None). 실패 시 (None,None)."""
+    if image_bgr is None:
+        return None, None
+    try:
+        import llm_provider
+        text, backend = llm_provider.reason_vision(image_bgr, _ACCIDENT_PROMPT)
+        if not text:
+            return None, None
+        return _parse_accident(text), backend
+    except Exception:  # noqa: BLE001
+        return None, None
+
+
 def _vlm_accident(image_bgr) -> dict[str, Any] | None:
-    """VLM에게 '무슨 작업/어떤 재해/원인'을 직접 물음 — 하드코딩 목록에 가두지 않는 딥러닝 분석."""
-    prompt = (
-        "너는 산업재해 조사관 AI다. 이 현장/CCTV 사진을 보고 아래 JSON으로만 답하라.\n"
-        '{"work":"무슨 작업을 하는 장면인지 한국어로","accident_type":"재해유형(끼임/추락/부딪힘/감전/화재/질식/전도/낙하물/무너짐/없음 중 하나)",'
-        '"what_happened":"벌어지는(또는 임박한) 상황을 한 문장으로","cause":"추정 원인","evidence":"그렇게 판단한 근거"}\n'
-        "불확실한 값은 '불명확'이라고 쓰라. 다른 설명 문장 없이 JSON만 출력."
-    )
-    keys = ("work", "accident_type", "what_happened", "cause", "evidence")
+    """로컬 MLX VLM 에게 '무슨 작업/어떤 재해/원인'을 직접 물음(폴백 경로)."""
     try:
         import rfdetr_service
-        data = rfdetr_service.vlm.summarize_bgr(image_bgr, prompt=prompt)
-        if not isinstance(data, dict):
-            return None
-        # summarize_bgr 는 VLM의 JSON을 파싱해 그대로 dict로 돌려준다 → 기대 키가 있으면 사용
-        if any(k in data for k in keys):
-            return {k: str(data.get(k, "") or "") for k in keys}
-        # 혹시 raw 텍스트로 오면 JSON 파싱 시도(폴백)
-        raw = data.get("raw")
-        if raw:
-            import json
-            import re
-            m = re.search(r"\{.*\}", str(raw), re.S)
-            if m:
-                obj = json.loads(m.group(0))
-                if isinstance(obj, dict):
-                    return {k: str(obj.get(k, "") or "") for k in keys}
-        return None
+        data = rfdetr_service.vlm.summarize_bgr(image_bgr, prompt=_ACCIDENT_PROMPT)
+        return _parse_accident(data) if isinstance(data, dict) else None
     except Exception:  # noqa: BLE001
         return None
 
@@ -125,31 +154,38 @@ def analyze(image_bgr, present_classes: list[str] | None = None, use_vlm: bool =
     scene = ""
     ai = None
     shared = None
+    engine = None
     if use_vlm and image_bgr is not None:
-        # 감사 D-1: 장면을 1회 VLM 통합호출로 이해 → 아래 모듈들이 재사용(개별 VLM 7~9회 제거).
-        # 통합 실패(None)면 각 모듈이 기존 개별호출로 폴백 → 절대 저하 없음.
+        # 사고분석 ai: OpenAI 비전 우선(OPENAI_API_KEY 있으면) → 없거나 실패면 로컬 MLX 폴백(가산식).
+        ai, engine = _openai_accident(image_bgr)
+        # 장면·환경·작업 재사용용 통합이해(MLX) — scene/shared 확보(safety_brain 재사용).
         try:
             import scene_vlm
-            # detections+구역정보 주입 → VLM 서술 폐쇄형 보조 + hazard_list 병합
             shared = scene_vlm.understand(image_bgr, detections=_dets, in_danger_zone=in_danger_zone)
         except Exception:  # noqa: BLE001
             shared = None
         if shared:
             scene = shared.get("scene", "")
-            if any(shared.get(k) for k in ("accident_type", "what_happened", "cause", "evidence")) \
-                    or shared.get("activity"):
-                ai = {"work": shared.get("activity", ""),
-                      "accident_type": shared.get("accident_type", ""),
-                      "what_happened": shared.get("what_happened", ""),
-                      "cause": shared.get("cause", ""),
-                      "evidence": shared.get("evidence", "")}
-        else:  # 폴백: 통합 실패 시 기존 개별 VLM 호출
+        else:  # 통합 실패 시 장면설명만 개별 호출
             try:
                 import vlm_confirm
                 scene = vlm_confirm.describe_scene(image_bgr)
             except Exception:  # noqa: BLE001
                 scene = ""
-            ai = _vlm_accident(image_bgr)
+        # OpenAI 미사용/실패 → 로컬로 ai 폴백(shared 우선, 없으면 개별 호출)
+        if ai is None:
+            if shared and (any(shared.get(k) for k in ("accident_type", "what_happened", "cause", "evidence"))
+                           or shared.get("activity")):
+                ai = {"work": shared.get("activity", ""),
+                      "accident_type": shared.get("accident_type", ""),
+                      "what_happened": shared.get("what_happened", ""),
+                      "cause": shared.get("cause", ""),
+                      "evidence": shared.get("evidence", "")}
+                engine = "로컬 MLX"
+            else:
+                ai = _vlm_accident(image_bgr)
+                if ai:
+                    engine = "로컬 MLX"
     env = safety_brain.detect_environment(image_bgr, present, use_vlm, shared=shared)
     env_id = env["id"] if env else None
     act_id = safety_brain.detect_activity(image_bgr, present, use_vlm, shared=shared)
@@ -197,6 +233,7 @@ def analyze(image_bgr, present_classes: list[str] | None = None, use_vlm: bool =
         "ok": True,
         "scene": scene,
         "ai_analysis": ai,
+        "engine": engine,             # 실제 사용 비전 엔진(OpenAI-vision:... / 로컬 MLX / None)
         "hazard_list": hazard_list,   # 결정적 위험목록(규칙층, 커버리지 100% — VLM 누락과 무관)
         "cause_analysis": cause_analysis,   # 사실 기반 직접/근본원인(규칙 폴백·항상 존재)
         "behaviors": behaviors,
@@ -367,8 +404,9 @@ _PAGE = r"""<!DOCTYPE html><html lang="ko"><head><meta charset="UTF-8">
         +'<b>🎯 직접원인:</b> '+(ca.direct||'-')+'<br>'
         +'<b>🧩 근본원인:</b> '+(ca.root||'-')
         +'<div class="dim" style="font-size:11px;margin-top:4px">출처: '+(ca.source||'규칙')+' · 사실 기반(책임비율/법적판단 아님)</div></div>') : '';
+    const eng = j.engine ? ' <span class="dim" style="font-size:11px">· 엔진: '+j.engine+'</span>' : '';
     document.getElementById('out').innerHTML=pre+
-      sec('🧠 AI 사고 분석 (VLM 직접 판단)', aiHtml+caHtml)
+      sec('🧠 AI 사고 분석'+eng, aiHtml+caHtml)
       +sec('🔍 위험요인 표시 + 장면 분석'+(t!=null?' ('+t.toFixed(1)+'초)':''), imgHtml+(j.scene?'<div class="scene">'+j.scene+'</div>':'<span class="dim">VLM 미사용/미인식</span>')
           +'<div class="dim" style="margin-top:6px">감지: '+((j.detected||[]).join(', ')||'-')+' · 환경: '+(j.environment||'-')+' · 작업: '+(j.activity||'-')+'</div>')
       +sec('🎬 감지된 위험 행동 (VLM 판단)', (j.behaviors&&j.behaviors.length)?'<ul>'+j.behaviors.map(b=>'<li'+(b.confirmed?' class="miss"':'')+'>'+b.label+' <span class="dim">['+b.confidence+']</span>'+(b.evidence?'<br><span class="dim" style="font-size:12px">↳ 근거: '+b.evidence+'</span>':'')+'</li>').join('')+'</ul>':'<span class="dim">VLM 켜면 위험행동을 딥러닝(VLM)이 직접 판단·근거와 함께 분석합니다</span>')

@@ -84,16 +84,68 @@ def _anthropic_reason(prompt: str, system: str = "",
         return None, None
 
 
+def _openai_reason(prompt: str, system: str = "",
+                   model: str | None = None) -> tuple[str | None, str | None]:
+    """OpenAI 텍스트 추론 1회 → (text, backend). 키없음/에러/타임아웃 → (None,None).
+    모델명은 env(OPENAI_MODEL) 주입(하드코딩 금지). 한국어 가드는 미적용(Ollama 전용)."""
+    if not os.getenv("OPENAI_API_KEY"):
+        return None, None
+    used_model = model or os.getenv("OPENAI_MODEL", "gpt-4o-mini")
+    try:
+        from openai import OpenAI  # lazy import
+        client = OpenAI(timeout=20)  # OPENAI_API_KEY 자동 로드(.env)
+        resp = client.chat.completions.create(
+            model=used_model,
+            messages=[{"role": "system", "content": system or ""},
+                      {"role": "user", "content": prompt}],
+        )
+        text = (resp.choices[0].message.content or "").strip()
+        return (text, f"OpenAI:{used_model}") if text else (None, None)
+    except Exception:  # noqa: BLE001  키오류·모델오류·네트워크 등 전부 폴백(키 로그 금지)
+        return None, None
+
+
+def reason_vision(image_bgr, prompt: str, system: str | None = None) -> tuple[str | None, str | None]:
+    """OpenAI 비전 추론 1회(이미지+텍스트) → (text, backend). 키없음/에러/타임아웃 → (None,None) 폴백.
+    모델명은 env(OPENAI_VISION_MODEL→OPENAI_MODEL→gpt-4o-mini) 주입(하드코딩 금지). 이미지는 JPEG base64로 전송."""
+    if image_bgr is None or not os.getenv("OPENAI_API_KEY"):
+        return None, None
+    used_model = os.getenv("OPENAI_VISION_MODEL", os.getenv("OPENAI_MODEL", "gpt-4o-mini"))
+    try:
+        import base64
+        import cv2
+        ok, buf = cv2.imencode(".jpg", image_bgr)
+        if not ok:
+            return None, None
+        b64 = base64.b64encode(buf.tobytes()).decode("ascii")
+        from openai import OpenAI  # lazy import
+        client = OpenAI(timeout=30)  # OPENAI_API_KEY 자동 로드(.env)
+        resp = client.chat.completions.create(
+            model=used_model,
+            messages=[{"role": "user", "content": [
+                {"type": "text", "text": (system + "\n" if system else "") + prompt},
+                {"type": "image_url",
+                 "image_url": {"url": "data:image/jpeg;base64," + b64}},
+            ]}],
+        )
+        text = (resp.choices[0].message.content or "").strip()
+        return (text, f"OpenAI-vision:{used_model}") if text else (None, None)
+    except Exception:  # noqa: BLE001  키오류·모델오류·네트워크 등 전부 폴백(키 로그 금지)
+        return None, None
+
+
 def reason_text(prompt: str, system: str = "",
                 model: str | None = None, max_tokens: int | None = None) -> tuple[str | None, str | None]:
     """provider 선택 후 추론 1회 → (text, backend). 실패·미설정이면 (None, None)(호출자가 로컬 폴백).
 
-    backend 예: "Ollama:qwen2.5:7b" / "Claude:claude-opus-4-8".
+    backend 예: "Ollama:qwen2.5:7b" / "Claude:claude-opus-4-8" / "OpenAI:gpt-4o-mini".
     """
     provider = os.getenv("VIGENT_LLM_PROVIDER", "ollama")
     if provider == "anthropic" and os.getenv("ANTHROPIC_API_KEY"):
         return _anthropic_reason(prompt, system, model, max_tokens)
+    if provider == "openai" and os.getenv("OPENAI_API_KEY"):
+        return _openai_reason(prompt, system, model)
     if provider == "ollama":
         return _ollama_reason(prompt, system)
-    # 알 수 없는 provider / 키 없는 anthropic → 안전 폴백
+    # 알 수 없는 provider / 키 없는 anthropic·openai → 안전 폴백
     return None, None
