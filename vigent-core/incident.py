@@ -44,9 +44,17 @@ def _vlm_accident(image_bgr) -> dict[str, Any] | None:
         return None
 
 
-def analyze(image_bgr, present_classes: list[str] | None = None, use_vlm: bool = False) -> dict[str, Any]:
+def analyze(image_bgr, present_classes: list[str] | None = None, use_vlm: bool = False,
+            detections: list[dict[str, Any]] | None = None, in_danger_zone: bool = False) -> dict[str, Any]:
     import safety_brain
     present = present_classes or []
+    # 결정적 위험목록층(규칙 기반, 모델 무관) — VLM 사용여부와 독립. detections 없으면 present 라벨로 구성.
+    _dets = detections if detections is not None else [{"label": c} for c in present]
+    try:
+        import hazard_rules
+        hazard_list = hazard_rules.build_hazard_list(_dets, in_danger_zone)
+    except Exception:  # noqa: BLE001
+        hazard_list = []
     scene = ""
     ai = None
     shared = None
@@ -55,7 +63,8 @@ def analyze(image_bgr, present_classes: list[str] | None = None, use_vlm: bool =
         # 통합 실패(None)면 각 모듈이 기존 개별호출로 폴백 → 절대 저하 없음.
         try:
             import scene_vlm
-            shared = scene_vlm.understand(image_bgr)
+            # detections+구역정보 주입 → VLM 서술 폐쇄형 보조 + hazard_list 병합
+            shared = scene_vlm.understand(image_bgr, detections=_dets, in_danger_zone=in_danger_zone)
         except Exception:  # noqa: BLE001
             shared = None
         if shared:
@@ -111,6 +120,7 @@ def analyze(image_bgr, present_classes: list[str] | None = None, use_vlm: bool =
         "ok": True,
         "scene": scene,
         "ai_analysis": ai,
+        "hazard_list": hazard_list,   # 결정적 위험목록(규칙층, 커버리지 100% — VLM 누락과 무관)
         "behaviors": behaviors,
         "detected": present,
         "environment": (env["name"] if env else None),

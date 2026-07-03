@@ -102,6 +102,39 @@ def _safe_image(img_path: str, max_side: int = 1024) -> str:
     return str(out)
 
 
+def format_facts(detections, in_danger_zone: bool = False) -> str:
+    """YOLO 탐지결과 → '확인된 사실' 문자열(폐쇄형 검증용). 클래스·신뢰도·구역침입만.
+    detections=[{label/cls/class, conf/confidence}, ...]. 없거나 유효항목 0개면 빈 문자열(→ 기존 개방형 폴백).
+    사람은 명수(+위험구역 내부/외부)로, 나머지는 '라벨(0.91)' 로 나열한다."""
+    if not detections:
+        return ""
+    persons: list[Any] = []
+    others: list[str] = []
+    for d in detections or []:
+        if not isinstance(d, dict):
+            continue
+        label = str(d.get("label") or d.get("cls") or d.get("class") or "").strip()
+        if not label:
+            continue
+        conf = d.get("conf", d.get("confidence"))
+        if label.lower() in ("person", "사람"):
+            persons.append(conf)
+        else:
+            try:
+                c = f"({float(conf):.2f})" if conf is not None else ""
+            except (TypeError, ValueError):
+                c = ""
+            others.append(f"{label}{c}")
+    parts: list[str] = []
+    if persons:
+        parts.append(f"사람 {len(persons)}명({'위험구역 내부' if in_danger_zone else '위험구역 외부'})")
+    parts.extend(others)
+    if not parts:
+        return ""
+    return ("확인된 탐지 사실(신뢰도 높음): " + ", ".join(parts)
+            + ". 이 목록은 CNN이 확정한 사실이다.")
+
+
 class RiskVLM:
     """모델을 1회 로드해 재사용하는 위험요약 VLM (통합 파이프라인에서 사용)."""
 
@@ -140,12 +173,22 @@ class RiskVLM:
             return {"_error": f"VLM quick 실패: {type(ex).__name__}"}
 
     def summarize(self, img_path: str, prompt: str | None = None,
-                  max_tokens: int = 260, enrich: bool = True) -> dict:
+                  max_tokens: int = 260, enrich: bool = True, facts: str | None = None) -> dict:
         """이벤트 프레임 → 위험요약 JSON. 절대 예외로 죽지 않는다(모니터링 안정성).
         prompt 를 주면 그 테마 프롬프트로(office·sports). 없으면 기본(safety).
         max_tokens: 긴 통합 JSON을 받을 때 늘림(기본 260). enrich=False면 법령보강 생략(통합호출용).
+        facts(=format_facts 결과)가 있으면 '폐쇄형 검증' 프롬프트로: 확정 사실을 모두 반영·날조 금지.
+          facts=None 이면 기존 개방형 프롬프트 그대로(규칙 6: 폴백=절대 저하 없음).
         한국어가 아니면 1회 재시도. 끝으로 Copilot 으로 '관련법령'을 보강(빈 값일 때만)."""
         p = prompt or PROMPT
+        if facts:
+            # 폐쇄형: 확정 사실을 앞에 주입 + 규칙. 기존 JSON 스키마는 p 가 그대로 정의.
+            p = (f"아래는 신뢰도 높은 탐지 사실이다:\n{facts}\n"
+                 "규칙: (1) 이 사실의 모든 항목을 반드시 판단에 반영하라(하나도 빠뜨리지 마라). "
+                 "(2) 목록에 없는 위험을 새로 지어내지 마라. 이미지는 자세·환경 보강에만 써라. "
+                 "(3) 법령 조항 번호를 지어내지 마라(모르면 생략).\n"
+                 "출력: 각 항목의 위험등급(상/중/하)과 조치, 가장 시급한 항목을 포함하되 "
+                 "아래 JSON 스키마를 유지하라.\n\n" + p)
         try:
             safe = _safe_image(img_path)
             data = self._ask(safe, p, max_tokens=max_tokens)

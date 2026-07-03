@@ -132,7 +132,8 @@ class VLMService:
         self._vlm = None
 
     def summarize_bgr(self, image_bgr: np.ndarray, prompt: str | None = None,
-                      max_tokens: int = 260, enrich: bool = True) -> dict[str, Any]:
+                      max_tokens: int = 260, enrich: bool = True,
+                      facts: str | None = None) -> dict[str, Any]:
         import os
         import sys
         sys.path.insert(0, str(Path(__file__).resolve().parent / "ml"))
@@ -143,7 +144,8 @@ class VLMService:
         # 고유 파일명(PID) — 동시요청이 서로의 프레임을 덮어써 오분석하는 레이스 방지(감사 E-3/C-4)
         tmp = Path("/tmp") / f"vigent_vlm_event_{os.getpid()}.jpg"
         cv2.imwrite(str(tmp), image_bgr)
-        return self._vlm.summarize(str(tmp), prompt=prompt, max_tokens=max_tokens, enrich=enrich)
+        return self._vlm.summarize(str(tmp), prompt=prompt, max_tokens=max_tokens,
+                                   enrich=enrich, facts=facts)
 
     def quick_bgr(self, image_bgr: np.ndarray, prompt: str,
                   max_tokens: int = 64, max_side: int = 640) -> dict[str, Any]:

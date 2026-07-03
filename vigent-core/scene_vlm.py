@@ -36,17 +36,13 @@ _KEYS = ("scene", "environment", "activity", "accident_type",
          "what_happened", "cause", "evidence", "behaviors", "visible_safety_items")
 
 
-def understand(image_bgr) -> dict[str, Any] | None:
-    """장면을 1회 VLM 호출로 통합 이해. 반환 dict 또는 실패 시 None(→ 각 모듈 개별 폴백).
-    반환 키: scene/environment/activity/accident_type/what_happened/cause/evidence/
-             behaviors(list)/visible_safety_items(list)."""
-    if image_bgr is None:
-        return None
+def _vlm_understand(image_bgr, facts: str | None = None) -> dict[str, Any] | None:
+    """VLM 통합 이해(기존 로직). 실패/파싱불가 → None. understand() 내부에서만 사용."""
     try:
         import rfdetr_service
         # 통합 JSON은 길다 → max_tokens 넉넉히, 법령보강은 생략(여기선 원본 JSON만 필요)
         data = rfdetr_service.vlm.summarize_bgr(
-            image_bgr, prompt=_UNDERSTAND_PROMPT, max_tokens=420, enrich=False)
+            image_bgr, prompt=_UNDERSTAND_PROMPT, max_tokens=420, enrich=False, facts=facts)
     except Exception:  # noqa: BLE001  VLM 미가용/실패 → None(전부 폴백)
         return None
     if not isinstance(data, dict) or data.get("_error"):
@@ -68,6 +64,32 @@ def understand(image_bgr) -> dict[str, Any] | None:
             out[k] = v if isinstance(v, list) else []
         else:
             out[k] = str(v or "").strip()
+    return out
+
+
+def understand(image_bgr, facts: str | None = None, detections=None,
+               in_danger_zone: bool = False) -> dict[str, Any] | None:
+    """장면 통합 이해 + 결정적 위험목록층(hazard_list) 가산.
+    - hazard_list: YOLO 탐지 → 규칙 기반 '정답' 위험목록(모델 무관, 누락 0). VLM이 빠뜨려도 보장.
+    - detections 있고 facts 미지정이면 폐쇄형 facts 자동 구성(VLM 서술 보조).
+    - VLM 실패해도 hazard_list 는 독립 동작. detections=None·VLM 실패면 기존 동작 그대로(폴백=저하0).
+    반환 스키마는 기존 유지 + 'hazard_list' 필드만 가산."""
+    import hazard_rules
+    hazard_list = hazard_rules.build_hazard_list(detections, in_danger_zone)
+    # detections 가 있는데 facts 미지정이면 폐쇄형 facts 자동 구성(VLM 서술 품질 보조)
+    if facts is None and detections:
+        try:
+            from ml.vlm_risk_summary import format_facts
+            facts = format_facts(detections, in_danger_zone) or None
+        except Exception:  # noqa: BLE001
+            facts = None
+    vlm_out = _vlm_understand(image_bgr, facts) if image_bgr is not None else None
+    if vlm_out is None and not hazard_list:
+        return None                          # 기존 동작(저하 0)
+    out = vlm_out or {k: ([] if k in ("behaviors", "visible_safety_items") else "") for k in _KEYS}
+    out["hazard_list"] = hazard_list         # 결정적 정답 목록(VLM이 빠뜨려도 보장)
+    if vlm_out is None:
+        out["_vlm"] = "unavailable(규칙층만으로 동작)"
     return out
 
 
