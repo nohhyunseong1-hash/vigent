@@ -302,11 +302,11 @@ class ScribeAgent(BaseAgent):
         prompt = "다음 위험성평가 집계로 '종합의견'을 작성하라:\n\n" + agg
         try:
             import llm_provider
-            txt = llm_provider.reason_text(prompt, system)
+            txt, backend = llm_provider.reason_text(prompt, system)
         except Exception:  # noqa: BLE001  provider 자체 문제도 폴백
-            txt = None
+            txt, backend = None, None
         if txt:
-            return txt, "AI(Claude)"
+            return txt, f"AI({backend})"  # 실제 백엔드명 표기(Ollama:... / Claude:...)
         # ── 로컬 폴백(결정적 템플릿, 항상 동작) ──
         parts = [f"본 위험성평가는 {site}{(' ' + process) if process else ''}에서 "
                  f"AI가 감지·기록한 위험 {total}개 항목을 분석한 결과다."]
@@ -320,7 +320,7 @@ class ScribeAgent(BaseAgent):
                          f"(위험성 {top.get('위험성')}, {top.get('관련근거', '')})로, "
                          f"해당 감소대책의 즉시 이행이 권고된다.")
         parts.append("본 종합의견은 AI 초안이며, 최종 위험성 판단과 조치는 안전관리자 확인 하에 이뤄져야 한다.")
-        return " ".join(parts), "로컬"
+        return " ".join(parts), "로컬 규칙 기반"
 
     def render_html(self, assessment: dict[str, Any]) -> str:
         """위험성평가표 → KOSHA KRAS 서식 11 구조의 인쇄/PDF용 자체 완결형 HTML."""
