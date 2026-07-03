@@ -149,8 +149,11 @@ class _PoseModel:
             cfs = kp.conf.cpu().numpy() if kp.conf is not None else None
             out = []
             for i in range(len(xys)):
-                m = _person_metrics(xys[i], cfs[i] if cfs is not None else np.ones(len(xys[i])), H, min_kp)
+                cf_i = cfs[i] if cfs is not None else np.ones(len(xys[i]))
+                m = _person_metrics(xys[i], cf_i, H, min_kp)
                 if m:
+                    m["kp_xy"] = xys[i]      # 원시 키포인트 가산(근골격계 레이어용). 낙상은 미사용 — 불변.
+                    m["kp_cf"] = cf_i
                     out.append(m)
             return out
         except Exception:  # noqa: BLE001
@@ -224,6 +227,87 @@ class FallTracker:
                         pass
                 return True, reason
         return False, ""
+
+
+class ErgonomicsTracker:
+    """근골격계 부담 자세 '지속' 추적(카메라별 상태). 순수 가산 — 낙상·탐지와 독립·불변.
+
+    나쁜 자세(warn/bad)가 hold_sec(설정) 이상 '지속'될 때만 위험으로 본다(순간 자세는 무시 → 오탐 억제).
+    포즈 추론 비용 억제: 최소 간격(_MIN_INTERVAL)으로만 평가한다(3초 지속 판정엔 충분). 트랙 id 가
+    없으므로 낙상과 동일한 중심점 매칭으로 사람별 상태를 잇는다(독립 트랙 — 낙상 트랙 미공유).
+    임계값은 vision.yaml 에서 읽는다(하드코딩 금지). 키포인트 없음/에러 → [] 반환(무중단)."""
+
+    MATCH = 0.18            # 사람 프레임간 매칭 거리(대각선 정규화) — 낙상과 동일
+    _MIN_INTERVAL = 0.5    # 평가 최소 간격(초): 저빈도 스로틀로 추가 포즈추론 비용 최소화
+
+    def __init__(self, theme: str = "safety"):
+        import ergonomics as _erg
+        self._erg = _erg
+        cfg = _erg.load_ergonomics(theme)
+        self._joints = cfg.get("joints", {}) if isinstance(cfg, dict) else {}
+        try:
+            self._hold_sec = float(cfg.get("hold_sec", 3)) if isinstance(cfg, dict) else 3.0
+        except Exception:  # noqa: BLE001
+            self._hold_sec = 3.0
+        self._enabled = bool(self._joints)       # 설정 없으면 조용히 비활성(저하 0)
+        self._tracks: list[dict] = []
+        self._last_ts = 0.0
+
+    def update(self, frame, ts):
+        """반환: [(rule, level, note), ...] — hold 지속이 확정된 사람만. 없으면 []."""
+        if not self._enabled:
+            return []
+        if ts - self._last_ts < self._MIN_INTERVAL:      # 저빈도 스로틀
+            return []
+        self._last_ts = ts
+        try:
+            persons = _posemodel.persons(frame)
+        except Exception:  # noqa: BLE001
+            return []
+        H, W = frame.shape[0], frame.shape[1]
+        diag = (W * W + H * H) ** 0.5
+        used: set[int] = set()
+        out: list[tuple] = []
+        for p in persons:
+            xy, cf = p.get("kp_xy"), p.get("kp_cf")
+            if xy is None or cf is None:
+                continue
+            try:
+                a = self._erg.assess(xy, cf, self._joints)
+            except Exception:  # noqa: BLE001
+                continue
+            if not a:
+                continue
+            bad = a.get("worst") in ("warn", "bad")
+            cx, cy = p["centroid"]
+            best, bd = None, 1e9                          # 중심점 매칭(독립 트랙)
+            for k, tr in enumerate(self._tracks):
+                if k in used:
+                    continue
+                d = ((cx - tr["cx"]) ** 2 + (cy - tr["cy"]) ** 2) ** 0.5 / diag
+                if d < bd:
+                    bd, best = d, k
+            if best is not None and bd < self.MATCH:
+                tr = self._tracks[best]
+                used.add(best)
+            else:
+                tr = {"bad_since": None, "fired": False}
+                self._tracks.append(tr)
+                used.add(len(self._tracks) - 1)
+            tr["cx"], tr["cy"], tr["ts"] = cx, cy, ts
+            if bad:
+                if tr.get("bad_since") is None:
+                    tr["bad_since"] = ts
+                held = ts - tr["bad_since"]
+                if held >= self._hold_sec and not tr.get("fired"):   # 지속 확정 시 1회만
+                    tr["fired"] = True
+                    note = f"{a['note']} · {held:.0f}초 지속"
+                    out.append(("ergonomic_risk", a["level"], note))
+            else:                                        # 자세 회복 → 상태 리셋
+                tr["bad_since"] = None
+                tr["fired"] = False
+        self._tracks = [tr for tr in self._tracks if ts - tr.get("ts", 0) < 3.0]
+        return out
 
 
 class MotionTracker:
@@ -329,6 +413,7 @@ class Worker:
         last_collect = 0.0
         ftrack = FallTracker(vlm=getattr(self, "_vlm_fall", False))   # 카메라별 낙상 추적(상태 유지)
         mtrack = MotionTracker()                                       # 무동작·급이동 추적
+        etrack = ErgonomicsTracker()                                   # 근골격계 부담자세 지속(가산·낙상 불변)
         zone = [tuple(p) for p in zone] if zone else _load_zone()   # 카메라별 구역 or 전역
         is_image = Path(source).suffix.lower() in _IMG_EXT and Path(source).exists()
         static = cv2.imread(source) if is_image else None
@@ -365,10 +450,15 @@ class Worker:
                 with lock:                            # 코어 추론 직렬화(브라우저와 충돌 방지)
                     out = guard.detect(frame, detectors=detectors)
                     fall, freason = ftrack.update(frame, t0)   # 다중단서+모션 낙상
+                    try:
+                        ergo_fired = etrack.update(frame, t0)  # 근골격계 부담자세(포즈 각도·저빈도)
+                    except Exception:  # noqa: BLE001  가산 레이어 — 실패해도 낙상·탐지 무중단
+                        ergo_fired = []
                 fired = _derive(out, zone, frame.shape[0] / frame.shape[1])
                 if fall:
                     fired.append(("fall_suspected", "critical", f"작업자 낙상 의심 — {freason}"))
                 fired += mtrack.update(out.get("detections", []), t0)   # 무동작·급이동
+                fired += ergo_fired                                     # 근골격계 부담자세(지속 확정분)
                 now = time.time()
                 for rule, level, note in fired:
                     if now - cooldown.get(rule, 0) < _COOLDOWN_S:
