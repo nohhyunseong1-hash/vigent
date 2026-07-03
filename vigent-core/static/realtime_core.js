@@ -355,6 +355,27 @@ const CLASS_MIN_SCORE={
   cigarette:0.20,glasses:0.20,snack:0.20
 };
 
+// ── 표시 필터(config) — 산업현장 무관/오탐 COCO 박스를 '화면에서만' 숨김. 탐지 엔진·인원/PPE/통계 로직 불변(규칙6). ──
+// 조정: hide 에 클래스 추가/삭제, safetyOnly=false 로 전체 표시, on=false 로 필터 끄기.
+const DISPLAY_FILTER={
+  on:true,
+  safetyOnly:true,   // 안전 테마에서만 '의미있는 것'만 표시(office/sports는 사물 유지)
+  // 안전 관련 추가 표시(현장 교통 위험 등) — _isSafetyCritical 밖이지만 의미있어 유지(차량 등)
+  show:new Set(['car','truck','bus','motorcycle','bicycle','train','forklift','boat']),
+  hide:new Set(['suitcase','handbag','backpack','tie','umbrella','frisbee','kite','teddy bear','vase','potted plant']),
+};
+function shouldDrawClass(c){
+  if(!DISPLAY_FILTER.on) return true;
+  c=String(c||'').toLowerCase();
+  if(c==='person') return true;                               // 사람은 항상 표시
+  if(DISPLAY_FILTER.hide.has(c)) return false;                // 명시 숨김(산업현장 무의미)
+  if(DISPLAY_FILTER.show.has(c)) return true;                 // 차량 등 현장 위험은 유지(저하 방지)
+  // safetyOnly 는 안전 테마에서만 적용 → office/sports 는 기존대로 사물 표시(저하 0)
+  if(DISPLAY_FILTER.safetyOnly && (typeof activeServiceMode==='undefined' || activeServiceMode==='safety'))
+    return _isSafetyCritical(c) || isViolation(c);
+  return true;
+}
+
 // bbox 좌표 스케일 변환 (영상→캔버스)
 function scaleBox(b, sx, sy){
   if(!b) return null;
@@ -1349,6 +1370,7 @@ function drawObjects(objs,W,H,lHeld,rHeld,scX,scY,hidePerson){
   const cmap={safe:'#10b981',caution:'#f59e0b',danger:'#ef4444'};
   for(const o of objs){
     if(hidePerson && o.class==='person' && !o._poseFollow) continue;   // pose 따라가는 사람 박스는 표시(2단계), 나머지 사람은 기존대로 스켈레톤에 양보
+    if(!shouldDrawClass(o.class)) continue;   // 표시 필터: 무관/오탐 COCO 숨김(탐지 데이터엔 그대로 남음 — 통계·판정 불변)
     const _fa=_staleAlpha(o.seenAt);            // 잔상 페이드: 오래된 박스는 알파↓ 후 제외
     if(_fa<=0) continue;                          // STALE_TTL 초과 → 렌더 제외(옛 자리 고정 잔상 제거)
     ctx.save(); ctx.globalAlpha=_fa;

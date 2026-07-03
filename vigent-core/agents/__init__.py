@@ -13,16 +13,18 @@ from .coach import CoachAgent
 from .copilot import CopilotAgent
 from .dispatcher import DispatcherAgent
 from .guard import GuardAgent
+from .safety_manager import SafetyManagerAgent
 from .scribe import ScribeAgent
 
 # 5단계 루프 순서대로
 AGENT_CLASSES = [
-    GuardAgent,       # 감지
-    AnalystAgent,     # 판단
-    ScribeAgent,      # 보고서
-    CopilotAgent,     # 논문/근거 써치
-    DispatcherAgent,  # 피드백·연동
-    CoachAgent,       # 코칭(office/sports)
+    GuardAgent,        # 감지
+    AnalystAgent,      # 판단
+    ScribeAgent,       # 보고서
+    CopilotAgent,      # 논문/근거 써치
+    DispatcherAgent,   # 피드백·연동
+    CoachAgent,        # 코칭(office/sports)
+    SafetyManagerAgent,  # 반자동 오케스트레이터(권장만, 사람 최종승인) — 가산식, 코어 미수정
 ]
 
 
@@ -37,6 +39,6 @@ def build_agents(config: Any) -> dict[str, BaseAgent]:
 
 __all__ = [
     "BaseAgent", "GuardAgent", "AnalystAgent", "ScribeAgent",
-    "CopilotAgent", "DispatcherAgent", "CoachAgent",
+    "CopilotAgent", "DispatcherAgent", "CoachAgent", "SafetyManagerAgent",
     "AGENT_CLASSES", "build_agents",
 ]

@@ -225,7 +225,9 @@
       <input type="file" id="fileInput" accept="image/*,video/*" style="display:none" onchange="handleFile(event)">
       <button class="btn" onclick="toggleMirror()">↔ 방향 보정</button>
       <button class="btn" id="btnPause" onclick="togglePause()" disabled>⏸ 정지</button>
+      <button class="btn" id="btnMoment" onclick="analyzeMoment()" title="현재 프레임 1장을 OpenAI로 정밀 분석(버튼 누를 때만)">🔎 이 순간 AI 분석</button>
     </div>
+    <div id="momentCard" style="display:none;margin-top:8px;padding:10px 12px;background:#0c0c0e;border:1px solid #2a2a2e;border-left:3px solid #d4a017;border-radius:8px;color:#e8e8e8;font-size:13px;line-height:1.7"></div>
   </div>
 
   <div class="right-panel">
@@ -421,6 +423,31 @@
     try{ const c=document.createElement('canvas'); c.width=videoEl.videoWidth||1280; c.height=videoEl.videoHeight||720;
       c.getContext('2d').drawImage(videoEl,0,0,c.width,c.height); return c.toDataURL('image/jpeg',0.7);
     }catch(e){ return null; }
+  }
+  // 온디맨드 정밀분석 — 버튼 누른 순간 현재 프레임 1장만 OpenAI 비전으로 분석(매 프레임 아님, 비용·속도 안전)
+  async function analyzeMoment(){
+    const btn=document.getElementById('btnMoment'), card=document.getElementById('momentCard');
+    const img=captureEvidence();
+    if(!img){ alert('카메라 또는 영상을 먼저 켜세요'); return; }
+    const _t=btn.textContent; btn.disabled=true; btn.textContent='⏳ 분석 중…';
+    card.style.display='block';
+    card.innerHTML='<b>🔎 이 순간 AI 분석</b><div style="color:#9aa0a6;margin-top:4px">OpenAI 정밀 분석 중… (수 초)</div>';
+    try{
+      const j=await (await fetch('/safety/live/analyze',{method:'POST',headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({image_base64:img})})).json();
+      if(j.ok){
+        card.innerHTML='<b>🔎 이 순간 AI 분석</b> <span style="color:#9aa0a6;font-size:11px">· 엔진: '+(j.engine||'-')+'</span>'
+          +'<div style="margin-top:6px"><b>상황</b> '+(j['상황']||'-')+'</div>'
+          +'<div><b>재해유형</b> <span style="color:#f87171">'+(j['재해유형']||'-')+'</span></div>'
+          +'<div><b>위험</b> '+(j['위험']||'-')+'</div>'
+          +'<div><b>조치</b> '+(j['조치']||'-')+'</div>';
+      }else{
+        card.innerHTML='<b>🔎 이 순간 AI 분석</b><div style="color:#f87171;margin-top:4px">분석 실패: '+(j.error||'폴백 포함 실패')+'</div>';
+      }
+    }catch(e){
+      card.innerHTML='<b>🔎 이 순간 AI 분석</b><div style="color:#f87171;margin-top:4px">요청 실패(네트워크)</div>';
+    }
+    btn.disabled=false; btn.textContent=_t;
   }
   // 프레임 공유: 짧은 시간(500ms) 내 여러 폴링이 같은 프레임을 재사용 → 중복 캡처·인코딩 제거(성능↑)
   let _frmCache=null,_frmTs=0;

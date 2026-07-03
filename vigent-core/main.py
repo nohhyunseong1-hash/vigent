@@ -258,6 +258,26 @@ def safety_judge(payload: dict = Body(...), theme: str = DEFAULT_THEME):
     return analyst.judge(signals, dl)
 
 
+@app.post("/safety/manager/decide")
+def safety_manager_decide(payload: dict = Body(...), theme: str = DEFAULT_THEME):
+    """SafetyManager 반자동 — event 로 등급 판정 → '권장 행동'만 반환(무엇도 자동 실행 안 함)."""
+    bundle = STATE.get(theme) or _load_theme(theme)
+    mgr = bundle["agents"].get("SafetyManager")
+    if mgr is None:
+        raise HTTPException(status_code=503, detail="SafetyManager 미로드")
+    return mgr.decide(payload or {})
+
+
+@app.post("/safety/manager/ask")
+def safety_manager_ask(payload: dict = Body(...), theme: str = DEFAULT_THEME):
+    """SafetyManager 질의응답 — 로컬 지식 우선, 근거 없으면 '확인 필요'."""
+    bundle = STATE.get(theme) or _load_theme(theme)
+    mgr = bundle["agents"].get("SafetyManager")
+    if mgr is None:
+        raise HTTPException(status_code=503, detail="SafetyManager 미로드")
+    return mgr.ask((payload or {}).get("question", ""))
+
+
 @app.get("/evidence/search")
 def evidence_search(rule: str, theme: str = DEFAULT_THEME):
     """Copilot 근거 검색 — 규칙 id 의 법령·가이드 인용(출처 포함)을 반환(§9)."""
@@ -352,6 +372,52 @@ def detect_frame(payload: dict = Body(...), theme: str = DEFAULT_THEME):
     return {"success": True, "detections": dets, "hazards": hazards,
             "person_count": out.get("person_count", 0), "signals": out.get("signals", {}),
             "proximity": prox}
+
+
+@app.post("/safety/live/analyze")
+def safety_live_analyze(payload: dict = Body(...)):
+    """온디맨드 정밀분석 — 버튼 누른 순간 프레임 1장을 OpenAI 비전으로 이해(매 프레임 아님).
+    OpenAI 키 있으면 OpenAI, 실패/키없음이면 로컬 MLX 폴백(가산식). 프레임 전처리는 프론트 그대로(블러 등 미개입)."""
+    import json as _json
+    import re as _re
+    img = _img_from_b64(payload.get("image_base64") or payload.get("image"))
+    if img is None:
+        return {"ok": False, "error": "이미지 없음"}
+    PROMPT = ('이 산업현장 CCTV 프레임을 보고 아래 JSON 하나로만 답하라(설명·코드블록 없이):\n'
+              '{"상황":"무슨 상황인지 한 문장","재해유형":"끼임/추락/부딪힘/감전/화재/질식/전도/낙하물/무너짐/없음 중 하나",'
+              '"위험":"어떤 위험이 임박/존재하는지 한 문장","조치":"권고 조치 한 문장"}\n불확실하면 "불명확".')
+    KEYS = ("상황", "재해유형", "위험", "조치")
+    obj = None
+    engine = None
+    try:
+        import llm_provider
+        text, backend = llm_provider.reason_vision(img, PROMPT)   # OpenAI 우선
+        if text:
+            engine = backend
+            m = _re.search(r"\{.*\}", text, _re.S)
+            if m:
+                try:
+                    obj = _json.loads(m.group(0))
+                except Exception:  # noqa: BLE001
+                    obj = None
+    except Exception:  # noqa: BLE001
+        obj = None
+    if not (isinstance(obj, dict) and any(k in obj for k in KEYS)):   # OpenAI 실패 → 로컬 MLX 폴백
+        try:
+            import rfdetr_service
+            data = rfdetr_service.vlm.summarize_bgr(img, prompt=PROMPT)
+            engine = "로컬 MLX"
+            if isinstance(data, dict):
+                if any(k in data for k in KEYS):
+                    obj = data
+                elif data.get("raw"):
+                    m2 = _re.search(r"\{.*\}", str(data["raw"]), _re.S)
+                    obj = _json.loads(m2.group(0)) if m2 else None
+        except Exception:  # noqa: BLE001
+            obj = None
+    if not (isinstance(obj, dict) and any(k in obj for k in KEYS)):
+        return {"ok": False, "engine": engine, "error": "분석 실패(폴백 포함)"}
+    return {"ok": True, "engine": engine, **{k: str(obj.get(k, "") or "") for k in KEYS}}
 
 
 @app.post("/recognition/log")
