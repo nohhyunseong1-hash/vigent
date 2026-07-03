@@ -44,6 +44,76 @@ def _vlm_accident(image_bgr) -> dict[str, Any] | None:
         return None
 
 
+def infer_cause(hazard_list: list[dict[str, Any]] | None = None, environment: str | None = None,
+                activity: str | None = None, missing_measures: list[str] | None = None,
+                related: list[dict[str, Any]] | None = None,
+                behaviors: list[dict[str, Any]] | None = None) -> dict[str, Any]:
+    """신뢰 가능한 사실(hazard_list·환경·작업·빠진조치·유사사례)에서 직접/근본원인을 유도.
+    - 결정적 초안(규칙 기반, 모델 무관·항상 동작) → llm_provider(Ollama) 있으면 폐쇄형으로 종합, 실패 시 초안 폴백.
+    - 숫자·책임비율·법조항 날조 금지(규칙 7). 반환 {direct, root, source}."""
+    hazard_list = hazard_list or []
+    missing_measures = missing_measures or []
+    related = related or []
+    behaviors = behaviors or []
+    haz = [str(h.get("항목", "")) for h in hazard_list if h.get("항목")]
+    act = (activity or "").strip() or "작업"
+
+    # ── 결정적 초안(규칙) ──
+    zone = [h for h in haz if ("침입" in h or "위험구역" in h)]
+    ppe = [h.replace(" 미착용", "") for h in haz if "미착용" in h]
+    dparts: list[str] = []
+    if zone:
+        dparts.append("위험구역 접근")
+    if ppe:
+        dparts.append("·".join(ppe) + " 미착용")
+    if dparts:
+        direct = f"{' 및 '.join(dparts)} 상태에서 {act} 진행."
+    elif missing_measures:
+        direct = f"{', '.join(missing_measures[:4])} 미확인/미조치 상태에서 {act} 진행."
+    else:
+        direct = "불명확(탐지된 위험 항목 없음 — 안전관리자 확인 필요)."
+    roots: list[str] = []
+    if zone:
+        roots.append("위험구역 출입통제·방호 미흡")
+    if ppe:
+        roots.append("보호구 착용 관리·점검 미흡")
+    roots.append("작업 전 위험성 인지·안전보건교육 부족")
+    root = "관리적 근본원인(추정): " + ", ".join(roots) + "."
+    draft = {"direct": direct, "root": root, "source": "규칙"}
+
+    # ── llm_provider(Ollama 등) 있으면 폐쇄형 종합, 실패면 초안 폴백 ──
+    try:
+        import json
+        import re
+        import llm_provider
+        facts = (f"확정 위험(CNN 탐지): {', '.join(haz) or '없음'}\n"
+                 f"환경: {environment or '불명확'}\n작업: {act}\n"
+                 f"빠진 안전조치: {', '.join(missing_measures) or '없음'}\n"
+                 f"유사 재해사례: {', '.join(str(r.get('title', '')) for r in related[:3]) or '없음'}\n"
+                 f"관찰 행동: {', '.join(str(b.get('label', '')) for b in behaviors[:3]) or '없음'}")
+        system = ("너는 한국 산업안전 재해원인 분석가다. 아래 '확인된 사실'만 근거로 "
+                  "직접원인과 근본원인을 각각 1~2문장 한국어로 작성하라. "
+                  "사실에 없는 것·법조항·책임비율(누가 몇 %)을 지어내지 마라. 불명확하면 불명확이라 하라. "
+                  '아래 JSON 하나만 출력: {"direct":"...","root":"..."}')
+        text, backend = llm_provider.reason_text("확인된 사실:\n" + facts, system)
+        if text:
+            m = re.search(r"\{.*\}", text, re.S)
+            if m:
+                obj = json.loads(m.group(0))
+                d = str(obj.get("direct", "")).strip()
+                r = str(obj.get("root", "")).strip()
+                # 한국어 가드: 소형 모델이 중국어/영어로 새면 규칙 초안으로 폴백(저하 0)
+                blob = d + " " + r
+                kr = sum(1 for ch in blob if "가" <= ch <= "힣")
+                cjk = sum(1 for ch in blob if "一" <= ch <= "鿿")
+                if (d or r) and kr >= 3 and kr >= cjk:
+                    return {"direct": d or draft["direct"], "root": r or draft["root"],
+                            "source": backend or "LLM"}
+    except Exception:  # noqa: BLE001  LLM/파싱 실패 → 결정적 초안 폴백(저하 0)
+        pass
+    return draft
+
+
 def analyze(image_bgr, present_classes: list[str] | None = None, use_vlm: bool = False,
             detections: list[dict[str, Any]] | None = None, in_danger_zone: bool = False) -> dict[str, Any]:
     import safety_brain
@@ -116,11 +186,22 @@ def analyze(image_bgr, present_classes: list[str] | None = None, use_vlm: bool =
             related = safety_rag.retrieve(query, k=4)
     except Exception:  # noqa: BLE001
         related = []
+    # 원인 유도(사실 기반, VLM 사용여부와 독립·항상 생성)
+    cause_analysis = infer_cause(
+        hazard_list, (env["name"] if env else None),
+        (assessment["activity"] if assessment else act_id),
+        [m["name"] for m in missing], related, behaviors)
+    # VLM cause 가 비었거나 '불명확'이면 사실 기반 직접원인으로 대체/보강
+    if ai is not None:
+        _c = (ai.get("cause") or "").strip()
+        if not _c or "불명확" in _c:
+            ai["cause"] = cause_analysis["direct"]
     return {
         "ok": True,
         "scene": scene,
         "ai_analysis": ai,
         "hazard_list": hazard_list,   # 결정적 위험목록(규칙층, 커버리지 100% — VLM 누락과 무관)
+        "cause_analysis": cause_analysis,   # 사실 기반 직접/근본원인(규칙 폴백·항상 존재)
         "behaviors": behaviors,
         "detected": present,
         "environment": (env["name"] if env else None),
@@ -284,8 +365,13 @@ _PAGE = r"""<!DOCTYPE html><html lang="ko"><head><meta charset="UTF-8">
         +'<b>🔎 추정 원인:</b> '+(ai.cause||'불명확')
         +(ai.evidence?'<br><span class="dim">↳ 근거: '+ai.evidence+'</span>':'')+'</div>')
       : (vlm?'<span class="dim">VLM이 장면을 분석하지 못했습니다(재시도 또는 다른 프레임)</span>':'<span class="dim">⚠ VLM 분석 체크를 켜야 작업·재해를 분석합니다</span>');
+    const ca=j.cause_analysis;
+    const caHtml = ca ? ('<div style="margin-top:10px;padding-top:8px;border-top:1px solid #1c1c20;line-height:1.8">'
+        +'<b>🎯 직접원인:</b> '+(ca.direct||'-')+'<br>'
+        +'<b>🧩 근본원인:</b> '+(ca.root||'-')
+        +'<div class="dim" style="font-size:11px;margin-top:4px">출처: '+(ca.source||'규칙')+' · 사실 기반(책임비율/법적판단 아님)</div></div>') : '';
     document.getElementById('out').innerHTML=pre+
-      sec('🧠 AI 사고 분석 (VLM 직접 판단)', aiHtml)
+      sec('🧠 AI 사고 분석 (VLM 직접 판단)', aiHtml+caHtml)
       +sec('🔍 위험요인 표시 + 장면 분석'+(t!=null?' ('+t.toFixed(1)+'초)':''), imgHtml+(j.scene?'<div class="scene">'+j.scene+'</div>':'<span class="dim">VLM 미사용/미인식</span>')
           +'<div class="dim" style="margin-top:6px">감지: '+((j.detected||[]).join(', ')||'-')+' · 환경: '+(j.environment||'-')+' · 작업: '+(j.activity||'-')+'</div>')
       +sec('🎬 감지된 위험 행동 (VLM 판단)', (j.behaviors&&j.behaviors.length)?'<ul>'+j.behaviors.map(b=>'<li'+(b.confirmed?' class="miss"':'')+'>'+b.label+' <span class="dim">['+b.confidence+']</span>'+(b.evidence?'<br><span class="dim" style="font-size:12px">↳ 근거: '+b.evidence+'</span>':'')+'</li>').join('')+'</ul>':'<span class="dim">VLM 켜면 위험행동을 딥러닝(VLM)이 직접 판단·근거와 함께 분석합니다</span>')
