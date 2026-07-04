@@ -1,0 +1,150 @@
+{
+  "person": {
+    "raw": {
+      "mode": "raw",
+      "measures": "표준 COCO baseline(원시 모델 능력)",
+      "dataset": "person",
+      "images_dir": "data/eval/clean/images",
+      "num_images": 74,
+      "gt_boxes": 87,
+      "num_detections": 1090,
+      "mAP@50": 90.82,
+      "mAP@50:95": 77.58,
+      "per_class_AP50": {
+        "person": 90.82
+      },
+      "per_class_AP5095": {
+        "person": 77.58
+      },
+      "latency_ms_mean": 141.16,
+      "latency_frames_timed": 64,
+      "latency_warmup_excluded": 10,
+      "conf": 0.001,
+      "iou_nms": 0.7,
+      "imgsz": 640,
+      "seed": 0,
+      "eval_method": "pycocotools COCOeval bbox (101-point interpolation)",
+      "model_source": "vigent-core/weights/yolo11m.pt",
+      "run_at": "2026-07-04 19:42"
+    },
+    "pipeline": {
+      "mode": "pipeline",
+      "measures": "배포 운용점(guard.detect 후처리·운용 임계 반영)",
+      "dataset": "person",
+      "images_dir": "data/eval/clean/images",
+      "num_images": 74,
+      "gt_boxes": 87,
+      "num_detections": 84,
+      "mAP@50": 70.95,
+      "mAP@50:95": 45.85,
+      "per_class_AP50": {
+        "person": 70.95
+      },
+      "per_class_AP5095": {
+        "person": 45.85
+      },
+      "latency_ms_mean": 294.84,
+      "latency_frames_timed": 64,
+      "latency_warmup_excluded": 10,
+      "conf": "guard 운용 임계(vision.yaml)",
+      "iou_nms": "guard 내부",
+      "imgsz": 640,
+      "seed": 0,
+      "eval_method": "pycocotools COCOeval bbox (101-point interpolation)",
+      "model_source": "vision.yaml 배포 설정(guard slot=person)",
+      "run_at": "2026-07-04 19:43"
+    }
+  },
+  "ppe": {
+    "raw": {
+      "mode": "raw",
+      "measures": "표준 COCO baseline(원시 모델 능력)",
+      "dataset": "ppe",
+      "images_dir": "data/datasets/css_safety/test/images",
+      "num_images": 82,
+      "gt_boxes": 760,
+      "num_detections": 4802,
+      "mAP@50": 75.2,
+      "mAP@50:95": 50.24,
+      "per_class_AP50": {
+        "Hardhat": 86.95,
+        "Mask": 78.09,
+        "NO-Hardhat": 59.59,
+        "NO-Mask": 81.24,
+        "NO-Safety Vest": 77.22,
+        "Person": 83.21,
+        "Safety Cone": 42.05,
+        "Safety Vest": 86.58,
+        "machinery": 86.91,
+        "vehicle": 70.19
+      },
+      "per_class_AP5095": {
+        "Hardhat": 59.52,
+        "Mask": 58.76,
+        "NO-Hardhat": 39.38,
+        "NO-Mask": 41.64,
+        "NO-Safety Vest": 51.35,
+        "Person": 54.47,
+        "Safety Cone": 18.82,
+        "Safety Vest": 62.4,
+        "machinery": 67.61,
+        "vehicle": 48.48
+      },
+      "latency_ms_mean": 61.08,
+      "latency_frames_timed": 72,
+      "latency_warmup_excluded": 10,
+      "conf": 0.001,
+      "iou_nms": 0.7,
+      "imgsz": 640,
+      "seed": 0,
+      "eval_method": "pycocotools COCOeval bbox (101-point interpolation)",
+      "model_source": "vigent-core/weights/ppe_css_v1.pt",
+      "run_at": "2026-07-04 19:43"
+    },
+    "pipeline": {
+      "mode": "pipeline",
+      "measures": "배포 운용점(guard.detect 후처리·운용 임계 반영)",
+      "dataset": "ppe",
+      "images_dir": "data/datasets/css_safety/test/images",
+      "num_images": 82,
+      "gt_boxes": 760,
+      "num_detections": 477,
+      "mAP@50": 58.62,
+      "mAP@50:95": 37.85,
+      "per_class_AP50": {
+        "Hardhat": 76.13,
+        "Mask": 75.25,
+        "NO-Hardhat": 48.07,
+        "NO-Mask": 69.55,
+        "NO-Safety Vest": 67.04,
+        "Person": 53.0,
+        "Safety Cone": 31.87,
+        "Safety Vest": 67.28,
+        "machinery": 54.46,
+        "vehicle": 43.56
+      },
+      "per_class_AP5095": {
+        "Hardhat": 55.67,
+        "Mask": 56.49,
+        "NO-Hardhat": 25.3,
+        "NO-Mask": 35.95,
+        "NO-Safety Vest": 38.07,
+        "Person": 31.49,
+        "Safety Cone": 13.94,
+        "Safety Vest": 49.02,
+        "machinery": 40.11,
+        "vehicle": 32.4
+      },
+      "latency_ms_mean": 131.78,
+      "latency_frames_timed": 72,
+      "latency_warmup_excluded": 10,
+      "conf": "guard 운용 임계(vision.yaml)",
+      "iou_nms": "guard 내부",
+      "imgsz": 640,
+      "seed": 0,
+      "eval_method": "pycocotools COCOeval bbox (101-point interpolation)",
+      "model_source": "vision.yaml 배포 설정(guard slot=ppe)",
+      "run_at": "2026-07-04 19:44"
+    }
+  }
+}
