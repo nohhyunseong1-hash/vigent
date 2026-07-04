@@ -122,7 +122,20 @@ def suggest(process: str) -> dict[str, Any]:
 def create(payload: dict) -> dict[str, Any]:
     """회의록 1건 저장. 항상 결과를 반환(예외로 죽지 않음). 반환: 저장된 record(+saved_path)."""
     ts = datetime.now(KST)
-    tid = f"tbm_{ts.strftime('%Y%m%d_%H%M%S')}"
+    _TBM.mkdir(parents=True, exist_ok=True)
+    # 같은 초 동시작성 충돌 회피(덮어쓰기 금지): 파일이 이미 있으면 마이크로초→카운터 접미사로 고유화.
+    # get() 은 [^a-zA-Z0-9_] 제거로 조회하므로 접미사는 숫자·밑줄만 사용(조회 호환).
+    base = f"tbm_{ts.strftime('%Y%m%d_%H%M%S')}"
+    tid, _path = base, _TBM / f"{base}.json"
+    if _path.exists():
+        _mi = ts.strftime('%f')
+        tid = f"{base}_{_mi}"
+        _path = _TBM / f"{tid}.json"
+        _n = 1
+        while _path.exists():
+            tid = f"{base}_{_mi}_{_n}"
+            _path = _TBM / f"{tid}.json"
+            _n += 1
     record = {
         "id": tid,
         "created_at": ts.isoformat(timespec="seconds"),
@@ -135,8 +148,7 @@ def create(payload: dict) -> dict[str, Any]:
         "workers": _norm_workers(payload.get("workers")),
         "notes": str(payload.get("notes", "")).strip(),
     }
-    _TBM.mkdir(parents=True, exist_ok=True)
-    path = _TBM / f"{tid}.json"
+    path = _path
     path.write_text(json.dumps(record, ensure_ascii=False, indent=2), encoding="utf-8")
     record["saved_path"] = str(path.relative_to(_ROOT))
     return record
