@@ -26,6 +26,7 @@ import asyncio
 
 from fastapi import Body, FastAPI, HTTPException, Request, Response, WebSocket
 from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, PlainTextResponse
+from pydantic import BaseModel
 from fastapi.staticfiles import StaticFiles
 
 # .env 의 비밀키(텔레그램·웹훅 등)를 환경변수로 로드(있으면). 없어도 무해.
@@ -286,16 +287,25 @@ def evidence_search(rule: str, theme: str = DEFAULT_THEME):
     return copilot.cite(rule)
 
 
+class RiskAssessmentIn(BaseModel):
+    """위험성평가 POST 입력(하위호환·관대):
+    events 는 반드시 list[dict](각 이벤트는 dict) — 문자열/누락/비-dict 항목이면 422.
+    site/process 는 선택. events 항목의 키(rule/count/levels/notes 등)는 자유(추가검증 없음)."""
+    events: list[dict]
+    site: str | None = ""
+    process: str | None = ""
+
+
 @app.post("/safety/risk-assessment")
-def safety_risk_assessment(payload: dict = Body(...), theme: str = DEFAULT_THEME,
+def safety_risk_assessment(body: RiskAssessmentIn, theme: str = DEFAULT_THEME,
                            narrative: bool = False):
-    """Scribe 위험성평가서 생성. payload={events:[{rule,count}], site, process}.
+    """Scribe 위험성평가서 생성. body={events:[{rule,count}], site, process}.
     근거 인용 자동 삽입 + data/risk_assessments/ 저장. 반환은 평가표 JSON(+저장경로).
-    narrative=true 일 때만 종합의견을 LLM 으로 생성(느림). 기본은 결정적 폴백(즉시 · rows·법령 불변)."""
+    잘못된 events(문자열·누락·비-dict 항목)는 422. narrative=true 일 때만 종합의견을 LLM 으로(느림)."""
     bundle = STATE.get(theme) or _load_theme(theme)
     scribe = bundle["agents"].get("Scribe")
-    out = scribe.generate(payload.get("events", []) or [],
-                          site=payload.get("site", ""), process=payload.get("process", ""),
+    out = scribe.generate(body.events or [],
+                          site=body.site or "", process=body.process or "",
                           use_llm=narrative)
     return {"assessment": out["assessment"], "saved_path": out["saved_path"],
             "saved": out.get("saved", out["saved_path"] is not None),
