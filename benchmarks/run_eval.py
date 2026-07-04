@@ -189,6 +189,53 @@ def _predict_pipeline(cfg: dict, gt_names: list[str], id_map: dict):
     return detections, latencies, {"model_source": f"vision.yaml 배포 설정(guard slot={slot})"}
 
 
+def _predict_rfdetr(cfg: dict, gt_names: list[str], id_map: dict, weights: str = ""):
+    """RF-DETR(permissive) 예측 → COCO detections + latency(warmup 제외).
+    ★ raw 모드와 동일 조건: threshold=CONF(0.001). GT/COCOeval 세팅은 손대지 않는다(측정 로직 불변).
+    weights 없으면 RFDETRNano COCO 사전학습, 있으면 커스텀 체크포인트(.pth) 로드."""
+    import sys
+    sys.path.insert(0, str(_ROOT / "vigent-core"))
+    import cv2
+    from PIL import Image
+    from rfdetr import RFDETRNano
+    from rfdetr.util.coco_classes import COCO_CLASSES
+    import device as _device
+    dev = _device.pick_device(prefer_mps=True)
+    kwargs = {"device": dev}
+    if weights:
+        kwargs["pretrain_weights"] = str(weights)     # 커스텀 파인튜닝 체크포인트(있으면)
+    model = RFDETRNano(**kwargs)
+    with contextlib.suppress(Exception):
+        model.optimize_for_inference()
+    gt_cat = {_norm(n): i + 1 for i, n in enumerate(gt_names)}
+    detections, latencies = [], []
+    for i, p in enumerate(_imgs(cfg)):
+        if p.stem not in id_map:
+            continue
+        img_id = id_map[p.stem][0]
+        img = cv2.imread(str(p))
+        if img is None:
+            continue
+        pil = Image.fromarray(cv2.cvtColor(img, cv2.COLOR_BGR2RGB))
+        t0 = time.perf_counter()
+        det = model.predict(pil, threshold=CONF)
+        dt_ms = (time.perf_counter() - t0) * 1000.0
+        if i >= WARMUP:
+            latencies.append(dt_ms)
+        xyxy = getattr(det, "xyxy", [])
+        for j in range(len(xyxy)):
+            name = COCO_CLASSES[int(det.class_id[j])]
+            catid = gt_cat.get(_norm(name))
+            if catid is None:
+                continue
+            x1, y1, x2, y2 = (float(v) for v in xyxy[j])
+            detections.append({
+                "image_id": img_id, "category_id": catid,
+                "bbox": [x1, y1, x2 - x1, y2 - y1], "score": float(det.confidence[j]),
+            })
+    return detections, latencies, {"model_source": weights or "RFDETRNano COCO-pretrained (Apache-2.0)"}
+
+
 def _evaluate(gt: dict, detections: list, img_ids: list, gt_names: list[str]) -> dict:
     """COCOeval(bbox) → 전체/클래스별 AP. 출력은 % 스케일."""
     from pycocotools.coco import COCO
@@ -229,10 +276,13 @@ def main() -> None:
     ap.add_argument("--mode", default="raw", choices=["raw", "pipeline"],
                     help="raw=원시 model.predict(표준 COCO) / pipeline=배포 guard.detect(운용점)")
     ap.add_argument("--dataset", required=True, choices=list(_DATASETS), help="person|ppe")
-    ap.add_argument("--weights", default="", help="raw 모드 필수(.pt). pipeline 모드는 vision.yaml 사용")
+    ap.add_argument("--backend", default="yolo", choices=["yolo", "rfdetr"],
+                    help="raw 모드 검출 백엔드. yolo=ultralytics(.pt) / rfdetr=RF-DETR(permissive)")
+    ap.add_argument("--weights", default="",
+                    help="yolo raw 필수(.pt). rfdetr 는 선택(.pth, 없으면 COCO 사전학습). pipeline 은 vision.yaml")
     args = ap.parse_args()
-    if args.mode == "raw" and not args.weights:
-        ap.error("--mode raw 에는 --weights 가 필요합니다")
+    if args.mode == "raw" and args.backend == "yolo" and not args.weights:
+        ap.error("--mode raw --backend yolo 에는 --weights 가 필요합니다")
 
     _set_seed()
     cfg = _DATASETS[args.dataset]
@@ -241,7 +291,10 @@ def main() -> None:
     n_gt = len(gt["annotations"])
 
     if args.mode == "raw":
-        detections, latencies, extra = _predict_raw(args.weights, cfg, gt_names, id_map)
+        if args.backend == "rfdetr":
+            detections, latencies, extra = _predict_rfdetr(cfg, gt_names, id_map, args.weights)
+        else:
+            detections, latencies, extra = _predict_raw(args.weights, cfg, gt_names, id_map)
     else:
         detections, latencies, extra = _predict_pipeline(cfg, gt_names, id_map)
     metrics = _evaluate(gt, detections, img_ids, gt_names)
@@ -249,6 +302,7 @@ def main() -> None:
     lat_mean = round(float(np.mean(latencies)), 2) if latencies else None
     record = {
         "mode": args.mode,
+        "backend": args.backend,
         "measures": ("표준 COCO baseline(원시 모델 능력)" if args.mode == "raw"
                      else "배포 운용점(guard.detect 후처리·운용 임계 반영)"),
         "dataset": args.dataset,
@@ -273,16 +327,17 @@ def main() -> None:
     if _OUT.exists():
         with contextlib.suppress(Exception):
             allres = json.loads(_OUT.read_text(encoding="utf-8"))
+    mode_key = args.mode if args.backend == "yolo" else f"{args.mode}_{args.backend}"
     allres.setdefault(args.dataset, {})
-    allres[args.dataset][args.mode] = record
+    allres[args.dataset][mode_key] = record
     _OUT.write_text(json.dumps(allres, ensure_ascii=False, indent=2), encoding="utf-8")
 
-    print(f"\n===== {args.dataset} / {args.mode} =====")
+    print(f"\n===== {args.dataset} / {mode_key} =====")
     print(f"이미지 {record['num_images']}장 · GT {n_gt}개 · 예측 {len(detections)}개")
     print(f"mAP@50={metrics['mAP@50']}%  mAP@50:95={metrics['mAP@50:95']}%")
     print(f"클래스별 AP@50: {metrics['per_class_AP50']}")
     print(f"latency {lat_mean}ms/frame (warmup {WARMUP} 제외, {len(latencies)}프레임)")
-    print(f"저장: {_OUT.relative_to(_ROOT)}  [{args.dataset}][{args.mode}]")
+    print(f"저장: {_OUT.relative_to(_ROOT)}  [{args.dataset}][{mode_key}]")
 
 
 if __name__ == "__main__":

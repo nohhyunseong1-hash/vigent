@@ -122,6 +122,14 @@ class GuardAgent(BaseAgent):
         for s in config.slots:
             if s.slot in ("person", "ppe", "forklift", "fire_smoke") and s.source == "model" and s.active:
                 self._slot_path[s.slot] = s.active
+        # 슬롯별 검출 백엔드(vision.yaml perception.backend). 기본 'yolo'(기존 동작 = 저하0).
+        #   'yolo'=ultralytics(.pt, AGPL) / 'rfdetr'=RF-DETR(Apache). T10a: person→rfdetr 이관.
+        self._backend: dict[str, str] = {}
+        try:
+            self._backend = dict((getattr(config, "raw", {}) or {})
+                                 .get("perception", {}).get("backend", {}) or {})
+        except Exception:  # noqa: BLE001  설정 없으면 전부 yolo 폴백
+            pass
 
     @staticmethod
     def _pick_device() -> str:
@@ -183,15 +191,27 @@ class GuardAgent(BaseAgent):
                 for t in self._tracks if t["hits"] >= self.MIN_HITS]
 
     def _get_model(self, slot: str):
-        """슬롯 모델을 1회 로드해 캐시. 실패하면 None(해당 검출기만 비활성)."""
+        """슬롯 검출기(어댑터)를 1회 로드해 캐시. 실패하면 None(해당 검출기만 비활성).
+
+        백엔드는 self._backend[slot]('yolo' 기본 / 'rfdetr'):
+          · yolo   — ultralytics YOLO(.pt). _slot_path 의 경로 필요.
+          · rfdetr — RF-DETR(Apache). COCO 사전학습으로 충분한 클래스(person)는 경로 불필요.
+        반환 어댑터는 detect(image_bgr, conf, imgsz, augment) → 표준 박스 목록(base 계약)."""
         if slot in self._models:
             return self._models[slot]
+        backend = self._backend.get(slot, "yolo")
         path = self._slot_path.get(slot)
-        if not path:
+        if backend == "yolo" and not path:
             return None
         try:
-            from ultralytics import YOLO
-            self._models[slot] = YOLO(path)
+            if backend == "rfdetr":
+                from detectors.rfdetr_adapter import RfdetrDetector
+                # person 등 COCO 클래스는 사전학습으로 충분 → 슬롯의 .pt(YOLO용) 경로는 쓰지 않는다.
+                self._models[slot] = RfdetrDetector("", LABEL_NORMALIZE, JUNK_LABELS)
+            else:
+                from detectors.yolo_adapter import YoloDetector
+                self._models[slot] = YoloDetector(path, self.device, self.IMGSZ,
+                                                  LABEL_NORMALIZE, JUNK_LABELS)
             return self._models[slot]
         except Exception as ex:  # noqa: BLE001  로드 실패해도 죽지 않는다
             self._load_errors[slot] = f"{type(ex).__name__}: {ex}"
@@ -227,34 +247,22 @@ class GuardAgent(BaseAgent):
             if slot == "ppe" and self.PPE_PER_CLASS:
                 run_conf = min([slot_conf, *self.PPE_PER_CLASS.values()])
             try:
-                # 해상도 ↑(imgsz) + (오프라인) TTA 추론 + 검출기별 임계(건설모델은 높게 → 오탐 컷)
-                res = model.predict(image_bgr, verbose=False, conf=run_conf,
-                                    imgsz=imgsz or self.IMGSZ, augment=augment,
-                                    device=self.device)[0]
+                # 어댑터가 모델추론 + 라벨정규화 + bbox정규화까지 → 표준 박스 반환(백엔드 불가지).
+                #   해상도 ↑(imgsz) + (오프라인) TTA + 검출기별 임계(건설모델은 높게 → 오탐 컷).
+                boxes = model.detect(image_bgr, conf=run_conf,
+                                     imgsz=imgsz or self.IMGSZ, augment=augment)
             except Exception as ex:  # noqa: BLE001  추론 실패해도 나머지 진행
                 self._load_errors[slot] = f"predict: {type(ex).__name__}: {ex}"
                 continue
             used.append(slot)
-            names = model.names
-            for b in res.boxes:
-                cls_id = int(b.cls[0])
-                raw = names.get(cls_id, str(cls_id))
-                label = LABEL_NORMALIZE.get(raw, raw)
-                if label in JUNK_LABELS:        # 'default' 등 잡음 클래스 버림
-                    continue
+            for d in boxes:
                 # 클래스별 임계 후필터(ppe 낮은 conf 추론 보정): 맵에 있으면 그 임계, 없으면(착용/Person 등)
                 #   기존 slot_conf 로 거른다 → 착용 클래스는 기존 동작 유지, NO-* 만 개별 임계 적용.
-                if slot == "ppe" and self.PPE_PER_CLASS and float(b.conf[0]) < self.PPE_PER_CLASS.get(label, slot_conf):
+                #   ※ 라벨정규화·JUNK 버림·bbox정규화는 어댑터(finalize_box)에서 이미 수행 → 기존과 동일.
+                if slot == "ppe" and self.PPE_PER_CLASS and d["conf"] < self.PPE_PER_CLASS.get(d["label"], slot_conf):
                     continue
-                x1, y1, x2, y2 = (float(v) for v in b.xyxy[0])
-                detections.append({
-                    "detector": slot,
-                    "label": label, "raw_label": raw,
-                    "conf": round(float(b.conf[0]), 3),
-                    # 정규화 bbox(0~1) — 프론트가 캔버스 크기에 맞춰 그림
-                    "bbox": [round(x1 / w, 4), round(y1 / h, 4),
-                             round(x2 / w, 4), round(y2 / h, 4)],
-                })
+                d["detector"] = slot
+                detections.append(d)
 
         # 여러 모델/클래스 간 중복 박스 정리 → 서버측 추적으로 안정화(깜빡임 제거)
         detections = _nms(detections)

@@ -45,10 +45,19 @@
 ## 4. Baseline 수치 (실측)
 
 ### person
-| 트랙 | mAP@50 | mAP@50:95 | 예측수 | latency(ms/frame) | 비고 |
-|---|---|---|---|---|---|
-| raw | **90.82%** | 77.58% | 1090 | 141.2 | 표준 COCO baseline |
-| pipeline | **70.95%** | 45.85% | 84 | 294.8 | 배포 운용점 |
+| 트랙 | 백엔드 | mAP@50 | mAP@50:95 | 예측수 | latency(ms/frame) | 비고 |
+|---|---|---|---|---|---|---|
+| raw | YOLO(yolo11m) | 90.82% | 77.58% | 1090 | 141.2 | 표준 COCO baseline |
+| pipeline | YOLO(guard) | 70.95% | 45.85% | 84 | 294.8 | YOLO 배포 운용점 |
+| **raw_rfdetr** | **RF-DETR(Nano, COCO)** | **93.92%** | **85.59%** | 3311 | **33.8** | ★ T10a — YOLO raw 대비 **+3.1%p** |
+| **pipeline_rfdetr** | **RF-DETR(guard)** | **92.94%** | **84.26%** | 114 | **35.5** | ★ T10a 배포 운용점 |
+
+**★ T10a — person 검출 RF-DETR 이관 (ultralytics AGPL → RF-DETR Apache-2.0):**
+- **raw 게이트(≥88.8%): 통과** — RF-DETR **93.92%** ≥ 90.82(YOLO baseline)−2%p. 오히려 baseline **초과**.
+- **배포 운용점 급상승**: pipeline **70.95 → 92.94%**(**+21.99%p**). YOLO는 raw→pipeline에서 −19.9%p 손실(저신뢰 TP 탈락)이었으나, **RF-DETR은 raw→pipeline 손실이 −0.98%p뿐** — 운용 임계(0.35)에서도 재현율을 거의 잃지 않음(잘 보정된 confidence).
+- **latency 대폭 개선**: raw 141→**33.8ms**(0.24×), pipeline 295→**35.5ms**(**0.12× = ~8배 빠름**). RK3588 6 TOPS 예산 검토에 유리(단 실측은 macOS MPS 기준 — RK3588 재측정 필요).
+- 재현: `--mode raw --backend rfdetr --dataset person`(raw) / `--mode pipeline --backend rfdetr --dataset person`(pipeline, vision.yaml `perception.backend.person=rfdetr` 기준).
+- **금지 준수**: guard.detect의 임계·필터·후처리 무수정(움직인 변수 = 모델뿐). 어댑터 계층(`detectors/`)만 추가.
 
 **★ person 3수치 병기(수정 금지):**
 - **raw COCO = 90.82%** (모델 능력, 표준)

@@ -5,14 +5,15 @@
 
 ## 커버리지 표
 
-| 슬롯 | 배포 모델(vision.yaml) | 평가셋 | 이미지/GT | raw mAP@50 | pipeline mAP@50 | 상태 |
+| 슬롯 | 배포 백엔드(vision.yaml) | 평가셋 | 이미지/GT | raw mAP@50 | pipeline mAP@50 | 상태 |
 |---|---|---|---|---|---|---|
-| **person** | `weights/yolo11m.pt` | `data/eval/clean` | 74장 / 87 | **90.82%** | **70.95%** | 측정됨(공개/일반 이미지) |
-| **ppe** | `weights/ppe_css_v1.pt` | `data/datasets/css_safety/test` | 82장 / 760 | **75.20%** | **58.62%** | 측정됨(공개셋 CC BY 4.0) |
-| **fire_smoke** | `weights/fire_smoke_boda.pt` | — | — | — | — | **미측정 · 평가셋 조달 필요** |
-| **forklift** | `weights/forklift_boda_ax.pt` | — | — | — | — | **미측정 · 평가셋 조달 필요** |
+| **person** | **RF-DETR Nano(Apache)** ⇐ T10a | `data/eval/clean` | 74장 / 87 | **93.92%** | **92.94%** | 측정됨 · RF-DETR 이관(YOLO 90.82/70.95 대비 ↑) |
+| **ppe** | `weights/ppe_css_v1.pt`(YOLO/AGPL) | `data/datasets/css_safety/test` | 82장 / 760 | **75.20%** | **58.62%** | 측정됨(공개셋 CC BY 4.0) · T10b 이관 대기 |
+| **fire_smoke** | `weights/fire_smoke_boda.pt`(YOLO/AGPL) | — | — | — | — | **미측정 · 평가셋 조달 필요** · T10b |
+| **forklift** | `weights/forklift_boda_ax.pt`(YOLO/AGPL) | — | — | — | — | **미측정 · 평가셋 조달 필요** · T10b |
 
-- raw = 원시 `model.predict`(conf 0.001, 모델 능력) · pipeline = 배포 `guard.detect`(운용 임계·후처리).
+- raw = 원시 `model.predict`/RF-DETR predict(conf 0.001, 모델 능력) · pipeline = 배포 `guard.detect`(운용 임계·후처리).
+- person 은 T10a 로 **RF-DETR(Apache-2.0) 이관** — raw 게이트 통과 + 배포 운용점 70.95→92.94%(상세 `EVAL.md §4`).
 - person/ppe 평가셋은 **공개/일반 이미지**로 VIGENT 현장 고정 CCTV가 아님 → 현장 정확도는 별도 재측정 필요(기존 정확도 문서와 동일 단서).
 - fire_smoke/forklift는 배포 모델은 있으나 **라벨된 평가셋이 없어 mAP 측정 불가**(아래 조달 스펙).
 
