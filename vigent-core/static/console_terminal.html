@@ -1,0 +1,245 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>VIGENT // SAFETY — 관제 터미널</title>
+<link rel="stylesheet" href="/static/vigent-terminal.css?v=2">
+<style>
+  /* 페이지 한정 리셋·미세조정(디자인시스템은 공용 CSS) */
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%}
+  .vt-log{height:122px}
+  .vt-log-body{position:relative}
+  .sim{position:absolute;top:20px;left:22px;z-index:5;font-size:9.5px;letter-spacing:.14em;
+    color:var(--vt-amber-dim);text-transform:uppercase;border:1px solid var(--vt-hair-amber);padding:2px 6px}
+</style>
+</head>
+<body class="vt-scope vt-app">
+
+<!-- ── 상단 커맨드바 ── -->
+<div class="vt-cmdbar">
+  <div class="vt-brand">VIGENT<b>//</b>SAFETY</div>
+  <div class="vt-rec"><span class="vt-dot"></span><span class="vt-dim">REC</span></div>
+  <div><span class="vt-key">SES</span><span class="vt-val" id="ses">----</span></div>
+  <div><span class="vt-key">CAM</span><span class="vt-val">01</span> <span class="vt-dim">현장 A동</span></div>
+  <div class="vt-spacer"></div>
+  <div class="vt-conn"><span class="vt-dot"></span><span class="vt-key">LINK</span><span class="vt-ok" id="link">····</span></div>
+  <div><span class="vt-key">ENGINE</span><span class="vt-val" id="engine">확인중</span></div>
+  <div><span class="vt-key">FPS</span><span class="vt-val vt-num" id="fps">--.-</span></div>
+  <div><span class="vt-val vt-num" id="clock">--:--:--</span></div>
+</div>
+
+<!-- ── 본문: 라이브 피드 + 데이터 레일 ── -->
+<div class="vt-grid">
+
+  <!-- 라이브 피드(시뮬레이션 현장) -->
+  <div class="vt-feed">
+    <canvas id="scene"></canvas>
+    <div class="vt-scan"></div><div class="vt-vig"></div><div class="vt-bracket"></div>
+    <div class="sim">SIM · 시뮬레이션 현장 (실카메라는 /safety-local)</div>
+    <div class="vt-critbar"><span>◤ 위험구역 침입 · 몸통 진입 · CAM01</span><span class="vt-num" id="ttag">T-00:00:02</span></div>
+    <div class="vt-feed-hud vt-tr"><span class="l">RES</span><span class="v">1280×720 · CONTAIN</span></div>
+    <div class="vt-feed-hud vt-bl"><span class="l">POSE</span><span class="v">17 KP · 0.94 AVG</span></div>
+    <div class="vt-feed-hud vt-br"><span class="l">LATENCY</span><span class="v">INCIDENT VLM 6.5s</span></div>
+  </div>
+
+  <!-- 데이터 레일 -->
+  <div class="vt-rail">
+
+    <div class="vt-mod">
+      <div class="vt-mod-h"><span class="t">PPE // 보호구 착용</span><span class="meta">MODEL ppe_css_v1</span></div>
+      <div class="vt-cells">
+        <div class="vt-cell"><div class="n">1</div><div class="l vt-key">작업자</div></div>
+        <div class="vt-cell"><div class="n vt-crit">NO</div><div class="l vt-key">안전모</div></div>
+        <div class="vt-cell"><div class="n vt-ok">OK</div><div class="l vt-key">안전조끼</div></div>
+      </div>
+      <div style="margin-top:8px;font-size:10.5px;color:var(--vt-dim)">근거: 머리 crop R=0.72 · 상체 crop R=0.88 · 정밀보정 ON</div>
+    </div>
+
+    <div class="vt-mod">
+      <div class="vt-mod-h"><span class="t">종합 안전 등급</span><span class="meta">REAL-TIME</span></div>
+      <div class="vt-grade">
+        <span class="g vt-crit">D</span>
+        <span class="gsub"><span class="vt-crit">위험</span> <span class="vt-dim">· 미착용 + 구역침입</span></span>
+      </div>
+      <div class="vt-meter"><i style="width:26%;background:var(--vt-crit)"></i></div>
+      <div class="vt-kv"><span class="k">낙상 위험</span><span class="v vt-ok">정상</span></div>
+      <div class="vt-kv"><span class="k">자세 이상</span><span class="v vt-warn">주의 · 목 42°</span></div>
+      <div class="vt-kv"><span class="k">위험 사물</span><span class="v vt-warn">지게차 근접 3.1m</span></div>
+      <div class="vt-kv"><span class="k">현재 활동</span><span class="v">보행 · 정지</span></div>
+    </div>
+
+    <div class="vt-mod">
+      <div class="vt-mod-h"><span class="t">세션 통계</span><span class="meta" id="statMeta">실이벤트 집계</span></div>
+      <div class="vt-kv"><span class="k">화재/연기</span><span class="v vt-num vt-crit" id="s_fire">0</span></div>
+      <div class="vt-kv"><span class="k">보호구 미착용</span><span class="v vt-num vt-warn" id="s_ppe">0</span></div>
+      <div class="vt-kv"><span class="k">구역 침입</span><span class="v vt-num vt-crit" id="s_zone">0</span></div>
+      <div class="vt-kv"><span class="k">낙상/자세</span><span class="v vt-num" id="s_fall">0</span></div>
+      <div class="vt-kv"><span class="k">총 이벤트(7일)</span><span class="v vt-num" id="s_total">0</span></div>
+    </div>
+
+    <div class="vt-mod">
+      <div class="vt-mod-h"><span class="t">객체 감지</span><span class="meta">CONF ≥ 0.32 · ID 추적</span></div>
+      <table class="vt-det">
+        <tr><td class="cls">PERSON <span class="id">#04</span></td><td><span class="vt-tag vt-crit">위험구역</span></td><td class="cf vt-num">0.93</td></tr>
+        <tr><td class="cls">FORKLIFT <span class="id">#11</span></td><td><span class="vt-tag vt-warn">근접</span></td><td class="cf vt-num">0.88</td></tr>
+        <tr><td class="cls">HELMET <span class="id">—</span></td><td><span class="vt-tag vt-dim" style="color:var(--vt-dim)">미검출</span></td><td class="cf vt-num">—</td></tr>
+        <tr><td class="cls">VEST <span class="id">#04</span></td><td><span class="vt-tag vt-ok">착용</span></td><td class="cf vt-num">0.81</td></tr>
+      </table>
+    </div>
+
+    <div class="vt-mod">
+      <div class="vt-mod-h"><span class="t">법령 근거 // 자동인용</span><span class="meta">RULE_KB 19/19</span></div>
+      <div id="cites">
+        <div class="vt-cite"><span class="law">산업안전보건기준 제38조</span><span class="desc">위험구역 근로자 출입 제한</span></div>
+        <div class="vt-cite"><span class="law">산업안전보건기준 제32조</span><span class="desc">보호구(안전모) 지급·착용 의무</span></div>
+      </div>
+    </div>
+
+    <div class="vt-mod">
+      <div class="vt-mod-h"><span class="t">에이전트 파이프라인</span><span class="meta">폴백 A등급</span></div>
+      <div class="vt-agents">
+        <span class="vt-ag"><span class="vt-dot"></span>GUARD</span>
+        <span class="vt-ag"><span class="vt-dot"></span>ANALYST</span>
+        <span class="vt-ag"><span class="vt-dot"></span>SCRIBE</span>
+        <span class="vt-ag"><span class="vt-dot"></span>COPILOT</span>
+        <span class="vt-ag"><span class="vt-dot"></span>DISPATCHER</span>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ── 하단 이벤트 로그 스트림(실데이터) ── -->
+<div class="vt-log">
+  <div class="vt-log-h"><span>EVENT STREAM // 실시간 이벤트 로그</span><span class="vt-dim" id="logSrc">/safety/auto/feed</span></div>
+  <div class="vt-log-body" id="logBody"></div>
+</div>
+
+<script>
+(function(){
+  "use strict";
+  var $=function(id){return document.getElementById(id);};
+
+  // ── 시계 · FPS(시뮬레이션 피드) ──
+  function tick(){ var d=new Date();
+    $('clock').textContent=d.toLocaleTimeString('en-GB');
+    $('fps').textContent=(29.4+Math.random()*1.4).toFixed(1);
+  }
+  setInterval(tick,1000); tick();
+  $('ses').textContent=(Math.floor(1000+Math.random()*9000)).toString(16).toUpperCase()+'-01';
+
+  // ── 실데이터: 링크/엔진(capabilities·health) ──
+  fetch('/health').then(function(r){return r.json();}).then(function(j){
+    $('link').textContent=(j&&j.status==='ok')?'ONLINE':'DEGRADED';
+  }).catch(function(){ $('link').textContent='OFFLINE'; $('link').className='vt-warn'; });
+
+  fetch('/system/capabilities').then(function(r){return r.json();}).then(function(j){
+    var slots=(j&&j.pipeline&&j.pipeline.slots)||[];
+    var models=slots.filter(function(s){return s.source==='model'&&s.available;})
+                    .map(function(s){return (s.active||'').split('/').pop().replace('.pt','');});
+    $('engine').textContent=(models.length?models.length+' models':'heuristic')+' · gpt-4o/MLX';
+  }).catch(function(){ $('engine').textContent='gpt-4o · MLX'; });
+
+  // ── 실데이터: 세션통계 + 법령 + 로그(auto/feed) ──
+  var sev={critical:['CRIT','var(--vt-crit)'],high:['WARN','var(--vt-warn)'],
+           medium:['INFO','var(--vt-info)'],low:['OK','var(--vt-ok)']};
+  var demoPool=[
+    ['critical','fire_smoke','초기대응·대피 절차 확인 · 소화설비 점검'],
+    ['high','ppe_missing','보호구 착용 지시 · 안전모 미검출'],
+    ['high','zone_intrusion','위험구역 침입 — 즉시 확인'],
+    ['medium','ergonomic_risk','근골격계 부담 자세 지속 — 제656~662조'],
+    ['low','link','LINK ONLINE — 저지연 유지']
+  ];
+  function pad(s,n){ s=String(s); while(s.length<n)s+=' '; return s; }
+  function lineEl(time,level,rule,adv){
+    var m=sev[level]||['INFO','var(--vt-info)'];
+    var el=document.createElement('div'); el.className='vt-log-line';
+    el.innerHTML='<span class="ts">'+time+'</span><span class="sev" style="color:'+m[1]+'">'+pad(m[0],4)+'</span>'
+      +'<span style="color:var(--vt-amber-dim)">'+rule+'</span> '+adv;
+    return el;
+  }
+  function renderFeed(events){
+    var body=$('logBody'); body.innerHTML='';
+    var stat={fire:0,ppe:0,zone:0,fall:0,total:0};
+    var laws=[];
+    (events||[]).slice(0,40).forEach(function(e){
+      var r=e.rule||'', lv=e.level||'medium';
+      stat.total++;
+      if(/fire|smoke/.test(r)) stat.fire++;
+      else if(/ppe/.test(r)) stat.ppe++;
+      else if(/zone|intrusion/.test(r)) stat.zone++;
+      else if(/fall|ergon|pose/.test(r)) stat.fall++;
+      if(e.law && laws.length<4 && laws.indexOf(e.law)<0) laws.push(e.law);
+    });
+    (events||[]).slice(0,7).forEach(function(e){
+      body.appendChild(lineEl(e.time||'--:--:--', e.level||'medium', e.rule||'event', e.advisory||''));
+    });
+    $('s_fire').textContent=stat.fire; $('s_ppe').textContent=stat.ppe;
+    $('s_zone').textContent=stat.zone; $('s_fall').textContent=stat.fall;
+    $('s_total').textContent=stat.total;
+    if(laws.length){
+      $('cites').innerHTML=laws.map(function(l){
+        return '<div class="vt-cite"><span class="law">'+l+'</span></div>';
+      }).join('');
+    }
+  }
+  function useDemo(){
+    $('logSrc').textContent='DEMO(폴백)';
+    var body=$('logBody'); body.innerHTML='';
+    demoPool.forEach(function(p){ body.appendChild(lineEl(new Date().toLocaleTimeString('en-GB'),p[0],p[1],p[2])); });
+  }
+  fetch('/safety/auto/feed?hours=168').then(function(r){return r.json();}).then(function(j){
+    var ev=(j&&j.events)||[];
+    if(ev.length) renderFeed(ev); else useDemo();
+  }).catch(useDemo);
+
+  // ── 시뮬레이션 현장(canvas) ──
+  var cv=$('scene'), ctx=cv.getContext('2d');
+  function resize(){ var r=cv.getBoundingClientRect(); cv.width=r.width; cv.height=r.height; }
+  window.addEventListener('resize',function(){resize();draw();}); resize();
+  function box(x,y,w,h,color,label){
+    ctx.strokeStyle=color; ctx.lineWidth=1.4;
+    var c=Math.min(w,h)*0.22;
+    ctx.beginPath();
+    ctx.moveTo(x,y+c); ctx.lineTo(x,y); ctx.lineTo(x+c,y);
+    ctx.moveTo(x+w-c,y); ctx.lineTo(x+w,y); ctx.lineTo(x+w,y+c);
+    ctx.moveTo(x+w,y+h-c); ctx.lineTo(x+w,y+h); ctx.lineTo(x+w-c,y+h);
+    ctx.moveTo(x+c,y+h); ctx.lineTo(x,y+h); ctx.lineTo(x,y+h-c);
+    ctx.stroke();
+    ctx.font='10px ui-monospace,Menlo,monospace';
+    var tw=ctx.measureText(label).width;
+    ctx.fillStyle='rgba(4,6,10,.85)'; ctx.fillRect(x, y-15, tw+8, 13);
+    ctx.fillStyle=color; ctx.fillText(label, x+4, y-5);
+  }
+  function draw(){
+    var W=cv.width,H=cv.height; if(!W||!H) return; ctx.clearRect(0,0,W,H);
+    var g=ctx.createLinearGradient(0,0,0,H); g.addColorStop(0,'#080d15'); g.addColorStop(1,'#03060c');
+    ctx.fillStyle=g; ctx.fillRect(0,0,W,H);
+    ctx.strokeStyle='rgba(90,110,135,.10)'; ctx.lineWidth=1;
+    var hz=H*0.42, cx=W*0.5;
+    for(var i=-8;i<=8;i++){ ctx.beginPath(); ctx.moveTo(cx+i*36,hz); ctx.lineTo(cx+i*230,H); ctx.stroke(); }
+    for(var y=0;y<10;y++){ var yy=hz+(H-hz)*(y*y/81); ctx.beginPath(); ctx.moveTo(0,yy); ctx.lineTo(W,yy); ctx.stroke(); }
+    ctx.beginPath();
+    ctx.moveTo(W*0.30,H*0.60); ctx.lineTo(W*0.60,H*0.56); ctx.lineTo(W*0.72,H*0.92); ctx.lineTo(W*0.20,H*0.96); ctx.closePath();
+    ctx.fillStyle='rgba(245,75,82,.10)'; ctx.fill();
+    ctx.strokeStyle='rgba(255,75,82,.55)'; ctx.setLineDash([7,5]); ctx.lineWidth=1.4; ctx.stroke(); ctx.setLineDash([]);
+    ctx.fillStyle='rgba(255,75,82,.7)'; ctx.font='10px ui-monospace,Menlo,monospace';
+    ctx.fillText('DANGER ZONE 01', W*0.31, H*0.585);
+    var px=W*0.44, py=H*0.60, ph=H*0.30;
+    ctx.fillStyle='#161e29';
+    ctx.beginPath(); ctx.arc(px, py-ph*0.9, ph*0.09,0,7); ctx.fill();
+    ctx.fillRect(px-ph*0.11, py-ph*0.8, ph*0.22, ph*0.5);
+    ctx.fillRect(px-ph*0.10, py-ph*0.32, ph*0.08, ph*0.34);
+    ctx.fillRect(px+ph*0.02, py-ph*0.32, ph*0.08, ph*0.34);
+    box(px-ph*0.18, py-ph*1.05, ph*0.36, ph*1.08, 'rgba(255,75,82,.9)', 'PERSON 0.93 · NO-HELMET');
+    var fx=W*0.66, fy=H*0.66;
+    ctx.fillStyle='#1a1c12'; ctx.fillRect(fx, fy, ph*0.5, ph*0.34);
+    box(fx-4, fy-4, ph*0.5+8, ph*0.34+8, 'rgba(255,197,66,.85)', 'FORKLIFT 0.88');
+  }
+  draw(); setInterval(draw,1200);
+})();
+</script>
+</body>
+</html>
