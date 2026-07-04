@@ -48,6 +48,14 @@ _DATASETS = {
         "data_yaml": _ROOT / "data" / "datasets" / "css_safety" / "data.yaml",
         "slot": "ppe",
     },
+    # T13: D-Fire(CC0) test 서브셋. YOLO id 0=smoke,1=fire → data.yaml names ['smoke','fire'].
+    "fire_smoke": {
+        "images": _ROOT / "benchmarks" / "data" / "fire_smoke" / "images",
+        "labels": _ROOT / "benchmarks" / "data" / "fire_smoke" / "labels",
+        "gt_names": None,
+        "data_yaml": _ROOT / "benchmarks" / "data" / "fire_smoke" / "data.yaml",
+        "slot": "fire_smoke",
+    },
 }
 
 _IMG_EXT = {".jpg", ".jpeg", ".png", ".bmp"}

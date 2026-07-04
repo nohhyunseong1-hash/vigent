@@ -86,6 +86,24 @@
 → **pipeline은 기존 ppe_eval 기록과 ±~4%p로 정합**(둘 다 guard 기반, 차이는 11↔101-pt). **raw는 체계적으로 +10~20%p 높음**(person과 동일 경향).
 → raw 전체 10클래스 AP@50: Hardhat 86.95 · Mask 78.09 · NO-Hardhat 59.59 · NO-Mask 81.24 · NO-Safety Vest 77.22 · Person 83.21 · Safety Cone 42.05 · Safety Vest 86.58 · machinery 86.91 · vehicle 70.19.
 
+### fire_smoke (T13, D-Fire CC0 · 395장) — ★ 이중 지표 체계
+
+현행 boda 모델은 화재를 **대영역 1박스**로 검출하나 D-Fire GT는 **소형 화염 다수+연기 분리**로 주석 →
+box mAP는 스키마 불일치로 '능력'을 반영 못 함. **용도(화재 경보)에 맞는 이미지수준 presence를 병행**한다.
+
+| 지표 | 트랙 | fire | smoke | 의미 |
+|---|---|---|---|---|
+| **box mAP@50** | raw | 0.16% | 8.45% | ⚠️ **능력 지표 아님** — 주석 스키마 비호환 참고치(오버레이 `results/fire_smoke_diag/`) |
+| box mAP@50 | pipeline | 0.12% | 2.12% | 〃 |
+| **presence AP** | raw | **83.13%** | **89.89%** | ★ 이미지수준 존재 감지 — **모델은 화재/연기 존재를 잘 감지**. box mAP 저조는 순전히 granularity |
+| presence AP | pipeline | 62.23% | 75.33% | 배포 경로 |
+| **presence recall@운용점** | pipeline(conf 0.70) | **10.45%** | **7.58%** | ⚠️ **안전 리스크** — 배포 임계가 높아 화재 프레임 ~90% 놓침(FINDINGS) |
+| presence precision@운용점 | pipeline | 95.83% | 92.59% | 오경보는 적음(정밀↑ recall↓ 트레이드오프) |
+
+- **box mAP(D-Fire)는 검출 품질 지표** — 4.31%(raw)는 스키마 비호환 참고치, 능력 게이트 아님(폐기, FINDINGS).
+- **presence F1/recall은 배포 용도(화재 경보) 지표** — T10b '저하 없음' 게이트는 이것으로 판정.
+- 지표 추가는 **용도 정합화**(게이트 회피 아님) — COCOeval 측정 로직 무수정, `presence_eval.py`로 별도 산출.
+
 ## 5. ★ 신규 발견 — raw↔pipeline 체계적 격차
 
 - 배포 파이프라인(`guard.detect`)이 원시 모델 대비 mAP@50을 **일관되게 크게 떨어뜨림**: person **90.82 → 70.95**(−19.9%p), ppe **75.20 → 58.62**(−16.6%p).

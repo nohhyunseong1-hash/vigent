@@ -9,8 +9,8 @@
 |---|---|---|---|---|---|---|
 | **person** | **RF-DETR Nano(Apache)** ⇐ T10a | `data/eval/clean` | 74장 / 87 | **93.92%** | **92.94%** | 측정됨 · RF-DETR 이관(YOLO 90.82/70.95 대비 ↑) |
 | **ppe** | `weights/ppe_css_v1.pt`(YOLO/AGPL) | `data/datasets/css_safety/test` | 82장 / 760 | **75.20%** | **58.62%** | 측정됨(공개셋 CC BY 4.0) · T10b 이관 대기 |
-| **fire_smoke** | `weights/fire_smoke_boda.pt`(YOLO/AGPL) | — | — | — | — | **미측정 · 평가셋 조달 필요** · T10b |
-| **forklift** | `weights/forklift_boda_ax.pt`(YOLO/AGPL) | — | — | — | — | **미측정 · 평가셋 조달 필요** · T10b |
+| **fire_smoke** | `weights/fire_smoke_boda.pt`(YOLO/AGPL) | `benchmarks/data/fire_smoke`(D-Fire CC0) | 395장 / 957 | **4.31%** ⚠️ | 1.12% ⚠️ | **측정됨(T13)** · ⚠️box mAP는 스키마 비호환 참고치 · **presence AP raw fire 83·smoke 90** |
+| **forklift** | `weights/forklift_boda_ax.pt`(YOLO/AGPL) | (LOCO CC0) | — | — | — | **LOCO 재다운로드 대기**(T13 forklift) |
 
 - raw = 원시 `model.predict`/RF-DETR predict(conf 0.001, 모델 능력) · pipeline = 배포 `guard.detect`(운용 임계·후처리).
 - person 은 T10a 로 **RF-DETR(Apache-2.0) 이관** — raw 게이트 통과 + 배포 운용점 70.95→92.94%(상세 `EVAL.md §4`).

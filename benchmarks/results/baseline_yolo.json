@@ -202,5 +202,141 @@
       "model_source": "vision.yaml 배포 설정(guard slot=ppe)",
       "run_at": "2026-07-04 19:44"
     }
+  },
+  "fire_smoke": {
+    "raw": {
+      "mode": "raw",
+      "backend": "yolo",
+      "measures": "표준 COCO baseline(원시 모델 능력)",
+      "dataset": "fire_smoke",
+      "images_dir": "benchmarks/data/fire_smoke/images",
+      "num_images": 395,
+      "gt_boxes": 957,
+      "num_detections": 7268,
+      "mAP@50": 4.31,
+      "mAP@50:95": 1.54,
+      "per_class_AP50": {
+        "smoke": 8.45,
+        "fire": 0.16
+      },
+      "per_class_AP5095": {
+        "smoke": 3.01,
+        "fire": 0.06
+      },
+      "latency_ms_mean": 23.15,
+      "latency_frames_timed": 385,
+      "latency_warmup_excluded": 10,
+      "conf": 0.001,
+      "iou_nms": 0.7,
+      "imgsz": 640,
+      "seed": 0,
+      "eval_method": "pycocotools COCOeval bbox (101-point interpolation)",
+      "model_source": "vigent-core/weights/fire_smoke_boda.pt",
+      "run_at": "2026-07-04 23:21"
+    },
+    "pipeline": {
+      "mode": "pipeline",
+      "backend": "yolo",
+      "measures": "배포 운용점(guard.detect 후처리·운용 임계 반영)",
+      "dataset": "fire_smoke",
+      "images_dir": "benchmarks/data/fire_smoke/images",
+      "num_images": 395,
+      "gt_boxes": 957,
+      "num_detections": 52,
+      "mAP@50": 1.12,
+      "mAP@50:95": 0.25,
+      "per_class_AP50": {
+        "smoke": 2.12,
+        "fire": 0.12
+      },
+      "per_class_AP5095": {
+        "smoke": 0.44,
+        "fire": 0.06
+      },
+      "latency_ms_mean": 43.12,
+      "latency_frames_timed": 385,
+      "latency_warmup_excluded": 10,
+      "conf": "guard 운용 임계(vision.yaml)",
+      "iou_nms": "guard 내부",
+      "imgsz": 640,
+      "seed": 0,
+      "eval_method": "pycocotools COCOeval bbox (101-point interpolation)",
+      "model_source": "vision.yaml 배포 설정(guard slot=fire_smoke)",
+      "run_at": "2026-07-04 23:21"
+    },
+    "presence": {
+      "raw": {
+        "mode": "raw",
+        "metric": "image-level presence",
+        "images": 395,
+        "op_threshold": 0.25,
+        "per_class_AP": {
+          "smoke": {
+            "presence_AP": 89.89,
+            "best_f1": 91.03,
+            "best_f1_thr": 0.0
+          },
+          "fire": {
+            "presence_AP": 83.13,
+            "best_f1": 76.65,
+            "best_f1_thr": 0.0
+          }
+        },
+        "operating_point": {
+          "smoke": {
+            "gt_pos": 330,
+            "pred_pos": 101,
+            "tp": 92,
+            "recall": 27.88,
+            "precision": 91.09,
+            "f1": 42.69
+          },
+          "fire": {
+            "gt_pos": 220,
+            "pred_pos": 69,
+            "tp": 64,
+            "recall": 29.09,
+            "precision": 92.75,
+            "f1": 44.29
+          }
+        }
+      },
+      "pipeline": {
+        "mode": "pipeline",
+        "metric": "image-level presence",
+        "images": 395,
+        "op_threshold": 1e-06,
+        "per_class_AP": {
+          "smoke": {
+            "presence_AP": 75.33,
+            "best_f1": 91.03,
+            "best_f1_thr": 0.0
+          },
+          "fire": {
+            "presence_AP": 62.23,
+            "best_f1": 71.54,
+            "best_f1_thr": 0.0
+          }
+        },
+        "operating_point": {
+          "smoke": {
+            "gt_pos": 330,
+            "pred_pos": 27,
+            "tp": 25,
+            "recall": 7.58,
+            "precision": 92.59,
+            "f1": 14.01
+          },
+          "fire": {
+            "gt_pos": 220,
+            "pred_pos": 24,
+            "tp": 23,
+            "recall": 10.45,
+            "precision": 95.83,
+            "f1": 18.85
+          }
+        }
+      }
+    }
   }
 }
