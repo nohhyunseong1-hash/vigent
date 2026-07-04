@@ -96,6 +96,10 @@ class GuardAgent(BaseAgent):
     #   최약체(NO-Hardhat)만 낮춰 재현율↑, 나머지는 유지. tuning.yaml detect.conf.ppe_per_class 로 조정.
     #   비어 있으면(기본) 기존 동작(단일 ppe conf) 그대로 → 저하 없음.
     PPE_PER_CLASS: dict[str, float] = {}
+    # 화재/연기 클래스별 후필터 임계(T14-F, F-6 완화) — fire·smoke 는 confidence 분포가 달라
+    #   단일 임계로 둘 다 만족 불가(smoke 는 낮추면 오검출 급증). tuning.yaml detect.conf.fire_smoke_per_class.
+    #   비어 있으면(기본) 단일 fire_smoke 임계 그대로 → 저하 없음.
+    FIRE_SMOKE_PER_CLASS: dict[str, float] = {}
 
     def __init__(self, config: Any):
         super().__init__(config)
@@ -103,12 +107,16 @@ class GuardAgent(BaseAgent):
         try:
             import tuning
             conf_cfg = tuning.section("detect").get("conf") or {}
-            # ppe_per_class 는 검출기 임계가 아니라 클래스별 후필터 맵 → DETECTOR_CONF 병합에서 제외
+            # *_per_class 는 검출기 임계가 아니라 클래스별 후필터 맵(dict) → DETECTOR_CONF 병합에서 제외
+            _per_class_keys = ("ppe_per_class", "fire_smoke_per_class")
             self.DETECTOR_CONF = {**self.DETECTOR_CONF,
-                                  **{k: v for k, v in conf_cfg.items() if k != "ppe_per_class"}}
+                                  **{k: v for k, v in conf_cfg.items() if k not in _per_class_keys}}
             # 클래스별 후필터 맵(라벨 표준화해서 저장) — 예: {"NO-Hardhat":0.30, "NO-Mask":0.50, ...}
             self.PPE_PER_CLASS = {LABEL_NORMALIZE.get(str(k), str(k)): float(v)
                                   for k, v in (conf_cfg.get("ppe_per_class") or {}).items()}
+            # 화재/연기 클래스별 후필터 맵(T14-F) — 예: {"fire":0.03, "smoke":0.20}
+            self.FIRE_SMOKE_PER_CLASS = {LABEL_NORMALIZE.get(str(k), str(k)): float(v)
+                                         for k, v in (conf_cfg.get("fire_smoke_per_class") or {}).items()}
             self.IMGSZ = int(tuning.val("detect", "imgsz", self.IMGSZ))
             self.STALE_MAX_MISSES = int(tuning.val("detect", "stale_max_misses", self.STALE_MAX_MISSES))
         except Exception:  # noqa: BLE001
@@ -242,10 +250,12 @@ class GuardAgent(BaseAgent):
             if model is None:
                 continue
             slot_conf = conf_override if conf_override is not None else self.DETECTOR_CONF.get(slot, self.DEFAULT_CONF)
-            # 클래스별 후필터(ppe): 맵의 최저 임계로 추론해 후보를 확보하고, 아래 박스 루프에서 클래스별로 거른다.
+            # 클래스별 후필터 맵(ppe·fire_smoke): 맵의 최저 임계로 추론해 후보 확보 → 아래 박스 루프에서 클래스별로 거른다.
+            per_class = (self.PPE_PER_CLASS if slot == "ppe"
+                         else self.FIRE_SMOKE_PER_CLASS if slot == "fire_smoke" else {})
             run_conf = slot_conf
-            if slot == "ppe" and self.PPE_PER_CLASS:
-                run_conf = min([slot_conf, *self.PPE_PER_CLASS.values()])
+            if per_class:
+                run_conf = min([slot_conf, *per_class.values()])
             try:
                 # 어댑터가 모델추론 + 라벨정규화 + bbox정규화까지 → 표준 박스 반환(백엔드 불가지).
                 #   해상도 ↑(imgsz) + (오프라인) TTA + 검출기별 임계(건설모델은 높게 → 오탐 컷).
@@ -256,10 +266,10 @@ class GuardAgent(BaseAgent):
                 continue
             used.append(slot)
             for d in boxes:
-                # 클래스별 임계 후필터(ppe 낮은 conf 추론 보정): 맵에 있으면 그 임계, 없으면(착용/Person 등)
-                #   기존 slot_conf 로 거른다 → 착용 클래스는 기존 동작 유지, NO-* 만 개별 임계 적용.
+                # 클래스별 임계 후필터(ppe·fire_smoke): 맵에 있으면 그 임계, 없으면 slot_conf 로 거른다.
+                #   ppe: 착용 클래스는 slot_conf 유지, NO-* 만 개별 임계. fire_smoke: fire·smoke 각각(T14-F).
                 #   ※ 라벨정규화·JUNK 버림·bbox정규화는 어댑터(finalize_box)에서 이미 수행 → 기존과 동일.
-                if slot == "ppe" and self.PPE_PER_CLASS and d["conf"] < self.PPE_PER_CLASS.get(d["label"], slot_conf):
+                if per_class and d["conf"] < per_class.get(d["label"], slot_conf):
                     continue
                 d["detector"] = slot
                 detections.append(d)

@@ -96,12 +96,13 @@ box mAP는 스키마 불일치로 '능력'을 반영 못 함. **용도(화재 �
 | **box mAP@50** | raw | 0.16% | 8.45% | ⚠️ **능력 지표 아님** — 주석 스키마 비호환 참고치(오버레이 `results/fire_smoke_diag/`) |
 | box mAP@50 | pipeline | 0.12% | 2.12% | 〃 |
 | **presence AP** | raw | **83.13%** | **89.89%** | ★ 이미지수준 존재 감지 — **모델은 화재/연기 존재를 잘 감지**. box mAP 저조는 순전히 granularity |
-| presence AP | pipeline | 62.23% | 75.33% | 배포 경로 |
-| **presence recall@운용점** | pipeline(conf 0.70) | **10.45%** | **7.58%** | ⚠️ **안전 리스크** — 배포 임계가 높아 화재 프레임 ~90% 놓침(FINDINGS) |
-| presence precision@운용점 | pipeline | 95.83% | 92.59% | 오경보는 적음(정밀↑ recall↓ 트레이드오프) |
+| **presence recall@운용점(완화 전)** | pipeline(단일 0.55) | 10.45% | 7.58% | ⚠️ 화재 프레임 ~90% 놓침(F-6 최초) |
+| **presence recall@운용점(완화 후)** | pipeline(fire 0.03/smoke 0.20) | **53.64%** | **24.85%** | ★ **T14-F 클래스별 임계** — recall 대폭 회복 |
+| presence precision@운용점(완화 후) | pipeline | 89.39% | 93.18% | FAR fire 8.6·smoke 9.2%(정밀 유지) |
 
 - **box mAP(D-Fire)는 검출 품질 지표** — 4.31%(raw)는 스키마 비호환 참고치, 능력 게이트 아님(폐기, FINDINGS).
 - **presence F1/recall은 배포 용도(화재 경보) 지표** — T10b '저하 없음' 게이트는 이것으로 판정.
+- **T14-F 완화**: fire·smoke conf 분포 상이 → 클래스별 임계(fire 0.03/smoke 0.20)로 recall 회복. ⚠️ 임계 천장(최대 recall≈54%) → 근본 해결은 T10b(F-6).
 - 지표 추가는 **용도 정합화**(게이트 회피 아님) — COCOeval 측정 로직 무수정, `presence_eval.py`로 별도 산출.
 
 ## 5. ★ 신규 발견 — raw↔pipeline 체계적 격차

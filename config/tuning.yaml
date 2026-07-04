@@ -34,7 +34,11 @@ detect:                     # 탐지 공통
       NO-Mask: 0.50         # 재현율 63.5→~70%
       NO-Safety-Vest: 0.50  # 재현율 66.0→~68%
     forklift: 0.68          # 0.55→0.68: 지게차 헛인식↓(진짜 지게차는 0.9)
-    fire_smoke: 0.55        # 0.55: 실제 연기는 conf 0.5~0.8이라 0.80은 놓침 → 안전상 낮춤(화재는 놓침이 최악)
+    fire_smoke: 0.55        # 단일 폴백(아래 fire_smoke_per_class 없는 라벨용). 실제 임계는 클래스별 맵.
+    fire_smoke_per_class:   # T14-F(F-6 완화): fire·smoke conf 분포가 달라 단일 임계로 둘 다 만족 불가.
+      fire: 0.03            # D-Fire 실측 recall 10.5→~54%(FAR 8.6%). 화재는 놓침이 최악 → 낮게.
+      smoke: 0.20           # recall 7.6→~25%(FAR 9.2%). 더 낮추면 구름·연무 오검출 급증(0.03시 FAR 27.7%).
+      # ⚠️ D-Fire 기준 잠정 완화. 임계 천장(사용가능 FAR 내 최대 recall≈54%) → 근본 해결은 T10b 재학습.
 
 vlm:                        # VLM(보호구 점검 등) 속도·정확도
   ppe_max_tokens: 128       # 답변 토큰(작을수록 빠름·길면 정확)

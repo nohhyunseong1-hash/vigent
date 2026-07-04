@@ -30,21 +30,38 @@
 - **낙상/부담자세 동영상 클립 회귀셋은 부재** → 판정 '출력층'(이벤트 발생 여부, 시간 지속) 검증 불가.
 - → 사용자 촬영 클립(낙상/부담자세/정상 각 3~5) 도착 시 **판정층(b) 검증 태스크 추가**. 경계 케이스(F-2) 포함 권고.
 
-### ★ F-6. 배포 화재/연기 경보 recall 매우 낮음 (제품 안전 리스크)
-- 실측(D-Fire 395장, presence): **배포 운용점(guard conf 0.70)에서 화재 presence recall 10.45%·연기 7.58%**
-  → 화재/연기 프레임의 **약 90%를 놓침**. precision 은 높음(fire 95.8·smoke 92.6 = 오경보 적음).
-- 원인: 현행 boda 모델의 confidence 가 낮은데 배포 임계는 0.70(오경보 회피 목적)로 높게 설정 →
-  recall 붕괴. raw presence AP 는 fire 83.1·smoke 89.9 로 **모델의 순위능력은 높음** → 임계가 문제.
-- ⚠️ **제품 리스크(안전 핵심)**: "화재 경보"가 대부분의 화재를 놓치는 상태.
-  → **운용점 재튜닝(T14)** 또는 **T10b RF-DETR 재학습**으로 개선 필요. presence recall 을 1순위 지표로.
+### ★ F-6. 배포 화재/연기 경보 recall 매우 낮음 (제품 안전 리스크) — T14-F 완화 적용
+- **정정**: 최초 F-6은 배포 임계를 "0.70"으로 기술했으나, 실제는 tuning.yaml **fire_smoke=0.55**였음(실측 재확인).
+  단일 0.55 운용점(완화 전): **fire presence recall 10.45%·smoke 7.58%**(precision fire 95.8·smoke 92.6)
+  → 화재/연기 프레임의 **약 90%를 놓침**. raw presence AP 는 fire 83.1·smoke 89.9(모델 순위능력은 높음 = 임계 문제).
+- **완화 조치(T14-F, 2026-07-04)**: guard 에 fire_smoke **클래스별 후필터 임계** 추가(ppe 패턴 준용, 판정·모델 무수정).
+  tuning.yaml `fire_smoke_per_class: {fire: 0.03, smoke: 0.20}`. pipeline 재측정 결과:
+
+  | 클래스 | recall(전→후) | precision(후) | presence AP(후) |
+  |---|---|---|---|
+  | fire | 10.45% → **53.64%** | 89.39% | 80.67% |
+  | smoke | 7.58% → **24.85%** | 93.18% | 81.78% |
+
+  회귀: person(rfdetr) 92.94·ppe 58.62 pipeline **Δ0.00**(타 경로 무영향 증명).
+- ⚠️ **임계 튜닝의 천장 확인**(conf 스윕 실측): 사용가능 FAR 내 **최대 recall ≈ fire 54%(FAR 8.6%)·smoke 55%(FAR 27.7%)**.
+  recall 0.80은 conf≈0.001에서만 나오나 그때 FAR fire 78%·smoke 95%(전 프레임 오경보 = 사용 불가).
+  → **본 완화는 D-Fire 기준 잠정 조치. 근본 해결은 T10b 재학습.** 현장 CCTV 확보 시 정식 재튜닝(T14).
+- **smoke 오검출 특성**: negative 프레임 오검출이 fire보다 급증(0.03시 FAR smoke 27.7% vs fire 8.6%) —
+  구름·연무·조명 등 연기 유사 배경 혼동. → **T10b 학습셋에 hard negative(연기 유사 비연기) 포함 권고**.
 - 단서: D-Fire 도메인(원거리·야간 산업/옥외 화재 포함)이 현장과 다를 수 있음 → 현장 프레임 재측정 병행 권고.
+
+### ★ T10b 우선순위 격상 (T14-F 결과)
+- fire_smoke 는 **임계 튜닝으로 회복 불가한 능력 한계**가 실측 확인됨(사용가능 FAR 내 recall 천장 ~54%).
+  → **T10b에서 fire_smoke 를 1순위 클래스로** 재학습. hard negative(연기 유사) 필수 포함.
+- 게이트 A(저하 없음) 기준선 갱신: 완화 후 pipeline presence recall **fire 53.64·smoke 24.85**(P fire 89.4·smoke 93.2).
+  RF-DETR 재학습본은 이 recall 이상 + 동일 recall 운용점에서 precision 비교.
 
 ### ★ T10b 게이트 재정의 (T13 결과 반영)
 - **기존 게이트 폐기**: "RF-DETR raw mAP@50 ≥ YOLO baseline(4.31%) − 2%p" — **무의미**(주석 스키마 불일치로
   YOLO 4.31%가 능력 아님. D-Fire 학습 RF-DETR은 자명하게 초과). 폐기 사유 기록.
 - **게이트 A — 저하 없음(배포 용도)**: RF-DETR **presence recall ≥ 현행 YOLO presence 기준선**(동일 운용점),
   precision 은 동일 recall 운용점에서 비교 기록. 현행 기준선: presence AP raw fire 83.1·smoke 89.9 /
-  pipeline recall fire 10.5·smoke 7.6(운용점 재튜닝 전 값 — F-6).
+  **pipeline recall fire 53.64·smoke 24.85(T14-F 완화 후 값)** — F-6 참조.
 - **게이트 B — 신모델 품질(box)**: RF-DETR **D-Fire test mAP@50 절대치**. 문헌 근거: D-Fire에서
   **YOLOv8n mAP@50 ≈ 0.625**(개선 0.651) — [MDPI Sensors 24(17):5597]. **제안 목표: RF-DETR mAP@50 ≥ 0.60**
   (YOLOv8n 문헌치 수준). ※ 목표치는 사용자 승인으로 확정.
