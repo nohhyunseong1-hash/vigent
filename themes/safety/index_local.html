@@ -16,6 +16,9 @@
 <script src="/static/vendor/mediapipe/drawing_utils.js" crossorigin="anonymous"></script>
 <link rel="stylesheet" href="/static/realtime_shared.css">
 <link rel="stylesheet" href="/static/vigent-skin.css?v=1">
+<!-- 앰버 터미널 스킨(겉모습만 오버레이 — 좌표/기능 CSS 불변, realtime_core.js 무수정) -->
+<link rel="stylesheet" href="/static/vigent-terminal.css?v=3">
+<link rel="stylesheet" href="/static/vigent-terminal-skin.css?v=3">
 <!-- Tapo(IP카메라) 입력 — URL 에 ?cam=tapo 일 때만 활성. 기본(웹캠)은 무변경(규칙 6).
      AX 인식 엔진은 그대로 두고, getUserMedia 만 가로채 go2rtc(Tapo) 영상을 돌려줌.
      go2rtc 연결 실패 시 자동으로 웹캠 폴백 → 저하 없음. -->
@@ -68,9 +71,20 @@
 </script>
 </head>
 <body class="theme-safety theme-locked clean">
+<!-- 앰버 터미널 커맨드바(신규 요소만 — 기존 id 무변경) -->
+<div id="vtCmdbar">
+  <div class="vt-brand">VIGENT<b>//</b>SAFETY</div>
+  <div class="vt-rec"><span class="vt-dot"></span><span class="vt-dim">REC</span></div>
+  <div><span class="vt-key">CAM</span><span class="vt-val">01</span> <span class="vt-dim">현장</span></div>
+  <div class="vt-spacer"></div>
+  <div class="vt-conn"><span class="vt-dot"></span><span class="vt-key">LINK</span><span class="vt-ok" id="vtLink">····</span></div>
+  <div><span class="vt-key">ENGINE</span><span class="vt-val" id="vtEngine">local</span></div>
+  <div><span class="vt-key">FPS</span><span class="vt-val vt-num" id="vtFps">--.-</span></div>
+  <div><span class="vt-val vt-num" id="vtClock">--:--:--</span></div>
+</div>
 
 <!-- VIGENT 콘솔 오버레이(인식 엔진과 무관, 화면 위에 얹기만) -->
-<div id="vgBrand">🛡️ VIGENT · SAFETY</div>
+<div id="vgBrand"> VIGENT · SAFETY</div>
 <div id="vgHud">
   <span class="rec">REC</span>
   <span id="vgClock">--:--:--</span>
@@ -80,19 +94,19 @@
 
 
 <div id="loadingOverlay">
-  <div style="font-size:36px;">🧠</div>
+  <div style="font-size:36px;"></div>
   <div style="font-size:18px;font-weight:700;color:#e2e8f0;">VIGENT · 산업안전 비전</div>
   <div class="spinner"></div>
   <div class="load-steps" id="loadSteps">
-    <div class="load-step active" id="ls0">⏳ MediaPipe Holistic 로딩 중...</div>
-    <div class="load-step" id="ls1">⏳ COCO-SSD 멀티스케일 모델 로딩 중...</div>
-    <div class="load-step" id="ls2">⏳ MobileNet 손 분류 모델 로딩 중...</div>
-    <div class="load-step" id="ls3">⏳ 카메라 시작 중...</div>
+    <div class="load-step active" id="ls0"> MediaPipe Holistic 로딩 중...</div>
+    <div class="load-step" id="ls1"> COCO-SSD 멀티스케일 모델 로딩 중...</div>
+    <div class="load-step" id="ls2"> MobileNet 손 분류 모델 로딩 중...</div>
+    <div class="load-step" id="ls3"> 카메라 시작 중...</div>
   </div>
 </div>
 
 <header>
-  <div class="logo">🛡️ <span>VIGENT</span> <span style="color:var(--text2);font-weight:400;font-size:14px;">SAFETY 관제 콘솔</span></div>
+  <div class="logo"> <span>VIGENT</span> <span style="color:var(--text2);font-weight:400;font-size:14px;">SAFETY 관제 콘솔</span></div>
   <div class="badge" id="themeBadge">VIGENT SAFETY</div>
   <div class="status-bar">
     <div class="status-item"><div class="status-dot" id="dotPose"></div><span>포즈</span></div>
@@ -102,13 +116,13 @@
     <div class="status-item" data-chip="safe"><div class="status-dot" id="dotSafe"></div><span>안전</span></div>
     <div style="border-left:1px solid var(--border);padding-left:14px;" id="fpsDisplay">FPS: --</div>
   </div>
-  <button id="cleanToggle" onclick="toggleCleanMode()">⚙ 고급</button>
+  <button id="cleanToggle" onclick="toggleCleanMode()"> 고급</button>
 </header>
 <script>
   function toggleCleanMode(){
     var clean = document.body.classList.toggle('clean');
     var b = document.getElementById('cleanToggle');
-    if(b) b.textContent = clean ? '⚙ 고급' : '✕ 깔끔 보기';
+    if(b) b.textContent = clean ? ' 고급' : ' 깔끔 보기';
     try{ localStorage.setItem('boda_clean', clean ? '1' : '0'); }catch(e){}
   }
   // 마지막 선택 기억(기본은 깔끔)
@@ -116,7 +130,7 @@
     if(localStorage.getItem('boda_clean') === '0'){
       document.body.classList.remove('clean');
       var b0 = document.getElementById('cleanToggle');
-      if(b0) b0.textContent = '✕ 깔끔 보기';
+      if(b0) b0.textContent = ' 깔끔 보기';
     }
   }catch(e){}
 </script>
@@ -148,18 +162,18 @@
         .vg-mi:hover{background:#1e293b;color:#7dd3fc}
       </style>
       <div id="vgMenuWrap">
-        <button id="vgMenuBtn" class="report-btn" style="position:static;" onclick="vgToggleMenu(event)">☰ 메뉴</button>
+        <button id="vgMenuBtn" class="report-btn" style="position:static;" onclick="vgToggleMenu(event)"> 메뉴</button>
         <div id="vgMenu">
           <div class="vg-mh">문서 · 콘솔</div>
-          <a class="vg-mi" onclick="vgGo('/dashboard')">📊 경영 대시보드</a>
-          <a class="vg-mi" onclick="vgGo('/report/safety?site='+encodeURIComponent('현장')+'&hours=24')">📄 안전 증빙 리포트</a>
-          <a class="vg-mi" onclick="vgGo('/report/safety?site='+encodeURIComponent('현장')+'&hours=24#riskassess')">📋 위험성평가 보기</a>
-          <a class="vg-mi" onclick="vgGo('/safety/tbm')">📝 작업 전 TBM 회의록</a>
-          <a class="vg-mi" onclick="vgGo('/safety/auto')">🛡 안전 자동처리 콘솔</a>
+          <a class="vg-mi" onclick="vgGo('/dashboard')"> 경영 대시보드</a>
+          <a class="vg-mi" onclick="vgGo('/report/safety?site='+encodeURIComponent('현장')+'&hours=24')"> 안전 증빙 리포트</a>
+          <a class="vg-mi" onclick="vgGo('/report/safety?site='+encodeURIComponent('현장')+'&hours=24#riskassess')"> 위험성평가 보기</a>
+          <a class="vg-mi" onclick="vgGo('/safety/tbm')"> 작업 전 TBM 회의록</a>
+          <a class="vg-mi" onclick="vgGo('/safety/auto')"> 안전 자동처리 콘솔</a>
           <div class="vg-mh vg-mt">현장 도구</div>
-          <a class="vg-mi" onclick="vgGo('/safety')">🔁 CDN판으로 비교</a>
-          <a class="vg-mi" onclick="axStartCalibration();vgCloseMenu()">📏 거리 보정 (m·km/h)</a>
-          <a class="vg-mi" onclick="toggleTherm();vgCloseMenu()">🌡 온도 감지 (열화상)</a>
+          <a class="vg-mi" onclick="vgGo('/safety')"> CDN판으로 비교</a>
+          <a class="vg-mi" onclick="axStartCalibration();vgCloseMenu()"> 거리 보정 (m·km/h)</a>
+          <a class="vg-mi" onclick="toggleTherm();vgCloseMenu()"> 온도 감지 (열화상)</a>
         </div>
       </div>
       <div id="calHint" class="cal-hint"></div>
@@ -177,7 +191,7 @@
         <div class="hint">열화상 이미지/영상을 업로드한 뒤 사용하세요. 카메라 범례의 최저·최고 온도를 입력하면 정확합니다. 화면을 클릭하면 그 지점 온도가 표시됩니다.</div>
       </div>
       <div id="dzAlert" class="dz-alert">위험구역 침입 감지! 즉시 확인하세요</div>
-      <button id="dzMute" class="dz-mute" onclick="dzMuted=!dzMuted;this.textContent=dzMuted?'🔇 알람 꺼짐(클릭해 켜기)':'🔔 알람 음소거';">🔔 알람 음소거</button>
+      <button id="dzMute" class="dz-mute" onclick="dzMuted=!dzMuted;this.textContent=dzMuted?' 알람 꺼짐(클릭해 켜기)':' 알람 음소거';"> 알람 음소거</button>
       <div id="axTools" class="ax-tools">
         <label title="개인정보 보호: 얼굴 영역 비식별화"><input type="checkbox" id="togBlur"> 얼굴 가림</label>
         <label data-ax="safety" title="이동 객체(사람·차량) 실시간 속도 표시 — 거리 보정 시 km/h"><input type="checkbox" id="togSpeed"> 속도 표시</label>
@@ -186,15 +200,15 @@
       </div>
 
       <div id="cameraOffScreen">
-        <div class="co-icon">📷</div>
+        <div class="co-icon"></div>
         <div class="co-text">카메라가 꺼져 있습니다</div>
       </div>
 
       <!-- 안전 경보 배지(낙상/보호구/행동) — updateSafetyUI가 사용 -->
       <div class="video-overlay-labels">
-        <div class="action-badge" id="actionBadge" style="display:none">🏃 <span id="actionText">—</span></div>
-        <div class="action-badge warn-badge" id="warnBadge" style="display:none">⚠️ <span id="warnText">주의</span></div>
-        <div class="action-badge danger-badge" id="dangerBadge" style="display:none">🚨 <span id="dangerText">위험</span></div>
+        <div class="action-badge" id="actionBadge" style="display:none"> <span id="actionText">—</span></div>
+        <div class="action-badge warn-badge" id="warnBadge" style="display:none"> <span id="warnText">주의</span></div>
+        <div class="action-badge danger-badge" id="dangerBadge" style="display:none"> <span id="dangerText">위험</span></div>
       </div>
 
       <div class="fps-counter" id="fpsCounter">FPS: --</div>
@@ -206,13 +220,13 @@
 
     <div class="controls">
       <button class="btn active" id="btnCamToggle" onclick="toggleCamera()">
-        <span id="camBtnIcon">📷</span><span id="camBtnText">카메라 끄기</span>
+        <span id="camBtnIcon"></span><span id="camBtnText">카메라 끄기</span>
       </button>
       <div style="width:1px;height:28px;background:var(--border);margin:0 2px;"></div>
-      <label class="btn" for="fileInput">🖼️ 파일 업로드</label>
+      <label class="btn" for="fileInput"> 파일 업로드</label>
       <input type="file" id="fileInput" accept="image/*,video/*" style="display:none" onchange="handleFile(event)">
-      <button class="btn" onclick="toggleMirror()">↔ 방향 보정</button>
-      <button class="btn" id="btnPause" onclick="togglePause()" disabled>⏸ 정지</button>
+      <button class="btn" onclick="toggleMirror()"> 방향 보정</button>
+      <button class="btn" id="btnPause" onclick="togglePause()" disabled> 정지</button>
     </div>
   </div>
 
@@ -252,7 +266,7 @@
         </div>
 
         <div class="card">
-          <div class="card-title">🚨 실시간 안전 상태</div>
+          <div class="card-title"> 실시간 안전 상태</div>
           <div class="row"><span class="label">종합 안전 등급</span><span class="value" id="safetyGrade">대기 중</span></div>
           <div class="row"><span class="label">낙상 위험</span><span class="value" id="fallRisk">—</span></div>
           <div class="row"><span class="label">자세 이상</span><span class="value" id="postureRisk">—</span></div>
@@ -260,30 +274,30 @@
           <div class="row"><span class="label">현재 활동</span><span class="value" id="activityState">—</span></div>
         </div>
         <div class="card">
-          <div class="card-title">⚠️ 경고 이벤트</div>
-          <div id="alertList"><div class="no-data"><span class="icon">✅</span>이상 없음</div></div>
+          <div class="card-title"> 경고 이벤트</div>
+          <div id="alertList"><div class="no-data"><span class="icon"></span>이상 없음</div></div>
         </div>
         <div class="card">
-          <div class="card-title">📊 세션 통계</div>
+          <div class="card-title"> 세션 통계</div>
           <div class="row"><span class="label">낙상 감지</span><span class="value red" id="statFall">0회</span></div>
           <div class="row"><span class="label">위험 자세</span><span class="value yellow" id="statPosture">0회</span></div>
           <div class="row"><span class="label">위험 사물</span><span class="value orange" id="statObj">0회</span></div>
           <div class="row"><span class="label">분석 시간</span><span class="value accent" id="statTime">0s</span></div>
         </div>
         <div class="card">
-          <div class="card-title">⚙️ 안전 설정</div>
+          <div class="card-title"> 안전 설정</div>
           <div class="toggle-row"><span>안전모/조끼 알림</span><label class="toggle"><input type="checkbox" id="togPPE" checked><span class="toggle-slider"></span></label></div>
           <div class="toggle-row"><span>낙상 감지 (6프레임)</span><label class="toggle"><input type="checkbox" id="togFall" checked><span class="toggle-slider"></span></label></div>
           <div class="toggle-row"><span>위험 자세 감지</span><label class="toggle"><input type="checkbox" id="togPosture" checked><span class="toggle-slider"></span></label></div>
           <div class="toggle-row"><span>위험 사물 경고</span><label class="toggle"><input type="checkbox" id="togObjSafe" checked><span class="toggle-slider"></span></label></div>
           <div class="toggle-row"><span>경보 사운드</span><label class="toggle"><input type="checkbox" id="togSound"><span class="toggle-slider"></span></label></div>
-          <div class="toggle-row" title="VLM(AI 두뇌)이 감지 이벤트를 다시 보고 명백한 오탐을 걸러냅니다. 고신뢰 오탐만 알림을 억제하고 증거·기록은 그대로 저장합니다. VLM 추론이 끼어 다소 느려질 수 있습니다."><span>🧠 VLM 오탐 필터</span><label class="toggle"><input type="checkbox" id="togVlmConfirm"><span class="toggle-slider"></span></label></div>
+          <div class="toggle-row" title="VLM(AI 두뇌)이 감지 이벤트를 다시 보고 명백한 오탐을 걸러냅니다. 고신뢰 오탐만 알림을 억제하고 증거·기록은 그대로 저장합니다. VLM 추론이 끼어 다소 느려질 수 있습니다."><span> VLM 오탐 필터</span><label class="toggle"><input type="checkbox" id="togVlmConfirm"><span class="toggle-slider"></span></label></div>
         </div>
       </div>
 
       <div class="tab-pane" id="pane-objects">
         <div class="card">
-          <div class="card-title">📊 다중 객체 통계 <span class="new-tag">멀티스케일</span></div>
+          <div class="card-title"> 다중 객체 통계 <span class="new-tag">멀티스케일</span></div>
           <div class="multi-stat">
             <div class="mstat"><div class="mv" id="statTotal">0</div><div class="ml">전체 감지</div></div>
             <div class="mstat"><div class="mv" id="statUniq">0</div><div class="ml">종류 수</div></div>
@@ -293,18 +307,18 @@
         </div>
 
         <div class="card">
-          <div class="card-title">📍 장소/씬 분류</div>
+          <div class="card-title"> 장소/씬 분류</div>
           <div class="row"><span class="label">추정 장소</span><span class="value accent" id="sceneLabel">분석 중...</span></div>
           <div style="margin-top:8px;"><div class="scene-tags" id="sceneTags"></div></div>
         </div>
 
         <div class="card">
-          <div class="card-title">📦 감지된 사물 <span id="objCount" style="color:var(--accent);margin-left:4px;">0</span>개 <span style="font-size:10px;color:var(--text2);">(ID 추적 중)</span></div>
-          <div class="obj-list" id="objList"><div class="no-data"><span class="icon">🔍</span>감지된 사물 없음</div></div>
+          <div class="card-title"> 감지된 사물 <span id="objCount" style="color:var(--accent);margin-left:4px;">0</span>개 <span style="font-size:10px;color:var(--text2);">(ID 추적 중)</span></div>
+          <div class="obj-list" id="objList"><div class="no-data"><span class="icon"></span>감지된 사물 없음</div></div>
         </div>
 
         <div class="card">
-          <div class="card-title">⚙️ 감지 설정</div>
+          <div class="card-title"> 감지 설정</div>
           <div class="toggle-row"><span>바운딩 박스</span><label class="toggle"><input type="checkbox" id="togBBox" checked><span class="toggle-slider"></span></label></div>
           <div class="toggle-row"><span>라벨 표시</span><label class="toggle"><input type="checkbox" id="togLabel" checked><span class="toggle-slider"></span></label></div>
           <div class="toggle-row"><span>멀티스케일 감지</span><label class="toggle"><input type="checkbox" id="togMultiScale" checked><span class="toggle-slider"></span></label></div>
@@ -324,6 +338,12 @@
     </div>
   </div>
 </main>
+
+<!-- 앰버 터미널 하단 이벤트 로그(신규 요소만 — 엔진 무관, /safety/auto/feed 연동) -->
+<div id="vtLog">
+  <div class="vt-log-h"><span>EVENT STREAM // 실시간 이벤트 로그</span><span class="vt-dim" id="vtLogSrc">/safety/auto/feed</span></div>
+  <div class="vt-log-body" id="vtLogBody"></div>
+</div>
 
 <script>window.AX_LOCK_THEME="safety";</script>
 <script src="/static/realtime_core.js?v=20260701-ppefix"></script>
@@ -414,8 +434,8 @@
         const r=await fetch('/safety/fall',{method:'POST',headers:{'Content-Type':'application/json'},
           body:JSON.stringify({image_base64:captureEvidence(), vlm_confirm:vlmOn})});
         const j=await r.json();
-        if(j.suppressed) console.info('[VIGENT] 🧠 VLM 오탐 필터 — 낙상 알림 억제(증거는 저장):',j.message);
-        else console.warn('[VIGENT] 🚨 낙상 알림:',j.message,'· 휴대폰발송='+j.phone_sent);
+        if(j.suppressed) console.info('[VIGENT]  VLM 오탐 필터 — 낙상 알림 억제(증거는 저장):',j.message);
+        else console.warn('[VIGENT]  낙상 알림:',j.message,'· 휴대폰발송='+j.phone_sent);
       }
     }catch(e){}
   }, 700);
@@ -436,10 +456,54 @@
         const r=await fetch('/safety/posture',{method:'POST',headers:{'Content-Type':'application/json'},
           body:JSON.stringify({image_base64:captureEvidence(), note:'근골격계 부담 자세 3초 이상 지속'})});
         const j=await r.json();
-        console.info('[VIGENT] 🙇 근골격계 자세 기록:', j.message||'ergonomic_risk');
+        console.info('[VIGENT]  근골격계 자세 기록:', j.message||'ergonomic_risk');
       }
     }catch(e){}
   }, 1000);
+})();
+</script>
+
+<!-- 앰버 터미널 커맨드바·로그 구동(신규 id만 사용 · realtime_core.js 무수정 · 엔진 무관) -->
+<script>
+(function(){
+  var $=function(id){return document.getElementById(id);};
+  function tick(){
+    var c=$('vtClock'); if(c) c.textContent=new Date().toLocaleTimeString('en-GB');
+    var f=$('fpsCounter'), t=$('vtFps');
+    if(f&&t){ var m=(f.textContent||'').match(/[\d.]+/); t.textContent=m?m[0]:'--.-'; }
+  }
+  setInterval(tick,1000); tick();
+  fetch('/health').then(function(r){return r.json();}).then(function(j){
+    $('vtLink').textContent=(j&&j.status==='ok')?'ONLINE':'DEGRADED';
+  }).catch(function(){ var l=$('vtLink'); if(l){l.textContent='OFFLINE'; l.className='vt-warn';} });
+  fetch('/system/capabilities').then(function(r){return r.json();}).then(function(j){
+    var s=(j&&j.pipeline&&j.pipeline.slots)||[];
+    var m=s.filter(function(x){return x.source==='model'&&x.available;}).length;
+    var e=$('vtEngine'); if(e) e.textContent=(m?m+' models':'heuristic')+' · local';
+  }).catch(function(){});
+  // 하단 로그: /safety/auto/feed (프리뷰 재사용, 서버 폴백 포함)
+  var sev={critical:['CRIT','var(--vt-crit)'],high:['HIGH','var(--vt-warn)'],
+           medium:['MED','var(--vt-info)'],low:['LOW','var(--vt-ok)']};
+  function esc(s){ return String(s==null?'':s).replace(/[&<>"]/g,function(c){
+    return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]; }); }
+  function line(t,l,r,a){
+    var m=sev[l]||['INFO','var(--vt-info)'];
+    var el=document.createElement('div'); el.className='vt-log-line';
+    el.innerHTML='<span class="ts">'+esc(t)+'</span><span class="sev" style="color:'+m[1]+'">'+m[0]+'</span> '
+      +'<span style="color:var(--vt-amber-dim)">'+esc(r)+'</span> '+esc(a);
+    return el;
+  }
+  var demo=[['critical','fire_smoke','초기대응·대피 절차 확인'],['high','ppe_missing','보호구 착용 지시'],
+            ['high','zone_intrusion','위험구역 침입 확인'],['medium','ergonomic_risk','근골격계 부담 자세']];
+  function fillDemo(){ var b=$('vtLogBody'); if(!b) return; b.innerHTML='';
+    var s=$('vtLogSrc'); if(s) s.textContent='DEMO(폴백)';
+    demo.forEach(function(p){ b.appendChild(line(new Date().toLocaleTimeString('en-GB'),p[0],p[1],p[2])); }); }
+  fetch('/safety/auto/feed?hours=168').then(function(r){return r.json();}).then(function(j){
+    var ev=(j&&j.events)||[]; var b=$('vtLogBody'); if(!b) return;
+    if(!ev.length){ fillDemo(); return; }
+    b.innerHTML=''; ev.slice(0,7).forEach(function(e){
+      b.appendChild(line(e.time||'--:--:--', e.level||'medium', e.rule||'', e.advisory||'')); });
+  }).catch(fillDemo);
 })();
 </script>
 </body>

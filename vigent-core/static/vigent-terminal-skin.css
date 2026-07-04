@@ -1,0 +1,142 @@
+/* ══════════════════════════════════════════════════════════════════════
+   vigent-terminal-skin.css — /safety-local 실화면 앰버 터미널 오버레이(겉모습만)
+   로드 순서: realtime_shared → vigent-skin(기능 CSS 보존) → vigent-terminal(토큰) → 이 파일
+   ─────────────────────────────────────────────────────────────────────
+   ★ 좌표 기능 CSS 절대 불변: #videoEl/#outputCanvas/#imageEl 의 object-fit:contain·inset:0 은
+     이 파일에서 '언급조차' 하지 않는다(그대로 둔다 → 영상·탐지박스 정합 유지).
+   ★ realtime_core.js 가 쓰는 DOM id 는 하나도 안 건드림. 색·폰트·테두리·모서리·배치만 덮어씀.
+   ★ 현재 화면은 vigent-skin(풀스크린) + body.clean(초록 키오스크). 아래는 그 숨김을 되돌려
+     [상단 커맨드바 + 좌:영상 | 우:데이터레일 + 하단 로그] 그리드로 노출하고 앰버로 통일.
+   ══════════════════════════════════════════════════════════════════════ */
+
+/* ── 0) 바탕/타이포 통일(초록 그라디언트 제거 → 앰버 온 블랙) ── */
+body.theme-safety{ background:var(--vt-bg) !important; color:var(--vt-txt) !important;
+  font-family:var(--vt-mono) !important; }
+main, body.clean main, body.theme-safety main{ background:var(--vt-bg) !important; }
+
+/* ── 1) 레이아웃 복원: 헤더는 계속 숨김 / 레일·컨트롤은 노출(vigent-skin+clean 숨김 되돌림) ── */
+header, body.clean header{ display:none !important; }
+.right-panel, body.clean .right-panel{ display:flex !important; }
+.controls, body.clean .controls{ display:flex !important; }
+/* 낙상/보호구 경보 배지(영상 위)도 노출 — 실제 알림이 화면에 뜨게 */
+body.clean .video-overlay-labels{ display:block !important; }
+/* 주입 브랜드/HUD 숨김 — 새 커맨드바가 대체(좌상단 로고 2겹 겹침 제거) */
+#vgBrand, #vgHud{ display:none !important; }
+
+/* 영상 컨테이너: 풀스크린 고정 해제 → 원래 그리드 셀(relative flex:1)로 복귀.
+   ※ videoEl/outputCanvas/imageEl 은 여기서 다루지 않는다(좌표 CSS 보존). */
+#videoContainer{ position:relative !important; inset:auto !important;
+  width:auto !important; height:auto !important; flex:1 1 auto !important; min-height:0 !important;
+  border:1px solid var(--vt-hair) !important; border-radius:0 !important;
+  box-shadow:none !important; background:#02040a !important; }
+.video-panel, body.clean .video-panel{ padding:10px !important; gap:8px !important;
+  background:var(--vt-bg) !important; }
+/* 코너 브래킷(vigent-skin ::after) 앰버로 */
+#videoContainer::after{ border-color:var(--vt-amber-dim) !important; }
+
+/* ── 2) 상단 커맨드바(#vtCmdbar, 신규 요소) ── */
+#vtCmdbar{ flex:0 0 34px; display:flex; align-items:stretch; height:34px; z-index:20;
+  border-bottom:1px solid var(--vt-hair); background:linear-gradient(180deg,#0b111b,#070b12); }
+#vtCmdbar > div{ display:flex; align-items:center; padding:0 14px; gap:8px;
+  border-right:1px solid var(--vt-hair); white-space:nowrap; }
+#vtCmdbar .vt-spacer{ flex:1; border-right:0; }
+
+/* ── 3) 하단 이벤트 로그(#vtLog, 신규 요소) ── */
+#vtLog{ flex:0 0 122px; border-top:1px solid var(--vt-hair-amber); background:#04070c;
+  display:flex; flex-direction:column; z-index:20; }
+#vtLog .vt-log-h{ display:flex; justify-content:space-between; padding:5px 14px;
+  border-bottom:1px solid var(--vt-hair); color:var(--vt-amber);
+  font-size:10px; letter-spacing:.16em; text-transform:uppercase; }
+#vtLogBody{ flex:1; overflow:hidden; padding:4px 14px; font-size:11.5px; }
+#vtLogBody .vt-log-line{ white-space:nowrap; padding:1.5px 0; color:var(--vt-txt2); }
+#vtLogBody .vt-log-line .ts{ color:var(--vt-dim); margin-right:10px; }
+#vtLogBody .vt-log-line .sev{ margin-right:8px; font-weight:700; letter-spacing:.06em; }
+
+/* ── 4) 데이터 레일(오른쪽) ── */
+.right-panel, body.clean .right-panel{ width:372px !important; flex:0 0 372px !important;
+  background:var(--vt-bg2) !important; border-left:1px solid var(--vt-hair) !important; }
+.panel-summary{ background:var(--vt-panel) !important;
+  border-bottom:1px solid var(--vt-hair-amber) !important; }
+.panel-summary-title{ color:var(--vt-amber) !important; font-size:11px !important;
+  letter-spacing:.14em !important; text-transform:uppercase !important; font-weight:700 !important; }
+.panel-summary-sub{ color:var(--vt-txt2) !important; font-size:10.5px !important; }
+.panel-tabs{ background:var(--vt-bg2) !important; border-bottom:1px solid var(--vt-hair) !important; }
+.tab{ font-family:var(--vt-mono) !important; text-transform:uppercase !important;
+  letter-spacing:.1em !important; border-radius:0 !important; color:var(--vt-txt2) !important;
+  background:transparent !important; border:1px solid var(--vt-hair) !important; }
+.tab.active{ background:transparent !important; border-color:var(--vt-amber) !important;
+  color:var(--vt-amber) !important; }
+.tab-content{ padding:0 !important; }
+
+/* 카드 → 모듈(각진 플랫·헤어라인·앰버 헤더 + ▍마커) */
+.card, .simple-result{ background:transparent !important; border:0 !important;
+  border-bottom:1px solid var(--vt-hair) !important; border-radius:0 !important;
+  box-shadow:none !important; padding:11px 14px !important; margin:0 !important; }
+.card-title{ color:var(--vt-amber) !important; font-size:10.5px !important; font-weight:700 !important;
+  letter-spacing:.16em !important; text-transform:uppercase !important; }
+.card-title::before{ content:"▍"; margin-right:6px; color:var(--vt-amber-dim); }
+.card-title .new-tag{ background:transparent !important; border:1px solid var(--vt-hair) !important;
+  color:var(--vt-txt2) !important; border-radius:0 !important; }
+
+/* 행/값/라벨 */
+.row{ border-bottom:1px dotted rgba(120,140,165,.10) !important; }
+.label, .k{ color:var(--vt-txt2) !important; }
+.value{ color:var(--vt-txt) !important; font-weight:600 !important;
+  font-variant-numeric:tabular-nums !important; }
+.value.red{ color:var(--vt-crit) !important; }
+.value.yellow, .value.orange{ color:var(--vt-warn) !important; }
+.value.accent, .value.green{ color:var(--vt-amber) !important; }
+
+/* 심플 결과(PPE 카드) */
+.simple-kicker{ color:var(--vt-amber) !important; text-transform:uppercase !important;
+  letter-spacing:.14em !important; }
+.simple-title{ color:var(--vt-txt) !important; }
+.simple-desc, .simple-guide{ color:var(--vt-txt2) !important; }
+.simple-stat{ background:var(--vt-panel) !important; border:1px solid var(--vt-hair) !important;
+  border-radius:0 !important; }
+.simple-stat .v{ color:var(--vt-txt) !important; }
+.simple-result.warn{ border-left:2px solid var(--vt-warn) !important; }
+
+/* 멀티스탯 셀 */
+.multi-stat{ gap:1px !important; background:var(--vt-hair) !important;
+  border:1px solid var(--vt-hair) !important; }
+.mstat{ background:var(--vt-panel) !important; border-radius:0 !important; }
+.mv{ color:var(--vt-txt) !important; font-variant-numeric:tabular-nums !important; }
+.ml{ color:var(--vt-dim) !important; text-transform:uppercase !important; letter-spacing:.1em !important; }
+
+/* 객체 리스트/씬 태그/배지 */
+.no-data{ color:var(--vt-dim) !important; }
+.scene-tag, .badge{ background:transparent !important; border:1px solid var(--vt-hair) !important;
+  color:var(--vt-txt2) !important; border-radius:0 !important; }
+
+/* 토글 */
+.toggle-row{ border-bottom:1px dotted rgba(120,140,165,.08) !important; color:var(--vt-txt2) !important; }
+.toggle input:checked + .toggle-slider{ background:var(--vt-amber-dim) !important; }
+
+/* ── 5) 컨트롤바 → 터미널 버튼 ── */
+.controls, body.clean .controls{ background:transparent !important; border:0 !important;
+  border-top:1px solid var(--vt-hair) !important; border-radius:0 !important;
+  box-shadow:none !important; padding:8px !important; }
+.controls .btn, .controls label.btn{ font-family:var(--vt-mono) !important;
+  text-transform:uppercase !important; letter-spacing:.06em !important; font-size:12px !important;
+  background:#0d141f !important; border:1px solid #263449 !important; border-radius:0 !important;
+  color:var(--vt-txt) !important; box-shadow:none !important; }
+.controls .btn:hover, .controls .btn.active{ border-color:var(--vt-amber) !important;
+  color:var(--vt-amber) !important; }
+
+/* ── 6) 영상 위 오버레이(기능 유지, 터미널 톤) ── */
+.fps-counter{ font-family:var(--vt-mono) !important; background:rgba(4,7,12,.8) !important;
+  border:1px solid var(--vt-hair) !important; border-radius:0 !important; color:var(--vt-txt) !important; }
+.recog-panel, body.clean #recogPanel.recog-panel{ background:rgba(4,7,12,.9) !important;
+  border:1px solid var(--vt-hair-amber) !important; border-radius:0 !important; color:var(--vt-txt) !important; }
+.recog-panel h4, body.clean .recog-panel h4{ color:var(--vt-amber) !important;
+  text-transform:uppercase !important; letter-spacing:.12em !important; }
+body.clean .recog-panel h4::before{ content:"" !important; }
+.cam-status-badge{ background:rgba(4,7,12,.8) !important; border:1px solid var(--vt-hair) !important;
+  border-radius:0 !important; }
+.action-badge{ border-radius:0 !important; font-family:var(--vt-mono) !important; }
+.zone-btn, .report-btn, .dz-mute{ font-family:var(--vt-mono) !important; border-radius:0 !important;
+  text-transform:uppercase !important; letter-spacing:.05em !important; }
+.dz-alert{ border-radius:0 !important; font-family:var(--vt-mono) !important; }
+
+@media (prefers-reduced-motion:reduce){ *{ animation:none !important; } }
