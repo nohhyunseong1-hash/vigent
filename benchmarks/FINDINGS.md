@@ -66,12 +66,14 @@
 ### ★ T10b 게이트 재정의 (T13 결과 반영)
 - **기존 게이트 폐기**: "RF-DETR raw mAP@50 ≥ YOLO baseline(4.31%) − 2%p" — **무의미**(주석 스키마 불일치로
   YOLO 4.31%가 능력 아님. D-Fire 학습 RF-DETR은 자명하게 초과). 폐기 사유 기록.
-- **게이트 A — 저하 없음(배포 용도)**: RF-DETR **presence recall ≥ 현행 YOLO presence 기준선**(동일 운용점),
-  precision 은 동일 recall 운용점에서 비교 기록. 현행 기준선: presence AP raw fire 83.1·smoke 89.9 /
-  **pipeline recall fire 53.64·smoke 24.85(T14-F 완화 후 값)** — F-6 참조.
-- **게이트 B — 신모델 품질(box)**: RF-DETR **D-Fire test mAP@50 절대치**. 문헌 근거: D-Fire에서
-  **YOLOv8n mAP@50 ≈ 0.625**(개선 0.651) — [MDPI Sensors 24(17):5597]. **제안 목표: RF-DETR mAP@50 ≥ 0.60**
-  (YOLOv8n 문헌치 수준). ※ 목표치는 사용자 승인으로 확정.
+- **게이트 A — 저하 없음(배포 용도)**: RF-DETR **presence recall ≥ 현행 YOLO 기준선**(T14-F 후 값, 동일 운용점).
+  기준선(확정): **fire recall ≥ 53.6% (P 89.4) / smoke recall ≥ 24.9% (P 93.2)**. precision 은 동일 recall 운용점에서 동반 기록.
+  참고 raw presence AP: fire 83.1·smoke 89.9.
+- **게이트 B — 신모델 품질(box)**: RF-DETR **D-Fire test mAP@50 ≥ 0.60 (승인 확정, 2026-07-05)**.
+  근거: D-Fire에서 **YOLOv8n mAP@50 ≈ 0.625**(개선 0.651) — [MDPI Sensors 24(17):5597]. Nano 급이 문헌 YOLOv8n 수준.
+  - **폴백(임계 인하 금지)**: T10b 가 0.60 미달 시 **운용 임계를 낮춰 통과시키지 않는다**(게이트 회피 금지).
+    대신 **(a) 모델 크기 상향(RF-DETR Nano→Small) 재학습** 또는 **(b) 학습 데이터 보강(hard negative: 연기 유사 비연기 포함)**
+    중 택일을 **보고 후 사용자 결정**. 소형·근접 화염 데이터 보강 병행(F-6).
 - **격리 규칙(T10b 학습)**: 학습은 D-Fire **train split만** 사용. 평가셋(test 서브셋 395장)과 이미지 격리 —
   같은 이미지 유입 시 평가 오염. forklift(LOCO)도 SHA256 80/20 분할의 train만 학습에 사용.
 

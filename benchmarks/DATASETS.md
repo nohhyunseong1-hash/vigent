@@ -28,7 +28,9 @@
 
 ## forklift — LOCO (진행 대기)
 - 출처 **LOCO**(`tum-fml/loco`), 라이선스 **Public Domain(CC0)**(README 확인), COCO 포맷, 창고/물류 도메인.
-- 상태: **재다운로드 대기**(최초 취득본 dataset.zip이 다운로드 절단으로 손상 — 끝부분 HTML, BadZipFile).
+- 상태: **재다운로드도 손상(2회 연속)** — 2026-07-05 재취득본 dataset.zip **308MB**(기대 ~733MB의 40%),
+  `unzip -t` 종료9 "cannot find zipfile directory", 헤더 `PK\x03\x04`이나 끝이 `</font></body></html>`(HTML 오류페이지로 절단).
+  → LOCO 소스 링크가 계속 잘린 파일 반환. **클린 다운로드 수단 확보 필요**(TUM mediaTUM 직링크/미러/`wget -c` 재개 등).
 - 도착 시 스펙: 무결성 확인 → 파일명 SHA256 기반 결정적 80/20 분할(test 목록 커밋) → forklift 평가셋(≥150장/≥300인스턴스) → COCO 변환 → box mAP + presence 이중 측정.
 
 ## 참고 — 감사에서 제외한 후보
