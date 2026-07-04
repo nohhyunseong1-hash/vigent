@@ -123,18 +123,20 @@ def create(payload: dict) -> dict[str, Any]:
     """회의록 1건 저장. 항상 결과를 반환(예외로 죽지 않음). 반환: 저장된 record(+saved_path)."""
     ts = datetime.now(KST)
     _TBM.mkdir(parents=True, exist_ok=True)
-    # 같은 초 동시작성 충돌 회피(덮어쓰기 금지): 파일이 이미 있으면 마이크로초→카운터 접미사로 고유화.
-    # get() 은 [^a-zA-Z0-9_] 제거로 조회하므로 접미사는 숫자·밑줄만 사용(조회 호환).
+    # 동시작성 충돌·유실 방지: '확인 후 쓰기'(TOCTOU 경쟁)가 아니라 원자적 배타 생성(open 'x')으로 만든다.
+    # 파일이 이미 있으면 FileExistsError → 마이크로초→카운터 접미사로 바꿔 재시도하므로,
+    # 같은 초에 진짜 동시에 들어와도 서로 다른 파일을 가진다(덮어쓰기 불가 = 유실 없음).
+    # get() 은 [^a-zA-Z0-9_] 만 남기므로 접미사는 숫자·밑줄만 사용(조회 호환).
     base = f"tbm_{ts.strftime('%Y%m%d_%H%M%S')}"
-    tid, _path = base, _TBM / f"{base}.json"
-    if _path.exists():
-        _mi = ts.strftime('%f')
-        tid = f"{base}_{_mi}"
-        _path = _TBM / f"{tid}.json"
-        _n = 1
-        while _path.exists():
-            tid = f"{base}_{_mi}_{_n}"
-            _path = _TBM / f"{tid}.json"
+    fh, tid, path, _n = None, base, None, 0
+    while fh is None:
+        tid = (base if _n == 0
+               else f"{base}_{ts.strftime('%f')}" if _n == 1
+               else f"{base}_{ts.strftime('%f')}_{_n - 1}")
+        path = _TBM / f"{tid}.json"
+        try:
+            fh = open(path, "x", encoding="utf-8")  # 원자적 배타 생성(경쟁 안전) — 있으면 예외
+        except FileExistsError:
             _n += 1
     record = {
         "id": tid,
@@ -148,8 +150,10 @@ def create(payload: dict) -> dict[str, Any]:
         "workers": _norm_workers(payload.get("workers")),
         "notes": str(payload.get("notes", "")).strip(),
     }
-    path = _path
-    path.write_text(json.dumps(record, ensure_ascii=False, indent=2), encoding="utf-8")
+    try:
+        fh.write(json.dumps(record, ensure_ascii=False, indent=2))
+    finally:
+        fh.close()
     record["saved_path"] = str(path.relative_to(_ROOT))
     return record
 
