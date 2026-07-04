@@ -2,10 +2,11 @@
 
 바탕화면 런처 1개 → 이 허브 → 가장 좋은 기능들을 타일로 한눈에 클릭.
 새 도구가 생기면 TILES 에 한 줄 추가하면 된다.
+겉모습은 공용 디자인시스템 /static/vigent-terminal.css(앰버 터미널)를 따른다.
 """
 from __future__ import annotations
 
-# (그룹, 아이콘, 제목, 설명, 경로)
+# (그룹, 아이콘, 제목, 설명, 경로)  ← 아이콘은 데이터로만 보관(터미널 화면엔 렌더 안 함)
 TILES = [
     ("운영", "🎥", "실시간 안전 관제", "카메라로 위험 실시간 감지·표시", "/safety-local"),
     ("운영", "🧠", "안전 지식 추론 엔진", "작업별 '없는 안전조치'를 추론(지식+VLM)", "/safety/brain"),
@@ -27,50 +28,57 @@ TILES = [
 
 def render() -> str:
     groups: dict[str, list] = {}
-    for g, icon, title, desc, path in TILES:
-        groups.setdefault(g, []).append((icon, title, desc, path))
+    for g, _icon, title, desc, path in TILES:   # 아이콘(이모지)은 렌더하지 않는다(터미널 룩)
+        groups.setdefault(g, []).append((title, desc, path))
     sections = ""
     for g, items in groups.items():
         cards = "".join(
-            f'<a class="tile" href="{p}"><div class="ic">{ic}</div>'
-            f'<div class="tt">{t}</div><div class="ds">{d}</div></a>'
-            for ic, t, d, p in items)
-        sections += f'<div class="grp"><div class="gh">{g}</div><div class="grid">{cards}</div></div>'
+            f'<a class="vt-tile" href="{p}">'
+            f'<div class="cat">{g}</div>'
+            f'<div class="tt">{t}</div><div class="td">{d}</div>'
+            f'<div class="tp">{p}</div></a>'
+            for t, d, p in items)
+        sections += f'<div class="vt-sec">{g}</div><div class="vt-tiles">{cards}</div>'
     return _PAGE.replace("{{SECTIONS}}", sections)
 
 
 _PAGE = r"""<!DOCTYPE html><html lang="ko"><head><meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>VIGENT — 산업안전 AI</title><style>
-  body{margin:0;background:radial-gradient(1200px 600px at 50% -10%,#0c0c0e,#000000 60%);color:#e5e7eb;
-       font-family:"SF Mono","D2Coding","Apple SD Gothic Neo","Malgun Gothic",monospace;min-height:100vh}
-  .wrap{max-width:980px;margin:0 auto;padding:38px 22px 70px}
-  .hero{text-align:center;margin-bottom:26px}
-  .logo{font-size:34px;font-weight:900;color:#ffb000;letter-spacing:2px}
-  .logo small{display:block;font-size:13px;color:#94a3b8;font-weight:600;letter-spacing:1px;margin-top:4px}
-  .stat{color:#64748b;font-size:12.5px;margin-top:10px}
-  .grp{margin-bottom:22px}
-  .gh{font-size:13px;color:#d4a017;font-weight:800;margin:0 0 10px;letter-spacing:1px}
-  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:12px}
-  .tile{display:block;background:#0c0c0e;border:1px solid #1c1c20;border-radius:14px;padding:18px;
-        text-decoration:none;color:#e5e7eb;transition:.15s;position:relative}
-  .tile:hover{border-color:#8a6817;background:#16140d;transform:translateY(-2px)}
-  .ic{font-size:28px;margin-bottom:8px}
-  .tt{font-size:15px;font-weight:800}
-  .ds{font-size:12.5px;color:#94a3b8;margin-top:3px;line-height:1.5}
-  .foot{text-align:center;color:#475569;font-size:11.5px;margin-top:26px;line-height:1.7}
-</style></head><body><div class="wrap">
-  <div class="hero">
-    <div class="logo">VIGENT<small>Vision + AI Agent · 산업안전</small></div>
-    <div class="stat" id="stat">서버 연결 확인 중…</div>
-  </div>
-  {{SECTIONS}}
-  <div class="foot">보조·기록 도구이며 인증 안전장치를 대체하지 않습니다. 최종 판단·조치는 안전관리자 승인하에 이뤄집니다.<br>
-    © VIGENT — 감지에서 서류·조치까지 닫는 산업안전 AI</div>
+<title>VIGENT // 산업안전 AI — 허브</title>
+<link rel="stylesheet" href="/static/vigent-terminal.css?v=3">
+<style>
+  *{box-sizing:border-box} html,body{margin:0}
+  body{min-height:100vh;background:var(--vt-bg)}
+  .cat{color:var(--vt-dim);font-size:9px;letter-spacing:.14em;text-transform:uppercase;margin-bottom:6px}
+  .vt-foot{max-width:1120px;margin:26px auto 0;padding:0 20px 40px;color:var(--vt-dim);
+           font-size:11px;line-height:1.7;text-align:center}
+</style></head>
+<body class="vt-scope vt-page">
+<div class="vt-cmdbar">
+  <div class="vt-brand">VIGENT<b>//</b>SAFETY</div>
+  <div><span class="vt-key">HUB</span><span class="vt-val">산업안전 AI 콘솔</span></div>
+  <div class="vt-spacer"></div>
+  <div class="vt-conn"><span class="vt-dot"></span><span class="vt-key">LINK</span><span class="vt-ok" id="link">····</span></div>
+  <div><span class="vt-key">EVENTS</span><span class="vt-val vt-num" id="evc">--</span></div>
+  <div><span class="vt-val vt-num" id="clock">--:--:--</span></div>
 </div>
+<div class="vt-wrap">
+  <h1 class="vt-h1">VIGENT 산업안전 AI 콘솔</h1>
+  <p class="vt-sub">Vision + AI Agent · 감지 → 증거 · 법령 · 평가서 · 조치 자동</p>
+  {{SECTIONS}}
+</div>
+<div class="vt-foot">보조·기록 도구이며 인증 안전장치를 대체하지 않습니다. 최종 판단·조치는 안전관리자 승인하에 이뤄집니다.<br>
+  © VIGENT — 감지에서 서류·조치까지 닫는 산업안전 AI</div>
 <script>
-  fetch('/safety/auto/feed?hours=100000').then(r=>r.json()).then(d=>{
-    const n=(d.events||[]).length;
-    document.getElementById('stat').textContent='누적 감지 이벤트 '+n+'건 · 서버 정상';
-  }).catch(()=>{document.getElementById('stat').textContent='서버 정상';});
+(function(){
+  var $=function(id){return document.getElementById(id);};
+  function tick(){ $('clock').textContent=new Date().toLocaleTimeString('en-GB'); }
+  setInterval(tick,1000); tick();
+  fetch('/health').then(function(r){return r.json();}).then(function(j){
+    $('link').textContent=(j&&j.status==='ok')?'ONLINE':'DEGRADED';
+  }).catch(function(){ $('link').textContent='OFFLINE'; });
+  fetch('/safety/auto/feed?hours=100000').then(function(r){return r.json();}).then(function(j){
+    var n=((j&&j.events)||[]).length; $('evc').textContent=n;
+  }).catch(function(){ $('evc').textContent='0'; });
+})();
 </script></body></html>"""
