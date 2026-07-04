@@ -119,41 +119,37 @@ def _person_metrics(xy, cf, H, min_kp=0.3):
 
 
 class _PoseModel:
-    """yolov8n-pose 1회 로드(공유). 프레임 → 사람별 자세 지표. 실패 시 [](무중단)."""
+    """RTMPose(rtmlib, Apache-2.0) 1회 로드(공유). person 박스(RF-DETR/guard) 주입 → 사람별 자세 지표.
+    실패/박스없음 시 [](무중단). YOLOX 내장 검출은 기본 off — 박스는 guard.detect(person) 가 제공한다
+    (T10c: ultralytics/AGPL 제거, top-down 입력은 RF-DETR person 박스).
+
+    출력 계약은 기존과 동일(사람별 metrics dict + kp_xy/kp_cf) → FallTracker/ErgonomicsTracker 무변경."""
 
     def __init__(self):
         self._m = None
         self._failed = False
-        self._device = "cpu"
 
-    def persons(self, frame, min_kp=0.3):
+    def persons(self, frame, boxes=None, min_kp=0.3):
+        """boxes: 사람 픽셀 박스 [[x1,y1,x2,y2],..](guard.detect person 유래). None/[] → []."""
         if self._m is None and not self._failed:
             try:
-                from ultralytics import YOLO
-                self._m = YOLO(str(_ROOT / "vigent-core" / "weights" / "yolov8n-pose.pt"))
                 import sys
                 sys.path.insert(0, str(_ROOT / "vigent-core"))
-                import device as _device
-                self._device = _device.pick_device(prefer_mps=False)  # 감사 C-2: YOLO 맥=CPU/리눅스=CUDA
-            except Exception:  # noqa: BLE001
+                from pose.rtmpose_adapter import RtmPoseDetector
+                self._m = RtmPoseDetector()
+            except Exception:  # noqa: BLE001  로드 실패 → 포즈 기능만 비활성(탐지/낙상 무중단)
                 self._failed = True
-        if self._m is None:
+        if self._m is None or not boxes:
             return []
         try:
             H = frame.shape[0]
-            res = self._m.predict(frame, verbose=False, conf=0.4, device=self._device)[0]
-            kp = getattr(res, "keypoints", None)
-            if kp is None or kp.xy is None or len(kp.xy) == 0:
-                return []
-            xys = kp.xy.cpu().numpy()
-            cfs = kp.conf.cpu().numpy() if kp.conf is not None else None
+            ppl = self._m.persons(frame, bboxes=list(boxes))   # [(kp_xy[17,2] px, kp_cf[17])] · COCO-17
             out = []
-            for i in range(len(xys)):
-                cf_i = cfs[i] if cfs is not None else np.ones(len(xys[i]))
-                m = _person_metrics(xys[i], cf_i, H, min_kp)
+            for xy, cf in ppl:
+                m = _person_metrics(xy, cf, H, min_kp)   # 판정 로직 재사용(무수정)
                 if m:
-                    m["kp_xy"] = xys[i]      # 원시 키포인트 가산(근골격계 레이어용). 낙상은 미사용 — 불변.
-                    m["kp_cf"] = cf_i
+                    m["kp_xy"] = xy      # 원시 키포인트 가산(근골격계 레이어용). 낙상은 미사용 — 불변.
+                    m["kp_cf"] = cf
                     out.append(m)
             return out
         except Exception:  # noqa: BLE001
@@ -177,11 +173,12 @@ class FallTracker:
         self._tracks = []
         self._vlm = vlm
 
-    def update(self, frame, ts):
-        """프레임 처리 → (낙상여부, 사유). 모델/키포인트 없으면 (False,'')."""
+    def update(self, frame, ts, boxes=None):
+        """프레임 처리 → (낙상여부, 사유). 모델/키포인트 없으면 (False,'').
+        boxes: guard.detect person 박스(픽셀) — RTMPose top-down 입력."""
         H, W = frame.shape[:2]
         diag = (W * W + H * H) ** 0.5
-        persons = _posemodel.persons(frame)
+        persons = _posemodel.persons(frame, boxes)
         used = set()
         for p in persons:
             cx, cy = p["centroid"]
@@ -254,15 +251,16 @@ class ErgonomicsTracker:
         self._tracks: list[dict] = []
         self._last_ts = 0.0
 
-    def update(self, frame, ts):
-        """반환: [(rule, level, note), ...] — hold 지속이 확정된 사람만. 없으면 []."""
+    def update(self, frame, ts, boxes=None):
+        """반환: [(rule, level, note), ...] — hold 지속이 확정된 사람만. 없으면 [].
+        boxes: guard.detect person 박스(픽셀) — RTMPose top-down 입력."""
         if not self._enabled:
             return []
         if ts - self._last_ts < self._MIN_INTERVAL:      # 저빈도 스로틀
             return []
         self._last_ts = ts
         try:
-            persons = _posemodel.persons(frame)
+            persons = _posemodel.persons(frame, boxes)
         except Exception:  # noqa: BLE001
             return []
         H, W = frame.shape[0], frame.shape[1]
@@ -453,9 +451,15 @@ class Worker:
                         pass
                 with lock:                            # 코어 추론 직렬화(브라우저와 충돌 방지)
                     out = guard.detect(frame, detectors=detectors)
-                    fall, freason = ftrack.update(frame, t0)   # 다중단서+모션 낙상
+                    # 포즈(낙상·근골격) top-down 입력 = guard.detect person 박스(RF-DETR·_nms/_track 적용, 픽셀).
+                    #   worker 기본 detectors 에 person 포함 → 박스 항상 제공. person 없으면 포즈만 비활성(무중단).
+                    _H, _W = frame.shape[:2]
+                    person_boxes = [[d["bbox"][0] * _W, d["bbox"][1] * _H,
+                                     d["bbox"][2] * _W, d["bbox"][3] * _H]
+                                    for d in out.get("detections", []) if d["label"] == "person"]
+                    fall, freason = ftrack.update(frame, t0, person_boxes)   # 다중단서+모션 낙상
                     try:
-                        ergo_fired = etrack.update(frame, t0)  # 근골격계 부담자세(포즈 각도·저빈도)
+                        ergo_fired = etrack.update(frame, t0, person_boxes)  # 근골격계 부담자세(포즈 각도·저빈도)
                     except Exception:  # noqa: BLE001  가산 레이어 — 실패해도 낙상·탐지 무중단
                         ergo_fired = []
                 fired = _derive(out, zone, frame.shape[0] / frame.shape[1])

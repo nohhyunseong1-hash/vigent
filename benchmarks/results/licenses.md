@@ -21,12 +21,25 @@
 | supervision | 0.29.0.post0 | MIT License            |
 | trackers    | (설치됨)      | Apache/MIT (permissive) |
 
+## 1-c) RTMPose 이관 스택 (T10c, 포즈) — pip-licenses 실측 2026-07-04
+| Name         | Version  | License                          |
+|--------------|----------|----------------------------------|
+| rtmlib       | 0.0.15   | Apache-2.0 (번들 LICENSE 파일로 실증; PyPI 메타 공란) |
+| onnxruntime  | 1.27.0   | MIT License                      |
+| flatbuffers  | 25.12.19 | Apache Software License          |
+| protobuf     | 5.29.3   | 3-Clause BSD                     |
+| sympy        | 1.14.0   | BSD License                      |
+| mpmath       | 1.3.0    | BSD License                      |
+| coloredlogs / humanfriendly | (onnxruntime 의존) | MIT (upstream) |
+- tqdm(MPL-2.0 AND MIT)은 **T10c 신규 아님**(2026-06-01 기설치). MPL-2.0은 파일단위 약카피레프트.
+- → **T10c 신규 트리 강한 카피레프트(GPL/AGPL) 0건.**
+
 ## 2) copyleft 판정
 
 - **T12-B 신규 도입분**(pycocotools·pip-licenses·prettytable·wcwidth): 전부 permissive(FreeBSD/MIT/BSD) → **AGPL/GPL 0건**.
 - **T10a RF-DETR 스택**(rfdetr=Apache-2.0·supervision=MIT): permissive → person 검출 경로는 **copyleft 0**.
 - **기존 의존성 중 copyleft(잔존)**: `ultralytics` / `ultralytics-thop` = **AGPLv3+**.
-  - ⚠️ **T10a 후에도 ultralytics 는 라이브 경로에 남아 있다**(정직 표기, 규칙7): `detectors/yolo_adapter.py`(ppe·fire_smoke·forklift 검출) + `worker.py`(포즈=yolov8n-pose).
-  - **person 검출만** RF-DETR 로 이관 완료 → guard.py 에서 `from ultralytics import YOLO` **직접 import 소멸**(어댑터로 격리).
-  - **copyleft 0 달성 조건**: **T10b**(ppe/fire/forklift RF-DETR 모델 학습) + **T10c**(포즈 RTMPose) 완료 시. T10a 단독으로는 미달성(설계상 person-only 스코프).
+  - ⚠️ **T10a+T10c 후에도 ultralytics 는 라이브 경로에 남아 있다**(정직 표기, 규칙7): **`detectors/yolo_adapter.py` 한 곳뿐**(ppe·fire_smoke·forklift 검출).
+  - 이관 완료: **person 검출**(T10a, guard.py `from ultralytics import YOLO` 소멸) + **포즈**(T10c, `worker.py` `from ultralytics import YOLO` 소멸 → RTMPose).
+  - **copyleft 0 달성 조건**: 남은 **T10b**(ppe/fire/forklift RF-DETR 모델 학습·이관) 완료 시. person·포즈는 이관 끝, 검출 3종만 잔존.
 - 아나콘다 base 환경의 기타 GPL/LGPL 패키지(PyQt5·pylint·rope 등)는 개발도구로 VIGENT 배포물과 무관.

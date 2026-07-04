@@ -1,0 +1,5044 @@
+{
+  "yolo_vs_yolo": {
+    "summary": {
+      "backend_a": "yolo",
+      "backend_b": "yolo",
+      "frames": 28,
+      "matched_pairs": 42,
+      "unmatched_persons": 0,
+      "pose_fallen_mismatch": 0,
+      "ergo_grade_mismatch": 0,
+      "mean_oks": 1.0,
+      "mean_abs_angle_diff_deg": 0.0,
+      "mismatch_frames": []
+    },
+    "frames": [
+      {
+        "frame": "ev_00_ev_20260625_161402_ergonomic_risk_low.jpg",
+        "n_a": 1,
+        "n_b": 1,
+        "pairs": [
+          {
+            "oks": 1.0,
+            "pose_fallen": [
+              false,
+              false
+            ],
+            "head_below_hip": [
+              false,
+              false
+            ],
+            "angle": [
+              8.2,
+              8.2
+            ],
+            "ergo_grade": [
+              "warn",
+              "warn"
+            ]
+          }
+        ]
+      },
+      {
+        "frame": "ev_01_ev_20260625_161402_fall_suspected_critical.jpg",
+        "n_a": 0,
+        "n_b": 0,
+        "pairs": []
+      },
+      {
+        "frame": "ev_02_ev_20260703_223336_ergonomic_risk_높음.jpg",
+        "n_a": 0,
+        "n_b": 0,
+        "pairs": []
+      },
+      {
+        "frame": "ev_04_ev_20260619_141526_ppe_missing_medium.jpg",
+        "n_a": 3,
+        "n_b": 3,
+        "pairs": [
+          {
+            "oks": 1.0,
+            "metrics_available": [
+              false,
+              false
+            ],
+            "ergo_grade": [
+              "good",
+              "good"
+            ]
+          },
+          {
+            "oks": 1.0,
+            "metrics_available": [
+              false,
+              false
+            ],
+            "ergo_grade": [
+              "good",
+              "good"
+            ]
+          },
+          {
+            "oks": 1.0,
+            "metrics_available": [
+              false,
+              false
+            ],
+            "ergo_grade": [
+              "good",
+              "good"
+            ]
+          }
+        ]
+      },
+      {
+        "frame": "ev_06_ev_20260619_150318_ppe_missing_medium.jpg",
+        "n_a": 2,
+        "n_b": 2,
+        "pairs": [
+          {
+            "oks": 1.0,
+            "metrics_available": [
+              false,
+              false
+            ],
+            "ergo_grade": [
+              "good",
+              "good"
+            ]
+          },
+          {
+            "oks": 1.0,
+            "pose_fallen": [
+              false,
+              false
+            ],
+            "head_below_hip": [
+              false,
+              false
+            ],
+            "angle": [
+              5.9,
+              5.9
+            ],
+            "ergo_grade": [
+              "good",
+              "good"
+            ]
+          }
+        ]
+      },
+      {
+        "frame": "ev_07_ev_20260619_154127_ppe_missing_medium.jpg",
+        "n_a": 3,
+        "n_b": 3,
+        "pairs": [
+          {
+            "oks": 1.0,
+            "pose_fallen": [
+              false,
+              false
+            ],
+            "head_below_hip": [
+              false,
+              false
+            ],
+            "angle": [
+              8.4,
+              8.4
+            ],
+            "ergo_grade": [
+              "good",
+              "good"
+            ]
+          },
+          {
+            "oks": 1.0,
+            "pose_fallen": [
+              false,
+              false
+            ],
+            "head_below_hip": [
+              false,
+              false
+            ],
+            "angle": [
+              7.8,
+              7.8
+            ],
+            "ergo_grade": [
+              "good",
+              "good"
+            ]
+          },
+          {
+            "oks": 1.0,
+            "metrics_available": [
+              false,
+              false
+            ],
+            "ergo_grade": [
+              "good",
+              "good"
+            ]
+          }
+        ]
+      },
+      {
+        "frame": "ev_08_ev_20260624_152208_ppe_missing_high.jpg",
+        "n_a": 3,
+        "n_b": 3,
+        "pairs": [
+          {
+            "oks": 1.0,
+            "pose_fallen": [
+              false,
+              false
+            ],
+            "head_below_hip": [
+              false,
+              false
+            ],
+            "angle": [
+              0.5,
+              0.5
+            ],
+            "ergo_grade": [
+              "good",
+              "good"
+            ]
+          },
+          {
+            "oks": 1.0,
+            "metrics_available": [
+              false,
+              false
+            ],
+            "ergo_grade": [
+              "warn",
+              "warn"
+            ]
+          },
+          {
+            "oks": 1.0,
+            "metrics_available": [
+              false,
+              false
+            ],
+            "ergo_grade": [
+              "none",
+              "none"
+            ]
+          }
+        ]
+      },
+      {
+        "frame": "ev_09_ev_20260625_161126_zone_intrusion_high.jpg",
+        "n_a": 1,
+        "n_b": 1,
+        "pairs": [
+          {
+            "oks": 1.0,
+            "metrics_available": [
+              false,
+              false
+            ],
+            "ergo_grade": [
+              "good",
+              "good"
+            ]
+          }
+        ]
+      },
+      {
+        "frame": "ev_10_ev_20260626_162552_ppe_missing_high.jpg",
+        "n_a": 2,
+        "n_b": 2,
+        "pairs": [
+          {
+            "oks": 1.0,
+            "metrics_available": [
+              false,
+              false
+            ],
+            "ergo_grade": [
+              "good",
+              "good"
+            ]
+          },
+          {
+            "oks": 1.0,
+            "metrics_available": [
+              false,
+              false
+            ],
+            "ergo_grade": [
+              "good",
+              "good"
+            ]
+          }
+        ]
+      },
+      {
+        "frame": "ev_11_ev_20260629_110806_ppe_missing_high.jpg",
+        "n_a": 3,
+        "n_b": 3,
+        "pairs": [
+          {
+            "oks": 1.0,
+            "metrics_available": [
+              false,
+              false
+            ],
+            "ergo_grade": [
+              "good",
+              "good"
+            ]
+          },
+          {
+            "oks": 1.0,
+            "pose_fallen": [
+              false,
+              false
+            ],
+            "head_below_hip": [
+              false,
+              false
+            ],
+            "angle": [
+              0.4,
+              0.4
+            ],
+            "ergo_grade": [
+              "warn",
+              "warn"
+            ]
+          },
+          {
+            "oks": 1.0,
+            "pose_fallen": [
+              false,
+              false
+            ],
+            "head_below_hip": [
+              false,
+              false
+            ],
+            "angle": [
+              12.4,
+              12.4
+            ],
+            "ergo_grade": [
+              "good",
+              "good"
+            ]
+          }
+        ]
+      },
+      {
+        "frame": "ev_12_ev_20260630_170255_proximity_hazard_high.jpg",
+        "n_a": 3,
+        "n_b": 3,
+        "pairs": [
+          {
+            "oks": 1.0,
+            "pose_fallen": [
+              false,
+              false
+            ],
+            "head_below_hip": [
+              false,
+              false
+            ],
+            "angle": [
+              1.8,
+              1.8
+            ],
+            "ergo_grade": [
+              "good",
+              "good"
+            ]
+          },
+          {
+            "oks": 1.0,
+            "metrics_available": [
+              false,
+              false
+            ],
+            "ergo_grade": [
+              "good",
+              "good"
+            ]
+          },
+          {
+            "oks": 1.0,
+            "pose_fallen": [
+              false,
+              false
+            ],
+            "head_below_hip": [
+              false,
+              false
+            ],
+            "angle": [
+              0.0,
+              0.0
+            ],
+            "ergo_grade": [
+              "warn",
+              "warn"
+            ]
+          }
+        ]
+      },
+      {
+        "frame": "ev_13_ev_20260701_161408_ppe_missing_high.jpg",
+        "n_a": 4,
+        "n_b": 4,
+        "pairs": [
+          {
+            "oks": 1.0,
+            "metrics_available": [
+              false,
+              false
+            ],
+            "ergo_grade": [
+              "good",
+              "good"
+            ]
+          },
+          {
+            "oks": 1.0,
+            "metrics_available": [
+              false,
+              false
+            ],
+            "ergo_grade": [
+              "none",
+              "none"
+            ]
+          },
+          {
+            "oks": 1.0,
+            "pose_fallen": [
+              false,
+              false
+            ],
+            "head_below_hip": [
+              false,
+              false
+            ],
+            "angle": [
+              7.5,
+              7.5
+            ],
+            "ergo_grade": [
+              "bad",
+              "bad"
+            ]
+          },
+          {
+            "oks": 1.0,
+            "pose_fallen": [
+              false,
+              false
+            ],
+            "head_below_hip": [
+              false,
+              false
+            ],
+            "angle": [
+              6.8,
+              6.8
+            ],
+            "ergo_grade": [
+              "bad",
+              "bad"
+            ]
+          }
+        ]
+      },
+      {
+        "frame": "ev_14_ev_20260701_170701_ppe_missing_high.jpg",
+        "n_a": 2,
+        "n_b": 2,
+        "pairs": [
+          {
+            "oks": 1.0,
+            "metrics_available": [
+              false,
+              false
+            ],
+            "ergo_grade": [
+              "good",
+              "good"
+            ]
+          },
+          {
+            "oks": 1.0,
+            "metrics_available": [
+              false,
+              false
+            ],
+            "ergo_grade": [
+              "warn",
+              "warn"
+            ]
+          }
+        ]
+      },
+      {
+        "frame": "ev_15_ev_20260701_171340_ppe_missing_high.jpg",
+        "n_a": 2,
+        "n_b": 2,
+        "pairs": [
+          {
+            "oks": 1.0,
+            "metrics_available": [
+              false,
+              false
+            ],
+            "ergo_grade": [
+              "good",
+              "good"
+            ]
+          },
+          {
+            "oks": 1.0,
+            "metrics_available": [
+              false,
+              false
+            ],
+            "ergo_grade": [
+              "good",
+              "good"
+            ]
+          }
+        ]
+      },
+      {
+        "frame": "ev_16_ev_20260701_172014_ppe_missing_high.jpg",
+        "n_a": 2,
+        "n_b": 2,
+        "pairs": [
+          {
+            "oks": 1.0,
+            "metrics_available": [
+              false,
+              false
+            ],
+            "ergo_grade": [
+              "good",
+              "good"
+            ]
+          },
+          {
+            "oks": 1.0,
+            "pose_fallen": [
+              false,
+              false
+            ],
+            "head_below_hip": [
+              false,
+              false
+            ],
+            "angle": [
+              2.1,
+              2.1
+            ],
+            "ergo_grade": [
+              "warn",
+              "warn"
+            ]
+          }
+        ]
+      },
+      {
+        "frame": "ev_17_ev_20260701_173908_ppe_missing_high.jpg",
+        "n_a": 3,
+        "n_b": 3,
+        "pairs": [
+          {
+            "oks": 1.0,
+            "metrics_available": [
+              false,
+              false
+            ],
+            "ergo_grade": [
+              "good",
+              "good"
+            ]
+          },
+          {
+            "oks": 1.0,
+            "pose_fallen": [
+              false,
+              false
+            ],
+            "head_below_hip": [
+              false,
+              false
+            ],
+            "angle": [
+              4.3,
+              4.3
+            ],
+            "ergo_grade": [
+              "good",
+              "good"
+            ]
+          },
+          {
+            "oks": 1.0,
+            "pose_fallen": [
+              false,
+              false
+            ],
+            "head_below_hip": [
+              false,
+              false
+            ],
+            "angle": [
+              0.5,
+              0.5
+            ],
+            "ergo_grade": [
+              "bad",
+              "bad"
+            ]
+          }
+        ]
+      },
+      {
+        "frame": "vid_pipe_000.jpg",
+        "n_a": 0,
+        "n_b": 0,
+        "pairs": []
+      },
+      {
+        "frame": "vid_pipe_012.jpg",
+        "n_a": 0,
+        "n_b": 0,
+        "pairs": []
+      },
+      {
+        "frame": "vid_pipe_024.jpg",
+        "n_a": 0,
+        "n_b": 0,
+        "pairs": []
+      },
+      {
+        "frame": "vid_pipe_036.jpg",
+        "n_a": 0,
+        "n_b": 0,
+        "pairs": []
+      },
+      {
+        "frame": "vid_walk_000.jpg",
+        "n_a": 1,
+        "n_b": 1,
+        "pairs": [
+          {
+            "oks": 1.0,
+            "pose_fallen": [
+              false,
+              false
+            ],
+            "head_below_hip": [
+              false,
+              false
+            ],
+            "angle": [
+              31.2,
+              31.2
+            ],
+            "ergo_grade": [
+              "bad",
+              "bad"
+            ]
+          }
+        ]
+      },
+      {
+        "frame": "vid_walk_006.jpg",
+        "n_a": 1,
+        "n_b": 1,
+        "pairs": [
+          {
+            "oks": 1.0,
+            "pose_fallen": [
+              false,
+              false
+            ],
+            "head_below_hip": [
+              false,
+              false
+            ],
+            "angle": [
+              32.2,
+              32.2
+            ],
+            "ergo_grade": [
+              "bad",
+              "bad"
+            ]
+          }
+        ]
+      },
+      {
+        "frame": "vid_walk_012.jpg",
+        "n_a": 1,
+        "n_b": 1,
+        "pairs": [
+          {
+            "oks": 1.0,
+            "pose_fallen": [
+              false,
+              false
+            ],
+            "head_below_hip": [
+              false,
+              false
+            ],
+            "angle": [
+              32.2,
+              32.2
+            ],
+            "ergo_grade": [
+              "warn",
+              "warn"
+            ]
+          }
+        ]
+      },
+      {
+        "frame": "vid_walk_018.jpg",
+        "n_a": 1,
+        "n_b": 1,
+        "pairs": [
+          {
+            "oks": 1.0,
+            "pose_fallen": [
+              false,
+              false
+            ],
+            "head_below_hip": [
+              false,
+              false
+            ],
+            "angle": [
+              31.7,
+              31.7
+            ],
+            "ergo_grade": [
+              "bad",
+              "bad"
+            ]
+          }
+        ]
+      },
+      {
+        "frame": "vid_walk_024.jpg",
+        "n_a": 1,
+        "n_b": 1,
+        "pairs": [
+          {
+            "oks": 1.0,
+            "pose_fallen": [
+              false,
+              false
+            ],
+            "head_below_hip": [
+              false,
+              false
+            ],
+            "angle": [
+              31.4,
+              31.4
+            ],
+            "ergo_grade": [
+              "bad",
+              "bad"
+            ]
+          }
+        ]
+      },
+      {
+        "frame": "vid_walk_030.jpg",
+        "n_a": 1,
+        "n_b": 1,
+        "pairs": [
+          {
+            "oks": 1.0,
+            "pose_fallen": [
+              false,
+              false
+            ],
+            "head_below_hip": [
+              false,
+              false
+            ],
+            "angle": [
+              31.1,
+              31.1
+            ],
+            "ergo_grade": [
+              "bad",
+              "bad"
+            ]
+          }
+        ]
+      },
+      {
+        "frame": "vid_walk_036.jpg",
+        "n_a": 1,
+        "n_b": 1,
+        "pairs": [
+          {
+            "oks": 1.0,
+            "pose_fallen": [
+              false,
+              false
+            ],
+            "head_below_hip": [
+              false,
+              false
+            ],
+            "angle": [
+              31.4,
+              31.4
+            ],
+            "ergo_grade": [
+              "bad",
+              "bad"
+            ]
+          }
+        ]
+      },
+      {
+        "frame": "vid_walk_042.jpg",
+        "n_a": 1,
+        "n_b": 1,
+        "pairs": [
+          {
+            "oks": 1.0,
+            "pose_fallen": [
+              false,
+              false
+            ],
+            "head_below_hip": [
+              false,
+              false
+            ],
+            "angle": [
+              31.1,
+              31.1
+            ],
+            "ergo_grade": [
+              "bad",
+              "bad"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "yolo_vs_rtmpose": {
+    "summary": {
+      "backend_a": "yolo",
+      "backend_b": "rtmpose",
+      "frames": 28,
+      "matched_pairs": 42,
+      "unmatched_persons": 22,
+      "pose_fallen_mismatch": 0,
+      "ergo_grade_mismatch": 14,
+      "mean_oks": 0.5377,
+      "mean_abs_angle_diff_deg": 4.82,
+      "mismatch_frames": [
+        "ev_00_ev_20260625_161402_ergonomic_risk_low.jpg",
+        "ev_04_ev_20260619_141526_ppe_missing_medium.jpg",
+        "ev_07_ev_20260619_154127_ppe_missing_medium.jpg",
+        "ev_08_ev_20260624_152208_ppe_missing_high.jpg",
+        "ev_10_ev_20260626_162552_ppe_missing_high.jpg",
+        "ev_13_ev_20260701_161408_ppe_missing_high.jpg",
+        "ev_14_ev_20260701_170701_ppe_missing_high.jpg",
+        "ev_17_ev_20260701_173908_ppe_missing_high.jpg",
+        "vid_walk_012.jpg"
+      ]
+    },
+    "frames": [
+      {
+        "frame": "ev_00_ev_20260625_161402_ergonomic_risk_low.jpg",
+        "n_a": 1,
+        "n_b": 1,
+        "pairs": [
+          {
+            "oks": 0.3621,
+            "pose_fallen": [
+              false,
+              false
+            ],
+            "head_below_hip": [
+              false,
+              false
+            ],
+            "angle": [
+              8.2,
+              29.1
+            ],
+            "ergo_grade": [
+              "warn",
+              "bad"
+            ],
+            "ERGO_MISMATCH": true
+          }
+        ]
+      },
+      {
+        "frame": "ev_01_ev_20260625_161402_fall_suspected_critical.jpg",
+        "n_a": 0,
+        "n_b": 1,
+        "pairs": []
+      },
+      {
+        "frame": "ev_02_ev_20260703_223336_ergonomic_risk_높음.jpg",
+        "n_a": 0,
+        "n_b": 1,
+        "pairs": []
+      },
+      {
+        "frame": "ev_04_ev_20260619_141526_ppe_missing_medium.jpg",
+        "n_a": 3,
+        "n_b": 5,
+        "pairs": [
+          {
+            "oks": 0.4807,
+            "metrics_available": [
+              false,
+              false
+            ],
+            "ergo_grade": [
+              "good",
+              "good"
+            ]
+          },
+          {
+            "oks": 0.3561,
+            "metrics_available": [
+              false,
+              false
+            ],
+            "ergo_grade": [
+              "good",
+              "warn"
+            ],
+            "ERGO_MISMATCH": true
+          },
+          {
+            "oks": 0.0,
+            "metrics_available": [
+              false,
+              false
+            ],
+            "ergo_grade": [
+              "good",
+              "none"
+            ],
+            "ERGO_MISMATCH": true
+          }
+        ]
+      },
+      {
+        "frame": "ev_06_ev_20260619_150318_ppe_missing_medium.jpg",
+        "n_a": 2,
+        "n_b": 3,
+        "pairs": [
+          {
+            "oks": 0.7929,
+            "metrics_available": [
+              false,
+              false
+            ],
+            "ergo_grade": [
+              "good",
+              "good"
+            ]
+          },
+          {
+            "oks": 0.3985,
+            "pose_fallen": [
+              false,
+              false
+            ],
+            "head_below_hip": [
+              false,
+              false
+            ],
+            "angle": [
+              5.9,
+              11.5
+            ],
+            "ergo_grade": [
+              "good",
+              "good"
+            ]
+          }
+        ]
+      },
+      {
+        "frame": "ev_07_ev_20260619_154127_ppe_missing_medium.jpg",
+        "n_a": 3,
+        "n_b": 4,
+        "pairs": [
+          {
+            "oks": 0.2314,
+            "pose_fallen": [
+              false,
+              false
+            ],
+            "head_below_hip": [
+              false,
+              false
+            ],
+            "angle": [
+              8.4,
+              31.2
+            ],
+            "ergo_grade": [
+              "good",
+              "warn"
+            ],
+            "ERGO_MISMATCH": true
+          },
+          {
+            "oks": 0.5147,
+            "pose_fallen": [
+              false,
+              false
+            ],
+            "head_below_hip": [
+              false,
+              false
+            ],
+            "angle": [
+              7.8,
+              5.3
+            ],
+            "ergo_grade": [
+              "good",
+              "warn"
+            ],
+            "ERGO_MISMATCH": true
+          },
+          {
+            "oks": 0.7297,
+            "metrics_available": [
+              false,
+              false
+            ],
+            "ergo_grade": [
+              "good",
+              "good"
+            ]
+          }
+        ]
+      },
+      {
+        "frame": "ev_08_ev_20260624_152208_ppe_missing_high.jpg",
+        "n_a": 3,
+        "n_b": 6,
+        "pairs": [
+          {
+            "oks": 0.1182,
+            "pose_fallen": [
+              false,
+              false
+            ],
+            "head_below_hip": [
+              false,
+              false
+            ],
+            "angle": [
+              0.5,
+              1.3
+            ],
+            "ergo_grade": [
+              "good",
+              "warn"
+            ],
+            "ERGO_MISMATCH": true
+          },
+          {
+            "oks": 0.3353,
+            "metrics_available": [
+              false,
+              false
+            ],
+            "ergo_grade": [
+              "warn",
+              "warn"
+            ]
+          },
+          {
+            "oks": 0.0134,
+            "metrics_available": [
+              false,
+              false
+            ],
+            "ergo_grade": [
+              "none",
+              "bad"
+            ],
+            "ERGO_MISMATCH": true
+          }
+        ]
+      },
+      {
+        "frame": "ev_09_ev_20260625_161126_zone_intrusion_high.jpg",
+        "n_a": 1,
+        "n_b": 1,
+        "pairs": [
+          {
+            "oks": 0.7616,
+            "metrics_available": [
+              false,
+              false
+            ],
+            "ergo_grade": [
+              "good",
+              "good"
+            ]
+          }
+        ]
+      },
+      {
+        "frame": "ev_10_ev_20260626_162552_ppe_missing_high.jpg",
+        "n_a": 2,
+        "n_b": 2,
+        "pairs": [
+          {
+            "oks": 0.7889,
+            "metrics_available": [
+              false,
+              false
+            ],
+            "ergo_grade": [
+              "good",
+              "good"
+            ]
+          },
+          {
+            "oks": 0.0871,
+            "metrics_available": [
+              false,
+              true
+            ],
+            "ergo_grade": [
+              "good",
+              "bad"
+            ],
+            "ERGO_MISMATCH": true
+          }
+        ]
+      },
+      {
+        "frame": "ev_11_ev_20260629_110806_ppe_missing_high.jpg",
+        "n_a": 3,
+        "n_b": 4,
+        "pairs": [
+          {
+            "oks": 0.7923,
+            "metrics_available": [
+              false,
+              false
+            ],
+            "ergo_grade": [
+              "good",
+              "good"
+            ]
+          },
+          {
+            "oks": 0.6234,
+            "pose_fallen": [
+              false,
+              false
+            ],
+            "head_below_hip": [
+              false,
+              false
+            ],
+            "angle": [
+              0.4,
+              1.7
+            ],
+            "ergo_grade": [
+              "warn",
+              "warn"
+            ]
+          },
+          {
+            "oks": 0.4146,
+            "pose_fallen": [
+              false,
+              false
+            ],
+            "head_below_hip": [
+              false,
+              false
+            ],
+            "angle": [
+              12.4,
+              11.2
+            ],
+            "ergo_grade": [
+              "good",
+              "good"
+            ]
+          }
+        ]
+      },
+      {
+        "frame": "ev_12_ev_20260630_170255_proximity_hazard_high.jpg",
+        "n_a": 3,
+        "n_b": 6,
+        "pairs": [
+          {
+            "oks": 0.7981,
+            "pose_fallen": [
+              false,
+              false
+            ],
+            "head_below_hip": [
+              false,
+              false
+            ],
+            "angle": [
+              1.8,
+              2.0
+            ],
+            "ergo_grade": [
+              "good",
+              "good"
+            ]
+          },
+          {
+            "oks": 0.7627,
+            "metrics_available": [
+              false,
+              false
+            ],
+            "ergo_grade": [
+              "good",
+              "good"
+            ]
+          },
+          {
+            "oks": 0.5017,
+            "pose_fallen": [
+              false,
+              false
+            ],
+            "head_below_hip": [
+              false,
+              false
+            ],
+            "angle": [
+              0.0,
+              0.0
+            ],
+            "ergo_grade": [
+              "warn",
+              "warn"
+            ]
+          }
+        ]
+      },
+      {
+        "frame": "ev_13_ev_20260701_161408_ppe_missing_high.jpg",
+        "n_a": 4,
+        "n_b": 5,
+        "pairs": [
+          {
+            "oks": 0.9436,
+            "metrics_available": [
+              false,
+              false
+            ],
+            "ergo_grade": [
+              "good",
+              "good"
+            ]
+          },
+          {
+            "oks": 0.0082,
+            "metrics_available": [
+              false,
+              true
+            ],
+            "ergo_grade": [
+              "none",
+              "bad"
+            ],
+            "ERGO_MISMATCH": true
+          },
+          {
+            "oks": 0.4921,
+            "pose_fallen": [
+              false,
+              false
+            ],
+            "head_below_hip": [
+              false,
+              false
+            ],
+            "angle": [
+              7.5,
+              12.5
+            ],
+            "ergo_grade": [
+              "bad",
+              "good"
+            ],
+            "ERGO_MISMATCH": true
+          },
+          {
+            "oks": 0.0,
+            "metrics_available": [
+              true,
+              false
+            ],
+            "ergo_grade": [
+              "bad",
+              "bad"
+            ]
+          }
+        ]
+      },
+      {
+        "frame": "ev_14_ev_20260701_170701_ppe_missing_high.jpg",
+        "n_a": 2,
+        "n_b": 2,
+        "pairs": [
+          {
+            "oks": 0.9189,
+            "metrics_available": [
+              false,
+              false
+            ],
+            "ergo_grade": [
+              "good",
+              "good"
+            ]
+          },
+          {
+            "oks": 0.3923,
+            "metrics_available": [
+              false,
+              true
+            ],
+            "ergo_grade": [
+              "warn",
+              "good"
+            ],
+            "ERGO_MISMATCH": true
+          }
+        ]
+      },
+      {
+        "frame": "ev_15_ev_20260701_171340_ppe_missing_high.jpg",
+        "n_a": 2,
+        "n_b": 4,
+        "pairs": [
+          {
+            "oks": 0.8661,
+            "metrics_available": [
+              false,
+              false
+            ],
+            "ergo_grade": [
+              "good",
+              "good"
+            ]
+          },
+          {
+            "oks": 0.5585,
+            "metrics_available": [
+              false,
+              true
+            ],
+            "ergo_grade": [
+              "good",
+              "good"
+            ]
+          }
+        ]
+      },
+      {
+        "frame": "ev_16_ev_20260701_172014_ppe_missing_high.jpg",
+        "n_a": 2,
+        "n_b": 3,
+        "pairs": [
+          {
+            "oks": 0.818,
+            "metrics_available": [
+              false,
+              false
+            ],
+            "ergo_grade": [
+              "good",
+              "good"
+            ]
+          },
+          {
+            "oks": 0.6833,
+            "pose_fallen": [
+              false,
+              false
+            ],
+            "head_below_hip": [
+              false,
+              false
+            ],
+            "angle": [
+              2.1,
+              8.0
+            ],
+            "ergo_grade": [
+              "warn",
+              "warn"
+            ]
+          }
+        ]
+      },
+      {
+        "frame": "ev_17_ev_20260701_173908_ppe_missing_high.jpg",
+        "n_a": 3,
+        "n_b": 4,
+        "pairs": [
+          {
+            "oks": 0.7965,
+            "metrics_available": [
+              false,
+              false
+            ],
+            "ergo_grade": [
+              "good",
+              "good"
+            ]
+          },
+          {
+            "oks": 0.6594,
+            "pose_fallen": [
+              false,
+              false
+            ],
+            "head_below_hip": [
+              false,
+              false
+            ],
+            "angle": [
+              4.3,
+              5.9
+            ],
+            "ergo_grade": [
+              "good",
+              "warn"
+            ],
+            "ERGO_MISMATCH": true
+          },
+          {
+            "oks": 0.2842,
+            "pose_fallen": [
+              false,
+              false
+            ],
+            "head_below_hip": [
+              false,
+              false
+            ],
+            "angle": [
+              0.5,
+              1.9
+            ],
+            "ergo_grade": [
+              "bad",
+              "warn"
+            ],
+            "ERGO_MISMATCH": true
+          }
+        ]
+      },
+      {
+        "frame": "vid_pipe_000.jpg",
+        "n_a": 0,
+        "n_b": 1,
+        "pairs": []
+      },
+      {
+        "frame": "vid_pipe_012.jpg",
+        "n_a": 0,
+        "n_b": 1,
+        "pairs": []
+      },
+      {
+        "frame": "vid_pipe_024.jpg",
+        "n_a": 0,
+        "n_b": 1,
+        "pairs": []
+      },
+      {
+        "frame": "vid_pipe_036.jpg",
+        "n_a": 0,
+        "n_b": 1,
+        "pairs": []
+      },
+      {
+        "frame": "vid_walk_000.jpg",
+        "n_a": 1,
+        "n_b": 1,
+        "pairs": [
+          {
+            "oks": 0.6194,
+            "pose_fallen": [
+              false,
+              false
+            ],
+            "head_below_hip": [
+              false,
+              false
+            ],
+            "angle": [
+              31.2,
+              27.3
+            ],
+            "ergo_grade": [
+              "bad",
+              "bad"
+            ]
+          }
+        ]
+      },
+      {
+        "frame": "vid_walk_006.jpg",
+        "n_a": 1,
+        "n_b": 1,
+        "pairs": [
+          {
+            "oks": 0.6431,
+            "pose_fallen": [
+              false,
+              false
+            ],
+            "head_below_hip": [
+              false,
+              false
+            ],
+            "angle": [
+              32.2,
+              27.2
+            ],
+            "ergo_grade": [
+              "bad",
+              "bad"
+            ]
+          }
+        ]
+      },
+      {
+        "frame": "vid_walk_012.jpg",
+        "n_a": 1,
+        "n_b": 1,
+        "pairs": [
+          {
+            "oks": 0.7006,
+            "pose_fallen": [
+              false,
+              false
+            ],
+            "head_below_hip": [
+              false,
+              false
+            ],
+            "angle": [
+              32.2,
+              27.5
+            ],
+            "ergo_grade": [
+              "warn",
+              "bad"
+            ],
+            "ERGO_MISMATCH": true
+          }
+        ]
+      },
+      {
+        "frame": "vid_walk_018.jpg",
+        "n_a": 1,
+        "n_b": 1,
+        "pairs": [
+          {
+            "oks": 0.6776,
+            "pose_fallen": [
+              false,
+              false
+            ],
+            "head_below_hip": [
+              false,
+              false
+            ],
+            "angle": [
+              31.7,
+              27.4
+            ],
+            "ergo_grade": [
+              "bad",
+              "bad"
+            ]
+          }
+        ]
+      },
+      {
+        "frame": "vid_walk_024.jpg",
+        "n_a": 1,
+        "n_b": 1,
+        "pairs": [
+          {
+            "oks": 0.6576,
+            "pose_fallen": [
+              false,
+              false
+            ],
+            "head_below_hip": [
+              false,
+              false
+            ],
+            "angle": [
+              31.4,
+              27.8
+            ],
+            "ergo_grade": [
+              "bad",
+              "bad"
+            ]
+          }
+        ]
+      },
+      {
+        "frame": "vid_walk_030.jpg",
+        "n_a": 1,
+        "n_b": 1,
+        "pairs": [
+          {
+            "oks": 0.6715,
+            "pose_fallen": [
+              false,
+              false
+            ],
+            "head_below_hip": [
+              false,
+              false
+            ],
+            "angle": [
+              31.1,
+              27.8
+            ],
+            "ergo_grade": [
+              "bad",
+              "bad"
+            ]
+          }
+        ]
+      },
+      {
+        "frame": "vid_walk_036.jpg",
+        "n_a": 1,
+        "n_b": 1,
+        "pairs": [
+          {
+            "oks": 0.6576,
+            "pose_fallen": [
+              false,
+              false
+            ],
+            "head_below_hip": [
+              false,
+              false
+            ],
+            "angle": [
+              31.4,
+              27.8
+            ],
+            "ergo_grade": [
+              "bad",
+              "bad"
+            ]
+          }
+        ]
+      },
+      {
+        "frame": "vid_walk_042.jpg",
+        "n_a": 1,
+        "n_b": 1,
+        "pairs": [
+          {
+            "oks": 0.6715,
+            "pose_fallen": [
+              false,
+              false
+            ],
+            "head_below_hip": [
+              false,
+              false
+            ],
+            "angle": [
+              31.1,
+              27.8
+            ],
+            "ergo_grade": [
+              "bad",
+              "bad"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "_meta": {
+    "gate_redefinition_rationale": "초기 게이트(등급 불일치 ≤1)는 (a)검출집합 차이로 인한 매칭 아티팩트와 (b)임계 경계 플립을 구분하지 못했음. 재정의는 게이트 미달을 회피하기 위함이 아니라 측정 대상을 '실질 포즈 품질 차이'로 정밀화하기 위함. 매칭은 박스 IoU≥0.5(동일 인물)로 하고, OKS 는 매칭 기준이 아닌 품질 지표로만 사용.",
+    "ergo_gate_hard": "IoU 매칭 쌍에서 유효등급 2단계 이상 점프(|rank|≥2, 예: good↔bad·none→bad·none→warn) 0건",
+    "ergo_gate_soft_watch": "1단계 플립(|rank|=1)은 게이트 아님. 각도차 병기: ≤7°=임계분류 고유민감성, >7°=실질 포즈차이(오버레이 대상)",
+    "fall_gate": "pose_fallen 불리언 불일치 0건(기존 pose_frames 셋 기준)",
+    "grade_rank": {
+      "none": 0,
+      "good": 1,
+      "warn": 2,
+      "bad": 3
+    }
+  },
+  "yolo_vs_rtmpose_fall": {
+    "summary": {
+      "backend_a": "yolo",
+      "backend_b": "rtmpose",
+      "frame_set": "pose_frames",
+      "frames": 28,
+      "matched_pairs": 29,
+      "detection_set_diff": {
+        "unmatched_a(yolo만)": 13,
+        "unmatched_b(rtmpose만)": 35
+      },
+      "fall_gate_pose_fallen_mismatch": 0,
+      "ergo_gate_hard_mismatch": 0,
+      "ergo_soft_flips_total": 6,
+      "ergo_soft_flips_real(>7deg)": 6,
+      "mean_oks_matched": 0.6202,
+      "fall_mismatch_detail": [],
+      "ergo_hard_detail": [],
+      "ergo_soft_detail": [
+        {
+          "frame": "ev_04_ev_20260619_141526_ppe_missing_medium.jpg",
+          "grade": [
+            "good",
+            "warn"
+          ],
+          "angle_diff": 27.1,
+          "kind": "실질차이(>7°)"
+        },
+        {
+          "frame": "ev_07_ev_20260619_154127_ppe_missing_medium.jpg",
+          "grade": [
+            "good",
+            "warn"
+          ],
+          "angle_diff": 15.0,
+          "kind": "실질차이(>7°)"
+        },
+        {
+          "frame": "ev_07_ev_20260619_154127_ppe_missing_medium.jpg",
+          "grade": [
+            "good",
+            "warn"
+          ],
+          "angle_diff": 22.8,
+          "kind": "실질차이(>7°)"
+        },
+        {
+          "frame": "ev_14_ev_20260701_170701_ppe_missing_high.jpg",
+          "grade": [
+            "warn",
+            "good"
+          ],
+          "angle_diff": 12.9,
+          "kind": "실질차이(>7°)"
+        },
+        {
+          "frame": "ev_17_ev_20260701_173908_ppe_missing_high.jpg",
+          "grade": [
+            "bad",
+            "warn"
+          ],
+          "angle_diff": 14.4,
+          "kind": "실질차이(>7°)"
+        },
+        {
+          "frame": "vid_walk_012.jpg",
+          "grade": [
+            "warn",
+            "bad"
+          ],
+          "angle_diff": 9.5,
+          "kind": "실질차이(>7°)"
+        }
+      ]
+    },
+    "frames": [
+      {
+        "frame": "ev_00_ev_20260625_161402_ergonomic_risk_low.jpg",
+        "n_a": 1,
+        "n_b": 1,
+        "unmatched_a": 1,
+        "unmatched_b": 1,
+        "pairs": []
+      },
+      {
+        "frame": "ev_01_ev_20260625_161402_fall_suspected_critical.jpg",
+        "n_a": 0,
+        "n_b": 1,
+        "unmatched_a": 0,
+        "unmatched_b": 1,
+        "pairs": []
+      },
+      {
+        "frame": "ev_02_ev_20260703_223336_ergonomic_risk_높음.jpg",
+        "n_a": 0,
+        "n_b": 1,
+        "unmatched_a": 0,
+        "unmatched_b": 1,
+        "pairs": []
+      },
+      {
+        "frame": "ev_04_ev_20260619_141526_ppe_missing_medium.jpg",
+        "n_a": 3,
+        "n_b": 5,
+        "unmatched_a": 2,
+        "unmatched_b": 4,
+        "pairs": [
+          {
+            "oks": 0.3561,
+            "ergo_grade": [
+              "good",
+              "warn"
+            ],
+            "ERGO_SOFT": "실질차이(>7°)"
+          }
+        ]
+      },
+      {
+        "frame": "ev_06_ev_20260619_150318_ppe_missing_medium.jpg",
+        "n_a": 2,
+        "n_b": 3,
+        "unmatched_a": 0,
+        "unmatched_b": 1,
+        "pairs": [
+          {
+            "oks": 0.7929,
+            "ergo_grade": [
+              "good",
+              "good"
+            ]
+          },
+          {
+            "oks": 0.3985,
+            "pose_fallen": [
+              false,
+              false
+            ],
+            "angle": [
+              5.9,
+              11.5
+            ],
+            "ergo_grade": [
+              "good",
+              "good"
+            ]
+          }
+        ]
+      },
+      {
+        "frame": "ev_07_ev_20260619_154127_ppe_missing_medium.jpg",
+        "n_a": 3,
+        "n_b": 4,
+        "unmatched_a": 0,
+        "unmatched_b": 1,
+        "pairs": [
+          {
+            "oks": 0.5147,
+            "pose_fallen": [
+              false,
+              false
+            ],
+            "angle": [
+              7.8,
+              5.3
+            ],
+            "ergo_grade": [
+              "good",
+              "warn"
+            ],
+            "ERGO_SOFT": "실질차이(>7°)"
+          },
+          {
+            "oks": 0.7297,
+            "ergo_grade": [
+              "good",
+              "good"
+            ]
+          },
+          {
+            "oks": 0.2314,
+            "pose_fallen": [
+              false,
+              false
+            ],
+            "angle": [
+              8.4,
+              31.2
+            ],
+            "ergo_grade": [
+              "good",
+              "warn"
+            ],
+            "ERGO_SOFT": "실질차이(>7°)"
+          }
+        ]
+      },
+      {
+        "frame": "ev_08_ev_20260624_152208_ppe_missing_high.jpg",
+        "n_a": 3,
+        "n_b": 6,
+        "unmatched_a": 2,
+        "unmatched_b": 5,
+        "pairs": [
+          {
+            "oks": 0.3353,
+            "ergo_grade": [
+              "warn",
+              "warn"
+            ]
+          }
+        ]
+      },
+      {
+        "frame": "ev_09_ev_20260625_161126_zone_intrusion_high.jpg",
+        "n_a": 1,
+        "n_b": 1,
+        "unmatched_a": 0,
+        "unmatched_b": 0,
+        "pairs": [
+          {
+            "oks": 0.7616,
+            "ergo_grade": [
+              "good",
+              "good"
+            ]
+          }
+        ]
+      },
+      {
+        "frame": "ev_10_ev_20260626_162552_ppe_missing_high.jpg",
+        "n_a": 2,
+        "n_b": 2,
+        "unmatched_a": 1,
+        "unmatched_b": 1,
+        "pairs": [
+          {
+            "oks": 0.7889,
+            "ergo_grade": [
+              "good",
+              "good"
+            ]
+          }
+        ]
+      },
+      {
+        "frame": "ev_11_ev_20260629_110806_ppe_missing_high.jpg",
+        "n_a": 3,
+        "n_b": 4,
+        "unmatched_a": 0,
+        "unmatched_b": 1,
+        "pairs": [
+          {
+            "oks": 0.6234,
+            "pose_fallen": [
+              false,
+              false
+            ],
+            "angle": [
+              0.4,
+              1.7
+            ],
+            "ergo_grade": [
+              "warn",
+              "warn"
+            ]
+          },
+          {
+            "oks": 0.4146,
+            "pose_fallen": [
+              false,
+              false
+            ],
+            "angle": [
+              12.4,
+              11.2
+            ],
+            "ergo_grade": [
+              "good",
+              "good"
+            ]
+          },
+          {
+            "oks": 0.7923,
+            "ergo_grade": [
+              "good",
+              "good"
+            ]
+          }
+        ]
+      },
+      {
+        "frame": "ev_12_ev_20260630_170255_proximity_hazard_high.jpg",
+        "n_a": 3,
+        "n_b": 6,
+        "unmatched_a": 1,
+        "unmatched_b": 4,
+        "pairs": [
+          {
+            "oks": 0.7981,
+            "pose_fallen": [
+              false,
+              false
+            ],
+            "angle": [
+              1.8,
+              2.0
+            ],
+            "ergo_grade": [
+              "good",
+              "good"
+            ]
+          },
+          {
+            "oks": 0.5017,
+            "pose_fallen": [
+              false,
+              false
+            ],
+            "angle": [
+              0.0,
+              0.0
+            ],
+            "ergo_grade": [
+              "warn",
+              "warn"
+            ]
+          }
+        ]
+      },
+      {
+        "frame": "ev_13_ev_20260701_161408_ppe_missing_high.jpg",
+        "n_a": 4,
+        "n_b": 5,
+        "unmatched_a": 3,
+        "unmatched_b": 4,
+        "pairs": [
+          {
+            "oks": 0.9436,
+            "ergo_grade": [
+              "good",
+              "good"
+            ]
+          }
+        ]
+      },
+      {
+        "frame": "ev_14_ev_20260701_170701_ppe_missing_high.jpg",
+        "n_a": 2,
+        "n_b": 2,
+        "unmatched_a": 0,
+        "unmatched_b": 0,
+        "pairs": [
+          {
+            "oks": 0.9189,
+            "ergo_grade": [
+              "good",
+              "good"
+            ]
+          },
+          {
+            "oks": 0.3923,
+            "ergo_grade": [
+              "warn",
+              "good"
+            ],
+            "ERGO_SOFT": "실질차이(>7°)"
+          }
+        ]
+      },
+      {
+        "frame": "ev_15_ev_20260701_171340_ppe_missing_high.jpg",
+        "n_a": 2,
+        "n_b": 4,
+        "unmatched_a": 0,
+        "unmatched_b": 2,
+        "pairs": [
+          {
+            "oks": 0.8661,
+            "ergo_grade": [
+              "good",
+              "good"
+            ]
+          },
+          {
+            "oks": 0.5585,
+            "ergo_grade": [
+              "good",
+              "good"
+            ]
+          }
+        ]
+      },
+      {
+        "frame": "ev_16_ev_20260701_172014_ppe_missing_high.jpg",
+        "n_a": 2,
+        "n_b": 3,
+        "unmatched_a": 1,
+        "unmatched_b": 2,
+        "pairs": [
+          {
+            "oks": 0.6833,
+            "pose_fallen": [
+              false,
+              false
+            ],
+            "angle": [
+              2.1,
+              8.0
+            ],
+            "ergo_grade": [
+              "warn",
+              "warn"
+            ]
+          }
+        ]
+      },
+      {
+        "frame": "ev_17_ev_20260701_173908_ppe_missing_high.jpg",
+        "n_a": 3,
+        "n_b": 4,
+        "unmatched_a": 2,
+        "unmatched_b": 3,
+        "pairs": [
+          {
+            "oks": 0.2842,
+            "pose_fallen": [
+              false,
+              false
+            ],
+            "angle": [
+              0.5,
+              1.9
+            ],
+            "ergo_grade": [
+              "bad",
+              "warn"
+            ],
+            "ERGO_SOFT": "실질차이(>7°)"
+          }
+        ]
+      },
+      {
+        "frame": "vid_pipe_000.jpg",
+        "n_a": 0,
+        "n_b": 1,
+        "unmatched_a": 0,
+        "unmatched_b": 1,
+        "pairs": []
+      },
+      {
+        "frame": "vid_pipe_012.jpg",
+        "n_a": 0,
+        "n_b": 1,
+        "unmatched_a": 0,
+        "unmatched_b": 1,
+        "pairs": []
+      },
+      {
+        "frame": "vid_pipe_024.jpg",
+        "n_a": 0,
+        "n_b": 1,
+        "unmatched_a": 0,
+        "unmatched_b": 1,
+        "pairs": []
+      },
+      {
+        "frame": "vid_pipe_036.jpg",
+        "n_a": 0,
+        "n_b": 1,
+        "unmatched_a": 0,
+        "unmatched_b": 1,
+        "pairs": []
+      },
+      {
+        "frame": "vid_walk_000.jpg",
+        "n_a": 1,
+        "n_b": 1,
+        "unmatched_a": 0,
+        "unmatched_b": 0,
+        "pairs": [
+          {
+            "oks": 0.6194,
+            "pose_fallen": [
+              false,
+              false
+            ],
+            "angle": [
+              31.2,
+              27.3
+            ],
+            "ergo_grade": [
+              "bad",
+              "bad"
+            ]
+          }
+        ]
+      },
+      {
+        "frame": "vid_walk_006.jpg",
+        "n_a": 1,
+        "n_b": 1,
+        "unmatched_a": 0,
+        "unmatched_b": 0,
+        "pairs": [
+          {
+            "oks": 0.6431,
+            "pose_fallen": [
+              false,
+              false
+            ],
+            "angle": [
+              32.2,
+              27.2
+            ],
+            "ergo_grade": [
+              "bad",
+              "bad"
+            ]
+          }
+        ]
+      },
+      {
+        "frame": "vid_walk_012.jpg",
+        "n_a": 1,
+        "n_b": 1,
+        "unmatched_a": 0,
+        "unmatched_b": 0,
+        "pairs": [
+          {
+            "oks": 0.7006,
+            "pose_fallen": [
+              false,
+              false
+            ],
+            "angle": [
+              32.2,
+              27.5
+            ],
+            "ergo_grade": [
+              "warn",
+              "bad"
+            ],
+            "ERGO_SOFT": "실질차이(>7°)"
+          }
+        ]
+      },
+      {
+        "frame": "vid_walk_018.jpg",
+        "n_a": 1,
+        "n_b": 1,
+        "unmatched_a": 0,
+        "unmatched_b": 0,
+        "pairs": [
+          {
+            "oks": 0.6776,
+            "pose_fallen": [
+              false,
+              false
+            ],
+            "angle": [
+              31.7,
+              27.4
+            ],
+            "ergo_grade": [
+              "bad",
+              "bad"
+            ]
+          }
+        ]
+      },
+      {
+        "frame": "vid_walk_024.jpg",
+        "n_a": 1,
+        "n_b": 1,
+        "unmatched_a": 0,
+        "unmatched_b": 0,
+        "pairs": [
+          {
+            "oks": 0.6576,
+            "pose_fallen": [
+              false,
+              false
+            ],
+            "angle": [
+              31.4,
+              27.8
+            ],
+            "ergo_grade": [
+              "bad",
+              "bad"
+            ]
+          }
+        ]
+      },
+      {
+        "frame": "vid_walk_030.jpg",
+        "n_a": 1,
+        "n_b": 1,
+        "unmatched_a": 0,
+        "unmatched_b": 0,
+        "pairs": [
+          {
+            "oks": 0.6715,
+            "pose_fallen": [
+              false,
+              false
+            ],
+            "angle": [
+              31.1,
+              27.8
+            ],
+            "ergo_grade": [
+              "bad",
+              "bad"
+            ]
+          }
+        ]
+      },
+      {
+        "frame": "vid_walk_036.jpg",
+        "n_a": 1,
+        "n_b": 1,
+        "unmatched_a": 0,
+        "unmatched_b": 0,
+        "pairs": [
+          {
+            "oks": 0.6576,
+            "pose_fallen": [
+              false,
+              false
+            ],
+            "angle": [
+              31.4,
+              27.8
+            ],
+            "ergo_grade": [
+              "bad",
+              "bad"
+            ]
+          }
+        ]
+      },
+      {
+        "frame": "vid_walk_042.jpg",
+        "n_a": 1,
+        "n_b": 1,
+        "unmatched_a": 0,
+        "unmatched_b": 0,
+        "pairs": [
+          {
+            "oks": 0.6715,
+            "pose_fallen": [
+              false,
+              false
+            ],
+            "angle": [
+              31.1,
+              27.8
+            ],
+            "ergo_grade": [
+              "bad",
+              "bad"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "yolo_vs_rtmpose_ergo": {
+    "summary": {
+      "backend_a": "yolo",
+      "backend_b": "rtmpose",
+      "frame_set": "pose_frames_ergo",
+      "frames": 13,
+      "matched_pairs": 14,
+      "detection_set_diff": {
+        "unmatched_a(yolo만)": 1,
+        "unmatched_b(rtmpose만)": 4
+      },
+      "fall_gate_pose_fallen_mismatch": 2,
+      "ergo_gate_hard_mismatch": 0,
+      "ergo_soft_flips_total": 5,
+      "ergo_soft_flips_real(>7deg)": 4,
+      "mean_oks_matched": 0.7316,
+      "fall_mismatch_detail": [
+        {
+          "frame": "ergo_00_ev_20260624_114654_ppe_missing_high.jpg",
+          "oks": 0.8726,
+          "angle": [
+            2.0,
+            1.7
+          ]
+        },
+        {
+          "frame": "ergo_07_intrusion_172343.jpg",
+          "oks": 0.6079,
+          "angle": [
+            27.3,
+            22.1
+          ]
+        }
+      ],
+      "ergo_hard_detail": [],
+      "ergo_soft_detail": [
+        {
+          "frame": "ergo_01_ev_20260702_000949_zone_intrusion_high.jpg",
+          "grade": [
+            "good",
+            "warn"
+          ],
+          "angle_diff": 6.2,
+          "kind": "경계민감성(≤7°)"
+        },
+        {
+          "frame": "ergo_08_ev_20260702_000952_fire_smoke_critical.jpg",
+          "grade": [
+            "warn",
+            "bad"
+          ],
+          "angle_diff": 12.6,
+          "kind": "실질차이(>7°)"
+        },
+        {
+          "frame": "ergo_10_intrusion_172358.jpg",
+          "grade": [
+            "good",
+            "warn"
+          ],
+          "angle_diff": 11.6,
+          "kind": "실질차이(>7°)"
+        },
+        {
+          "frame": "ergo_11_intrusion_174702.jpg",
+          "grade": [
+            "warn",
+            "bad"
+          ],
+          "angle_diff": 10.6,
+          "kind": "실질차이(>7°)"
+        },
+        {
+          "frame": "ergo_12_ev_20260702_001005_zone_intrusion_high.jpg",
+          "grade": [
+            "good",
+            "warn"
+          ],
+          "angle_diff": 9.2,
+          "kind": "실질차이(>7°)"
+        }
+      ]
+    },
+    "frames": [
+      {
+        "frame": "ergo_00_ev_20260624_114654_ppe_missing_high.jpg",
+        "n_a": 1,
+        "n_b": 3,
+        "unmatched_a": 0,
+        "unmatched_b": 2,
+        "pairs": [
+          {
+            "oks": 0.8726,
+            "pose_fallen": [
+              true,
+              false
+            ],
+            "angle": [
+              2.0,
+              1.7
+            ],
+            "FALLEN_MISMATCH": true,
+            "ergo_grade": [
+              "good",
+              "good"
+            ]
+          }
+        ]
+      },
+      {
+        "frame": "ergo_01_ev_20260702_000949_zone_intrusion_high.jpg",
+        "n_a": 1,
+        "n_b": 1,
+        "unmatched_a": 0,
+        "unmatched_b": 0,
+        "pairs": [
+          {
+            "oks": 0.7618,
+            "pose_fallen": [
+              false,
+              false
+            ],
+            "angle": [
+              4.6,
+              10.8
+            ],
+            "ergo_grade": [
+              "good",
+              "warn"
+            ],
+            "ERGO_SOFT": "경계민감성(≤7°)"
+          }
+        ]
+      },
+      {
+        "frame": "ergo_02_ev_20260702_001015_ppe_missing_high.jpg",
+        "n_a": 1,
+        "n_b": 1,
+        "unmatched_a": 0,
+        "unmatched_b": 0,
+        "pairs": [
+          {
+            "oks": 0.8327,
+            "pose_fallen": [
+              false,
+              false
+            ],
+            "angle": [
+              4.6,
+              4.4
+            ],
+            "ergo_grade": [
+              "good",
+              "good"
+            ]
+          }
+        ]
+      },
+      {
+        "frame": "ergo_03_intrusion_183009.jpg",
+        "n_a": 1,
+        "n_b": 1,
+        "unmatched_a": 0,
+        "unmatched_b": 0,
+        "pairs": [
+          {
+            "oks": 0.8121,
+            "pose_fallen": [
+              true,
+              true
+            ],
+            "angle": [
+              5.9,
+              1.8
+            ],
+            "ergo_grade": [
+              "warn",
+              "warn"
+            ]
+          }
+        ]
+      },
+      {
+        "frame": "ergo_04_intrusion_230105.jpg",
+        "n_a": 1,
+        "n_b": 1,
+        "unmatched_a": 0,
+        "unmatched_b": 0,
+        "pairs": [
+          {
+            "oks": 0.7719,
+            "pose_fallen": [
+              true,
+              true
+            ],
+            "angle": [
+              18.1,
+              17.5
+            ],
+            "ergo_grade": [
+              "good",
+              "good"
+            ]
+          }
+        ]
+      },
+      {
+        "frame": "ergo_05_intrusion_172802.jpg",
+        "n_a": 1,
+        "n_b": 1,
+        "unmatched_a": 0,
+        "unmatched_b": 0,
+        "pairs": [
+          {
+            "oks": 0.7592,
+            "pose_fallen": [
+              true,
+              true
+            ],
+            "angle": [
+              33.2,
+              24.5
+            ],
+            "ergo_grade": [
+              "warn",
+              "warn"
+            ]
+          }
+        ]
+      },
+      {
+        "frame": "ergo_06_intrusion_174827.jpg",
+        "n_a": 2,
+        "n_b": 2,
+        "unmatched_a": 1,
+        "unmatched_b": 1,
+        "pairs": [
+          {
+            "oks": 0.662,
+            "pose_fallen": [
+              false,
+              false
+            ],
+            "angle": [
+              13.1,
+              9.3
+            ],
+            "ergo_grade": [
+              "good",
+              "good"
+            ]
+          }
+        ]
+      },
+      {
+        "frame": "ergo_07_intrusion_172343.jpg",
+        "n_a": 1,
+        "n_b": 1,
+        "unmatched_a": 0,
+        "unmatched_b": 0,
+        "pairs": [
+          {
+            "oks": 0.6079,
+            "pose_fallen": [
+              false,
+              true
+            ],
+            "angle": [
+              27.3,
+              22.1
+            ],
+            "FALLEN_MISMATCH": true,
+            "ergo_grade": [
+              "warn",
+              "warn"
+            ]
+          }
+        ]
+      },
+      {
+        "frame": "ergo_08_ev_20260702_000952_fire_smoke_critical.jpg",
+        "n_a": 1,
+        "n_b": 1,
+        "unmatched_a": 0,
+        "unmatched_b": 0,
+        "pairs": [
+          {
+            "oks": 0.8575,
+            "pose_fallen": [
+              false,
+              false
+            ],
+            "angle": [
+              13.3,
+              12.5
+            ],
+            "ergo_grade": [
+              "warn",
+              "bad"
+            ],
+            "ERGO_SOFT": "실질차이(>7°)"
+          }
+        ]
+      },
+      {
+        "frame": "ergo_09_intrusion_172744.jpg",
+        "n_a": 1,
+        "n_b": 1,
+        "unmatched_a": 0,
+        "unmatched_b": 0,
+        "pairs": [
+          {
+            "oks": 0.5692,
+            "pose_fallen": [
+              false,
+              false
+            ],
+            "angle": [
+              13.9,
+              9.3
+            ],
+            "ergo_grade": [
+              "good",
+              "good"
+            ]
+          }
+        ]
+      },
+      {
+        "frame": "ergo_10_intrusion_172358.jpg",
+        "n_a": 1,
+        "n_b": 1,
+        "unmatched_a": 0,
+        "unmatched_b": 0,
+        "pairs": [
+          {
+            "oks": 0.7541,
+            "pose_fallen": [
+              false,
+              false
+            ],
+            "angle": [
+              16.9,
+              20.7
+            ],
+            "ergo_grade": [
+              "good",
+              "warn"
+            ],
+            "ERGO_SOFT": "실질차이(>7°)"
+          }
+        ]
+      },
+      {
+        "frame": "ergo_11_intrusion_174702.jpg",
+        "n_a": 2,
+        "n_b": 3,
+        "unmatched_a": 0,
+        "unmatched_b": 1,
+        "pairs": [
+          {
+            "oks": 0.423,
+            "ergo_grade": [
+              "warn",
+              "bad"
+            ],
+            "ERGO_SOFT": "실질차이(>7°)"
+          },
+          {
+            "oks": 0.6253,
+            "pose_fallen": [
+              false,
+              false
+            ],
+            "angle": [
+              22.3,
+              31.4
+            ],
+            "ergo_grade": [
+              "warn",
+              "warn"
+            ]
+          }
+        ]
+      },
+      {
+        "frame": "ergo_12_ev_20260702_001005_zone_intrusion_high.jpg",
+        "n_a": 1,
+        "n_b": 1,
+        "unmatched_a": 0,
+        "unmatched_b": 0,
+        "pairs": [
+          {
+            "oks": 0.9334,
+            "pose_fallen": [
+              false,
+              false
+            ],
+            "angle": [
+              0.9,
+              1.5
+            ],
+            "ergo_grade": [
+              "good",
+              "warn"
+            ],
+            "ERGO_SOFT": "실질차이(>7°)"
+          }
+        ]
+      }
+    ]
+  },
+  "rtmpose_vs_rtmpose_rfdetr_s2fall": {
+    "summary": {
+      "backend_a": "rtmpose",
+      "backend_b": "rtmpose_rfdetr",
+      "frame_set": "pose_frames",
+      "frames": 28,
+      "matched_pairs": 47,
+      "detection_set_diff": {
+        "unmatched_a(yolo만)": 17,
+        "unmatched_b(rtmpose만)": 18
+      },
+      "fall_gate_pose_fallen_mismatch": 0,
+      "ergo_gate_hard_mismatch": 0,
+      "ergo_soft_flips_total": 4,
+      "ergo_soft_flips_real(>7deg)": 3,
+      "mean_oks_matched": 0.8528,
+      "fall_mismatch_detail": [],
+      "ergo_hard_detail": [],
+      "ergo_soft_detail": [
+        {
+          "frame": "ev_04_ev_20260619_141526_ppe_missing_medium.jpg",
+          "grade": [
+            "warn",
+            "good"
+          ],
+          "angle_diff": 20.3,
+          "kind": "실질차이(>7°)"
+        },
+        {
+          "frame": "ev_11_ev_20260629_110806_ppe_missing_high.jpg",
+          "grade": [
+            "warn",
+            "bad"
+          ],
+          "angle_diff": 12.0,
+          "kind": "실질차이(>7°)"
+        },
+        {
+          "frame": "ev_16_ev_20260701_172014_ppe_missing_high.jpg",
+          "grade": [
+            "warn",
+            "bad"
+          ],
+          "angle_diff": 4.1,
+          "kind": "경계민감성(≤7°)"
+        },
+        {
+          "frame": "ev_17_ev_20260701_173908_ppe_missing_high.jpg",
+          "grade": [
+            "warn",
+            "bad"
+          ],
+          "angle_diff": 9.5,
+          "kind": "실질차이(>7°)"
+        }
+      ]
+    },
+    "frames": [
+      {
+        "frame": "ev_00_ev_20260625_161402_ergonomic_risk_low.jpg",
+        "n_a": 1,
+        "n_b": 1,
+        "unmatched_a": 0,
+        "unmatched_b": 0,
+        "pairs": [
+          {
+            "oks": 0.8474,
+            "pose_fallen": [
+              false,
+              false
+            ],
+            "angle": [
+              29.1,
+              28.5
+            ],
+            "ergo_grade": [
+              "bad",
+              "bad"
+            ]
+          }
+        ]
+      },
+      {
+        "frame": "ev_01_ev_20260625_161402_fall_suspected_critical.jpg",
+        "n_a": 1,
+        "n_b": 0,
+        "unmatched_a": 1,
+        "unmatched_b": 0,
+        "pairs": []
+      },
+      {
+        "frame": "ev_02_ev_20260703_223336_ergonomic_risk_높음.jpg",
+        "n_a": 1,
+        "n_b": 0,
+        "unmatched_a": 1,
+        "unmatched_b": 0,
+        "pairs": []
+      },
+      {
+        "frame": "ev_04_ev_20260619_141526_ppe_missing_medium.jpg",
+        "n_a": 5,
+        "n_b": 7,
+        "unmatched_a": 2,
+        "unmatched_b": 4,
+        "pairs": [
+          {
+            "oks": 0.8147,
+            "pose_fallen": [
+              false,
+              false
+            ],
+            "angle": [
+              31.5,
+              31.9
+            ],
+            "ergo_grade": [
+              "warn",
+              "warn"
+            ]
+          },
+          {
+            "oks": 0.9407,
+            "ergo_grade": [
+              "good",
+              "good"
+            ]
+          },
+          {
+            "oks": 0.91,
+            "ergo_grade": [
+              "warn",
+              "good"
+            ],
+            "ERGO_SOFT": "실질차이(>7°)"
+          }
+        ]
+      },
+      {
+        "frame": "ev_06_ev_20260619_150318_ppe_missing_medium.jpg",
+        "n_a": 3,
+        "n_b": 4,
+        "unmatched_a": 0,
+        "unmatched_b": 1,
+        "pairs": [
+          {
+            "oks": 0.981,
+            "pose_fallen": [
+              false,
+              false
+            ],
+            "angle": [
+              11.5,
+              12.3
+            ],
+            "ergo_grade": [
+              "good",
+              "good"
+            ]
+          },
+          {
+            "oks": 0.7416,
+            "ergo_grade": [
+              "none",
+              "none"
+            ]
+          },
+          {
+            "oks": 0.8387,
+            "ergo_grade": [
+              "good",
+              "good"
+            ]
+          }
+        ]
+      },
+      {
+        "frame": "ev_07_ev_20260619_154127_ppe_missing_medium.jpg",
+        "n_a": 4,
+        "n_b": 6,
+        "unmatched_a": 2,
+        "unmatched_b": 4,
+        "pairs": [
+          {
+            "oks": 0.9799,
+            "ergo_grade": [
+              "good",
+              "good"
+            ]
+          },
+          {
+            "oks": 0.8474,
+            "pose_fallen": [
+              false,
+              false
+            ],
+            "angle": [
+              5.3,
+              7.2
+            ],
+            "ergo_grade": [
+              "warn",
+              "warn"
+            ]
+          }
+        ]
+      },
+      {
+        "frame": "ev_08_ev_20260624_152208_ppe_missing_high.jpg",
+        "n_a": 6,
+        "n_b": 6,
+        "unmatched_a": 1,
+        "unmatched_b": 1,
+        "pairs": [
+          {
+            "oks": 0.9863,
+            "ergo_grade": [
+              "good",
+              "good"
+            ]
+          },
+          {
+            "oks": 0.9184,
+            "ergo_grade": [
+              "warn",
+              "warn"
+            ]
+          },
+          {
+            "oks": 0.766,
+            "pose_fallen": [
+              false,
+              false
+            ],
+            "angle": [
+              1.3,
+              1.7
+            ],
+            "ergo_grade": [
+              "warn",
+              "warn"
+            ]
+          },
+          {
+            "oks": 0.6904,
+            "ergo_grade": [
+              "bad",
+              "bad"
+            ]
+          },
+          {
+            "oks": 0.867,
+            "ergo_grade": [
+              "good",
+              "good"
+            ]
+          }
+        ]
+      },
+      {
+        "frame": "ev_09_ev_20260625_161126_zone_intrusion_high.jpg",
+        "n_a": 1,
+        "n_b": 1,
+        "unmatched_a": 0,
+        "unmatched_b": 0,
+        "pairs": [
+          {
+            "oks": 0.9657,
+            "ergo_grade": [
+              "good",
+              "good"
+            ]
+          }
+        ]
+      },
+      {
+        "frame": "ev_10_ev_20260626_162552_ppe_missing_high.jpg",
+        "n_a": 2,
+        "n_b": 3,
+        "unmatched_a": 0,
+        "unmatched_b": 1,
+        "pairs": [
+          {
+            "oks": 0.9889,
+            "pose_fallen": [
+              false,
+              false
+            ],
+            "angle": [
+              2.6,
+              3.7
+            ],
+            "ergo_grade": [
+              "bad",
+              "bad"
+            ]
+          },
+          {
+            "oks": 0.918,
+            "ergo_grade": [
+              "good",
+              "good"
+            ]
+          }
+        ]
+      },
+      {
+        "frame": "ev_11_ev_20260629_110806_ppe_missing_high.jpg",
+        "n_a": 4,
+        "n_b": 4,
+        "unmatched_a": 0,
+        "unmatched_b": 0,
+        "pairs": [
+          {
+            "oks": 0.9807,
+            "ergo_grade": [
+              "good",
+              "good"
+            ]
+          },
+          {
+            "oks": 0.9906,
+            "pose_fallen": [
+              false,
+              false
+            ],
+            "angle": [
+              11.2,
+              11.7
+            ],
+            "ergo_grade": [
+              "good",
+              "good"
+            ]
+          },
+          {
+            "oks": 0.0249,
+            "ergo_grade": [
+              "none",
+              "none"
+            ]
+          },
+          {
+            "oks": 0.5868,
+            "pose_fallen": [
+              false,
+              false
+            ],
+            "angle": [
+              1.7,
+              3.5
+            ],
+            "ergo_grade": [
+              "warn",
+              "bad"
+            ],
+            "ERGO_SOFT": "실질차이(>7°)"
+          }
+        ]
+      },
+      {
+        "frame": "ev_12_ev_20260630_170255_proximity_hazard_high.jpg",
+        "n_a": 6,
+        "n_b": 4,
+        "unmatched_a": 3,
+        "unmatched_b": 1,
+        "pairs": [
+          {
+            "oks": 0.9797,
+            "ergo_grade": [
+              "good",
+              "good"
+            ]
+          },
+          {
+            "oks": 0.9932,
+            "pose_fallen": [
+              false,
+              false
+            ],
+            "angle": [
+              2.0,
+              2.2
+            ],
+            "ergo_grade": [
+              "good",
+              "good"
+            ]
+          },
+          {
+            "oks": 0.9826,
+            "pose_fallen": [
+              false,
+              false
+            ],
+            "angle": [
+              7.4,
+              8.9
+            ],
+            "ergo_grade": [
+              "warn",
+              "warn"
+            ]
+          }
+        ]
+      },
+      {
+        "frame": "ev_13_ev_20260701_161408_ppe_missing_high.jpg",
+        "n_a": 5,
+        "n_b": 6,
+        "unmatched_a": 2,
+        "unmatched_b": 3,
+        "pairs": [
+          {
+            "oks": 0.99,
+            "ergo_grade": [
+              "good",
+              "good"
+            ]
+          },
+          {
+            "oks": 0.9882,
+            "pose_fallen": [
+              false,
+              false
+            ],
+            "angle": [
+              12.5,
+              13.5
+            ],
+            "ergo_grade": [
+              "good",
+              "good"
+            ]
+          },
+          {
+            "oks": 0.6188,
+            "pose_fallen": [
+              false,
+              false
+            ],
+            "angle": [
+              7.3,
+              5.2
+            ],
+            "ergo_grade": [
+              "bad",
+              "bad"
+            ]
+          }
+        ]
+      },
+      {
+        "frame": "ev_14_ev_20260701_170701_ppe_missing_high.jpg",
+        "n_a": 2,
+        "n_b": 2,
+        "unmatched_a": 0,
+        "unmatched_b": 0,
+        "pairs": [
+          {
+            "oks": 0.8407,
+            "pose_fallen": [
+              false,
+              false
+            ],
+            "angle": [
+              10.0,
+              10.8
+            ],
+            "ergo_grade": [
+              "good",
+              "good"
+            ]
+          },
+          {
+            "oks": 0.9928,
+            "ergo_grade": [
+              "good",
+              "good"
+            ]
+          }
+        ]
+      },
+      {
+        "frame": "ev_15_ev_20260701_171340_ppe_missing_high.jpg",
+        "n_a": 4,
+        "n_b": 5,
+        "unmatched_a": 0,
+        "unmatched_b": 1,
+        "pairs": [
+          {
+            "oks": 0.9371,
+            "pose_fallen": [
+              false,
+              false
+            ],
+            "angle": [
+              14.1,
+              15.0
+            ],
+            "ergo_grade": [
+              "good",
+              "good"
+            ]
+          },
+          {
+            "oks": 0.959,
+            "ergo_grade": [
+              "good",
+              "good"
+            ]
+          },
+          {
+            "oks": 0.5759,
+            "ergo_grade": [
+              "none",
+              "none"
+            ]
+          },
+          {
+            "oks": 0.7952,
+            "pose_fallen": [
+              false,
+              false
+            ],
+            "angle": [
+              7.8,
+              6.6
+            ],
+            "ergo_grade": [
+              "good",
+              "good"
+            ]
+          }
+        ]
+      },
+      {
+        "frame": "ev_16_ev_20260701_172014_ppe_missing_high.jpg",
+        "n_a": 3,
+        "n_b": 4,
+        "unmatched_a": 0,
+        "unmatched_b": 1,
+        "pairs": [
+          {
+            "oks": 0.981,
+            "ergo_grade": [
+              "good",
+              "good"
+            ]
+          },
+          {
+            "oks": 0.956,
+            "pose_fallen": [
+              false,
+              false
+            ],
+            "angle": [
+              0.5,
+              1.1
+            ],
+            "ergo_grade": [
+              "warn",
+              "warn"
+            ]
+          },
+          {
+            "oks": 0.7449,
+            "pose_fallen": [
+              false,
+              false
+            ],
+            "angle": [
+              8.0,
+              8.9
+            ],
+            "ergo_grade": [
+              "warn",
+              "bad"
+            ],
+            "ERGO_SOFT": "경계민감성(≤7°)"
+          }
+        ]
+      },
+      {
+        "frame": "ev_17_ev_20260701_173908_ppe_missing_high.jpg",
+        "n_a": 4,
+        "n_b": 4,
+        "unmatched_a": 1,
+        "unmatched_b": 1,
+        "pairs": [
+          {
+            "oks": 0.8716,
+            "ergo_grade": [
+              "good",
+              "good"
+            ]
+          },
+          {
+            "oks": 0.7899,
+            "ergo_grade": [
+              "good",
+              "good"
+            ]
+          },
+          {
+            "oks": 0.5808,
+            "pose_fallen": [
+              false,
+              false
+            ],
+            "angle": [
+              1.9,
+              0.5
+            ],
+            "ergo_grade": [
+              "warn",
+              "bad"
+            ],
+            "ERGO_SOFT": "실질차이(>7°)"
+          }
+        ]
+      },
+      {
+        "frame": "vid_pipe_000.jpg",
+        "n_a": 1,
+        "n_b": 0,
+        "unmatched_a": 1,
+        "unmatched_b": 0,
+        "pairs": []
+      },
+      {
+        "frame": "vid_pipe_012.jpg",
+        "n_a": 1,
+        "n_b": 0,
+        "unmatched_a": 1,
+        "unmatched_b": 0,
+        "pairs": []
+      },
+      {
+        "frame": "vid_pipe_024.jpg",
+        "n_a": 1,
+        "n_b": 0,
+        "unmatched_a": 1,
+        "unmatched_b": 0,
+        "pairs": []
+      },
+      {
+        "frame": "vid_pipe_036.jpg",
+        "n_a": 1,
+        "n_b": 0,
+        "unmatched_a": 1,
+        "unmatched_b": 0,
+        "pairs": []
+      },
+      {
+        "frame": "vid_walk_000.jpg",
+        "n_a": 1,
+        "n_b": 1,
+        "unmatched_a": 0,
+        "unmatched_b": 0,
+        "pairs": [
+          {
+            "oks": 0.8531,
+            "pose_fallen": [
+              false,
+              false
+            ],
+            "angle": [
+              27.3,
+              27.2
+            ],
+            "ergo_grade": [
+              "bad",
+              "bad"
+            ]
+          }
+        ]
+      },
+      {
+        "frame": "vid_walk_006.jpg",
+        "n_a": 1,
+        "n_b": 1,
+        "unmatched_a": 0,
+        "unmatched_b": 0,
+        "pairs": [
+          {
+            "oks": 0.8749,
+            "pose_fallen": [
+              false,
+              false
+            ],
+            "angle": [
+              27.2,
+              26.9
+            ],
+            "ergo_grade": [
+              "bad",
+              "bad"
+            ]
+          }
+        ]
+      },
+      {
+        "frame": "vid_walk_012.jpg",
+        "n_a": 1,
+        "n_b": 1,
+        "unmatched_a": 0,
+        "unmatched_b": 0,
+        "pairs": [
+          {
+            "oks": 0.8822,
+            "pose_fallen": [
+              false,
+              false
+            ],
+            "angle": [
+              27.5,
+              26.3
+            ],
+            "ergo_grade": [
+              "bad",
+              "bad"
+            ]
+          }
+        ]
+      },
+      {
+        "frame": "vid_walk_018.jpg",
+        "n_a": 1,
+        "n_b": 1,
+        "unmatched_a": 0,
+        "unmatched_b": 0,
+        "pairs": [
+          {
+            "oks": 0.891,
+            "pose_fallen": [
+              false,
+              false
+            ],
+            "angle": [
+              27.4,
+              27.3
+            ],
+            "ergo_grade": [
+              "bad",
+              "bad"
+            ]
+          }
+        ]
+      },
+      {
+        "frame": "vid_walk_024.jpg",
+        "n_a": 1,
+        "n_b": 1,
+        "unmatched_a": 0,
+        "unmatched_b": 0,
+        "pairs": [
+          {
+            "oks": 0.8437,
+            "pose_fallen": [
+              false,
+              false
+            ],
+            "angle": [
+              27.8,
+              27.8
+            ],
+            "ergo_grade": [
+              "bad",
+              "bad"
+            ]
+          }
+        ]
+      },
+      {
+        "frame": "vid_walk_030.jpg",
+        "n_a": 1,
+        "n_b": 1,
+        "unmatched_a": 0,
+        "unmatched_b": 0,
+        "pairs": [
+          {
+            "oks": 0.8642,
+            "pose_fallen": [
+              false,
+              false
+            ],
+            "angle": [
+              27.8,
+              27.5
+            ],
+            "ergo_grade": [
+              "bad",
+              "bad"
+            ]
+          }
+        ]
+      },
+      {
+        "frame": "vid_walk_036.jpg",
+        "n_a": 1,
+        "n_b": 1,
+        "unmatched_a": 0,
+        "unmatched_b": 0,
+        "pairs": [
+          {
+            "oks": 0.8437,
+            "pose_fallen": [
+              false,
+              false
+            ],
+            "angle": [
+              27.8,
+              27.8
+            ],
+            "ergo_grade": [
+              "bad",
+              "bad"
+            ]
+          }
+        ]
+      },
+      {
+        "frame": "vid_walk_042.jpg",
+        "n_a": 1,
+        "n_b": 1,
+        "unmatched_a": 0,
+        "unmatched_b": 0,
+        "pairs": [
+          {
+            "oks": 0.8642,
+            "pose_fallen": [
+              false,
+              false
+            ],
+            "angle": [
+              27.8,
+              27.5
+            ],
+            "ergo_grade": [
+              "bad",
+              "bad"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "rtmpose_vs_rtmpose_rfdetr_s2ergo": {
+    "summary": {
+      "backend_a": "rtmpose",
+      "backend_b": "rtmpose_rfdetr",
+      "frame_set": "pose_frames_ergo",
+      "frames": 13,
+      "matched_pairs": 16,
+      "detection_set_diff": {
+        "unmatched_a(yolo만)": 2,
+        "unmatched_b(rtmpose만)": 3
+      },
+      "fall_gate_pose_fallen_mismatch": 0,
+      "ergo_gate_hard_mismatch": 1,
+      "ergo_soft_flips_total": 1,
+      "ergo_soft_flips_real(>7deg)": 1,
+      "mean_oks_matched": 0.8599,
+      "fall_mismatch_detail": [],
+      "ergo_hard_detail": [
+        {
+          "frame": "ergo_06_intrusion_174827.jpg",
+          "grade": [
+            "good",
+            "bad"
+          ],
+          "oks": 0.6808,
+          "angle_diff": 76.0
+        }
+      ],
+      "ergo_soft_detail": [
+        {
+          "frame": "ergo_01_ev_20260702_000949_zone_intrusion_high.jpg",
+          "grade": [
+            "warn",
+            "good"
+          ],
+          "angle_diff": 25.7,
+          "kind": "실질차이(>7°)"
+        }
+      ]
+    },
+    "frames": [
+      {
+        "frame": "ergo_00_ev_20260624_114654_ppe_missing_high.jpg",
+        "n_a": 3,
+        "n_b": 3,
+        "unmatched_a": 2,
+        "unmatched_b": 2,
+        "pairs": [
+          {
+            "oks": 0.9895,
+            "pose_fallen": [
+              false,
+              false
+            ],
+            "angle": [
+              1.7,
+              2.6
+            ],
+            "ergo_grade": [
+              "good",
+              "good"
+            ]
+          }
+        ]
+      },
+      {
+        "frame": "ergo_01_ev_20260702_000949_zone_intrusion_high.jpg",
+        "n_a": 1,
+        "n_b": 1,
+        "unmatched_a": 0,
+        "unmatched_b": 0,
+        "pairs": [
+          {
+            "oks": 0.9242,
+            "pose_fallen": [
+              false,
+              false
+            ],
+            "angle": [
+              10.8,
+              10.4
+            ],
+            "ergo_grade": [
+              "warn",
+              "good"
+            ],
+            "ERGO_SOFT": "실질차이(>7°)"
+          }
+        ]
+      },
+      {
+        "frame": "ergo_02_ev_20260702_001015_ppe_missing_high.jpg",
+        "n_a": 1,
+        "n_b": 1,
+        "unmatched_a": 0,
+        "unmatched_b": 0,
+        "pairs": [
+          {
+            "oks": 0.9495,
+            "pose_fallen": [
+              false,
+              false
+            ],
+            "angle": [
+              4.4,
+              3.6
+            ],
+            "ergo_grade": [
+              "good",
+              "good"
+            ]
+          }
+        ]
+      },
+      {
+        "frame": "ergo_03_intrusion_183009.jpg",
+        "n_a": 1,
+        "n_b": 1,
+        "unmatched_a": 0,
+        "unmatched_b": 0,
+        "pairs": [
+          {
+            "oks": 0.7719,
+            "pose_fallen": [
+              true,
+              true
+            ],
+            "angle": [
+              1.8,
+              5.5
+            ],
+            "ergo_grade": [
+              "warn",
+              "warn"
+            ]
+          }
+        ]
+      },
+      {
+        "frame": "ergo_04_intrusion_230105.jpg",
+        "n_a": 1,
+        "n_b": 1,
+        "unmatched_a": 0,
+        "unmatched_b": 0,
+        "pairs": [
+          {
+            "oks": 0.7494,
+            "pose_fallen": [
+              true,
+              true
+            ],
+            "angle": [
+              17.5,
+              17.8
+            ],
+            "ergo_grade": [
+              "good",
+              "good"
+            ]
+          }
+        ]
+      },
+      {
+        "frame": "ergo_05_intrusion_172802.jpg",
+        "n_a": 1,
+        "n_b": 1,
+        "unmatched_a": 0,
+        "unmatched_b": 0,
+        "pairs": [
+          {
+            "oks": 0.7526,
+            "pose_fallen": [
+              true,
+              true
+            ],
+            "angle": [
+              24.5,
+              21.7
+            ],
+            "ergo_grade": [
+              "warn",
+              "warn"
+            ]
+          }
+        ]
+      },
+      {
+        "frame": "ergo_06_intrusion_174827.jpg",
+        "n_a": 2,
+        "n_b": 2,
+        "unmatched_a": 0,
+        "unmatched_b": 0,
+        "pairs": [
+          {
+            "oks": 0.9854,
+            "pose_fallen": [
+              false,
+              false
+            ],
+            "angle": [
+              9.3,
+              10.7
+            ],
+            "ergo_grade": [
+              "good",
+              "good"
+            ]
+          },
+          {
+            "oks": 0.6808,
+            "ergo_grade": [
+              "good",
+              "bad"
+            ],
+            "ERGO_HARD": true
+          }
+        ]
+      },
+      {
+        "frame": "ergo_07_intrusion_172343.jpg",
+        "n_a": 1,
+        "n_b": 1,
+        "unmatched_a": 0,
+        "unmatched_b": 0,
+        "pairs": [
+          {
+            "oks": 0.7198,
+            "pose_fallen": [
+              true,
+              true
+            ],
+            "angle": [
+              22.1,
+              25.3
+            ],
+            "ergo_grade": [
+              "warn",
+              "warn"
+            ]
+          }
+        ]
+      },
+      {
+        "frame": "ergo_08_ev_20260702_000952_fire_smoke_critical.jpg",
+        "n_a": 1,
+        "n_b": 1,
+        "unmatched_a": 0,
+        "unmatched_b": 0,
+        "pairs": [
+          {
+            "oks": 0.9584,
+            "pose_fallen": [
+              false,
+              false
+            ],
+            "angle": [
+              12.5,
+              12.4
+            ],
+            "ergo_grade": [
+              "bad",
+              "bad"
+            ]
+          }
+        ]
+      },
+      {
+        "frame": "ergo_09_intrusion_172744.jpg",
+        "n_a": 1,
+        "n_b": 1,
+        "unmatched_a": 0,
+        "unmatched_b": 0,
+        "pairs": [
+          {
+            "oks": 0.7407,
+            "pose_fallen": [
+              false,
+              false
+            ],
+            "angle": [
+              9.3,
+              12.1
+            ],
+            "ergo_grade": [
+              "good",
+              "good"
+            ]
+          }
+        ]
+      },
+      {
+        "frame": "ergo_10_intrusion_172358.jpg",
+        "n_a": 1,
+        "n_b": 1,
+        "unmatched_a": 0,
+        "unmatched_b": 0,
+        "pairs": [
+          {
+            "oks": 0.8006,
+            "pose_fallen": [
+              false,
+              false
+            ],
+            "angle": [
+              20.7,
+              25.4
+            ],
+            "ergo_grade": [
+              "warn",
+              "warn"
+            ]
+          }
+        ]
+      },
+      {
+        "frame": "ergo_11_intrusion_174702.jpg",
+        "n_a": 3,
+        "n_b": 4,
+        "unmatched_a": 0,
+        "unmatched_b": 1,
+        "pairs": [
+          {
+            "oks": 0.9355,
+            "ergo_grade": [
+              "bad",
+              "bad"
+            ]
+          },
+          {
+            "oks": 0.9761,
+            "pose_fallen": [
+              false,
+              false
+            ],
+            "angle": [
+              31.4,
+              32.9
+            ],
+            "ergo_grade": [
+              "warn",
+              "warn"
+            ]
+          },
+          {
+            "oks": 0.8392,
+            "pose_fallen": [
+              false,
+              false
+            ],
+            "angle": [
+              7.2,
+              6.0
+            ],
+            "ergo_grade": [
+              "warn",
+              "warn"
+            ]
+          }
+        ]
+      },
+      {
+        "frame": "ergo_12_ev_20260702_001005_zone_intrusion_high.jpg",
+        "n_a": 1,
+        "n_b": 1,
+        "unmatched_a": 0,
+        "unmatched_b": 0,
+        "pairs": [
+          {
+            "oks": 0.984,
+            "pose_fallen": [
+              false,
+              false
+            ],
+            "angle": [
+              1.5,
+              1.6
+            ],
+            "ergo_grade": [
+              "warn",
+              "warn"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "rtmpose_vs_rtmpose_rfdetr_s2ergo_v2": {
+    "summary": {
+      "backend_a": "rtmpose",
+      "backend_b": "rtmpose_rfdetr",
+      "frame_set": "pose_frames_ergo",
+      "frames": 13,
+      "matched_pairs": 15,
+      "detection_set_diff": {
+        "unmatched_a(yolo만)": 3,
+        "unmatched_b(rtmpose만)": 2
+      },
+      "fall_gate_pose_fallen_mismatch": 0,
+      "ergo_gate_hard_mismatch": 0,
+      "ergo_soft_flips_total": 1,
+      "ergo_soft_flips_real(>7deg)": 1,
+      "mean_oks_matched": 0.864,
+      "fall_mismatch_detail": [],
+      "ergo_hard_detail": [],
+      "ergo_soft_detail": [
+        {
+          "frame": "ergo_01_ev_20260702_000949_zone_intrusion_high.jpg",
+          "grade": [
+            "warn",
+            "good"
+          ],
+          "angle_diff": 25.7,
+          "kind": "실질차이(>7°)"
+        }
+      ]
+    },
+    "frames": [
+      {
+        "frame": "ergo_00_ev_20260624_114654_ppe_missing_high.jpg",
+        "n_a": 3,
+        "n_b": 3,
+        "unmatched_a": 2,
+        "unmatched_b": 2,
+        "pairs": [
+          {
+            "oks": 0.9895,
+            "pose_fallen": [
+              false,
+              false
+            ],
+            "angle": [
+              1.7,
+              2.6
+            ],
+            "ergo_grade": [
+              "good",
+              "good"
+            ]
+          }
+        ]
+      },
+      {
+        "frame": "ergo_01_ev_20260702_000949_zone_intrusion_high.jpg",
+        "n_a": 1,
+        "n_b": 1,
+        "unmatched_a": 0,
+        "unmatched_b": 0,
+        "pairs": [
+          {
+            "oks": 0.9242,
+            "pose_fallen": [
+              false,
+              false
+            ],
+            "angle": [
+              10.8,
+              10.4
+            ],
+            "ergo_grade": [
+              "warn",
+              "good"
+            ],
+            "ERGO_SOFT": "실질차이(>7°)"
+          }
+        ]
+      },
+      {
+        "frame": "ergo_02_ev_20260702_001015_ppe_missing_high.jpg",
+        "n_a": 1,
+        "n_b": 1,
+        "unmatched_a": 0,
+        "unmatched_b": 0,
+        "pairs": [
+          {
+            "oks": 0.9495,
+            "pose_fallen": [
+              false,
+              false
+            ],
+            "angle": [
+              4.4,
+              3.6
+            ],
+            "ergo_grade": [
+              "good",
+              "good"
+            ]
+          }
+        ]
+      },
+      {
+        "frame": "ergo_03_intrusion_183009.jpg",
+        "n_a": 1,
+        "n_b": 1,
+        "unmatched_a": 0,
+        "unmatched_b": 0,
+        "pairs": [
+          {
+            "oks": 0.7719,
+            "pose_fallen": [
+              true,
+              true
+            ],
+            "angle": [
+              1.8,
+              5.5
+            ],
+            "ergo_grade": [
+              "warn",
+              "warn"
+            ]
+          }
+        ]
+      },
+      {
+        "frame": "ergo_04_intrusion_230105.jpg",
+        "n_a": 1,
+        "n_b": 1,
+        "unmatched_a": 0,
+        "unmatched_b": 0,
+        "pairs": [
+          {
+            "oks": 0.7494,
+            "pose_fallen": [
+              true,
+              true
+            ],
+            "angle": [
+              17.5,
+              17.8
+            ],
+            "ergo_grade": [
+              "good",
+              "good"
+            ]
+          }
+        ]
+      },
+      {
+        "frame": "ergo_05_intrusion_172802.jpg",
+        "n_a": 1,
+        "n_b": 1,
+        "unmatched_a": 0,
+        "unmatched_b": 0,
+        "pairs": [
+          {
+            "oks": 0.7526,
+            "pose_fallen": [
+              true,
+              true
+            ],
+            "angle": [
+              24.5,
+              21.7
+            ],
+            "ergo_grade": [
+              "warn",
+              "warn"
+            ]
+          }
+        ]
+      },
+      {
+        "frame": "ergo_06_intrusion_174827.jpg",
+        "n_a": 2,
+        "n_b": 1,
+        "unmatched_a": 1,
+        "unmatched_b": 0,
+        "pairs": [
+          {
+            "oks": 0.9854,
+            "pose_fallen": [
+              false,
+              false
+            ],
+            "angle": [
+              9.3,
+              10.7
+            ],
+            "ergo_grade": [
+              "good",
+              "good"
+            ]
+          }
+        ]
+      },
+      {
+        "frame": "ergo_07_intrusion_172343.jpg",
+        "n_a": 1,
+        "n_b": 1,
+        "unmatched_a": 0,
+        "unmatched_b": 0,
+        "pairs": [
+          {
+            "oks": 0.7198,
+            "pose_fallen": [
+              true,
+              true
+            ],
+            "angle": [
+              22.1,
+              25.3
+            ],
+            "ergo_grade": [
+              "warn",
+              "warn"
+            ]
+          }
+        ]
+      },
+      {
+        "frame": "ergo_08_ev_20260702_000952_fire_smoke_critical.jpg",
+        "n_a": 1,
+        "n_b": 1,
+        "unmatched_a": 0,
+        "unmatched_b": 0,
+        "pairs": [
+          {
+            "oks": 0.9584,
+            "pose_fallen": [
+              false,
+              false
+            ],
+            "angle": [
+              12.5,
+              12.4
+            ],
+            "ergo_grade": [
+              "bad",
+              "bad"
+            ]
+          }
+        ]
+      },
+      {
+        "frame": "ergo_09_intrusion_172744.jpg",
+        "n_a": 1,
+        "n_b": 1,
+        "unmatched_a": 0,
+        "unmatched_b": 0,
+        "pairs": [
+          {
+            "oks": 0.7407,
+            "pose_fallen": [
+              false,
+              false
+            ],
+            "angle": [
+              9.3,
+              12.1
+            ],
+            "ergo_grade": [
+              "good",
+              "good"
+            ]
+          }
+        ]
+      },
+      {
+        "frame": "ergo_10_intrusion_172358.jpg",
+        "n_a": 1,
+        "n_b": 1,
+        "unmatched_a": 0,
+        "unmatched_b": 0,
+        "pairs": [
+          {
+            "oks": 0.8006,
+            "pose_fallen": [
+              false,
+              false
+            ],
+            "angle": [
+              20.7,
+              25.4
+            ],
+            "ergo_grade": [
+              "warn",
+              "warn"
+            ]
+          }
+        ]
+      },
+      {
+        "frame": "ergo_11_intrusion_174702.jpg",
+        "n_a": 3,
+        "n_b": 3,
+        "unmatched_a": 0,
+        "unmatched_b": 0,
+        "pairs": [
+          {
+            "oks": 0.9355,
+            "ergo_grade": [
+              "bad",
+              "bad"
+            ]
+          },
+          {
+            "oks": 0.8392,
+            "pose_fallen": [
+              false,
+              false
+            ],
+            "angle": [
+              7.2,
+              6.0
+            ],
+            "ergo_grade": [
+              "warn",
+              "warn"
+            ]
+          },
+          {
+            "oks": 0.859,
+            "pose_fallen": [
+              false,
+              false
+            ],
+            "angle": [
+              31.4,
+              32.2
+            ],
+            "ergo_grade": [
+              "warn",
+              "warn"
+            ]
+          }
+        ]
+      },
+      {
+        "frame": "ergo_12_ev_20260702_001005_zone_intrusion_high.jpg",
+        "n_a": 1,
+        "n_b": 1,
+        "unmatched_a": 0,
+        "unmatched_b": 0,
+        "pairs": [
+          {
+            "oks": 0.984,
+            "pose_fallen": [
+              false,
+              false
+            ],
+            "angle": [
+              1.5,
+              1.6
+            ],
+            "ergo_grade": [
+              "warn",
+              "warn"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "yolo_vs_rtmpose_ergo_final": {
+    "summary": {
+      "backend_a": "yolo",
+      "backend_b": "rtmpose",
+      "frame_set": "pose_frames_ergo",
+      "frames": 11,
+      "matched_pairs": 11,
+      "detection_set_diff": {
+        "unmatched_a(yolo만)": 0,
+        "unmatched_b(rtmpose만)": 2
+      },
+      "fall_gate_pose_fallen_mismatch": 2,
+      "ergo_gate_hard_mismatch": 0,
+      "ergo_soft_flips_total": 4,
+      "ergo_soft_flips_real(>7deg)": 3,
+      "mean_oks_matched": 0.7757,
+      "fall_mismatch_detail": [
+        {
+          "frame": "ergo_00_ev_20260624_114654_ppe_missing_high.jpg",
+          "oks": 0.8726,
+          "angle": [
+            2.0,
+            1.7
+          ]
+        },
+        {
+          "frame": "ergo_06_intrusion_172343.jpg",
+          "oks": 0.6079,
+          "angle": [
+            27.3,
+            22.1
+          ]
+        }
+      ],
+      "ergo_hard_detail": [],
+      "ergo_soft_detail": [
+        {
+          "frame": "ergo_01_ev_20260702_000949_zone_intrusion_high.jpg",
+          "grade": [
+            "good",
+            "warn"
+          ],
+          "angle_diff": 6.2,
+          "kind": "경계민감성(≤7°)"
+        },
+        {
+          "frame": "ergo_07_ev_20260702_000952_fire_smoke_critical.jpg",
+          "grade": [
+            "warn",
+            "bad"
+          ],
+          "angle_diff": 12.6,
+          "kind": "실질차이(>7°)"
+        },
+        {
+          "frame": "ergo_09_intrusion_172358.jpg",
+          "grade": [
+            "good",
+            "warn"
+          ],
+          "angle_diff": 11.6,
+          "kind": "실질차이(>7°)"
+        },
+        {
+          "frame": "ergo_10_ev_20260702_001005_zone_intrusion_high.jpg",
+          "grade": [
+            "good",
+            "warn"
+          ],
+          "angle_diff": 9.2,
+          "kind": "실질차이(>7°)"
+        }
+      ]
+    },
+    "frames": [
+      {
+        "frame": "ergo_00_ev_20260624_114654_ppe_missing_high.jpg",
+        "n_a": 1,
+        "n_b": 3,
+        "unmatched_a": 0,
+        "unmatched_b": 2,
+        "pairs": [
+          {
+            "oks": 0.8726,
+            "pose_fallen": [
+              true,
+              false
+            ],
+            "angle": [
+              2.0,
+              1.7
+            ],
+            "FALLEN_MISMATCH": true,
+            "ergo_grade": [
+              "good",
+              "good"
+            ]
+          }
+        ]
+      },
+      {
+        "frame": "ergo_01_ev_20260702_000949_zone_intrusion_high.jpg",
+        "n_a": 1,
+        "n_b": 1,
+        "unmatched_a": 0,
+        "unmatched_b": 0,
+        "pairs": [
+          {
+            "oks": 0.7618,
+            "pose_fallen": [
+              false,
+              false
+            ],
+            "angle": [
+              4.6,
+              10.8
+            ],
+            "ergo_grade": [
+              "good",
+              "warn"
+            ],
+            "ERGO_SOFT": "경계민감성(≤7°)"
+          }
+        ]
+      },
+      {
+        "frame": "ergo_02_ev_20260702_001015_ppe_missing_high.jpg",
+        "n_a": 1,
+        "n_b": 1,
+        "unmatched_a": 0,
+        "unmatched_b": 0,
+        "pairs": [
+          {
+            "oks": 0.8327,
+            "pose_fallen": [
+              false,
+              false
+            ],
+            "angle": [
+              4.6,
+              4.4
+            ],
+            "ergo_grade": [
+              "good",
+              "good"
+            ]
+          }
+        ]
+      },
+      {
+        "frame": "ergo_03_intrusion_183009.jpg",
+        "n_a": 1,
+        "n_b": 1,
+        "unmatched_a": 0,
+        "unmatched_b": 0,
+        "pairs": [
+          {
+            "oks": 0.8121,
+            "pose_fallen": [
+              true,
+              true
+            ],
+            "angle": [
+              5.9,
+              1.8
+            ],
+            "ergo_grade": [
+              "warn",
+              "warn"
+            ]
+          }
+        ]
+      },
+      {
+        "frame": "ergo_04_intrusion_230105.jpg",
+        "n_a": 1,
+        "n_b": 1,
+        "unmatched_a": 0,
+        "unmatched_b": 0,
+        "pairs": [
+          {
+            "oks": 0.7719,
+            "pose_fallen": [
+              true,
+              true
+            ],
+            "angle": [
+              18.1,
+              17.5
+            ],
+            "ergo_grade": [
+              "good",
+              "good"
+            ]
+          }
+        ]
+      },
+      {
+        "frame": "ergo_05_intrusion_172802.jpg",
+        "n_a": 1,
+        "n_b": 1,
+        "unmatched_a": 0,
+        "unmatched_b": 0,
+        "pairs": [
+          {
+            "oks": 0.7592,
+            "pose_fallen": [
+              true,
+              true
+            ],
+            "angle": [
+              33.2,
+              24.5
+            ],
+            "ergo_grade": [
+              "warn",
+              "warn"
+            ]
+          }
+        ]
+      },
+      {
+        "frame": "ergo_06_intrusion_172343.jpg",
+        "n_a": 1,
+        "n_b": 1,
+        "unmatched_a": 0,
+        "unmatched_b": 0,
+        "pairs": [
+          {
+            "oks": 0.6079,
+            "pose_fallen": [
+              false,
+              true
+            ],
+            "angle": [
+              27.3,
+              22.1
+            ],
+            "FALLEN_MISMATCH": true,
+            "ergo_grade": [
+              "warn",
+              "warn"
+            ]
+          }
+        ]
+      },
+      {
+        "frame": "ergo_07_ev_20260702_000952_fire_smoke_critical.jpg",
+        "n_a": 1,
+        "n_b": 1,
+        "unmatched_a": 0,
+        "unmatched_b": 0,
+        "pairs": [
+          {
+            "oks": 0.8575,
+            "pose_fallen": [
+              false,
+              false
+            ],
+            "angle": [
+              13.3,
+              12.5
+            ],
+            "ergo_grade": [
+              "warn",
+              "bad"
+            ],
+            "ERGO_SOFT": "실질차이(>7°)"
+          }
+        ]
+      },
+      {
+        "frame": "ergo_08_intrusion_172744.jpg",
+        "n_a": 1,
+        "n_b": 1,
+        "unmatched_a": 0,
+        "unmatched_b": 0,
+        "pairs": [
+          {
+            "oks": 0.5692,
+            "pose_fallen": [
+              false,
+              false
+            ],
+            "angle": [
+              13.9,
+              9.3
+            ],
+            "ergo_grade": [
+              "good",
+              "good"
+            ]
+          }
+        ]
+      },
+      {
+        "frame": "ergo_09_intrusion_172358.jpg",
+        "n_a": 1,
+        "n_b": 1,
+        "unmatched_a": 0,
+        "unmatched_b": 0,
+        "pairs": [
+          {
+            "oks": 0.7541,
+            "pose_fallen": [
+              false,
+              false
+            ],
+            "angle": [
+              16.9,
+              20.7
+            ],
+            "ergo_grade": [
+              "good",
+              "warn"
+            ],
+            "ERGO_SOFT": "실질차이(>7°)"
+          }
+        ]
+      },
+      {
+        "frame": "ergo_10_ev_20260702_001005_zone_intrusion_high.jpg",
+        "n_a": 1,
+        "n_b": 1,
+        "unmatched_a": 0,
+        "unmatched_b": 0,
+        "pairs": [
+          {
+            "oks": 0.9334,
+            "pose_fallen": [
+              false,
+              false
+            ],
+            "angle": [
+              0.9,
+              1.5
+            ],
+            "ergo_grade": [
+              "good",
+              "warn"
+            ],
+            "ERGO_SOFT": "실질차이(>7°)"
+          }
+        ]
+      }
+    ]
+  },
+  "rtmpose_vs_rtmpose_rfdetr_ergo_final_s2": {
+    "summary": {
+      "backend_a": "rtmpose",
+      "backend_b": "rtmpose_rfdetr",
+      "frame_set": "pose_frames_ergo",
+      "frames": 11,
+      "matched_pairs": 11,
+      "detection_set_diff": {
+        "unmatched_a(yolo만)": 2,
+        "unmatched_b(rtmpose만)": 2
+      },
+      "fall_gate_pose_fallen_mismatch": 0,
+      "ergo_gate_hard_mismatch": 0,
+      "ergo_soft_flips_total": 1,
+      "ergo_soft_flips_real(>7deg)": 1,
+      "mean_oks_matched": 0.8491,
+      "fall_mismatch_detail": [],
+      "ergo_hard_detail": [],
+      "ergo_soft_detail": [
+        {
+          "frame": "ergo_01_ev_20260702_000949_zone_intrusion_high.jpg",
+          "grade": [
+            "warn",
+            "good"
+          ],
+          "angle_diff": 25.7,
+          "kind": "실질차이(>7°)"
+        }
+      ]
+    },
+    "frames": [
+      {
+        "frame": "ergo_00_ev_20260624_114654_ppe_missing_high.jpg",
+        "n_a": 3,
+        "n_b": 3,
+        "unmatched_a": 2,
+        "unmatched_b": 2,
+        "pairs": [
+          {
+            "oks": 0.9895,
+            "pose_fallen": [
+              false,
+              false
+            ],
+            "angle": [
+              1.7,
+              2.6
+            ],
+            "ergo_grade": [
+              "good",
+              "good"
+            ]
+          }
+        ]
+      },
+      {
+        "frame": "ergo_01_ev_20260702_000949_zone_intrusion_high.jpg",
+        "n_a": 1,
+        "n_b": 1,
+        "unmatched_a": 0,
+        "unmatched_b": 0,
+        "pairs": [
+          {
+            "oks": 0.9242,
+            "pose_fallen": [
+              false,
+              false
+            ],
+            "angle": [
+              10.8,
+              10.4
+            ],
+            "ergo_grade": [
+              "warn",
+              "good"
+            ],
+            "ERGO_SOFT": "실질차이(>7°)"
+          }
+        ]
+      },
+      {
+        "frame": "ergo_02_ev_20260702_001015_ppe_missing_high.jpg",
+        "n_a": 1,
+        "n_b": 1,
+        "unmatched_a": 0,
+        "unmatched_b": 0,
+        "pairs": [
+          {
+            "oks": 0.9495,
+            "pose_fallen": [
+              false,
+              false
+            ],
+            "angle": [
+              4.4,
+              3.6
+            ],
+            "ergo_grade": [
+              "good",
+              "good"
+            ]
+          }
+        ]
+      },
+      {
+        "frame": "ergo_03_intrusion_183009.jpg",
+        "n_a": 1,
+        "n_b": 1,
+        "unmatched_a": 0,
+        "unmatched_b": 0,
+        "pairs": [
+          {
+            "oks": 0.7719,
+            "pose_fallen": [
+              true,
+              true
+            ],
+            "angle": [
+              1.8,
+              5.5
+            ],
+            "ergo_grade": [
+              "warn",
+              "warn"
+            ]
+          }
+        ]
+      },
+      {
+        "frame": "ergo_04_intrusion_230105.jpg",
+        "n_a": 1,
+        "n_b": 1,
+        "unmatched_a": 0,
+        "unmatched_b": 0,
+        "pairs": [
+          {
+            "oks": 0.7494,
+            "pose_fallen": [
+              true,
+              true
+            ],
+            "angle": [
+              17.5,
+              17.8
+            ],
+            "ergo_grade": [
+              "good",
+              "good"
+            ]
+          }
+        ]
+      },
+      {
+        "frame": "ergo_05_intrusion_172802.jpg",
+        "n_a": 1,
+        "n_b": 1,
+        "unmatched_a": 0,
+        "unmatched_b": 0,
+        "pairs": [
+          {
+            "oks": 0.7526,
+            "pose_fallen": [
+              true,
+              true
+            ],
+            "angle": [
+              24.5,
+              21.7
+            ],
+            "ergo_grade": [
+              "warn",
+              "warn"
+            ]
+          }
+        ]
+      },
+      {
+        "frame": "ergo_06_intrusion_172343.jpg",
+        "n_a": 1,
+        "n_b": 1,
+        "unmatched_a": 0,
+        "unmatched_b": 0,
+        "pairs": [
+          {
+            "oks": 0.7198,
+            "pose_fallen": [
+              true,
+              true
+            ],
+            "angle": [
+              22.1,
+              25.3
+            ],
+            "ergo_grade": [
+              "warn",
+              "warn"
+            ]
+          }
+        ]
+      },
+      {
+        "frame": "ergo_07_ev_20260702_000952_fire_smoke_critical.jpg",
+        "n_a": 1,
+        "n_b": 1,
+        "unmatched_a": 0,
+        "unmatched_b": 0,
+        "pairs": [
+          {
+            "oks": 0.9584,
+            "pose_fallen": [
+              false,
+              false
+            ],
+            "angle": [
+              12.5,
+              12.4
+            ],
+            "ergo_grade": [
+              "bad",
+              "bad"
+            ]
+          }
+        ]
+      },
+      {
+        "frame": "ergo_08_intrusion_172744.jpg",
+        "n_a": 1,
+        "n_b": 1,
+        "unmatched_a": 0,
+        "unmatched_b": 0,
+        "pairs": [
+          {
+            "oks": 0.7407,
+            "pose_fallen": [
+              false,
+              false
+            ],
+            "angle": [
+              9.3,
+              12.1
+            ],
+            "ergo_grade": [
+              "good",
+              "good"
+            ]
+          }
+        ]
+      },
+      {
+        "frame": "ergo_09_intrusion_172358.jpg",
+        "n_a": 1,
+        "n_b": 1,
+        "unmatched_a": 0,
+        "unmatched_b": 0,
+        "pairs": [
+          {
+            "oks": 0.8006,
+            "pose_fallen": [
+              false,
+              false
+            ],
+            "angle": [
+              20.7,
+              25.4
+            ],
+            "ergo_grade": [
+              "warn",
+              "warn"
+            ]
+          }
+        ]
+      },
+      {
+        "frame": "ergo_10_ev_20260702_001005_zone_intrusion_high.jpg",
+        "n_a": 1,
+        "n_b": 1,
+        "unmatched_a": 0,
+        "unmatched_b": 0,
+        "pairs": [
+          {
+            "oks": 0.984,
+            "pose_fallen": [
+              false,
+              false
+            ],
+            "angle": [
+              1.5,
+              1.6
+            ],
+            "ergo_grade": [
+              "warn",
+              "warn"
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}
