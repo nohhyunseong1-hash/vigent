@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>VIGENT // 산업안전 AI — 허브</title>
+<link rel="stylesheet" href="/static/vigent-terminal.css?v=2">
+<style>
+  *{box-sizing:border-box} html,body{margin:0}
+  body{min-height:100vh;background:var(--vt-bg)}
+  .cat{color:var(--vt-dim);font-size:9px;letter-spacing:.14em;text-transform:uppercase;margin-bottom:6px}
+</style>
+</head>
+<body class="vt-scope vt-page">
+
+<div class="vt-cmdbar">
+  <div class="vt-brand">VIGENT<b>//</b>SAFETY</div>
+  <div><span class="vt-key">HUB</span><span class="vt-val">산업안전 AI 콘솔</span></div>
+  <div class="vt-spacer"></div>
+  <div class="vt-conn"><span class="vt-dot"></span><span class="vt-key">LINK</span><span class="vt-ok" id="link">····</span></div>
+  <div><span class="vt-key">EVENTS</span><span class="vt-val vt-num" id="evc">--</span></div>
+  <div><span class="vt-val vt-num" id="clock">--:--:--</span></div>
+</div>
+
+<div class="vt-wrap">
+  <h1 class="vt-h1">VIGENT 산업안전 AI 콘솔</h1>
+  <p class="vt-sub">Vision + AI Agent · 감지 → 증거 · 법령 · 평가서 · 조치 자동 · 앰버 터미널</p>
+
+  <div class="vt-sec">터미널 프리뷰 // 신규 디자인</div>
+  <div class="vt-tiles">
+    <a class="vt-tile" href="/static/console_terminal.html"><div class="cat">PREVIEW</div><div class="tt">관제 콘솔 터미널</div><div class="td">커맨드바+데이터레일+이벤트로그(승인 시안)</div><div class="tp">/static/console_terminal.html</div></a>
+    <a class="vt-tile" href="/static/auto_terminal.html"><div class="cat">PREVIEW</div><div class="tt">자동처리 콘솔 터미널</div><div class="td">실이벤트 피드→증거·법령·조치</div><div class="tp">/static/auto_terminal.html</div></a>
+    <a class="vt-tile" href="/static/eval_terminal.html"><div class="cat">PREVIEW</div><div class="tt">정확도 측정 터미널</div><div class="td">실측 P·R·mAP(person/PPE)</div><div class="tp">/static/eval_terminal.html</div></a>
+  </div>
+
+  <div class="vt-sec">운영</div>
+  <div class="vt-tiles">
+    <a class="vt-tile" href="/safety-local"><div class="cat">운영</div><div class="tt">실시간 안전 관제</div><div class="td">카메라로 위험 실시간 감지·표시</div><div class="tp">/safety-local</div></a>
+    <a class="vt-tile" href="/safety/brain"><div class="cat">운영</div><div class="tt">안전 지식 추론 엔진</div><div class="td">작업별 '없는 안전조치'를 추론(지식+VLM)</div><div class="tp">/safety/brain</div></a>
+    <a class="vt-tile" href="/safety/auto"><div class="cat">운영</div><div class="tt">자동처리 콘솔</div><div class="td">감지→증거·법령·평가서·조치 자동</div><div class="tp">/safety/auto</div></a>
+    <a class="vt-tile" href="/safety/voice"><div class="cat">운영</div><div class="tt">음성 안전 비서</div><div class="td">근로자가 음성으로 묻고 스피커로 답</div><div class="tp">/safety/voice</div></a>
+    <a class="vt-tile" href="/safety/guide"><div class="cat">운영</div><div class="tt">현장 음성 안내</div><div class="td">카메라 화면 보고 위험·안전수칙 음성 안내</div><div class="tp">/safety/guide</div></a>
+  </div>
+
+  <div class="vt-sec">문서</div>
+  <div class="vt-tiles">
+    <a class="vt-tile" href="/safety/incident"><div class="cat">문서</div><div class="tt">재해 원인분석</div><div class="td">사고 영상→상황·빠진조치·법령(보조)</div><div class="tp">/safety/incident</div></a>
+    <a class="vt-tile" href="/safety/reports"><div class="cat">문서</div><div class="tt">위험성평가·리포트</div><div class="td">KOSHA 서식 자동 생성</div><div class="tp">/safety/reports</div></a>
+    <a class="vt-tile" href="/safety/tbm"><div class="cat">문서</div><div class="tt">TBM 회의록</div><div class="td">작업 전 안전점검회의 작성</div><div class="tp">/safety/tbm</div></a>
+  </div>
+
+  <div class="vt-sec">도구</div>
+  <div class="vt-tiles">
+    <a class="vt-tile" href="/safety/eval"><div class="cat">도구</div><div class="tt">정확도 측정</div><div class="td">재현율·정밀도 자체 측정(인증 준비)</div><div class="tp">/safety/eval</div></a>
+    <a class="vt-tile" href="/safety/ppe"><div class="cat">도구</div><div class="tt">현장 보호구 설정</div><div class="td">현장별 필수 보호구 지정→미착용 경고</div><div class="tp">/safety/ppe</div></a>
+    <a class="vt-tile" href="/safety/setup"><div class="cat">도구</div><div class="tt">현장 운영 설정</div><div class="td">카메라·워커·알림 설정</div><div class="tp">/safety/setup</div></a>
+    <a class="vt-tile" href="/safety"><div class="cat">도구</div><div class="tt">CDN판(비교용)</div><div class="td">인터넷 CDN으로 구동 — 로컬판과 비교</div><div class="tp">/safety</div></a>
+  </div>
+
+  <div class="vt-sec">영업</div>
+  <div class="vt-tiles">
+    <a class="vt-tile" href="/safety/demo"><div class="cat">영업</div><div class="tt">영업 데모</div><div class="td">감지→서류 자동완성 시연</div><div class="tp">/safety/demo</div></a>
+    <a class="vt-tile" href="/safety/quote"><div class="cat">영업</div><div class="tt">견적서</div><div class="td">현장 견적 1장(인쇄·PDF)</div><div class="tp">/safety/quote</div></a>
+  </div>
+</div>
+
+<script>
+(function(){
+  var $=function(id){return document.getElementById(id);};
+  function tick(){ $('clock').textContent=new Date().toLocaleTimeString('en-GB'); }
+  setInterval(tick,1000); tick();
+  fetch('/health').then(function(r){return r.json();}).then(function(j){
+    $('link').textContent=(j&&j.status==='ok')?'ONLINE':'DEGRADED';
+  }).catch(function(){ $('link').textContent='OFFLINE'; });
+  fetch('/safety/auto/feed?hours=100000').then(function(r){return r.json();}).then(function(j){
+    var n=((j&&j.events)||[]).length; $('evc').textContent=n;
+  }).catch(function(){ $('evc').textContent='0'; });
+})();
+</script>
+</body>
+</html>
