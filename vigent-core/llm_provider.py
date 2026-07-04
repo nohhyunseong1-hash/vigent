@@ -35,6 +35,7 @@ def _is_korean_clean(text: str) -> bool:
 def _ollama_reason(prompt: str, system: str = "") -> tuple[str | None, str | None]:
     """로컬 Ollama(무료, 키 불필요)로 추론 1회 → (text, backend). 실패/한국어오염 → (None, None)."""
     import json
+    import socket
     import urllib.request
     model = os.getenv("VIGENT_OLLAMA_MODEL", "qwen2.5:7b")
     payload = json.dumps({
@@ -45,12 +46,19 @@ def _ollama_reason(prompt: str, system: str = "") -> tuple[str | None, str | Non
         ],
         "stream": False,
     }).encode("utf-8")
+    # 연결 프리체크(짧게): Ollama 서버가 죽어있으면 read 타임아웃(30s)까지 블록하지 않고 즉시 규칙 폴백.
+    #   connect 만 짧게 보고, 정상 서버면 생성(read)은 아래에서 넉넉히 기다린다(정상 narrative 11~15s 보호 → 저하0).
+    _ct = float(os.getenv("VIGENT_OLLAMA_CONNECT_TIMEOUT", "3"))
+    try:
+        socket.create_connection(("localhost", 11434), timeout=_ct).close()
+    except OSError:
+        return None, None   # 서버 없음/연결 지연 → 빠른 폴백(호출자는 규칙 기반으로 진행)
     try:
         req = urllib.request.Request(
             "http://localhost:11434/api/chat",
             data=payload, headers={"Content-Type": "application/json"},
         )
-        with urllib.request.urlopen(req, timeout=30) as resp:  # noqa: S310  로컬 고정 URL
+        with urllib.request.urlopen(req, timeout=30) as resp:  # noqa: S310  로컬 고정 URL(생성 read 타임아웃 유지)
             data = json.loads(resp.read().decode("utf-8"))
         text = ((data.get("message") or {}).get("content") or "").strip()
         if not text or not _is_korean_clean(text):
