@@ -297,7 +297,9 @@ def safety_risk_assessment(payload: dict = Body(...), theme: str = DEFAULT_THEME
     out = scribe.generate(payload.get("events", []) or [],
                           site=payload.get("site", ""), process=payload.get("process", ""),
                           use_llm=narrative)
-    return {"assessment": out["assessment"], "saved_path": out["saved_path"]}
+    return {"assessment": out["assessment"], "saved_path": out["saved_path"],
+            "saved": out.get("saved", out["saved_path"] is not None),
+            "dropped_rules": out.get("dropped_rules", [])}
 
 
 def _decode_data_url(image: str):

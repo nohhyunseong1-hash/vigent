@@ -192,11 +192,13 @@ class ScribeAgent(BaseAgent):
         """이벤트 목록 → 위험성평가표(초안). events=[{rule, count, levels, evidence_paths, notes}].
         중대성=실제 등급 분포로 산출(고정값 아님), 증거사진·정황·(옵션)VLM 장면설명 반영."""
         rows: list[dict[str, Any]] = []
+        dropped: list[str] = []           # RULE_KB 에 없는 미지 rule(표 제외분) 집계
         for ev in events or []:
             rule = ev.get("rule") or ev.get("type")
             count = int(ev.get("count", 1) or 1)
             kb = RULE_KB.get(rule)
             if not kb:
+                dropped.append(rule)      # 미지 rule → 표에서 제외(집계해 응답에 보고)
                 continue
             likely = _likelihood(count)
             sev = _severity_from_levels(ev.get("levels") or {}, int(kb["sev"]))  # 실제 등급 기반
@@ -272,6 +274,7 @@ class ScribeAgent(BaseAgent):
             "summary": {"총항목": len(rows), "상_높음": len(high),
                         "주요위험": [r["유해위험요인"] for r in high]},
             "rows": rows,
+            "dropped_rules": dropped,      # 미지 rule 목록(있으면 유효항목 0일 때 저장 생략 판단에 사용)
         }
         # 가산식: 종합의견 서술. use_llm=True 면 LLM, 기본은 결정적 폴백(즉시). 표 11칸·법령은 위 그대로 유지.
         _narr, _src = self._narrative(_result, use_llm=use_llm)
@@ -463,15 +466,19 @@ class ScribeAgent(BaseAgent):
         use_llm=True 일 때만 종합의견을 LLM 으로(느림). 기본은 결정적 폴백(즉시 · rows·법령 불변)."""
         assessment = self.build_assessment(events, site, process, use_vlm=use_vlm, use_llm=use_llm)
         page = self.render_html(assessment)
+        rows = assessment.get("rows") or []
+        dropped = assessment.get("dropped_rules") or []
         saved_path = None
-        if save:
+        # 유효 위험항목이 0이면 저장 생략(빈 평가서 파일 누적 방지). rows>0 이면 기존대로 저장(법령·구조 불변).
+        if save and rows:
             _SAVE_DIR.mkdir(parents=True, exist_ok=True)
             stamp = datetime.now(KST).strftime("%Y%m%d_%H%M%S")
             (_SAVE_DIR / f"ra_{stamp}.html").write_text(page, encoding="utf-8")
             (_SAVE_DIR / f"ra_{stamp}.json").write_text(
                 json.dumps(assessment, ensure_ascii=False, indent=2), encoding="utf-8")
             saved_path = str((_SAVE_DIR / f"ra_{stamp}.html").relative_to(_ROOT))
-        return {"assessment": assessment, "html": page, "saved_path": saved_path}
+        return {"assessment": assessment, "html": page, "saved_path": saved_path,
+                "saved": saved_path is not None, "dropped_rules": dropped}
 
     # ── 저장된 평가서 목록·다시열기 (감사추적) ──
     @staticmethod
