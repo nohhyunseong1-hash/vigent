@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>VIGENT // 자동처리 콘솔 — 터미널</title>
+<link rel="stylesheet" href="/static/vigent-terminal.css?v=2">
+<style>
+  *{box-sizing:border-box} html,body{margin:0} body{min-height:100vh;background:var(--vt-bg)}
+  .scroll{overflow-x:auto}
+  table.evt{width:100%;border-collapse:collapse;font-size:11.5px;min-width:820px}
+  table.evt th{color:var(--vt-dim);text-transform:uppercase;letter-spacing:.1em;font-size:9.5px;
+    font-weight:600;text-align:left;padding:7px 10px;border-bottom:1px solid var(--vt-hair-amber);white-space:nowrap}
+  table.evt td{padding:6px 10px;border-bottom:1px dotted rgba(120,140,165,.12);vertical-align:top}
+  table.evt tr:hover td{background:var(--vt-panel2)}
+  .rule{color:var(--vt-amber-dim);text-transform:uppercase;letter-spacing:.04em}
+  .adv{color:var(--vt-txt2)} .law{color:var(--vt-amber)}
+  a.ev{color:var(--vt-info);text-decoration:none;border:1px solid var(--vt-hair);padding:1px 6px;font-size:9.5px;text-transform:uppercase}
+  a.ev:hover{border-color:var(--vt-info)}
+  .cells4{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--vt-hair);border:1px solid var(--vt-hair);margin:2px 0 18px}
+</style>
+</head>
+<body class="vt-scope vt-page">
+
+<div class="vt-cmdbar">
+  <div class="vt-brand">VIGENT<b>//</b>SAFETY</div>
+  <div><span class="vt-key">MOD</span><span class="vt-val">자동처리 콘솔</span></div>
+  <div class="vt-spacer"></div>
+  <div class="vt-conn"><span class="vt-dot"></span><span class="vt-key">LINK</span><span class="vt-ok" id="link">····</span></div>
+  <div><span class="vt-key">SRC</span><span class="vt-val" id="src">/safety/auto/feed</span></div>
+  <div><span class="vt-val vt-num" id="clock">--:--:--</span></div>
+</div>
+
+<div class="vt-wrap">
+  <h1 class="vt-h1">자동처리 콘솔 // 감지 → 증거 · 법령 · 조치</h1>
+  <p class="vt-sub">감지 이벤트를 증거 이미지·관련 법령·권고 조치와 함께 자동 기록. 아래는 실제 기록(auto/feed).</p>
+
+  <div class="cells4">
+    <div class="vt-cell"><div class="n vt-crit" id="c_crit">0</div><div class="l vt-key">CRITICAL</div></div>
+    <div class="vt-cell"><div class="n vt-warn" id="c_high">0</div><div class="l vt-key">HIGH</div></div>
+    <div class="vt-cell"><div class="n vt-info" id="c_med">0</div><div class="l vt-key">MEDIUM</div></div>
+    <div class="vt-cell"><div class="n" id="c_total">0</div><div class="l vt-key">총 이벤트</div></div>
+  </div>
+
+  <div class="vt-sec">이벤트 기록 <span style="color:var(--vt-dim);font-weight:400;letter-spacing:.06em" id="win">· 최근 168h</span></div>
+  <div class="scroll">
+    <table class="evt">
+      <thead><tr><th>시간</th><th>등급</th><th>규칙</th><th>현장</th><th>관련 법령</th><th>권고 조치</th><th>증거</th><th>승인</th></tr></thead>
+      <tbody id="rows"><tr><td colspan="8" class="vt-dim" style="padding:16px 10px">불러오는 중…</td></tr></tbody>
+    </table>
+  </div>
+</div>
+
+<script>
+(function(){
+  var $=function(id){return document.getElementById(id);};
+  function tick(){ $('clock').textContent=new Date().toLocaleTimeString('en-GB'); }
+  setInterval(tick,1000); tick();
+  fetch('/health').then(function(r){return r.json();}).then(function(j){
+    $('link').textContent=(j&&j.status==='ok')?'ONLINE':'DEGRADED';
+  }).catch(function(){ $('link').textContent='OFFLINE'; });
+
+  var sev={critical:['CRIT','var(--vt-crit)'],high:['HIGH','var(--vt-warn)'],
+           medium:['MED','var(--vt-info)'],low:['LOW','var(--vt-ok)']};
+  function esc(s){ return String(s==null?'':s).replace(/[&<>"]/g,function(c){
+    return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]; }); }
+  function tag(level){ var m=sev[level]||['—','var(--vt-dim)'];
+    return '<span class="vt-tag" style="color:'+m[1]+'">'+m[0]+'</span>'; }
+
+  function render(events){
+    var c={critical:0,high:0,medium:0};
+    var rows=events.map(function(e){
+      var lv=e.level||'medium'; if(c[lv]!=null)c[lv]++;
+      var ev=e.evidence_url?('<a class="ev" href="'+esc(e.evidence_url)+'" target="_blank">보기</a>'):'<span class="vt-dim">—</span>';
+      var ap=e.approved?'<span class="vt-ok">승인</span>':'<span class="vt-dim">대기</span>';
+      return '<tr><td class="vt-num" style="white-space:nowrap">'+esc(e.date||'')+' '+esc(e.time||'')+'</td>'
+        +'<td>'+tag(lv)+'</td>'
+        +'<td class="rule">'+esc(e.rule||'')+'</td>'
+        +'<td class="vt-dim">'+esc(e.site||'')+'</td>'
+        +'<td class="law">'+esc(e.law||'')+'</td>'
+        +'<td class="adv">'+esc(e.advisory||'')+'</td>'
+        +'<td>'+ev+'</td><td>'+ap+'</td></tr>';
+    }).join('');
+    $('rows').innerHTML=rows||'<tr><td colspan="8" class="vt-dim" style="padding:16px 10px">기록된 이벤트가 없습니다.</td></tr>';
+    $('c_crit').textContent=c.critical; $('c_high').textContent=c.high;
+    $('c_med').textContent=c.medium; $('c_total').textContent=events.length;
+  }
+  fetch('/safety/auto/feed?hours=168').then(function(r){return r.json();}).then(function(j){
+    var ev=(j&&j.events)||[]; render(ev.slice(0,100));
+  }).catch(function(){
+    $('src').textContent='연결 실패'; $('src').className='vt-warn';
+    $('rows').innerHTML='<tr><td colspan="8" class="vt-warn" style="padding:16px 10px">피드를 불러오지 못했습니다(서버 확인).</td></tr>';
+  });
+})();
+</script>
+</body>
+</html>
