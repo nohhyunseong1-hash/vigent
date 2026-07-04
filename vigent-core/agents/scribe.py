@@ -472,7 +472,17 @@ class ScribeAgent(BaseAgent):
         # 유효 위험항목이 0이면 저장 생략(빈 평가서 파일 누적 방지). rows>0 이면 기존대로 저장(법령·구조 불변).
         if save and rows:
             _SAVE_DIR.mkdir(parents=True, exist_ok=True)
-            stamp = datetime.now(KST).strftime("%Y%m%d_%H%M%S")
+            _now = datetime.now(KST)
+            base = _now.strftime("%Y%m%d_%H%M%S")
+            stamp = base
+            # 같은 초 저장 충돌 회피(덮어쓰기 금지): 이미 있으면 마이크로초→카운터 접미사로 고유화
+            if (_SAVE_DIR / f"ra_{stamp}.html").exists():
+                _mi = _now.strftime("%f")
+                stamp = f"{base}_{_mi}"
+                _n = 1
+                while (_SAVE_DIR / f"ra_{stamp}.html").exists():
+                    stamp = f"{base}_{_mi}_{_n}"
+                    _n += 1
             (_SAVE_DIR / f"ra_{stamp}.html").write_text(page, encoding="utf-8")
             (_SAVE_DIR / f"ra_{stamp}.json").write_text(
                 json.dumps(assessment, ensure_ascii=False, indent=2), encoding="utf-8")
