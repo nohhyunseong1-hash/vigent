@@ -139,6 +139,17 @@ class RiskVLM:
     """모델을 1회 로드해 재사용하는 위험요약 VLM (통합 파이프라인에서 사용)."""
 
     def __init__(self):
+        # 지연 로딩: MLX 모델은 실제로 MLX 추론(_ask/quick)이 필요할 때만 로드한다.
+        # OpenAI 비전 라우팅으로 처리되는 경우 무거운 MLX 로드를 아예 하지 않게 해 첫 호출을 빠르게.
+        self._loaded = False
+        self._generate = None
+        self._apply = None
+        self.model = self.processor = self.config = None
+
+    def _ensure_loaded(self):
+        """MLX 모델 1회 로드(최초 MLX 추론 시). 이미 로드됐으면 즉시 반환."""
+        if self._loaded:
+            return
         from mlx_vlm import load, generate
         from mlx_vlm.prompt_utils import apply_chat_template
         from mlx_vlm.utils import load_config
@@ -147,9 +158,32 @@ class RiskVLM:
         t0 = time.time()
         self.model, self.processor = load(MODEL)
         self.config = load_config(MODEL)
+        self._loaded = True
         print(f"[vlm] 모델 로드 {time.time()-t0:.1f}s")
 
+    def _ask_openai(self, safe: str, prompt: str, max_tokens: int = 260) -> dict | None:
+        """OpenAI 비전으로 동일 프롬프트 질의(키 있을 때만·수 초). 데모 성능용 라우팅.
+        키 없거나 실패면 None 을 돌려 호출부가 기존 MLX 경로로 폴백하게 한다(규칙6: 저하0)."""
+        import os
+        if not os.environ.get("OPENAI_API_KEY"):
+            return None
+        try:
+            import sys
+            import cv2
+            sys.path.insert(0, str(ROOT / "vigent-core"))
+            import llm_provider
+            img = cv2.imread(safe)
+            if img is None:
+                return None
+            text, _backend = llm_provider.reason_vision(img, prompt)
+            if not text:
+                return None
+            return extract_json(text)              # MLX 경로와 동일 파서 재사용(포맷 일치)
+        except Exception:  # noqa: BLE001  실패는 조용히 MLX 폴백
+            return None
+
     def _ask(self, safe: str, prompt: str, max_tokens: int = 260) -> dict:
+        self._ensure_loaded()                     # MLX 실제 사용 시에만 로드(지연)
         fmt = self._apply(self.processor, self.config, prompt, num_images=1)
         # 안정성: 낮은 temperature + 반복 억제(같은 말 반복/degeneration 방지)
         res = self._generate(self.model, self.processor, fmt, image=safe,
@@ -162,6 +196,7 @@ class RiskVLM:
         """빠른 단발 질의 — 작은 이미지·짧은 토큰·재시도/법령보강 없음(PPE 등 단답용).
         반환: {"raw": 원문텍스트}. 절대 예외로 죽지 않는다."""
         try:
+            self._ensure_loaded()                 # MLX 실제 사용 시에만 로드(지연)
             safe = _safe_image(img_path, max_side=max_side)
             fmt = self._apply(self.processor, self.config, prompt, num_images=1)
             res = self._generate(self.model, self.processor, fmt, image=safe,
@@ -191,6 +226,11 @@ class RiskVLM:
                  "아래 JSON 스키마를 유지하라.\n\n" + p)
         try:
             safe = _safe_image(img_path)
+            # OpenAI 비전 우선(키 있으면 빠른 프론티어 ~수 초). 없거나 실패면 아래 MLX 경로 그대로(폴백=저하0).
+            odata = self._ask_openai(safe, p, max_tokens=max_tokens)
+            if odata is not None:
+                return _enrich_with_law(odata) if enrich else odata
+            # ── 이하 기존 MLX 경로(불변) ──
             data = self._ask(safe, p, max_tokens=max_tokens)
             if not _is_korean(data):
                 data2 = self._ask(safe, p + "\n주의: 이전 답이 한국어가 아니었다. 반드시 한국어로만.",
