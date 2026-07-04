@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>VIGENT // 정확도 측정 — 터미널</title>
+<link rel="stylesheet" href="/static/vigent-terminal.css?v=2">
+<style>
+  *{box-sizing:border-box} html,body{margin:0} body{min-height:100vh;background:var(--vt-bg)}
+  .scroll{overflow-x:auto}
+  .note{border-left:2px solid var(--vt-amber-dim);padding:8px 12px;margin:6px 0;
+    background:var(--vt-panel);color:var(--vt-txt2);font-size:11.5px;line-height:1.6}
+  .warnbox{border-left-color:var(--vt-crit)}
+  .kvline{color:var(--vt-txt2);font-size:11.5px;padding:2px 0}
+  .kvline b{color:var(--vt-txt);font-weight:600}
+  table.vt-tbl{min-width:640px}
+</style>
+</head>
+<body class="vt-scope vt-page">
+
+<div class="vt-cmdbar">
+  <div class="vt-brand">VIGENT<b>//</b>SAFETY</div>
+  <div><span class="vt-key">MOD</span><span class="vt-val">정확도 측정</span></div>
+  <div class="vt-spacer"></div>
+  <div><span class="vt-key">MEASURED</span><span class="vt-val vt-num">2026-07-04</span></div>
+  <div><span class="vt-val vt-num" id="clock">--:--:--</span></div>
+</div>
+
+<div class="vt-wrap">
+  <h1 class="vt-h1">정확도 측정 // 실측 기록</h1>
+  <p class="vt-sub">실제로 측정한 값만 기록(규칙7). 출처: VIGENT 정확도 측정 기록.md · 도구 eval_harness.py / ppe_eval.py · IoU≥0.5.</p>
+
+  <div class="vt-sec">측정 개요</div>
+  <div class="kvline">측정일 <b>2026-07-04</b> · 매칭 <b>IoU ≥ 0.5</b> · AP <b>11-point 근사(mAP@0.5)</b></div>
+  <div class="kvline">person 평가셋 <b>data/eval/clean</b> — 이미지 74장 / GT 87개(단일 클래스=person)</div>
+  <div class="kvline">PPE 평가셋 <b>data/datasets/css_safety/test</b> — 이미지 82장(공개셋 Roboflow "Construction Site Safety" v27, CC BY 4.0)</div>
+
+  <div class="vt-sec">1) person — yolo11m.pt</div>
+  <div class="scroll">
+    <table class="vt-tbl">
+      <thead><tr><th>항목</th><th>이미지/GT</th><th>TP</th><th>FP</th><th>FN</th><th>정밀도 P%</th><th>재현율 R%</th><th>F1</th><th>mAP@0.5%</th></tr></thead>
+      <tbody>
+        <tr><td>person</td><td>74장 / 87</td><td>66</td><td>18</td><td>21</td><td>78.6</td><td>75.9</td><td>77.2</td><td class="vt-amber">69.0</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="vt-sec">2) PPE 클래스별 — ppe_css_v1.pt (배포 파이프라인 실측)</div>
+  <div class="scroll">
+    <table class="vt-tbl">
+      <thead><tr><th>클래스</th><th>GT</th><th>TP</th><th>FP</th><th>FN</th><th>P%</th><th>R%</th><th>mAP@0.5%</th></tr></thead>
+      <tbody>
+        <tr><td>Hardhat(착용)</td><td>110</td><td>84</td><td>2</td><td>26</td><td>97.7</td><td>76.4</td><td>72.7</td></tr>
+        <tr><td class="vt-crit">NO-Hardhat(미착용)</td><td>41</td><td>23</td><td>8</td><td>18</td><td>74.2</td><td class="vt-crit">56.1</td><td>46.5</td></tr>
+        <tr><td>Mask(착용)</td><td>28</td><td>21</td><td>0</td><td>7</td><td>100.0</td><td>75.0</td><td>72.7</td></tr>
+        <tr><td class="vt-warn">NO-Mask(미착용)</td><td>79</td><td>56</td><td>3</td><td>23</td><td>94.9</td><td class="vt-warn">70.9</td><td>71.8</td></tr>
+        <tr><td>Safety Vest(착용)</td><td>61</td><td>41</td><td>2</td><td>20</td><td>95.3</td><td>67.2</td><td>63.6</td></tr>
+        <tr><td class="vt-warn">NO-Safety Vest(미착용)</td><td>90</td><td>61</td><td>5</td><td>29</td><td>92.4</td><td class="vt-warn">67.8</td><td>63.5</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="kvline" style="margin-top:8px">미착용(안전상 핵심) 재현율 — <b class="vt-crit">NO-Hardhat 56.1%</b> · <b>NO-Mask 70.9%</b> · <b>NO-Safety Vest 67.8%</b></div>
+
+  <div class="vt-sec">정직한 한계 (규칙7)</div>
+  <div class="note warnbox">출처 = 공개 데이터셋. css_safety·eval/clean 모두 <b>VIGENT 현장 고정 CCTV가 아니다</b> → 현장(천장·역광·원거리) 정확도는 반드시 재측정 필요.</div>
+  <div class="note warnbox"><b>NO-Hardhat 재현율 56%</b> = 미착용을 절반 가까이 놓침. 안전상 가장 개선이 필요한 지점(미착용 데이터 재학습 필요).</div>
+  <div class="note">표본이 작다(person 74장, Mask GT 28 등) → 신뢰구간이 넓다. 수백 장 확장 권장.</div>
+  <div class="note">누출 가능성(미검증): ppe_css_v1은 css_safety로 학습 → test 분할이 학습에서 완전 제외됐는지 파일만으로 확인 불가 → 수치가 낙관적일 수 있음.</div>
+  <div class="note">화재·지게차 슬롯은 아직 미측정(별도 라벨셋 필요). 이 수치는 위 셋·모델·2026-07-04 조건 한정.</div>
+</div>
+
+<script>
+(function(){
+  var c=document.getElementById('clock');
+  function tick(){ c.textContent=new Date().toLocaleTimeString('en-GB'); }
+  setInterval(tick,1000); tick();
+})();
+</script>
+</body>
+</html>
