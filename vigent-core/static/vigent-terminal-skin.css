@@ -12,7 +12,10 @@
 /* ── 0) 바탕/타이포 통일(초록 그라디언트 제거 → 앰버 온 블랙) ── */
 body.theme-safety{ background:var(--vt-bg) !important; color:var(--vt-txt) !important;
   font-family:var(--vt-mono) !important; }
-main, body.clean main, body.theme-safety main{ background:var(--vt-bg) !important; }
+main, body.clean main, body.theme-safety main{ background:var(--vt-bg) !important;
+  /* vigent-skin 의 display:block(풀스크린 잔재) → 원래 2단 flex 로 복원(영상칸 높이 확보) */
+  display:flex !important; flex:1 1 auto !important; flex-direction:row !important;
+  min-height:0 !important; overflow:hidden !important; }
 
 /* ── 1) 레이아웃 복원: 헤더는 계속 숨김 / 레일·컨트롤은 노출(vigent-skin+clean 숨김 되돌림) ── */
 header, body.clean header{ display:none !important; }
@@ -30,7 +33,10 @@ body.clean .video-overlay-labels{ display:block !important; }
   border:1px solid var(--vt-hair) !important; border-radius:0 !important;
   box-shadow:none !important; background:#02040a !important; }
 .video-panel, body.clean .video-panel{ padding:10px !important; gap:8px !important;
-  background:var(--vt-bg) !important; }
+  background:var(--vt-bg) !important;
+  /* 좌측 영상 컬럼: 남은 폭 채우고 세로 flex → 그 안 #videoContainer(flex:1)가 높이 확보 */
+  flex:1 1 auto !important; display:flex !important; flex-direction:column !important;
+  min-width:0 !important; min-height:0 !important; }
 /* 코너 브래킷(vigent-skin ::after) 앰버로 */
 #videoContainer::after{ border-color:var(--vt-amber-dim) !important; }
 
@@ -138,5 +144,20 @@ body.clean .recog-panel h4::before{ content:"" !important; }
 .zone-btn, .report-btn, .dz-mute{ font-family:var(--vt-mono) !important; border-radius:0 !important;
   text-transform:uppercase !important; letter-spacing:.05em !important; }
 .dz-alert{ border-radius:0 !important; font-family:var(--vt-mono) !important; }
+
+/* ── 7) 데이터 레일 아코디언(제목 클릭 토글) ──
+   접기는 display 토글만 → 숨겨진 노드에도 realtime_core.js 가 값 계속 갱신(저하0). */
+.card-title{ cursor:pointer; user-select:none; }
+.card-title::after{ content:"▾"; float:right; color:var(--vt-amber-dim); font-size:11px; margin-left:8px; }
+.card.vt-collapsed .card-title::after{ content:"▸"; }
+.card.vt-collapsed > :not(.card-title){ display:none !important; }
+
+/* PPE(.simple-result)의 '판단 근거·안내' 하위 토글(기본 접힘) */
+.vt-ppe-toggle{ cursor:pointer; user-select:none; color:var(--vt-amber-dim) !important;
+  font-size:10px; text-transform:uppercase; letter-spacing:.1em; margin-top:8px; }
+.vt-ppe-toggle::after{ content:"▸"; margin-left:6px; }
+.vt-ppe-toggle.vt-open::after{ content:"▾"; }
+.vt-ppe-detail{ display:none; }
+.vt-ppe-detail.vt-open{ display:block; }
 
 @media (prefers-reduced-motion:reduce){ *{ animation:none !important; } }
