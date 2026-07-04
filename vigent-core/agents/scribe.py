@@ -187,7 +187,8 @@ class ScribeAgent(BaseAgent):
                 "templates": ["risk_assessment_kr", "incident_evidence"]}
 
     def build_assessment(self, events: list[dict[str, Any]],
-                         site: str = "", process: str = "", use_vlm: bool = False) -> dict[str, Any]:
+                         site: str = "", process: str = "", use_vlm: bool = False,
+                         use_llm: bool = False) -> dict[str, Any]:
         """이벤트 목록 → 위험성평가표(초안). events=[{rule, count, levels, evidence_paths, notes}].
         중대성=실제 등급 분포로 산출(고정값 아님), 증거사진·정황·(옵션)VLM 장면설명 반영."""
         rows: list[dict[str, Any]] = []
@@ -272,14 +273,16 @@ class ScribeAgent(BaseAgent):
                         "주요위험": [r["유해위험요인"] for r in high]},
             "rows": rows,
         }
-        # 가산식: 종합의견 서술(Claude 있으면 그걸로, 없으면 로컬 폴백). 표 11칸은 위 그대로 유지.
-        _narr, _src = self._narrative(_result)
+        # 가산식: 종합의견 서술. use_llm=True 면 LLM, 기본은 결정적 폴백(즉시). 표 11칸·법령은 위 그대로 유지.
+        _narr, _src = self._narrative(_result, use_llm=use_llm)
         _result["narrative"] = _narr
         _result["narrative_source"] = _src
         return _result
 
-    def _narrative(self, a: dict[str, Any]) -> tuple[str, str]:
-        """종합의견 서술 → (text, source). Claude(llm_provider) 있으면 사용, 실패/미설정이면 로컬 폴백.
+    def _narrative(self, a: dict[str, Any], use_llm: bool = False) -> tuple[str, str]:
+        """종합의견 서술 → (text, source).
+        use_llm=True 일 때만 LLM(llm_provider) 호출(느림). 기본(False)은 결정적 로컬 폴백으로 즉시 생성.
+        표 rows·법령 인용은 이 함수와 무관(항상 결정적) — 여기선 '종합의견 텍스트'만 만든다.
         프롬프트엔 비식별 집계만 사용(실명·사번·연락처 금지 — 구역/공정·위험요인·등급·빈도·법령만)."""
         s = a.get("summary", {}) or {}
         rows = a.get("rows", []) or []
@@ -300,13 +303,15 @@ class ScribeAgent(BaseAgent):
                   "데이터에 없는 수치·법령·사실을 지어내지 말고, 개인정보(실명·사번)는 언급하지 마라. "
                   "우선순위 개선방향과 관리적 권고를 포함하되, 최종 판단은 안전관리자 확인이 필요함을 명시하라.")
         prompt = "다음 위험성평가 집계로 '종합의견'을 작성하라:\n\n" + agg
-        try:
-            import llm_provider
-            txt, backend = llm_provider.reason_text(prompt, system)
-        except Exception:  # noqa: BLE001  provider 자체 문제도 폴백
-            txt, backend = None, None
-        if txt:
-            return txt, f"AI({backend})"  # 실제 백엔드명 표기(Ollama:... / Claude:...)
+        # LLM 종합의견은 use_llm=True 일 때만(기본 off → 즉시 응답, 아래 결정적 폴백 사용).
+        if use_llm:
+            try:
+                import llm_provider
+                txt, backend = llm_provider.reason_text(prompt, system)
+            except Exception:  # noqa: BLE001  provider 자체 문제도 폴백
+                txt, backend = None, None
+            if txt:
+                return txt, f"AI({backend})"  # 실제 백엔드명 표기(Ollama:... / Claude:...)
         # ── 로컬 폴백(결정적 템플릿, 항상 동작) ──
         parts = [f"본 위험성평가는 {site}{(' ' + process) if process else ''}에서 "
                  f"AI가 감지·기록한 위험 {total}개 항목을 분석한 결과다."]
@@ -453,9 +458,10 @@ class ScribeAgent(BaseAgent):
 </body></html>"""
 
     def generate(self, events: list[dict[str, Any]], site: str = "", process: str = "",
-                 save: bool = True, use_vlm: bool = False) -> dict[str, Any]:
-        """이벤트 → 평가표 + HTML 생성(+저장). 반환: {assessment, html, saved_path}"""
-        assessment = self.build_assessment(events, site, process, use_vlm=use_vlm)
+                 save: bool = True, use_vlm: bool = False, use_llm: bool = False) -> dict[str, Any]:
+        """이벤트 → 평가표 + HTML 생성(+저장). 반환: {assessment, html, saved_path}.
+        use_llm=True 일 때만 종합의견을 LLM 으로(느림). 기본은 결정적 폴백(즉시 · rows·법령 불변)."""
+        assessment = self.build_assessment(events, site, process, use_vlm=use_vlm, use_llm=use_llm)
         page = self.render_html(assessment)
         saved_path = None
         if save:

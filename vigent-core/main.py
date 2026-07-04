@@ -287,13 +287,16 @@ def evidence_search(rule: str, theme: str = DEFAULT_THEME):
 
 
 @app.post("/safety/risk-assessment")
-def safety_risk_assessment(payload: dict = Body(...), theme: str = DEFAULT_THEME):
+def safety_risk_assessment(payload: dict = Body(...), theme: str = DEFAULT_THEME,
+                           narrative: bool = False):
     """Scribe 위험성평가서 생성. payload={events:[{rule,count}], site, process}.
-    근거 인용 자동 삽입 + data/risk_assessments/ 저장. 반환은 평가표 JSON(+저장경로)."""
+    근거 인용 자동 삽입 + data/risk_assessments/ 저장. 반환은 평가표 JSON(+저장경로).
+    narrative=true 일 때만 종합의견을 LLM 으로 생성(느림). 기본은 결정적 폴백(즉시 · rows·법령 불변)."""
     bundle = STATE.get(theme) or _load_theme(theme)
     scribe = bundle["agents"].get("Scribe")
     out = scribe.generate(payload.get("events", []) or [],
-                          site=payload.get("site", ""), process=payload.get("process", ""))
+                          site=payload.get("site", ""), process=payload.get("process", ""),
+                          use_llm=narrative)
     return {"assessment": out["assessment"], "saved_path": out["saved_path"]}
 
 
@@ -445,9 +448,11 @@ def recognition_log_download():
 
 
 @app.get("/report/safety", response_class=HTMLResponse)
-def report_safety(theme: str = DEFAULT_THEME, hours: float = 24, vlm: bool = False):
+def report_safety(theme: str = DEFAULT_THEME, hours: float = 24, vlm: bool = False,
+                  narrative: bool = False):
     """최근 N시간 누적 이벤트(데이터엔진 집계) 기반 위험성평가서 HTML(인쇄→PDF).
     중대성=실제 등급 분포 산출, 증거사진·정황 반영. vlm=true 면 증거 VLM 장면설명 추가.
+    narrative=true 일 때만 종합의견을 LLM 으로 생성(느림). 기본은 결정적 폴백(즉시 · rows·법령 불변).
     누적 이벤트가 없으면 데모 샘플로 렌더(빈 화면 방지)."""
     bundle = STATE.get(theme) or _load_theme(theme)
     scribe = bundle["agents"].get("Scribe")
@@ -457,7 +462,8 @@ def report_safety(theme: str = DEFAULT_THEME, hours: float = 24, vlm: bool = Fal
         events = [{"rule": "zone_intrusion", "count": 5}, {"rule": "ppe_missing", "count": 9},
                   {"rule": "fall_suspected", "count": 1}]
         site = "데모 현장(누적 이벤트 없음)"
-    return scribe.generate(events, site=site, process="-", save=False, use_vlm=vlm)["html"]
+    return scribe.generate(events, site=site, process="-", save=False, use_vlm=vlm,
+                           use_llm=narrative)["html"]
 
 
 @app.get("/safety/risk-assessment/list")
