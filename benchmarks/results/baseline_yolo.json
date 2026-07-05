@@ -339,5 +339,111 @@
         }
       }
     }
+  },
+  "forklift": {
+    "raw": {
+      "mode": "raw",
+      "backend": "yolo",
+      "measures": "표준 COCO baseline(원시 모델 능력)",
+      "dataset": "forklift",
+      "images_dir": "benchmarks/data/forklift/images",
+      "num_images": 318,
+      "gt_boxes": 316,
+      "num_detections": 2170,
+      "mAP@50": 7.61,
+      "mAP@50:95": 3.03,
+      "per_class_AP50": {
+        "forklift": 7.61
+      },
+      "per_class_AP5095": {
+        "forklift": 3.03
+      },
+      "latency_ms_mean": 24.26,
+      "latency_frames_timed": 308,
+      "latency_warmup_excluded": 10,
+      "conf": 0.001,
+      "iou_nms": 0.7,
+      "imgsz": 640,
+      "seed": 0,
+      "eval_method": "pycocotools COCOeval bbox (101-point interpolation)",
+      "model_source": "vigent-core/weights/forklift_boda_ax.pt",
+      "run_at": "2026-07-05 14:20"
+    },
+    "pipeline": {
+      "mode": "pipeline",
+      "backend": "yolo",
+      "measures": "배포 운용점(guard.detect 후처리·운용 임계 반영)",
+      "dataset": "forklift",
+      "images_dir": "benchmarks/data/forklift/images",
+      "num_images": 318,
+      "gt_boxes": 316,
+      "num_detections": 122,
+      "mAP@50": 3.15,
+      "mAP@50:95": 1.28,
+      "per_class_AP50": {
+        "forklift": 3.15
+      },
+      "per_class_AP5095": {
+        "forklift": 1.28
+      },
+      "latency_ms_mean": 46.3,
+      "latency_frames_timed": 308,
+      "latency_warmup_excluded": 10,
+      "conf": "guard 운용 임계(vision.yaml)",
+      "iou_nms": "guard 내부",
+      "imgsz": 640,
+      "seed": 0,
+      "eval_method": "pycocotools COCOeval bbox (101-point interpolation)",
+      "model_source": "vision.yaml 배포 설정(guard slot=forklift)",
+      "run_at": "2026-07-05 14:20"
+    },
+    "presence": {
+      "raw": {
+        "mode": "raw",
+        "metric": "image-level presence",
+        "images": 318,
+        "op_threshold": 0.25,
+        "per_class_AP": {
+          "forklift": {
+            "presence_AP": 76.87,
+            "best_f1": 86.08,
+            "best_f1_thr": 0.002
+          }
+        },
+        "operating_point": {
+          "forklift": {
+            "gt_pos": 238,
+            "pred_pos": 179,
+            "tp": 139,
+            "recall": 58.4,
+            "precision": 77.65,
+            "f1": 66.67
+          }
+        }
+      },
+      "pipeline": {
+        "mode": "pipeline",
+        "metric": "image-level presence",
+        "images": 318,
+        "op_threshold": 1e-06,
+        "per_class_AP": {
+          "forklift": {
+            "presence_AP": 76.6,
+            "best_f1": 85.77,
+            "best_f1_thr": 0.0
+          }
+        },
+        "operating_point": {
+          "forklift": {
+            "gt_pos": 238,
+            "pred_pos": 108,
+            "tp": 85,
+            "recall": 35.71,
+            "precision": 78.7,
+            "f1": 49.13
+          }
+        }
+      }
+    }
   }
 }

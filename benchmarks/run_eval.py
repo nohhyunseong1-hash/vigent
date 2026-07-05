@@ -56,6 +56,13 @@ _DATASETS = {
         "data_yaml": _ROOT / "benchmarks" / "data" / "fire_smoke" / "data.yaml",
         "slot": "fire_smoke",
     },
+    "forklift": {
+        "images": _ROOT / "benchmarks" / "data" / "forklift" / "images",
+        "labels": _ROOT / "benchmarks" / "data" / "forklift" / "labels",
+        "gt_names": None,
+        "data_yaml": _ROOT / "benchmarks" / "data" / "forklift" / "data.yaml",
+        "slot": "forklift",
+    },
 }
 
 _IMG_EXT = {".jpg", ".jpeg", ".png", ".bmp"}

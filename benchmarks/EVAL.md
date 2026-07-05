@@ -105,6 +105,22 @@ box mAP는 스키마 불일치로 '능력'을 반영 못 함. **용도(화재 �
 - **T14-F 완화**: fire·smoke conf 분포 상이 → 클래스별 임계(fire 0.03/smoke 0.20)로 recall 회복. ⚠️ 임계 천장(최대 recall≈54%) → 근본 해결은 T10b(F-6).
 - 지표 추가는 **용도 정합화**(게이트 회피 아님) — COCOeval 측정 로직 무수정, `presence_eval.py`로 별도 산출.
 
+### forklift (T13b, LOCO CC0 · 318장=positive 238+네거 80) — 이중 지표
+
+LOCO forklift 희소(598inst/449img) → SHA256 결정적 **test 0.55 상향 분할**(test 238img/316inst). 네거티브 80장(hard/pallet_truck 40+일반 40)으로 FAR 측정.
+
+| 지표 | raw | pipeline | 의미 |
+|---|---|---|---|
+| **box mAP@50** | **7.61%** | 3.15% | ⚠️ 도메인갭+저신뢰(스키마 아님 — 검출 시 IoU≥0.5가 31%) |
+| **presence AP** | 76.87% | 76.60% | 존재 감지는 상대적 양호(저conf) |
+| presence recall@운용점 | 58.4% | **35.71%**(conf 0.68) | ⚠️ 배포서 forklift 64% 놓침 |
+| presence precision@운용점 | 77.65% | 78.70% | — |
+| **presence FAR@운용점** | 50.0% | **28.7%** | ⚠️ 네거 80장 중 23장 오탐 = **pallet_truck 혼동** |
+
+- 현행 forklift 모델은 LOCO 도메인에서 **저recall(36%)·고오탐(FAR 29%)** 양쪽 약함 → box mAP 저조의 실체.
+- box mAP(raw 7.61)는 T10b '저하없음' 게이트 기준선, presence recall/FAR 은 배포 안전 지표(FINDINGS). 근본 해결 = T10b(LOCO 재학습 + pallet_truck hard negative).
+- pallet_truck 은 병합 안 함(다른 위험군) → FINDINGS 백로그(별도 검출 클래스 후보).
+
 ## 5. ★ 신규 발견 — raw↔pipeline 체계적 격차
 
 - 배포 파이프라인(`guard.detect`)이 원시 모델 대비 mAP@50을 **일관되게 크게 떨어뜨림**: person **90.82 → 70.95**(−19.9%p), ppe **75.20 → 58.62**(−16.6%p).
