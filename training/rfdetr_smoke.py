@@ -33,7 +33,13 @@ def main():
     ap.add_argument("--device", default="mps")
     ap.add_argument("--epochs", type=int, default=1)
     ap.add_argument("--dataset_dir", default=str(Path.home() / "Downloads" / "ppe_subset"))
+    ap.add_argument("--anomaly", action="store_true", help="torch anomaly detection(nan 연산 지목)")
     a = ap.parse_args()
+
+    if a.anomaly:
+        import torch
+        torch.autograd.set_detect_anomaly(True)
+        print("[smoke] anomaly detection ON — nan 연산 역추적", flush=True)
 
     amp = a.amp.lower() in ("1", "true", "yes", "on")
     out_dir = Path.home() / "Downloads" / f"rfdetr_smoke_{a.tag}"
