@@ -13,7 +13,11 @@ perception:                       # ── Guard (감지)
   # 슬롯별 검출 백엔드(T10a). 'yolo'=ultralytics(.pt, AGPL) / 'rfdetr'=RF-DETR(Apache-2.0).
   #   기본은 yolo(생략 시). person 은 RF-DETR 로 이관(COCO 사전학습, mAP@50 raw 93.9%·33.8ms).
   #   ppe/fire_smoke/forklift 는 RF-DETR 모델 학습(T10b) 전까지 yolo 유지.
-  backend: {person: rfdetr, ppe: yolo, fire_smoke: yolo, forklift: yolo}
+  backend: {person: rfdetr, ppe: yolo, fire_smoke: yolo, forklift: rfdetr}
+  # rfdetr 백엔드 커스텀 파인튜닝 가중치(T10b). person 은 COCO 사전학습이라 항목 없음.
+  #   forklift: LOCO 학습(T10b Phase1). box mAP@50 8.83%(YOLO 7.61 초과) — 단 confidence 낮아 운용점 tuning.yaml 참조.
+  #   되돌리려면 backend.forklift 를 yolo 로, tuning.yaml forklift 임계를 0.68 로 되돌린다.
+  rfdetr_weights: {forklift: vigent-core/weights/forklift_rfdetr_v1.pth}
   detectors:
     # 범용 객체(COCO 80종): yolo11m — 일상 사물 전반을 가장 정확히 잡는 주력 검출기.
     #   (재학습 office_person_v1 은 빠른학습이라 품질이 낮아 보류. 제대로 재학습 시 교체 예정)

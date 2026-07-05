@@ -33,7 +33,9 @@ detect:                     # 탐지 공통
       NO-Hardhat: 0.30      # 재현율 50.7→~64%(P≥90 유지) — 미착용 감지 최약체 보강
       NO-Mask: 0.50         # 재현율 63.5→~70%
       NO-Safety-Vest: 0.50  # 재현율 66.0→~68%
-    forklift: 0.68          # 0.55→0.68: 지게차 헛인식↓(진짜 지게차는 0.9)
+    forklift: 0.002         # T10b RF-DETR 이관: 이 모델은 confidence 스케일이 낮음(0.001~0.005).
+      # D-Fire 스윕 실측 0.002 → recall 34.9%/FAR 35%(YOLO 0.68의 R35.7/FAR28.7과 유사 recall·FAR 다소↑).
+      # ⚠️ 잠정 운용점(과소학습 conf 낮음, F-7). backend=yolo 로 되돌리면 반드시 0.68 로 복원.
     fire_smoke: 0.55        # 단일 폴백(아래 fire_smoke_per_class 없는 라벨용). 실제 임계는 클래스별 맵.
     fire_smoke_per_class:   # T14-F(F-6 완화): fire·smoke conf 분포가 달라 단일 임계로 둘 다 만족 불가.
       fire: 0.03            # D-Fire 실측 recall 10.5→~54%(FAR 8.6%). 화재는 놓침이 최악 → 낮게.

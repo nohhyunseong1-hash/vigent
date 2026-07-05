@@ -83,6 +83,21 @@
 - ⚠️ **게이트 약함 주의**(fire_smoke 게이트 B와 동일 구조): baseline 7.61%는 **도메인갭**(boda 모델이 LOCO 미학습)으로 낮아,
   LOCO train 학습한 RF-DETR 은 자명하게 초과 가능. 따라서 "−2%p"는 하한선일 뿐 — **실질 목표는 presence recall↑ + FAR↓**(pallet_truck 오탐 감소)로 판정 권장. 필요 시 LOCO forklift 문헌치 조사해 절대 목표 추가.
 
+### ★ T10b Phase 1 forklift 결과 — 이관 완료(box 개선 인정, 사용자 결정 c) 2026-07-05
+- 학습: RFDETRNano, LOCO train 192장, 50ep, MPS 45분. 산출 `weights/forklift_rfdetr_v1.pth`(class_names=['forklift']).
+- **게이트 판정(부분 통과)**:
+  | 지표 | YOLO baseline | RF-DETR | 판정 |
+  |---|---|---|---|
+  | box mAP@50 raw | 7.61% | **8.83%** | ✅ ≥5.61 통과·baseline 초과 |
+  | box mAP@50:95 raw | 3.03% | **5.98%** | ✅ ~2× |
+  | **box mAP@50 pipeline** | 3.15% | **8.5%** | ✅ **+5.35%p 대폭 개선** |
+  | presence AP | 76.87% | 76.32% | ≈동등 |
+  | presence recall/FAR(pipeline) | R35.7/FAR28.7 | R34.87/**FAR35** | ⚠️ recall 동등·**FAR 다소↑**(미개선) |
+- **한계(F-7 유지)**: 예측 confidence 극저(0.001~0.005) = **train 192장 과소학습/과적합**(내부 valid best가 epoch0에서 정체).
+  운용점 tuning.yaml `forklift: 0.002`(잠정, YOLO 0.68에서 변경). recall<60%라 **"추가 개선 필요" 유지 + 데이터 보강 백로그**.
+- 회귀: person(rfdetr) 92.94·ppe 58.62·fire_smoke presence(fire 53.64/smoke 24.85) 전부 **Δ0.00**(이관이 타 경로 무영향).
+- copyleft: forklift 런타임이 rfdetr(Apache)로 전환 → **ultralytics(AGPL) 잔존은 ppe·fire_smoke 2개 슬롯만**(T10b 나머지).
+
 ### F-7. forklift 배포 저recall·고오탐 (제품 리스크, F-6 유형)
 - 실측(LOCO 318장): 배포 운용점(conf 0.68) **forklift recall 35.71%(64% 놓침) + FAR 28.7%**(네거 80장 중 23장 오탐).
 - FAR 의 실체 = **pallet_truck 혼동**(hard negative 40장 중 다수 오탐). 도메인갭+저신뢰로 recall·precision 양쪽 약함.

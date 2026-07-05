@@ -34,6 +34,10 @@ class RfdetrDetector(BaseDetector):
         self.device = dev
         self._ln = label_normalize
         self._junk = junk
+        # 클래스 매핑: COCO 사전학습(weights="")은 COCO_CLASSES. 커스텀 파인튜닝(weights 지정)은
+        #   모델 자체 class_names(0-indexed, 예: ['forklift']). class_id ≥ 클래스수 = DETR 배경/no-object → 무시.
+        #   (COCO_CLASSES 하드코딩은 커스텀 모델을 오매핑 → 실측 근거로 분기: T10b eval_rfdetr_custom.py 참조)
+        self._custom_names = list(getattr(self.model, "class_names", []) or []) if weights else None
 
     def detect(self, image_bgr, conf: float, imgsz: int | None = None,
                augment: bool = False) -> list[dict[str, Any]]:
@@ -46,7 +50,13 @@ class RfdetrDetector(BaseDetector):
         out: list[dict[str, Any]] = []
         xyxy = getattr(det, "xyxy", [])
         for j in range(len(xyxy)):
-            raw = COCO_CLASSES[int(det.class_id[j])]
+            cid = int(det.class_id[j])
+            if self._custom_names is not None:                 # 커스텀 파인튜닝: 자체 class_names(0-indexed)
+                if not (0 <= cid < len(self._custom_names)):
+                    continue                                   # 범위 밖 = 배경/no-object → 버림
+                raw = self._custom_names[cid]
+            else:                                              # COCO 사전학습(person 등): 기존 경로 불변
+                raw = COCO_CLASSES[cid]
             x1, y1, x2, y2 = (float(v) for v in xyxy[j])
             d = finalize_box(raw, float(det.confidence[j]), x1, y1, x2, y2, w, h, self._ln, self._junk)
             if d is not None:

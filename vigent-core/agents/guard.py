@@ -138,6 +138,14 @@ class GuardAgent(BaseAgent):
                                  .get("perception", {}).get("backend", {}) or {})
         except Exception:  # noqa: BLE001  설정 없으면 전부 yolo 폴백
             pass
+        # rfdetr 백엔드용 커스텀 파인튜닝 가중치(T10b). 없는 슬롯(person 등)은 COCO 사전학습 사용.
+        #   vision.yaml perception.rfdetr_weights: {forklift: vigent-core/weights/forklift_rfdetr_v1.pth}
+        self._rfdetr_weights: dict[str, str] = {}
+        try:
+            self._rfdetr_weights = dict((getattr(config, "raw", {}) or {})
+                                        .get("perception", {}).get("rfdetr_weights", {}) or {})
+        except Exception:  # noqa: BLE001
+            pass
 
     @staticmethod
     def _pick_device() -> str:
@@ -214,8 +222,10 @@ class GuardAgent(BaseAgent):
         try:
             if backend == "rfdetr":
                 from detectors.rfdetr_adapter import RfdetrDetector
-                # person 등 COCO 클래스는 사전학습으로 충분 → 슬롯의 .pt(YOLO용) 경로는 쓰지 않는다.
-                self._models[slot] = RfdetrDetector("", LABEL_NORMALIZE, JUNK_LABELS)
+                # person 등 COCO 클래스는 사전학습(rf_w="")으로 충분. forklift 등 T10b 파인튜닝은
+                #   perception.rfdetr_weights 의 커스텀 .pth 를 주입(자체 클래스 공간 → 어댑터가 class_names 로 매핑).
+                rf_w = self._rfdetr_weights.get(slot, "")
+                self._models[slot] = RfdetrDetector(rf_w, LABEL_NORMALIZE, JUNK_LABELS)
             else:
                 from detectors.yolo_adapter import YoloDetector
                 self._models[slot] = YoloDetector(path, self.device, self.IMGSZ,

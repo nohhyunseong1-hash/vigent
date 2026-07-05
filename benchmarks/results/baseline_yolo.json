@@ -99,7 +99,7 @@
       "per_class_AP5095": {
         "person": 84.26
       },
-      "latency_ms_mean": 35.23,
+      "latency_ms_mean": 35.87,
       "latency_frames_timed": 64,
       "latency_warmup_excluded": 10,
       "conf": "guard 운용 임계(vision.yaml)",
@@ -108,7 +108,7 @@
       "seed": 0,
       "eval_method": "pycocotools COCOeval bbox (101-point interpolation)",
       "model_source": "vision.yaml 배포 설정(guard slot=person)",
-      "run_at": "2026-07-04 23:43"
+      "run_at": "2026-07-05 17:30"
     }
   },
   "ppe": {
@@ -192,7 +192,7 @@
         "machinery": 40.11,
         "vehicle": 32.4
       },
-      "latency_ms_mean": 135.74,
+      "latency_ms_mean": 130.06,
       "latency_frames_timed": 72,
       "latency_warmup_excluded": 10,
       "conf": "guard 운용 임계(vision.yaml)",
@@ -201,7 +201,7 @@
       "seed": 0,
       "eval_method": "pycocotools COCOeval bbox (101-point interpolation)",
       "model_source": "vision.yaml 배포 설정(guard slot=ppe)",
-      "run_at": "2026-07-04 23:43"
+      "run_at": "2026-07-05 17:30"
     }
   },
   "fire_smoke": {
@@ -377,16 +377,16 @@
       "images_dir": "benchmarks/data/forklift/images",
       "num_images": 318,
       "gt_boxes": 316,
-      "num_detections": 122,
-      "mAP@50": 3.15,
-      "mAP@50:95": 1.28,
+      "num_detections": 167,
+      "mAP@50": 8.5,
+      "mAP@50:95": 5.71,
       "per_class_AP50": {
-        "forklift": 3.15
+        "forklift": 8.5
       },
       "per_class_AP5095": {
-        "forklift": 1.28
+        "forklift": 5.71
       },
-      "latency_ms_mean": 46.3,
+      "latency_ms_mean": 33.84,
       "latency_frames_timed": 308,
       "latency_warmup_excluded": 10,
       "conf": "guard 운용 임계(vision.yaml)",
@@ -395,7 +395,7 @@
       "seed": 0,
       "eval_method": "pycocotools COCOeval bbox (101-point interpolation)",
       "model_source": "vision.yaml 배포 설정(guard slot=forklift)",
-      "run_at": "2026-07-05 14:20"
+      "run_at": "2026-07-05 17:30"
     },
     "presence": {
       "raw": {
@@ -428,7 +428,7 @@
         "op_threshold": 1e-06,
         "per_class_AP": {
           "forklift": {
-            "presence_AP": 76.6,
+            "presence_AP": 75.7,
             "best_f1": 85.77,
             "best_f1_thr": 0.0
           }
@@ -436,11 +436,11 @@
         "operating_point": {
           "forklift": {
             "gt_pos": 238,
-            "pred_pos": 108,
-            "tp": 85,
-            "recall": 35.71,
-            "precision": 78.7,
-            "f1": 49.13
+            "pred_pos": 111,
+            "tp": 83,
+            "recall": 34.87,
+            "precision": 74.77,
+            "f1": 47.56
           }
         }
       }
