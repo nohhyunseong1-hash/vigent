@@ -9,6 +9,9 @@
 # ════════════════════════════════════════════════════════════
 DIR="$(cd "$(dirname "$0")/.." && pwd)"     # 프로젝트 루트(스크립트 위치 기준 — USB 어디 꽂혀도 동작)
 PORT="${VIGENT_PORT:-8010}"
+# 바인딩(C-S0): 기본 로컬 전용(127.0.0.1). 외부 노출은 VIGENT_HOST=0.0.0.0 로 명시 opt-in
+#   (단 0.0.0.0 은 VIGENT_API_TOKEN 설정 필수 — 미설정 시 main.py 가 기동 거부).
+export VIGENT_HOST="${VIGENT_HOST:-127.0.0.1}"
 
 echo "================================================"
 echo "  VIGENT 엣지 설치본 시작 (헤드리스)"
@@ -45,4 +48,4 @@ echo "현장 카메라 자동 감시 시작 중... (Ctrl+C 로 종료)"
 echo "상태 확인:  http://127.0.0.1:${PORT}/workers"
 echo "관제 콘솔:  http://127.0.0.1:${PORT}/safety/auto"
 echo "------------------------------------------------"
-exec "$PY" -m uvicorn main:app --host 0.0.0.0 --port ${PORT}
+exec "$PY" -m uvicorn main:app --host "${VIGENT_HOST}" --port ${PORT}

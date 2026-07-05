@@ -55,6 +55,64 @@ DEFAULT_THEME = os.environ.get("VIGENT_THEME", "safety")
 
 app = FastAPI(title="VIGENT Core", version="0.2.0")
 
+# ── 보안(C-S0): 바인딩·토큰 인증·웹훅 화이트리스트 ─────────────────────────
+#   기본은 로컬 전용(127.0.0.1)·무토큰(개발 편의). 외부 노출은 명시적 opt-in.
+_API_TOKEN = os.environ.get("VIGENT_API_TOKEN", "").strip()
+_BIND_HOST = os.environ.get("VIGENT_HOST", "127.0.0.1").strip()
+_IS_LOOPBACK = _BIND_HOST in ("127.0.0.1", "localhost", "::1", "")
+# 외부 바인딩 + 무토큰 = 무인증 노출 → 기동 거부(명확한 안내와 함께 종료)
+if not _IS_LOOPBACK and not _API_TOKEN:
+    sys.stderr.write(
+        "\n[VIGENT 보안 오류] 외부 바인딩(VIGENT_HOST=%s)에는 VIGENT_API_TOKEN 이 필수입니다.\n"
+        "  · 로컬 개발  : VIGENT_HOST 미설정(기본 127.0.0.1) → 무토큰 허용\n"
+        "  · 외부 노출  : VIGENT_API_TOKEN=<비밀토큰> 설정 후 기동(전 라우트 Bearer 인증)\n\n"
+        % _BIND_HOST)
+    raise SystemExit(1)
+# 토큰 미설정(로컬)이면 인증 생략. 설정 시 아래 경로만 예외(모니터링·파비콘).
+_AUTH_EXEMPT = {"/health", "/favicon.ico"}
+
+
+def _load_allowed_webhook_hosts() -> set[str]:
+    """config/security.json 의 allowed_webhook_hosts(아웃바운드 웹훅 목적지 화이트리스트)."""
+    try:
+        f = _ROOT / "config" / "security.json"
+        return set(json.loads(f.read_text(encoding="utf-8")).get("allowed_webhook_hosts") or [])
+    except Exception:  # noqa: BLE001  설정 없으면 빈 집합(전부 미허용 = fail-closed)
+        return set()
+
+
+def _webhook_allowed(url: str) -> bool:
+    """url 의 호스트가 화이트리스트에 있으면 True(서브도메인 endswith 매칭)."""
+    from urllib.parse import urlparse
+    host = (urlparse(url).hostname or "").lower()
+    if not host:
+        return False
+    return any(host == h or host.endswith("." + h) for h in _load_allowed_webhook_hosts())
+
+
+def _env_or_dotenv(key: str) -> str:
+    """환경변수 우선, 없으면 .env 에서 key 값을 읽는다(비밀은 코드/응답에 노출 안 함)."""
+    v = os.environ.get(key, "").strip()
+    if v:
+        return v
+    envf = _ROOT / ".env"
+    if envf.exists():
+        for line in envf.read_text(encoding="utf-8", errors="ignore").splitlines():
+            if line.strip().startswith(key):
+                return line.split("=", 1)[1].strip().strip('"').strip("'")
+    return ""
+
+
+@app.middleware("http")
+async def _auth_guard(request, call_next):
+    """VIGENT_API_TOKEN 설정 시 전 라우트 Bearer 검증(미설정=로컬 개발 무인증)."""
+    if _API_TOKEN and request.method != "OPTIONS":
+        path = request.url.path
+        if path not in _AUTH_EXEMPT:
+            if request.headers.get("Authorization", "") != f"Bearer {_API_TOKEN}":
+                return JSONResponse({"detail": "unauthorized"}, status_code=401)
+    return await call_next(request)
+
 
 @app.middleware("http")
 async def _no_cache_dynamic(request, call_next):
@@ -241,6 +299,12 @@ def set_zone_machine(payload: dict = Body(...), theme: str = DEFAULT_THEME):
 def dispatch_relay(payload: dict = Body(default={}), theme: str = DEFAULT_THEME):
     """§8 보조 방호신호. guard_bypass(critical) 발생 시 프론트가 호출.
     ⚠ 비전은 보조·감시 계층이며 1차 비상정지를 대체하지 않는다."""
+    # 웹훅 목적지 화이트리스트(C-S0): WEBHOOK_URL 이 설정돼 있고 미등재 호스트면 거부.
+    #   (미설정=텔레그램만/무전송 → 통과. 안전경보 경로를 정상설정에서 막지 않음.)
+    _wh = _env_or_dotenv("WEBHOOK_URL")
+    if _wh and not _webhook_allowed(_wh):
+        raise HTTPException(status_code=403,
+                            detail="dispatch 웹훅 목적지 미허용 — config/security.json allowed_webhook_hosts 에 호스트 등록 필요")
     bundle = STATE.get(theme) or _load_theme(theme)
     dispatcher = bundle["agents"].get("Dispatcher")
     return dispatcher.relay(payload.get("event", "guard_bypass"), payload.get("meta"))
@@ -1878,6 +1942,9 @@ def office_webhook(payload: dict = Body(default={})):
         raise HTTPException(status_code=400, detail="text 필요")
     if not url:
         return {"ok": False, "fallback": True, "note": ".env 에 OFFICE_WEBHOOK_URL 없음(미발송)"}
+    if not _webhook_allowed(url):   # C-S0 목적지 화이트리스트
+        raise HTTPException(status_code=403,
+                            detail="웹훅 목적지 미허용 — config/security.json allowed_webhook_hosts 에 호스트 등록 필요")
     import json as _json
     import urllib.request
     # Slack/Teams 둘 다 {"text": ...} 호환

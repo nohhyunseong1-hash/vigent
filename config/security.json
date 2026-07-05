@@ -1,0 +1,10 @@
+{
+  "_comment": "C-S0 보안 설정. allowed_webhook_hosts = 아웃바운드 웹훅(Slack/Teams/Discord 등) 허용 목적지 호스트. 미등재 호스트로의 전송은 403(SSRF·오설정 방어). 서브도메인은 endswith 매칭(예: 'office.com' → '*.webhook.office.com' 허용). api.telegram.org 는 dispatcher 고정 호스트라 별도 등재 불필요.",
+  "allowed_webhook_hosts": [
+    "hooks.slack.com",
+    "office.com",
+    "webhook.office.com",
+    "discord.com",
+    "discordapp.com"
+  ]
+}
