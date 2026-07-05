@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- VIGENT 엣지 (launchd, macOS 개발/현장용) — C-S1
+     프로세스 생존: KeepAlive=true 로 종료/크래시 시 자동 재기동.
+     설치:
+       1) __INSTALL_DIR__ 를 실제 경로로 치환(예: /Users/you/Desktop/VIGENT)
+       2) cp deploy/launchd/com.vigent.edge.plist ~/Library/LaunchAgents/
+       3) launchctl load -w ~/Library/LaunchAgents/com.vigent.edge.plist
+     로그: __INSTALL_DIR__/logs/launchd.{out,err}.log
+-->
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.vigent.edge</string>
+    <key>ProgramArguments</key>
+    <array>
+        <string>/bin/bash</string>
+        <string>__INSTALL_DIR__/bin/vigent-edge.command</string>
+    </array>
+    <key>WorkingDirectory</key>
+    <string>__INSTALL_DIR__</string>
+    <key>EnvironmentVariables</key>
+    <dict>
+        <key>VIGENT_HOST</key>
+        <string>127.0.0.1</string>
+        <key>VIGENT_PORT</key>
+        <string>8010</string>
+        <key>VIGENT_EDGE</key>
+        <string>1</string>
+        <key>VIGENT_LOG_LEVEL</key>
+        <string>INFO</string>
+    </dict>
+    <key>KeepAlive</key>
+    <true/>
+    <key>RunAtLoad</key>
+    <true/>
+    <key>ThrottleInterval</key>
+    <integer>5</integer>
+    <key>StandardOutPath</key>
+    <string>__INSTALL_DIR__/logs/launchd.out.log</string>
+    <key>StandardErrorPath</key>
+    <string>__INSTALL_DIR__/logs/launchd.err.log</string>
+</dict>
+</plist>

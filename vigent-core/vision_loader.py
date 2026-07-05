@@ -173,6 +173,9 @@ def load_vision(theme: str = "safety") -> PipelineConfig:
 if __name__ == "__main__":
     # 단독 실행 시 상태표를 콘솔에 출력(점검용)
     import json
+
+    import vlog
+    _log = vlog.get("vigent.vision_loader")
     c = load_vision("safety")
-    print(f"[VIGENT] 테마 로드: {c.display_name} ({c.theme})")
-    print(json.dumps(c.summary(), ensure_ascii=False, indent=2))
+    _log.info("테마 로드: %s (%s)", c.display_name, c.theme)
+    _log.info("%s", json.dumps(c.summary(), ensure_ascii=False, indent=2))

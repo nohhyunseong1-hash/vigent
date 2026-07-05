@@ -1,0 +1,34 @@
+# VIGENT 엣지 서비스 (systemd, 리눅스 배포용) — C-S1
+# 설치:
+#   1) __INSTALL_DIR__ 를 실제 배포 경로로 치환(예: /opt/vigent)
+#   2) sudo cp deploy/systemd/vigent-edge.service /etc/systemd/system/
+#   3) sudo systemctl daemon-reload && sudo systemctl enable --now vigent-edge
+# 프로세스 생존: Restart=always 로 크래시/종료 시 자동 재기동.
+[Unit]
+Description=VIGENT Edge (safety vision)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+# 배포 경로·계정으로 치환
+WorkingDirectory=__INSTALL_DIR__
+User=__RUN_USER__
+# 바인딩: 기본 로컬. 외부 노출 시 VIGENT_HOST=0.0.0.0 + VIGENT_API_TOKEN 필수(미설정 시 기동 거부).
+Environment=VIGENT_HOST=127.0.0.1
+Environment=VIGENT_PORT=8010
+Environment=VIGENT_EDGE=1
+Environment=VIGENT_LOG_LEVEL=INFO
+# EnvironmentFile 로 비밀(VIGENT_API_TOKEN, WEBHOOK_URL 등) 주입 권장:
+# EnvironmentFile=__INSTALL_DIR__/.env
+ExecStart=/bin/bash __INSTALL_DIR__/bin/vigent-edge.command
+Restart=always
+RestartSec=5
+# 크래시 폭주 방지: 60초 내 5회 초과 재시작 시 정지(원인 점검 강제)
+StartLimitIntervalSec=60
+StartLimitBurst=5
+# 참고: sd_notify(WatchdogSec) 대신 외부 /health 워치독(vigent-watchdog.timer) 사용.
+#   앱이 sd_notify 를 보내지 않으므로 WatchdogSec 를 켜면 오히려 오재시작 루프가 됨 → 의도적으로 미사용.
+
+[Install]
+WantedBy=multi-user.target

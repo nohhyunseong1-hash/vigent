@@ -1,0 +1,50 @@
+{
+  "_comment": "C-S1 가중치 배포 매니페스트. 배포에 필요한 모델 파일의 무결성(SHA256)·버전·용도. fetch_weights.py 가 이 파일로 검증 다운로드한다. url 은 호스팅 위치 미결정(자리표시자) — 결정 후 실제 URL 로 교체. SHA256 은 2026-07-05 실측.",
+  "schema_version": 1,
+  "product_version": "0.2.0",
+  "base_url_env": "VIGENT_WEIGHTS_BASE_URL",
+  "weights": [
+    {
+      "file": "yolo11m.pt", "slot": "person", "backend": "yolo",
+      "purpose": "person 검출 YOLO 경로(현재 backend=rfdetr, 롤백/폴백용)",
+      "version": "yolo11m", "sha256": "d5ffc1a674953a08e11a8d21e022781b1b23a19b730afc309290bd9fb5305b95",
+      "size_bytes": 40684120, "url": "PLACEHOLDER/yolo11m.pt", "required": false
+    },
+    {
+      "file": "yolo11s.pt", "slot": "person", "backend": "yolo",
+      "purpose": "person 검출 폴백(경량)",
+      "version": "yolo11s", "sha256": "85a76fe86dd8afe384648546b56a7a78580c7cb7b404fc595f97969322d502d5",
+      "size_bytes": 19313732, "url": "PLACEHOLDER/yolo11s.pt", "required": false
+    },
+    {
+      "file": "ppe_css_v1.pt", "slot": "ppe", "backend": "yolo",
+      "purpose": "PPE 착용/미착용 검출(css_safety 학습, 배포 활성)",
+      "version": "css_v1", "sha256": "17a968ab4484c0b46889cae57ee78b9b5345b85e45e7f07e07214eb973272dbb",
+      "size_bytes": 19188570, "url": "PLACEHOLDER/ppe_css_v1.pt", "required": true
+    },
+    {
+      "file": "fire_smoke_boda.pt", "slot": "fire_smoke", "backend": "yolo",
+      "purpose": "화재/연기 검출(배포 활성)",
+      "version": "boda", "sha256": "95ecffe9e6398239bcfcb69fcad3ff539c73c6c0770a7a626aa4a933991749ff",
+      "size_bytes": 6271985, "url": "PLACEHOLDER/fire_smoke_boda.pt", "required": true
+    },
+    {
+      "file": "forklift_boda_ax.pt", "slot": "forklift", "backend": "yolo",
+      "purpose": "지게차 검출 YOLO 경로(현재 backend=rfdetr, 롤백용)",
+      "version": "boda_ax", "sha256": "30579655ea0f8f48ba9b5a63eb21dd4ac5945a6a6db157b5adafe49177c84cb7",
+      "size_bytes": 6274161, "url": "PLACEHOLDER/forklift_boda_ax.pt", "required": false
+    },
+    {
+      "file": "forklift_rfdetr_v1.pth", "slot": "forklift", "backend": "rfdetr",
+      "purpose": "지게차 검출 RF-DETR(T10b 이관, 배포 활성)",
+      "version": "rfdetr_v1", "sha256": "cd76eb56487bf1aa308a2da428e0348c8f6fbff0187007db77ec577d693373ac",
+      "size_bytes": 120781691, "url": "PLACEHOLDER/forklift_rfdetr_v1.pth", "required": true
+    },
+    {
+      "file": "yolov8n-pose.pt", "slot": "pose", "backend": "yolo",
+      "purpose": "포즈(낙상·근골격) 백엔드 — worker.py 로드",
+      "version": "yolov8n-pose", "sha256": "c6fa93dd1ee4a2c18c900a45c1d864a1c6f7aba75d84f91648a30b7fb641d212",
+      "size_bytes": 6832633, "url": "PLACEHOLDER/yolov8n-pose.pt", "required": true
+    }
+  ]
+}

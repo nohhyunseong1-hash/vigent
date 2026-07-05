@@ -1,0 +1,13 @@
+# VIGENT 워치독 타이머 (systemd) — C-S1. 30초마다 /health 점검.
+# 설치: sudo cp deploy/systemd/vigent-watchdog.{service,timer} /etc/systemd/system/
+#       sudo systemctl daemon-reload && sudo systemctl enable --now vigent-watchdog.timer
+[Unit]
+Description=VIGENT health watchdog timer
+
+[Timer]
+OnBootSec=60
+OnUnitActiveSec=30
+AccuracySec=5
+
+[Install]
+WantedBy=timers.target

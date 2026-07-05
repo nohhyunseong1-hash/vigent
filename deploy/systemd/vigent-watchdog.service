@@ -1,0 +1,12 @@
+# VIGENT /health 워치독 (systemd oneshot) — C-S1. vigent-watchdog.timer 가 주기 실행.
+[Unit]
+Description=VIGENT health watchdog
+After=vigent-edge.service
+
+[Service]
+Type=oneshot
+WorkingDirectory=__INSTALL_DIR__
+# EnvironmentFile=__INSTALL_DIR__/.env   # VIGENT_API_TOKEN 등
+Environment=VIGENT_HEALTH_URL=http://127.0.0.1:8010/health
+Environment=VIGENT_RESTART_CMD=systemctl restart vigent-edge
+ExecStart=/bin/bash __INSTALL_DIR__/deploy/watchdog.sh

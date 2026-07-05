@@ -47,13 +47,26 @@ import audit_store                        # noqa: E402
 import data_engine                       # noqa: E402
 import tbm_store                          # noqa: E402
 import vision_loader                     # noqa: E402
+import vlog                              # noqa: E402  로깅 인프라(C-S1)
+import time as _time                     # noqa: E402
+
+_log = vlog.get("vigent")               # print 대체 — 콘솔+파일 로테이션
+_START_TS = _time.time()                # uptime 기준(모듈 로드 시각)
+
+
+def _product_version() -> str:
+    """제품 버전 단일 소스(VERSION 파일). /health·app.version 이 함께 사용."""
+    try:
+        return (_ROOT / "VERSION").read_text(encoding="utf-8").strip()
+    except Exception:  # noqa: BLE001
+        return "unknown"
 
 # ─────────────────────────────────────────────────────────────
 # 앱 + 시작 시 1회 로드
 # ─────────────────────────────────────────────────────────────
 DEFAULT_THEME = os.environ.get("VIGENT_THEME", "safety")
 
-app = FastAPI(title="VIGENT Core", version="0.2.0")
+app = FastAPI(title="VIGENT Core", version=_product_version())
 
 # ── 보안(C-S0): 바인딩·토큰 인증·웹훅 화이트리스트 ─────────────────────────
 #   기본은 로컬 전용(127.0.0.1)·무토큰(개발 편의). 외부 노출은 명시적 opt-in.
@@ -180,16 +193,16 @@ def _startup() -> None:
     bundle = _load_theme(DEFAULT_THEME)
     cfg = bundle["config"]
     s = cfg.summary()
-    print(f"[VIGENT] '{cfg.display_name}' 로드 완료 "
-          f"(폴백 {s['fallback_count']}개 / 비활성 {s['disabled_count']}개)")
+    _log.info("'%s' 로드 완료 (폴백 %s개 / 비활성 %s개)",
+              cfg.display_name, s['fallback_count'], s['disabled_count'])
     # 엣지/USB 설치본: VIGENT_EDGE=1 이면 site.yaml 의 카메라로 워커 자동시작(헤드리스)
     if os.environ.get("VIGENT_EDGE") == "1":
         try:
             import worker as _w
             res = _w.manager.autostart(bundle["agents"].get("Guard"), _DETECT_LOCK)
-            print(f"[VIGENT EDGE] 현장 워커 자동시작 → {res}")
+            _log.info("[EDGE] 현장 워커 자동시작 → %s", res)
         except Exception as ex:  # noqa: BLE001  자동시작 실패해도 서버는 뜬다
-            print(f"[VIGENT EDGE] 자동시작 실패: {type(ex).__name__}: {ex}")
+            _log.error("[EDGE] 자동시작 실패: %s: %s", type(ex).__name__, ex)
 
 
 # ─────────────────────────────────────────────────────────────
@@ -215,8 +228,31 @@ def root():
 
 
 @app.get("/health")
-def health():
-    return {"status": "ok"}
+def health(theme: str = DEFAULT_THEME):
+    """확장 헬스체크(C-S1): 제품 버전·모델별 버전/SHA·uptime·backend 구성.
+    워치독·모니터링용(무인증 허용). SHA 는 weights_manifest.json 기준(앞 16자)."""
+    backend = {}
+    bundle = STATE.get(theme)
+    if bundle:
+        raw = getattr(bundle["config"], "raw", {}) or {}
+        backend = (raw.get("perception", {}) or {}).get("backend", {})
+    man = {}
+    try:
+        man = json.loads((_ROOT / "weights_manifest.json").read_text(encoding="utf-8"))
+    except Exception:  # noqa: BLE001
+        pass
+    models = [{"file": e.get("file"), "slot": e.get("slot"), "backend": e.get("backend"),
+               "version": e.get("version"), "sha256": (e.get("sha256") or "")[:16]}
+              for e in man.get("weights", [])]
+    return {
+        "status": "ok",
+        "version": _product_version(),
+        "uptime_s": round(_time.time() - _START_TS, 1),
+        "theme": theme,
+        "loaded": bool(bundle),
+        "backend": backend,
+        "models": models,
+    }
 
 
 @app.get("/favicon.ico")
@@ -307,7 +343,12 @@ def dispatch_relay(payload: dict = Body(default={}), theme: str = DEFAULT_THEME)
                             detail="dispatch 웹훅 목적지 미허용 — config/security.json allowed_webhook_hosts 에 호스트 등록 필요")
     bundle = STATE.get(theme) or _load_theme(theme)
     dispatcher = bundle["agents"].get("Dispatcher")
-    return dispatcher.relay(payload.get("event", "guard_bypass"), payload.get("meta"))
+    _event = payload.get("event", "guard_bypass")
+    result = dispatcher.relay(_event, payload.get("meta"))
+    import datetime as _dt   # 구조화 이벤트 로그(C-S1, D3 감사추적)
+    vlog.log_event({"ts": _dt.datetime.now().isoformat(timespec="seconds"),
+                    "type": "dispatch_relay", "event": _event, "theme": theme, "result": result})
+    return result
 
 
 @app.post("/safety/judge")

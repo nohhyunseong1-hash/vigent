@@ -34,3 +34,6 @@ config/site.yaml
 
 # 로컬 번들 자산(다운로드로 재생성: bin/download-vendor.sh)
 vigent-core/static/vendor/
+
+# C-S1 런타임 로그(로테이션)
+logs/
