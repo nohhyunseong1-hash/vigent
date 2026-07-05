@@ -1,0 +1,19 @@
+# 이미지에서 제외(크기 억제 + 가중치 미포함). 가중치는 런타임 볼륨 + fetch_weights.
+vigent-core/weights/
+*.pt
+*.pth
+data/
+runs/
+logs/
+benchmarks/
+training/
+tests/
+.git/
+.venv/
+venv/
+__pycache__/
+*.pyc
+.env
+node_modules/
+VIGENT_archive/
+VIGENT_artifacts/

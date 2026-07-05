@@ -1,0 +1,10 @@
+# VIGENT 측정(벤치마크) 전용 의존성 (C-S2). 배포에는 불필요 — run_eval.py 등 정확도 측정에만.
+#   설치:  python3 -m pip install -r requirements-eval.txt   (배포 requirements 를 포함해서 설치)
+# 배포/측정 분리 원칙: 배포본에는 아래 측정 도구를 넣지 않는다.
+-r requirements.txt
+
+pycocotools==2.0.11          # COCOeval(mAP)
+faster-coco-eval==1.7.2      # RF-DETR 학습/평가 가속 eval
+
+# 참고(A-4): 현재 ultralytics 는 배포 requirements 에도 있음(ppe·fire_smoke YOLO 백엔드).
+#   T10b 완료로 배포에서 빠지면, YOLO baseline 측정을 위해 ultralytics 를 여기(측정 전용)로 옮긴다.
