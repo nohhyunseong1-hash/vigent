@@ -34,6 +34,24 @@
 - tqdm(MPL-2.0 AND MIT)은 **T10c 신규 아님**(2026-06-01 기설치). MPL-2.0은 파일단위 약카피레프트.
 - → **T10c 신규 트리 강한 카피레프트(GPL/AGPL) 0건.**
 
+## 1-d) RF-DETR 학습 스택 (T10b, 신규 설치 2026-07-05) — 의존성 폐포 71개 감사
+| Name (신규 설치) | Version | License | 용도 |
+|---|---|---|---|
+| pytorch-lightning | 2.6.5 | Apache-2.0 | 학습 루프 |
+| torchmetrics | 1.9.0 | Apache-2.0 | 학습 지표 |
+| lightning-utilities | 0.15.3 | Apache-2.0 | Lightning 유틸 |
+| albumentations / albucore | 2.0.8 / 0.0.24 | MIT | 데이터 증강 |
+| kornia / kornia-rs | 0.8.3 / 0.1.14 | Apache-2.0 | GPU 증강 |
+| peft | 0.19.1 | Apache-2.0 | 백본(DINOv2) 로딩 |
+| accelerate | 1.14.0 | Apache-2.0 | HF 학습 가속 |
+| faster-coco-eval | 1.7.2 | Apache-2.0 | 학습 중 COCO eval |
+| simsimd / stringzilla | 6.5.16 / 4.6.2 | Apache-2.0 | albumentations 의존 |
+- **감사 범위**: rfdetr+pytorch_lightning+peft+albumentations+kornia+accelerate **의존성 폐포 71개** 실측(2026-07-05).
+- **강카피레프트(AGPL/GPL/LGPL): 0건** ✓ — 학습 스택은 Apache/BSD/MIT/PSF 계열.
+- 약카피레프트: **certifi(MPL-2.0)** — 파일단위·**학습 전용·배포물 아님** → 실질 리스크 없음. (tqdm은 MPL/MIT 듀얼, MIT로 사용)
+- ⚠️ env 전체 스캔에서 잡힌 **ultralytics/ultralytics-thop(AGPL-3.0)**은 **학습 폐포 밖** = T10b가 제거 대상인 기존 런타임 YOLO(별개). 그 외 LGPL/GPL 항목은 아나콘다 base 개발도구(jupyter/conda/PyQt 등)로 VIGENT 런타임·학습 import 경로와 무관.
+- → **T10b 학습 도구 도입으로 copyleft 재유입 없음.** AGPL 제거 목적 보존.
+
 ## 2) copyleft 판정
 
 - **T12-B 신규 도입분**(pycocotools·pip-licenses·prettytable·wcwidth): 전부 permissive(FreeBSD/MIT/BSD) → **AGPL/GPL 0건**.
