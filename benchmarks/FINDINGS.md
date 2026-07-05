@@ -83,6 +83,22 @@
 - ⚠️ **게이트 약함 주의**(fire_smoke 게이트 B와 동일 구조): baseline 7.61%는 **도메인갭**(boda 모델이 LOCO 미학습)으로 낮아,
   LOCO train 학습한 RF-DETR 은 자명하게 초과 가능. 따라서 "−2%p"는 하한선일 뿐 — **실질 목표는 presence recall↑ + FAR↓**(pallet_truck 오탐 감소)로 판정 권장. 필요 시 LOCO forklift 문헌치 조사해 절대 목표 추가.
 
+### ★★ T10b Phase 1 ppe 학습 — MPS 특이 NaN 발산(원인 확정) 2026-07-05
+- **증상**: RFDETRNano, css_safety 2603장·10클래스, MPS 50ep → **train/loss 전 에폭(0~22) nan · val mAP 8e-06 고정(학습 전무)**. ~4h 낭비 후 중단.
+- **진단(1-epoch 200장 스모크 격리, 변수 하나씩)**:
+  | # | 조건 | 결과 | 판정 |
+  |---|---|---|---|
+  | ① | MPS + amp=off | nan | AMP 무관 |
+  | ② | MPS + lr 1e-5(1/10) | nan | lr 무관 |
+  | ③ | 데이터 무결성(COCO) | cat_id 1~10·degenerate 0·oob 0 | 라벨 정상 |
+  | ③'| 이미지 무결성 | 전부 RGB 640×640·손상 0 | 이미지 정상 |
+  | ④ | **CPU + 기본설정** | **loss 7.05 유한** | ★ **MPS 특이 문제 확정** |
+- **원인**: MPS(Apple Silicon) 수치 불안정 — 동일 config/데이터가 CPU에선 정상학습, MPS에선 **forward loss부터 nan**.
+  forklift(1클래스·1.4box/img·동일 MPS·동일 기본설정)는 성공했으나, ppe(10클래스·14.4box/img)의 **무거운 다중클래스 손실계산**에서 MPS 연산이 nan 산출. amp/lr 무관 = precision·스텝 문제 아닌 연산 정확성 버그.
+- **영향(전략적)**: fire_smoke(D-Fire 대형·다중클래스)도 **동일 MPS NaN에 걸릴 것** → "LOCAL M5 MPS ONLY" 경로가 다중클래스 RF-DETR 학습 전반에 막힘. 단일클래스(forklift)만 MPS 가능.
+- **해결 후보**: (a) CPU 학습 = 안정하나 ~수일(2603×50ep, 비현실적) (b) MPS nan 연산 지목→CPU 폴백(불확실) (c) ppe YOLO 유지·이관 보류(forklift만) (d) CUDA(클라우드/학교, 기존 제외) 재고 — CUDA엔 이 버그 없음. **사용자 결정 대기.**
+- 도구: `training/rfdetr_smoke.py`(amp/lr/device 스모크 + NaN 판정), `training/scan_ppe_labels.py`(심층 무결성), `training/build_ppe_subset.py`.
+
 ### ★ T10b Phase 1 forklift 결과 — 이관 완료(box 개선 인정, 사용자 결정 c) 2026-07-05
 - 학습: RFDETRNano, LOCO train 192장, 50ep, MPS 45분. 산출 `weights/forklift_rfdetr_v1.pth`(class_names=['forklift']).
 - **게이트 판정(부분 통과)**:
