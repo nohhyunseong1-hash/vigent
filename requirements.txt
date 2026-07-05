@@ -14,6 +14,10 @@ requests==2.32.5              # dispatcher 텔레그램/웹훅 전송
 
 # ── 영상 / 수치 ──────────────────────────────────
 # 배포는 headless(서버에 GUI 불필요). 개발 환경은 opencv-python(GUI)로 별도 설치 가능.
+# ⚠️ supervision·ultralytics·trackers·rtmlib 가 GUI opencv 를 전이의존으로 끌어와 headless 를
+#    가린다. 설치 후 반드시:  pip uninstall -y opencv-python opencv-contrib-python
+#    && pip install --force-reinstall --no-deps opencv-contrib-python-headless==4.13.0.92
+#    (Dockerfile 은 이 정리를 자동 수행 → cv2 를 headless 하나로 고정). 클린 venv 실증됨.
 numpy==2.4.6
 opencv-contrib-python-headless==4.13.0.92
 Pillow==12.0.0

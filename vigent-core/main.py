@@ -84,6 +84,11 @@ if not _IS_LOOPBACK and not _API_TOKEN:
 # 토큰 미설정(로컬)이면 인증 생략. 설정 시 아래 경로만 예외(모니터링·파비콘).
 _AUTH_EXEMPT = {"/health", "/favicon.ico"}
 
+# ── 제품 분리(C-S3): VIGENT_THEMES 로 타 제품(office/sports) 라우트 게이트 ──
+#   기본 'safety' → safety 배포에는 office/sports 라우트가 404(타 제품 미노출). 다중 제품이면 콤마로: "safety,office,sports"
+_THEMES = {t.strip() for t in os.environ.get("VIGENT_THEMES", "safety").split(",") if t.strip()} or {"safety"}
+_GATED_PREFIXES = {"/office": "office", "/sports": "sports"}  # safety 는 코어(항상 활성)
+
 
 def _load_allowed_webhook_hosts() -> set[str]:
     """config/security.json 의 allowed_webhook_hosts(아웃바운드 웹훅 목적지 화이트리스트)."""
@@ -124,6 +129,16 @@ async def _auth_guard(request, call_next):
         if path not in _AUTH_EXEMPT:
             if request.headers.get("Authorization", "") != f"Bearer {_API_TOKEN}":
                 return JSONResponse({"detail": "unauthorized"}, status_code=401)
+    return await call_next(request)
+
+
+@app.middleware("http")
+async def _theme_gate(request, call_next):
+    """VIGENT_THEMES 에 없는 제품(office/sports)의 라우트는 404(safety 배포에 타 제품 미노출, C-S3)."""
+    path = request.url.path
+    for prefix, theme in _GATED_PREFIXES.items():
+        if (path == prefix or path.startswith(prefix + "/")) and theme not in _THEMES:
+            return JSONResponse({"detail": "not found"}, status_code=404)
     return await call_next(request)
 
 

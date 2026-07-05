@@ -18,8 +18,13 @@ WORKDIR /app
 
 # 의존성 먼저(레이어 캐시). 배포 requirements 만 — 측정/선택 도구는 미포함.
 COPY requirements.txt .
+# ⚠️ opencv 단일화: supervision·ultralytics·trackers 가 opencv-python(GUI)을, rtmlib 가
+#   opencv-contrib-python 을 전이의존으로 끌어와 headless 를 가린다(cv2 가 GUI 5.x 로 로드됨).
+#   → 설치 후 GUI 변종을 제거하고 headless 를 강제 재설치해 cv2 를 headless 하나로 고정.
 RUN python -m pip install --no-cache-dir -U pip && \
-    python -m pip install --no-cache-dir -r requirements.txt
+    python -m pip install --no-cache-dir -r requirements.txt && \
+    python -m pip uninstall -y opencv-python opencv-contrib-python || true && \
+    python -m pip install --no-cache-dir --force-reinstall --no-deps opencv-contrib-python-headless==4.13.0.92
 
 # 앱 코드(가중치 제외 — .dockerignore 로 weights 차단, 런타임 볼륨 마운트)
 COPY vigent-core/ ./vigent-core/
