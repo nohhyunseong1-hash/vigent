@@ -143,15 +143,50 @@ assert finite, 'CUDA에서도 NaN → 중단(예상 밖, 보고 필요)'"""),
 import shutil
 shutil.copy(f'{WORKROOT}/out/ppe_full/checkpoint_best_total.pth', f'{WORKROOT}/out/ppe_rfdetr_v1.pth')
 print('✅ ppe 가중치:', f'{WORKROOT}/out/ppe_rfdetr_v1.pth')"""),
- code("""# 8. fire_smoke 빌드 — D-Fire 다운로드 + COCO(대안D). 이미 있으면 스킵.
+ code("""# 8. D-Fire 다운로드 + 검증 (D-Fire 는 OneDrive/Kaggle 배포 — Google Drive 아님)
+import os, glob, base64, shutil
 FIRE_DS=f'{WORKROOT}/data/fire_rfdetr_ds'; DFIRE=f'{WORKROOT}/data/dfire'
-if not os.path.exists(f'{DFIRE}/train/images'):
-    # D-Fire 공개(gaiasd/DFireDataset). ⚠️ 아래 ID를 repo README의 Google Drive 공유 ID로 교체(라이선스 동의 필요).
-    #   다운로드 실패 시 대안: D-Fire 를 Drive 에 올리고 DFIRE 경로를 그 위치로 수정.
-    DFIRE_GDRIVE_ID = '<D-Fire_DRIVE_ID_교체>'
-    !gdown --id "$DFIRE_GDRIVE_ID" -O /content/dfire.zip && mkdir -p "$DFIRE" && unzip -q /content/dfire.zip -d "$DFIRE"
-assert os.path.exists(f'{DFIRE}/train/images'), 'D-Fire 미준비(ID 교체 또는 Drive 업로드)'
-if not os.path.exists(f'{FIRE_DS}/train/_annotations.coco.json'):
+EXPECT_TOTAL = 21527   # README: fire1164 + smoke5867 + both4658 + neither9838
+
+def _find_split_root(base):
+    # 압축 내부가 train/ 직하가 아닐 수 있어 train/images 를 탐색해 실제 루트 반환
+    for p in glob.glob(f'{base}/**/train/images', recursive=True):
+        return os.path.dirname(os.path.dirname(p))
+    return None
+
+def _count(root):
+    return len(glob.glob(f'{root}/train/images/*.*')) + len(glob.glob(f'{root}/test/images/*.*'))
+
+root = _find_split_root(DFIRE) if os.path.exists(DFIRE) else None
+if not (root and _count(root) >= 20000):
+    # OneDrive 공식 공유링크 → 직접 다운로드(base64 shares API, 시크릿 불필요)
+    ONEDRIVE = "https://1drv.ms/u/c/c0bd25b6b048b01d/EbLgD7bES4FDvUN37Grxn8QBF5gIBBc7YV2qklF08GCiBw"
+    b64 = base64.urlsafe_b64encode(ONEDRIVE.encode()).decode().rstrip('=')
+    direct = f"https://api.onedrive.com/v1.0/shares/u!{b64}/root/content"
+    print('D-Fire OneDrive 다운로드 시도...(수분 소요)')
+    os.makedirs(DFIRE, exist_ok=True)
+    rc = os.system(f'wget -q --no-check-certificate "{direct}" -O /content/dfire.zip')
+    sz = os.path.getsize('/content/dfire.zip') if os.path.exists('/content/dfire.zip') else 0
+    if rc == 0 and sz > 1e8:
+        os.system(f'unzip -q -o /content/dfire.zip -d "{DFIRE}"'); os.remove('/content/dfire.zip')
+        root = _find_split_root(DFIRE)
+    else:
+        root = None
+
+# ── 검증: 파일 크기·이미지 수가 기대치와 일치하는지 ──
+n = _count(root) if root else 0
+if not root or n < 20000:
+    raise RuntimeError(
+        f"❌ D-Fire 다운로드/검증 실패 (이미지 {n}장, 기대 ~{EXPECT_TOTAL}). 다운로드 실패·OneDrive 쿼터 초과·구조 불일치 가능.\\n"
+        f"→ 로컬 업로드 폴백: 로컬 ~/Desktop/D-Fire 를 Drive 에 업로드(train/{{images,labels}}, test/{{images,labels}} 구조)한 뒤\\n"
+        f"   이 셀의 DFIRE 변수를 업로드 위치로 바꾸고(예: DFIRE='/content/drive/MyDrive/dfire') 재실행하세요.")
+if root != DFIRE:
+    DFIRE = root   # 압축 내부 실제 루트로 보정
+print(f"✅ D-Fire 검증 OK: {n}장 (~{EXPECT_TOTAL} 기대) @ {DFIRE}")"""),
+ code("""# 8b. fire_smoke COCO 빌드(대안D). 이미 있으면 스킵.
+if os.path.exists(f'{FIRE_DS}/train/_annotations.coco.json'):
+    print('fire COCO 존재 — 스킵')
+else:
     !python build_fire_smoke_train_ds.py --dfire "$DFIRE" --out "$FIRE_DS" --neg 2000"""),
  code("""# 9. fire_smoke 1-epoch 스모크
 import time, csv
