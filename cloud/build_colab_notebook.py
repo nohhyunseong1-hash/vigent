@@ -160,46 +160,50 @@ assert finite, 'CUDA에서도 NaN → 중단(예상 밖, 보고 필요)'"""),
 import shutil
 shutil.copy(f'{WORKROOT}/out/ppe_full/checkpoint_best_total.pth', f'{WORKROOT}/out/ppe_rfdetr_v1.pth')
 print('✅ ppe 가중치:', f'{WORKROOT}/out/ppe_rfdetr_v1.pth')"""),
- code("""# 8. D-Fire 다운로드 + 검증 (D-Fire 는 OneDrive/Kaggle 배포 — Google Drive 아님)
-import os, glob, base64, shutil
-FIRE_DS=f'{LOCAL_DATA}/fire_rfdetr_ds'; DFIRE=f'{WORKROOT}/data/dfire'   # COCO=로컬(빠름) / D-Fire 원본=Drive 캐시(재다운 회피)
-EXPECT_TOTAL = 21527   # README: fire1164 + smoke5867 + both4658 + neither9838
+ code("""# 8. D-Fire 준비 + 검증. 우선순위: (1) Drive dfire.zip 자동해제  (2) Drive dfire 폴더  (3) OneDrive 다운로드(최후)
+#    D-Fire 는 OneDrive/Kaggle 배포(Google Drive 아님)라 다운로드가 자주 실패 → zip 업로드가 가장 확실.
+import os, glob, base64
+FIRE_DS   = f'{LOCAL_DATA}/fire_rfdetr_ds'          # COCO = 로컬(빠른 학습읽기)
+DFIRE     = f'{LOCAL_DATA}/dfire'                   # D-Fire 해제 위치 = 로컬(빠름, 재접속 시 zip에서 재해제)
+DFIRE_ZIP = '/content/drive/MyDrive/dfire.zip'      # ← 로컬 D-Fire zip 업로드 위치(권장)
+DFIRE_DIR = '/content/drive/MyDrive/dfire'          # ← 또는 폴더째 업로드 위치
+EXPECT_TRAIN = 17221   # D-Fire train(전체 21527 중 train). 빌더는 train/ 만 사용.
 
-def _find_split_root(base):
-    # 압축 내부가 train/ 직하가 아닐 수 있어 train/images 를 탐색해 실제 루트 반환
+def _find_root(base):
+    # train/images 를 탐색해 실제 루트 반환(zip 내부가 'D-Fire (1)/train/...' 처럼 한 겹 감싸도 대응)
     for p in glob.glob(f'{base}/**/train/images', recursive=True):
         return os.path.dirname(os.path.dirname(p))
     return None
 
-def _count(root):
-    return len(glob.glob(f'{root}/train/images/*.*')) + len(glob.glob(f'{root}/test/images/*.*'))
-
-root = _find_split_root(DFIRE) if os.path.exists(DFIRE) else None
-if not (root and _count(root) >= 20000):
-    # OneDrive 공식 공유링크 → 직접 다운로드(base64 shares API, 시크릿 불필요)
+root = _find_root(DFIRE)                                              # (0) 이미 로컬에 해제됨?
+if not root and os.path.exists(DFIRE_ZIP):                            # (1) Drive zip → 로컬 해제
+    print(f'D-Fire zip 발견 → 로컬 해제(수분): {DFIRE_ZIP}')
+    os.makedirs(DFIRE, exist_ok=True)
+    !unzip -q -o "$DFIRE_ZIP" -d "$DFIRE"
+    root = _find_root(DFIRE)
+if not root and _find_root(DFIRE_DIR):                               # (2) Drive 폴더 직접 사용
+    root = _find_root(DFIRE_DIR)
+if not root:                                                         # (3) OneDrive 다운로드(최후)
     ONEDRIVE = "https://1drv.ms/u/c/c0bd25b6b048b01d/EbLgD7bES4FDvUN37Grxn8QBF5gIBBc7YV2qklF08GCiBw"
     b64 = base64.urlsafe_b64encode(ONEDRIVE.encode()).decode().rstrip('=')
     direct = f"https://api.onedrive.com/v1.0/shares/u!{b64}/root/content"
-    print('D-Fire OneDrive 다운로드 시도...(수분 소요)')
+    print('D-Fire OneDrive 다운로드 시도(최후 수단)...')
     os.makedirs(DFIRE, exist_ok=True)
     rc = os.system(f'wget -q --no-check-certificate "{direct}" -O /content/dfire.zip')
-    sz = os.path.getsize('/content/dfire.zip') if os.path.exists('/content/dfire.zip') else 0
-    if rc == 0 and sz > 1e8:
-        os.system(f'unzip -q -o /content/dfire.zip -d "{DFIRE}"'); os.remove('/content/dfire.zip')
-        root = _find_split_root(DFIRE)
-    else:
-        root = None
+    if rc == 0 and os.path.exists('/content/dfire.zip') and os.path.getsize('/content/dfire.zip') > 1e8:
+        !unzip -q -o /content/dfire.zip -d "$DFIRE"
+        root = _find_root(DFIRE)
 
-# ── 검증: 파일 크기·이미지 수가 기대치와 일치하는지 ──
-n = _count(root) if root else 0
-if not root or n < 20000:
+# ── 검증: train 이미지 수(빌더가 실제 쓰는 것) ──
+ntr = len(glob.glob(f'{root}/train/images/*.*')) if root else 0
+if not root or ntr < 15000:
     raise RuntimeError(
-        f"❌ D-Fire 다운로드/검증 실패 (이미지 {n}장, 기대 ~{EXPECT_TOTAL}). 다운로드 실패·OneDrive 쿼터 초과·구조 불일치 가능.\\n"
-        f"→ 로컬 업로드 폴백: 로컬 ~/Desktop/D-Fire 를 Drive 에 업로드(train/{{images,labels}}, test/{{images,labels}} 구조)한 뒤\\n"
-        f"   이 셀의 DFIRE 변수를 업로드 위치로 바꾸고(예: DFIRE='/content/drive/MyDrive/dfire') 재실행하세요.")
-if root != DFIRE:
-    DFIRE = root   # 압축 내부 실제 루트로 보정
-print(f"✅ D-Fire 검증 OK: {n}장 (~{EXPECT_TOTAL} 기대) @ {DFIRE}")"""),
+        f"❌ D-Fire 준비 실패 (train {ntr}장, 기대 ~{EXPECT_TRAIN}). OneDrive 다운로드 실패 시 zip 업로드로 해결하세요.\\n"
+        f"→ [맥 터미널]  cd ~/Desktop && zip -r -0 -q dfire.zip 'D-Fire (1)'\\n"
+        f"→ 생성된 ~/Desktop/dfire.zip 을 Google Drive 의 MyDrive/dfire.zip 로 업로드 후 이 셀 재실행.\\n"
+        f"   (대안: D-Fire 폴더째 MyDrive/dfire 로 업로드, 또는 DFIRE_ZIP/DFIRE_DIR 변수를 실제 경로로 수정.)")
+DFIRE = root   # 실제 루트로 보정(빌더에 전달)
+print(f"✅ D-Fire OK: train {ntr}장 @ {DFIRE}")"""),
  code("""# 8b. fire_smoke COCO 빌드(대안D). 이미 있으면 스킵.
 if os.path.exists(f'{FIRE_DS}/train/_annotations.coco.json'):
     print('fire COCO 존재 — 스킵')
