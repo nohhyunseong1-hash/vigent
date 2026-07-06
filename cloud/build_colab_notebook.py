@@ -106,14 +106,17 @@ assert torch.cuda.is_available(), 'GPU 런타임 아님'"""),
   lightning-utilities albumentations kornia peft accelerate faster-coco-eval==1.7.2 \\
   pycocotools==2.0.11 pyyaml opencv-python-headless gdown
 from rfdetr import RFDETRNano; print('rfdetr OK')"""),
- code("""# 3. Drive 마운트 + 작업 루트(체크포인트·가중치 Drive → 끊겨도 보존)
+ code("""# 3. Drive 마운트 + 저장 설계
+#   · 체크포인트·가중치·소스(css_safety·D-Fire) = Drive(끊겨도 보존)
+#   · 학습용 COCO 데이터셋 = 로컬 /content(빠른 읽기·Drive 쿼터 회피). 재접속 시 Drive 소스에서 재빌드(수분).
 from google.colab import drive; drive.mount('/content/drive')
 import os, glob
-WORKROOT = '/content/drive/MyDrive/vigent_t10b'
-CSS_SAFETY_DRIVE = '/content/drive/MyDrive/css_safety'   # ← css_safety(YOLO train/valid/test) 업로드 위치(경로 전달 시 수정)
-for d in ['', '/data', '/out']: os.makedirs(WORKROOT+d, exist_ok=True)
-print('WORKROOT:', WORKROOT)
-# 재개 상태(끊김 후 어디부터인지)
+WORKROOT = '/content/drive/MyDrive/vigent_t10b'          # Drive: out/(체크포인트·가중치) + data/(D-Fire 캐시)
+CSS_SAFETY_DRIVE = '/content/drive/MyDrive/css_safety'   # ← css_safety 업로드 위치(폴더 또는 css_safety.zip 자동처리)
+LOCAL_DATA = '/content/data'                             # 로컬: 학습 COCO(재접속 시 재빌드)
+for d in [WORKROOT, WORKROOT+'/data', WORKROOT+'/out', LOCAL_DATA]: os.makedirs(d, exist_ok=True)
+print('WORKROOT(Drive):', WORKROOT, '| LOCAL_DATA:', LOCAL_DATA)
+# 재개 상태(끊김 후 어디부터인지) — 체크포인트는 Drive라 보존됨
 for name in ['ppe_full','fire_full']:
     c=sorted(glob.glob(f'{WORKROOT}/out/{name}/checkpoint*.pth')); print(f'  {name}: 체크포인트 {len(c)}개', c[-1].split('/')[-1] if c else '없음')
 for w in ['ppe_rfdetr_v1.pth','fire_smoke_rfdetr_v1.pth']:
@@ -122,12 +125,26 @@ for w in ['ppe_rfdetr_v1.pth','fire_smoke_rfdetr_v1.pth']:
  code("%%writefile build_ppe_train_ds_colab.py\n" + PPE_BUILDER),
  code("%%writefile build_fire_smoke_train_ds.py\n" + FIRE_BUILDER),
  code("""# 5. 데이터 준비 — ppe COCO (css_safety YOLO → COCO). 이미 있으면 스킵.
-PPE_DS = f'{WORKROOT}/data/ppe_rfdetr_ds'
+import glob
+PPE_DS = f'{LOCAL_DATA}/ppe_rfdetr_ds'    # COCO=로컬(빠른 학습읽기, 재접속 시 재빌드)
+CSS_SRC = CSS_SAFETY_DRIVE
 if os.path.exists(f'{PPE_DS}/train/_annotations.coco.json'):
     print('ppe COCO 존재 — 스킵')
 else:
-    assert os.path.exists(f'{CSS_SAFETY_DRIVE}/train/images'), f'css_safety 미발견: {CSS_SAFETY_DRIVE} (Drive 업로드 확인)'
-    !python build_ppe_train_ds_colab.py --src "$CSS_SAFETY_DRIVE" --out "$PPE_DS" """),
+    # css_safety 가 폴더(A안)면 그대로, zip(B안)이면 자동 해제. 둘 다 자동 처리.
+    if not os.path.exists(f'{CSS_SRC}/train/images'):
+        zips = [f'{CSS_SAFETY_DRIVE}.zip', f'{CSS_SAFETY_DRIVE}/css_safety.zip']
+        z = next((p for p in zips if os.path.exists(p)), None)
+        assert z, (f'css_safety 미발견: 폴더 {CSS_SAFETY_DRIVE}/train/images 도, zip({zips}) 도 없음.\\n'
+                   f'→ MyDrive/css_safety 폴더(train/valid/test) 또는 MyDrive/css_safety.zip 로 업로드하세요.')
+        print(f'css_safety zip 발견 → 로컬 해제: {z}')
+        os.makedirs(f'{LOCAL_DATA}/css_raw', exist_ok=True)
+        !unzip -q -o "$z" -d "$LOCAL_DATA/css_raw"
+        hit = glob.glob(f'{LOCAL_DATA}/css_raw/**/train/images', recursive=True)   # zip 내부 한 겹 더 감쌈 대비
+        assert hit, 'zip 내부에 train/images 없음 — 구조 확인'
+        CSS_SRC = os.path.dirname(os.path.dirname(hit[0]))
+    print('css_safety 소스:', CSS_SRC)
+    !python build_ppe_train_ds_colab.py --src "$CSS_SRC" --out "$PPE_DS" """),
  code("""# 6. ppe 1-epoch 스모크 (loss 유한 확인 + 에폭당 시간 → T4 총시간 추정)
 import time, csv
 t=time.time()
@@ -145,7 +162,7 @@ shutil.copy(f'{WORKROOT}/out/ppe_full/checkpoint_best_total.pth', f'{WORKROOT}/o
 print('✅ ppe 가중치:', f'{WORKROOT}/out/ppe_rfdetr_v1.pth')"""),
  code("""# 8. D-Fire 다운로드 + 검증 (D-Fire 는 OneDrive/Kaggle 배포 — Google Drive 아님)
 import os, glob, base64, shutil
-FIRE_DS=f'{WORKROOT}/data/fire_rfdetr_ds'; DFIRE=f'{WORKROOT}/data/dfire'
+FIRE_DS=f'{LOCAL_DATA}/fire_rfdetr_ds'; DFIRE=f'{WORKROOT}/data/dfire'   # COCO=로컬(빠름) / D-Fire 원본=Drive 캐시(재다운 회피)
 EXPECT_TOTAL = 21527   # README: fire1164 + smoke5867 + both4658 + neither9838
 
 def _find_split_root(base):
