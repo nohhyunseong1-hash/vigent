@@ -3,6 +3,20 @@
 > 목적: 로컬 M5 MPS 다중클래스 NaN 버그 우회. **학습만** 클라우드(CUDA), 산출물은 **가중치 파일만 로컬 회수**.
 > 제품 런타임 로컬 원칙 불변. 공개/허용 데이터만: css_safety(CC BY 4.0, 확인됨) · D-Fire(공개).
 
+## ★ 실행 경로 = Google Colab (RunPod 결제 불가 → 전환)
+- **노트북**: `cloud/VIGENT_T10b_train.ipynb` (Colab 업로드 → T4 GPU 런타임).
+- **세션 끊김 복원력**: 에폭마다 Drive 체크포인트 + 자동 재개. 끊기면 위에서부터 재실행하면 이어짐.
+- **Colab 보안수칙**(RunPod 수칙의 Colab판):
+  1. **시크릿 미탑재**: `.env`·API키·웹훅 등 어떤 비밀도 노트북/Drive에 올리지 않음(학습은 데이터+코드만).
+  2. **완료 후 Drive 데이터 소멸**: `vigent_t10b/`(css_safety·D-Fire·체크포인트) 삭제 확인. 가중치만 로컬 회수 후.
+  3. **가중치 SHA256 대조**: 노트북이 `.sha256` 생성 → 로컬 다운로드 후 `shasum -a 256` 재계산 대조.
+  4. **비용**: Colab 무료 T4는 과금 없음($15 상한 무의미). Pro 구독 시에만 비용 발생 — 무료 티어 사용 권장.
+  5. **버전 파일명**: `ppe_rfdetr_v1.pth`·`fire_smoke_rfdetr_v1.pth` → 회수 후 weights_manifest 등재.
+- **T4 예상시간**: 노트북 스모크 셀이 에폭당 시간 실측 → 총시간 자동 추정 출력(T4는 4090보다 느림 → ppe 50ep 수시간 예상, 끊김 재개로 누적).
+- 아래 RunPod 스크립트(setup_env/run_all)는 **참고/대안**(유료 CUDA 확보 시). 게이트·보안 원칙은 공통.
+
+---
+
 ## 0. 인스턴스 스펙
 - **플랫폼**: RunPod Community (또는 Vast.ai)
 - **GPU**: RTX 4090 24GB 1장 (RF-DETR Nano 경량 — A100 불필요)
