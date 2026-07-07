@@ -18,9 +18,15 @@
     },
     {
       "file": "ppe_css_v1.pt", "slot": "ppe", "backend": "yolo",
-      "purpose": "PPE 착용/미착용 검출(css_safety 학습, 배포 활성)",
+      "purpose": "PPE 착용/미착용 검출 YOLO 경로(현재 backend=rfdetr, 롤백용)",
       "version": "css_v1", "sha256": "17a968ab4484c0b46889cae57ee78b9b5345b85e45e7f07e07214eb973272dbb",
-      "size_bytes": 19188570, "url": "PLACEHOLDER/ppe_css_v1.pt", "required": true
+      "size_bytes": 19188570, "url": "PLACEHOLDER/ppe_css_v1.pt", "required": false
+    },
+    {
+      "file": "ppe_rfdetr_v1.pth", "slot": "ppe", "backend": "rfdetr",
+      "purpose": "PPE 착용/미착용 검출 RF-DETR(T10b 이관, Colab best_ema — metrics.csv 미회수로 epoch 미확인. 게이트 raw mAP@50 75.62 통과. 배포 활성)",
+      "version": "rfdetr_v1", "sha256": "47db1e69976c8a2e2bd318cd50746a12d58d9a52329a32a1ccd36574434d4b8f",
+      "size_bytes": 120922427, "url": "PLACEHOLDER/ppe_rfdetr_v1.pth", "required": true
     },
     {
       "file": "fire_smoke_boda.pt", "slot": "fire_smoke", "backend": "yolo",

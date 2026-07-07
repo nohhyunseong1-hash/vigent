@@ -28,11 +28,12 @@ detect:                     # 탐지 공통
   stale_max_misses: 1       # 잔상 제거: 미매칭 트랙이 이 프레임 수 넘으면 폐기(작을수록 잔상↓·깜빡임↑)
   conf:                     # 검출기별 신뢰도 임계(낮을수록 많이 잡음=오탐↑)
     person: 0.40            # 0.35→0.40: 약한 사람 오탐↓(진짜 사람은 0.8+)
-    ppe: 0.62               # 0.55→0.62: 보호구 미착용 오탐↓ (아래 ppe_per_class 없는 클래스의 폴백)
-    ppe_per_class:          # 클래스별 후필터(최약체 NO-Hardhat 재현율↑). 비우면 위 단일 ppe 값 사용.
-      NO-Hardhat: 0.30      # 재현율 50.7→~64%(P≥90 유지) — 미착용 감지 최약체 보강
-      NO-Mask: 0.50         # 재현율 63.5→~70%
-      NO-Safety-Vest: 0.50  # 재현율 66.0→~68%
+    ppe: 0.35               # T10b RF-DETR 이관: conf 스케일 재튜닝(구 YOLO 0.62). raw 스윕 전 클래스 recall 80~100%.
+      # 구 YOLO per-class 하향 override(NO-Hardhat 0.30 등)는 구 모델의 미착용류 약세 보완용이었음.
+      # RF-DETR은 단일 base 0.35에서 미착용류 recall 80~97로 상회해 제거(f73ffa0 이후).
+      # 향후 특정 클래스 약세가 현장에서 확인되면 per_class 인프라(guard ppe_per_class)로 재도입 가능.
+      # 근거(0.30 vs 0.35 실측): NO-Hardhat R88=88 동일·NO-SafetyVest R97.2=97.2 동일(FAR만↑)·NO-Mask 80→86.7이나 FAR 3.8→7.7. 이득 미미/역효과.
+    # ppe_per_class 제거(RF-DETR 단일 0.35로 충분). backend=yolo 롤백 시 ppe 0.62 + override(NO-Hardhat 0.30/NO-Mask 0.50/NO-Safety-Vest 0.50) 복원.
     forklift: 0.002         # T10b RF-DETR 이관: 이 모델은 confidence 스케일이 낮음(0.001~0.005).
       # D-Fire 스윕 실측 0.002 → recall 34.9%/FAR 35%(YOLO 0.68의 R35.7/FAR28.7과 유사 recall·FAR 다소↑).
       # ⚠️ 잠정 운용점(과소학습 conf 낮음, F-7). backend=yolo 로 되돌리면 반드시 0.68 로 복원.

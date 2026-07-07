@@ -66,7 +66,24 @@
 → pipeline(70.95, 101-pt)와 harness(69.0, 11-pt)는 ~2%p 차이 = **보간법 차이로 정합**(같은 guard 예측).
 → raw가 +20%p 높은 것은 운용 임계·후처리로 저신뢰 TP가 탈락하기 때문(버그 아님).
 
-### PPE
+### PPE — T10b RF-DETR 이관 (css_safety 학습, Colab best_ema)
+
+**이관 완료**: ppe_css_v1(YOLO, AGPL) → **RF-DETR(Apache, css_safety 학습)**. 게이트 raw mAP@50 ≥ 73.2 통과.
+
+| 트랙 | mAP@50 | mAP@50:95 | 의미 |
+|---|---|---|---|
+| **RF-DETR raw** | **75.62%** | 44.1% | ★ 게이트 통과(≥73.2). 구 YOLO raw 75.20 대비 +0.42 |
+| **RF-DETR pipeline** | **71.46%** | 42.41% | ★ 배포 운용점(ppe 0.35). 구 YOLO pipeline 58.62 대비 **+12.84%p** |
+
+- raw 클래스별 AP@50: Hardhat 89.24·Mask 80.18·NO-Hardhat 64.42·NO-Mask 66.81·NO-SafetyVest 81.39·Person 85.49·SafetyCone 41.27·SafetyVest 78.85·machinery 91.23·vehicle 77.32.
+- pipeline 클래스별 AP@50: Hardhat 84.86·Mask 75.25·NO-Hardhat 57.87·NO-Mask 63.79·NO-SafetyVest 79.37·Person 80.79·SafetyCone 37.18·SafetyVest 75.09·machinery 87.63·vehicle 72.82.
+- **운용점**: 단일 base **0.35**(구 YOLO 0.62 + per-class override 제거). RF-DETR은 미착용류도 강함(raw recall @0.35 NO-Hardhat 88·NO-Mask 80·NO-SafetyVest 97) → 단일 임계로 구 YOLO 상회, override 불요(0.30 비교서 이득 미미/역효과 실측).
+- **⚠️ 동일출처 누출 한계**: css_safety train→test(공식 Roboflow 분할, 동일 출처). in-domain — 현장 CCTV 일반화 별도 검증 필요.
+- 회귀: person 92.94·forklift 8.5·fire_smoke(fire95.91/smoke87.88) **Δ0.00**. 측정 로직 무수정.
+- 구 YOLO(참고·롤백): raw 75.20/pipeline 58.62. **롤백**: backend.ppe=yolo + ppe 0.62 + override(NO-Hardhat0.30/NO-Mask0.50/NO-Safety-Vest0.50) 복원.
+
+--- 아래는 구 YOLO ppe_css_v1 상세 기록(근거 보존) ---
+
 | 트랙 | mAP@50 | mAP@50:95 | 예측수 | latency(ms/frame) |
 |---|---|---|---|---|
 | raw | **75.20%** | 50.24% | 4802 | 61.1 |

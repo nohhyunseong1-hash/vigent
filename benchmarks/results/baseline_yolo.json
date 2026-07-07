@@ -44,7 +44,7 @@
       "per_class_AP5095": {
         "person": 84.26
       },
-      "latency_ms_mean": 36.29,
+      "latency_ms_mean": 34.97,
       "latency_frames_timed": 64,
       "latency_warmup_excluded": 10,
       "conf": "guard 운용 임계(vision.yaml)",
@@ -53,7 +53,7 @@
       "seed": 0,
       "eval_method": "pycocotools COCOeval bbox (101-point interpolation)",
       "model_source": "vision.yaml 배포 설정(guard slot=person)",
-      "run_at": "2026-07-07 13:32"
+      "run_at": "2026-07-07 13:49"
     },
     "raw_rfdetr": {
       "mode": "raw",
@@ -166,34 +166,34 @@
       "images_dir": "data/datasets/css_safety/test/images",
       "num_images": 82,
       "gt_boxes": 760,
-      "num_detections": 477,
-      "mAP@50": 58.62,
-      "mAP@50:95": 37.85,
+      "num_detections": 673,
+      "mAP@50": 71.46,
+      "mAP@50:95": 42.41,
       "per_class_AP50": {
-        "Hardhat": 76.13,
+        "Hardhat": 84.86,
         "Mask": 75.25,
-        "NO-Hardhat": 48.07,
-        "NO-Mask": 69.55,
-        "NO-Safety Vest": 67.04,
-        "Person": 53.0,
-        "Safety Cone": 31.87,
-        "Safety Vest": 67.28,
-        "machinery": 54.46,
-        "vehicle": 43.56
+        "NO-Hardhat": 57.87,
+        "NO-Mask": 63.79,
+        "NO-Safety Vest": 79.37,
+        "Person": 80.79,
+        "Safety Cone": 37.18,
+        "Safety Vest": 75.09,
+        "machinery": 87.63,
+        "vehicle": 72.82
       },
       "per_class_AP5095": {
-        "Hardhat": 55.67,
-        "Mask": 56.49,
-        "NO-Hardhat": 25.3,
-        "NO-Mask": 35.95,
-        "NO-Safety Vest": 38.07,
-        "Person": 31.49,
-        "Safety Cone": 13.94,
-        "Safety Vest": 49.02,
-        "machinery": 40.11,
-        "vehicle": 32.4
+        "Hardhat": 48.64,
+        "Mask": 52.96,
+        "NO-Hardhat": 33.83,
+        "NO-Mask": 23.74,
+        "NO-Safety Vest": 47.27,
+        "Person": 51.12,
+        "Safety Cone": 14.3,
+        "Safety Vest": 41.97,
+        "machinery": 66.77,
+        "vehicle": 43.51
       },
-      "latency_ms_mean": 131.5,
+      "latency_ms_mean": 28.28,
       "latency_frames_timed": 72,
       "latency_warmup_excluded": 10,
       "conf": "guard 운용 임계(vision.yaml)",
@@ -202,7 +202,7 @@
       "seed": 0,
       "eval_method": "pycocotools COCOeval bbox (101-point interpolation)",
       "model_source": "vision.yaml 배포 설정(guard slot=ppe)",
-      "run_at": "2026-07-07 13:33"
+      "run_at": "2026-07-07 13:48"
     }
   },
   "fire_smoke": {
@@ -387,7 +387,7 @@
       "per_class_AP5095": {
         "forklift": 5.71
       },
-      "latency_ms_mean": 34.79,
+      "latency_ms_mean": 35.66,
       "latency_frames_timed": 308,
       "latency_warmup_excluded": 10,
       "conf": "guard 운용 임계(vision.yaml)",
@@ -396,7 +396,7 @@
       "seed": 0,
       "eval_method": "pycocotools COCOeval bbox (101-point interpolation)",
       "model_source": "vision.yaml 배포 설정(guard slot=forklift)",
-      "run_at": "2026-07-07 13:33"
+      "run_at": "2026-07-07 13:49"
     },
     "presence": {
       "raw": {
