@@ -29,9 +29,8 @@ torchvision==0.27.0
 rfdetr==1.8.0
 supervision==0.29.0.post0
 trackers==2.4.0
-# ultralytics: ppe·fire_smoke YOLO 백엔드가 아직 사용(T10b 진행 중).
-#   T10b 완료(A-4) 시 배포에서 제거 → 측정 전용(requirements-eval.txt)으로만 남긴다.
-ultralytics==8.3.253
+# ultralytics(AGPL): 배포 제거 완료(A-4, T10b — person/ppe/fire_smoke/forklift 전부 RF-DETR 이관).
+#   YOLO baseline 측정용으로만 requirements-eval.txt 에 잔존. 라이브 경로 ultralytics 0건(런타임 실증).
 
 # ── 포즈: RTMPose(rtmlib, Apache) — 낙상·근골격(T10c) ──
 rtmlib==0.0.15

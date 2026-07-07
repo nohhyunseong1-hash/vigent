@@ -56,8 +56,9 @@
 
 - **T12-B 신규 도입분**(pycocotools·pip-licenses·prettytable·wcwidth): 전부 permissive(FreeBSD/MIT/BSD) → **AGPL/GPL 0건**.
 - **T10a RF-DETR 스택**(rfdetr=Apache-2.0·supervision=MIT): permissive → person 검출 경로는 **copyleft 0**.
-- **기존 의존성 중 copyleft(잔존)**: `ultralytics` / `ultralytics-thop` = **AGPLv3+**.
-  - ⚠️ **T10a+T10c 후에도 ultralytics 는 라이브 경로에 남아 있다**(정직 표기, 규칙7): **`detectors/yolo_adapter.py` 한 곳뿐**(ppe·fire_smoke·forklift 검출).
-  - 이관 완료: **person 검출**(T10a, guard.py `from ultralytics import YOLO` 소멸) + **포즈**(T10c, `worker.py` `from ultralytics import YOLO` 소멸 → RTMPose).
-  - **copyleft 0 달성 조건**: 남은 **T10b**(ppe/fire/forklift RF-DETR 모델 학습·이관) 완료 시. person·포즈는 이관 끝, 검출 3종만 잔존.
+- **✅ A-4 완료(T10b, 2026-07-07): 라이브 배포 경로 강카피레프트(AGPL) 0 달성.**
+  - person(T10a)·포즈(T10c)·**ppe·fire_smoke·forklift(T10b)** 전부 RF-DETR/RTMPose 이관 완료 → guard 전 검출 슬롯 `backend=rfdetr`.
+  - **런타임 실증**: safety 테마 빌드 + 전 슬롯 `guard.detect` + `worker` 포즈 실행 후 `sys.modules` 에 `ultralytics` **부재 확인**(지연 import 포함 실경로 커버). PROOF=PASS.
+  - `ultralytics`/`ultralytics-thop`(AGPLv3+)은 **배포 requirements 에서 제거**(requirements.txt), YOLO baseline **측정 전용**으로만 잔존(requirements-eval.txt).
+  - `detectors/yolo_adapter.py` 는 **롤백용으로 잔존**(backend=yolo 지연 import — 현재 미로드, AGPL 코드는 import 되지 않으면 배포 라이선스 의무 미발생). 제거 여부는 사용자 결정 대기.
 - 아나콘다 base 환경의 기타 GPL/LGPL 패키지(PyQt5·pylint·rope 등)는 개발도구로 VIGENT 배포물과 무관.
