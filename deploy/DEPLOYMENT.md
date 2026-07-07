@@ -37,3 +37,16 @@
 ## 제품 분리 (C-S3)
 - `VIGENT_THEMES`(기본 safety). safety 배포는 office/sports 라우트 404.
 - 다중 제품: `VIGENT_THEMES=safety,office,sports`.
+
+## 개발 서버 표준 기동 (F-8 · 좀비 서버 방지)
+> 매번 임시 위치에서 서버를 띄우다 **cwd가 꼬여** rfdetr 커스텀 가중치를 못 찾고 COCO로 폴백하던 사고(F-8) 재발 방지. 아래 표준 절차만 쓴다.
+```bash
+# 반드시 vigent-core 디렉토리에서 기동(rfdetr_weights 는 프로젝트루트 기준 경로 → 절대화되지만, cwd 일관 유지 권장)
+cd <프로젝트루트>/vigent-core
+/opt/anaconda3/bin/python3 -m uvicorn main:app --port 8010
+```
+- **기동 직후 로그에서 검출 슬롯 4개(person 제외 3개: ppe/fire_smoke/forklift) `→ LOADED` + SHA를 확인**한다. 
+  `MISSING(기동 거부)` / `Application startup failed` 가 뜨면 `vigent-core/weights/*.pth` 부재 → `python fetch_weights.py download` 또는 배치.
+  (F-8 가드: 커스텀 가중치 부재 시 **기동을 거부**한다. 임시로 COCO 폴백을 허용하려면 `VIGENT_ALLOW_FALLBACK=1` — 단 검출 저하.)
+- **워크트리에서 기동할 때**는 먼저 `bash scripts/setup_worktree.sh` 로 `weights/`·`data/` 심링크를 연결한다(워크트리엔 .gitignore 자산이 빠져 있음 — CLAUDE.md §8).
+- 실행 확인: `curl -s localhost:8010/health` → `rfdetr_slots[].state=LOADED` + `sha16` 이 `weights_manifest.json` 과 일치해야 배포 실체가 선언과 같다(F-8).
