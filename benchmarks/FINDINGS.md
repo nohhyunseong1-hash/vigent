@@ -30,7 +30,12 @@
 - **낙상/부담자세 동영상 클립 회귀셋은 부재** → 판정 '출력층'(이벤트 발생 여부, 시간 지속) 검증 불가.
 - → 사용자 촬영 클립(낙상/부담자세/정상 각 3~5) 도착 시 **판정층(b) 검증 태스크 추가**. 경계 케이스(F-2) 포함 권고.
 
-### ★ F-6. 배포 화재/연기 경보 recall 매우 낮음 (제품 안전 리스크) — T14-F 완화 적용
+### ✅ F-6. 배포 화재/연기 경보 recall 매우 낮음 — T10b RF-DETR 재학습으로 해소 (D-Fire 기준, 현장 재검증 대기)
+- **✅ 해소(2026-07-07, T10b)**: fire_smoke 를 boda(YOLO) → **RF-DETR(D-Fire 학습, Colab e17 best_ema)** 이관.
+  배포 presence recall **fire 53.64→95.91 / smoke 24.85→87.88**(pipeline fire0.30/smoke0.50), FAR fire 1.1%·smoke 15.4%.
+  box mAP@50 **80.13%**(게이트 B ≥60 통과), 게이트 A(presence)도 통과. **T14-F 임계천장(~recall 54%)을 모델 능력으로 돌파**
+  (임계 튜닝이 아니라 재학습으로 해결). 회귀 person/ppe/forklift Δ0.00. ⚠️ **in-domain(D-Fire) 기준 — 현장 재검증 대기**(T10c-V). 상세 `EVAL.md`.
+  아래는 해소 이전(T14-F 완화) 기록 — 근거·경위 보존용.
 - **정정**: 최초 F-6은 배포 임계를 "0.70"으로 기술했으나, 실제는 tuning.yaml **fire_smoke=0.55**였음(실측 재확인).
   단일 0.55 운용점(완화 전): **fire presence recall 10.45%·smoke 7.58%**(precision fire 95.8·smoke 92.6)
   → 화재/연기 프레임의 **약 90%를 놓침**. raw presence AP 는 fire 83.1·smoke 89.9(모델 순위능력은 높음 = 임계 문제).

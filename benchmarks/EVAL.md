@@ -86,24 +86,28 @@
 → **pipeline은 기존 ppe_eval 기록과 ±~4%p로 정합**(둘 다 guard 기반, 차이는 11↔101-pt). **raw는 체계적으로 +10~20%p 높음**(person과 동일 경향).
 → raw 전체 10클래스 AP@50: Hardhat 86.95 · Mask 78.09 · NO-Hardhat 59.59 · NO-Mask 81.24 · NO-Safety Vest 77.22 · Person 83.21 · Safety Cone 42.05 · Safety Vest 86.58 · machinery 86.91 · vehicle 70.19.
 
-### fire_smoke (T13, D-Fire CC0 · 395장) — ★ 이중 지표 체계
+### fire_smoke (T13→T10b RF-DETR 이관 · D-Fire CC0 · 395장) — ★ e17 best_ema
 
-현행 boda 모델은 화재를 **대영역 1박스**로 검출하나 D-Fire GT는 **소형 화염 다수+연기 분리**로 주석 →
-box mAP는 스키마 불일치로 '능력'을 반영 못 함. **용도(화재 경보)에 맞는 이미지수준 presence를 병행**한다.
+**T10b 이관 완료**: boda(YOLO, AGPL) → **RF-DETR(Apache, D-Fire 학습)**. RF-DETR 는 D-Fire 스키마로 학습돼
+**box mAP 가 유효한 능력 지표**가 됨(구 boda 는 스키마 비호환 참고치였음). Colab 30ep 중 **e17 best_ema**
+(val 피크·잔여 13ep 미실행 — val 하락 확인). 게이트 A(presence)·B(box mAP) 모두 통과.
 
+**배포 지표(RF-DETR e17, pipeline fire 0.30 / smoke 0.50):**
 | 지표 | 트랙 | fire | smoke | 의미 |
 |---|---|---|---|---|
-| **box mAP@50** | raw | 0.16% | 8.45% | ⚠️ **능력 지표 아님** — 주석 스키마 비호환 참고치(오버레이 `results/fire_smoke_diag/`) |
-| box mAP@50 | pipeline | 0.12% | 2.12% | 〃 |
-| **presence AP** | raw | **83.13%** | **89.89%** | ★ 이미지수준 존재 감지 — **모델은 화재/연기 존재를 잘 감지**. box mAP 저조는 순전히 granularity |
-| **presence recall@운용점(완화 전)** | pipeline(단일 0.55) | 10.45% | 7.58% | ⚠️ 화재 프레임 ~90% 놓침(F-6 최초) |
-| **presence recall@운용점(완화 후)** | pipeline(fire 0.03/smoke 0.20) | **53.64%** | **24.85%** | ★ **T14-F 클래스별 임계** — recall 대폭 회복 |
-| presence precision@운용점(완화 후) | pipeline | 89.39% | 93.18% | FAR fire 8.6·smoke 9.2%(정밀 유지) |
+| **box mAP@50** | raw(395 test) | **75.28%** | **84.98%** | ★ 능력 지표(D-Fire 학습→test). 전체 **80.13%**(게이트 B ≥60 통과). 구 boda 0.16/8.45 대비 세대차 |
+| box mAP@50:95 | raw | 37.23% | 53.20% | 전체 45.21% |
+| **presence AP** | raw | **98.37%** | **95.50%** | 이미지수준 존재 감지(구 boda 83.13/89.89 대비↑) |
+| **presence recall@운용점** | pipeline(fire0.30/smoke0.50) | **95.91%** | **87.88%** | ★ 구 T14-F(53.64/24.85) 대비 fire 1.8배·smoke 3.5배 |
+| presence precision@운용점 | pipeline | 99.06% | 96.67% | — |
+| **presence FAR@운용점** | pipeline | **1.1%**(2/175) | **15.4%**(10/65) | fire 오탐 거의 0. smoke 조건(≤18%) 충족 → 0.50 확정 |
 
-- **box mAP(D-Fire)는 검출 품질 지표** — 4.31%(raw)는 스키마 비호환 참고치, 능력 게이트 아님(폐기, FINDINGS).
-- **presence F1/recall은 배포 용도(화재 경보) 지표** — T10b '저하 없음' 게이트는 이것으로 판정.
-- **T14-F 완화**: fire·smoke conf 분포 상이 → 클래스별 임계(fire 0.03/smoke 0.20)로 recall 회복. ⚠️ 임계 천장(최대 recall≈54%) → 근본 해결은 T10b(F-6).
-- 지표 추가는 **용도 정합화**(게이트 회피 아님) — COCOeval 측정 로직 무수정, `presence_eval.py`로 별도 산출.
+- **게이트 판정(e17)**: B(box mAP@50 80.13 ≥ 60) 통과 · A(presence recall fire 95.9/smoke 87.9 > 기준 53.6/24.9, FAR 개선 동반) 통과.
+- **운용점**: RF-DETR conf 스케일 재튜닝 → fire 0.30 / smoke 0.50. smoke 는 조건부(pipeline FAR>18%면 0.60 후퇴)였으나 실측 **15.4% → 0.50 확정**.
+- **smoke FP 유형(현장 FAR 예측 근거)**: smoke 오탐 10건 중 **8건은 fire_only 버킷 = 화재 장면의 실제 연기(GT 미주석) → 사실상 정탐**(주석 공백). **진짜 오탐 2건은 둘 다 야외 대기 연무/흐린 하늘**(WEB10316 항공 헤이즈·WEB09728 흐린 지평선). → 실내 공장 배포 시 야외성 연무 소스 희소 → **현장 smoke FAR 는 15.4%보다 낮을 것으로 기대**(T10c-V 현장 검증 시 대조).
+- ⚠️ **in-domain 한계**: RF-DETR 는 D-Fire 학습→D-Fire test 평가(동일 출처). 정당한 홀드아웃이나 **현장 영상 일반화는 별도 검증 필요**.
+- 회귀: person 92.94·ppe 58.62·forklift 8.5 **Δ0.00**(이관 타 슬롯 무영향). 측정 로직 무수정 — `presence_eval.py`·`gate_eval_e17.py`로 산출.
+- 구 boda(참고·폐기): box mAP raw fire0.16/smoke8.45, presence recall 53.64/24.85. **롤백**: backend.fire_smoke=yolo + 임계 fire0.03/smoke0.20.
 
 ### forklift (T13b, LOCO CC0 · 318장=positive 238+네거 80) — 이중 지표
 

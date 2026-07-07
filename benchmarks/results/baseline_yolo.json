@@ -29,21 +29,22 @@
     },
     "pipeline": {
       "mode": "pipeline",
+      "backend": "yolo",
       "measures": "배포 운용점(guard.detect 후처리·운용 임계 반영)",
       "dataset": "person",
       "images_dir": "data/eval/clean/images",
       "num_images": 74,
       "gt_boxes": 87,
-      "num_detections": 84,
-      "mAP@50": 70.95,
-      "mAP@50:95": 45.85,
+      "num_detections": 114,
+      "mAP@50": 92.94,
+      "mAP@50:95": 84.26,
       "per_class_AP50": {
-        "person": 70.95
+        "person": 92.94
       },
       "per_class_AP5095": {
-        "person": 45.85
+        "person": 84.26
       },
-      "latency_ms_mean": 294.84,
+      "latency_ms_mean": 36.29,
       "latency_frames_timed": 64,
       "latency_warmup_excluded": 10,
       "conf": "guard 운용 임계(vision.yaml)",
@@ -52,7 +53,7 @@
       "seed": 0,
       "eval_method": "pycocotools COCOeval bbox (101-point interpolation)",
       "model_source": "vision.yaml 배포 설정(guard slot=person)",
-      "run_at": "2026-07-04 19:43"
+      "run_at": "2026-07-07 13:32"
     },
     "raw_rfdetr": {
       "mode": "raw",
@@ -192,7 +193,7 @@
         "machinery": 40.11,
         "vehicle": 32.4
       },
-      "latency_ms_mean": 130.06,
+      "latency_ms_mean": 131.5,
       "latency_frames_timed": 72,
       "latency_warmup_excluded": 10,
       "conf": "guard 운용 임계(vision.yaml)",
@@ -201,7 +202,7 @@
       "seed": 0,
       "eval_method": "pycocotools COCOeval bbox (101-point interpolation)",
       "model_source": "vision.yaml 배포 설정(guard slot=ppe)",
-      "run_at": "2026-07-05 17:30"
+      "run_at": "2026-07-07 13:33"
     }
   },
   "fire_smoke": {
@@ -309,32 +310,32 @@
         "op_threshold": 1e-06,
         "per_class_AP": {
           "smoke": {
-            "presence_AP": 81.78,
-            "best_f1": 91.03,
-            "best_f1_thr": 0.0
+            "presence_AP": 95.5,
+            "best_f1": 92.06,
+            "best_f1_thr": 0.501
           },
           "fire": {
-            "presence_AP": 80.67,
-            "best_f1": 76.43,
-            "best_f1_thr": 0.0
+            "presence_AP": 98.37,
+            "best_f1": 97.46,
+            "best_f1_thr": 0.302
           }
         },
         "operating_point": {
           "smoke": {
             "gt_pos": 330,
-            "pred_pos": 88,
-            "tp": 82,
-            "recall": 24.85,
-            "precision": 93.18,
-            "f1": 39.23
+            "pred_pos": 300,
+            "tp": 290,
+            "recall": 87.88,
+            "precision": 96.67,
+            "f1": 92.06
           },
           "fire": {
             "gt_pos": 220,
-            "pred_pos": 132,
-            "tp": 118,
-            "recall": 53.64,
-            "precision": 89.39,
-            "f1": 67.05
+            "pred_pos": 213,
+            "tp": 211,
+            "recall": 95.91,
+            "precision": 99.06,
+            "f1": 97.46
           }
         }
       }
@@ -386,7 +387,7 @@
       "per_class_AP5095": {
         "forklift": 5.71
       },
-      "latency_ms_mean": 33.84,
+      "latency_ms_mean": 34.79,
       "latency_frames_timed": 308,
       "latency_warmup_excluded": 10,
       "conf": "guard 운용 임계(vision.yaml)",
@@ -395,7 +396,7 @@
       "seed": 0,
       "eval_method": "pycocotools COCOeval bbox (101-point interpolation)",
       "model_source": "vision.yaml 배포 설정(guard slot=forklift)",
-      "run_at": "2026-07-05 17:30"
+      "run_at": "2026-07-07 13:33"
     },
     "presence": {
       "raw": {

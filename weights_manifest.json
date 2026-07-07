@@ -24,9 +24,9 @@
     },
     {
       "file": "fire_smoke_boda.pt", "slot": "fire_smoke", "backend": "yolo",
-      "purpose": "화재/연기 검출(배포 활성)",
+      "purpose": "화재·연기 검출 YOLO 경로(현재 backend=rfdetr, 롤백용)",
       "version": "boda", "sha256": "95ecffe9e6398239bcfcb69fcad3ff539c73c6c0770a7a626aa4a933991749ff",
-      "size_bytes": 6271985, "url": "PLACEHOLDER/fire_smoke_boda.pt", "required": true
+      "size_bytes": 6271985, "url": "PLACEHOLDER/fire_smoke_boda.pt", "required": false
     },
     {
       "file": "forklift_boda_ax.pt", "slot": "forklift", "backend": "yolo",
@@ -39,6 +39,12 @@
       "purpose": "지게차 검출 RF-DETR(T10b 이관, 배포 활성)",
       "version": "rfdetr_v1", "sha256": "cd76eb56487bf1aa308a2da428e0348c8f6fbff0187007db77ec577d693373ac",
       "size_bytes": 120781691, "url": "PLACEHOLDER/forklift_rfdetr_v1.pth", "required": true
+    },
+    {
+      "file": "fire_smoke_rfdetr_v1_e17.pth", "slot": "fire_smoke", "backend": "rfdetr",
+      "purpose": "화재·연기 검출 RF-DETR(T10b 이관, Colab e17 best_ema — 30ep 중 17ep val 피크. 게이트 A/B 통과. 배포 활성)",
+      "version": "rfdetr_v1_e17", "sha256": "b7425ce450f12cad25cd821f616cd8e3f64d544de51d45bc6e0e6c833be6b4fb",
+      "size_bytes": 120807675, "url": "PLACEHOLDER/fire_smoke_rfdetr_v1_e17.pth", "required": true
     },
     {
       "file": "yolov8n-pose.pt", "slot": "pose", "backend": "yolo",

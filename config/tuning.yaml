@@ -37,10 +37,11 @@ detect:                     # 탐지 공통
       # D-Fire 스윕 실측 0.002 → recall 34.9%/FAR 35%(YOLO 0.68의 R35.7/FAR28.7과 유사 recall·FAR 다소↑).
       # ⚠️ 잠정 운용점(과소학습 conf 낮음, F-7). backend=yolo 로 되돌리면 반드시 0.68 로 복원.
     fire_smoke: 0.55        # 단일 폴백(아래 fire_smoke_per_class 없는 라벨용). 실제 임계는 클래스별 맵.
-    fire_smoke_per_class:   # T14-F(F-6 완화): fire·smoke conf 분포가 달라 단일 임계로 둘 다 만족 불가.
-      fire: 0.03            # D-Fire 실측 recall 10.5→~54%(FAR 8.6%). 화재는 놓침이 최악 → 낮게.
-      smoke: 0.20           # recall 7.6→~25%(FAR 9.2%). 더 낮추면 구름·연무 오검출 급증(0.03시 FAR 27.7%).
-      # ⚠️ D-Fire 기준 잠정 완화. 임계 천장(사용가능 FAR 내 최대 recall≈54%) → 근본 해결은 T10b 재학습.
+    fire_smoke_per_class:   # T10b RF-DETR 이관(e17): fire·smoke conf 분포가 달라 클래스별 분리. RF-DETR 스케일로 재튜닝.
+      fire: 0.30            # D-Fire raw 스윕 R95.9%/FAR1.1%(구 YOLO R53.6 대비 대폭↑). 화재 놓침 최악 → recall 우선.
+      smoke: 0.50           # raw 스윕 R87.9%/FAR15.4%(구 R24.85 대비 3.5배). 조기경보 가치로 recall 우선.
+      # ⚠️ 조건부: pipeline 재측정 smoke FAR>18%면 0.60(R77.9/FAR9.2)로 후퇴. in-domain(D-Fire) 기준 — 현장 재검증 대기.
+      # 되돌리려면 backend.fire_smoke 를 yolo 로, 임계를 fire 0.03/smoke 0.20 으로 원복.
 
 vlm:                        # VLM(보호구 점검 등) 속도·정확도
   ppe_max_tokens: 128       # 답변 토큰(작을수록 빠름·길면 정확)

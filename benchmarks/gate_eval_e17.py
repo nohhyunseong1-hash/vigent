@@ -75,7 +75,7 @@ def main():
     m = _evaluate(gt, det, img_ids, gt_names)
     print(f"\n===== 게이트 판정: {a.dataset} · 신 RF-DETR ({Path(a.weights).name}) =====")
     print(f"[게이트 B] box mAP@50 = {m['mAP@50']}%   (mAP@50:95 = {m['mAP@50:95']}%)")
-    print(f"           클래스별 AP@50 = {m.get('per_class_AP@50')}")
+    print(f"           클래스별 AP@50 = {m.get('per_class_AP50')}   AP@50:95 = {m.get('per_class_AP5095')}")
     if a.gate_map is not None:
         ok = m["mAP@50"] >= a.gate_map
         print(f"           → {'통과 ✅' if ok else '미달 ❌'} (기준 ≥ {a.gate_map}%)")
