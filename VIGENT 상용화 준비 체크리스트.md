@@ -8,41 +8,30 @@
 
 ---
 
-## 1. AGPL 라이선스 (최우선 관문)
+## 1. AGPL 라이선스 (최우선 관문) — ✅ 해소 (2026-07-07, T10b + A-4)
 
-### 무엇이 걸리나 (2026-07-02 코드로 확정)
-- ultralytics YOLO 프레임워크는 **AGPL-3.0**. 소스 공개 없이 상용 비공개 제품에 넣으면 위반.
-- 학습 **데이터**는 문제없음 (ppe_css_v1 = CSS 상업데이터 CC BY 4.0).
-- **문제는 프레임워크/추론 코드**다.
+**결론: 라이브 배포 경로 강카피레프트(AGPL) 0 달성. 방향 A(Apache 모델 이관)로 완결.** 마일스톤 태그 `v1.0-copyleft-zero`.
 
-### 노출 지점 — 딱 한 경로
-- 라이브 관제(`/safety`, `/safety-local`)의 브라우저층(COCO-SSD·MediaPipe)은 **Apache-2.0 = 깨끗**.
-- AGPL은 **서버 정밀탐지 `/detect/frame` → Guard(`agents/guard.py`)가 쓰는 커스텀 YOLO 모델**에서만 발생.
+### 해소 내역 (T10 이관 완료 — 저하 0, 오히려 개선)
+- 검출 4슬롯 + 포즈 전부 **permissive 백엔드로 이관**(각 게이트 통과·회귀 Δ0.00):
+  - 사람 → RF-DETR(Apache, T10a) — pipeline mAP@50 70.95→**92.94%**
+  - 포즈 → RTMPose(rtmlib/onnx, Apache, T10c)
+  - 지게차 → RF-DETR(Apache, LOCO, T10b) — box mAP 개선(운용점 튜닝 잔존, F-7)
+  - **화재·연기 → RF-DETR(Apache, D-Fire, T10b)** — presence recall fire 53.6→**95.9**/smoke 24.9→**87.9**
+  - **PPE → RF-DETR(Apache, css_safety, T10b)** — pipeline mAP@50 58.6→**71.5%**
+- **A-4**: ultralytics(AGPL) 를 배포 `requirements.txt` 에서 제거 → 측정 전용(`requirements-eval.txt`)으로만 잔존.
+- **런타임 실증**: 테마 빌드 + 전 슬롯 `guard.detect` + 포즈 실행 후 `sys.modules` 에 ultralytics 부재(PASS).
+- `detectors/yolo_adapter.py` 는 **롤백 안전망**으로 존치(지연 import·배포 미포함 → copyleft 0 유지).
 
-### 걸리는 커스텀 YOLO 모델 5개 (`themes/safety/vision.yaml` 기준)
-| 용도 | 파일 |
-|---|---|
-| 사람 | `weights/yolo11m.pt` / `yolo11s.pt` |
-| 보호구(PPE) | `weights/ppe_css_v1.pt` |
-| 화재·연기 | `weights/fire_smoke_boda.pt` |
-| 지게차 | `weights/forklift_boda_ax.pt` |
-| 자세 폴백 | `weights/yolov8n-pose.pt` |
+### ⚠️ 잔여 유의 (경미)
+- **in-domain 한계**: 이관된 RF-DETR 4종은 학습셋과 동일 출처로 평가(D-Fire/css_safety/LOCO). 정당한 홀드아웃이나 **현장 영상 일반화는 별도 검증 대기(T10c-V)**. 상용 납품 전 현장 정확도 실측 필수(아래 §4 연계).
+- 매니페스트 `yolov8n-pose.pt`(구 포즈 백엔드) legacy 항목 잔존 — 실제 백엔드는 RTMPose(런타임 무영향, 정리 백로그).
+- ultralytics Enterprise 유료 라이선스(구 방향 B)는 **불필요해짐**(이관으로 해소).
 
-### 이미 만들어 둔 대안 (부분 완성)
-- RF-DETR(Apache-2.0) 백엔드가 `rfdetr_service.py` + `/rfdetr/frame`으로 **완성돼 있음**.
-- 단, 연결된 화면은 `/safety-pro`(index_rfdetr.html) **하나뿐**이고, 바탕화면·홈 허브에서 진입 안 됨.
-- **중요 — 이 RF-DETR 화면은 기능이 훨씬 적다(저하 있음).** 그대로 기본 승격 불가:
-  - 있음: 사람 탐지 + 위험구역 + VLM 요약
-  - **없음: 보호구 체크 · 낙상/자세 · 화재/지게차 · 작업자·얼굴 인식 · 지식엔진 연동**
-
-### 상용 배포 직전 선택지 (3가지 — 저하 0이 목표)
-1. **유료 라이선스(방향 B)**: ultralytics Enterprise 구매. 코드 0 변경, 기능 0 저하, 즉시 합법. 비용 = 연 구독료(금액 미확인 — 구매 전 확인 필요).
-2. **Apache 모델 이관(방향 A)**: 5개 커스텀 모델을 RF-DETR 등으로 재학습. 라이선스 비용 0. 단 실제 ML 학습 작업이고, **재학습 정확도가 기존과 같은지 반드시 비교 검증**해야 함(저하 방지).
-3. 두 방법 혼합/단계적 — 단, ultralytics 모델이 하나라도 남으면 AGPL은 계속 적용됨(부분 이관만으로는 법적 해소 안 됨).
-
-### 지금 할 일
-- [ ] 이 문서 유지. 코드 변경 없음.
-- [ ] 첫 유료 계약/배포가 구체화되면 그 시점에 위 1~3 중 택1.
+### 구 기록 (해소 전, 2026-07-02) — 경위 보존
+- 당시 걸리던 커스텀 YOLO 5종: yolo11m/s(사람)·ppe_css_v1·fire_smoke_boda·forklift_boda_ax·yolov8n-pose.
+- 당시 노출 경로: 서버 정밀탐지 `/detect/frame` → Guard 의 커스텀 YOLO. 브라우저층(COCO-SSD·MediaPipe)은 원래부터 Apache.
+- 당시 선택지: (B)ultralytics Enterprise 구매 / (A)Apache 모델 이관 / (C)혼합 → **최종 (A) 채택·완결.**
 
 ---
 
@@ -74,4 +63,4 @@
 ---
 
 ## 요약 한 줄
-> 지금은 **아무것도 안 바꾸는 게 정답**이다. 위 4개를 "배포 직전 해소 리스트"로 들고 가다가, 첫 유료 배포가 잡히면 1번(AGPL)부터 택1하여 실행한다.
+> **§1 AGPL 해소 완료(2026-07-07, 태그 v1.0-copyleft-zero).** 남은 배포 직전 관문은 §2 기능안전 문구·§3 개인정보 절차·§4 정확도 실측(특히 이관 4종의 **현장 재검증 T10c-V**). 첫 유료 배포 시 §2~§4 확인.

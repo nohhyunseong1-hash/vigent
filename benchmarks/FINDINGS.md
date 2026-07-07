@@ -140,3 +140,12 @@
   현장 영상에서 in-domain 성능을 유지함을 확인(각 모델의 in-domain 한계가 해소). ② 롤백 필요성 소멸 판단.
   → 두 조건 충족 시 `yolo_adapter.py` + `detectors/__init__.py` YoloDetector + guard 의 yolo 분기 제거, ml/train_*.py(YOLO 학습 스크립트) 정리.
 - 제거 전까지: backend=yolo 는 측정/롤백 전용(requirements-eval.txt 설치 필요), 배포물 미포함.
+
+### 백로그 — 병렬 세션 감사 작업 2건 (미완결, 별도 완결·검증 필요, 2026-07-07)
+`audit/a4-adversarial` 브랜치에 병렬 세션이 만든 감사 작업 2건이 있음. **main 미포함**(미검증). 각자 완결·검증 후 별도 머지.
+- **(a) 적대적 감사** (`eval/adversarial/`, commit 786cd33·efb6ae7): SCOPE.md(공격면·위협모델) + 케이스 19건(t_inj/t_hall/t_down/t_2tier) + 하니스(run_adv.py·detectors.py) **구축됨**. 단 **실행·판정(verdict) 미완** → A-4 후속 보안 검증으로 완결 필요(하니스 실행 → 통과/취약 판정 → 기록).
+- **(b) 골든셋** (`eval/golden/scribe/`, commit d4bf072·dc51541·badcfd6·df0a412·a88bbbe): 스키마·채점엔진(gates/judge/rubric/run, fixtures 검증 통과)·아이템 스캐폴드 30건 **완료**. 단 **정답(ground-truth) 30건 미작성** → 작성 주체 **사용자(안전관리자 자격)**. 정답 도착 시 Scribe 평가 가동.
+- ※ 지금 이 2건을 진행하지 않음(등재만). T10b/A-4 와 파일 겹침 0(eval/ 국한) — 독립.
+
+### 메모 — audit/a4-adversarial 의 T10b 중복 커밋 (2026-07-07)
+main 은 T10b+A-4 10커밋을 **cherry-pick**으로 받음(격리 워크트리, 태그 v1.0-copyleft-zero). 원본 10커밋은 `audit/a4-adversarial`에도 그대로 남아 있어 **커밋이 논리적으로 중복**(해시는 다름). 훗날 audit 브랜치(감사 2건)를 main 에 머지할 때 **그대로 머지하면 중복 diff 충돌 가능** → `git rebase --onto main <T10b마지막> audit/a4-adversarial`(또는 감사 커밋만 cherry-pick)로 **T10b 중복분을 걷어낸 뒤** 머지할 것. 경위: 공유 워킹트리 HEAD 이동으로 T10b 커밋이 audit 위에 얹혔음(CLAUDE.md §8 참조).
