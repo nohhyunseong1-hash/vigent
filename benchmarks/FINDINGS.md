@@ -132,3 +132,11 @@
 - RTMPose pose-only 한계비용 **40.2ms/frame**(박스는 guard.detect 재사용=무료) vs 구 yolov8n-pose 23.8ms(+16ms).
 - 워커 기본 2fps(500ms 간격)에선 무시 가능. 단 **RK3588 등 엣지 재측정 필요**(별도 태스크, RKNN 변환은 미시도).
 - rtmlib 내장 YOLOX 검출(Stage1)은 226ms로 느림 → **기본 off**, RF-DETR 박스 재사용이 정답.
+
+### 백로그 — yolo_adapter.py 제거 (A-4 후속, 2026-07-07)
+- **현황**: A-4 로 배포 경로 ultralytics 0(전 슬롯 RF-DETR). `detectors/yolo_adapter.py` 는 **롤백 안전망으로만 존치**
+  (지연 import, 배포 requirements 에 ultralytics 미포함 → copyleft 0 유지). 사용자 결정(2026-07-07): 존치 + 주석 강화.
+- **제거 조건(충족 시 삭제 검토)**: ① **현장 검증(T10c-V) 완료** — 이관된 RF-DETR 4종(person/ppe/fire_smoke/forklift)이
+  현장 영상에서 in-domain 성능을 유지함을 확인(각 모델의 in-domain 한계가 해소). ② 롤백 필요성 소멸 판단.
+  → 두 조건 충족 시 `yolo_adapter.py` + `detectors/__init__.py` YoloDetector + guard 의 yolo 분기 제거, ml/train_*.py(YOLO 학습 스크립트) 정리.
+- 제거 전까지: backend=yolo 는 측정/롤백 전용(requirements-eval.txt 설치 필요), 배포물 미포함.
