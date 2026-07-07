@@ -2198,7 +2198,11 @@ def theme_page(theme: str):
 # 공유 정적 자원(realtime_core.js 등)
 _STATIC_DIR = _HERE / "static"
 if _STATIC_DIR.exists():
-    app.mount("/static", StaticFiles(directory=str(_STATIC_DIR)), name="static")
+    # follow_symlink: 배포 기본 False(디렉토리 밖 심링크 traversal 차단 = 보안 유지).
+    #   개발 워크트리는 gitignore 자산(vendor/ 144M 등)이 심링크로만 존재 → VIGENT_DEV_SYMLINK=1 로 opt-in.
+    #   (VIGENT_ALLOW_FALLBACK 과 동일 철학: 배포 안전·개발 명시 허용. setup_worktree.sh 참조.)
+    _dev_symlink = os.environ.get("VIGENT_DEV_SYMLINK") == "1"
+    app.mount("/static", StaticFiles(directory=str(_STATIC_DIR), follow_symlink=_dev_symlink), name="static")
 
 # 증거 프레임 이미지 서빙(데이터엔진 저장본). 폴더는 첫 이벤트 때 생성됨.
 _EVIDENCE_DIR = _ROOT / "data" / "evidence"

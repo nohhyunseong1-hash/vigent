@@ -168,3 +168,15 @@ main 은 T10b+A-4 10커밋을 **cherry-pick**으로 받음(격리 워크트리, 
 F-8 진단 중, 서버 detect_frame 이 **연속 프레임 추적**(`guard._track`: IoU매칭·EMA위치평활·잔상제거)을 유지함을 확인. 이는 **라이브 비디오 안정화 전용 계층**으로, 독립 낱장 벤치마크로는 **검출 능력과 분리 측정 불가**(그래서 측정 시 `reset_tracks` 로 끔). 따라서 **추적 고유의 실패 모드가 미검증**:
 - ID 스위치(사람 뒤바뀜), 유령 추적(잔상 박스), 다인 근접 시 트랙 오염(전역 `_tracks` 공유 — guard.py 옵션A 미적용), 프레임 드랍 시 잔상.
 - → **연속 프레임 시퀀스 회귀** 필요. **F-1(다인 top-down 박스 품질)·T10c-V(현장 클립)와 묶어** 사용자 촬영 클립 도착 시 함께 검증. 낱장 mAP 로는 안 잡히는 **'측정≠배포' 리스크**로 태깅.
+
+### 메모 — 워크트리 gitignore 자산 누락 반복 사고 (2026-07-07 정리)
+하루 동안 **F-8(weights 누락→COCO 폴백)·vendor 404(정적 JS 누락)** 가 전부 **같은 뿌리**였다 — `git worktree add` 는 **추적 파일만** 체크아웃하고 `.gitignore` 자산(`vigent-core/weights/`·`data/`·`benchmarks/data/`·`vigent-core/static/vendor/`)은 빠진다. 파생 여진: 좀비 서버(cwd 소멸), 가중치 COCO 폴백, 정적 JS 404(검출·스켈레톤 미표시).
+- **근본 대응**: `scripts/setup_worktree.sh` 가 **weights/data/benchmarks-data/vendor 전부** 심링크·검증 + `main.py` `StaticFiles(follow_symlink=VIGENT_DEV_SYMLINK=="1")` 게이트(배포 기본 차단, 개발 워크트리 opt-in — StaticFiles 는 디렉토리 밖 심링크를 traversal 방지로 거부하므로).
+- **운영 지침(§8 보완)**: **단일 세션 개발은 메인 워킹트리에서** 한다(vendor·weights 실재 → 좀비·심링크 여진 없음). 워크트리 격리는 CLAUDE.md §8 대로 **동시 세션이 있을 때만** 필요한 규칙 — 격리 이득이 없는 순수 프론트·단일세션 작업까지 워크트리로 하면 심링크 문제만 유발한다. (2026-07-07 dualfix 검증을 메인 워킹트리로 전환한 근거: 세션 HEAD=main 단일세션 확인됨.)
+
+### F-9. 실내/사무실 환경 PPE 오탐 (도메인 갭 — 별개 트랙, 2026-07-07)
+safety-local 라이브(실내 웹캠) 육안에서, **비착용 물체를 PPE 클래스로 오검출**하는 현상 확인 — 모니터·헤드셋·의자 등을 Hardhat/Safety-Vest/Mask 로 잡거나, 미착용 상태를 과도하게 NO-* 로 판정. (창업자 본인 재현, 실내 사무실.)
+- **원인**: ppe 모델(css_safety=**건설현장** 학습)의 **학습 분포 밖(실내 사무실) 도메인 갭**. RF-DETR 자체 결함이 아니라 in-domain 한계([[t10-agpl-removal-status]] 공통 한계·EVAL §6). css_safety in-domain mAP 71.46 은 유효하나 실내 일반화는 별개.
+- **근본 해결**: **현장 데이터 재학습/파인튜닝** — T10c-V 현장 클립 + **현장 negative(PPE 없는 실내/작업장 배경) 수집** 후 재학습. 
+- **미봉책 배제**: 임계 상향은 recall 손실(미착용 놓침 = 안전 감시 목적 훼손)이므로 **현장 데이터 확보 전까지 보류**. 
+- **트랙 구분**: 이 오탐(모델 정확도·도메인)은 **F-8 후속 person 억제(UI 렌더)와 별개 트랙**. UI 마감은 완료(이중렌더·404·person 정리), F-9 는 데이터·모델 과제로 T10c-V 와 묶어 진행.

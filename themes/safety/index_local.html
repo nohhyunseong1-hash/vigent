@@ -557,6 +557,10 @@
     octx.clearRect(0,0,sw,sh);
     octx.lineWidth=Math.max(2,sw/320); octx.font='bold '+Math.max(12,Math.round(sw/40))+'px system-ui,sans-serif';
     (dets||[]).forEach(function(d){
+      // A안: PPE 감시 목적 → person 박스·라벨 억제(사람 위치는 스켈레톤으로 파악). PPE 전 클래스는 유지.
+      //   서버모드에서만 draw() 호출되므로 폴백(COCO-SSD)엔 영향 없음.
+      var cls=(d['class']||'').toLowerCase();
+      if(cls==='person') return;
       var b=d.bbox||[0,0,0,0], x=b[0],y=b[1],w=b[2],h=b[3], col=colorFor(d['class']);
       octx.strokeStyle=col; octx.strokeRect(x,y,w,h);
       var lab=(d['class']||'')+' '+Math.round((d.score||0)*100)+'%', tw=octx.measureText(lab).width+8;
@@ -571,6 +575,22 @@
     cv.getContext('2d').drawImage(video,0,0,sw,sh);
     return {data:cv.toDataURL('image/jpeg',0.7).split(',')[1], sw:sw, sh:sh};
   }
+  // 이중 렌더 제거: 서버모드일 때 브라우저 COCO-SSD 객체 렌더(realtime_core.js drawObjects)만 억제.
+  //   포즈 스켈레톤·손 인식은 별도 함수라 유지. realtime_core.js 무수정(전역함수만 래핑).
+  //   SERVER 는 상위 클로저 변수 → 모드 전환(서버 껐다켰다) 시 억제 on/off 자동 추종.
+  //   브라우저모드(SERVER=false)면 원본 실행 → COCO-SSD 폴백 화면 유지(빈 화면 방지).
+  (function wrapDrawObjects(){
+    if (typeof window.drawObjects === 'function') {
+      if (!window._vgDrawWrapped) {
+        var _origDrawObjects = window.drawObjects;
+        window.drawObjects = function(){ if (SERVER) return; return _origDrawObjects.apply(this, arguments); };
+        window._vgDrawWrapped = true;
+      }
+    } else {
+      setTimeout(wrapDrawObjects, 300);   // realtime_core.js 초기화 전이면 재시도
+    }
+  })();
+
   // 서버 검출 루프(~1.2s) — ppe:true(person+ppe+forklift+fire), safety_only:true(잡동사니 제거)
   setInterval(async function(){
     try{
