@@ -141,6 +141,10 @@
       <video id="videoEl" autoplay muted playsinline></video>
       <img id="imageEl" alt=""/>
       <canvas id="outputCanvas"></canvas>
+      <!-- ① 서버검출 오버레이(RF-DETR 결과 표시 · realtime_core.js 의 outputCanvas 위에 겹침 · 백엔드 무수정) -->
+      <canvas id="srvOverlay" style="position:absolute;left:0;top:0;width:100%;height:100%;pointer-events:none;z-index:33"></canvas>
+      <!-- ① 검출 소스 배지(오늘 같은 혼란 재발 방지 목적 — 눈에 띄게) -->
+      <div id="srvSourceBadge" style="position:absolute;top:12px;left:12px;z-index:40;padding:7px 13px;border-radius:9px;font-weight:800;font-size:13px;letter-spacing:.2px;background:#444;color:#fff;box-shadow:0 2px 10px rgba(0,0,0,.45)">● 검출 소스 확인 중…</div>
 
       <div id="recogPanel" class="recog-panel"><h4>지금 인식 중</h4><div class="dim" style="font-size:13px;">카메라를 켜면 표시됩니다</div></div>
       <div class="zone-btns" style="position:absolute;right:14px;bottom:14px;z-index:31;display:flex;gap:6px;">
@@ -504,6 +508,81 @@
     b.innerHTML=''; ev.slice(0,7).forEach(function(e){
       b.appendChild(line(e.time||'--:--:--', e.level||'medium', e.rule||'', e.advisory||'')); });
   }).catch(fillDemo);
+})();
+</script>
+
+<!-- ① /safety-local 서버검출 배선: 서버 가용 시 RF-DETR ppe/통합검출로 오버레이 + 소스 배지 표시.
+     서버 없으면(진짜 폐쇄망 USB) COCO-SSD(realtime_core.js) 폴백 유지. 백엔드·realtime_core.js 무수정 — 프론트 배선만. -->
+<script>
+(function(){
+  var badge=document.getElementById('srvSourceBadge');
+  var note =document.getElementById('ppeModelBasis');
+  var video=document.getElementById('videoEl');
+  var overlay=document.getElementById('srvOverlay');
+  if(!overlay||!video) return;
+  var octx=overlay.getContext('2d');
+  var SERVER=false, busy=false;
+
+  function setBadge(mode){
+    if(!badge) return;
+    if(mode==='server'){
+      badge.textContent='● 서버 AI (RF-DETR) · 안전모·조끼 감지';
+      badge.style.background='#0b7a3b';
+      if(note){ note.textContent='서버 AI(RF-DETR) 검출을 사용 중입니다 — 안전모·조끼 등 보호구를 감지합니다.'; note.classList.remove('warn'); }
+    }else if(mode==='browser'){
+      badge.textContent='● 브라우저 경량 모드 · PPE 미지원';
+      badge.style.background='#b26a00';
+      if(note){ note.textContent='브라우저 경량 모델(COCO-SSD)만 사용 중 — 안전모·조끼(PPE)는 감지하지 않습니다. 서버를 켜면 RF-DETR로 자동 전환됩니다.'; note.classList.add('warn'); }
+    }else{ badge.textContent='● 검출 소스 확인 중…'; badge.style.background='#444'; }
+  }
+  setBadge('checking');
+
+  // 서버 가용 감지: /health.status==='ok' → 서버검출 사용, 실패/불가 → COCO-SSD 폴백
+  fetch('/health').then(function(r){return r.json();}).then(function(j){
+    SERVER=!!(j&&j.status==='ok'); setBadge(SERVER?'server':'browser');
+  }).catch(function(){ SERVER=false; setBadge('browser'); });
+
+  function colorFor(cls){
+    var c=(cls||'').toLowerCase();
+    if(c.indexOf('no-')===0) return '#e63946';                                   // 미착용류=빨강
+    if(c.indexOf('hardhat')>=0||c.indexOf('vest')>=0||c.indexOf('mask')>=0) return '#2a9d3f'; // 착용류=초록
+    if(c==='person') return '#2d7dd2';                                           // 사람=파랑
+    if(c==='fire'||c==='smoke') return '#f08a00';                                // 화재/연기=주황
+    return '#8a8a8a';
+  }
+  // overlay 백킹스토어=전송프레임 크기(sw×sh), CSS 100%가 컨테이너에 맞춰 늘림(비디오와 동일 채움 가정)
+  function draw(dets, sw, sh){
+    if(overlay.width!==sw) overlay.width=sw;
+    if(overlay.height!==sh) overlay.height=sh;
+    octx.clearRect(0,0,sw,sh);
+    octx.lineWidth=Math.max(2,sw/320); octx.font='bold '+Math.max(12,Math.round(sw/40))+'px system-ui,sans-serif';
+    (dets||[]).forEach(function(d){
+      var b=d.bbox||[0,0,0,0], x=b[0],y=b[1],w=b[2],h=b[3], col=colorFor(d['class']);
+      octx.strokeStyle=col; octx.strokeRect(x,y,w,h);
+      var lab=(d['class']||'')+' '+Math.round((d.score||0)*100)+'%', tw=octx.measureText(lab).width+8;
+      octx.fillStyle=col; octx.fillRect(x,Math.max(0,y-19),tw,19);
+      octx.fillStyle='#fff'; octx.fillText(lab,x+4,Math.max(13,y-5));
+    });
+  }
+  function capture(){
+    var vw=video.videoWidth, vh=video.videoHeight; if(!vw||!vh) return null;
+    var sw=640, sh=Math.round(640*vh/vw);
+    var cv=document.createElement('canvas'); cv.width=sw; cv.height=sh;
+    cv.getContext('2d').drawImage(video,0,0,sw,sh);
+    return {data:cv.toDataURL('image/jpeg',0.7).split(',')[1], sw:sw, sh:sh};
+  }
+  // 서버 검출 루프(~1.2s) — ppe:true(person+ppe+forklift+fire), safety_only:true(잡동사니 제거)
+  setInterval(async function(){
+    try{
+      if(!SERVER||busy) return;
+      var cap=capture(); if(!cap) return; busy=true;
+      var r=await fetch('/detect/frame',{method:'POST',headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({image_base64:cap.data, ppe:true, safety_only:true})});
+      var j=await r.json();
+      if(j&&j.success) draw(j.detections, cap.sw, cap.sh);
+    }catch(e){ /* 서버 일시 오류 — 다음 틱 재시도(폴백 배지는 초기 /health 판정 유지) */ }
+    finally{ busy=false; }
+  }, 1200);
 })();
 </script>
 

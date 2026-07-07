@@ -14,11 +14,43 @@ vision.yaml 의 detector 슬롯(person/ppe/forklift/fire_smoke)에서 실제 .pt
 from __future__ import annotations
 
 import time
+from pathlib import Path as _Path
 from typing import Any
 
 import numpy as np
 
 from .base import BaseAgent
+
+# 프로젝트 루트(VIGENT) — guard.py = <root>/vigent-core/agents/guard.py → 세 단계 위.
+#   vision.yaml 의 rfdetr_weights 는 이 루트 기준 상대경로(예: vigent-core/weights/ppe_rfdetr_v1.pth).
+#   서버는 cwd=vigent-core 로 기동되므로, 상대경로를 그대로 쓰면 cwd 기준 이중경로로 깨진다(F-8).
+#   → 반드시 이 상수 기준으로 절대경로화한다.
+_PROJECT_ROOT = _Path(__file__).resolve().parent.parent.parent
+
+
+def _sha16(path) -> str:
+    """가중치 파일 SHA256 앞 16자(로드 로그·매니페스트 대조용). 실패해도 죽지 않는다."""
+    import hashlib
+    try:
+        h = hashlib.sha256()
+        with open(path, "rb") as f:
+            for chunk in iter(lambda: f.read(1 << 20), b""):
+                h.update(chunk)
+        return h.hexdigest()[:16]
+    except Exception:  # noqa: BLE001
+        return "??"
+
+
+def _guard_logger():
+    """vlog 우선(없으면 표준 logging). 슬롯 로드 상태 가시화(F-8)."""
+    try:
+        import sys
+        sys.path.insert(0, str(_PROJECT_ROOT / "vigent-core"))
+        import vlog
+        return vlog.get("vigent.guard")
+    except Exception:  # noqa: BLE001
+        import logging
+        return logging.getLogger("vigent.guard")
 
 # 모델이 내보내는 원시 라벨 → VIGENT 표준 라벨(규칙이 비교하는 문자열)
 LABEL_NORMALIZE = {
@@ -140,12 +172,15 @@ class GuardAgent(BaseAgent):
             pass
         # rfdetr 백엔드용 커스텀 파인튜닝 가중치(T10b). 없는 슬롯(person 등)은 COCO 사전학습 사용.
         #   vision.yaml perception.rfdetr_weights: {forklift: vigent-core/weights/forklift_rfdetr_v1.pth}
+        #   → F-8: 상대경로를 프로젝트루트 기준 절대경로화하고, '지정됐는데 파일 부재'면 기동 거부.
         self._rfdetr_weights: dict[str, str] = {}
         try:
-            self._rfdetr_weights = dict((getattr(config, "raw", {}) or {})
-                                        .get("perception", {}).get("rfdetr_weights", {}) or {})
-        except Exception:  # noqa: BLE001
-            pass
+            _raw_rfw = dict((getattr(config, "raw", {}) or {})
+                            .get("perception", {}).get("rfdetr_weights", {}) or {})
+        except Exception:  # noqa: BLE001  설정 없음 → 빈 맵(person 등 COCO 사전학습 경로)
+            _raw_rfw = {}
+        # 절대경로화 + 실파일 검증 + 로드 로그. 커스텀 부재 시 예외를 그대로 올려 기동을 거부(silent 폴백 차단).
+        self._rfdetr_weights = self._resolve_rfdetr_weights(_raw_rfw)
 
     @staticmethod
     def _pick_device() -> str:
@@ -158,11 +193,55 @@ class GuardAgent(BaseAgent):
         import device as _device
         return _device.pick_device(prefer_mps=False)
 
+    def _resolve_rfdetr_weights(self, raw: dict) -> dict[str, str]:
+        """rfdetr 커스텀 가중치 경로를 절대경로화 + 실파일 검증 + 로드 로그(F-8).
+
+        - 경로 지정 + 파일 존재  → 절대경로로 반환(LOADED 로그, SHA 대조).
+        - 경로 지정 + 파일 부재  → 기본은 FileNotFoundError(기동 거부, silent 폴백 차단).
+              VIGENT_ALLOW_FALLBACK=1 opt-in 시에만 COCO 사전학습으로 폴백(검출저하 경고).
+        - 경로 미지정(person 등) → 반환 맵에 없음 → _get_model 이 rf_w='' 로 COCO 사용(정상·저하0).
+        """
+        import os
+        log = _guard_logger()
+        allow_fb = os.environ.get("VIGENT_ALLOW_FALLBACK") == "1"
+        out: dict[str, str] = {}
+        self._rfdetr_status: list[dict[str, Any]] = []
+        for slot, ref in (raw or {}).items():
+            if not ref:
+                continue
+            backend = self._backend.get(slot, "yolo")
+            p = _Path(ref)
+            if not p.is_absolute():
+                p = _PROJECT_ROOT / p                    # ← 핵심 수정(F-8): 프로젝트루트 기준 절대화
+            if p.exists():
+                sha = _sha16(p)
+                out[slot] = str(p)
+                self._rfdetr_status.append({"slot": slot, "backend": backend,
+                                            "weights": str(p), "sha16": sha, "state": "LOADED"})
+                log.info("검출 슬롯: slot=%s backend=%s weights=%s sha=%s → LOADED",
+                         slot, backend, p.name, sha)
+            elif allow_fb:
+                self._rfdetr_status.append({"slot": slot, "backend": backend,
+                                            "weights": str(p), "sha16": None, "state": "MISSING_FALLBACK"})
+                log.warning("검출 슬롯 MISSING(opt-in 폴백): slot=%s weights=%s → COCO 사전학습 폴백"
+                            "(커스텀 검출을 COCO로 대체 → 검출 저하 가능)", slot, p)
+                # out 에 넣지 않음 → rf_w='' → COCO 사전학습
+            else:
+                self._rfdetr_status.append({"slot": slot, "backend": backend,
+                                            "weights": str(p), "sha16": None, "state": "MISSING"})
+                log.error("검출 슬롯 MISSING(기동 거부): slot=%s weights=%s", slot, p)
+                raise FileNotFoundError(
+                    f"[기동거부·F-8] rfdetr 커스텀 가중치 부재: slot={slot} path={p}. "
+                    f"파일을 배치하거나 VIGENT_ALLOW_FALLBACK=1 로 COCO 폴백을 명시 허용하라"
+                    f"(폴백은 커스텀 검출을 COCO로 대체 → 검출 저하). silent 폴백은 차단됨.")
+        return out
+
     def status(self) -> dict[str, Any]:
         return {"name": self.name, "role": self.role, "implemented": True,
                 "detectors_available": list(self._slot_path.keys()),
                 "loaded": list(self._models.keys()),
-                "load_errors": self._load_errors}
+                "load_errors": self._load_errors,
+                "rfdetr_slots": getattr(self, "_rfdetr_status", [])}   # F-8: 커스텀 가중치 실검사 결과
 
     def _track(self, fresh: list[dict[str, Any]]) -> list[dict[str, Any]]:
         """서버측 추적/스무딩: 새 탐지를 기존 트랙과 IoU 매칭해 갱신(위치 EMA 평활),

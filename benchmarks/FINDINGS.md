@@ -149,3 +149,22 @@
 
 ### 메모 — audit/a4-adversarial 의 T10b 중복 커밋 (2026-07-07)
 main 은 T10b+A-4 10커밋을 **cherry-pick**으로 받음(격리 워크트리, 태그 v1.0-copyleft-zero). 원본 10커밋은 `audit/a4-adversarial`에도 그대로 남아 있어 **커밋이 논리적으로 중복**(해시는 다름). 훗날 audit 브랜치(감사 2건)를 main 에 머지할 때 **그대로 머지하면 중복 diff 충돌 가능** → `git rebase --onto main <T10b마지막> audit/a4-adversarial`(또는 감사 커밋만 cherry-pick)로 **T10b 중복분을 걷어낸 뒤** 머지할 것. 경위: 공유 워킹트리 HEAD 이동으로 T10b 커밋이 audit 위에 얹혔음(CLAUDE.md §8 참조).
+
+### ✅ F-8. rfdetr 커스텀 가중치 경로버그 → 서버 silent COCO 폴백 (실배포 결함, 해소 2026-07-07)
+**증상**: `/safety-local` 등 서버 화면에서 안전모·조끼(PPE) 미검출. 창업자 본인 재현.
+**근본 원인(3중 결함)**:
+1. **경로버그**: `guard._get_model` 이 `perception.rfdetr_weights`(프로젝트루트 기준 **상대경로** `vigent-core/weights/…`)를 절대경로화 없이 `RFDETRNano(pretrain_weights=…)` 에 전달. 서버는 cwd=`vigent-core` 로 기동되므로 `vigent-core/vigent-core/weights/…` 로 **이중경로 깨짐**.
+2. **silent 폴백**: RFDETRNano 는 커스텀 가중치를 못 찾으면 **예외 없이 COCO 사전학습으로 폴백** → person 만 검출(COCO 에 Hardhat/Vest 없음). guard 도 미검증.
+3. **health 오보고**: `vision_loader` 는 구 `.pt` 경로만 검사하고 `rfdetr_weights` 는 안 봐서 capabilities/health 가 `source=model`(거짓 정상)로 보고 → 은닉.
+**소급 영향(정직)**: 서버는 항상 cwd=`vigent-core` 로 기동되므로, **commit f1afc2e~036b42b 기간의 서버 실배포는 커스텀 3종(ppe/fire_smoke/forklift)이 미탑재된 채 COCO 폴백으로 동작**했을 강한 정황(person 만 검출). EVAL 의 pipeline 수치는 **인프로세스(cwd=루트) 측정**이라 유효했으나 **서버 실배포와 괴리**가 있었다. person(COCO) 검출은 정상이었음.
+**수정**:
+- A. `guard._resolve_rfdetr_weights`: rfdetr_weights 를 `_PROJECT_ROOT` 기준 **절대경로화**(cwd 의존 제거).
+- B. **silent 폴백 차단**: 커스텀 경로 지정 + 파일 부재 → `FileNotFoundError`(기동 거부). `VIGENT_ALLOW_FALLBACK=1` opt-in 시에만 COCO 폴백(저하 경고). 경로 미지정(person)=COCO 정상 통과(저하0).
+- C. **로드 가시화**: 슬롯별 `slot/backend/weights/SHA/LOADED|MISSING` 로그 + `/health.rfdetr_slots`(실파일 검사·SHA)로 매니페스트 대조 가능.
+- 검증: cwd=vigent-core 서버조건에서 PPE 정상 복원(Hardhat/Vest/Mask). 가중치 삭제 시 기동거부 실증.
+**측정=배포 보증(핵심)**: 서버 `/detect/frame` 을 **stateless(reset_tracks) 모드**로 4클래스 재측정 → 인프로세스 EVAL 과 **전부 Δ0.00 일치**(person 92.94·ppe 71.46·fire_smoke 69.64·forklift 8.5, imgsz 960). 이로써 **"서버 배포 검출기 = 측정 검출기"가 처음으로 보증**됨. (도구: `benchmarks` 함수 재사용 HTTP 미러.)
+
+### ⚠️ 백로그 — 라이브 추적 계층(_track) 미검증 (F-8 과 같은 급 '측정≠배포' 리스크, 2026-07-07)
+F-8 진단 중, 서버 detect_frame 이 **연속 프레임 추적**(`guard._track`: IoU매칭·EMA위치평활·잔상제거)을 유지함을 확인. 이는 **라이브 비디오 안정화 전용 계층**으로, 독립 낱장 벤치마크로는 **검출 능력과 분리 측정 불가**(그래서 측정 시 `reset_tracks` 로 끔). 따라서 **추적 고유의 실패 모드가 미검증**:
+- ID 스위치(사람 뒤바뀜), 유령 추적(잔상 박스), 다인 근접 시 트랙 오염(전역 `_tracks` 공유 — guard.py 옵션A 미적용), 프레임 드랍 시 잔상.
+- → **연속 프레임 시퀀스 회귀** 필요. **F-1(다인 top-down 박스 품질)·T10c-V(현장 클립)와 묶어** 사용자 촬영 클립 도착 시 함께 검증. 낱장 mAP 로는 안 잡히는 **'측정≠배포' 리스크**로 태깅.

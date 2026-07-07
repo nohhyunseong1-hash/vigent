@@ -259,6 +259,17 @@ def health(theme: str = DEFAULT_THEME):
     models = [{"file": e.get("file"), "slot": e.get("slot"), "backend": e.get("backend"),
                "version": e.get("version"), "sha256": (e.get("sha256") or "")[:16]}
               for e in man.get("weights", [])]
+    # F-8: 매니페스트(선언)와 별개로 '실제 로드된' rfdetr 커스텀 가중치 상태(state·SHA)를 노출.
+    #   silent 폴백 탐지용 — state=LOADED 면 커스텀 탑재, MISSING_FALLBACK 이면 COCO 폴백(검출 저하).
+    #   매니페스트 SHA 와 rfdetr_slots[].sha16 이 어긋나면 배포 실체가 선언과 다르다는 신호.
+    rfdetr_slots = []
+    if bundle:
+        _g = bundle["agents"].get("Guard")
+        if _g is not None:
+            try:
+                rfdetr_slots = _g.status().get("rfdetr_slots", [])
+            except Exception:  # noqa: BLE001
+                pass
     return {
         "status": "ok",
         "version": _product_version(),
@@ -267,6 +278,7 @@ def health(theme: str = DEFAULT_THEME):
         "loaded": bool(bundle),
         "backend": backend,
         "models": models,
+        "rfdetr_slots": rfdetr_slots,
     }
 
 
@@ -482,7 +494,12 @@ def detect_frame(payload: dict = Body(...), theme: str = DEFAULT_THEME):
     # 960으로 upscale하면 없는 디테일 만들려 2배 느려질 뿐(정확도 이득 없음) → 640이 거의 순수 이득.
     # (오프라인 재해분석은 별도로 imgsz=1280 유지). payload.imgsz 로 현장서 조정 가능.
     live_imgsz = int(payload.get("imgsz") or 640)
+    # reset_tracks(단발·stateless): 그 요청만 서버측 추적 상태를 비우고 검출(F-8 측정용).
+    #   추적(_track)은 라이브 연속프레임 안정화 계층 → 독립 이미지(벤치/단발 분석)에 누적되면
+    #   IoU 우연매칭·잔상으로 검출을 오염(측정≠배포 착시). 라이브 프론트는 이 옵션 미전송 → 추적 유지·저하0.
     with _DETECT_LOCK:                       # 동시 추론 직렬화(로딩/추론 race 방지)
+        if payload.get("reset_tracks"):
+            guard._tracks = []               # 락 내부라 라이브 요청과 경쟁 없이 원자적
         out = guard.detect(img, detectors=detectors, conf=payload.get("conf"), imgsz=live_imgsz)
     # 정규화 bbox(0~1) → 전송 이미지 픽셀 [x,y,w,h] + 프론트 키(class/score)로 변환
     H, W = img.shape[:2]
