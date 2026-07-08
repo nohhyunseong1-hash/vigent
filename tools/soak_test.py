@@ -72,6 +72,9 @@ def _args():
     p.add_argument("--url", default="", help="병행 관찰할 실행 서버(예: http://127.0.0.1:8010). 없으면 인프로세스만")
     p.add_argument("--report-dir", default=str(_ROOT / "audit"), help="리포트 출력 디렉토리")
     p.add_argument("--tag", default="", help="리포트 파일명 접미(예: prod24h)")
+    p.add_argument("--tracemalloc", action="store_true",
+                   help="tracemalloc 로 상위 할당 지점 추적(시작 대비 증가 Top-N) — 4단계 누수 점검")
+    p.add_argument("--trace-top", type=int, default=12, help="tracemalloc Top-N. 기본 12")
     return p.parse_args()
 
 
@@ -200,7 +203,24 @@ def main():
 
     source = _make_synth_source()
     mgr = W.WorkerManager()                            # 소크 전용 인스턴스(전역 오염 없음)
-    locks = [threading.Lock() for _ in range(a.workers)]   # 워커별 독립 lock(hang 격리 — 실서버는 공유 _DETECT_LOCK)
+    if guard_kind == "real":
+        _shared = threading.Lock()
+        locks = [_shared] * a.workers                      # 공유 lock: 실서버 _DETECT_LOCK 반영 + torch 동시 forward 회피
+    else:
+        locks = [threading.Lock() for _ in range(a.workers)]   # 워커별 독립 lock(hang 격리 — 실서버는 공유 _DETECT_LOCK)
+
+    # real guard 는 첫 detect 가 모델 lazy init/torch trace 로 수초 걸린다(이후엔 0.0x초).
+    #   워커 시작 전에 1회 워밍업해 그 지연을 소진 → hang 오탐 방지(첫 프레임이 HANG_TIMEOUT 을 건드리지 않게).
+    if guard_kind == "real":
+        try:
+            import cv2 as _cv2
+            _wf = _cv2.imread(source)
+            t_w = time.time()
+            for _g in {id(g): g for g in guards}.values():
+                _g.detect(_wf, detectors=["person", "ppe", "forklift", "fire_smoke"])
+            print(f"[soak] real guard 워밍업 detect 완료({time.time()-t_w:.1f}s — 첫 추론 지연 소진)")
+        except Exception as e:  # noqa: BLE001
+            print(f"[soak] 워밍업 detect 실패(무시): {e}")
 
     print(f"[soak] 시작: duration={a.duration}({duration:.0f}s) workers={a.workers} "
           f"interval={a.interval}s inject={a.inject} guard={guard_kind} hang_timeout={a.hang_timeout}s "
@@ -214,6 +234,14 @@ def main():
     proc = psutil.Process(os.getpid()) if _HAVE_PSUTIL else None
     if proc is not None:
         proc.cpu_percent(interval=None)                # cpu_percent 워밍업(첫 호출 0)
+
+    trace_on = a.tracemalloc
+    if trace_on:
+        import tracemalloc
+        tracemalloc.start(25)                          # 25 프레임 콜스택 유지
+    trace_snaps = []       # (elapsed, total_mb) 추이
+    trace_first = None      # 워밍업 이후 첫 스냅샷(비교 기준)
+    trace_last = None
 
     samples = []       # 각 샘플 dict
     injections = []    # (t, kind, worker, recovered_bool)
@@ -252,6 +280,14 @@ def main():
                     health_tot += 1; status_tot += 1
                     health_ok += 1 if h_ok else 0; status_ok += 1 if s_ok else 0
                     row["health_ms"] = h_ms; row["status_ms"] = s_ms
+                if trace_on:
+                    _snap = tracemalloc.take_snapshot()
+                    _tot = sum(s.size for s in _snap.statistics("lineno"))
+                    trace_snaps.append((round(elapsed, 1), round(_tot / 1e6, 2)))
+                    if elapsed >= a.warmup:            # 모델 로딩 스파이크 제외한 첫 스냅샷을 기준으로
+                        if trace_first is None:
+                            trace_first = _snap
+                        trace_last = _snap
                 samples.append(row)
                 print(f"[soak] t={elapsed:6.0f}s rss={ps['rss_mb']}MB fds={ps['fds']} thr={ps['threads']} "
                       f"frames={total_frames} restarts={total_restarts} reconnects={total_reconnects} "
@@ -277,7 +313,8 @@ def main():
                 # 복구 확인: hang_timeout+백오프 여유 뒤 frames 증가 재개했는지
                 #   kill 은 restart 로 frames=0 리셋되므로 기준을 0 으로(진전 재개=frames>0). hang 은 리셋 안 됨(>baseline).
                 ref = baseline if kind == "hang" else 0
-                pending.append((now + a.hang_timeout + 8, kind, widx, ref))
+                delay = (a.hang_timeout + 8) if kind == "hang" else 8.0   # kill 은 즉시 재시작 → 짧게 확인
+                pending.append((now + delay, kind, widx, ref))
                 injections.append([round(elapsed, 1), kind, widx, None])
                 inject_seq += 1
                 next_inject += a.inject_every
@@ -306,11 +343,13 @@ def main():
 
     # ── 리포트 ──
     return _report(a, duration, samples, injections, health_ok, health_tot,
-                   status_ok, status_tot, fin, guard_kind)
+                   status_ok, status_tot, fin, guard_kind,
+                   trace_snaps=trace_snaps, trace_first=trace_first, trace_last=trace_last)
 
 
 def _report(a, duration, samples, injections, health_ok, health_tot,
-            status_ok, status_tot, fin, guard_kind):
+            status_ok, status_tot, fin, guard_kind,
+            trace_snaps=None, trace_first=None, trace_last=None):
     Path(a.report_dir).mkdir(parents=True, exist_ok=True)
     stamp = datetime.now().strftime("%Y-%m-%d")
     suffix = f"_{a.tag}" if a.tag else ""
@@ -428,6 +467,26 @@ def _report(a, duration, samples, injections, health_ok, health_tot,
         s2 = _slope_per_min(ts_w[half:], rss_w[half:]) if (len(rss_w) - half) >= 3 else 0.0
         lines.append(f"- ⚠️ **누수 신호**: (워밍업 {warm:.0f}s 이후) 전반 {s1:+.2f} / 후반 {s2:+.2f} MB/분. "
                      f"4단계 누수 점검 입력 — CSV 의 t/rss_mb 컬럼으로 증가 시점 확인.")
+
+    if trace_snaps:
+        lines.append("")
+        lines.append("## tracemalloc (상위 할당 추적 — 4단계)")
+        t0m, t1m = trace_snaps[0][1], trace_snaps[-1][1]
+        step = max(1, len(trace_snaps) // 8)
+        lines.append(f"- 추적 total(파이썬 힙): 시작 {t0m}MB → 끝 {t1m}MB (증감 **{t1m - t0m:+.2f}MB**)")
+        lines.append(f"- 추이(MB): {' → '.join(str(mb) for _, mb in trace_snaps[::step])}")
+        if trace_first is not None and trace_last is not None:
+            diff = trace_last.compare_to(trace_first, "lineno")
+            lines.append("")
+            lines.append(f"### 워밍업 이후 시작 대비 증가 Top-{a.trace_top} (양수=증가 → 누수 후보)")
+            lines.append("| 증가(KB) | 현재(KB) | 위치 |")
+            lines.append("|---|---|---|")
+            for stt in diff[:a.trace_top]:
+                loc = str(stt.traceback).replace("|", "/")
+                lines.append(f"| {stt.size_diff/1024:+.1f} | {stt.size/1024:.1f} | `{loc}` |")
+            lines.append("")
+            lines.append("> 해석: total 증감이 0 근처이고 Top 증가분이 모델·프레임워크 상주(정상)면 누수 아님. "
+                         "특정 앱 코드 라인이 시간에 비례해 계속 커지면 누수.")
 
     md_path.write_text("\n".join(lines), encoding="utf-8")
 
