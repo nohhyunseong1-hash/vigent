@@ -38,6 +38,9 @@ _IMG_EXT = {".jpg", ".jpeg", ".png", ".bmp", ".webp"}
 _HANG_TIMEOUT = float(os.environ.get("VIGENT_HANG_TIMEOUT") or tuning.val("stability", "hang_timeout_s", 15.0))
 _RECONNECT_MAX = float(os.environ.get("VIGENT_RECONNECT_MAX") or tuning.val("stability", "reconnect_max_s", 30.0))
 _READ_FAIL_MAX = int(os.environ.get("VIGENT_READ_FAIL_MAX") or tuning.val("stability", "read_fail_max", 5))
+# 프레임 신선도(지연): 스트림은 내부 버퍼를 최소화해 '최신 프레임'을 처리(과거 프레임 지연 누적 방지).
+#   파일 소스는 순차 처리라 이 설정을 적용하지 않는다(모든 프레임을 봐야 하므로).
+_CAP_BUFFERSIZE = int(os.environ.get("VIGENT_CAP_BUFFERSIZE") or tuning.val("stability", "cap_buffersize", 1))
 _COOLDOWN_S = float(tuning.val("detect", "cooldown_s", 15.0))
 _FALL_ANGLE = float(tuning.val("fall", "angle_deg", 55))   # 쓰러짐 몸통각 임계
 
@@ -379,6 +382,91 @@ class MotionTracker:
         return list(out.values())
 
 
+class _StreamCapture:
+    """프레임 신선도(지연) — 스트림 전용 백그라운드 캡처 스레드.
+
+    RTSP 등 스트림을 계속 읽어 **최신 1프레임만 슬롯에 덮어쓰기**로 보관한다. worker._loop 은
+    이 슬롯에서 가장 최신 프레임을 가져가 처리한다 → FFmpeg 백엔드가 CAP_PROP_BUFFERSIZE 를
+    무시해도(RTSP 대부분 무시) 과거 프레임 지연 누적을 원천 차단. RTSP 재연결(지수 백오프)·
+    BUFFERSIZE 설정을 내장한다. 파일 소스에는 쓰지 않는다(순차 처리·되감기 유지).
+    """
+    def __init__(self, source: str, name: str):
+        self.source = source
+        self.name = name
+        self._stop = threading.Event()
+        self._lock = threading.Lock()
+        self._frame = None
+        self._ts = 0.0                 # 슬롯 마지막 갱신 시각(신선도 기준)
+        self.reconnects = 0
+        self.read_ms = 0.0
+        self._thread: threading.Thread | None = None
+
+    def start(self):
+        self._stop.clear()
+        self._thread = threading.Thread(target=self._run, daemon=True)
+        self._thread.start()
+
+    def _open(self):
+        cap = cv2.VideoCapture(int(self.source) if self.source.isdigit() else self.source)
+        try:
+            cap.set(cv2.CAP_PROP_BUFFERSIZE, _CAP_BUFFERSIZE)   # 보조(웹캠/V4L2 등 일부만 존중; FFmpeg/RTSP 는 무시될 수 있음)
+        except Exception:  # noqa: BLE001
+            pass
+        return cap
+
+    def _run(self):
+        cap = self._open()
+        rbackoff = 1.0
+        read_fails = 0
+        while not self._stop.is_set():
+            _rt = time.time()
+            ok, frame = cap.read()
+            self.read_ms = round((time.time() - _rt) * 1000, 1)
+            if not ok:
+                read_fails += 1
+                if read_fails >= _READ_FAIL_MAX:      # 스트림 끊김 → 지수 백오프 재연결(캡처 스레드 내부)
+                    self.reconnects += 1
+                    _WLOG.warning("캡처 '%s'(%s) 스트림 끊김 → 재연결 #%d (백오프 %.0fs)",
+                                  self.name, self.source, self.reconnects, rbackoff)
+                    try:
+                        cap.release()
+                    except Exception:  # noqa: BLE001
+                        pass
+                    slept = 0.0
+                    while slept < rbackoff and not self._stop.is_set():
+                        time.sleep(0.2)
+                        slept += 0.2
+                    cap = self._open()
+                    rbackoff = min(rbackoff * 2, _RECONNECT_MAX)
+                    read_fails = 0
+                else:
+                    time.sleep(0.05)
+                continue
+            read_fails = 0
+            rbackoff = 1.0
+            with self._lock:                          # 최신 프레임 슬롯을 원자적으로 덮어쓰기
+                self._frame = frame
+                self._ts = time.time()
+        try:
+            cap.release()
+        except Exception:  # noqa: BLE001
+            pass
+
+    def read_latest(self):
+        """(frame, slot_ts) 반환. 아직 첫 프레임 없으면 (None, 0.0).
+        캡처가 매 프레임 새 배열을 슬롯에 넣으므로 반환 참조는 이후 덮어써도 안전(불변)."""
+        with self._lock:
+            return self._frame, self._ts
+
+    def alive(self) -> bool:
+        return self._thread is not None and self._thread.is_alive()
+
+    def stop(self):
+        self._stop.set()
+        if self._thread:
+            self._thread.join(timeout=3)
+
+
 class Worker:
     """1대용 추론 워커(지연 시작·정지·상태). 서버 전역 싱글톤으로 사용."""
 
@@ -388,6 +476,7 @@ class Worker:
         self._stop = threading.Event()
         self._restart_req = threading.Event()                # 2단계: hang 감지 시 현 _loop 재시작 요청
         self._cap = None                                     # 현재 VideoCapture(hang 시 감시 스레드가 release로 언블록)
+        self._streamcap = None                               # 프레임신선도: 스트림 캡처 스레드(thread 모드)
         self.state: dict[str, Any] = {
             "running": False, "source": "", "name": "", "fps": 0,
             "frames": 0, "events": 0, "last_event": "", "error": ""}
@@ -430,6 +519,13 @@ class Worker:
         else:
             s["last_frame_secs_ago"] = None
             s["hang"] = False
+        # 프레임 신선도(캡처 스레드 모드) — 현장 RTSP 지연 계측 훅
+        sc = self._streamcap
+        if sc is not None:
+            s["capture_mode"] = "thread"
+            _, slot_ts = sc.read_latest()
+            s["slot_age_s"] = round(time.time() - slot_ts, 2) if slot_ts else None   # 슬롯 나이=현재-슬롯시각(작을수록 신선)
+            s["capture_alive"] = sc.alive()
         return s
 
     def _hang_watch(self, name):
@@ -511,20 +607,53 @@ class Worker:
         is_image = Path(source).suffix.lower() in _IMG_EXT and Path(source).exists()
         is_file_video = (not is_image) and Path(source).exists()   # 로컬 비디오 파일 → 끝나면 되감기(스트림 아님)
         static = cv2.imread(source) if is_image else None
+        is_stream = (not is_image) and (not is_file_video)   # RTSP/HTTP/웹캠 = 스트림(최신 프레임 우선)
+        # 프레임 신선도: 스트림+thread 모드 → 캡처 스레드가 최신 1프레임만 보관(FFmpeg 무시 대응). 기본 sync(롤백 경로).
+        capture_mode = os.environ.get("VIGENT_CAPTURE_MODE", "sync").lower()
+        use_capture_thread = is_stream and capture_mode == "thread"
         cap = None
-        if not is_image:
+        streamcap = None
+        if use_capture_thread:
+            streamcap = _StreamCapture(source, name)
+            streamcap.start()
+            self._streamcap = streamcap
+            _WLOG.info("워커 '%s'(%s) 캡처 스레드 모드(최신 프레임 우선)", name, source)
+        elif not is_image:
             cap = cv2.VideoCapture(int(source) if source.isdigit() else source)
+            if is_stream:
+                try:
+                    cap.set(cv2.CAP_PROP_BUFFERSIZE, _CAP_BUFFERSIZE)   # 보조(FFmpeg/RTSP 는 무시될 수 있음 → thread 모드 권장)
+                except Exception:  # noqa: BLE001
+                    pass
             self._cap = cap                          # 감시 스레드가 hang 시 release 로 언블록
         read_fails = 0
         rbackoff = 1.0
+        slot_frame_ts = 0.0                          # 캡처 스레드 모드의 하트비트 기준(슬롯 갱신 시각)
         try:
             # _restart_req: hang 감시가 세팅 → 루프 탈출 → 감독자가 재시작(2단계)
             while not self._stop.is_set() and not self._restart_req.is_set():
                 t0 = time.time()
                 if is_image:
                     frame = static.copy() if static is not None else None
+                elif use_capture_thread:
+                    frame, slot_ts = streamcap.read_latest()   # 캡처 스레드가 보관한 최신 프레임(락 보호)
+                    self.state["reconnects"] = streamcap.reconnects
+                    self.state["read_ms"] = streamcap.read_ms
+                    if frame is None:                          # 아직 첫 프레임 없음(캡처 워밍업/재연결 중)
+                        if not streamcap.alive():              # 캡처 스레드 사망 → 감독자 재시작 유도
+                            _WLOG.error("워커 '%s'(%s) 캡처 스레드 사망 → _loop 종료(감독자 재시작)", name, source)
+                            break
+                        time.sleep(0.05)
+                        continue
+                    slot_frame_ts = slot_ts                    # 하트비트 기준(슬롯 정지=캡처 hang → hang 감시가 잡음)
+                    self.state["slot_age_s"] = round(time.time() - slot_ts, 2)   # 슬롯 나이(신선도 지표)
                 else:
+                    _rt = time.time()
                     ok, frame = cap.read()
+                    if is_stream and ok:
+                        # read_ms: sync 모드 신선도 프록시. 버퍼가 쌓이면 read 가 즉시 반환(작은 ms=과거 프레임),
+                        #   버퍼 최소(BUFFERSIZE=1)면 read 가 다음 프레임을 기다림(간격에 근접=최신 프레임).
+                        self.state["read_ms"] = round((time.time() - _rt) * 1000, 1)
                     if not ok:
                         if is_file_video:            # 파일 끝 → 되감기(루프 재생, 기존 동작)
                             cap.set(cv2.CAP_PROP_POS_FRAMES, 0)
@@ -547,6 +676,10 @@ class Worker:
                                     time.sleep(0.2)
                                     slept += 0.2
                                 cap = cv2.VideoCapture(int(source) if source.isdigit() else source)
+                                try:
+                                    cap.set(cv2.CAP_PROP_BUFFERSIZE, _CAP_BUFFERSIZE)   # 재연결 후에도 버퍼 최소화 유지
+                                except Exception:  # noqa: BLE001
+                                    pass
                                 self._cap = cap
                                 rbackoff = min(rbackoff * 2, _RECONNECT_MAX)   # 지수 백오프(상한 _RECONNECT_MAX)
                                 read_fails = 0
@@ -562,7 +695,9 @@ class Worker:
                     time.sleep(0.5)
                     continue
                 self.state["frames"] += 1
-                self.state["last_frame_ts"] = time.time()   # 1단계: 하트비트(hang 감지 기반 — 2단계 /status 활용)
+                # 하트비트: 캡처 스레드 모드는 '슬롯 갱신 시각' 기준 → 캡처가 멈추면 last_frame_ts 도 멈춰
+                #   hang 감시가 캡처 스레드 정지를 잡아 재시작한다(캡처 스레드를 감시 대상에 편입). sync 는 처리 시각.
+                self.state["last_frame_ts"] = slot_frame_ts if use_capture_thread else time.time()
                 try:                                        # 1단계: 프레임 단위 예외 격리 → 한 프레임 실패가 루프를 죽이지 않음
                     if collect_on and (t0 - last_collect) >= collect_every:   # 학습용 프레임 수집
                         last_collect = t0
@@ -614,7 +749,10 @@ class Worker:
         finally:
             if cap is not None:
                 cap.release()
+            if streamcap is not None:
+                streamcap.stop()              # 캡처 스레드 정리(재시작 시 새로 생성)
             self._cap = None                  # 감시 스레드 오참조 방지(다음 라운드에서 재설정)
+            self._streamcap = None
             # running 은 감독자(_run_supervised)가 관리 — 여기서 내리지 않는다(재시작 간 깜빡임·hang 오판 방지)
 
 
