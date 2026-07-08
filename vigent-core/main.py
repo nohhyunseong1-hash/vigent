@@ -18,6 +18,7 @@ from __future__ import annotations
 import os
 import sys
 import threading
+import traceback
 from pathlib import Path
 
 import json
@@ -203,8 +204,58 @@ def _load_theme(theme: str) -> dict:
     return bundle
 
 
+# ── 1단계 안정성: 전역 예외 안전망(무증상 실패 차단) ──
+@app.exception_handler(Exception)
+async def _global_exception_handler(request: Request, exc: Exception):
+    """처리되지 않은 '요청' 예외 → 500 크래시 대신 구조화 로그 + 안전 응답.
+    (백그라운드 워커 스레드 예외는 요청 경로가 아니므로 이걸로 안 잡힘 → worker 감독자·threading.excepthook 담당.)"""
+    _log.error("미처리 요청 예외: %s %s\n%s",
+               request.method, request.url.path, traceback.format_exc())
+    return JSONResponse(status_code=500,
+                        content={"error": "internal_error", "detail": type(exc).__name__})
+
+
+def _install_safety_nets() -> None:
+    """프로세스 레벨 안전망: 스레드/메인/asyncio 미처리 예외를 로그로 남긴다(조용한 실패 0).
+    특히 threading.excepthook 은 daemon 워커 스레드가 소리 없이 죽는 것을 포착한다(1단계 핵심)."""
+    def _thread_hook(args):   # threading.excepthook(3.8+): 워커 스레드 미처리 예외
+        _log.error("스레드 '%s' 미처리 예외(워커 소멸 위험 — 감독자가 재시작)\n%s",
+                   getattr(args.thread, "name", "?"),
+                   "".join(traceback.format_exception(args.exc_type, args.exc_value, args.exc_traceback)))
+    threading.excepthook = _thread_hook
+
+    _prev_hook = sys.excepthook
+    def _sys_hook(exc_type, exc_value, exc_tb):   # 메인 스레드 미처리 예외
+        _log.error("메인 미처리 예외\n%s", "".join(traceback.format_exception(exc_type, exc_value, exc_tb)))
+        _prev_hook(exc_type, exc_value, exc_tb)
+    sys.excepthook = _sys_hook
+
+    try:   # asyncio 루프 미처리 예외
+        loop = asyncio.get_event_loop()
+        def _aio_hook(_l, context):
+            _log.error("asyncio 미처리 예외: %s", context.get("message"))
+            exc = context.get("exception")
+            if exc is not None:
+                _log.error("%s", "".join(traceback.format_exception(type(exc), exc, exc.__traceback__)))
+        loop.set_exception_handler(_aio_hook)
+    except Exception:  # noqa: BLE001
+        pass
+
+
+@app.on_event("shutdown")
+def _shutdown() -> None:
+    """graceful shutdown(SIGTERM/SIGINT 시 uvicorn 이 트리거) — 워커 정리·리소스 해제."""
+    try:
+        import worker as _w
+        stopped = _w.manager.stop_all() if hasattr(_w.manager, "stop_all") else "(stop_all 없음)"
+        _log.info("shutdown: 워커 정리 (%s)", stopped)
+    except Exception:  # noqa: BLE001
+        _log.warning("shutdown: 워커 정리 중 예외\n%s", traceback.format_exc())
+
+
 @app.on_event("startup")
 def _startup() -> None:
+    _install_safety_nets()          # 1단계: 프로세스 레벨 예외 안전망 설치
     bundle = _load_theme(DEFAULT_THEME)
     cfg = bundle["config"]
     s = cfg.summary()

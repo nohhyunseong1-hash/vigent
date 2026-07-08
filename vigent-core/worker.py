@@ -16,6 +16,7 @@ import json
 import math
 import threading
 import time
+import traceback
 from pathlib import Path
 from typing import Any
 
@@ -25,8 +26,10 @@ import numpy as np
 import data_engine
 import proximity
 import tuning
+import vlog
 
 _ROOT = Path(__file__).resolve().parent.parent
+_WLOG = vlog.get("vigent.worker")   # 워커 예외·재시작 구조화 로깅(1단계 안정성)
 _IMG_EXT = {".jpg", ".jpeg", ".png", ".bmp", ".webp"}
 _COOLDOWN_S = float(tuning.val("detect", "cooldown_s", 15.0))
 _FALL_ANGLE = float(tuning.val("fall", "angle_deg", 55))   # 쓰러짐 몸통각 임계
@@ -385,9 +388,10 @@ class Worker:
             return {"ok": False, "error": "이미 실행 중 — 먼저 중지하세요."}
         self._stop.clear()
         self.state.update({"running": True, "source": source, "name": name, "fps": fps,
-                           "frames": 0, "events": 0, "last_event": "", "error": ""})
+                           "frames": 0, "events": 0, "last_event": "", "error": "",
+                           "last_frame_ts": 0.0, "restarts": 0})   # 1단계: 하트비트·재시작 카운터
         self._thread = threading.Thread(
-            target=self._loop,
+            target=self._run_supervised,      # 1단계: 감독자 경유(루프가 죽어도 재시작 — 무증상 실패 차단)
             args=(guard, lock, source, name, fps,
                   detectors or ["person", "ppe", "forklift", "fire_smoke"], zone),
             daemon=True)
@@ -403,6 +407,34 @@ class Worker:
 
     def status(self) -> dict:
         return dict(self.state)
+
+    def _run_supervised(self, guard, lock, source, name, fps, detectors, zone=None):
+        """워커 루프 감독자(1단계 안정성 핵심).
+
+        `_loop` 이 예외로 빠져나오거나 조용히 종료돼도, `_stop` 전까지 **지수 백오프로 재시작**한다.
+        daemon 스레드가 소리 없이 사라져 '/health 는 200 인데 추론은 죽은' 무증상 실패를 차단한다.
+        예외 위치·카메라명·스택트레이스를 구조화 로그로 남긴다.
+        """
+        backoff = 1.0
+        while not self._stop.is_set():
+            try:
+                self.state["running"] = True
+                self._loop(guard, lock, source, name, fps, detectors, zone)
+            except Exception:  # noqa: BLE001  _loop 밖으로 샌 예외(카메라 초기화 등)
+                _WLOG.error("워커 '%s'(%s) _loop 예외 — 재시작 대상\n%s",
+                            name, source, traceback.format_exc())
+                self.state["error"] = f"_loop crashed: {traceback.format_exc().splitlines()[-1]}"
+            if self._stop.is_set():
+                break
+            # 정상 종료(카메라 소스 소진 등)·예외 모두 → _stop 아니면 재시작(무증상 실패 방지)
+            self.state["restarts"] = self.state.get("restarts", 0) + 1
+            _WLOG.warning("워커 '%s' 재시작 #%d (%.0fs 백오프)", name, self.state["restarts"], backoff)
+            slept = 0.0
+            while slept < backoff and not self._stop.is_set():
+                time.sleep(0.2)
+                slept += 0.2
+            backoff = min(backoff * 2, 30.0)   # 지수 백오프 상한 30s(재시도 폭주 방지)
+        self.state["running"] = False
 
     def _loop(self, guard, lock, source, name, fps, detectors, zone=None):
         import os
@@ -440,47 +472,55 @@ class Worker:
                     time.sleep(0.5)
                     continue
                 self.state["frames"] += 1
-                if collect_on and (t0 - last_collect) >= collect_every:   # 학습용 프레임 수집
-                    last_collect = t0
-                    try:
-                        dataset_dir.mkdir(parents=True, exist_ok=True)
-                        safe = "".join(c if c.isalnum() else "_" for c in str(name))[:20]
-                        cv2.imwrite(str(dataset_dir / f"{safe}_{int(t0)}.jpg"), frame)
-                        self.state["collected"] = self.state.get("collected", 0) + 1
-                    except Exception:  # noqa: BLE001
-                        pass
-                with lock:                            # 코어 추론 직렬화(브라우저와 충돌 방지)
-                    out = guard.detect(frame, detectors=detectors)
-                    # 포즈(낙상·근골격) top-down 입력 = guard.detect person 박스(RF-DETR·_nms/_track 적용, 픽셀).
-                    #   worker 기본 detectors 에 person 포함 → 박스 항상 제공. person 없으면 포즈만 비활성(무중단).
-                    _H, _W = frame.shape[:2]
-                    person_boxes = [[d["bbox"][0] * _W, d["bbox"][1] * _H,
-                                     d["bbox"][2] * _W, d["bbox"][3] * _H]
-                                    for d in out.get("detections", []) if d["label"] == "person"]
-                    fall, freason = ftrack.update(frame, t0, person_boxes)   # 다중단서+모션 낙상
-                    try:
-                        ergo_fired = etrack.update(frame, t0, person_boxes)  # 근골격계 부담자세(포즈 각도·저빈도)
-                    except Exception:  # noqa: BLE001  가산 레이어 — 실패해도 낙상·탐지 무중단
-                        ergo_fired = []
-                fired = _derive(out, zone, frame.shape[0] / frame.shape[1])
-                if fall:
-                    fired.append(("fall_suspected", "critical", f"작업자 낙상 의심 — {freason}"))
-                fired += mtrack.update(out.get("detections", []), t0)   # 무동작·급이동
-                fired += ergo_fired                                     # 근골격계 부담자세(지속 확정분)
-                now = time.time()
-                for rule, level, note in fired:
-                    if now - cooldown.get(rule, 0) < _COOLDOWN_S:
-                        continue
-                    cooldown[rule] = now
-                    data_engine.log_event(rule=rule, level=level, site=name, note=note,
-                                          image_data_url=_frame_to_dataurl(frame))
-                    self.state["events"] += 1
-                    self.state["last_event"] = f"{rule}({level})"
+                self.state["last_frame_ts"] = time.time()   # 1단계: 하트비트(hang 감지 기반 — 2단계 /status 활용)
+                try:                                        # 1단계: 프레임 단위 예외 격리 → 한 프레임 실패가 루프를 죽이지 않음
+                    if collect_on and (t0 - last_collect) >= collect_every:   # 학습용 프레임 수집
+                        last_collect = t0
+                        try:
+                            dataset_dir.mkdir(parents=True, exist_ok=True)
+                            safe = "".join(c if c.isalnum() else "_" for c in str(name))[:20]
+                            cv2.imwrite(str(dataset_dir / f"{safe}_{int(t0)}.jpg"), frame)
+                            self.state["collected"] = self.state.get("collected", 0) + 1
+                        except Exception:  # noqa: BLE001
+                            pass
+                    with lock:                            # 코어 추론 직렬화(브라우저와 충돌 방지)
+                        out = guard.detect(frame, detectors=detectors)
+                        # 포즈(낙상·근골격) top-down 입력 = guard.detect person 박스(RF-DETR·_nms/_track 적용, 픽셀).
+                        #   worker 기본 detectors 에 person 포함 → 박스 항상 제공. person 없으면 포즈만 비활성(무중단).
+                        _H, _W = frame.shape[:2]
+                        person_boxes = [[d["bbox"][0] * _W, d["bbox"][1] * _H,
+                                         d["bbox"][2] * _W, d["bbox"][3] * _H]
+                                        for d in out.get("detections", []) if d["label"] == "person"]
+                        fall, freason = ftrack.update(frame, t0, person_boxes)   # 다중단서+모션 낙상
+                        try:
+                            ergo_fired = etrack.update(frame, t0, person_boxes)  # 근골격계 부담자세(포즈 각도·저빈도)
+                        except Exception:  # noqa: BLE001  가산 레이어 — 실패해도 낙상·탐지 무중단
+                            ergo_fired = []
+                    fired = _derive(out, zone, frame.shape[0] / frame.shape[1])
+                    if fall:
+                        fired.append(("fall_suspected", "critical", f"작업자 낙상 의심 — {freason}"))
+                    fired += mtrack.update(out.get("detections", []), t0)   # 무동작·급이동
+                    fired += ergo_fired                                     # 근골격계 부담자세(지속 확정분)
+                    now = time.time()
+                    for rule, level, note in fired:
+                        if now - cooldown.get(rule, 0) < _COOLDOWN_S:
+                            continue
+                        cooldown[rule] = now
+                        data_engine.log_event(rule=rule, level=level, site=name, note=note,
+                                              image_data_url=_frame_to_dataurl(frame))
+                        self.state["events"] += 1
+                        self.state["last_event"] = f"{rule}({level})"
+                except Exception as _fe:   # noqa: BLE001  프레임 처리 실패 → 로그 남기고 다음 프레임(루프 유지)
+                    self.state["error"] = f"frame: {type(_fe).__name__}: {_fe}"
+                    _WLOG.error("워커 '%s'(%s) 프레임 처리 예외 — 계속 진행\n%s",
+                                name, source, traceback.format_exc())
                 dt = time.time() - t0
                 if dt < interval and not self._stop.is_set():
                     time.sleep(interval - dt)
-        except Exception as ex:                       # noqa: BLE001  워커가 죽어도 서버는 산다
+        except Exception as ex:                       # noqa: BLE001  루프 자체 예외 → supervised 가 재시작
             self.state["error"] = f"{type(ex).__name__}: {ex}"
+            _WLOG.error("워커 '%s'(%s) _loop 예외 — 감독자 재시작 위임\n%s",
+                        name, source, traceback.format_exc())
         finally:
             if cap is not None:
                 cap.release()
