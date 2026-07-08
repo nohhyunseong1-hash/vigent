@@ -14,6 +14,7 @@ from __future__ import annotations
 import base64
 import json
 import math
+import os
 import threading
 import time
 import traceback
@@ -31,6 +32,12 @@ import vlog
 _ROOT = Path(__file__).resolve().parent.parent
 _WLOG = vlog.get("vigent.worker")   # 워커 예외·재시작 구조화 로깅(1단계 안정성)
 _IMG_EXT = {".jpg", ".jpeg", ".png", ".bmp", ".webp"}
+
+# 2단계 안정성 설정(하드코딩 금지 — env 우선, 없으면 tuning.yaml, 없으면 기본값)
+#   hang: 정상 fps 2.0=0.5s 간격 → 15s 기본은 오탐 없이 진짜 멈춤만 잡는 여유값.
+_HANG_TIMEOUT = float(os.environ.get("VIGENT_HANG_TIMEOUT") or tuning.val("stability", "hang_timeout_s", 15.0))
+_RECONNECT_MAX = float(os.environ.get("VIGENT_RECONNECT_MAX") or tuning.val("stability", "reconnect_max_s", 30.0))
+_READ_FAIL_MAX = int(os.environ.get("VIGENT_READ_FAIL_MAX") or tuning.val("stability", "read_fail_max", 5))
 _COOLDOWN_S = float(tuning.val("detect", "cooldown_s", 15.0))
 _FALL_ANGLE = float(tuning.val("fall", "angle_deg", 55))   # 쓰러짐 몸통각 임계
 
@@ -377,7 +384,10 @@ class Worker:
 
     def __init__(self):
         self._thread: threading.Thread | None = None
+        self._hang_thread: threading.Thread | None = None   # 2단계: hang 감시 데몬
         self._stop = threading.Event()
+        self._restart_req = threading.Event()                # 2단계: hang 감지 시 현 _loop 재시작 요청
+        self._cap = None                                     # 현재 VideoCapture(hang 시 감시 스레드가 release로 언블록)
         self.state: dict[str, Any] = {
             "running": False, "source": "", "name": "", "fps": 0,
             "frames": 0, "events": 0, "last_event": "", "error": ""}
@@ -387,15 +397,20 @@ class Worker:
         if self.state["running"]:
             return {"ok": False, "error": "이미 실행 중 — 먼저 중지하세요."}
         self._stop.clear()
+        self._restart_req.clear()
         self.state.update({"running": True, "source": source, "name": name, "fps": fps,
                            "frames": 0, "events": 0, "last_event": "", "error": "",
-                           "last_frame_ts": 0.0, "restarts": 0})   # 1단계: 하트비트·재시작 카운터
+                           "last_frame_ts": 0.0, "restarts": 0,
+                           "reconnects": 0, "hangs": 0})   # 1단계 하트비트·재시작 + 2단계 재연결·hang 카운터
         self._thread = threading.Thread(
             target=self._run_supervised,      # 1단계: 감독자 경유(루프가 죽어도 재시작 — 무증상 실패 차단)
             args=(guard, lock, source, name, fps,
                   detectors or ["person", "ppe", "forklift", "fire_smoke"], zone),
             daemon=True)
         self._thread.start()
+        self._hang_thread = threading.Thread(   # 2단계: hang 감시(last_frame_ts N초 무진전 → 재기동)
+            target=self._hang_watch, args=(name,), daemon=True)
+        self._hang_thread.start()
         return {"ok": True, "status": self.status()}
 
     def stop(self) -> dict:
@@ -406,7 +421,40 @@ class Worker:
         return {"ok": True, "status": self.status()}
 
     def status(self) -> dict:
-        return dict(self.state)
+        s = dict(self.state)
+        lft = s.get("last_frame_ts", 0.0)
+        if lft and lft > 0:
+            idle = time.time() - lft
+            s["last_frame_secs_ago"] = round(idle, 1)
+            s["hang"] = bool(s.get("running")) and idle > _HANG_TIMEOUT   # 2단계: 멈춤 판정
+        else:
+            s["last_frame_secs_ago"] = None
+            s["hang"] = False
+        return s
+
+    def _hang_watch(self, name):
+        """2단계: last_frame_ts 가 _HANG_TIMEOUT 초 무진전이면 hang 판정 → cap.release() 로 언블록 + 재시작 요청.
+        프로세스는 살아있는데 워커만 멈춘 '무증상 hang' 을 앱 내부에서 1차 복구(워치독 프로세스 재기동보다 먼저)."""
+        while not self._stop.is_set():
+            self._stop.wait(1.0)                      # 1초 간격 감시(정지 신호에 즉시 반응)
+            if self._stop.is_set():
+                break
+            if not self.state.get("running"):
+                continue
+            lft = self.state.get("last_frame_ts", 0.0)
+            if lft <= 0:                              # 첫 프레임 전(초기화·재연결 중) → 판정 보류
+                continue
+            idle = time.time() - lft
+            if idle > _HANG_TIMEOUT and not self._restart_req.is_set():
+                _WLOG.error("워커 '%s' HANG 감지(%.1fs 무진전 > %.0fs) → 재기동", name, idle, _HANG_TIMEOUT)
+                self.state["error"] = f"hang {int(idle)}s → 재기동"
+                self.state["hangs"] = self.state.get("hangs", 0) + 1
+                self._restart_req.set()               # _loop while 조건이 이걸 보고 탈출
+                try:
+                    if self._cap is not None:
+                        self._cap.release()           # cap.read() 블로킹을 깨워 즉시 탈출 유도
+                except Exception:  # noqa: BLE001
+                    pass
 
     def _run_supervised(self, guard, lock, source, name, fps, detectors, zone=None):
         """워커 루프 감독자(1단계 안정성 핵심).
@@ -419,6 +467,9 @@ class Worker:
         while not self._stop.is_set():
             try:
                 self.state["running"] = True
+                # 재시작 유예: 하트비트를 now 로 리셋해야 hang 감시가 옛 last_frame_ts 로 즉시 재판정하지 않는다.
+                #   _loop 첫 정상 프레임이 곧 갱신 → 정상 재개. 진짜 hang 이면 HANG_TIMEOUT 후 다시 감지(무한재시작 방지).
+                self.state["last_frame_ts"] = time.time()
                 self._loop(guard, lock, source, name, fps, detectors, zone)
             except Exception:  # noqa: BLE001  _loop 밖으로 샌 예외(카메라 초기화 등)
                 _WLOG.error("워커 '%s'(%s) _loop 예외 — 재시작 대상\n%s",
@@ -426,14 +477,22 @@ class Worker:
                 self.state["error"] = f"_loop crashed: {traceback.format_exc().splitlines()[-1]}"
             if self._stop.is_set():
                 break
-            # 정상 종료(카메라 소스 소진 등)·예외 모두 → _stop 아니면 재시작(무증상 실패 방지)
+            # hang 재시작인지(감시 스레드가 요청) crash/종료인지 구분 → 신호 해제
+            was_hang = self._restart_req.is_set()
+            self._restart_req.clear()
             self.state["restarts"] = self.state.get("restarts", 0) + 1
-            _WLOG.warning("워커 '%s' 재시작 #%d (%.0fs 백오프)", name, self.state["restarts"], backoff)
+            if was_hang:
+                _WLOG.warning("워커 '%s' HANG 재시작 #%d (즉시)", name, self.state["restarts"])
+                wait = 1.0                          # hang 은 즉시 재기동(다운타임 최소), 백오프 리셋
+                backoff = 1.0
+            else:
+                _WLOG.warning("워커 '%s' 재시작 #%d (%.0fs 백오프)", name, self.state["restarts"], backoff)
+                wait = backoff
+                backoff = min(backoff * 2, 30.0)    # 지수 백오프 상한 30s(재시도 폭주 방지)
             slept = 0.0
-            while slept < backoff and not self._stop.is_set():
+            while slept < wait and not self._stop.is_set():
                 time.sleep(0.2)
                 slept += 0.2
-            backoff = min(backoff * 2, 30.0)   # 지수 백오프 상한 30s(재시도 폭주 방지)
         self.state["running"] = False
 
     def _loop(self, guard, lock, source, name, fps, detectors, zone=None):
@@ -450,23 +509,54 @@ class Worker:
         etrack = ErgonomicsTracker()                                   # 근골격계 부담자세 지속(가산·낙상 불변)
         zone = [tuple(p) for p in zone] if zone else _load_zone()   # 카메라별 구역 or 전역
         is_image = Path(source).suffix.lower() in _IMG_EXT and Path(source).exists()
+        is_file_video = (not is_image) and Path(source).exists()   # 로컬 비디오 파일 → 끝나면 되감기(스트림 아님)
         static = cv2.imread(source) if is_image else None
         cap = None
         if not is_image:
             cap = cv2.VideoCapture(int(source) if source.isdigit() else source)
+            self._cap = cap                          # 감시 스레드가 hang 시 release 로 언블록
+        read_fails = 0
+        rbackoff = 1.0
         try:
-            while not self._stop.is_set():
+            # _restart_req: hang 감시가 세팅 → 루프 탈출 → 감독자가 재시작(2단계)
+            while not self._stop.is_set() and not self._restart_req.is_set():
                 t0 = time.time()
                 if is_image:
                     frame = static.copy() if static is not None else None
                 else:
                     ok, frame = cap.read()
-                    if not ok:                       # 비디오 끝/끊김 → 처음으로(루프)·재시도
-                        cap.set(cv2.CAP_PROP_POS_FRAMES, 0)
-                        ok, frame = cap.read()
-                        if not ok:
-                            time.sleep(0.5)
+                    if not ok:
+                        if is_file_video:            # 파일 끝 → 되감기(루프 재생, 기존 동작)
+                            cap.set(cv2.CAP_PROP_POS_FRAMES, 0)
+                            ok, frame = cap.read()
+                            if not ok:
+                                time.sleep(0.5)
+                                continue
+                        else:                        # 스트림/카메라 끊김 → 지수 백오프 재연결
+                            read_fails += 1
+                            if read_fails >= _READ_FAIL_MAX:
+                                self.state["reconnects"] = self.state.get("reconnects", 0) + 1
+                                _WLOG.warning("워커 '%s'(%s) 스트림 끊김 → 재연결 #%d (백오프 %.0fs)",
+                                              name, source, self.state["reconnects"], rbackoff)
+                                try:
+                                    cap.release()
+                                except Exception:  # noqa: BLE001
+                                    pass
+                                slept = 0.0
+                                while slept < rbackoff and not self._stop.is_set() and not self._restart_req.is_set():
+                                    time.sleep(0.2)
+                                    slept += 0.2
+                                cap = cv2.VideoCapture(int(source) if source.isdigit() else source)
+                                self._cap = cap
+                                rbackoff = min(rbackoff * 2, _RECONNECT_MAX)   # 지수 백오프(상한 _RECONNECT_MAX)
+                                read_fails = 0
+                            else:
+                                time.sleep(0.3)
                             continue
+                    else:
+                        if read_fails or rbackoff > 1.0:
+                            read_fails = 0
+                            rbackoff = 1.0            # 재연결 성공 → 백오프 리셋
                 if frame is None:
                     self.state["error"] = "프레임 읽기 실패(소스 확인)"
                     time.sleep(0.5)
@@ -524,7 +614,8 @@ class Worker:
         finally:
             if cap is not None:
                 cap.release()
-            self.state["running"] = False
+            self._cap = None                  # 감시 스레드 오참조 방지(다음 라운드에서 재설정)
+            # running 은 감독자(_run_supervised)가 관리 — 여기서 내리지 않는다(재시작 간 깜빡임·hang 오판 방지)
 
 
 # ── 다중 워커 매니저(현장 N대) + 현장설정(site.yaml) 자동시작 ──

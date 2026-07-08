@@ -20,9 +20,26 @@ for i in $(seq 1 "$FAILS"); do
   sleep 2
 done
 
+STATUS_URL="${VIGENT_STATUS_URL:-http://127.0.0.1:8010/status}"
+HANG_RESTART_S="${VIGENT_HANG_RESTART_S:-45}"   # 앱 내부 hang 복구(15s)보다 충분히 커서 계층 안 겹침
 if [ "$ok" = "1" ]; then
-  echo "[watchdog] OK ($URL)"
-  exit 0
+  # 2차 방어(hang): 프로세스 생존·/health OK 여도 워커가 HANG_RESTART_S 이상 정지 지속이면 재기동
+  #   (1차=앱 내부 자동 재기동 VIGENT_HANG_TIMEOUT. 그게 실패해 hang 이 오래 남을 때만 프로세스 재기동)
+  hung=$(curl -s --max-time 5 "${AUTH[@]}" "$STATUS_URL" 2>/dev/null | python3 -c "
+import sys, json
+try:
+    d = json.load(sys.stdin); cams = d.get('cameras', {})
+    idles = [c.get('last_frame_secs_ago') or 0 for c in cams.values() if c.get('running')]
+    m = max(idles) if idles else 0
+    print('HANG' if (d.get('any_hang') and m > $HANG_RESTART_S) else 'OK')
+except Exception:
+    print('OK')
+" 2>/dev/null)
+  if [ "$hung" != "HANG" ]; then
+    echo "[watchdog] OK ($URL)"
+    exit 0
+  fi
+  echo "[watchdog] ⚠️ 워커 HANG 지속(>${HANG_RESTART_S}s) — 앱 내부 복구 실패 → 프로세스 재기동(2차 방어)"
 fi
 
 echo "[watchdog] 비정상 — /health $FAILS회 연속 실패 ($URL)"

@@ -1264,12 +1264,20 @@ def worker_stop(payload: dict = Body(default={})):
     return _w.manager.stop(cid) if cid else _w.manager.stop_all()
 
 
+@app.get("/status")
 @app.get("/worker/status")
 @app.get("/workers")
 def worker_status():
-    """전체 워커 상태(현장명 + 카메라별 처리프레임·이벤트·오류)."""
+    """워커 단위 세부 상태(2단계) — 카메라별 running·last_frame_secs_ago·hang·frames·fps·restarts·reconnects·error.
+    /health(프로세스 생존)와 분리. 워치독의 2차 감시(hang 판정)와 대시보드가 이 엔드포인트를 쓴다."""
     import worker as _w
-    return _w.manager.status()
+    st = _w.manager.status()
+    cams = st.get("cameras", {})
+    st["worker_count"] = len(cams)
+    st["any_hang"] = any(c.get("hang") for c in cams.values())      # 하나라도 hang → 워치독 2차 트리거 근거
+    st["running_count"] = sum(1 for c in cams.values() if c.get("running"))
+    st["uptime_s"] = round(_time.time() - _START_TS, 1)
+    return st
 
 
 @app.post("/workers/start-all")
