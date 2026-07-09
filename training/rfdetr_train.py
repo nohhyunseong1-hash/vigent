@@ -24,6 +24,8 @@ def main():
     ap.add_argument("--batch", type=int, default=4)
     ap.add_argument("--grad_accum", type=int, default=4)      # 유효 배치 16(Roboflow 권장)
     ap.add_argument("--checkpoint_interval", type=int, default=5)
+    ap.add_argument("--num_workers", type=int, default=0)   # 데이터로딩 병렬(0=단일=병목). MPS 학습 속도 개선.
+    ap.add_argument("--device", default="mps")   # mps=Apple GPU(빠르나 matcher cost matrix 메모리 오염 버그), cpu=안정
     args = ap.parse_args()
 
     from rfdetr import RFDETRNano
@@ -38,7 +40,7 @@ def main():
     m = RFDETRNano()
     try:
         m.train(dataset_dir=args.dataset_dir, epochs=args.epochs, batch_size=args.batch,
-                grad_accum_steps=args.grad_accum, device="mps", num_workers=0,
+                grad_accum_steps=args.grad_accum, device=args.device, num_workers=args.num_workers,
                 tensorboard=False, output_dir=args.output_dir,
                 checkpoint_interval=args.checkpoint_interval, early_stopping=False,
                 resume=resume)
