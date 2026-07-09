@@ -104,6 +104,18 @@
 - **해결 후보**: (a) CPU 학습 = 안정하나 ~수일(2603×50ep, 비현실적) (b) MPS nan 연산 지목→CPU 폴백(불확실) (c) ppe YOLO 유지·이관 보류(forklift만) (d) CUDA(클라우드/학교, 기존 제외) 재고 — CUDA엔 이 버그 없음. **사용자 결정 대기.**
 - 도구: `training/rfdetr_smoke.py`(amp/lr/device 스모크 + NaN 판정), `training/scan_ppe_labels.py`(심층 무결성), `training/build_ppe_subset.py`.
 
+### ★★★ MPS RF-DETR 학습 전면 불가 확정 — 모든 학습 CUDA(클라우드) 필수 (2026-07-10, PoC)
+> **향후 모든 학습 태스크의 전제.** '맥북(M5 MPS) 온리' 원칙은 **추론·개발·검증에만 적용, 학습은 예외**.
+- **두 가지 발현, 같은 뿌리(MPS 수치 불안정)**:
+  | 케이스 | device=mps 증상 | 위치 |
+  |---|---|---|
+  | ppe(10클래스, §위) | forward **loss NaN** | 학습 스텝 |
+  | **forklift 2클래스(PoC)** | **matcher cost matrix 메모리 오염** → `torch.AcceleratorError: index <garbage> out of bounds` | epoch 경계 val matcher(`matcher.py:259`) |
+- 표면 에러는 `TypeError: iou() incompatible`였으나 최종 프레임은 AcceleratorError = **NaN이 아니라 MPS 텐서 메모리 오염**. 선행 경고 `Non-finite values in matcher cost matrix`가 동일 뿌리.
+- **num_workers·resume은 크래시 시점만 바꿈(원인 아님)**, `PYTORCH_ENABLE_MPS_FALLBACK=1`로도 회피 불가(pybind C++ 연산). 단일클래스 forklift가 MPS로 우연히 됐던 것도 첫 epoch만 통과였을 뿐(2클래스는 val matcher에서 확정 크래시).
+- **결론**: 다중클래스 RF-DETR 학습은 MPS 전면 불가. **모든 재학습은 CUDA(클라우드)에서**. CPU는 버그 없으나 3k·5ep에 16.6h(절전 포함) → full 9k 비현실.
+- 근거: `data/datasets/forklift_merge/POC_REPORT.md` §3, commit 89b0320. `training/rfdetr_train.py`에 `--device`(mps/cpu) 인자 추가됨.
+
 ### ★ T10b Phase 1 forklift 결과 — 이관 완료(box 개선 인정, 사용자 결정 c) 2026-07-05
 - 학습: RFDETRNano, LOCO train 192장, 50ep, MPS 45분. 산출 `weights/forklift_rfdetr_v1.pth`(class_names=['forklift']).
 - **게이트 판정(부분 통과)**:
@@ -119,10 +131,18 @@
 - 회귀: person(rfdetr) 92.94·ppe 58.62·fire_smoke presence(fire 53.64/smoke 24.85) 전부 **Δ0.00**(이관이 타 경로 무영향).
 - copyleft: forklift 런타임이 rfdetr(Apache)로 전환 → **ultralytics(AGPL) 잔존은 ppe·fire_smoke 2개 슬롯만**(T10b 나머지).
 
-### F-7. forklift 배포 저recall·고오탐 (제품 리스크, F-6 유형)
+### F-7. forklift 배포 저recall·고오탐 → PoC로 개선 실증, full은 현장 데이터 대기 (2026-07-10)
 - 실측(LOCO 318장): 배포 운용점(conf 0.68) **forklift recall 35.71%(64% 놓침) + FAR 28.7%**(네거 80장 중 23장 오탐).
 - FAR 의 실체 = **pallet_truck 혼동**(hard negative 40장 중 다수 오탐). 도메인갭+저신뢰로 recall·precision 양쪽 약함.
 - → T10b 재학습에서 **pallet_truck 을 hard negative 로 포함** 필수(연기 유사 비연기 = fire_smoke 와 동일 원리). presence recall 1순위.
+- **✅ 개선 실증(PoC 2026-07-10)**: 공개 데이터 확대(598→4,799 inst) + pallet_truck 분리(옵션B 2클래스) 병합 데이터로 재학습.
+  동일 하네스·고정 test(LOCO 238+네거80) 직접 비교: **box mAP@50 8.83→58.62%(6.6배)**, **recall 35.71→54.62%(천장 46.6 돌파)**, precision 94.9%.
+  FAR은 baseline 0%(사실상 미검출이라 무의미) 대비 **실검출하 8.8%**. → **개선 방향 확정.** 상세 `POC_REPORT.md`. (단 3k·5ep PoC, test는 LOCO in-domain)
+- **⏸ full 학습 보류(사유)**: forklift full(9k in-domain)을 **지금 하지 않음** — PPE도 F-9로 현장 재학습 필요 →
+  forklift·ppe **둘 다 현장 데이터 파인튜닝이 최종 형태**. in-domain full을 먼저 하면 현장 확보 후 재학습과 **중복**.
+  → **현장 데이터 확보 시점에 forklift+ppe 일괄 재학습을 설계**하는 게 효율적(학습은 CUDA/클라우드, ★★★ 참조).
+  - ⚠️ **예외 판단**: 파일럿 현장이 '지게차 있는 물류창고'면 LOCO in-domain이 현장과 가까워 full 학습이 바로 값할 수 있음
+    → **현장 업종 확정 후 재판단**(현장이 LOCO 유사 도메인이면 in-domain full 즉시 진행 가치).
 
 ### 백로그 — pallet_truck 별도 검출 클래스 후보
 - LOCO 에 pallet_truck(2,827inst/1,502img) 어노테이션 존재. 동력 지게차와 **협착 위험군이 상이**(수동·소형)해 forklift 로 병합 안 함.
