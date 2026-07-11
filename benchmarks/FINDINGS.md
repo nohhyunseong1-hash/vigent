@@ -143,6 +143,10 @@
   → **현장 데이터 확보 시점에 forklift+ppe 일괄 재학습을 설계**하는 게 효율적(학습은 CUDA/클라우드, ★★★ 참조).
   - ⚠️ **예외 판단**: 파일럿 현장이 '지게차 있는 물류창고'면 LOCO in-domain이 현장과 가까워 full 학습이 바로 값할 수 있음
     → **현장 업종 확정 후 재판단**(현장이 LOCO 유사 도메인이면 in-domain full 즉시 진행 가치).
+- **★ 잠정 비활성 처리(2026-07-11, 웹캠 벤치 실측 확정)**: forklift 정탐/오탐 conf가 **완전 겹침** —
+  정탐 p50 0.002·max 0.005 = 오탐과 동일(LOCO test 238 + 웹캠 실측). **임계 분리 불가 확정**(0.002=정탐34.9%+오탐폭탄 / 0.01↑=정탐0).
+  → **detect_frame 기본 detectors에서 제외**(main.py) + `/health.disabled_detectors` + tuning 주석 3중 명시. **임계 0.30 은폐형 off는 기각**(명시적 비활성).
+  측정/게이트 경로는 `payload.detectors` 명시 지정 시 추론 가능. **복원 조건 = T10b full 재학습 게이트 통과**(정탐 conf 정상화 확인).
 
 ### 백로그 — pallet_truck 별도 검출 클래스 후보
 - LOCO 에 pallet_truck(2,827inst/1,502img) 어노테이션 존재. 동력 지게차와 **협착 위험군이 상이**(수동·소형)해 forklift 로 병합 안 함.
@@ -194,9 +198,31 @@ F-8 진단 중, 서버 detect_frame 이 **연속 프레임 추적**(`guard._trac
 - **근본 대응**: `scripts/setup_worktree.sh` 가 **weights/data/benchmarks-data/vendor 전부** 심링크·검증 + `main.py` `StaticFiles(follow_symlink=VIGENT_DEV_SYMLINK=="1")` 게이트(배포 기본 차단, 개발 워크트리 opt-in — StaticFiles 는 디렉토리 밖 심링크를 traversal 방지로 거부하므로).
 - **운영 지침(§8 보완)**: **단일 세션 개발은 메인 워킹트리에서** 한다(vendor·weights 실재 → 좀비·심링크 여진 없음). 워크트리 격리는 CLAUDE.md §8 대로 **동시 세션이 있을 때만** 필요한 규칙 — 격리 이득이 없는 순수 프론트·단일세션 작업까지 워크트리로 하면 심링크 문제만 유발한다. (2026-07-07 dualfix 검증을 메인 워킹트리로 전환한 근거: 세션 HEAD=main 단일세션 확인됨.)
 
-### F-9. 실내/사무실 환경 PPE 오탐 (도메인 갭 — 별개 트랙, 2026-07-07)
-safety-local 라이브(실내 웹캠) 육안에서, **비착용 물체를 PPE 클래스로 오검출**하는 현상 확인 — 모니터·헤드셋·의자 등을 Hardhat/Safety-Vest/Mask 로 잡거나, 미착용 상태를 과도하게 NO-* 로 판정. (창업자 본인 재현, 실내 사무실.)
-- **원인**: ppe 모델(css_safety=**건설현장** 학습)의 **학습 분포 밖(실내 사무실) 도메인 갭**. RF-DETR 자체 결함이 아니라 in-domain 한계([[t10-agpl-removal-status]] 공통 한계·EVAL §6). css_safety in-domain mAP 71.46 은 유효하나 실내 일반화는 별개.
-- **근본 해결**: **현장 데이터 재학습/파인튜닝** — T10c-V 현장 클립 + **현장 negative(PPE 없는 실내/작업장 배경) 수집** 후 재학습. 
-- **미봉책 배제**: 임계 상향은 recall 손실(미착용 놓침 = 안전 감시 목적 훼손)이므로 **현장 데이터 확보 전까지 보류**. 
-- **트랙 구분**: 이 오탐(모델 정확도·도메인)은 **F-8 후속 person 억제(UI 렌더)와 별개 트랙**. UI 마감은 완료(이중렌더·404·person 정리), F-9 는 데이터·모델 과제로 T10c-V 와 묶어 진행.
+### F-9. 실내/사무실 환경 오탐 — ★통념 교정(2026-07-11 웹캠 벤치 실측)
+당초(2026-07-07) 육안 통념: "모니터·의자를 PPE(Hardhat/Vest/Mask)로 오검출". **웹캠 벤치 실측으로 이 통념을 정량 교정한다.**
+- **평가**: webcam_bench 45장(negative 40=빈벽12+물체배경28, pos_bare_near 5), 서버 stateless=배포. `benchmarks/webcam_bench.py`.
+- ★ **PPE 착용류 배경 오탐은 미미**: negative에서 Hardhat/Vest 오탐 **0%**, Mask 2.5%(1장). **빈 벽은 전 클래스 0%.** → "사무실 배경을 PPE로 대량 오탐"은 **과장된 통념**. person recall은 100%(정탐 강건).
+- **잔존 오탐의 실체(3가지, 분리 확정)**:
+  - **(a) forklift 사람 오인**: 사람 몸통을 conf 0.002로 forklift 오탐(pos_bare **100%**, negative 30%). bbox가 person bbox 내부. → **잠정 비활성**(detect_frame 기본 detectors 제외, 2026-07-11). 정탐/오탐 conf 완전 겹침(F-7)이라 임계 분리 불가 → 재학습 대기. [[forklift-poc-and-mps-broken]]
+  - **(b) person 오탐 12.5%**: 사무실 물체(의자 등받이·인터폰)를 person으로(conf 0.36~0.69). 빈 벽 0%. 물체 배경 한정.
+  - **(c) 박스 좌표 표시(③) — 서버 정상·프론트 race 확정(2026-07-12)**: pos_bare 5장의 서버 반환 bbox를
+    640 전송이미지에 직접 그려 검증(`benchmarks/results/webcam_coord/`) → **person·NO-Hardhat(머리)·NO-Mask(얼굴)·
+    NO-Vest(몸통) 전부 정확 = 서버 좌표 정상 실증.** 원인은 **프론트 스케일 동기화 race** — 캡처 시점 scX를
+    frame에 캐시(realtime_core buildCoreFrameState)한 뒤, 캡처~렌더 사이 창 리사이즈(canvas W 변경)·카메라 전환
+    (videoWidth 변경)이 일어나면 캐시 scX가 어긋남. object-fit:contain·mediaRect는 일치(정독 정상), dpr 미적용은
+    선명도만. → **계측(mismatch telemetry, 불일치 순간만 로그)+방어(renderCoreFrameOverlays 진입서 현재
+    videoWidth/canvas로 scX 재계산, 캐시 금지) 적용.** 재현 로그(`/recognition/log` rule=coord_mismatch) 확보 시
+    근본 트리거 추가 기록. 스크린샷 '빈 벽 NO-Hardhat 87%'는 이 좌표 race + 사람 존재로 재해석(순수 빈 벽 실측 NO-* 0%).
+- ★ **신구 대결(동일 45장, "이관 후 퇴행" 가설 검증)** — `webcam_rfdetr_A.json`·`webcam_yolo_B.json`:
+
+  | 오탐(negative) | 구 YOLO(0.62/0.68/0.55) | 현행 RF-DETR |
+  |---|---|---|
+  | smoke | **62.5%** (conf 0.56~0.94) | **7.5%** |
+  | person | 0% | 12.5% |
+  | forklift | 0% | 30%(→비활성) |
+  | PPE worn | 0% | 2.5% |
+
+  → **"이관 후 퇴행" 가설 기각**: smoke는 RF-DETR가 **8배 개선**(구 YOLO가 사무실 배경을 연기로 대량 오경보). person만 RF가 다소↑(도메인). "전에 잘 됐다"의 실체 = 구 YOLO의 forklift/person **침묵**(오탐 0)이지 전면 우월 아님.
+  ⚠️ **정직 단서**: 사용자 언급 '구 YOLO negative FAR 25%·vest 92% 오분류'는 **본 실측에서 재현 안 됨**(구 YOLO vest 오탐 0, neg 아무거나 75%는 smoke 주도). 미측정 수치이므로 리포트엔 실측값만 사용.
+- **Phase 4(파인튜닝) 범위 축소**: **PPE 파인튜닝 불필요**(배경 오탐 2.5%로 미미). **forklift만** 대상 → T10b full 재학습 계획에 흡수. 오픈데이터 감사도 **forklift hard negative(COCO person)**로 축소(사람 오인이 유일 병목).
+- (유지) 근본 해결은 현장 데이터 재학습([[t10-agpl-removal-status]] in-domain 한계). 임계 상향 미봉책은 배제(F-6 교훈).

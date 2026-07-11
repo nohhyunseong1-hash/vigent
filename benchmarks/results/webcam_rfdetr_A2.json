@@ -1,0 +1,1295 @@
+{
+  "summary": {
+    "stack": "rfdetr_A2",
+    "n_images": 45,
+    "n_neg": 40,
+    "n_pos": 5,
+    "latency_p50_ms": 83.7,
+    "latency_p95_ms": 87.7,
+    "negative_FAR": {
+      "any_detection_pct": 22.5,
+      "hardhat(worn)": {
+        "fp": 0,
+        "far_pct": 0.0,
+        "conf": []
+      },
+      "vest(worn)": {
+        "fp": 0,
+        "far_pct": 0.0,
+        "conf": []
+      },
+      "mask(worn)": {
+        "fp": 1,
+        "far_pct": 2.5,
+        "conf": [
+          0.365
+        ]
+      },
+      "person": {
+        "fp": 5,
+        "far_pct": 12.5,
+        "conf": [
+          0.356,
+          0.387,
+          0.398,
+          0.453,
+          0.687
+        ]
+      },
+      "forklift": {
+        "fp": 0,
+        "far_pct": 0.0,
+        "conf": []
+      },
+      "fire": {
+        "fp": 0,
+        "far_pct": 0.0,
+        "conf": []
+      },
+      "smoke": {
+        "fp": 3,
+        "far_pct": 7.5,
+        "conf": [
+          0.542,
+          0.643,
+          0.82
+        ]
+      }
+    },
+    "positive_worn_recall": {
+      "hardhat": {
+        "n_gt": 0,
+        "recall": null
+      },
+      "vest": {
+        "n_gt": 0,
+        "recall": null
+      },
+      "mask": {
+        "n_gt": 0,
+        "recall": null
+      }
+    },
+    "positive_none_detect": {
+      "hardhat": {
+        "n_gt": 5,
+        "recall": 100.0
+      },
+      "vest": {
+        "n_gt": 5,
+        "recall": 100.0
+      },
+      "mask": {
+        "n_gt": 5,
+        "recall": 100.0
+      }
+    },
+    "person_recall": {
+      "n_gt": 5,
+      "recall": 100.0
+    },
+    "by_distance": {
+      "near": {
+        "worn": {
+          "hardhat": {
+            "n_gt": 0,
+            "recall": null
+          },
+          "vest": {
+            "n_gt": 0,
+            "recall": null
+          },
+          "mask": {
+            "n_gt": 0,
+            "recall": null
+          }
+        }
+      },
+      "mid": {
+        "worn": {
+          "hardhat": {
+            "n_gt": 0,
+            "recall": null
+          },
+          "vest": {
+            "n_gt": 0,
+            "recall": null
+          },
+          "mask": {
+            "n_gt": 0,
+            "recall": null
+          }
+        }
+      },
+      "far": {
+        "worn": {
+          "hardhat": {
+            "n_gt": 0,
+            "recall": null
+          },
+          "vest": {
+            "n_gt": 0,
+            "recall": null
+          },
+          "mask": {
+            "n_gt": 0,
+            "recall": null
+          }
+        }
+      }
+    },
+    "pos_bare_spurious": {
+      "n_bare": 5,
+      "forklift": {
+        "fp": 0,
+        "pct": 0.0,
+        "conf": []
+      },
+      "fire": {
+        "fp": 0,
+        "pct": 0.0,
+        "conf": []
+      },
+      "smoke": {
+        "fp": 0,
+        "pct": 0.0,
+        "conf": []
+      },
+      "hardhat(worn)": {
+        "fp": 0,
+        "pct": 0.0,
+        "conf": []
+      },
+      "vest(worn)": {
+        "fp": 0,
+        "pct": 0.0,
+        "conf": []
+      },
+      "mask(worn)": {
+        "fp": 0,
+        "pct": 0.0,
+        "conf": []
+      }
+    }
+  },
+  "records": [
+    {
+      "file": "neg_desk_01.jpg",
+      "kind": "neg",
+      "distance": null,
+      "state": null,
+      "gt": {
+        "hardhat": null,
+        "vest": null,
+        "mask": null,
+        "person": false
+      },
+      "pred": {},
+      "dets": [],
+      "other": [],
+      "n_det": 0,
+      "latency_ms": 10543.2
+    },
+    {
+      "file": "neg_desk_02.jpg",
+      "kind": "neg",
+      "distance": null,
+      "state": null,
+      "gt": {
+        "hardhat": null,
+        "vest": null,
+        "mask": null,
+        "person": false
+      },
+      "pred": {},
+      "dets": [],
+      "other": [],
+      "n_det": 0,
+      "latency_ms": 95.6
+    },
+    {
+      "file": "neg_desk_03.jpg",
+      "kind": "neg",
+      "distance": null,
+      "state": null,
+      "gt": {
+        "hardhat": null,
+        "vest": null,
+        "mask": null,
+        "person": false
+      },
+      "pred": {
+        "other:smoke": 0.643
+      },
+      "dets": [
+        {
+          "class": "smoke",
+          "score": 0.643,
+          "bbox": [
+            480,
+            76,
+            157,
+            281
+          ]
+        }
+      ],
+      "other": [
+        "smoke"
+      ],
+      "n_det": 1,
+      "latency_ms": 86.8
+    },
+    {
+      "file": "neg_desk_04.jpg",
+      "kind": "neg",
+      "distance": null,
+      "state": null,
+      "gt": {
+        "hardhat": null,
+        "vest": null,
+        "mask": null,
+        "person": false
+      },
+      "pred": {
+        "other:smoke": 0.82
+      },
+      "dets": [
+        {
+          "class": "smoke",
+          "score": 0.82,
+          "bbox": [
+            306,
+            96,
+            323,
+            262
+          ]
+        }
+      ],
+      "other": [
+        "smoke"
+      ],
+      "n_det": 1,
+      "latency_ms": 86.5
+    },
+    {
+      "file": "neg_desk_05.jpg",
+      "kind": "neg",
+      "distance": null,
+      "state": null,
+      "gt": {
+        "hardhat": null,
+        "vest": null,
+        "mask": null,
+        "person": false
+      },
+      "pred": {
+        "other:smoke": 0.542
+      },
+      "dets": [
+        {
+          "class": "smoke",
+          "score": 0.542,
+          "bbox": [
+            55,
+            101,
+            338,
+            257
+          ]
+        }
+      ],
+      "other": [
+        "smoke"
+      ],
+      "n_det": 1,
+      "latency_ms": 87.5
+    },
+    {
+      "file": "neg_desk_06.jpg",
+      "kind": "neg",
+      "distance": null,
+      "state": null,
+      "gt": {
+        "hardhat": null,
+        "vest": null,
+        "mask": null,
+        "person": false
+      },
+      "pred": {},
+      "dets": [],
+      "other": [],
+      "n_det": 0,
+      "latency_ms": 83.1
+    },
+    {
+      "file": "neg_desk_07.jpg",
+      "kind": "neg",
+      "distance": null,
+      "state": null,
+      "gt": {
+        "hardhat": null,
+        "vest": null,
+        "mask": null,
+        "person": false
+      },
+      "pred": {
+        "person:None": 0.687
+      },
+      "dets": [
+        {
+          "class": "person",
+          "score": 0.687,
+          "bbox": [
+            424,
+            279,
+            216,
+            81
+          ]
+        }
+      ],
+      "other": [],
+      "n_det": 1,
+      "latency_ms": 80.8
+    },
+    {
+      "file": "neg_desk_08.jpg",
+      "kind": "neg",
+      "distance": null,
+      "state": null,
+      "gt": {
+        "hardhat": null,
+        "vest": null,
+        "mask": null,
+        "person": false
+      },
+      "pred": {},
+      "dets": [],
+      "other": [],
+      "n_det": 0,
+      "latency_ms": 86.1
+    },
+    {
+      "file": "neg_desk_09.jpg",
+      "kind": "neg",
+      "distance": null,
+      "state": null,
+      "gt": {
+        "hardhat": null,
+        "vest": null,
+        "mask": null,
+        "person": false
+      },
+      "pred": {
+        "person:None": 0.387
+      },
+      "dets": [
+        {
+          "class": "person",
+          "score": 0.387,
+          "bbox": [
+            79,
+            271,
+            246,
+            89
+          ]
+        }
+      ],
+      "other": [],
+      "n_det": 1,
+      "latency_ms": 83.2
+    },
+    {
+      "file": "neg_desk_10.jpg",
+      "kind": "neg",
+      "distance": null,
+      "state": null,
+      "gt": {
+        "hardhat": null,
+        "vest": null,
+        "mask": null,
+        "person": false
+      },
+      "pred": {},
+      "dets": [],
+      "other": [],
+      "n_det": 0,
+      "latency_ms": 85.9
+    },
+    {
+      "file": "neg_desk_11.jpg",
+      "kind": "neg",
+      "distance": null,
+      "state": null,
+      "gt": {
+        "hardhat": null,
+        "vest": null,
+        "mask": null,
+        "person": false
+      },
+      "pred": {},
+      "dets": [],
+      "other": [],
+      "n_det": 0,
+      "latency_ms": 85.5
+    },
+    {
+      "file": "neg_desk_12.jpg",
+      "kind": "neg",
+      "distance": null,
+      "state": null,
+      "gt": {
+        "hardhat": null,
+        "vest": null,
+        "mask": null,
+        "person": false
+      },
+      "pred": {},
+      "dets": [],
+      "other": [],
+      "n_det": 0,
+      "latency_ms": 85.7
+    },
+    {
+      "file": "neg_empty_01.jpg",
+      "kind": "neg",
+      "distance": null,
+      "state": null,
+      "gt": {
+        "hardhat": null,
+        "vest": null,
+        "mask": null,
+        "person": false
+      },
+      "pred": {},
+      "dets": [],
+      "other": [],
+      "n_det": 0,
+      "latency_ms": 82.7
+    },
+    {
+      "file": "neg_empty_02.jpg",
+      "kind": "neg",
+      "distance": null,
+      "state": null,
+      "gt": {
+        "hardhat": null,
+        "vest": null,
+        "mask": null,
+        "person": false
+      },
+      "pred": {},
+      "dets": [],
+      "other": [],
+      "n_det": 0,
+      "latency_ms": 81.8
+    },
+    {
+      "file": "neg_empty_03.jpg",
+      "kind": "neg",
+      "distance": null,
+      "state": null,
+      "gt": {
+        "hardhat": null,
+        "vest": null,
+        "mask": null,
+        "person": false
+      },
+      "pred": {},
+      "dets": [],
+      "other": [],
+      "n_det": 0,
+      "latency_ms": 84.9
+    },
+    {
+      "file": "neg_empty_04.jpg",
+      "kind": "neg",
+      "distance": null,
+      "state": null,
+      "gt": {
+        "hardhat": null,
+        "vest": null,
+        "mask": null,
+        "person": false
+      },
+      "pred": {},
+      "dets": [],
+      "other": [],
+      "n_det": 0,
+      "latency_ms": 83.8
+    },
+    {
+      "file": "neg_empty_05.jpg",
+      "kind": "neg",
+      "distance": null,
+      "state": null,
+      "gt": {
+        "hardhat": null,
+        "vest": null,
+        "mask": null,
+        "person": false
+      },
+      "pred": {},
+      "dets": [],
+      "other": [],
+      "n_det": 0,
+      "latency_ms": 83.5
+    },
+    {
+      "file": "neg_empty_06.jpg",
+      "kind": "neg",
+      "distance": null,
+      "state": null,
+      "gt": {
+        "hardhat": null,
+        "vest": null,
+        "mask": null,
+        "person": false
+      },
+      "pred": {},
+      "dets": [],
+      "other": [],
+      "n_det": 0,
+      "latency_ms": 81.0
+    },
+    {
+      "file": "neg_empty_07.jpg",
+      "kind": "neg",
+      "distance": null,
+      "state": null,
+      "gt": {
+        "hardhat": null,
+        "vest": null,
+        "mask": null,
+        "person": false
+      },
+      "pred": {},
+      "dets": [],
+      "other": [],
+      "n_det": 0,
+      "latency_ms": 85.5
+    },
+    {
+      "file": "neg_empty_08.jpg",
+      "kind": "neg",
+      "distance": null,
+      "state": null,
+      "gt": {
+        "hardhat": null,
+        "vest": null,
+        "mask": null,
+        "person": false
+      },
+      "pred": {},
+      "dets": [],
+      "other": [],
+      "n_det": 0,
+      "latency_ms": 130.9
+    },
+    {
+      "file": "neg_empty_09.jpg",
+      "kind": "neg",
+      "distance": null,
+      "state": null,
+      "gt": {
+        "hardhat": null,
+        "vest": null,
+        "mask": null,
+        "person": false
+      },
+      "pred": {},
+      "dets": [],
+      "other": [],
+      "n_det": 0,
+      "latency_ms": 87.7
+    },
+    {
+      "file": "neg_empty_10.jpg",
+      "kind": "neg",
+      "distance": null,
+      "state": null,
+      "gt": {
+        "hardhat": null,
+        "vest": null,
+        "mask": null,
+        "person": false
+      },
+      "pred": {},
+      "dets": [],
+      "other": [],
+      "n_det": 0,
+      "latency_ms": 83.7
+    },
+    {
+      "file": "neg_empty_11.jpg",
+      "kind": "neg",
+      "distance": null,
+      "state": null,
+      "gt": {
+        "hardhat": null,
+        "vest": null,
+        "mask": null,
+        "person": false
+      },
+      "pred": {},
+      "dets": [],
+      "other": [],
+      "n_det": 0,
+      "latency_ms": 82.9
+    },
+    {
+      "file": "neg_empty_12.jpg",
+      "kind": "neg",
+      "distance": null,
+      "state": null,
+      "gt": {
+        "hardhat": null,
+        "vest": null,
+        "mask": null,
+        "person": false
+      },
+      "pred": {},
+      "dets": [],
+      "other": [],
+      "n_det": 0,
+      "latency_ms": 81.5
+    },
+    {
+      "file": "neg_light_01.jpg",
+      "kind": "neg",
+      "distance": null,
+      "state": null,
+      "gt": {
+        "hardhat": null,
+        "vest": null,
+        "mask": null,
+        "person": false
+      },
+      "pred": {},
+      "dets": [],
+      "other": [],
+      "n_det": 0,
+      "latency_ms": 85.0
+    },
+    {
+      "file": "neg_light_02.jpg",
+      "kind": "neg",
+      "distance": null,
+      "state": null,
+      "gt": {
+        "hardhat": null,
+        "vest": null,
+        "mask": null,
+        "person": false
+      },
+      "pred": {},
+      "dets": [],
+      "other": [],
+      "n_det": 0,
+      "latency_ms": 85.9
+    },
+    {
+      "file": "neg_light_03.jpg",
+      "kind": "neg",
+      "distance": null,
+      "state": null,
+      "gt": {
+        "hardhat": null,
+        "vest": null,
+        "mask": null,
+        "person": false
+      },
+      "pred": {},
+      "dets": [],
+      "other": [],
+      "n_det": 0,
+      "latency_ms": 82.7
+    },
+    {
+      "file": "neg_light_04.jpg",
+      "kind": "neg",
+      "distance": null,
+      "state": null,
+      "gt": {
+        "hardhat": null,
+        "vest": null,
+        "mask": null,
+        "person": false
+      },
+      "pred": {},
+      "dets": [],
+      "other": [],
+      "n_det": 0,
+      "latency_ms": 83.3
+    },
+    {
+      "file": "neg_monitor_01.jpg",
+      "kind": "neg",
+      "distance": null,
+      "state": null,
+      "gt": {
+        "hardhat": null,
+        "vest": null,
+        "mask": null,
+        "person": false
+      },
+      "pred": {},
+      "dets": [],
+      "other": [],
+      "n_det": 0,
+      "latency_ms": 83.3
+    },
+    {
+      "file": "neg_monitor_02.jpg",
+      "kind": "neg",
+      "distance": null,
+      "state": null,
+      "gt": {
+        "hardhat": null,
+        "vest": null,
+        "mask": null,
+        "person": false
+      },
+      "pred": {
+        "person:None": 0.356
+      },
+      "dets": [
+        {
+          "class": "person",
+          "score": 0.356,
+          "bbox": [
+            0,
+            0,
+            75,
+            359
+          ]
+        }
+      ],
+      "other": [],
+      "n_det": 1,
+      "latency_ms": 85.7
+    },
+    {
+      "file": "neg_monitor_03.jpg",
+      "kind": "neg",
+      "distance": null,
+      "state": null,
+      "gt": {
+        "hardhat": null,
+        "vest": null,
+        "mask": null,
+        "person": false
+      },
+      "pred": {},
+      "dets": [],
+      "other": [],
+      "n_det": 0,
+      "latency_ms": 83.1
+    },
+    {
+      "file": "neg_monitor_04.jpg",
+      "kind": "neg",
+      "distance": null,
+      "state": null,
+      "gt": {
+        "hardhat": null,
+        "vest": null,
+        "mask": null,
+        "person": false
+      },
+      "pred": {},
+      "dets": [],
+      "other": [],
+      "n_det": 0,
+      "latency_ms": 82.8
+    },
+    {
+      "file": "neg_monitor_05.jpg",
+      "kind": "neg",
+      "distance": null,
+      "state": null,
+      "gt": {
+        "hardhat": null,
+        "vest": null,
+        "mask": null,
+        "person": false
+      },
+      "pred": {},
+      "dets": [],
+      "other": [],
+      "n_det": 0,
+      "latency_ms": 82.5
+    },
+    {
+      "file": "neg_monitor_06.jpg",
+      "kind": "neg",
+      "distance": null,
+      "state": null,
+      "gt": {
+        "hardhat": null,
+        "vest": null,
+        "mask": null,
+        "person": false
+      },
+      "pred": {},
+      "dets": [],
+      "other": [],
+      "n_det": 0,
+      "latency_ms": 82.4
+    },
+    {
+      "file": "neg_monitor_07.jpg",
+      "kind": "neg",
+      "distance": null,
+      "state": null,
+      "gt": {
+        "hardhat": null,
+        "vest": null,
+        "mask": null,
+        "person": false
+      },
+      "pred": {
+        "person:None": 0.398
+      },
+      "dets": [
+        {
+          "class": "person",
+          "score": 0.398,
+          "bbox": [
+            284,
+            296,
+            235,
+            64
+          ]
+        }
+      ],
+      "other": [],
+      "n_det": 1,
+      "latency_ms": 83.5
+    },
+    {
+      "file": "neg_monitor_08.jpg",
+      "kind": "neg",
+      "distance": null,
+      "state": null,
+      "gt": {
+        "hardhat": null,
+        "vest": null,
+        "mask": null,
+        "person": false
+      },
+      "pred": {
+        "person:None": 0.453
+      },
+      "dets": [
+        {
+          "class": "person",
+          "score": 0.453,
+          "bbox": [
+            475,
+            0,
+            165,
+            360
+          ]
+        }
+      ],
+      "other": [],
+      "n_det": 1,
+      "latency_ms": 82.9
+    },
+    {
+      "file": "neg_monitor_09.jpg",
+      "kind": "neg",
+      "distance": null,
+      "state": null,
+      "gt": {
+        "hardhat": null,
+        "vest": null,
+        "mask": null,
+        "person": false
+      },
+      "pred": {},
+      "dets": [],
+      "other": [],
+      "n_det": 0,
+      "latency_ms": 82.3
+    },
+    {
+      "file": "neg_monitor_10.jpg",
+      "kind": "neg",
+      "distance": null,
+      "state": null,
+      "gt": {
+        "hardhat": null,
+        "vest": null,
+        "mask": null,
+        "person": false
+      },
+      "pred": {},
+      "dets": [],
+      "other": [],
+      "n_det": 0,
+      "latency_ms": 81.8
+    },
+    {
+      "file": "neg_monitor_11.jpg",
+      "kind": "neg",
+      "distance": null,
+      "state": null,
+      "gt": {
+        "hardhat": null,
+        "vest": null,
+        "mask": null,
+        "person": false
+      },
+      "pred": {},
+      "dets": [],
+      "other": [],
+      "n_det": 0,
+      "latency_ms": 83.5
+    },
+    {
+      "file": "neg_monitor_12.jpg",
+      "kind": "neg",
+      "distance": null,
+      "state": null,
+      "gt": {
+        "hardhat": null,
+        "vest": null,
+        "mask": null,
+        "person": false
+      },
+      "pred": {
+        "mask:worn": 0.365
+      },
+      "dets": [
+        {
+          "class": "Mask",
+          "score": 0.365,
+          "bbox": [
+            0,
+            244,
+            72,
+            92
+          ]
+        }
+      ],
+      "other": [],
+      "n_det": 1,
+      "latency_ms": 86.4
+    },
+    {
+      "file": "pos_bare_near_01.jpg",
+      "kind": "pos",
+      "distance": "near",
+      "state": "bare",
+      "gt": {
+        "hardhat": "none",
+        "vest": "none",
+        "mask": "none",
+        "person": true
+      },
+      "pred": {
+        "person:None": 0.973,
+        "hardhat:none": 0.882,
+        "vest:none": 0.871,
+        "mask:none": 0.817
+      },
+      "dets": [
+        {
+          "class": "person",
+          "score": 0.973,
+          "bbox": [
+            87,
+            33,
+            458,
+            322
+          ]
+        },
+        {
+          "class": "NO-Hardhat",
+          "score": 0.882,
+          "bbox": [
+            230,
+            31,
+            181,
+            94
+          ]
+        },
+        {
+          "class": "NO-Safety-Vest",
+          "score": 0.871,
+          "bbox": [
+            117,
+            270,
+            385,
+            90
+          ]
+        },
+        {
+          "class": "NO-Mask",
+          "score": 0.817,
+          "bbox": [
+            243,
+            210,
+            154,
+            72
+          ]
+        }
+      ],
+      "other": [],
+      "n_det": 4,
+      "latency_ms": 83.7
+    },
+    {
+      "file": "pos_bare_near_02.jpg",
+      "kind": "pos",
+      "distance": "near",
+      "state": "bare",
+      "gt": {
+        "hardhat": "none",
+        "vest": "none",
+        "mask": "none",
+        "person": true
+      },
+      "pred": {
+        "person:None": 0.968,
+        "hardhat:none": 0.893,
+        "vest:none": 0.855,
+        "mask:none": 0.763
+      },
+      "dets": [
+        {
+          "class": "person",
+          "score": 0.968,
+          "bbox": [
+            98,
+            50,
+            437,
+            306
+          ]
+        },
+        {
+          "class": "NO-Hardhat",
+          "score": 0.893,
+          "bbox": [
+            231,
+            49,
+            167,
+            90
+          ]
+        },
+        {
+          "class": "NO-Safety-Vest",
+          "score": 0.855,
+          "bbox": [
+            129,
+            278,
+            366,
+            82
+          ]
+        },
+        {
+          "class": "NO-Mask",
+          "score": 0.763,
+          "bbox": [
+            244,
+            215,
+            144,
+            68
+          ]
+        }
+      ],
+      "other": [],
+      "n_det": 4,
+      "latency_ms": 83.8
+    },
+    {
+      "file": "pos_bare_near_03.jpg",
+      "kind": "pos",
+      "distance": "near",
+      "state": "bare",
+      "gt": {
+        "hardhat": "none",
+        "vest": "none",
+        "mask": "none",
+        "person": true
+      },
+      "pred": {
+        "person:None": 0.969,
+        "hardhat:none": 0.887,
+        "vest:none": 0.836,
+        "mask:none": 0.727
+      },
+      "dets": [
+        {
+          "class": "person",
+          "score": 0.969,
+          "bbox": [
+            98,
+            50,
+            438,
+            306
+          ]
+        },
+        {
+          "class": "NO-Hardhat",
+          "score": 0.887,
+          "bbox": [
+            227,
+            48,
+            168,
+            88
+          ]
+        },
+        {
+          "class": "NO-Safety-Vest",
+          "score": 0.836,
+          "bbox": [
+            129,
+            278,
+            362,
+            82
+          ]
+        },
+        {
+          "class": "NO-Mask",
+          "score": 0.727,
+          "bbox": [
+            238,
+            216,
+            150,
+            67
+          ]
+        }
+      ],
+      "other": [],
+      "n_det": 4,
+      "latency_ms": 83.0
+    },
+    {
+      "file": "pos_bare_near_04.jpg",
+      "kind": "pos",
+      "distance": "near",
+      "state": "bare",
+      "gt": {
+        "hardhat": "none",
+        "vest": "none",
+        "mask": "none",
+        "person": true
+      },
+      "pred": {
+        "person:None": 0.968,
+        "hardhat:none": 0.892,
+        "vest:none": 0.851,
+        "mask:none": 0.776
+      },
+      "dets": [
+        {
+          "class": "person",
+          "score": 0.968,
+          "bbox": [
+            99,
+            50,
+            438,
+            307
+          ]
+        },
+        {
+          "class": "NO-Hardhat",
+          "score": 0.892,
+          "bbox": [
+            231,
+            47,
+            168,
+            91
+          ]
+        },
+        {
+          "class": "NO-Safety-Vest",
+          "score": 0.851,
+          "bbox": [
+            126,
+            279,
+            370,
+            81
+          ]
+        },
+        {
+          "class": "NO-Mask",
+          "score": 0.776,
+          "bbox": [
+            245,
+            212,
+            141,
+            72
+          ]
+        }
+      ],
+      "other": [],
+      "n_det": 4,
+      "latency_ms": 85.7
+    },
+    {
+      "file": "pos_bare_near_05.jpg",
+      "kind": "pos",
+      "distance": "near",
+      "state": "bare",
+      "gt": {
+        "hardhat": "none",
+        "vest": "none",
+        "mask": "none",
+        "person": true
+      },
+      "pred": {
+        "person:None": 0.97,
+        "vest:none": 0.919,
+        "hardhat:none": 0.889,
+        "mask:none": 0.812
+      },
+      "dets": [
+        {
+          "class": "person",
+          "score": 0.97,
+          "bbox": [
+            95,
+            36,
+            430,
+            320
+          ]
+        },
+        {
+          "class": "NO-Safety-Vest",
+          "score": 0.919,
+          "bbox": [
+            127,
+            252,
+            364,
+            108
+          ]
+        },
+        {
+          "class": "NO-Hardhat",
+          "score": 0.889,
+          "bbox": [
+            244,
+            34,
+            149,
+            82
+          ]
+        },
+        {
+          "class": "NO-Mask",
+          "score": 0.812,
+          "bbox": [
+            255,
+            170,
+            118,
+            71
+          ]
+        }
+      ],
+      "other": [],
+      "n_det": 4,
+      "latency_ms": 83.8
+    }
+  ]
+}

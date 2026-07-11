@@ -330,6 +330,11 @@ def health(theme: str = DEFAULT_THEME):
         "backend": backend,
         "models": models,
         "rfdetr_slots": rfdetr_slots,
+        # F-8 로드 가시화 원칙과 일관: 모델은 LOADED 이나 소비 경로에서 명시적으로 끈 슬롯을 노출(은폐형 off 방지).
+        "disabled_detectors": {
+            "forklift": "잠정 비활성(F-7): 과소학습으로 정탐/오탐 conf 분리불가(정탐 p50 0.002, 2026-07-11 실측). "
+                        "라이브·safety-local 소비 경로 제외. T10b full 재학습 후 복원. 측정은 detectors 명시 지정 시 가능.",
+        },
     }
 
 
@@ -535,12 +540,15 @@ def detect_frame(payload: dict = Body(...), theme: str = DEFAULT_THEME):
     img = _decode_data_url(raw)
     if img is None:
         raise HTTPException(status_code=400, detail="이미지 디코딩 실패(image_base64/image 확인)")
-    # 검출기 선택: 안전 모드(ppe=true)면 person+ppe+forklift+fire(보호구·지게차·화재), 아니면 person만.
-    # CPU에서 4모델 지속/동시 부하 안정 검증됨(~0.32s/호출). MPS는 다모델 반복추론 시 크래시 →
-    # 기본 CPU(guard) 유지. (화재 탐지는 시각 뱃지/신호용 — 실내 오탐 가능, 푸시 알림은 별도 경로)
+    # 검출기 선택: 안전 모드(ppe=true)면 person+ppe+fire(보호구·화재), 아니면 person만.
+    # CPU에서 다모델 지속/동시 부하 안정 검증됨. MPS는 다모델 반복추론 시 크래시 → 기본 CPU(guard) 유지.
+    # ★ forklift 잠정 비활성(F-7, 2026-07-11 실측): 과소학습으로 정탐/오탐 conf가 완전 겹쳐(정탐 p50 0.002,
+    #   max 0.005 = 오탐과 동일) 임계로 분리 불가. 사람 몸통을 conf 0.002로 오인(웹캠 벤치 pos_bare 100%).
+    #   → 라이브·safety-local 소비 경로에서 제외해 사람 오인 박스 차단. 임계 0.30 은폐형 off는 기각(명시적 비활성).
+    #   측정/게이트 경로는 payload.detectors=["forklift",...] 명시 지정 시 추론 가능(T10b full 재학습 후 복원).
     detectors = payload.get("detectors")
     if detectors is None:
-        detectors = ["person", "ppe", "forklift", "fire_smoke"] if payload.get("ppe") else ["person"]
+        detectors = ["person", "ppe", "fire_smoke"] if payload.get("ppe") else ["person"]
     # 라이브 반응성: 프론트가 이미 640px로 줄여 보내므로(realtime_core.js) 감지도 640으로 맞춘다.
     # 960으로 upscale하면 없는 디테일 만들려 2배 느려질 뿐(정확도 이득 없음) → 640이 거의 순수 이득.
     # (오프라인 재해분석은 별도로 imgsz=1280 유지). payload.imgsz 로 현장서 조정 가능.

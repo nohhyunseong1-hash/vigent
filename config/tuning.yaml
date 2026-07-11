@@ -34,9 +34,12 @@ detect:                     # 탐지 공통
       # 향후 특정 클래스 약세가 현장에서 확인되면 per_class 인프라(guard ppe_per_class)로 재도입 가능.
       # 근거(0.30 vs 0.35 실측): NO-Hardhat R88=88 동일·NO-SafetyVest R97.2=97.2 동일(FAR만↑)·NO-Mask 80→86.7이나 FAR 3.8→7.7. 이득 미미/역효과.
     # ppe_per_class 제거(RF-DETR 단일 0.35로 충분). backend=yolo 롤백 시 ppe 0.62 + override(NO-Hardhat 0.30/NO-Mask 0.50/NO-Safety-Vest 0.50) 복원.
-    forklift: 0.002         # T10b RF-DETR 이관: 이 모델은 confidence 스케일이 낮음(0.001~0.005).
-      # D-Fire 스윕 실측 0.002 → recall 34.9%/FAR 35%(YOLO 0.68의 R35.7/FAR28.7과 유사 recall·FAR 다소↑).
-      # ⚠️ 잠정 운용점(과소학습 conf 낮음, F-7). backend=yolo 로 되돌리면 반드시 0.68 로 복원.
+    forklift: 0.002         # ★ 잠정 비활성(2026-07-11): detect_frame 기본 detectors에서 제외(main.py).
+      # F-7 과소학습으로 정탐/오탐 conf가 완전 겹침 — 정탐 p50 0.002·max 0.005 = 오탐과 동일(웹캠 벤치 실측).
+      # 어떤 임계도 오탐만 못 거름(0.002=정탐34.9%+오탐폭탄 / 0.01↑=정탐0). 사람 몸통을 conf 0.002로 오인(pos_bare 100%).
+      # → 임계 0.30 은폐형 off 기각, 명시적 detectors 제외로 처리. 이 임계값(0.002)은 측정/게이트 경로
+      #   (payload.detectors 명시 지정) 전용. T10b full 재학습 + 현장 데이터 운용점 스윕 후 복원.
+      # (구 이력) D-Fire 스윕 0.002 → recall 34.9%/FAR 35%. backend=yolo 롤백 시 0.68 복원.
     fire_smoke: 0.55        # 단일 폴백(아래 fire_smoke_per_class 없는 라벨용). 실제 임계는 클래스별 맵.
     fire_smoke_per_class:   # T10b RF-DETR 이관(e17): fire·smoke conf 분포가 달라 클래스별 분리. RF-DETR 스케일로 재튜닝.
       fire: 0.30            # D-Fire raw 스윕 R95.9%/FAR1.1%(구 YOLO R53.6 대비 대폭↑). 화재 놓침 최악 → recall 우선.
