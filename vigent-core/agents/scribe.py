@@ -154,6 +154,41 @@ def _level(score: int) -> tuple[str, str]:
     return "하", "#10b981"
 
 
+# ── 감소대책 위계 분류(고시 제12조 순서) ────────────────────────────────
+# 일반 규칙(특정 시나리오 과적합 금지): 인적 대책(신호수·유도자·감시·교육)=관리적,
+# 설비·구조 대책(센서·펜스·방호·경보·방지망)=공학적으로 더 상위.
+# 동일 위험에 설비 대책이 있으면 그것을 최상위로 제시한다(사람 개입은 보조).
+_TIER_KW: list[tuple[str, list[str]]] = [
+    ("제거·대체", ["폐지", "대체", "설계단계", "제거", "무인화", "자동화 대체", "공정변경"]),
+    ("공학적",   ["방지망", "방호선반", "방호덮개", "방호장치", "덮개", "펜스", "울타리", "난간",
+                 "센서", "자동정지", "인터록", "연동", "비상정지", "차단기", "경보", "국소배기",
+                 "환기장치", "방호", "격리", "설비"]),
+    ("관리적",   ["신호수", "유도자", "감시", "감시인", "교육", "점검", "출입통제", "출입금지",
+                 "동선", "절차", "작업계획", "작업발판", "지도", "배치", "결속", "loto",
+                 "전원차단", "휴식", "순환", "표지", "게시", "제한"]),
+    ("보호구",   ["보호구", "안전모", "안전대", "안전화", "마스크", "조끼", "착용",
+                 "송기마스크", "공기호흡기", "장갑"]),
+]
+
+
+def _classify_measures(act: str) -> dict[str, list[str]]:
+    """감소대책 평문 → 고시 12조 위계별 분류(정렬: 제거>공학>관리>PPE). 원본 항목 보존(누락 없음).
+    설비>인적 원칙: 각 항목을 상위 위계부터 키워드 매칭해 최초 매칭 위계에 배치."""
+    tiers: dict[str, list[str]] = {"제거·대체": [], "공학적": [], "관리적": [], "보호구": []}
+    for raw in str(act or "").split(","):
+        item = raw.strip()
+        if not item:
+            continue
+        low = item.lower()
+        for tier, kws in _TIER_KW:
+            if any(kw.lower() in low for kw in kws):
+                tiers[tier].append(item)
+                break
+        else:
+            tiers["관리적"].append(item)   # 미분류 → 보수적으로 관리적(인적/절차)로 취급
+    return {k: v for k, v in tiers.items() if v}
+
+
 def _evidence_data_uri(relpath: str, max_bytes: int = 4_000_000) -> str | None:
     """data/evidence 상대경로 → data URI(base64). 문서에 사진을 내장해 이동·이메일에도 보존.
     없거나 너무 크면 None(저하 없이 사진만 생략)."""
@@ -253,7 +288,8 @@ class ScribeAgent(BaseAgent):
                 "중대성_강도": sev,                          # 5b. 중대성(강도)
                 "위험성": score,                             # 5c. 위험성(가능성×중대성)
                 "위험성등급": lvl,
-                "감소대책": kb["act"],                       # 6. 위험성 감소대책
+                "감소대책": kb["act"],                       # 6. 위험성 감소대책(평문, 보존)
+                "감소대책_위계": _classify_measures(kb["act"]),  # 6a. 고시12조 위계별(설비>인적)
                 "개선후위험성": "",                          # 7. 개선후 위험성(검토자 기입)
                 "개선예정일": "",                            # 8. 개선 예정일(검토자 기입)
                 "완료일": "",                                # 9. 완료일(검토자 기입)
@@ -341,10 +377,21 @@ class ScribeAgent(BaseAgent):
         """위험성평가표 → KOSHA KRAS 서식 11 구조의 인쇄/PDF용 자체 완결형 HTML."""
         e = html.escape
         rows_html = ""
+        _TIER_ORDER = ["제거·대체", "공학적", "관리적", "보호구"]
+        _TIER_TIP = {"공학적": "설비·구조(상위)", "관리적": "인적·절차(보조)", "보호구": "최후"}
         for r in assessment["rows"]:
             cites = "<br>".join(
                 f"· {e(c['source'])} {e(c['clause'])}" for c in r.get("citations", [])
             ) or "—"
+            # 감소대책 위계 렌더 — 고시12조 순서(설비>인적). 위계 없으면 평문 폴백(저하 없음).
+            _tiers = r.get("감소대책_위계") or {}
+            if _tiers:
+                measure_html = "".join(
+                    f'<div class="tier"><b>{e(t)}</b>'
+                    f'<span class="src">({e(_TIER_TIP.get(t, ""))})</span>: {e(", ".join(_tiers[t]))}</div>'
+                    for t in _TIER_ORDER if _tiers.get(t))
+            else:
+                measure_html = e(r["감소대책"])
             rows_html += f"""
       <tr>
         <td>{e(r['세부작업내용'])}<div class="hz">[{e(r['유해위험요인'])}]</div></td>
@@ -355,7 +402,7 @@ class ScribeAgent(BaseAgent):
         <td style="text-align:center">{r['가능성_빈도']}</td>
         <td style="text-align:center">{r['중대성_강도']}</td>
         <td style="text-align:center"><b style="color:{r['_color']}">{r['위험성']}<br>({e(r['위험성등급'])})</b></td>
-        <td>{e(r['감소대책'])}</td>
+        <td>{measure_html}</td>
         <td></td>
         <td></td><td></td><td></td>
       </tr>"""
