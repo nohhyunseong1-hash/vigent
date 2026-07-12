@@ -15,6 +15,23 @@ _meta:
 
 statutes:
   # ── 산업안전보건법 ──────────────────────────────────────────────
+  - id: osha_36
+    law: 산업안전보건법
+    law_key: osha
+    article: 제36조
+    article_from: 36
+    article_to: 36
+    title: 위험성평가의 실시
+    status: active
+    verified_by: 노현성
+    verified_date: "2026-07-12"
+    source_url: https://www.law.go.kr/법령/산업안전보건법/제36조
+    text: null
+    text_status: 원문 미확보 — 전문(①~⑥항)이 대화에 미포함(플레이스홀더만). 사용자 원문 대기
+    # 아래는 '노현성 확인' 주장(AI 미검증). 원문 확정 후에만 항별 근거를 제품 산출에 활성화(§7).
+    amendment_note: "2026.2.19 개정본(노현성 확인·AI 미검증). 4항=TBM(작업 전 안전점검회의) 명시 주장 / 3항=근로자대표 참여 / 5항=결과 기록·보존 / 6항=방법·절차 고용노동부령 위임"
+    used_by: []   # 위험성평가 총괄 근거. 원문 확정 후 문서 헤더·방법근거로 활용.
+
   - id: osha_38
     law: 산업안전보건법
     law_key: osha
