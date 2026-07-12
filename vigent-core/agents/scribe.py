@@ -379,10 +379,19 @@ class ScribeAgent(BaseAgent):
         rows_html = ""
         _TIER_ORDER = ["제거·대체", "공학적", "관리적", "보호구"]
         _TIER_TIP = {"공학적": "설비·구조(상위)", "관리적": "인적·절차(보조)", "보호구": "최후"}
+        def _cite_line(c):
+            base = f"· {e(c['source'])} {e(c['clause'])}"
+            # 보류(화이트리스트 밖) 법령은 시각 플래그만(제거 아님 → §6 저하 없음).
+            try:
+                import legal_whitelist as _L
+                lk = _L._canon_law(c.get("source", "")); an = _L._art_num(c.get("clause", ""))
+                if lk is not None and an is not None and not _L.is_whitelisted(lk, an):
+                    base += ' <span class="src">⚠화이트리스트 외·검토필요</span>'
+            except Exception:  # noqa: BLE001
+                pass
+            return base
         for r in assessment["rows"]:
-            cites = "<br>".join(
-                f"· {e(c['source'])} {e(c['clause'])}" for c in r.get("citations", [])
-            ) or "—"
+            cites = "<br>".join(_cite_line(c) for c in r.get("citations", [])) or "—"
             # 감소대책 위계 렌더 — 고시12조 순서(설비>인적). 위계 없으면 평문 폴백(저하 없음).
             _tiers = r.get("감소대책_위계") or {}
             if _tiers:
