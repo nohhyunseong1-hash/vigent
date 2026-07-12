@@ -208,6 +208,13 @@ class ScribeAgent(BaseAgent):
             citations = []
             if self.copilot is not None:
                 citations = self.copilot.cite(rule).get("citations", [])
+                # 법령 화이트리스트 감사(비파괴): 보류 조문은 '로그만'(문서 불변, §6).
+                # 자주 인용 시도되는 보류 조문 빈도 데이터를 수집한다(필요 기반 우선순위, §7).
+                try:
+                    import legal_whitelist
+                    legal_whitelist.audit_citations(citations, doc_type="위험성평가", rule_id=rule)
+                except Exception:  # noqa: BLE001
+                    pass
             # 증거 사진(이벤트 캡쳐) 자동 첨부 — data URI 로 문서에 내장(최대 4장) + VLM 장면설명
             ev_items = ev.get("evidence_items")
             if ev_items:

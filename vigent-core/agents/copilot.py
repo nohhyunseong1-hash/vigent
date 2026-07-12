@@ -101,7 +101,15 @@ class CopilotAgent(BaseAgent):
         if not isinstance(vlm, dict):
             return vlm
         if str(vlm.get("관련법령", "")).strip():
-            return vlm   # VLM 이 이미 적었으면 유지
+            # VLM 이 직접 채운 '관련법령' 은 화이트리스트 게이트로 검증(환각 구멍 차단, §7).
+            # 화이트리스트 밖/파싱불가 조문은 '안전관리자 확인 필요'로 치환 + 로그.
+            try:
+                import legal_whitelist
+                vlm["관련법령"] = legal_whitelist.gate_vlm_text(
+                    str(vlm.get("관련법령", "")), doc_type="VLM위험분석")
+            except Exception:  # noqa: BLE001
+                pass
+            return vlm   # (게이트 적용 후) VLM 자체 값 유지
         text = f"{vlm.get('위험요인', '')} {vlm.get('근거', '')}"
         m = self.cite_for_hazard(text)
         if m["matched"]:
