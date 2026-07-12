@@ -482,6 +482,7 @@ class RiskAssessmentIn(BaseModel):
     events: list[dict]
     site: str | None = ""
     process: str | None = ""
+    mode: str | None = "checklist"   # 'checklist'(기본·현장 실무형) | 'quantitative'(빈도×강도 3×3 보존)
 
 
 @app.post("/safety/risk-assessment")
@@ -494,7 +495,7 @@ def safety_risk_assessment(body: RiskAssessmentIn, theme: str = DEFAULT_THEME,
     scribe = bundle["agents"].get("Scribe")
     out = scribe.generate(body.events or [],
                           site=body.site or "", process=body.process or "",
-                          use_llm=narrative)
+                          use_llm=narrative, mode=(body.mode or "checklist"))
     return {"assessment": out["assessment"], "saved_path": out["saved_path"],
             "saved": out.get("saved", out["saved_path"] is not None),
             "dropped_rules": out.get("dropped_rules", [])}

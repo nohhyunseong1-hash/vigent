@@ -260,3 +260,60 @@ statutes:
     text: null
     text_status: 원문 미확보 — 사용자 대조 대기 (범위 조문)
     used_by: [ergonomic_risk]
+
+  # ── 고시(행정규칙): 사업장 위험성평가에 관한 지침 ──────────────────
+  # 고시번호·시행일·조 위치는 검색 확인(2026-07-12). 원문 '문구'는 미확정 →
+  # 문서에 고시번호·조번호는 표기 가능, 조문 인용문(원문 문구) 출력은 금지(§7).
+  - id: notice_7
+    law: 사업장 위험성평가에 관한 지침
+    law_key: notice
+    tier: 고시
+    issued_no: 고용노동부고시 제2024-76호
+    effective_date: "2025-01-02"
+    article: 제7조
+    article_from: 7
+    article_to: 7
+    title: 위험성평가의 방법
+    status: active
+    verified_by: 노현성
+    verified_date: "2026-07-12"
+    source_url: https://www.law.go.kr/행정규칙/사업장위험성평가에관한지침
+    text: null
+    text_status: 원문 대조 대기 (번호·시행일 확인, 원문 문구 미확정 — 인용문 출력 금지)
+    used_by: []   # 체크리스트법 근거(문서 푸터)
+
+  - id: notice_12
+    law: 사업장 위험성평가에 관한 지침
+    law_key: notice
+    tier: 고시
+    issued_no: 고용노동부고시 제2024-76호
+    effective_date: "2025-01-02"
+    article: 제12조
+    article_from: 12
+    article_to: 12
+    title: 위험성 감소대책 수립 및 실행
+    status: active
+    verified_by: 노현성
+    verified_date: "2026-07-12"
+    source_url: https://www.law.go.kr/행정규칙/사업장위험성평가에관한지침
+    text: null
+    text_status: 원문 대조 대기 (번호 확인, 원문 문구 미확정 — 인용문 출력 금지)
+    used_by: []   # 감소대책 위계 근거
+
+  - id: notice_13
+    law: 사업장 위험성평가에 관한 지침
+    law_key: notice
+    tier: 고시
+    issued_no: 고용노동부고시 제2024-76호
+    effective_date: "2025-01-02"
+    article: 제13조
+    article_from: 13
+    article_to: 13
+    title: 위험성평가의 공유
+    status: active
+    verified_by: 노현성
+    verified_date: "2026-07-12"
+    source_url: https://www.law.go.kr/행정규칙/사업장위험성평가에관한지침
+    text: null
+    text_status: 원문 대조 대기 (번호 확인, 원문 문구 미확정 — 인용문 출력 금지)
+    used_by: []   # TBM 공유 근거(Phase2 TBM 생성기)

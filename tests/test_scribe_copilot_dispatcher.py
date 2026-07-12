@@ -33,7 +33,7 @@ class TestStep4(unittest.TestCase):
     def test_scribe_assessment_with_citations(self):
         out = self.agents["Scribe"].generate(
             [{"rule": "zone_intrusion", "count": 5}, {"rule": "ppe_missing", "count": 9}],
-            site="A현장", process="조립", save=False)
+            site="A현장", process="조립", save=False, mode="quantitative")
         a = out["assessment"]
         self.assertEqual(a["summary"]["총항목"], 2)
         self.assertEqual(a["status"], "draft")
@@ -43,11 +43,22 @@ class TestStep4(unittest.TestCase):
         self.assertIn("산업안전보건법", a["rows"][0]["관련근거"])
 
     def test_scribe_html_renders(self):
-        out = self.agents["Scribe"].generate([{"rule": "fall_suspected", "count": 2}], save=False)
+        out = self.agents["Scribe"].generate([{"rule": "fall_suspected", "count": 2}],
+                                             save=False, mode="quantitative")
         html = out["html"]
         self.assertIn("위험성평가서", html)
         self.assertIn("인쇄 / PDF로 저장", html)
         self.assertIn("산업안전보건법", html)   # 근거가 본문에 표기
+
+    def test_scribe_checklist_mode(self):
+        # 기본 mode=checklist — 체크리스트 양식 산출
+        out = self.agents["Scribe"].generate([{"rule": "ppe_missing", "count": 5}], save=False)
+        a = out["assessment"]
+        self.assertEqual(a["method"], "checklist")
+        self.assertEqual(a["rows"][0]["적정성"], "X")           # 비전 감지 = 부적정
+        self.assertIn(a["rows"][0]["위험수준"], ("상", "중", "하"))
+        self.assertIn("체크리스트법", out["html"])
+        self.assertIn("고용노동부고시 제2024-76호", out["html"])  # 고시번호 표기(원문 문구는 미표기)
 
     # ── Dispatcher: 키 없으면 폴백(예외로 죽지 않음) ──
     def test_dispatcher_fallback_without_keys(self):

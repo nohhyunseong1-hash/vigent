@@ -44,7 +44,8 @@ class TestReport(unittest.TestCase):
         self.scribe = build_agents(cfg)["Scribe"]
 
     def test_kosha_standard_form_in_html(self):
-        out = self.scribe.generate([{"rule": "zone_intrusion", "count": 5}], save=False)
+        out = self.scribe.generate([{"rule": "zone_intrusion", "count": 5}], save=False,
+                                   mode="quantitative")
         html = out["html"]
         # KOSHA KRAS 서식 11 공식 컬럼이 보여야 함
         for token in ("유해·위험요인 파악", "위험 분류", "위험발생 상황 및 결과",

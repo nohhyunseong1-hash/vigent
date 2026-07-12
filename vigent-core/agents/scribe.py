@@ -569,10 +569,11 @@ class ScribeAgent(BaseAgent):
             "method_label": "체크리스트법 (적정성 O/X/− + 상·중·하 병기)",
             "form_standard": "checklist_kr",
             "form_label": "체크리스트법 위험성평가",
-            # ⚠️ 잠정(§7): 고시 원문·조번호 미확정 → 정식 조번호 미명시. 원문 확정 후 교체.
-            "legal_basis_provisional": "위험성평가 고시에 따른 체크리스트법(근거 조항 확정 중)",
+            # 번호·시행일 확인분만 표기(§7): 조번호·고시번호는 표기 가능, 원문 '문구'는 미확정→인용문 미출력.
+            "legal_basis": "산업안전보건법 제36조 및 사업장 위험성평가에 관한 지침"
+                           "(고용노동부고시 제2024-76호) 제7조에 따른 체크리스트법",
             "status": "draft", "review_required": True,
-            "summary": {"총점검항목": len(rows), "부적정_X": len(rows), "상_높음": len(high),
+            "summary": {"총항목": len(rows), "부적정_X": len(rows), "상_높음": len(high),
                         "주요위험": [r["유해위험요인"] for r in high]},
             "rows": rows,
             "dropped_rules": dropped,
@@ -619,7 +620,7 @@ class ScribeAgent(BaseAgent):
         <td></td>
       </tr>"""
         s = a["summary"]
-        prov = e(a.get("legal_basis_provisional", ""))
+        prov = e(a.get("legal_basis", ""))
         narr = e(a.get("narrative", ""))
         return f"""<!doctype html><html lang="ko"><head><meta charset="utf-8">
 <title>체크리스트 위험성평가 · {e(a.get('site',''))}</title>
@@ -636,7 +637,7 @@ class ScribeAgent(BaseAgent):
  <h1>위험성평가서 — 체크리스트법</h1>
  <div class="meta"><span class="badge">{e(a.get('method_label',''))}</span>
    현장: {e(a.get('site') or '(미지정)')} · 공정: {e(a.get('process') or '(미지정)')} · {e(a.get('generated_at',''))}</div>
- <div class="meta">점검 {s.get('총점검항목',0)}건 · 부적정(X) {s.get('부적정_X',0)} · 위험수준 상 {s.get('상_높음',0)}</div>
+ <div class="meta">점검 {s.get('총항목',0)}건 · 부적정(X) {s.get('부적정_X',0)} · 위험수준 상 {s.get('상_높음',0)}</div>
  <table>
   <thead><tr>
    <th style="width:14%">작업/공정</th><th style="width:20%">유해·위험요인</th>
@@ -651,7 +652,7 @@ class ScribeAgent(BaseAgent):
    <b>📝 종합의견</b> <span class="src">(AI 초안 · 안전관리자 검토 필요)</span><br>{narr}</div>
  <div class="foot">
    · 방법: 체크리스트법. 적정성 — 적정 O / 부적정 X / 해당없음 −. 위험수준은 부적정(X) 항목의 개선 우선순위(상·중·하).<br>
-   · 법적 근거: <span class="prov">{prov}</span> — 고시 원문·조번호 확정 후 정식 표기로 교체됩니다.<br>
+   · 법적 근거: <span class="prov">{prov}</span> <span class="src">(고시번호·조번호는 확인분 · 원문 문구는 대조 대기 — 인용문 미표기)</span><br>
    · 개선대책은 고시 위계(제거·대체 &gt; 공학 &gt; 관리 &gt; 개인보호구) 순. 관련 법령은 Copilot 자동 인용(초안 참고).<br>
    · 적정성(O/X) 판단과 최종 조치는 <b>안전관리자 검토용 초안</b>이며 사람이 확정해야 합니다.
  </div>
@@ -659,11 +660,11 @@ class ScribeAgent(BaseAgent):
 
     def generate(self, events: list[dict[str, Any]], site: str = "", process: str = "",
                  save: bool = True, use_vlm: bool = False, use_llm: bool = False,
-                 method: str = "quantitative") -> dict[str, Any]:
+                 mode: str = "checklist") -> dict[str, Any]:
         """이벤트 → 평가표 + HTML 생성(+저장). 반환: {assessment, html, saved_path}.
-        method: 'quantitative'(빈도×강도, 기존 보존·기본) | 'checklist'(체크리스트법, 현장 실무형).
+        mode: 'checklist'(체크리스트법, 현장 실무형·기본) | 'quantitative'(빈도×강도, 3×3 보존).
         use_llm=True 일 때만 종합의견을 LLM 으로(느림). 기본은 결정적 폴백(즉시 · rows·법령 불변)."""
-        if method == "checklist":
+        if mode == "checklist":
             assessment = self.build_checklist(events, site, process, use_vlm=use_vlm)
             page = self.render_checklist_html(assessment)
         else:

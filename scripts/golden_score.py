@@ -22,7 +22,7 @@ import legal_whitelist as L                # noqa: E402
 from agents.scribe import ScribeAgent      # noqa: E402
 from agents.copilot import CopilotAgent    # noqa: E402
 
-GOLD_PATH = Path(__file__).resolve().parent.parent / "eval" / "golden" / "item_01_crane.json"
+GOLD_PATH = Path(__file__).resolve().parent.parent / "eval" / "golden" / "item_01_crane_quantitative.json"
 gold = json.loads(GOLD_PATH.read_text(encoding="utf-8"))
 
 _HUMAN_KW = ["신호수", "유도자", "감시", "교육", "점검", "출입", "동선", "배치", "지도", "결속", "휴식"]
@@ -46,7 +46,8 @@ def hierarchy_ok(row):
 
 scribe = ScribeAgent(None)
 scribe.copilot = CopilotAgent(None)
-res = scribe.generate(gold["events"], site=gold.get("site", ""), process=gold.get("process", ""), save=False)
+res = scribe.generate(gold["events"], site=gold.get("site", ""), process=gold.get("process", ""),
+                      save=False, mode="quantitative")   # 정량법(3×3) 채점기
 by_rule = {r["rule"]: r for r in res["assessment"]["rows"]}
 grade_map = gold.get("grade_map", {})
 
