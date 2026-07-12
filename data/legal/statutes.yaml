@@ -261,6 +261,22 @@ statutes:
     text_status: 원문 미확보 — 사용자 대조 대기 (범위 조문)
     used_by: [ergonomic_risk]
 
+  # ── 프레스/전단기(골든 #3 근거) ─────────────────────────────────
+  - id: rule_103_105
+    law: 산업안전보건기준에 관한 규칙
+    law_key: rule
+    article: 제103조~제105조
+    article_from: 103
+    article_to: 105
+    title: 프레스 방호장치·안전블록 등(제103 방호장치·제104 금형조정 운전정지·제105 안전블록)
+    status: active
+    verified_by: 노현성
+    verified_date: "2026-07-12"
+    source_url: https://www.law.go.kr/법령/산업안전보건기준에관한규칙
+    text: null
+    text_status: 원문 미확보 — 사용자 대조 대기 (골든셋 #3 근거로 등재, 범위 조문)
+    used_by: [guard_bypass]
+
   # ── 밀폐공간(골든 #2 근거) ──────────────────────────────────────
   - id: rule_619
     law: 산업안전보건기준에 관한 규칙
