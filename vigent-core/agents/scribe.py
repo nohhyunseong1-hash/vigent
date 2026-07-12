@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import html
 import json
+import re
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any
@@ -187,6 +188,18 @@ def _classify_measures(act: str) -> dict[str, list[str]]:
         else:
             tiers["관리적"].append(item)   # 미분류 → 보수적으로 관리적(인적/절차)로 취급
     return {k: v for k, v in tiers.items() if v}
+
+
+_LAW_ART = re.compile(r"제\s*\d+조.*$")
+
+
+def _split_law(s: str) -> tuple[str, str]:
+    """'산업안전보건기준에 관한 규칙 제40조' → ('산업안전보건기준에 관한 규칙','제40조')."""
+    s = str(s or "").strip()
+    m = _LAW_ART.search(s)
+    if m:
+        return s[:m.start()].strip(), m.group(0).strip()
+    return s, ""
 
 
 def _evidence_data_uri(relpath: str, max_bytes: int = 4_000_000) -> str | None:
@@ -524,44 +537,72 @@ class ScribeAgent(BaseAgent):
 </body></html>"""
 
     # ── 체크리스트법 모드(현장 실무형) — 정량법과 분리 보존, 가산 ──────────
+    def _checklist_detected_row(self, rule, ev, check_point=None):
+        """비전 감지 항목 → 부적정(X) 행. 위험수준=강도, 개선대책=위계 재활용."""
+        kb = RULE_KB.get(rule)
+        if not kb:
+            return None
+        _LV = {3: "상", 2: "중", 1: "하"}
+        sev = _severity_from_levels(ev.get("levels") or {}, int(kb["sev"]))
+        count = int(ev.get("count", 1) or 1)
+        citations = []
+        if self.copilot is not None:
+            citations = self.copilot.cite(rule).get("citations", [])
+            try:
+                import legal_whitelist
+                legal_whitelist.audit_citations(citations, doc_type="체크리스트", rule_id=rule)
+            except Exception:  # noqa: BLE001
+                pass
+        return {"rule": rule, "작업공정": kb["work"], "유해위험요인": check_point or kb["hazard"],
+                "적정성": "X", "위험수준": _LV.get(sev, "중"),
+                "감소대책": kb["act"], "감소대책_위계": _classify_measures(kb["act"]),
+                "관련근거": kb["law"], "citations": citations,
+                "개선후확인": "", "AI감지근거": f"AI {count}회 감지"}
+
     def build_checklist(self, events: list[dict[str, Any]], site: str = "",
-                        process: str = "", use_vlm: bool = False) -> dict[str, Any]:
-        """비전 이벤트 → 체크리스트 위험성평가. 감지된 유해위험요인 = 부적정(X) + 위험수준(상/중/하)
-        + 개선대책(고시12조 위계 재활용). 정량법(빈도×강도)과 별개 산출(방법 다중지원)."""
+                        process: str = "", use_vlm: bool = False,
+                        item_pool: list[dict[str, Any]] | None = None) -> dict[str, Any]:
+        """비전 이벤트 → 체크리스트 위험성평가.
+        item_pool 없으면: 감지된 유해위험요인만 부적정(X)으로 나열(비전 주도).
+        item_pool 있으면: 점검항목 '전부' 나열 — 감지=부적정(X), 미감지 요건=‘수동확인 필요’
+          (비전 미감지를 곧 적정으로 단정하지 않는다 §7 — 적정 여부는 사람이 확정).
+        개선대책은 고시12조 위계 재활용. 정량법(빈도×강도)과 별개 산출."""
         rows: list[dict[str, Any]] = []
         dropped: list[str] = []
-        _LV = {3: "상", 2: "중", 1: "하"}
-        for ev in events or []:
-            rule = ev.get("rule") or ev.get("type")
-            kb = RULE_KB.get(rule)
-            if not kb:
-                dropped.append(rule); continue
-            sev = _severity_from_levels(ev.get("levels") or {}, int(kb["sev"]))  # 강도→위험수준
-            count = int(ev.get("count", 1) or 1)
-            citations = []
-            if self.copilot is not None:
-                citations = self.copilot.cite(rule).get("citations", [])
-                try:
-                    import legal_whitelist
-                    legal_whitelist.audit_citations(citations, doc_type="체크리스트", rule_id=rule)
-                except Exception:  # noqa: BLE001
-                    pass
-            rows.append({
-                "rule": rule,
-                "작업공정": kb["work"],
-                "유해위험요인": kb["hazard"],
-                "적정성": "X",                                   # 비전 감지 = 부적정
-                "위험수준": _LV.get(sev, "중"),                   # (나) O/X + 상·중·하(X항목만)
-                "감소대책": kb["act"],
-                "감소대책_위계": _classify_measures(kb["act"]),   # 위계 재활용(설비>인적)
-                "관련근거": kb["law"],
-                "citations": citations,
-                "개선후확인": "",                                # 검토자 기입
-                "AI감지근거": f"AI {count}회 감지",
-            })
-        _order = {"상": 0, "중": 1, "하": 2}
+        if item_pool:
+            ev_by_rule = {(e.get("rule") or e.get("type")): e for e in events or []}
+            for pit in item_pool:
+                rule = pit.get("rule")
+                ev = ev_by_rule.get(rule) if rule else None
+                if ev is not None:                                  # 비전 감지 → 부적정 X
+                    row = self._checklist_detected_row(rule, ev, check_point=pit.get("check_point"))
+                    if row is None:
+                        continue
+                else:                                               # 미감지 요건 → 수동확인
+                    tiers = pit.get("감소대책")
+                    if not isinstance(tiers, dict):
+                        tiers = _classify_measures(str(tiers or ""))
+                    laws = pit.get("법령") or []
+                    row = {"rule": rule, "작업공정": "점검항목", "유해위험요인": pit.get("check_point", ""),
+                           "적정성": "−", "위험수준": "수동확인",
+                           "감소대책": "; ".join(sum(tiers.values(), [])),
+                           "감소대책_위계": tiers,
+                           "관련근거": ", ".join(laws),
+                           "citations": [{"source": src, "clause": cl} for src, cl in map(_split_law, laws)],
+                           "개선후확인": "", "AI감지근거": "비전 미감지 · 수동확인 필요"}
+                rows.append(row)
+            _order = {"상": 0, "중": 1, "하": 2, "수동확인": 8}
+        else:
+            for ev in events or []:
+                rule = ev.get("rule") or ev.get("type")
+                if not RULE_KB.get(rule):
+                    dropped.append(rule); continue
+                rows.append(self._checklist_detected_row(rule, ev))
+            _order = {"상": 0, "중": 1, "하": 2}
         rows.sort(key=lambda r: _order.get(r["위험수준"], 9))
-        high = [r for r in rows if r["위험수준"] == "상"]
+        x_rows = [r for r in rows if r["적정성"] == "X"]
+        manual = [r for r in rows if r["위험수준"] == "수동확인"]
+        high = [r for r in x_rows if r["위험수준"] == "상"]
         result = {
             "site": site, "process": process,
             "generated_at": datetime.now(KST).strftime("%Y-%m-%d %H:%M KST"),
@@ -573,14 +614,16 @@ class ScribeAgent(BaseAgent):
             "legal_basis": "산업안전보건법 제36조 및 사업장 위험성평가에 관한 지침"
                            "(고용노동부고시 제2024-76호) 제7조에 따른 체크리스트법",
             "status": "draft", "review_required": True,
-            "summary": {"총항목": len(rows), "부적정_X": len(rows), "상_높음": len(high),
-                        "주요위험": [r["유해위험요인"] for r in high]},
+            "summary": {"총항목": len(rows), "부적정_X": len(x_rows), "수동확인": len(manual),
+                        "상_높음": len(high), "주요위험": [r["유해위험요인"] for r in high]},
             "rows": rows,
             "dropped_rules": dropped,
         }
         top = ", ".join(result["summary"]["주요위험"]) or "없음"
-        result["narrative"] = (f"체크리스트 점검 결과 {len(rows)}개 항목이 부적정(X)으로 감지되었으며, "
-                               f"위험수준 '상' 항목({top})의 개선대책 즉시 이행이 권고된다. "
+        _manual_txt = (f" 아울러 {len(manual)}개 요건은 비전 미감지로 '수동확인 필요'로 표기됐다."
+                       if manual else "")
+        result["narrative"] = (f"체크리스트 점검 결과 {len(x_rows)}개 항목이 부적정(X)으로 감지되었으며, "
+                               f"위험수준 '상' 항목({top})의 개선대책 즉시 이행이 권고된다.{_manual_txt} "
                                f"본 결과는 AI 초안이며 적정성 판단·최종 조치는 안전관리자 확인 하에 이뤄져야 한다.")
         result["narrative_source"] = "로컬 규칙 기반(체크리스트)"
         return result
@@ -609,12 +652,14 @@ class ScribeAgent(BaseAgent):
                 f'<div><b>{e(t)}</b>: {e(", ".join(tiers[t]))}</div>'
                 for t in _TIER_ORDER if tiers.get(t)) or e(r.get("감소대책", ""))
             cites = "<br>".join(_cite(c) for c in r.get("citations", [])) or "—"
+            _ax = "#ef4444" if r["적정성"] == "X" else "#6b7280"   # X만 강조, −/수동확인은 회색
+            _lx = _color.get(r["위험수준"], "#6b7280")
             rows_html += f"""
       <tr>
         <td>{e(r['작업공정'])}</td>
         <td>{e(r['유해위험요인'])}<div class="ai">{e(r.get('AI감지근거',''))}</div></td>
-        <td style="text-align:center;font-weight:700;color:#ef4444">{e(r['적정성'])}</td>
-        <td style="text-align:center"><b style="color:{_color.get(r['위험수준'],'#333')}">{e(r['위험수준'])}</b></td>
+        <td style="text-align:center;font-weight:700;color:{_ax}">{e(r['적정성'])}</td>
+        <td style="text-align:center"><b style="color:{_lx}">{e(r['위험수준'])}</b></td>
         <td>{measures}</td>
         <td>{cites}</td>
         <td></td>
@@ -637,7 +682,7 @@ class ScribeAgent(BaseAgent):
  <h1>위험성평가서 — 체크리스트법</h1>
  <div class="meta"><span class="badge">{e(a.get('method_label',''))}</span>
    현장: {e(a.get('site') or '(미지정)')} · 공정: {e(a.get('process') or '(미지정)')} · {e(a.get('generated_at',''))}</div>
- <div class="meta">점검 {s.get('총항목',0)}건 · 부적정(X) {s.get('부적정_X',0)} · 위험수준 상 {s.get('상_높음',0)}</div>
+ <div class="meta">점검 {s.get('총항목',0)}건 · 부적정(X) {s.get('부적정_X',0)} · 수동확인 {s.get('수동확인',0)} · 위험수준 상 {s.get('상_높음',0)}</div>
  <table>
   <thead><tr>
    <th style="width:14%">작업/공정</th><th style="width:20%">유해·위험요인</th>
@@ -660,12 +705,13 @@ class ScribeAgent(BaseAgent):
 
     def generate(self, events: list[dict[str, Any]], site: str = "", process: str = "",
                  save: bool = True, use_vlm: bool = False, use_llm: bool = False,
-                 mode: str = "checklist") -> dict[str, Any]:
+                 mode: str = "checklist", item_pool: list[dict[str, Any]] | None = None) -> dict[str, Any]:
         """이벤트 → 평가표 + HTML 생성(+저장). 반환: {assessment, html, saved_path}.
         mode: 'checklist'(체크리스트법, 현장 실무형·기본) | 'quantitative'(빈도×강도, 3×3 보존).
+        item_pool(checklist 전용): 점검항목 풀 — 있으면 전 항목 나열(미감지=수동확인).
         use_llm=True 일 때만 종합의견을 LLM 으로(느림). 기본은 결정적 폴백(즉시 · rows·법령 불변)."""
         if mode == "checklist":
-            assessment = self.build_checklist(events, site, process, use_vlm=use_vlm)
+            assessment = self.build_checklist(events, site, process, use_vlm=use_vlm, item_pool=item_pool)
             page = self.render_checklist_html(assessment)
         else:
             assessment = self.build_assessment(events, site, process, use_vlm=use_vlm, use_llm=use_llm)
