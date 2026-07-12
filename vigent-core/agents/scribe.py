@@ -523,12 +523,152 @@ class ScribeAgent(BaseAgent):
   </div>
 </body></html>"""
 
+    # ── 체크리스트법 모드(현장 실무형) — 정량법과 분리 보존, 가산 ──────────
+    def build_checklist(self, events: list[dict[str, Any]], site: str = "",
+                        process: str = "", use_vlm: bool = False) -> dict[str, Any]:
+        """비전 이벤트 → 체크리스트 위험성평가. 감지된 유해위험요인 = 부적정(X) + 위험수준(상/중/하)
+        + 개선대책(고시12조 위계 재활용). 정량법(빈도×강도)과 별개 산출(방법 다중지원)."""
+        rows: list[dict[str, Any]] = []
+        dropped: list[str] = []
+        _LV = {3: "상", 2: "중", 1: "하"}
+        for ev in events or []:
+            rule = ev.get("rule") or ev.get("type")
+            kb = RULE_KB.get(rule)
+            if not kb:
+                dropped.append(rule); continue
+            sev = _severity_from_levels(ev.get("levels") or {}, int(kb["sev"]))  # 강도→위험수준
+            count = int(ev.get("count", 1) or 1)
+            citations = []
+            if self.copilot is not None:
+                citations = self.copilot.cite(rule).get("citations", [])
+                try:
+                    import legal_whitelist
+                    legal_whitelist.audit_citations(citations, doc_type="체크리스트", rule_id=rule)
+                except Exception:  # noqa: BLE001
+                    pass
+            rows.append({
+                "rule": rule,
+                "작업공정": kb["work"],
+                "유해위험요인": kb["hazard"],
+                "적정성": "X",                                   # 비전 감지 = 부적정
+                "위험수준": _LV.get(sev, "중"),                   # (나) O/X + 상·중·하(X항목만)
+                "감소대책": kb["act"],
+                "감소대책_위계": _classify_measures(kb["act"]),   # 위계 재활용(설비>인적)
+                "관련근거": kb["law"],
+                "citations": citations,
+                "개선후확인": "",                                # 검토자 기입
+                "AI감지근거": f"AI {count}회 감지",
+            })
+        _order = {"상": 0, "중": 1, "하": 2}
+        rows.sort(key=lambda r: _order.get(r["위험수준"], 9))
+        high = [r for r in rows if r["위험수준"] == "상"]
+        result = {
+            "site": site, "process": process,
+            "generated_at": datetime.now(KST).strftime("%Y-%m-%d %H:%M KST"),
+            "method": "checklist",
+            "method_label": "체크리스트법 (적정성 O/X/− + 상·중·하 병기)",
+            "form_standard": "checklist_kr",
+            "form_label": "체크리스트법 위험성평가",
+            # ⚠️ 잠정(§7): 고시 원문·조번호 미확정 → 정식 조번호 미명시. 원문 확정 후 교체.
+            "legal_basis_provisional": "위험성평가 고시에 따른 체크리스트법(근거 조항 확정 중)",
+            "status": "draft", "review_required": True,
+            "summary": {"총점검항목": len(rows), "부적정_X": len(rows), "상_높음": len(high),
+                        "주요위험": [r["유해위험요인"] for r in high]},
+            "rows": rows,
+            "dropped_rules": dropped,
+        }
+        top = ", ".join(result["summary"]["주요위험"]) or "없음"
+        result["narrative"] = (f"체크리스트 점검 결과 {len(rows)}개 항목이 부적정(X)으로 감지되었으며, "
+                               f"위험수준 '상' 항목({top})의 개선대책 즉시 이행이 권고된다. "
+                               f"본 결과는 AI 초안이며 적정성 판단·최종 조치는 안전관리자 확인 하에 이뤄져야 한다.")
+        result["narrative_source"] = "로컬 규칙 기반(체크리스트)"
+        return result
+
+    def render_checklist_html(self, a: dict[str, Any]) -> str:
+        """체크리스트법 위험성평가 → 자체완결 HTML. 개선대책은 위계별, 보류 법령은 시각 플래그."""
+        e = html.escape
+        _TIER_ORDER = ["제거·대체", "공학적", "관리적", "보호구"]
+        _color = {"상": "#ef4444", "중": "#f59e0b", "하": "#10b981"}
+
+        def _cite(c):
+            base = f"· {e(c['source'])} {e(c['clause'])}"
+            try:
+                import legal_whitelist as _L
+                lk = _L._canon_law(c.get("source", "")); an = _L._art_num(c.get("clause", ""))
+                if lk is not None and an is not None and not _L.is_whitelisted(lk, an):
+                    base += ' <span class="src">⚠화이트리스트 외·검토필요</span>'
+            except Exception:  # noqa: BLE001
+                pass
+            return base
+
+        rows_html = ""
+        for r in a["rows"]:
+            tiers = r.get("감소대책_위계") or {}
+            measures = "".join(
+                f'<div><b>{e(t)}</b>: {e(", ".join(tiers[t]))}</div>'
+                for t in _TIER_ORDER if tiers.get(t)) or e(r.get("감소대책", ""))
+            cites = "<br>".join(_cite(c) for c in r.get("citations", [])) or "—"
+            rows_html += f"""
+      <tr>
+        <td>{e(r['작업공정'])}</td>
+        <td>{e(r['유해위험요인'])}<div class="ai">{e(r.get('AI감지근거',''))}</div></td>
+        <td style="text-align:center;font-weight:700;color:#ef4444">{e(r['적정성'])}</td>
+        <td style="text-align:center"><b style="color:{_color.get(r['위험수준'],'#333')}">{e(r['위험수준'])}</b></td>
+        <td>{measures}</td>
+        <td>{cites}</td>
+        <td></td>
+      </tr>"""
+        s = a["summary"]
+        prov = e(a.get("legal_basis_provisional", ""))
+        narr = e(a.get("narrative", ""))
+        return f"""<!doctype html><html lang="ko"><head><meta charset="utf-8">
+<title>체크리스트 위험성평가 · {e(a.get('site',''))}</title>
+<style>
+ body{{font-family:-apple-system,'Malgun Gothic',sans-serif;margin:24px;color:#1f2937}}
+ h1{{font-size:20px;margin:0 0 4px}} .meta{{color:#6b7280;font-size:13px;margin-bottom:12px}}
+ table{{border-collapse:collapse;width:100%;font-size:13px}}
+ th,td{{border:1px solid #d0d7de;padding:6px 8px;vertical-align:top}}
+ th{{background:#f3f4f6}} .ai{{color:#6b7280;font-size:11px;margin-top:3px}}
+ .src{{color:#b45309;font-size:11px}} .badge{{background:#e0f2fe;color:#075985;padding:2px 8px;border-radius:10px;font-size:12px}}
+ .foot{{margin-top:14px;color:#6b7280;font-size:12px;line-height:1.7}}
+ .prov{{background:#fef3c7;color:#92400e;padding:2px 8px;border-radius:6px}}
+</style></head><body>
+ <h1>위험성평가서 — 체크리스트법</h1>
+ <div class="meta"><span class="badge">{e(a.get('method_label',''))}</span>
+   현장: {e(a.get('site') or '(미지정)')} · 공정: {e(a.get('process') or '(미지정)')} · {e(a.get('generated_at',''))}</div>
+ <div class="meta">점검 {s.get('총점검항목',0)}건 · 부적정(X) {s.get('부적정_X',0)} · 위험수준 상 {s.get('상_높음',0)}</div>
+ <table>
+  <thead><tr>
+   <th style="width:14%">작업/공정</th><th style="width:20%">유해·위험요인</th>
+   <th style="width:7%">적정성<br>(O/X/−)</th><th style="width:7%">위험<br>수준</th>
+   <th style="width:24%">부적정 시 개선대책(위계순)</th><th style="width:20%">관련 법령</th>
+   <th style="width:8%">개선 후<br>확인</th>
+  </tr></thead>
+  <tbody>{rows_html}
+  </tbody>
+ </table>
+ <div style="margin:14px 0;padding:12px 14px;border:1px solid #d0d7de;border-left:4px solid #d4a017;border-radius:8px;background:#fbfaf5">
+   <b>📝 종합의견</b> <span class="src">(AI 초안 · 안전관리자 검토 필요)</span><br>{narr}</div>
+ <div class="foot">
+   · 방법: 체크리스트법. 적정성 — 적정 O / 부적정 X / 해당없음 −. 위험수준은 부적정(X) 항목의 개선 우선순위(상·중·하).<br>
+   · 법적 근거: <span class="prov">{prov}</span> — 고시 원문·조번호 확정 후 정식 표기로 교체됩니다.<br>
+   · 개선대책은 고시 위계(제거·대체 &gt; 공학 &gt; 관리 &gt; 개인보호구) 순. 관련 법령은 Copilot 자동 인용(초안 참고).<br>
+   · 적정성(O/X) 판단과 최종 조치는 <b>안전관리자 검토용 초안</b>이며 사람이 확정해야 합니다.
+ </div>
+</body></html>"""
+
     def generate(self, events: list[dict[str, Any]], site: str = "", process: str = "",
-                 save: bool = True, use_vlm: bool = False, use_llm: bool = False) -> dict[str, Any]:
+                 save: bool = True, use_vlm: bool = False, use_llm: bool = False,
+                 method: str = "quantitative") -> dict[str, Any]:
         """이벤트 → 평가표 + HTML 생성(+저장). 반환: {assessment, html, saved_path}.
+        method: 'quantitative'(빈도×강도, 기존 보존·기본) | 'checklist'(체크리스트법, 현장 실무형).
         use_llm=True 일 때만 종합의견을 LLM 으로(느림). 기본은 결정적 폴백(즉시 · rows·법령 불변)."""
-        assessment = self.build_assessment(events, site, process, use_vlm=use_vlm, use_llm=use_llm)
-        page = self.render_html(assessment)
+        if method == "checklist":
+            assessment = self.build_checklist(events, site, process, use_vlm=use_vlm)
+            page = self.render_checklist_html(assessment)
+        else:
+            assessment = self.build_assessment(events, site, process, use_vlm=use_vlm, use_llm=use_llm)
+            page = self.render_html(assessment)
         rows = assessment.get("rows") or []
         dropped = assessment.get("dropped_rules") or []
         saved_path = None
