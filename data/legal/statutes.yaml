@@ -79,6 +79,21 @@ statutes:
     used_by: []   # 관리체계·이행점검 문서용(영상 직접 인용 아님)
 
   # ── 산업안전보건기준에 관한 규칙 ────────────────────────────────
+  - id: rule_14
+    law: 산업안전보건기준에 관한 규칙
+    law_key: rule
+    article: 제14조
+    article_from: 14
+    article_to: 14
+    title: 낙하물에 의한 위험의 방지
+    status: active
+    verified_by: 노현성
+    verified_date: "2026-07-12"
+    source_url: https://www.law.go.kr/법령/산업안전보건기준에관한규칙
+    text: null
+    text_status: 원문 미확보 — 사용자 대조 대기 (골든셋 #1 정답 근거로 등재)
+    used_by: [falling_object]
+
   - id: rule_20
     law: 산업안전보건기준에 관한 규칙
     law_key: rule
@@ -121,7 +136,7 @@ statutes:
     verified_date: "2026-07-12"
     source_url: https://www.law.go.kr/법령/산업안전보건기준에관한규칙
     text: null
-    text_status: 원문 미확보 — 사용자 대조 대기 (웹요약 불완전, 정본 필요)
+    text_status: 강사 검수(번호·용도) 완료 — 원문 정본 대조 대기 (골든셋 #1)
     used_by: [proximity_hazard, rapid_motion]
 
   - id: rule_42
@@ -181,8 +196,8 @@ statutes:
     verified_date: "2026-07-12"
     source_url: https://www.law.go.kr/법령/산업안전보건기준에관한규칙
     text: null
-    text_status: 원문 미확보 — 사용자 대조 대기 (웹요약 불완전, 정본 필요)
-    used_by: [proximity_hazard, guard_bypass]
+    text_status: 강사 검수(번호·용도) 완료 — 원문 정본 대조 대기 (골든셋 #1)
+    used_by: [proximity_hazard, guard_bypass, falling_object]
 
   - id: rule_172
     law: 산업안전보건기준에 관한 규칙
