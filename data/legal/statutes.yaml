@@ -261,6 +261,52 @@ statutes:
     text_status: 원문 미확보 — 사용자 대조 대기 (범위 조문)
     used_by: [ergonomic_risk]
 
+  # ── 밀폐공간(골든 #2 근거) ──────────────────────────────────────
+  - id: rule_619
+    law: 산업안전보건기준에 관한 규칙
+    law_key: rule
+    article: 제619조
+    article_from: 619
+    article_to: 619
+    title: 밀폐공간 작업 프로그램의 수립·시행
+    status: active
+    verified_by: 노현성
+    verified_date: "2026-07-12"
+    source_url: https://www.law.go.kr/법령/산업안전보건기준에관한규칙
+    text: null
+    text_status: 원문 미확보 — 사용자 대조 대기 (골든셋 #2 근거로 등재)
+    used_by: [asphyxiation, lone_worker]
+
+  - id: rule_620
+    law: 산업안전보건기준에 관한 규칙
+    law_key: rule
+    article: 제620조
+    article_from: 620
+    article_to: 620
+    title: 환기 등
+    status: active
+    verified_by: 노현성
+    verified_date: "2026-07-12"
+    source_url: https://www.law.go.kr/법령/산업안전보건기준에관한규칙
+    text: null
+    text_status: 원문 미확보 — 사용자 대조 대기 (골든셋 #2 근거로 등재)
+    used_by: [asphyxiation]
+
+  - id: rule_623
+    law: 산업안전보건기준에 관한 규칙
+    law_key: rule
+    article: 제623조
+    article_from: 623
+    article_to: 623
+    title: 감시인의 배치 등
+    status: active
+    verified_by: 노현성
+    verified_date: "2026-07-12"
+    source_url: https://www.law.go.kr/법령/산업안전보건기준에관한규칙
+    text: null
+    text_status: 원문 미확보 — 사용자 대조 대기 (골든셋 #2 근거로 등재)
+    used_by: [lone_worker, asphyxiation]
+
   # ── 고시(행정규칙): 사업장 위험성평가에 관한 지침 ──────────────────
   # 고시번호·시행일·조 위치는 검색 확인(2026-07-12). 원문 '문구'는 미확정 →
   # 문서에 고시번호·조번호는 표기 가능, 조문 인용문(원문 문구) 출력은 금지(§7).

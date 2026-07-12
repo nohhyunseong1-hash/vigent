@@ -22,7 +22,8 @@ import legal_whitelist as L                # noqa: E402
 from agents.scribe import ScribeAgent      # noqa: E402
 from agents.copilot import CopilotAgent    # noqa: E402
 
-GOLD = Path(__file__).resolve().parent.parent / "eval" / "golden" / "item_01_crane_checklist.json"
+_NAME = sys.argv[1] if len(sys.argv) > 1 else "item_01_crane_checklist.json"
+GOLD = Path(__file__).resolve().parent.parent / "eval" / "golden" / _NAME
 gold = json.loads(GOLD.read_text(encoding="utf-8"))
 _HUMAN = ["신호수", "유도자", "감시", "교육", "점검", "출입", "동선", "배치", "지도", "결속", "휴식"]
 
@@ -94,8 +95,10 @@ for name, d in detail:
     out(f"[{name}] 위험수준 {d['위험수준']} · 위계 {d['위계']} · 법령 {d['법령']}"
         + (f" · 환각 {', '.join(d['환각'])}" if d["환각"] else ""))
 out("=" * 68)
-out("■ 분리지표(요청) — (a) O/X: 자동X 3/3 정답+O오탐 0 (적정을 X로 안 몲) · "
+out(f"■ 분리지표(요청) — (a) O/X: 자동X {covered}/{len(det_X)} 정답 · O오탐 {false_X} (적정을 X로 안 몲) · "
     f"(b) 위험수준 {level_ok}/{covered} · (c) 위계 {hier_ok}/{covered}")
-out("■ 개선점: 법령 크레인조문(제40·146) 미인용은 잔존(제146조는 크레인 전용→범용 매핑 시 과적합 주의).")
+if len(det_X) == 0:
+    out("■ 관전: 이 작업은 비전 자동판정 가능 항목이 0건 — 전 항목이 수동확인으로 표면화됨"
+        "(비전 커버리지가 낮은 도메인. 값은 '누락 없는 체크리스트 제시'에 있음).")
 GOLD.with_name(GOLD.stem + "_score.md").write_text("\n".join(lines) + "\n", encoding="utf-8")
 print("─" * 68); print("저장:", GOLD.with_name(GOLD.stem + "_score.md"))
