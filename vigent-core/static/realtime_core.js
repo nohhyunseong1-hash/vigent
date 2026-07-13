@@ -158,6 +158,9 @@ let ppeBackendBusy=false, lastPpeBackendAt=0;
 const PPE_BACKEND_INTERVAL=2500;
 // 백엔드 정밀 보정(yolov8s) — 브라우저 COCO-SSD가 놓친 객체(특히 휴대폰 등 소형)를 보강
 let backendBoostBusy=false, lastBackendBoostAt=0, backendBoostAt=0;
+let _boostDisp=[];   // ★ 박스 보간 표시 상태(2026-07-12): target=backendBoostDets 로 매 렌더 lerp 수렴 + 페이드아웃.
+                     //   검출 자체(4~6fps)를 빠르게 하는 게 아니라 '표시'를 30fps로 부드럽게 하는 것(안전 판정은 검출 fps 기준).
+const _COORD_DIAG=(typeof location!=='undefined')&&new URLSearchParams(location.search).get('diag')==='1';  // 진단 모드(?diag=1): 원시 vs 보간 박스 동시표시(개발 전용, 기본 off)
 let backendBoostDets=[];
 // 보호구(PPE) 클래스 — 안전 테마에서만 표시/사용 (오피스·피트니스에선 제외)
 const PPE_CLASSES=new Set(['helmet','hardhat','hard hat','gloves','glove','vest','safety vest','reflective vest','boots','goggles','goggle','none','no helmet','no hardhat','no goggle','no gloves','no boots','no vest','no safety vest','mask','no mask']);
@@ -167,6 +170,9 @@ function isViolation(c){ const s=String(c||'').toLowerCase().replace(/[-_]/g,' '
   return s.startsWith('no ') || ['fire','smoke','cigarette','knife','scissors'].includes(s); }
 let backendHazards=[];   // 백엔드 화재/연기/흡연 등 위험요소 (색상 휴리스틱)
 const BACKEND_BOOST_INTERVAL=250;     // 고정밀 백엔드 호출 최소간격(≈4fps) — 포즈/탐지 반응성↑(통합호출 ~70ms라 여유)
+// 검출 호출 최소간격(2026-07-12): 왕복 110ms·추론 83ms 대비 150ms가 과해 검출 fps 병목(~6.7fps)이었음 → 100ms(~9fps).
+// 외부화: window.VIGENT_DETECT_MIN_MS 로 주입 가능. ⚠️ 엣지(RK3588 등 느린 추론)에서는 CPU 포화 방지 위해 상향(150~200) 필요.
+const DETECT_MIN_INTERVAL_MS=(typeof window!=='undefined' && window.VIGENT_DETECT_MIN_MS) || 100;
 const BACKEND_LOOP_INTERVAL=150;      // 루프 타이머(throttle가 모드별 실제 빈도 제어)
 const BACKEND_BOOST_TTL=3000;
 const BACKEND_PRIMARY_TTL=2800;       // 이 시간 내 백엔드 결과는 '주 탐지'로 우선 사용(CPU 지연 커버 → 깜빡임 방지)
@@ -385,6 +391,9 @@ function scaleBbox(arr, sx, sy){
   // [x,y,w,h] 변환
   return [arr[0]*sx, arr[1]*sy, arr[2]*sx, arr[3]*sy];
 }
+// conf 표기: 1% 미만은 반올림 '0%'가 오해를 부르므로(검출인데 미검출처럼 보임) 소수점으로 표기.
+// 예: 0.002→'0.2%'. 1% 이상은 정수(%). (2026-07-11 개선: forklift 0.2% 오탐이 '0%'로 보이던 문제)
+function fmtConf(s){ const p=(s||0)*100; return (p>0&&p<1?p.toFixed(1):Math.round(p))+'%'; }
 
 // 포즈 스무딩
 const SMOOTH_N=8, ACTION_N=7;
@@ -958,7 +967,7 @@ async function analyzeObjectsWithBackend(source,W,H){
   if(!W||!H) return;
   const now=Date.now();
   // 스켈레톤 실시간성 위해 모든 테마 6.6fps(150ms)
-  if(now-lastBackendBoostAt < 150) return;
+  if(now-lastBackendBoostAt < DETECT_MIN_INTERVAL_MS) return;
   lastBackendBoostAt=now;
   backendBoostBusy=true;
   try{
@@ -1389,7 +1398,7 @@ function drawObjects(objs,W,H,lHeld,rHeld,scX,scY,hidePerson){
     if(document.getElementById('togLabel').checked){
       ctx.font='bold 12px Segoe UI';
       const handTag=isLH?' 🟢L':isRH?' 🟠R':'';
-      const label=`${translateClass(o.class)}${handTag} ${(o.score*100).toFixed(0)}%`;
+      const label=`${translateClass(o.class)}${handTag} ${fmtConf(o.score)}`;
       const tw=ctx.measureText(label).width+14; const ly=y>24?y-5:y+h+17;
       ctx.fillStyle=col; ctx.fillRect(x,ly-17,tw,20); ctx.fillStyle='#000'; ctx.fillText(label,x+5,ly-1);
     }
@@ -1403,30 +1412,56 @@ function drawObjects(objs,W,H,lHeld,rHeld,scX,scY,hidePerson){
 function drawBackendBoost(browserObjs,W,H,scX,scY){
   if(!backendActive()) return;
   if(!document.getElementById('togBBox')?.checked) return;
-  if(!backendBoostDets.length) return;
-  if(Date.now()-backendBoostAt>BACKEND_BOOST_TTL) return; // 오래된 결과는 그리지 않음
+  const now=Date.now();
   const showLabel=document.getElementById('togLabel')?.checked;
-  for(const o of backendBoostDets){
-    const covered=browserObjs.some(b=>b.class===o.class && iou(b.bbox,o.bbox)>0.45);
-    if(covered) continue;
-    // 화면 정리: '착용(정상)' 보호구 박스는 숨겨 잡다함↓ → 미착용(빨강)·사람·차량·화재만 강조.
-    // 착용 여부 판정·기록은 백엔드 데이터로 계속 동작(표시만 생략).
-    if(isPpeClass(o.class) && !isViolation(o.class)) continue;
-    const[x,y,w,h]=displayBboxArray(scaleBbox(o.bbox,scX,scY),W,H);
-    const viol=isViolation(o.class);                 // 미착용·화재 등은 빨강, 그 외는 시안
-    const bcol=viol?'#ef4444':'#22d3ee';
-    ctx.save();
-    ctx.setLineDash([6,4]);
-    ctx.strokeStyle=bcol; ctx.lineWidth=viol?3:2; ctx.strokeRect(x,y,w,h);
-    ctx.setLineDash([]);
+  const _sliderThr=(parseInt(document.getElementById('confThreshold')?.value||'0'))/100;   // ★ 슬라이더 backend 연동(2026-07-11)
+  // ── target: 최신 backend 검출(신선도 TTL·슬라이더·착용정상·브라우저중복 필터) ──
+  const fresh = (now-backendBoostAt<=BACKEND_BOOST_TTL) ? backendBoostDets.filter(o=>
+      o.score>=_sliderThr
+      && (o.class||'').toLowerCase()!=='person'                                            // ★ person 은 pose 재배치(즉시성) 경로 우선 → lerp 제외(경합 방지, 2026-07-12)
+      && !(isPpeClass(o.class) && !isViolation(o.class))                                   // 착용 정상 보호구는 표시 생략(기존 동작 유지)
+      && !browserObjs.some(b=>b.class===o.class && iou(b.bbox,o.bbox)>0.45)                 // 브라우저가 이미 잡은 것 중복 제외
+    ) : [];
+  // ── 보간(2026-07-12): 표시 박스를 target 으로 lerp 수렴 + 페이드아웃(300ms). 큰 이동은 스냅(수렴 지연 방지). ──
+  const LERP=0.5, FADE=300, SNAP_IOU=0.5;   // lerp 0.5 → 90% 수렴 ~110ms(30fps). 큰이동(IoU<0.5)은 즉시 스냅(jitter 거슬리면 SNAP_IOU 조정).
+  _boostDisp.forEach(d=>d._m=false);
+  for(const t of fresh){
+    let d=_boostDisp.find(x=>!x._m && x.class===t.class && iou(x.bbox,t.bbox)>0.30);       // 클래스+IoU 매칭
+    if(d){
+      d._m=true; d.score=t.score; d.seen=now;
+      const snap=iou(d.bbox,t.bbox)<SNAP_IOU;                                              // 큰 이동이면 스냅(수렴 대기 없이 즉시)
+      for(let i=0;i<4;i++) d.bbox[i]= snap ? t.bbox[i] : d.bbox[i]+(t.bbox[i]-d.bbox[i])*LERP;
+    }
+    else { _boostDisp.push({class:t.class,bbox:t.bbox.slice(),score:t.score,alpha:0,seen:now,_m:true}); }  // 신규는 스냅 없이 페이드인
+  }
+  _boostDisp=_boostDisp.filter(d=>{
+    if(d._m){ d.alpha=Math.min(1,d.alpha+0.25); return true; }
+    d.alpha=Math.max(0,1-(now-d.seen)/FADE); return d.alpha>0.02;                          // target 사라지면 300ms 페이드아웃(유령 방지)
+  });
+  // ── 그리기 ──
+  for(const d of _boostDisp){
+    const[x,y,w,h]=displayBboxArray(scaleBbox(d.bbox,scX,scY),W,H);
+    const viol=isViolation(d.class); const bcol=viol?'#ef4444':'#22d3ee';
+    ctx.save(); ctx.globalAlpha=d.alpha;
+    ctx.setLineDash([6,4]); ctx.strokeStyle=bcol; ctx.lineWidth=viol?3:2; ctx.strokeRect(x,y,w,h); ctx.setLineDash([]);
     if(showLabel){
       ctx.font='bold 12px Segoe UI';
-      const label=`${translateClass(o.class)} ${viol?'⚠':'✓정밀'} ${(o.score*100).toFixed(0)}%`;
+      const label=`${translateClass(d.class)} ${viol?'⚠':'✓정밀'} ${fmtConf(d.score)}`;
       const tw=ctx.measureText(label).width+14; const ly=y>24?y-5:y+h+17;
       ctx.fillStyle=bcol; ctx.fillRect(x,ly-17,tw,20);
       ctx.fillStyle=viol?'#fff':'#003'; ctx.fillText(label,x+5,ly-1);
     }
     ctx.restore();
+  }
+  // ── 진단 모드(?diag=1, 개발 전용): 원시 박스(보간 없이 마지막 응답, 반투명 파랑) + '검출 후 경과ms' 동시 표시 ──
+  //   판별: 파랑(원시)·빨강(보간)이 함께 사람 뒤를 따르면 순수 지연(1번, F-10). 빨강만 이상=보간버그(4번). 둘다 사람과 무관=좌표(3번).
+  if(_COORD_DIAG){
+    const age=now-backendBoostAt;
+    for(const o of fresh){
+      const[x,y,w,h]=displayBboxArray(scaleBbox(o.bbox,scX,scY),W,H);
+      ctx.save(); ctx.globalAlpha=0.55; ctx.strokeStyle='#3b82f6'; ctx.lineWidth=2; ctx.strokeRect(x,y,w,h);
+      ctx.fillStyle='#3b82f6'; ctx.font='10px monospace'; ctx.fillText(`raw +${age}ms`,x+3,y+12); ctx.restore();
+    }
   }
 }
 
@@ -1454,7 +1489,7 @@ function drawSegments(W,H,scX,scY,onlyClass){
       const sx=s.points[0][0]*scX, sy=s.points[0][1]*scY;
       const lx=r.x+(flip? r.w-sx : sx), ly=r.y+sy;
       ctx.font='bold 12px Segoe UI';
-      const label=`${translateClass(s.class)} ${(s.score*100).toFixed(0)}%`;
+      const label=`${translateClass(s.class)} ${fmtConf(s.score)}`;
       const tw=ctx.measureText(label).width+12;
       ctx.fillStyle=col; ctx.fillRect(lx,ly-18,tw,18);
       ctx.fillStyle='#001018'; ctx.fillText(label,lx+4,ly-5);
@@ -2395,7 +2430,34 @@ function buildCoreFrameState(results,W,H,VW,VH,rect,scX,scY,rawPose,smoothedPose
   };
 }
 
+// ★ 좌표 스케일 race 계측(2026-07-12): 캡처 시점 frame 기준값 vs 렌더 시점 실제값이 어긋나는 순간만 로그(조용한 race 포획).
+let _coordMismLast=0;
+function _coordMismatchTelemetry(frame,nowVW,nowVH,nowW,nowH){
+  const mism=(frame.VW&&nowVW&&frame.VW!==nowVW)||(frame.VH&&nowVH&&frame.VH!==nowVH)||(frame.W!==nowW)||(frame.H!==nowH);
+  if(!mism) return;
+  const t=Date.now(); if(t-_coordMismLast<800) return; _coordMismLast=t;   // throttle(스팸 방지)
+  const msg=`[coord-mismatch] captured VW×VH=${frame.VW}×${frame.VH} W×H=${frame.W}×${frame.H} → now VW×VH=${nowVW}×${nowVH} W×H=${nowW}×${nowH}`;
+  console.warn(msg);
+  try{ fetch('/recognition/log',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({rule:'coord_mismatch',level:'debug',note:msg})}); }catch(_){}
+}
+// 카메라 기동/전환·리사이즈 등 기준값이 바뀌는 이벤트를 타임스탬프와 함께 기록(race 창 특정용).
+function _coordEvent(tag){
+  const m=`[coord-event] ${tag} VW×VH=${videoEl.videoWidth}×${videoEl.videoHeight} canvas=${canvas.width}×${canvas.height} @${Date.now()}`;
+  console.info(m);
+  try{ fetch('/recognition/log',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({rule:'coord_event',level:'debug',note:m})}); }catch(_){}
+}
 function renderCoreFrameOverlays(frame){
+  // ★ race guard: 캐시된 frame.scX 사용 금지 — 렌더 시점 실제 videoWidth/canvas 로 스케일 재계산
+  //   (캡처~렌더 사이 창 리사이즈·카메라 전환으로 기준값이 바뀌면 캐시 scX가 어긋남 → 매 렌더 최신값으로 동기화).
+  try{
+    const nowVW=videoEl.videoWidth||0, nowVH=videoEl.videoHeight||0, nowW=canvas.width, nowH=canvas.height;
+    _coordMismatchTelemetry(frame,nowVW,nowVH,nowW,nowH);
+    if(nowVW>0&&nowVH>0&&(nowW!==frame.W||nowH!==frame.H||nowVW!==frame.VW||nowVH!==frame.VH)){
+      const rect=mediaRect(nowW,nowH);
+      frame.W=nowW; frame.H=nowH; frame.VW=nowVW; frame.VH=nowVH; frame.rect=rect;
+      frame.scX=rect.w/nowVW; frame.scY=rect.h/nowVH;
+    }
+  }catch(e){}
   if(thermOn){ try{ drawThermal(frame.W,frame.H); }catch(e){} return; }   // 열화상 온도 모드: 다른 오버레이 생략
   drawSkeleton(frame.pose,frame.W,frame.H);
   drawDetailedPoseOverlay(frame.pose,frame.W,frame.H);
@@ -2772,6 +2834,7 @@ async function startWebcam(){
     currentStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:'user',width:{ideal:1280},height:{ideal:720},frameRate:{ideal:30,max:30}},audio:false});
   }
   videoEl.srcObject=currentStream; await videoEl.play();
+  try{ videoEl.onloadedmetadata=()=>{try{_coordEvent('camera-meta');}catch(_){}}; _coordEvent('camera-start'); }catch(_){}
   applyCameraOrientation(true);
   const actualW=videoEl.videoWidth||1280, actualH=videoEl.videoHeight||720;
   cameraOn=true; setCameraUI(true);
@@ -4516,4 +4579,4 @@ window.addEventListener('load',()=>{
   }
   initModels();
 });
-window.addEventListener('resize',()=>{const c=document.getElementById('videoContainer');canvas.width=c.clientWidth;canvas.height=c.clientHeight;});
+window.addEventListener('resize',()=>{const c=document.getElementById('videoContainer');canvas.width=c.clientWidth;canvas.height=c.clientHeight;try{_coordEvent('resize');}catch(_){}});
