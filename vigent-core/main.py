@@ -333,7 +333,7 @@ def health(theme: str = DEFAULT_THEME):
         # F-8 로드 가시화 원칙과 일관: 모델은 LOADED 이나 소비 경로에서 명시적으로 끈 슬롯을 노출(은폐형 off 방지).
         "disabled_detectors": {
             "forklift": "F-7 과소학습(정탐 conf p50 0.002 ≈ 오탐 수준, 2026-07-11 실측). "
-                        "라이브·safety-local·재해분석(incident) 소비 경로 제외(강재를 지게차로 오탐→협착 오염). "
+                        "라이브·safety-local·재해분석(incident)·음성안내(voice) 소비 경로 제외(강재를 지게차로 오탐→협착 오염·오경보). "
                         "T10b full 재학습 후 복원 예정. 측정은 detectors 명시 지정 시 가능.",
         },
     }
@@ -1409,7 +1409,9 @@ def safety_voice_scene(payload: dict = Body(...), theme: str = DEFAULT_THEME):
     guard = bundle["agents"].get("Guard")
     try:
         with _DETECT_LOCK:
-            out = guard.detect(img, detectors=["person", "ppe", "forklift", "fire_smoke"])
+            # forklift 제외(F-7) — 유령 지게차 음성경보는 없는 위험을 소리로 알림 → 반복되면 경보 피로로
+            #   진짜 경보까지 무시하게 됨(화면 오탐보다 나쁜 실패). 측정은 payload.detectors 명시로 가능.
+            out = guard.detect(img, detectors=payload.get("detectors") or ["person", "ppe", "fire_smoke"])
         dets = out.get("detections", [])
     except Exception:  # noqa: BLE001
         dets = []
