@@ -147,6 +147,11 @@
   정탐 p50 0.002·max 0.005 = 오탐과 동일(LOCO test 238 + 웹캠 실측). **임계 분리 불가 확정**(0.002=정탐34.9%+오탐폭탄 / 0.01↑=정탐0).
   → **detect_frame 기본 detectors에서 제외**(main.py) + `/health.disabled_detectors` + tuning 주석 3중 명시. **임계 0.30 은폐형 off는 기각**(명시적 비활성).
   측정/게이트 경로는 `payload.detectors` 명시 지정 시 추론 가능. **복원 조건 = T10b full 재학습 게이트 통과**(정탐 conf 정상화 확인).
+- **★ 재해분석(incident) 경로도 제외(2026-07-13, 크레인 재해.MP4 18.4s 실측)**: incident/frame·analyze 기본 detectors에서 forklift 제거.
+  실측 오탐 확인 = 강재더미를 forklift conf **0.002** 로 오탐(machinery 는 별개로 ppe 모델이 0.755 정탐, 오인 아님). 유령 지게차가
+  `hazard=True`(⚠ 지게차) + 협착(proximity) 점수·타임라인 피크를 오염시킴 → 제외. `payload.detectors` override 유지(측정 가능).
+  - ⚠️ **알려진 공백(숨기지 않음)**: **incident 경로는 현재 지게차 재해를 탐지·분석할 수 없음 — 지게차 관련 재해 영상 분석 시
+    협착·충돌 요인이 누락됨.** 파일럿에서 이 한계를 사전 고지. T10b 현장 재학습 후 복원 시 해소.
 
 ### 백로그 — pallet_truck 별도 검출 클래스 후보
 - LOCO 에 pallet_truck(2,827inst/1,502img) 어노테이션 존재. 동력 지게차와 **협착 위험군이 상이**(수동·소형)해 forklift 로 병합 안 함.

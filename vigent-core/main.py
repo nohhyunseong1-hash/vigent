@@ -332,8 +332,9 @@ def health(theme: str = DEFAULT_THEME):
         "rfdetr_slots": rfdetr_slots,
         # F-8 로드 가시화 원칙과 일관: 모델은 LOADED 이나 소비 경로에서 명시적으로 끈 슬롯을 노출(은폐형 off 방지).
         "disabled_detectors": {
-            "forklift": "잠정 비활성(F-7): 과소학습으로 정탐/오탐 conf 분리불가(정탐 p50 0.002, 2026-07-11 실측). "
-                        "라이브·safety-local 소비 경로 제외. T10b full 재학습 후 복원. 측정은 detectors 명시 지정 시 가능.",
+            "forklift": "F-7 과소학습(정탐 conf p50 0.002 ≈ 오탐 수준, 2026-07-11 실측). "
+                        "라이브·safety-local·재해분석(incident) 소비 경로 제외(강재를 지게차로 오탐→협착 오염). "
+                        "T10b full 재학습 후 복원 예정. 측정은 detectors 명시 지정 시 가능.",
         },
     }
 
@@ -1545,7 +1546,8 @@ def safety_incident_frame(payload: dict = Body(...), theme: str = DEFAULT_THEME)
     guard = bundle["agents"].get("Guard")
     try:
         with _DETECT_LOCK:
-            out = guard.detect(img, detectors=["person", "ppe", "forklift", "fire_smoke"])
+            # forklift 제외(F-7) — 유령 지게차가 타임라인·협착 점수 오염. 측정은 payload.detectors 명시로 가능.
+            out = guard.detect(img, detectors=payload.get("detectors") or ["person", "ppe", "fire_smoke"])
     except Exception:  # noqa: BLE001
         return {"score": 0, "hazards": []}
     sig = out.get("signals", {}) or {}
@@ -1584,7 +1586,9 @@ def safety_incident_analyze(payload: dict = Body(...), theme: str = DEFAULT_THEM
         with _DETECT_LOCK:
             # 재해원인분석은 실시간이 아님 → 고해상도(1280)로 인식 정확도↑(느려도 됨).
             # ⚠ TTA(augment)는 약한 커스텀 모델(지게차·PPE)의 오탐을 증폭시켜 제거함(2026-07). 고해상도만 유지.
-            out = guard.detect(img, detectors=["person", "ppe", "forklift", "fire_smoke"],
+            # forklift 제외(F-7): 정탐 conf p50 0.002 ≈ 오탐 → 강재를 지게차로 오탐(협착 오염). 측정은
+            #   payload.detectors 명시 지정 시 여전히 가능(payload 는 dict). T10b full 재학습 후 복원.
+            out = guard.detect(img, detectors=payload.get("detectors") or ["person", "ppe", "fire_smoke"],
                                imgsz=1280, augment=False)
         present = [d.get("label") for d in out.get("detections", [])]
     except Exception:  # noqa: BLE001
