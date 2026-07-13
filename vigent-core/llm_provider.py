@@ -115,8 +115,12 @@ def _openai_reason(prompt: str, system: str = "",
 
 def reason_vision(image_bgr, prompt: str, system: str | None = None) -> tuple[str | None, str | None]:
     """OpenAI 비전 추론 1회(이미지+텍스트) → (text, backend). 키없음/에러/타임아웃 → (None,None) 폴백.
-    모델명은 env(OPENAI_VISION_MODEL→OPENAI_MODEL→gpt-4o-mini) 주입(하드코딩 금지). 이미지는 JPEG base64로 전송."""
-    if image_bgr is None or not os.getenv("OPENAI_API_KEY"):
+    모델명은 env(OPENAI_VISION_MODEL→OPENAI_MODEL→gpt-4o-mini) 주입(하드코딩 금지). 이미지는 JPEG base64로 전송.
+
+    ★ 영상 불유출 원칙: 현장 프레임의 외부 전송은 VIGENT_CLOUD_VLM=1 명시 opt-in 일 때만(기본 off).
+    OPENAI_API_KEY 존재만으로는 절대 전송하지 않는다(무동의 활성=조용한 원칙 붕괴 차단, VIGENT_ALLOW_FALLBACK 과 동일 철학).
+    상용 배포 미포함 — 데모/내부개발 전용."""
+    if image_bgr is None or os.getenv("VIGENT_CLOUD_VLM") != "1" or not os.getenv("OPENAI_API_KEY"):
         return None, None
     used_model = os.getenv("OPENAI_VISION_MODEL", os.getenv("OPENAI_MODEL", "gpt-4o-mini"))
     try:

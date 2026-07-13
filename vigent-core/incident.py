@@ -156,8 +156,9 @@ def analyze(image_bgr, present_classes: list[str] | None = None, use_vlm: bool =
     shared = None
     engine = None
     if use_vlm and image_bgr is not None:
-        # 사고분석 ai: OpenAI 비전 우선(OPENAI_API_KEY 있으면) → 없거나 실패면 로컬 MLX 폴백(가산식).
-        ai, engine = _openai_accident(image_bgr)
+        # ★ 로컬 우선(영상 불유출 원칙): 장면·사고분석을 먼저 로컬 MLX 로 확보한다.
+        #   클라우드(OpenAI)는 VIGENT_CLOUD_VLM=1 명시 opt-in 일 때만 시도하고 성공 시 덮어씀(데모/내부개발 전용, 상용 미포함).
+        import os as _os
         # 장면·환경·작업 재사용용 통합이해(MLX) — scene/shared 확보(safety_brain 재사용).
         try:
             import scene_vlm
@@ -172,20 +173,24 @@ def analyze(image_bgr, present_classes: list[str] | None = None, use_vlm: bool =
                 scene = vlm_confirm.describe_scene(image_bgr)
             except Exception:  # noqa: BLE001
                 scene = ""
-        # OpenAI 미사용/실패 → 로컬로 ai 폴백(shared 우선, 없으면 개별 호출)
-        if ai is None:
-            if shared and (any(shared.get(k) for k in ("accident_type", "what_happened", "cause", "evidence"))
-                           or shared.get("activity")):
-                ai = {"work": shared.get("activity", ""),
-                      "accident_type": shared.get("accident_type", ""),
-                      "what_happened": shared.get("what_happened", ""),
-                      "cause": shared.get("cause", ""),
-                      "evidence": shared.get("evidence", "")}
+        # ai(사고분석) 로컬 우선(shared 재사용, 없으면 개별 호출)
+        if shared and (any(shared.get(k) for k in ("accident_type", "what_happened", "cause", "evidence"))
+                       or shared.get("activity")):
+            ai = {"work": shared.get("activity", ""),
+                  "accident_type": shared.get("accident_type", ""),
+                  "what_happened": shared.get("what_happened", ""),
+                  "cause": shared.get("cause", ""),
+                  "evidence": shared.get("evidence", "")}
+            engine = "로컬 MLX"
+        else:
+            ai = _vlm_accident(image_bgr)
+            if ai:
                 engine = "로컬 MLX"
-            else:
-                ai = _vlm_accident(image_bgr)
-                if ai:
-                    engine = "로컬 MLX"
+        # 클라우드는 opt-in(VIGENT_CLOUD_VLM=1)일 때만 — reason_vision 게이트와 이중 안전. 성공 시 우선 사용.
+        if _os.getenv("VIGENT_CLOUD_VLM") == "1":
+            cloud_ai, cloud_engine = _openai_accident(image_bgr)
+            if cloud_ai is not None:
+                ai, engine = cloud_ai, cloud_engine
     env = safety_brain.detect_environment(image_bgr, present, use_vlm, shared=shared)
     env_id = env["id"] if env else None
     act_id = safety_brain.detect_activity(image_bgr, present, use_vlm, shared=shared)

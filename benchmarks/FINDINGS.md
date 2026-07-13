@@ -257,3 +257,10 @@ F-8 진단 중, 서버 detect_frame 이 **연속 프레임 추적**(`guard._trac
 - **실증(scripts/legal_gate_verify.py, PASS)**: ① 위험성평가서 정상 생성(인용 유지, 저하 0). ② 인용 화이트리스트 내 9·보류 2(제619/620조)·법령아님 1(가이드) 판정. ③ VLM 경로에서 **가짜 제999조·보류 제14조 차단, 진짜 제38조 유지** = t_hall 1차 차단 실증.
 - **트리거(scripts/legal_trigger_collect.py)**: 위험성평가서 5건 → 보류 조문 인용 **15건/14종** 집계. 최상위 **제619조(밀폐공간, 2회)**. `data/legal/trigger_report.md`가 검수 대기열(필요 기반 우선순위). 관리체계·TBM·아차사고는 생성기 미구현 → 위험성평가서로만 수집(과대기록 금지).
 - ⚠️ **한계**: 고시 tier 미등재(14개에 고시 없음) → "고시 시각 구분"은 미검증. 전면 적대적 감사(19케이스 t_hall/t_down)는 대기. 원문 정본 확보가 내용대조 게이트의 선행조건.
+
+## F-12 — 클라우드 VLM 무동의 활성 = 영상 불유출 원칙의 조용한 붕괴 경로 → opt-in 게이트로 차단 (2026-07-13)
+- **문제**: `llm_provider.reason_vision`(재해분석 비전)이 **`OPENAI_API_KEY` 존재만으로 프레임을 외부 전송**했다(별도 opt-in 없음). `incident.analyze`는 로컬보다 **클라우드를 우선** 호출. → 데모/개발용 `.env`에 키 하나만 들어가면 **현장 프레임이 조용히 외부 API로 유출** = "영상 현장 외 불유출"(개인정보 3원칙·B2G 조달·파일럿 신뢰) 원칙의 침묵 붕괴 경로.
+- **차단(2026-07-13)**: 클라우드 VLM은 **`VIGENT_CLOUD_VLM=1` 명시 opt-in(기본 off)** 일 때만 동작. 키만으로는 절대 전송 안 함. `incident.analyze` 순서도 **로컬 우선 → opt-in 시에만 클라우드**로 뒤집음(이중 안전: choke point 게이트 + 호출부 분기). **VIGENT_ALLOW_FALLBACK(F-8)과 동일 철학**(위험한 기본동작은 명시 opt-in 뒤로).
+- **실증(off 상태 외부요청 0건)**: `OPENAI_API_KEY` 설정 + `VIGENT_CLOUD_VLM` 미설정에서 `incident.analyze(use_vlm=True)` 실행 → `socket.getaddrinfo` 로그에 **openai/api 호스트 해석 0건**, `reason_vision`=`(None,None)`, engine=로컬 MLX. (상세: 커밋 검증 로그)
+- **상용 배포 미포함 주석** 명시 — 클라우드 경로는 데모/내부개발 전용.
+- 백로그(D 2차): 로컬 VLM(Qwen2.5-VL-3B-4bit MLX) **ALARM 스냅샷 1장 사후 서술** = Apple Silicon **6~8초/건 실측**. Win/Linux 미니PC는 mlx 미동작 → 엣지박스 OS 선택과 연동 결정. 로컬 VLM 중국어 누출 가드(텍스트 경로엔 있음)도 착수 시 백로그.
