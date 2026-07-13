@@ -20,6 +20,10 @@ CLS_KO: dict[str, str] = {
     "Goggles": "보안경", "NO-Goggles": "보안경 미착용",
     "Boots": "안전화", "NO-Boots": "안전화 미착용",
     "Person": "사람",
+    # PPE 모델(건설안전 10클래스 데이터셋) 출력이나 표시맵에 없어 영문 노출되던 것 보완
+    #   모델 원문 표기 그대로 매칭(finalize_box 는 미매칭 시 원문 통과 → ko() 소문자조회):
+    #   'machinery', 'vehicle', 'Safety Cone'
+    "machinery": "기계·설비", "vehicle": "차량", "Safety Cone": "안전콘",
     # 차량·장비·기타
     "forklift": "지게차", "truck": "트럭", "car": "차량", "bus": "버스",
     "train": "차량", "boat": "차량", "motorcycle": "오토바이", "bicycle": "자전거",

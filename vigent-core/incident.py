@@ -309,21 +309,58 @@ _PAGE = r"""<!DOCTYPE html><html lang="ko"><head><meta charset="UTF-8">
   function sigDiff(a,b){ if(!a||!b) return 0; let s=0; for(let i=0;i<a.length;i++) s+=Math.abs(a[i]-b[i]); return s/a.length; }
   function seekTo(vid,t){ return new Promise(res=>{ const h=()=>{ vid.removeEventListener('seeked',h); res(); }; vid.addEventListener('seeked',h); vid.currentTime=t; }); }
   {{LABELS_KO}}   // 라벨 한국어맵 단일 소스(labels.py) 주입 — ko() 정의
-  // 위험요인에 박스 그리기(위험=빨강, 일반=앰버)
+  // 위험요인에 박스 그리기(위험=빨강, 일반=앰버) + 라벨 겹침 회피(밀집 현장 가독성)
   function drawAnnotated(b64, boxes){
     return new Promise(res=>{
       const img=new Image();
       img.onload=()=>{
         const c=document.createElement('canvas'); c.width=img.naturalWidth||640; c.height=img.naturalHeight||480;
         const x=c.getContext('2d'); x.drawImage(img,0,0);
-        x.lineWidth=Math.max(2,c.width/280); x.font='bold '+Math.max(13,Math.round(c.width/42))+'px sans-serif';
-        (boxes||[]).forEach(b=>{
-          const bb=b.bbox; const px=bb[0]*c.width, py=bb[1]*c.height, pw=(bb[2]-bb[0])*c.width, ph=(bb[3]-bb[1])*c.height;
-          const col=b.hazard?'#ff3b3b':'#ffb000';
-          x.strokeStyle=col; x.strokeRect(px,py,pw,ph);
-          const lbl=(b.hazard?'⚠ ':'')+ko(b.class); const tw=x.measureText(lbl).width+8;
-          x.fillStyle=col; x.fillRect(px, Math.max(0,py-22), tw, 22);
-          x.fillStyle=b.hazard?'#fff':'#000'; x.fillText(lbl, px+4, Math.max(15,py-6));
+        const fpx=Math.max(13,Math.round(c.width/42)), lh=fpx+8;
+        x.lineWidth=Math.max(2,c.width/280); x.font='bold '+fpx+'px sans-serif'; x.textBaseline='top';
+        const bs=(boxes||[]).map(b=>{ const bb=b.bbox;
+          return {b, px:bb[0]*c.width, py:bb[1]*c.height, pw:(bb[2]-bb[0])*c.width, ph:(bb[3]-bb[1])*c.height}; });
+        // 1) 박스 외곽선 먼저(라벨이 항상 위에 얹히도록)
+        bs.forEach(o=>{ x.strokeStyle=o.b.hazard?'#ff3b3b':'#ffb000'; x.strokeRect(o.px,o.py,o.pw,o.ph); });
+        // 2) 라벨 배치 계산 — 후보를 원위치→아래→위 번갈아 탐색(하단 겹침 해소).
+        //    배치(자리 선점) 우선순위: hazard(⚠ 미착용) > 사람 > 나머지. ★ 원본 bs 순서와
+        //    그리기 z-order 는 보존 — 인덱스 사본만 정렬해 배치하고 결과는 bs 순서 slot 에 되꽂는다.
+        const placed=[]; const slot=new Array(bs.length);
+        const hit=(r)=>placed.some(p=>!(r.x+r.w<=p.x||p.x+p.w<=r.x||r.y+r.h<=p.y||p.y+p.h<=r.y));
+        const prio=(o)=> o.b.hazard?0 : (String(o.b.class||'').toLowerCase()==='person'?1:2);
+        const order=bs.map((o,i)=>i).sort((a,b)=> prio(bs[a])-prio(bs[b]) || a-b);  // 안정 정렬
+        order.forEach(i=>{
+          const o=bs[i];
+          const lbl=(o.b.hazard?'⚠ ':'')+ko(o.b.class); const tw=x.measureText(lbl).width+8;
+          let lx=o.px; if(lx+tw>c.width) lx=Math.max(0,c.width-tw);   // 우측 이탈 → 화면 안
+          const ly0=o.py-lh;                                          // 원위치(박스 바로 위)
+          const base=(ly0<0)?o.py+2:ly0;                              // 상단 이탈 → 박스 안쪽에서 시작
+          let ly=null;
+          for(let k=0; k<60 && ly===null; k++){
+            for(const cy of (k===0?[base]:[base+k*lh, base-k*lh])){   // 원위치→아래→위 번갈아
+              if(cy<0 || cy+lh>c.height) continue;                    // 화면 밖 후보 제외
+              if(!hit({x:lx,y:cy,w:tw,h:lh})){ ly=cy; break; }
+            }
+          }
+          if(ly===null) ly=Math.max(0,Math.min(base,c.height-lh));    // 최후: 원위치 클램프(겹침 감수)
+          const r={x:lx,y:ly,w:tw,h:lh}; placed.push(r);
+          slot[i]={o, lbl, tw, r, moved:(Math.abs(ly-ly0)>=lh||lx!==o.px)};
+        });
+        const items=slot;   // 원본 bs 순서 그대로 → leaders/라벨 그리기 z-order 보존
+        // 3) 연결선(leader) 먼저 — 밀린 라벨↔박스 상단중앙을 잇는다(라벨에 덮이지 않게 밑에 깐다).
+        items.forEach(it=>{ if(!it.moved) return;
+          const o=it.o, r=it.r, col=o.b.hazard?'#ff3b3b':'#ffb000';
+          const ax=Math.min(Math.max(o.px+o.pw/2,r.x),r.x+r.w), ay=(r.y>o.py)?r.y:r.y+r.h;
+          x.save(); x.strokeStyle=col; x.globalAlpha=0.85; x.lineWidth=Math.max(1.5,c.width/620);
+          x.beginPath(); x.moveTo(ax,ay); x.lineTo(o.px+o.pw/2,o.py); x.stroke();
+          x.fillStyle=col; x.beginPath(); x.arc(o.px+o.pw/2,o.py,Math.max(2,c.width/450),0,7); x.fill();
+          x.restore();
+        });
+        // 4) 라벨 박스+글자(연결선 위에)
+        items.forEach(it=>{
+          const col=it.o.b.hazard?'#ff3b3b':'#ffb000';
+          x.globalAlpha=0.82; x.fillStyle=col; x.fillRect(it.r.x,it.r.y,it.tw,lh); x.globalAlpha=1;
+          x.fillStyle=it.o.b.hazard?'#fff':'#000'; x.fillText(it.lbl, it.r.x+4, it.r.y+4);
         });
         res(c.toDataURL('image/jpeg',0.85));
       };
