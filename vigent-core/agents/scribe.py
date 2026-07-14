@@ -370,7 +370,7 @@ class ScribeAgent(BaseAgent):
             except Exception:  # noqa: BLE001  provider 자체 문제도 폴백
                 txt, backend = None, None
             if txt:
-                return txt, f"AI({backend})"  # 실제 백엔드명 표기(Ollama:... / Claude:...)
+                return txt, f"AI({backend})"  # 실제 백엔드명 표기(OpenAI:... / Claude:...)
         # ── 로컬 폴백(결정적 템플릿, 항상 동작) ──
         parts = [f"본 위험성평가는 {site}{(' ' + process) if process else ''}에서 "
                  f"AI가 감지·기록한 위험 {total}개 항목을 분석한 결과다."]

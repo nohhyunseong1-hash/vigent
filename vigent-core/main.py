@@ -321,6 +321,14 @@ def health(theme: str = DEFAULT_THEME):
                 rfdetr_slots = _g.status().get("rfdetr_slots", [])
             except Exception:  # noqa: BLE001
                 pass
+    # LLM provider 실값 노출(추측 금지) — 키 값은 절대 내보내지 않고 존재여부만.
+    #   ollama 제거 후 openai 단일화(2026-07-14). 키 없으면 규칙 기반 폴백으로 동작(기능 유지).
+    llm = {}
+    try:
+        import llm_provider as _llm
+        llm = _llm.status()
+    except Exception:  # noqa: BLE001  provider 상태 조회 실패해도 헬스체크는 죽지 않는다
+        llm = {"provider": "unknown", "available": False}
     return {
         "status": "ok",
         "version": _product_version(),
@@ -330,6 +338,7 @@ def health(theme: str = DEFAULT_THEME):
         "backend": backend,
         "models": models,
         "rfdetr_slots": rfdetr_slots,
+        "llm": llm,                   # {provider, available, model, note} — UI·운영이 실제 설정을 보게 함
         # F-8 로드 가시화 원칙과 일관: 모델은 LOADED 이나 소비 경로에서 명시적으로 끈 슬롯을 노출(은폐형 off 방지).
         "disabled_detectors": {
             "forklift": "F-7 과소학습(정탐 conf p50 0.002 ≈ 오탐 수준, 2026-07-11 실측). "

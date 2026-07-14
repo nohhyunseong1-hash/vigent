@@ -3086,11 +3086,10 @@ function applyErgoPromptPreset(presetKey){
   if(promptEl) promptEl.value=buildErgoVisionPrompt(presetKey);
 }
 
+// LLM 프로바이더 힌트 (2026-07-14: ollama 로컬 옵션 제거 — OpenAI 단일화. anthropic 은 유지)
 document.getElementById('llmModel')?.addEventListener('change',function(){
-  const hints={ollama:'— 로컬 무료', claude:'— Anthropic', gpt4o:'— OpenAI', gemini:'— Google'};
+  const hints={claude:'— Anthropic', gpt4o:'— OpenAI', gemini:'— Google'};
   document.getElementById('apiKeyHint').textContent=hints[this.value]||'';
-  const localBox=document.getElementById('ollamaModelBox');
-  if(localBox) localBox.style.display=this.value==='ollama'?'block':'none';
 });
 
 function captureFrame(){
@@ -3180,7 +3179,6 @@ async function analyzeWithGemini(base64, apiKey, prompt){
 }
 
 async function analyzeWithServerVision(base64, apiKey, prompt, provider){
-  const localModel=(document.getElementById('ollamaModelName')?.value||'').trim();
   const resp=await fetch(API_BASE+'/llm/vision',{
     method:'POST',
     headers:{'Content-Type':'application/json'},
@@ -3189,7 +3187,7 @@ async function analyzeWithServerVision(base64, apiKey, prompt, provider){
       api_key:apiKey,
       image_base64:base64,
       prompt,
-      model:provider==='ollama'?localModel:''
+      model:''
     })
   });
   const data=await resp.json().catch(()=>({}));
@@ -3230,13 +3228,6 @@ async function checkLLMStatus(){
     if(!resp.ok||!data.success) throw new Error(data.detail||'상태 확인 실패');
     const provider=selected==='gpt4o'?'openai':selected;
     const info=data.providers[provider]||{};
-    if(provider==='ollama'){
-      state.textContent='로컬 무료 모드';
-      state.className='value green';
-      setLLMStatus('done','Ollama 로컬 분석 준비');
-      document.getElementById('llmResult').textContent=`Ollama 로컬 멀티모달 분석을 사용합니다. API 키는 필요 없지만 맥북에서 Ollama 앱이 실행 중이고 ${info.default_model||'llava'} 모델이 설치되어 있어야 합니다. 설치 후 터미널에서 ollama pull ${info.default_model||'llava'} 를 한 번 실행하세요.`;
-      return;
-    }
     if(typedKey||info.configured){
       state.textContent=typedKey?'API 키 입력됨':'서버 키 설정됨';
       state.className='value green';
@@ -3285,7 +3276,7 @@ async function runLLMAnalysis(){
 
     document.getElementById('llmResult').textContent=result;
     applyLLMPrecisionResult(result, elapsed);
-    document.getElementById('llmConnectState').textContent=model==='ollama'?'로컬 모델로 연결됨':(typedKey?'API 키로 연결됨':'서버 키로 연결됨');
+    document.getElementById('llmConnectState').textContent=typedKey?'API 키로 연결됨':'서버 키로 연결됨';
     document.getElementById('llmConnectState').className='value green';
     document.getElementById('llmCount').textContent=llmAnalysisCount+'회';
     document.getElementById('llmLastTime').textContent=now;
@@ -3294,8 +3285,7 @@ async function runLLMAnalysis(){
   }catch(e){
     const msg=String(e.message||e);
     let help='';
-    if(model==='ollama') help='\n\n해결: Ollama 앱을 설치/실행하고 터미널에서 `ollama pull llava`를 한 번 실행하세요. Ollama 기본 주소는 http://127.0.0.1:11434 입니다.';
-    else if(msg.includes('API 키')) help='\n\n해결: API 키 입력칸에 선택한 모델의 API 키를 넣거나, 서버 환경변수 OPENAI_API_KEY / ANTHROPIC_API_KEY / GEMINI_API_KEY 중 하나를 설정해야 합니다.';
+    if(msg.includes('API 키')) help='\n\n해결: API 키 입력칸에 선택한 모델의 API 키를 넣거나, 서버 환경변수 OPENAI_API_KEY / ANTHROPIC_API_KEY / GEMINI_API_KEY 중 하나를 설정해야 합니다.';
     else if(msg.includes('Network')||msg.includes('LLM 호출 실패')) help='\n\n해결: 인터넷 연결, API 키 권한, 결제/사용량 제한, 회사 방화벽을 확인하세요.';
     document.getElementById('llmResult').textContent='❌ LLM 분석 오류: '+msg+help;
     document.getElementById('llmConnectState').textContent='연결 실패';

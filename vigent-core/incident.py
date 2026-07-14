@@ -78,7 +78,7 @@ def infer_cause(hazard_list: list[dict[str, Any]] | None = None, environment: st
                 related: list[dict[str, Any]] | None = None,
                 behaviors: list[dict[str, Any]] | None = None) -> dict[str, Any]:
     """신뢰 가능한 사실(hazard_list·환경·작업·빠진조치·유사사례)에서 직접/근본원인을 유도.
-    - 결정적 초안(규칙 기반, 모델 무관·항상 동작) → llm_provider(Ollama) 있으면 폐쇄형으로 종합, 실패 시 초안 폴백.
+    - 결정적 초안(규칙 기반, 모델 무관·항상 동작) → llm_provider(OpenAI/Claude) 키 있으면 폐쇄형으로 종합, 실패 시 초안 폴백.
     - 숫자·책임비율·법조항 날조 금지(규칙 7). 반환 {direct, root, source}."""
     hazard_list = hazard_list or []
     missing_measures = missing_measures or []
@@ -110,7 +110,7 @@ def infer_cause(hazard_list: list[dict[str, Any]] | None = None, environment: st
     root = "관리적 근본원인(추정): " + ", ".join(roots) + "."
     draft = {"direct": direct, "root": root, "source": "규칙"}
 
-    # ── llm_provider(Ollama 등) 있으면 폐쇄형 종합, 실패면 초안 폴백 ──
+    # ── llm_provider(OpenAI/Claude, 키 있을 때) 폐쇄형 종합, 실패·키없음이면 규칙 초안 폴백 ──
     try:
         import json
         import re
