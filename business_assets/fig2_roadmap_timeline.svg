@@ -1,0 +1,99 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1020 420" width="1020" height="420" font-family="Apple SD Gothic Neo, Noto Sans KR, sans-serif">
+  <rect width="1020" height="420" fill="#ffffff"/>
+  <text x="30" y="38" font-size="22" font-weight="700" fill="#1a1a1a">추진 로드맵</text>
+  <text x="30" y="60" font-size="12.5" fill="#6b7280">기간은 모두 <tspan font-weight="700">[추정]</tspan> — 실측 근거 없음. S3(현장 최초 측정)이 이후 일정의 실질적 분기점.</text>
+
+  <!-- 축 -->
+  <line x1="40" y1="200" x2="980" y2="200" stroke="#d1d5db" stroke-width="3"/>
+
+  <defs>
+    <marker id="ar" markerWidth="9" markerHeight="9" refX="8" refY="4.5" orient="auto">
+      <path d="M0,0 L9,4.5 L0,9 z" fill="#9ca3af"/></marker>
+  </defs>
+  <line x1="980" y1="200" x2="998" y2="200" stroke="#9ca3af" stroke-width="3" marker-end="url(#ar)"/>
+
+  <!-- 단계 정의: x, 라벨, 기간, 산출물, 색 -->
+  <g font-size="11">
+    <!-- S0 -->
+    <circle cx="90" cy="200" r="9" fill="#dc2626"/>
+    <rect x="42" y="96" width="96" height="86" rx="7" fill="#fef2f2" stroke="#dc2626"/>
+    <text x="90" y="116" text-anchor="middle" font-size="12" font-weight="700" fill="#b91c1c">S0</text>
+    <text x="90" y="133" text-anchor="middle" font-weight="600" fill="#111">제품 배선</text>
+    <text x="90" y="148" text-anchor="middle" font-weight="600" fill="#111">마감</text>
+    <text x="90" y="165" text-anchor="middle" fill="#6b7280">G1·G2·G3</text>
+    <text x="90" y="178" text-anchor="middle" fill="#b91c1c" font-weight="700">[추정] 2~3주</text>
+
+    <!-- S1 -->
+    <circle cx="200" cy="200" r="8" fill="#2563eb"/>
+    <rect x="154" y="222" width="94" height="82" rx="7" fill="#eff6ff" stroke="#2563eb"/>
+    <text x="201" y="242" text-anchor="middle" font-size="12" font-weight="700" fill="#1d4ed8">S1</text>
+    <text x="201" y="259" text-anchor="middle" font-weight="600" fill="#111">현장 답사</text>
+    <text x="201" y="275" text-anchor="middle" fill="#6b7280">인양 1사이클</text>
+    <text x="201" y="288" text-anchor="middle" fill="#6b7280">촬영</text>
+    <text x="201" y="301" text-anchor="middle" fill="#1d4ed8" font-weight="700">[추정] 1주</text>
+
+    <!-- S2 -->
+    <circle cx="310" cy="200" r="8" fill="#2563eb"/>
+    <rect x="264" y="106" width="94" height="76" rx="7" fill="#eff6ff" stroke="#2563eb"/>
+    <text x="311" y="126" text-anchor="middle" font-size="12" font-weight="700" fill="#1d4ed8">S2</text>
+    <text x="311" y="143" text-anchor="middle" font-weight="600" fill="#111">파일럿 설치</text>
+    <text x="311" y="159" text-anchor="middle" fill="#6b7280">카메라 2대</text>
+    <text x="311" y="176" text-anchor="middle" fill="#1d4ed8" font-weight="700">[추정] 1~2주</text>
+
+    <!-- S3 -->
+    <circle cx="420" cy="200" r="10" fill="#16a34a"/>
+    <rect x="370" y="222" width="102" height="86" rx="7" fill="#f0fdf4" stroke="#16a34a" stroke-width="2"/>
+    <text x="421" y="242" text-anchor="middle" font-size="12" font-weight="700" fill="#15803d">S3 ★</text>
+    <text x="421" y="259" text-anchor="middle" font-weight="600" fill="#111">1개월 운영</text>
+    <text x="421" y="275" text-anchor="middle" fill="#111" font-weight="600">현장 최초 측정</text>
+    <text x="421" y="290" text-anchor="middle" fill="#6b7280">월간 리포트</text>
+    <text x="421" y="304" text-anchor="middle" fill="#15803d" font-weight="700">[추정] 4주</text>
+
+    <!-- S4 -->
+    <circle cx="535" cy="200" r="8" fill="#7c3aed"/>
+    <rect x="486" y="102" width="98" height="80" rx="7" fill="#f5f3ff" stroke="#7c3aed"/>
+    <text x="535" y="122" text-anchor="middle" font-size="12" font-weight="700" fill="#6d28d9">S4</text>
+    <text x="535" y="139" text-anchor="middle" font-weight="600" fill="#111">현장 재학습</text>
+    <text x="535" y="155" text-anchor="middle" fill="#6b7280">지게차 복원</text>
+    <text x="535" y="176" text-anchor="middle" fill="#6d28d9" font-weight="700">[추정] 3~4주</text>
+
+    <!-- S5 -->
+    <circle cx="650" cy="200" r="10" fill="#ea580c"/>
+    <rect x="600" y="222" width="102" height="86" rx="7" fill="#fff7ed" stroke="#ea580c" stroke-width="2"/>
+    <text x="651" y="242" text-anchor="middle" font-size="12" font-weight="700" fill="#c2410c">S5 ★</text>
+    <text x="651" y="259" text-anchor="middle" font-weight="600" fill="#111">인양 경보</text>
+    <text x="651" y="275" text-anchor="middle" font-weight="600" fill="#111">실검증</text>
+    <text x="651" y="290" text-anchor="middle" fill="#6b7280">경보 여유시간</text>
+    <text x="651" y="304" text-anchor="middle" fill="#c2410c" font-weight="700">[추정] 2주</text>
+
+    <!-- S6 -->
+    <circle cx="765" cy="200" r="8" fill="#0891b2"/>
+    <rect x="716" y="102" width="98" height="80" rx="7" fill="#ecfeff" stroke="#0891b2"/>
+    <text x="765" y="122" text-anchor="middle" font-size="12" font-weight="700" fill="#0e7490">S6</text>
+    <text x="765" y="139" text-anchor="middle" font-weight="600" fill="#111">2차 고도화</text>
+    <text x="765" y="155" text-anchor="middle" fill="#6b7280">경광등·부저·음성</text>
+    <text x="765" y="176" text-anchor="middle" fill="#0e7490" font-weight="700">[추정] 6~8주</text>
+
+    <!-- S7 -->
+    <circle cx="870" cy="200" r="8" fill="#64748b"/>
+    <rect x="824" y="222" width="92" height="76" rx="7" fill="#f8fafc" stroke="#64748b"/>
+    <text x="870" y="242" text-anchor="middle" font-size="12" font-weight="700" fill="#475569">S7</text>
+    <text x="870" y="259" text-anchor="middle" font-weight="600" fill="#111">인증(KISA)</text>
+    <text x="870" y="277" text-anchor="middle" fill="#b91c1c" font-weight="700">[기입]</text>
+    <text x="870" y="291" text-anchor="middle" fill="#6b7280">소요기간 미확인</text>
+
+    <!-- S8 -->
+    <circle cx="960" cy="200" r="8" fill="#111827"/>
+    <rect x="916" y="106" width="86" height="76" rx="7" fill="#f3f4f6" stroke="#111827"/>
+    <text x="959" y="126" text-anchor="middle" font-size="12" font-weight="700" fill="#111827">S8</text>
+    <text x="959" y="143" text-anchor="middle" font-weight="600" fill="#111">B2G 확산</text>
+    <text x="959" y="159" text-anchor="middle" fill="#6b7280">조달 등록</text>
+    <text x="959" y="176" text-anchor="middle" fill="#111827" font-weight="700">[추정]</text>
+  </g>
+
+  <!-- 게이트 -->
+  <rect x="30" y="330" width="960" height="72" rx="7" fill="#fafafa" stroke="#e5e7eb"/>
+  <text x="46" y="350" font-size="12.5" font-weight="700" fill="#111">마일스톤 게이트</text>
+  <text x="46" y="370" font-size="11.5" fill="#4b5563"><tspan font-weight="700" fill="#15803d">S3</tspan> 현장 최초 정확도 측정 (목표치 [기입]) · 오경보 수용 가능 수준</text>
+  <text x="46" y="388" font-size="11.5" fill="#4b5563"><tspan font-weight="700" fill="#7c3aed">S4</tspan> 재학습 전 대비 <tspan font-weight="700">저하 0</tspan> + 현장 지표 개선 실측   |   <tspan font-weight="700" fill="#c2410c">S5</tspan> 인양 경보가 <tspan font-weight="700">사고 시점 이전에 발화</tspan>함을 실영상으로 실측</text>
+</svg>

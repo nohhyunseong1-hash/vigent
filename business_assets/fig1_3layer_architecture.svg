@@ -1,0 +1,74 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 580" width="900" height="580" font-family="Apple SD Gothic Neo, Noto Sans KR, sans-serif">
+  <rect width="900" height="580" fill="#ffffff"/>
+  <text x="30" y="40" font-size="22" font-weight="700" fill="#1a1a1a">VIGENT 3층 아키텍처</text>
+  <text x="30" y="62" font-size="13" fill="#6b7280">감지(L1) → 문서(L2) → 줄걸이 특화 경보(RIG). 수치는 실측값.</text>
+
+  <!-- 입력 -->
+  <rect x="30" y="90" width="140" height="70" rx="8" fill="#f3f4f6" stroke="#9ca3af"/>
+  <text x="100" y="118" font-size="14" font-weight="600" text-anchor="middle" fill="#111">현장 카메라</text>
+  <text x="100" y="138" font-size="11" text-anchor="middle" fill="#6b7280">광역 CCTV + 근접</text>
+  <path d="M170 125 H205" stroke="#9ca3af" stroke-width="2" marker-end="url(#a)"/>
+  <defs><marker id="a" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+    <path d="M0,0 L8,4 L0,8 z" fill="#9ca3af"/></marker></defs>
+
+  <!-- L1 -->
+  <rect x="210" y="88" width="660" height="112" rx="10" fill="#eff6ff" stroke="#3b82f6" stroke-width="2"/>
+  <text x="228" y="114" font-size="16" font-weight="700" fill="#1d4ed8">L1 · 실시간 감지</text>
+  <text x="228" y="134" font-size="12" fill="#374151">작업자 · 보호구(안전모/조끼) · 화재/연기 · 위험구역 진입</text>
+  <g font-size="11">
+    <rect x="228" y="146" width="146" height="40" rx="6" fill="#fff" stroke="#93c5fd"/>
+    <text x="301" y="163" text-anchor="middle" fill="#111" font-weight="600">작업자 검출</text>
+    <text x="301" y="178" text-anchor="middle" fill="#1d4ed8" font-weight="700">mAP@50 92.94%</text>
+    <rect x="384" y="146" width="146" height="40" rx="6" fill="#fff" stroke="#93c5fd"/>
+    <text x="457" y="163" text-anchor="middle" fill="#111" font-weight="600">보호구 검출</text>
+    <text x="457" y="178" text-anchor="middle" fill="#1d4ed8" font-weight="700">mAP@50 71.46%</text>
+    <rect x="540" y="146" width="146" height="40" rx="6" fill="#fff" stroke="#93c5fd"/>
+    <text x="613" y="163" text-anchor="middle" fill="#111" font-weight="600">화재 검출</text>
+    <text x="613" y="178" text-anchor="middle" fill="#1d4ed8" font-weight="700">recall 95.91%</text>
+    <rect x="696" y="146" width="158" height="40" rx="6" fill="#fff" stroke="#93c5fd"/>
+    <text x="775" y="163" text-anchor="middle" fill="#111" font-weight="600">라이선스</text>
+    <text x="775" y="178" text-anchor="middle" fill="#1d4ed8" font-weight="700">AGPL 0 (태그 증명)</text>
+  </g>
+
+  <path d="M540 200 V236" stroke="#9ca3af" stroke-width="2" marker-end="url(#a)"/>
+
+  <!-- L2 -->
+  <rect x="210" y="238" width="660" height="112" rx="10" fill="#f0fdf4" stroke="#16a34a" stroke-width="2"/>
+  <text x="228" y="264" font-size="16" font-weight="700" fill="#15803d">L2 · 문서 자동화</text>
+  <text x="228" y="284" font-size="12" fill="#374151">감지 결과 → 법령 근거 위험성평가서(체크리스트법) 자동 초안</text>
+  <g font-size="11">
+    <rect x="228" y="296" width="196" height="40" rx="6" fill="#fff" stroke="#86efac"/>
+    <text x="326" y="313" text-anchor="middle" fill="#111" font-weight="600">법령 화이트리스트 게이트</text>
+    <text x="326" y="328" text-anchor="middle" fill="#15803d" font-weight="700">검수 23개 조문 · 환각 차단</text>
+    <rect x="434" y="296" width="196" height="40" rx="6" fill="#fff" stroke="#86efac"/>
+    <text x="532" y="313" text-anchor="middle" fill="#111" font-weight="600">비전 사각지대 표면화</text>
+    <text x="532" y="328" text-anchor="middle" fill="#15803d" font-weight="700">"수동확인 필요" 명시</text>
+    <rect x="640" y="296" width="214" height="40" rx="6" fill="#fff" stroke="#86efac"/>
+    <text x="747" y="313" text-anchor="middle" fill="#111" font-weight="600">근거: 산안법 제36조</text>
+    <text x="747" y="328" text-anchor="middle" fill="#15803d" font-weight="700">고시 제2024-76호 제7조</text>
+  </g>
+
+  <path d="M540 350 V386" stroke="#9ca3af" stroke-width="2" marker-end="url(#a)"/>
+
+  <!-- RIG -->
+  <rect x="210" y="388" width="660" height="118" rx="10" fill="#fff7ed" stroke="#ea580c" stroke-width="2"/>
+  <text x="228" y="414" font-size="16" font-weight="700" fill="#c2410c">RIG · 줄걸이 특화 경보</text>
+  <text x="700" y="410" font-size="10" font-weight="700" fill="#c2410c" text-anchor="end">특허 출원 예정 — 개요만</text>
+  <text x="228" y="434" font-size="12" fill="#374151">인양 작업의 <tspan font-weight="700">절차 단계를 인식</tspan>해 정상 근접과 위험 이탈을 구분</text>
+  <g font-size="11">
+    <rect x="228" y="446" width="196" height="46" rx="6" fill="#fff" stroke="#fdba74"/>
+    <text x="326" y="464" text-anchor="middle" fill="#111" font-weight="600">경보 피로 방지</text>
+    <text x="326" y="481" text-anchor="middle" fill="#6b7280">정상 절차상 근접은 경보 안 함</text>
+    <rect x="434" y="446" width="196" height="46" rx="6" fill="#fff" stroke="#fdba74"/>
+    <text x="532" y="464" text-anchor="middle" fill="#111" font-weight="600">2단계 출력</text>
+    <text x="532" y="481" text-anchor="middle" fill="#6b7280">상태 인지(저강도) / 경보(고강도)</text>
+    <rect x="640" y="446" width="214" height="46" rx="6" fill="#fff" stroke="#fdba74"/>
+    <text x="747" y="464" text-anchor="middle" fill="#111" font-weight="600">검증 상태</text>
+    <text x="747" y="481" text-anchor="middle" fill="#c2410c" font-weight="700">로직 테스트 5/5 · 실영상 검증 대기</text>
+  </g>
+
+  <!-- 원칙 -->
+  <rect x="30" y="520" width="840" height="42" rx="6" fill="#fafafa" stroke="#e5e7eb"/>
+  <text x="46" y="537" font-size="11.5" font-weight="700" fill="#111">설계 원칙</text>
+  <text x="46" y="553" font-size="11" fill="#4b5563">절대 저하 없음(모델 실패 시 규칙 폴백) · 영상 현장 외 불유출(외부 전송 기본 차단) · 모든 산출물은 "안전관리자 검토용 초안" · 인증 안전장치를 대체하지 않는 보조·감시 계층</text>
+</svg>
