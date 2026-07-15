@@ -127,7 +127,7 @@ guard.detect person 박스 → RTMPose/yolov8n-pose → COCO-17 키포인트
 | **[worker.py](../vigent-core/worker.py) `_loop`** | 162줄에 캡처·트래커·루프가 뭉쳐 있고 `except: pass`가 많아 캡처 실패가 은폐될 수 있다. 수정 시 로깅부터 붙일 것. | CODE_REVIEW §2.4 |
 | **VLM 호출부** | 6개 모듈에 관용구가 복붙되어 있다. 한 곳만 고치면 나머지 5곳이 남는다. `vlm_text()` 헬퍼화 전까지는 전체 검색으로 일괄 반영. | CODE_REVIEW §2.2 |
 | **증거 경로(scribe)** | `POST /safety/risk-assessment`의 `evidence_paths`가 파일시스템에 무검증으로 도달한다(**path traversal, 미수정**). 이 경로 근처를 만질 땐 격리검사부터. | CODE_REVIEW §3.1 |
-| **[rig_monitor.py](../vigent-core/rig_monitor.py)** | 완성됐지만 파이프라인에 **미배선**(테스트만 사용). "동작한다" 가정 금지 — 실영상 대기 상태. | CODE_REVIEW §2.3 |
+| **[rig_monitor.py](../vigent-core/rig_monitor.py)** | **로직만 존재·파이프라인 미배선**(어떤 라이브 경로도 호출 안 함, 유닛테스트 5만 사용). 핵심 경보(하물 높이) 실영상 검증은 **적합 footage(근접 카메라 인양 1사이클) 확보 대기** — 광역 CCTV 는 하물/후크 미가시(작업자 26~64px 실측, F-13). "동작한다"·"제품 기능" 가정 금지. | FINDINGS F-13 · CODE_REVIEW §2.3 |
 | **포즈 슬롯 주석** | vision.yaml의 pose/tracker/temporal 슬롯(rtmpose·ByteTrack·mmaction2)은 "미설치·미사용" 정직 표기. 실동작은 yolov8n-pose + MediaPipe. yaml만 보고 판단 금지. | vision.yaml 주석 |
 | **의존성 취약점** | pillow·torch·requests 등 16건(pip-audit 확인). 업그레이드는 검출 회귀 테스트와 함께(규칙 §6: 저하 금지). | CODE_REVIEW §3.2 |
 | **읽기 전용 MVP** | `~/Desktop/사업계획서/AX안전`은 원본 MVP로 **읽기 전용**. 자산은 복사만. 수정·삭제 금지(규칙 1). | CLAUDE.md |
