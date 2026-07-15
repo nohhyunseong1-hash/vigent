@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import os
 import threading
+import time
 
 import vision_loader
 from agents import build_agents
@@ -30,3 +31,6 @@ def load_theme(theme: str) -> dict:
     bundle = {"config": cfg, "agents": agents}
     STATE[theme] = bundle
     return bundle
+
+# uptime 기준 시각(모듈 로드 시각) — main 에서 re-import(P1-7)
+_START_TS = time.time()

@@ -6,14 +6,17 @@
 """
 from __future__ import annotations
 
+import functools
 import json
+import os
 from pathlib import Path
 
 from app_state import STATE
 from app_state import load_theme as _load_theme
 from fastapi import HTTPException
 
-_ROOT = Path(__file__).resolve().parent.parent   # 프로젝트 루트(main._ROOT 와 동일 값, 독립 계산)
+_HERE = Path(__file__).resolve().parent            # vigent-core/ (main._HERE 와 동일)
+_ROOT = _HERE.parent                               # 프로젝트 루트(main._ROOT 와 동일 값, 독립 계산)
 
 _SAFETY_KEEP = {"person", "knife", "scissors", "car", "truck", "bus", "motorcycle",
                 "bicycle", "forklift", "train", "boat", "fire", "smoke", "cigarette"}
@@ -115,3 +118,34 @@ def _webhook_allowed(url: str) -> bool:
     if not host:
         return False
     return any(host == h or host.endswith("." + h) for h in _load_allowed_webhook_hosts())
+
+
+@functools.lru_cache(maxsize=None)
+def _tpl(name: str) -> str:
+    """templates/<name> 를 1회 읽어 캐시. 기동 후 첫 요청에 로드·이후 재사용."""
+    return (_HERE / "templates" / name).read_text(encoding="utf-8")
+
+def _env_or_dotenv(key: str) -> str:
+    """환경변수 우선, 없으면 .env 에서 key 값을 읽는다(비밀은 코드/응답에 노출 안 함)."""
+    v = os.environ.get(key, "").strip()
+    if v:
+        return v
+    envf = _ROOT / ".env"
+    if envf.exists():
+        for line in envf.read_text(encoding="utf-8", errors="ignore").splitlines():
+            if line.strip().startswith(key):
+                return line.split("=", 1)[1].strip().strip('"').strip("'")
+    return ""
+
+def _evidence_url(path: str | None) -> str | None:
+    """data/evidence/... 저장경로 → /evidence/... 서빙 URL."""
+    if path and path.startswith("data/evidence/"):
+        return "/evidence/" + path[len("data/evidence/"):]
+    return None
+
+def _product_version() -> str:
+    """제품 버전 단일 소스(VERSION 파일). /health·app.version 이 함께 사용."""
+    try:
+        return (_ROOT / "VERSION").read_text(encoding="utf-8").strip()
+    except Exception:  # noqa: BLE001
+        return "unknown"

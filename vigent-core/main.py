@@ -16,7 +16,6 @@ main.py — VIGENT 공유 코어 FastAPI 골격 (§15-2)
 from __future__ import annotations
 
 import asyncio
-import functools
 import hmac
 import json
 import os
@@ -51,7 +50,11 @@ import tbm_store  # noqa: E402
 import vlog  # noqa: E402  로깅 인프라(C-S1)
 
 # 공유 런타임 상태는 app_state.py 로 분리(P1-7) — 라우터들이 main 을 import 하지 않고 공유.
-from app_state import DEFAULT_THEME, STATE  # noqa: E402
+from app_state import (  # noqa: E402
+    _START_TS,  # noqa: E402
+    DEFAULT_THEME,
+    STATE,
+)
 from app_state import DETECT_LOCK as _DETECT_LOCK  # noqa: E402
 from app_state import load_theme as _load_theme  # noqa: E402
 from routers import office as _office_router  # noqa: E402
@@ -61,24 +64,20 @@ from routers import vitals as _vitals_router  # noqa: E402
 from routers import zone as _zone_router  # noqa: E402
 
 # 공유 웹 헬퍼는 web_util.py 로 분리(P1-7) — 동일 이름 re-import(사용부 무변경)
-from web_util import (  # noqa: E402
+from web_util import (  # noqa: E402  # noqa: E402
     _decode_data_url,
+    _env_or_dotenv,
+    _evidence_url,
     _img_from_b64,
     _incident_boxes,
     _is_safety_label,
+    _product_version,
+    _tpl,
     _webhook_allowed,
 )
 
 _log = vlog.get("vigent")               # print 대체 — 콘솔+파일 로테이션
-_START_TS = _time.time()                # uptime 기준(모듈 로드 시각)
 
-
-def _product_version() -> str:
-    """제품 버전 단일 소스(VERSION 파일). /health·app.version 이 함께 사용."""
-    try:
-        return (_ROOT / "VERSION").read_text(encoding="utf-8").strip()
-    except Exception:  # noqa: BLE001
-        return "unknown"
 
 # ─────────────────────────────────────────────────────────────
 # 앱 + 시작 시 1회 로드
@@ -117,19 +116,6 @@ _AUTH_EXEMPT = {"/health", "/favicon.ico"}
 #   기본 'safety' → safety 배포에는 office/sports 라우트가 404(타 제품 미노출). 다중 제품이면 콤마로: "safety,office,sports"
 _THEMES = {t.strip() for t in os.environ.get("VIGENT_THEMES", "safety").split(",") if t.strip()} or {"safety"}
 _GATED_PREFIXES = {"/office": "office", "/sports": "sports"}  # safety 는 코어(항상 활성)
-
-
-def _env_or_dotenv(key: str) -> str:
-    """환경변수 우선, 없으면 .env 에서 key 값을 읽는다(비밀은 코드/응답에 노출 안 함)."""
-    v = os.environ.get(key, "").strip()
-    if v:
-        return v
-    envf = _ROOT / ".env"
-    if envf.exists():
-        for line in envf.read_text(encoding="utf-8", errors="ignore").splitlines():
-            if line.strip().startswith(key):
-                return line.split("=", 1)[1].strip().strip('"').strip("'")
-    return ""
 
 
 @app.middleware("http")
@@ -620,53 +606,11 @@ def safety_reports(theme: str = DEFAULT_THEME):
 # ─────────────────────────────────────────────────────────────
 # 작업 전 TBM(안전점검 회의) — 작성·저장·열기 (한전 스마트TBM '작업 전' 단계)
 # ─────────────────────────────────────────────────────────────
-_TBM_CSS = """
-  body{font-family:"Apple SD Gothic Neo",sans-serif;margin:0;background:#0e0c08;color:#e2e8f0}
-  .wrap{max-width:760px;margin:0 auto;padding:28px 20px 80px}
-  h1{font-size:21px;margin:4px 0 2px} .sub{color:#94a3b8;font-size:13px;margin-bottom:20px}
-  a{color:#d4a017;text-decoration:none}
-  .card{background:#17150e;border:1px solid #2a2a2e;border-radius:12px;padding:18px;margin-bottom:14px}
-  .card h2{font-size:15px;margin:0 0 12px;color:#d4a017}
-  label.fld{display:block;font-size:13px;color:#cbd5e1;margin:10px 0 4px}
-  input[type=text],textarea{width:100%;box-sizing:border-box;background:#0e0c08;border:1px solid #2a2a2e;
-    border-radius:8px;color:#e2e8f0;padding:9px 11px;font-size:14px;font-family:inherit}
-  textarea{min-height:64px;resize:vertical}
-  .row{display:flex;gap:8px} .row input{flex:1}
-  .chk{display:flex;align-items:center;gap:8px;font-size:13.5px;padding:7px 0;border-bottom:1px solid #29374a}
-  .chk:last-child{border-bottom:none}
-  .chk input{width:17px;height:17px;accent-color:#22c55e}
-  .tag{display:inline-flex;align-items:center;gap:6px;background:#0b2545;border:1px solid #8a6817;
-    color:#bfdbfe;border-radius:999px;padding:5px 10px;font-size:13px;margin:4px 6px 0 0}
-  .tag b{cursor:pointer;color:#d4a017}
-  .wk{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid #29374a}
-  .wk .nm{flex:1} .wk small{color:#94a3b8}
-  .btn{display:inline-block;padding:10px 16px;border-radius:8px;border:1px solid #2a2a2e;
-    background:#0e0c08;color:#e2e8f0;font-size:14px;cursor:pointer}
-  .btn.add{padding:9px 14px}
-  .btn.primary{background:#8a6817;border-color:#8a6817;color:#fff;font-weight:700}
-  .bar{position:fixed;left:0;right:0;bottom:0;background:#0a0a0c;border-top:1px solid #2a2a2e;
-    padding:14px 20px;display:flex;justify-content:center;gap:10px}
-  table{width:100%;border-collapse:collapse;font-size:13px;margin-top:6px}
-  th,td{border:1px solid #2a2a2e;padding:8px 10px;text-align:left} th{background:#162133;color:#d4a017}
-  .dim{color:#94a3b8;font-size:13px}
-  .suggest{margin-top:10px;background:#0b1628;border:1px solid #1d3a5f;border-radius:10px;padding:12px}
-  .sg-h{font-size:13px;color:#d4a017;font-weight:700;margin-bottom:6px}
-  .sg-sec{font-size:13px;color:#cbd5e1;margin:12px 0 5px;display:flex;align-items:center;gap:8px}
-  .tag.sg{cursor:pointer;background:#0f2a18;border-color:#15803d;color:#bbf7d0}
-  .tag.sg.added{opacity:.45;cursor:default;background:#17150e;border-color:#2a2a2e;color:#94a3b8}
-  .btn.add.sm{padding:3px 9px;font-size:12px}
-  details.sg-sec summary{cursor:pointer;color:#d4a017}
-  ul.cites{margin:6px 0 0;padding-left:18px;font-size:12.5px;line-height:1.5}
-  ul.cites b{color:#cbd5e1}
-"""
+_TBM_CSS = _tpl("tbm.css")   # templates/tbm.css 로드(P1-7) — 내용 분리 전과 바이트 동일
 
 # 작성 화면(plain 문자열 — JS 중괄호 보존). /*CSS*/ <!--CHECKLIST--> <!--PROCESSLIST--> 가 치환된다.
 
 # ── 인라인 HTML 분리(P1-7): templates/ 에서 1회 로드·캐시(바이트 동일) ──
-@functools.lru_cache(maxsize=None)
-def _tpl(name: str) -> str:
-    """templates/<name> 를 1회 읽어 캐시. 기동 후 첫 요청에 로드·이후 재사용."""
-    return (_HERE / "templates" / name).read_text(encoding="utf-8")
 
 
 # 안전 자동처리 콘솔 화면(plain 문자열 — JS 중괄호 보존). /*CSS*/ 만 치환된다.
@@ -827,13 +771,6 @@ _ADVISORY = {
     "trip_hazard": "통로·바닥 정리정돈 · 전선·자재 제거 · 미끄럼 방지 조치",
     "ergonomic_risk": "작업자세 개선 안내 · 중량물 보조기구 · 주기적 휴식 권고",
 }
-
-
-def _evidence_url(path: str | None) -> str | None:
-    """data/evidence/... 저장경로 → /evidence/... 서빙 URL."""
-    if path and path.startswith("data/evidence/"):
-        return "/evidence/" + path[len("data/evidence/"):]
-    return None
 
 
 @app.get("/safety/auto/feed")
