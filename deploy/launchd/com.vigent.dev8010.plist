@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!-- VIGENT 개발/데모 서버 자동재기동 (launchd LaunchAgent, macOS) — F-14 방어.
+     KeepAlive=true → 프로세스 종료/네이티브 크래시(F-14) 시 launchd 가 자동 재기동.
+     실증(F-14 §2): kill -9 → /health 약 1.3초 복구·새 PID·/detect/frame 정상.
+
+     ★ macOS TCC 주의: launchd 는 ~/Desktop 하위 스크립트를 '실행'하지 못한다(Operation not permitted).
+       따라서 launcher 를 Desktop 밖에 설치하고 VIGENT_ROOT 로 프로젝트 경로를 주입한다.
+       (아래 __APP_SUPPORT__ 는 예: /Users/<you>/Library/Application Support/VIGENT)
+
+     설치:
+       APP="$HOME/Library/Application Support/VIGENT"; mkdir -p "$APP"
+       cp bin/vigent-serve.sh "$APP/"                       # Desktop 밖으로 복사(TCC 회피)
+       # 이 plist 의 __APP_SUPPORT__ 를 "$APP" 로, __PROJECT_ROOT__ 를 프로젝트 경로로 치환 후:
+       cp deploy/launchd/com.vigent.dev8010.plist ~/Library/LaunchAgents/
+       launchctl load -w ~/Library/LaunchAgents/com.vigent.dev8010.plist
+     해제:
+       launchctl unload -w ~/Library/LaunchAgents/com.vigent.dev8010.plist
+     로그: __APP_SUPPORT__/launchd.{out,err}.log
+     ⚠ 로드 중에는 8010 서버를 수동으로 죽여도 launchd 가 즉시 되살린다(의도된 방어). -->
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.vigent.dev8010</string>
+    <key>ProgramArguments</key>
+    <array>
+        <string>/bin/bash</string>
+        <string>__APP_SUPPORT__/vigent-serve.sh</string>
+    </array>
+    <key>EnvironmentVariables</key>
+    <dict>
+        <key>VIGENT_ROOT</key>
+        <string>__PROJECT_ROOT__</string>
+        <key>VIGENT_HOST</key>
+        <string>127.0.0.1</string>
+        <key>VIGENT_PORT</key>
+        <string>8010</string>
+    </dict>
+    <key>KeepAlive</key>
+    <true/>
+    <key>RunAtLoad</key>
+    <true/>
+    <key>ThrottleInterval</key>
+    <integer>5</integer>
+    <key>StandardOutPath</key>
+    <string>__APP_SUPPORT__/launchd.out.log</string>
+    <key>StandardErrorPath</key>
+    <string>__APP_SUPPORT__/launchd.err.log</string>
+</dict>
+</plist>

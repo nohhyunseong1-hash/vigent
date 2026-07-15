@@ -310,3 +310,4 @@ F-8 진단 중, 서버 detect_frame 이 **연속 프레임 추적**(`guard._trac
   - **판정: 공격면 도달 불가.** `/detect/frame` 입력은 이미지(numpy)뿐 — `torch.jit.script` 에 공격자 제어 입력 0. F-14(MPS 크래시) 이력까지 감안해 **torch 2.12.0 유지**. 업그레이드는 별도 합의 후.
 - **P0-3 토큰 정책**(`main.py`): 로컬 바인딩+무토큰 기동 시 경고 1줄("공유 네트워크·파일럿 필수"). 토큰 비교 `hmac.compare_digest`(상수시간, 타이밍 사이드채널 차단). `DEPLOYMENT.md` 규칙 명문화. 커밋 `32c1b34`.
 - **범위 준수**: P0 밖 리팩터(main.py 분할·vlm_text 헬퍼 등)는 미착수(다음 라운드).
+- **★ 재점검 트리거**: **torch 에 CVE-2025-3000 fix 버전이 출시되면**, torch 업그레이드와 함께 **setuptools 핀(현재 83, torch<82 충돌로 미핀)을 requirements.txt 에 재정리**한다. (그때 MPS 크래시 F-14 회귀도 동시 확인.)
