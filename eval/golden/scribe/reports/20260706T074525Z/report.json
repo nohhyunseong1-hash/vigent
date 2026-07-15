@@ -1,0 +1,427 @@
+{
+  "meta": {
+    "run_at": "2026-07-06T07:45:25.517512+00:00",
+    "golden_sha": "badcfd6",
+    "scribe_source_sha": "817dedc",
+    "judge": {
+      "provider": "openai",
+      "model": "gpt-4o",
+      "temperature": 0
+    },
+    "use_llm_scribe": false
+  },
+  "summary": {
+    "items": 10,
+    "passed": 10,
+    "pass_rate": 1.0
+  },
+  "calibration": {
+    "threshold": 0.8,
+    "rubric_sha256": "4fc62cb2074e",
+    "judge": {
+      "provider": "openai",
+      "model": "gpt-4o",
+      "temperature": 0
+    },
+    "judged_count": 0,
+    "histogram": {
+      "0.0-0.1": 0,
+      "0.1-0.2": 0,
+      "0.2-0.3": 0,
+      "0.3-0.4": 0,
+      "0.4-0.5": 0,
+      "0.5-0.6": 0,
+      "0.6-0.7": 0,
+      "0.7-0.8": 0,
+      "0.8-0.9": 0,
+      "0.9-1.0": 0
+    },
+    "boundary_0.7_0.9": []
+  },
+  "known_limitations": [
+    "citation_valid 게이트는 '조 번호' 수준 검증이며 법령명(법/규칙)을 구분하지 않는다. '산업안전보건법 제38조'와 '안전보건규칙 제38조'를 동일 취급 → 법령명 오인용은 미검출. 게이트 v2(법령명+조 키 매칭)는 후속 항목으로 기록됨.",
+    "law_whitelist 는 대표 조항만 등록 — RULE_KB 범위 조항(예: 제619~625조)은 대표 조항으로만 검증됨."
+  ],
+  "items": [
+    {
+      "item": "edge_contradiction_001",
+      "expect_saved": true,
+      "rows": 2,
+      "would_save": true,
+      "a7_consistent": true,
+      "gates_passed": true,
+      "gates": [
+        {
+          "name": "columns_complete",
+          "pass": true,
+          "reason": "필수칸 완결(검토자칸 공란 허용)"
+        },
+        {
+          "name": "grounding",
+          "pass": true,
+          "reason": "judge_interim (rows에 event_id 없음 → judge 보조검사)"
+        },
+        {
+          "name": "no_fabrication",
+          "pass": true,
+          "reason": "입력 존재 → 생성 허용"
+        },
+        {
+          "name": "citation_valid",
+          "pass": true,
+          "reason": "법령 인용 전부 화이트리스트 내"
+        },
+        {
+          "name": "positioning_present",
+          "pass": true,
+          "reason": "AI초안·안전관리자 확인 문구 존재"
+        }
+      ],
+      "grounding_mode": "judge_interim",
+      "judge": null,
+      "pass": true
+    },
+    {
+      "item": "edge_contradiction_002",
+      "expect_saved": true,
+      "rows": 1,
+      "would_save": true,
+      "a7_consistent": true,
+      "gates_passed": true,
+      "gates": [
+        {
+          "name": "columns_complete",
+          "pass": true,
+          "reason": "필수칸 완결(검토자칸 공란 허용)"
+        },
+        {
+          "name": "grounding",
+          "pass": true,
+          "reason": "judge_interim (rows에 event_id 없음 → judge 보조검사)"
+        },
+        {
+          "name": "no_fabrication",
+          "pass": true,
+          "reason": "입력 존재 → 생성 허용"
+        },
+        {
+          "name": "citation_valid",
+          "pass": true,
+          "reason": "법령 인용 전부 화이트리스트 내"
+        },
+        {
+          "name": "positioning_present",
+          "pass": true,
+          "reason": "AI초안·안전관리자 확인 문구 존재"
+        }
+      ],
+      "grounding_mode": "judge_interim",
+      "judge": null,
+      "pass": true
+    },
+    {
+      "item": "edge_empty_001",
+      "expect_saved": false,
+      "rows": 0,
+      "would_save": false,
+      "a7_consistent": true,
+      "gates_passed": true,
+      "gates": [
+        {
+          "name": "columns_complete",
+          "pass": true,
+          "reason": "필수칸 완결(검토자칸 공란 허용)"
+        },
+        {
+          "name": "grounding",
+          "pass": true,
+          "reason": "judge_interim (rows에 event_id 없음 → judge 보조검사)"
+        },
+        {
+          "name": "no_fabrication",
+          "pass": true,
+          "reason": "빈 입력 → 미생성(A7 정상)"
+        },
+        {
+          "name": "citation_valid",
+          "pass": true,
+          "reason": "법령 인용 전부 화이트리스트 내"
+        },
+        {
+          "name": "positioning_present",
+          "pass": true,
+          "reason": "AI초안·안전관리자 확인 문구 존재"
+        }
+      ],
+      "grounding_mode": "judge_interim",
+      "judge": null,
+      "pass": true
+    },
+    {
+      "item": "edge_empty_002",
+      "expect_saved": false,
+      "rows": 0,
+      "would_save": false,
+      "a7_consistent": true,
+      "gates_passed": true,
+      "gates": [
+        {
+          "name": "columns_complete",
+          "pass": true,
+          "reason": "필수칸 완결(검토자칸 공란 허용)"
+        },
+        {
+          "name": "grounding",
+          "pass": true,
+          "reason": "judge_interim (rows에 event_id 없음 → judge 보조검사)"
+        },
+        {
+          "name": "no_fabrication",
+          "pass": true,
+          "reason": "입력 존재 → 생성 허용"
+        },
+        {
+          "name": "citation_valid",
+          "pass": true,
+          "reason": "법령 인용 전부 화이트리스트 내"
+        },
+        {
+          "name": "positioning_present",
+          "pass": true,
+          "reason": "AI초안·안전관리자 확인 문구 존재"
+        }
+      ],
+      "grounding_mode": "judge_interim",
+      "judge": null,
+      "pass": true
+    },
+    {
+      "item": "edge_empty_003",
+      "expect_saved": false,
+      "rows": 0,
+      "would_save": false,
+      "a7_consistent": true,
+      "gates_passed": true,
+      "gates": [
+        {
+          "name": "columns_complete",
+          "pass": true,
+          "reason": "필수칸 완결(검토자칸 공란 허용)"
+        },
+        {
+          "name": "grounding",
+          "pass": true,
+          "reason": "judge_interim (rows에 event_id 없음 → judge 보조검사)"
+        },
+        {
+          "name": "no_fabrication",
+          "pass": true,
+          "reason": "빈 입력 → 미생성(A7 정상)"
+        },
+        {
+          "name": "citation_valid",
+          "pass": true,
+          "reason": "법령 인용 전부 화이트리스트 내"
+        },
+        {
+          "name": "positioning_present",
+          "pass": true,
+          "reason": "AI초안·안전관리자 확인 문구 존재"
+        }
+      ],
+      "grounding_mode": "judge_interim",
+      "judge": null,
+      "pass": true
+    },
+    {
+      "item": "edge_metaloss_001",
+      "expect_saved": true,
+      "rows": 1,
+      "would_save": true,
+      "a7_consistent": true,
+      "gates_passed": true,
+      "gates": [
+        {
+          "name": "columns_complete",
+          "pass": true,
+          "reason": "필수칸 완결(검토자칸 공란 허용)"
+        },
+        {
+          "name": "grounding",
+          "pass": true,
+          "reason": "judge_interim (rows에 event_id 없음 → judge 보조검사)"
+        },
+        {
+          "name": "no_fabrication",
+          "pass": true,
+          "reason": "입력 존재 → 생성 허용"
+        },
+        {
+          "name": "citation_valid",
+          "pass": true,
+          "reason": "법령 인용 전부 화이트리스트 내"
+        },
+        {
+          "name": "positioning_present",
+          "pass": true,
+          "reason": "AI초안·안전관리자 확인 문구 존재"
+        }
+      ],
+      "grounding_mode": "judge_interim",
+      "judge": null,
+      "pass": true
+    },
+    {
+      "item": "edge_metaloss_002",
+      "expect_saved": true,
+      "rows": 1,
+      "would_save": true,
+      "a7_consistent": true,
+      "gates_passed": true,
+      "gates": [
+        {
+          "name": "columns_complete",
+          "pass": true,
+          "reason": "필수칸 완결(검토자칸 공란 허용)"
+        },
+        {
+          "name": "grounding",
+          "pass": true,
+          "reason": "judge_interim (rows에 event_id 없음 → judge 보조검사)"
+        },
+        {
+          "name": "no_fabrication",
+          "pass": true,
+          "reason": "입력 존재 → 생성 허용"
+        },
+        {
+          "name": "citation_valid",
+          "pass": true,
+          "reason": "법령 인용 전부 화이트리스트 내"
+        },
+        {
+          "name": "positioning_present",
+          "pass": true,
+          "reason": "AI초안·안전관리자 확인 문구 존재"
+        }
+      ],
+      "grounding_mode": "judge_interim",
+      "judge": null,
+      "pass": true
+    },
+    {
+      "item": "edge_outofscope_001",
+      "expect_saved": false,
+      "rows": 0,
+      "would_save": false,
+      "a7_consistent": true,
+      "gates_passed": true,
+      "gates": [
+        {
+          "name": "columns_complete",
+          "pass": true,
+          "reason": "필수칸 완결(검토자칸 공란 허용)"
+        },
+        {
+          "name": "grounding",
+          "pass": true,
+          "reason": "judge_interim (rows에 event_id 없음 → judge 보조검사)"
+        },
+        {
+          "name": "no_fabrication",
+          "pass": true,
+          "reason": "입력 존재 → 생성 허용"
+        },
+        {
+          "name": "citation_valid",
+          "pass": true,
+          "reason": "법령 인용 전부 화이트리스트 내"
+        },
+        {
+          "name": "positioning_present",
+          "pass": true,
+          "reason": "AI초안·안전관리자 확인 문구 존재"
+        }
+      ],
+      "grounding_mode": "judge_interim",
+      "judge": null,
+      "pass": true
+    },
+    {
+      "item": "edge_timeseries_001",
+      "expect_saved": true,
+      "rows": 1,
+      "would_save": true,
+      "a7_consistent": true,
+      "gates_passed": true,
+      "gates": [
+        {
+          "name": "columns_complete",
+          "pass": true,
+          "reason": "필수칸 완결(검토자칸 공란 허용)"
+        },
+        {
+          "name": "grounding",
+          "pass": true,
+          "reason": "judge_interim (rows에 event_id 없음 → judge 보조검사)"
+        },
+        {
+          "name": "no_fabrication",
+          "pass": true,
+          "reason": "입력 존재 → 생성 허용"
+        },
+        {
+          "name": "citation_valid",
+          "pass": true,
+          "reason": "법령 인용 전부 화이트리스트 내"
+        },
+        {
+          "name": "positioning_present",
+          "pass": true,
+          "reason": "AI초안·안전관리자 확인 문구 존재"
+        }
+      ],
+      "grounding_mode": "judge_interim",
+      "judge": null,
+      "pass": true
+    },
+    {
+      "item": "edge_timeseries_002",
+      "expect_saved": true,
+      "rows": 1,
+      "would_save": true,
+      "a7_consistent": true,
+      "gates_passed": true,
+      "gates": [
+        {
+          "name": "columns_complete",
+          "pass": true,
+          "reason": "필수칸 완결(검토자칸 공란 허용)"
+        },
+        {
+          "name": "grounding",
+          "pass": true,
+          "reason": "judge_interim (rows에 event_id 없음 → judge 보조검사)"
+        },
+        {
+          "name": "no_fabrication",
+          "pass": true,
+          "reason": "입력 존재 → 생성 허용"
+        },
+        {
+          "name": "citation_valid",
+          "pass": true,
+          "reason": "법령 인용 전부 화이트리스트 내"
+        },
+        {
+          "name": "positioning_present",
+          "pass": true,
+          "reason": "AI초안·안전관리자 확인 문구 존재"
+        }
+      ],
+      "grounding_mode": "judge_interim",
+      "judge": null,
+      "pass": true
+    }
+  ]
+}
