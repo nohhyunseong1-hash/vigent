@@ -57,6 +57,16 @@ from app_state import load_theme as _load_theme  # noqa: E402
 from routers import tapo as _tapo_router  # noqa: E402
 from routers import vitals as _vitals_router  # noqa: E402
 
+# 공유 웹 헬퍼는 web_util.py 로 분리(P1-7) — 동일 이름 re-import(사용부 무변경)
+from web_util import (  # noqa: E402  # noqa: E402
+    _decode_data_url,
+    _img_from_b64,
+    _incident_boxes,
+    _is_safety_label,
+    _zone_get,
+    _zone_set,
+)
+
 _log = vlog.get("vigent")               # print 대체 — 콘솔+파일 로테이션
 _START_TS = _time.time()                # uptime 기준(모듈 로드 시각)
 
@@ -169,35 +179,6 @@ async def _no_cache_dynamic(request, call_next):
 
 # 안전 모드에서 '그릴' 객체 화이트리스트(서버단 강제) — 프론트 캐시와 무관하게 잡동사니 제거.
 # 일상 사물(노트북·TV·의자 등)은 빼고, 사람·위험물·차량/중장비·화재·보호구(PPE)만 남긴다.
-_SAFETY_KEEP = {"person", "knife", "scissors", "car", "truck", "bus", "motorcycle",
-                "bicycle", "forklift", "train", "boat", "fire", "smoke", "cigarette"}
-
-
-def _incident_boxes(out: dict, prox: list) -> list:
-    """탐지 결과 → 박스 목록(정규화 bbox + 위험여부). 협착쌍·화재·보호구미착용을 위험으로 표시."""
-    def overlap(a, b):
-        ix = max(0.0, min(a[2], b[2]) - max(a[0], b[0]))
-        iy = max(0.0, min(a[3], b[3]) - max(a[1], b[1]))
-        return ix * iy > 0
-    prox_persons = [p.get("person_bbox") for p in (prox or [])]
-    has_prox = bool(prox)
-    boxes = []
-    for d in out.get("detections", []):
-        cls = (d.get("label") or "")
-        cl = cls.lower()
-        bb = d.get("bbox", [0, 0, 0, 0])
-        hazard = (cl in ("fire", "smoke") or cl.startswith("no-")
-                  or (cl == "forklift" and has_prox)
-                  or any(pb and overlap(bb, pb) for pb in prox_persons))
-        boxes.append({"class": cls, "bbox": [round(v, 4) for v in bb], "hazard": bool(hazard)})
-    return boxes
-
-
-def _is_safety_label(label: str) -> bool:
-    l = (label or "").lower()
-    if l in _SAFETY_KEEP:
-        return True
-    return any(k in l for k in ("hardhat", "helmet", "vest", "mask", "glove", "goggle", "boots"))
 
 
 # STATE · _DETECT_LOCK · _load_theme 는 app_state.py 로 분리(P1-7) — 위 import 에서 가져온다
@@ -366,38 +347,6 @@ def capabilities(theme: str = DEFAULT_THEME):
 
 
 # vision.yaml judgment.zones 의 키 → 실제 파일 경로
-def _zone_cfg_path(theme: str, key: str) -> str | None:
-    bundle = STATE.get(theme) or _load_theme(theme)
-    return (bundle["config"].raw.get("judgment", {}) or {}).get("zones", {}).get(key)
-
-
-def _zone_get(theme: str, key: str) -> dict:
-    zone_path = _zone_cfg_path(theme, key)
-    if not zone_path:
-        return {"points": []}
-    p = _ROOT / zone_path
-    if not p.exists():
-        return {"points": []}
-    with open(p, "r", encoding="utf-8") as f:
-        return json.load(f)
-
-
-def _zone_set(theme: str, key: str, payload: dict) -> dict:
-    zone_path = _zone_cfg_path(theme, key)
-    if not zone_path:
-        raise HTTPException(status_code=400, detail=f"vision.yaml 에 {key} 경로가 없음")
-    points = []
-    for pt in payload.get("points", []) or []:
-        try:
-            x, y = float(pt["x"]), float(pt["y"])
-        except (KeyError, TypeError, ValueError):
-            raise HTTPException(status_code=400, detail="points 형식 오류({x,y} 필요)")
-        points.append({"x": max(0.0, min(1.0, x)), "y": max(0.0, min(1.0, y))})
-    p = _ROOT / zone_path
-    p.parent.mkdir(parents=True, exist_ok=True)
-    with open(p, "w", encoding="utf-8") as f:
-        json.dump({"points": points}, f, ensure_ascii=False)
-    return {"ok": True, "count": len(points), "saved_to": str(zone_path)}
 
 
 @app.get("/zone/danger")
@@ -509,32 +458,6 @@ def safety_risk_assessment(body: RiskAssessmentIn, theme: str = DEFAULT_THEME,
     return {"assessment": out["assessment"], "saved_path": out["saved_path"],
             "saved": out.get("saved", out["saved_path"] is not None),
             "dropped_rules": out.get("dropped_rules", [])}
-
-
-def _decode_data_url(image: str):
-    """data:image/...;base64,... → cv2 BGR numpy. 실패하면 None."""
-    import base64
-    import re
-
-    import cv2
-    import numpy as np
-    m = re.match(r"^data:image/\w+;base64,(.+)$", image or "", re.S)
-    if not m:
-        return None
-    try:
-        buf = np.frombuffer(base64.b64decode(m.group(1)), dtype=np.uint8)
-        return cv2.imdecode(buf, cv2.IMREAD_COLOR)
-    except Exception:  # noqa: BLE001
-        return None
-
-
-def _img_from_b64(raw):
-    """base64 또는 data:URL 문자열 → BGR numpy(없거나 실패 시 None). data: 접두어 자동 보정.
-    여러 엔드포인트의 동일 디코드 블록을 한 곳으로 통합."""
-    if not raw:
-        return None
-    rawd = raw if str(raw).startswith("data:") else "data:image/jpeg;base64," + raw
-    return _decode_data_url(rawd)
 
 
 @app.post("/detect/frame")
@@ -781,7 +704,6 @@ _TBM_CSS = """
 def _tpl(name: str) -> str:
     """templates/<name> 를 1회 읽어 캐시. 기동 후 첫 요청에 로드·이후 재사용."""
     return (_HERE / "templates" / name).read_text(encoding="utf-8")
-
 
 
 # 안전 자동처리 콘솔 화면(plain 문자열 — JS 중괄호 보존). /*CSS*/ 만 치환된다.
