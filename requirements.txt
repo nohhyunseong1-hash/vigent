@@ -7,10 +7,10 @@
 fastapi==0.137.2
 uvicorn==0.23.2
 python-multipart==0.0.32
-python-dotenv==1.1.0
+python-dotenv==1.2.2         # P0-2a 보안 업그레이드(PYSEC-2026-2270)
 PyYAML==6.0.3
 websockets==16.0
-requests==2.32.5              # dispatcher 텔레그램/웹훅 전송
+requests==2.33.0              # dispatcher 텔레그램/웹훅 전송 (P0-2a: PYSEC-2026-2275)
 
 # ── 영상 / 수치 ──────────────────────────────────
 # 배포는 headless(서버에 GUI 불필요). 개발 환경은 opencv-python(GUI)로 별도 설치 가능.
@@ -20,11 +20,13 @@ requests==2.32.5              # dispatcher 텔레그램/웹훅 전송
 #    (Dockerfile 은 이 정리를 자동 수행 → cv2 를 headless 하나로 고정). 클린 venv 실증됨.
 numpy==2.4.6
 opencv-contrib-python-headless==4.13.0.92
-Pillow==12.0.0
+Pillow==12.3.0               # P0-2a 보안 업그레이드(PYSEC-2026-2249~2874 12건)
 
 # ── 검출: RF-DETR(person·forklift, Apache) + YOLO(ppe·fire_smoke) ──
 # ⚠️ torch/torchvision 은 플랫폼마다 설치법 상이(Jetson/CUDA 는 기기용 휠 별도).
-torch==2.12.0
+# ⚠️ setuptools: 환경에는 83.0.0(PYSEC-2026-3447 해소, P0-2a) 설치. 단 torch 2.12 가 setuptools<82 를
+#    선언(pkg_resources 제거 이슈) → 여기 핀하지 않음(핀하면 pip 충돌). torch 업그레이드(CVE-2025-3000) 시 함께 재정리.
+torch==2.12.0                # ★ 보류(P0-2b): CVE-2025-3000 조사 중, MPS 크래시(F-14) 이력으로 별도 합의 후 업그레이드
 torchvision==0.27.0
 rfdetr==1.8.0
 supervision==0.29.0.post0
