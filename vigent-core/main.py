@@ -55,6 +55,7 @@ from app_state import DEFAULT_THEME, STATE  # noqa: E402
 from app_state import DETECT_LOCK as _DETECT_LOCK  # noqa: E402
 from app_state import load_theme as _load_theme  # noqa: E402
 from routers import tapo as _tapo_router  # noqa: E402
+from routers import vitals as _vitals_router  # noqa: E402
 
 _log = vlog.get("vigent")               # print 대체 — 콘솔+파일 로테이션
 _START_TS = _time.time()                # uptime 기준(모듈 로드 시각)
@@ -74,6 +75,7 @@ def _product_version() -> str:
 
 app = FastAPI(title="VIGENT Core", version=_product_version())
 app.include_router(_tapo_router.router)   # /tapo/* (P1-7)
+app.include_router(_vitals_router.router)   # /vitals/* (P1-7)
 
 # ── 보안(C-S0): 바인딩·토큰 인증·웹훅 화이트리스트 ─────────────────────────
 #   기본은 로컬 전용(127.0.0.1)·무토큰(개발 편의). 외부 노출은 명시적 opt-in.
@@ -1885,9 +1887,7 @@ body{{background:#0f1620;color:#e8eef5;font-family:-apple-system,"Apple SD Gothi
     return html
 
 
-@app.post("/vitals/rppg")
-def stub_vitals(payload: dict = Body(default={})):
-    return {"ok": True, "bpm": None, "note": "stub"}
+# ── /vitals/* 는 routers/vitals.py 로 분리(P1-7) ──
 
 
 @app.post("/recognition/note")
