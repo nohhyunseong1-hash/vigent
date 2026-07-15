@@ -49,16 +49,10 @@ def _vlm_present(image_bgr, question: str) -> bool | None:
         return None
     prompt = ("너는 산업안전 점검 보조 AI다. 아래 질문에 반드시 '예' '아니오' '불확실' 중 "
               "하나의 단어로만 답하라.\n질문: " + question)
-    try:
-        import rfdetr_service
-        data = rfdetr_service.vlm.summarize_bgr(image_bgr, prompt=prompt)
-    except Exception:  # noqa: BLE001  VLM 미가용/실패 → 불확실(폴백)
+    import rfdetr_service
+    txt = rfdetr_service.vlm_text(image_bgr, prompt)   # P1-6: 지역import·_error가드·raw추출 흡수
+    if txt is None:
         return None
-    if not isinstance(data, dict) or data.get("_error"):
-        return None
-    txt = str(data.get("raw") or " ".join(str(v) for k, v in data.items()
-                                           if not str(k).startswith("_")))
-    txt = txt.strip()
     if "아니" in txt or "없" in txt or "no" in txt.lower():
         return False
     if txt.startswith("예") or "있" in txt or "yes" in txt.lower():
@@ -92,16 +86,11 @@ def detect_activity(image_bgr=None, present_classes: list[str] | None = None,
         prompt = ("너는 산업안전 점검 AI다. 이 장면에서 진행 중인 작업을 아래 목록에서 하나만 골라 "
                   "그 이름만 답하라. 해당 없거나 불확실하면 '없음'이라고만 답하라.\n작업 목록: "
                   + ", ".join(names))
-        try:
-            import rfdetr_service
-            data = rfdetr_service.vlm.summarize_bgr(image_bgr, prompt=prompt)
-            txt = str(data.get("raw") or " ".join(str(v) for k, v in data.items()
-                                                   if not str(k).startswith("_"))) if isinstance(data, dict) else ""
-            for a in acts:
-                if a["name"] in txt or any(al in txt for al in a.get("aliases", [])):
-                    return a["id"]
-        except Exception:  # noqa: BLE001  VLM 실패 → 신호 폴백
-            pass
+        import rfdetr_service
+        txt = rfdetr_service.vlm_text(image_bgr, prompt) or ""   # P1-6 헬퍼(실패/None→"" → 신호 폴백)
+        for a in acts:
+            if a["name"] in txt or any(al in txt for al in a.get("aliases", [])):
+                return a["id"]
     # ② 감지신호 휴리스틱(화재/연기→화기작업, 지게차→양중/차량계 …)
     sig = {str(c).lower() for c in (present_classes or [])}
     for a in acts:
@@ -131,16 +120,11 @@ def detect_environment(image_bgr=None, present_classes: list[str] | None = None,
         names = [e["name"] for e in envs]
         prompt = ("너는 산업안전 점검 AI다. 이 장면의 작업환경을 아래 중 하나로만 골라 그 이름만 답하라. "
                   "불확실하면 '불확실'이라고만 답하라.\n환경 목록: " + ", ".join(names))
-        try:
-            import rfdetr_service
-            data = rfdetr_service.vlm.summarize_bgr(image_bgr, prompt=prompt)
-            txt = str(data.get("raw") or " ".join(str(v) for k, v in data.items()
-                                                   if not str(k).startswith("_"))) if isinstance(data, dict) else ""
-            for e in envs:
-                if e["name"] in txt or any(kw in txt for kw in e.get("keywords", [])):
-                    return e
-        except Exception:  # noqa: BLE001
-            pass
+        import rfdetr_service
+        txt = rfdetr_service.vlm_text(image_bgr, prompt) or ""   # P1-6 헬퍼(실패/None→"" → 신호 폴백)
+        for e in envs:
+            if e["name"] in txt or any(kw in txt for kw in e.get("keywords", [])):
+                return e
     # 폴백: 건설/현장 신호(화재·지게차·보호구)가 보이면 '현장 계열'로 추정(사무실 아님)
     sig = {str(c).lower() for c in (present_classes or [])}
     field_signals = {"fire", "smoke", "forklift", "hardhat", "no-hardhat", "vest", "no-safety-vest"}
