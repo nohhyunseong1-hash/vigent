@@ -37,3 +37,20 @@ vigent-core/static/vendor/
 
 # C-S1 런타임 로그(로테이션)
 logs/
+
+# ── 사본·아카이브 (저장소 밖 관리, 커밋 금지) ──
+VIGENT_archive/
+VIGENT USB/
+vigent-landing 2/
+vigentFacialRecognition/
+VIGENT_artifacts/
+# ── 개인 실행/메모 (데스크탑 한글 .command/.md) ──
+/VIGENT *.command
+/VIGENT *.md
+# ── 벤치 산출물(대용량 바이너리 — 근거는 FINDINGS 텍스트로 인용) ──
+benchmarks/results/
+# ── 사업 문서 (새 개발자 비공개, 저장소 밖 관리) ──
+/VIGENT_사업추진계획서*.md
+business_assets/
+pilot_*.md
+vigent_helios_hx_deployable.html
