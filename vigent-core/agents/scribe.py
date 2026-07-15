@@ -202,13 +202,35 @@ def _split_law(s: str) -> tuple[str, str]:
     return s, ""
 
 
-def _evidence_data_uri(relpath: str, max_bytes: int = 4_000_000) -> str | None:
-    """data/evidence 상대경로 → data URI(base64). 문서에 사진을 내장해 이동·이메일에도 보존.
-    없거나 너무 크면 None(저하 없이 사진만 생략)."""
+_EVIDENCE_DIR = (_ROOT / "data" / "evidence").resolve()
+
+
+def _safe_evidence_path(relpath: str) -> Path | None:
+    """evidence 상대경로를 data/evidence 하위로 '격리'한다(P0-1 path traversal 차단).
+    '../../etc/passwd'·절대경로·심링크 탈출 등 evidence 디렉토리 밖을 가리키면 None(+경고 로그).
+    경로만 로깅하고 파일 내용은 절대 노출하지 않는다."""
     if not relpath:
         return None
-    p = _ROOT / relpath
-    if not p.exists() or not p.is_file():
+    try:
+        p = (_ROOT / relpath).resolve()
+    except (OSError, RuntimeError, ValueError):
+        return None
+    if not p.is_relative_to(_EVIDENCE_DIR):
+        try:
+            import logging
+            logging.getLogger("vigent.scribe").warning(
+                "evidence 경로 격리 위반 차단(path traversal 의심): %r", relpath)
+        except Exception:  # noqa: BLE001  로깅 실패해도 차단은 유지
+            pass
+        return None
+    return p
+
+
+def _evidence_data_uri(relpath: str, max_bytes: int = 4_000_000) -> str | None:
+    """data/evidence 상대경로 → data URI(base64). 문서에 사진을 내장해 이동·이메일에도 보존.
+    없거나 너무 크거나 evidence 디렉토리 밖(traversal)이면 None(저하 없이 사진만 생략)."""
+    p = _safe_evidence_path(relpath)   # ★ P0-1: data/evidence 하위로 격리(밖이면 None)
+    if p is None or not p.is_file():
         return None
     try:
         raw = p.read_bytes()
@@ -281,7 +303,8 @@ class ScribeAgent(BaseAgent):
                 try:
                     import cv2
                     import vlm_confirm
-                    _img = cv2.imread(str(_ROOT / pairs[0][0]))
+                    _sp = _safe_evidence_path(pairs[0][0])   # ★ P0-1: evidence 격리(밖이면 None → 건너뜀)
+                    _img = cv2.imread(str(_sp)) if _sp is not None else None
                     _desc = vlm_confirm.describe_scene(_img) if _img is not None else ""
                     if _desc:
                         _n = ev_imgs[0]["note"]
