@@ -60,11 +60,12 @@ from routers import vitals as _vitals_router  # noqa: E402
 from routers import zone as _zone_router  # noqa: E402
 
 # 공유 웹 헬퍼는 web_util.py 로 분리(P1-7) — 동일 이름 re-import(사용부 무변경)
-from web_util import (  # noqa: E402  # noqa: E402
+from web_util import (  # noqa: E402
     _decode_data_url,
     _img_from_b64,
     _incident_boxes,
     _is_safety_label,
+    _webhook_allowed,
 )
 
 _log = vlog.get("vigent")               # print 대체 — 콘솔+파일 로테이션
@@ -114,24 +115,6 @@ _AUTH_EXEMPT = {"/health", "/favicon.ico"}
 #   기본 'safety' → safety 배포에는 office/sports 라우트가 404(타 제품 미노출). 다중 제품이면 콤마로: "safety,office,sports"
 _THEMES = {t.strip() for t in os.environ.get("VIGENT_THEMES", "safety").split(",") if t.strip()} or {"safety"}
 _GATED_PREFIXES = {"/office": "office", "/sports": "sports"}  # safety 는 코어(항상 활성)
-
-
-def _load_allowed_webhook_hosts() -> set[str]:
-    """config/security.json 의 allowed_webhook_hosts(아웃바운드 웹훅 목적지 화이트리스트)."""
-    try:
-        f = _ROOT / "config" / "security.json"
-        return set(json.loads(f.read_text(encoding="utf-8")).get("allowed_webhook_hosts") or [])
-    except Exception:  # noqa: BLE001  설정 없으면 빈 집합(전부 미허용 = fail-closed)
-        return set()
-
-
-def _webhook_allowed(url: str) -> bool:
-    """url 의 호스트가 화이트리스트에 있으면 True(서브도메인 endswith 매칭)."""
-    from urllib.parse import urlparse
-    host = (urlparse(url).hostname or "").lower()
-    if not host:
-        return False
-    return any(host == h or host.endswith("." + h) for h in _load_allowed_webhook_hosts())
 
 
 def _env_or_dotenv(key: str) -> str:
