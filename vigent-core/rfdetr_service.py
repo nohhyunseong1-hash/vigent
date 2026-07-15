@@ -166,3 +166,24 @@ class VLMService:
 # 서버 전역 싱글톤
 rfdetr = RFDetrService()
 vlm = VLMService()
+
+
+def vlm_text(image_bgr, prompt: str, **kwargs) -> str | None:
+    """VLM 텍스트 추론 → 원문 텍스트(str) 또는 None (P1-6 공통 헬퍼).
+
+    14개 호출부에 흩어져 반복되던 3요소를 흡수한다:
+      ① 지역 import·호출  ② _error/dict-아님 가드  ③ raw 추출('raw' 우선, 없으면 비-'_' 값 join).
+    실패·미가용·빈 결과는 전부 None → 호출자가 규칙 기반으로 폴백(절대 저하 없음).
+    kwargs 는 summarize_bgr 로 전달(max_tokens·enrich·facts 등). 구조화 JSON 이 필요한 호출부는
+    이 텍스트를 받아 각자 파싱한다(요약: dict 파싱은 호출부 책임)."""
+    if image_bgr is None:
+        return None
+    try:
+        data = vlm.summarize_bgr(image_bgr, prompt=prompt, **kwargs)
+    except Exception:  # noqa: BLE001  VLM 미가용/실패 → None(폴백)
+        return None
+    if not isinstance(data, dict) or data.get("_error"):
+        return None
+    txt = str(data.get("raw") or " ".join(str(v) for k, v in data.items()
+                                          if not str(k).startswith("_"))).strip()
+    return txt or None
