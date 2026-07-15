@@ -106,6 +106,7 @@ lsof -nP -iTCP:8010 -sTCP:LISTEN   # 아무것도 안 나와야 정상
 
 | 변수 | 기본 | 의미 |
 |---|---|---|
+| `VIGENT_API_TOKEN` | (없음) | 설정 시 **전 라우트 Bearer 인증**(`/health`·favicon 제외). ★ **파일럿·공유 네트워크 환경에서는 상시 설정 필수.** 미설정 + 로컬 바인딩은 개발 편의로 허용되나 기동 시 경고 1줄 출력(P0-3). **외부 바인딩(`VIGENT_HOST`≠127.0.0.1) + 무토큰은 기동 거부.** 토큰 비교는 상수시간(`hmac.compare_digest`). |
 | `VIGENT_LLM_PROVIDER` | `openai` | 텍스트 LLM 프로바이더 — `openai`(기본) / `anthropic`. **2026-07-14: ollama(로컬) 제거 → OpenAI 단일화.** ⚠️ **키가 없거나 API 장애여도 기능은 죽지 않는다** — 규칙 기반 폴백(위험성평가서의 점검항목·법령·위계는 애초에 규칙 기반이라 영향 0). 단 **폐쇄망에서는 LLM 종합의견 불가**(규칙 폴백만). 실제 설정은 `/health`의 `llm` 필드로 확인. |
 | `VIGENT_CLOUD_VLM` | off | **1** 일 때만 클라우드 VLM(OpenAI 비전)에 프레임 전송. **영상 불유출 원칙 — 상용 배포 미포함**(F-12). 키만 있어도 off면 전송 안 함. **위 LLM provider 정리와 무관하게 그대로 유지됨.** |
 | `VIGENT_ALLOW_FALLBACK` | off | **1** 이면 커스텀 가중치 부재 시 COCO 폴백 허용(**검출 저하**). 기본은 기동 거부(F-8). |

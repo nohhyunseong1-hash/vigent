@@ -15,6 +15,7 @@ main.py — VIGENT 공유 코어 FastAPI 골격 (§15-2)
 """
 from __future__ import annotations
 
+import hmac
 import os
 import sys
 import threading
@@ -82,6 +83,11 @@ if not _IS_LOOPBACK and not _API_TOKEN:
         "  · 외부 노출  : VIGENT_API_TOKEN=<비밀토큰> 설정 후 기동(전 라우트 Bearer 인증)\n\n"
         % _BIND_HOST)
     raise SystemExit(1)
+# 로컬 바인딩 + 무토큰(개발 편의로 허용)이라도, 공유 네트워크에서는 위험 → 기동 시 1줄 경고(P0-3).
+if _IS_LOOPBACK and not _API_TOKEN:
+    sys.stderr.write(
+        "[VIGENT 경고] VIGENT_API_TOKEN 미설정(로컬 무인증 모드). "
+        "공유 네트워크·파일럿 환경에서는 VIGENT_API_TOKEN 설정이 필수입니다.\n")
 # 토큰 미설정(로컬)이면 인증 생략. 설정 시 아래 경로만 예외(모니터링·파비콘).
 _AUTH_EXEMPT = {"/health", "/favicon.ico"}
 
@@ -128,7 +134,8 @@ async def _auth_guard(request, call_next):
     if _API_TOKEN and request.method != "OPTIONS":
         path = request.url.path
         if path not in _AUTH_EXEMPT:
-            if request.headers.get("Authorization", "") != f"Bearer {_API_TOKEN}":
+            # 상수시간 비교(P0-3/P1-8): 타이밍 사이드채널로 토큰 추측 방지. compare_digest 는 길이 불일치도 안전.
+            if not hmac.compare_digest(request.headers.get("Authorization", ""), f"Bearer {_API_TOKEN}"):
                 return JSONResponse({"detail": "unauthorized"}, status_code=401)
     return await call_next(request)
 
