@@ -22,7 +22,7 @@
 ## 2. 로컬 개발 환경 설정 (따라 하기)
 
 ### 2.1 사전 조건
-- Python **3.11 이상**(이 저장소 검증 환경은 3.13). 시스템 기본 `python3`가 3.9이면 의존성 설치·테스트가 실패하니 3.11+ 인터프리터를 쓴다.
+- Python **3.13.9 고정**(`.python-version`). 정본 인터프리터는 `/opt/anaconda3/bin/python3`. 시스템 기본 `python3`가 3.9이면 의존성 설치·테스트가 실패하니 반드시 정본 경로를 쓴다(README 참조).
 - macOS/Linux. (배포는 Docker, 개발은 아래 방식 권장.)
 
 ### 2.2 설치
@@ -69,7 +69,7 @@ VIGENT_HOST=0.0.0.0 VIGENT_API_TOKEN=<비밀> ./run.sh
 ### 2.6 테스트
 ```bash
 # 반드시 의존성이 설치된 파이썬으로! (시스템 3.9로 돌리면 import 실패)
-python -m unittest discover -s tests        # 30 tests 통과가 정상
+/opt/anaconda3/bin/python3 -m unittest discover -s tests    # 35 tests 통과가 정상
 ```
 
 ---
@@ -126,7 +126,7 @@ guard.detect person 박스 → RTMPose/yolov8n-pose → COCO-17 키포인트
 | **가중치 폴백** | 모델 파일이 없으면 **조용히** 휴리스틱으로 폴백해 정확도가 급락하지만 서버는 정상 기동한다. 검출 이상 시 로그의 `→ LOADED` 먼저 확인. | CLAUDE.md F-8 |
 | **[worker.py](../vigent-core/worker.py) `_loop`** | 162줄에 캡처·트래커·루프가 뭉쳐 있고 `except: pass`가 많아 캡처 실패가 은폐될 수 있다. 수정 시 로깅부터 붙일 것. | CODE_REVIEW §2.4 |
 | **VLM 호출부** | 6개 모듈에 관용구가 복붙되어 있다. 한 곳만 고치면 나머지 5곳이 남는다. `vlm_text()` 헬퍼화 전까지는 전체 검색으로 일괄 반영. | CODE_REVIEW §2.2 |
-| **증거 경로(scribe)** | `POST /safety/risk-assessment`의 `evidence_paths`가 파일시스템에 무검증으로 도달한다(**path traversal, 미수정**). 이 경로 근처를 만질 땐 격리검사부터. | CODE_REVIEW §3.1 |
+| **증거 경로(scribe)** | `evidence_paths` path traversal — ✅ **P0-1(e8d590f)에서 해소**: `_safe_evidence_path()` 로 `data/evidence` 하위 격리(`is_relative_to`). 이 경로 근처를 만질 땐 격리검사 유지. | CODE_REVIEW §3.1 |
 | **[rig_monitor.py](../vigent-core/rig_monitor.py)** | **로직만 존재·파이프라인 미배선**(어떤 라이브 경로도 호출 안 함, 유닛테스트 5만 사용). 핵심 경보(하물 높이) 실영상 검증은 **적합 footage(근접 카메라 인양 1사이클) 확보 대기** — 광역 CCTV 는 하물/후크 미가시(작업자 26~64px 실측, F-13). "동작한다"·"제품 기능" 가정 금지. | FINDINGS F-13 · CODE_REVIEW §2.3 |
 | **포즈 슬롯 주석** | vision.yaml의 pose/tracker/temporal 슬롯(rtmpose·ByteTrack·mmaction2)은 "미설치·미사용" 정직 표기. 실동작은 yolov8n-pose + MediaPipe. yaml만 보고 판단 금지. | vision.yaml 주석 |
 | **의존성 취약점** | pillow·torch·requests 등 16건(pip-audit 확인). 업그레이드는 검출 회귀 테스트와 함께(규칙 §6: 저하 금지). | CODE_REVIEW §3.2 |
@@ -139,5 +139,5 @@ guard.detect person 박스 → RTMPose/yolov8n-pose → COCO-17 키포인트
 
 - **커밋:** 의미 있는 진행마다 커밋, 메시지는 **한국어**. 히스토리 품질은 양호하니 이 관례를 유지.
 - **브랜치:** 목적별 브랜치 관례 존재(`audit/*`·`eval/*`·`design/*`). 아직 문서화된 규칙은 없음 → 팀 합의 후 이 문서에 추가 권장.
-- **린터/CI:** 현재 없음(P1 도입 대상). 도입 전까지 `except Exception: # noqa: BLE001`, 영문 식별자 + 한국어 주석 관례를 수동 준수.
+- **린터:** ✅ ruff 도입됨(P1-5, `pyproject.toml` + `.pre-commit-config.yaml`). lint 훅(--fix)만, 전체 format 은 보류(밀집 스타일). `except Exception: # noqa: BLE001`, 영문 식별자 + 한국어 주석 관례는 유지. **CI 는 아직 없음**(수동 `ruff check` + `unittest`).
 - **막혔을 때:** 추측하지 말고 질문한다. 측정 안 한 수치(정확도 %)는 지어내지 않는다(규칙 7).

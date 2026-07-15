@@ -13,11 +13,22 @@
 | 시크릿 관리 | **양호** | `.env` 미추적 + git 히스토리에도 없음, 하드코딩 시크릿 0건 |
 | 아키텍처 | 양호(단, main.py God 파일) | 테마=설정 분기, 가산식+폴백 설계 일관 |
 | 코드 품질 | 중간 | bare except 0·dead code 없음(양호) / God 파일·중복 관용구(개선 필요) |
-| 보안 | **조치 필요** | path traversal 1건(높음), 취약 의존성 16건 |
-| 협업 준비 | **미비** | README 없음, 린터/포매터/CI 없음, 테스트 5개(커버리지 낮음) |
-| 테스트 | 통과 | 올바른 파이썬에서 30 tests OK (아래 §4 주의) |
+| 보안 | 조치 필요 → ✅ **대부분 해소** | path traversal(P0-1 `e8d590f`), 취약 의존성 4패키지(P0-2a). torch CVE 는 도달불가 조사(F-15) |
+| 협업 준비 | 미비 → 개선 | README ✅(P1-4)·ruff ✅(P1-5)·`.python-version` ✅(P0-0). CI 는 아직 없음 |
+| 테스트 | 통과 | 올바른 파이썬에서 **35 tests OK**(P0/P1 신규 5) (아래 §4 주의) |
 
 ---
+
+> ### 📌 해소 현황 (이 스냅샷 이후 P0/P1 라운드 반영, 2026-07-15)
+> 아래 §들의 지적은 **작성 시점(HEAD `7382364`) 기준**이며, 다수가 P0/P1 라운드에서 해소됐다:
+> - **§3.1 path traversal** → ✅ `_safe_evidence_path` 격리(P0-1 `e8d590f`), 회귀 테스트 4.
+> - **§ 취약 의존성** → ✅ pillow/requests/dotenv/setuptools(P0-2a `808ab00`), torch 는 도달불가(F-15).
+> - **§ 토큰 비교** → ✅ `hmac.compare_digest` + 무토큰 경고(P0-3 `32c1b34`).
+> - **README/린터/파이썬 고정** → ✅ P1-4/P1-5/P0-0.
+> - **rig_monitor 미배선** → 문서 명시(P1-10). **main.py God 파일(§2.1)** → P1-7 분할 진행 중.
+> 세부 findings 는 이력 보존을 위해 원문 그대로 둔다(해소분은 위 마커로 판별).
+
+
 
 ## 1. 아키텍처 개요
 
@@ -148,13 +159,13 @@
 | 코드 컨벤션 문서 | **없음** | CONTRIBUTING/STYLE/CONVENTIONS 부재 |
 | 린터/포매터 설정 | **없음** | pyproject.toml·ruff·flake8·black·mypy·pre-commit **전무** (단, `# noqa: BLE001` 규율은 수동 준수 중) |
 | 타입 체커 | 없음 | mypy 설정 없음, 힌트 편차 큼(§2.5) |
-| 테스트 | **미비** | 5파일 383줄 / 소스 85파일. 30 tests 통과하나 커버리지 낮음 |
+| 테스트 | **미비** | 5파일 383줄 / 소스 85파일. 35 tests 통과하나 커버리지 낮음 |
 | CI | **없음** | `.github/workflows` 부재 |
 | Git 히스토리 | **양호** | 342커밋, 한국어 서술형 메시지 일관, 거대·무의미 커밋 없음 |
 | 브랜치 전략 | 문서화 안 됨 | `audit/*`·`eval/*`·`design/*`·`c-sprint`·`t10b-cloud` 등 목적별 브랜치 존재하나 규칙 미문서화 |
 | 워킹트리 위생 | **미비** | 미추적 44항목 — 사본 폴더(`VIGENT USB/`·`VIGENT_archive/`·`vigent-landing 2/`), 워크트리 잔재(`vigent-core/vigent-core/weights` 빈 디렉토리) |
 
-**테스트 실행 주의(중요):** 시스템 `python3`(3.9)에는 의존성이 없어 `import yaml` 단계에서 실패한다. 반드시 의존성이 설치된 파이썬(이 환경은 `/opt/anaconda3/bin/python3`, **3.13**)으로 실행해야 30 tests가 통과한다. 프로젝트 문서는 Python **3.11** 기준인데 실제 검증 환경은 3.13 — **버전 불일치**를 온보딩 문서에 명시하거나 `.python-version`/venv로 고정할 필요.
+**테스트 실행 주의(중요):** 시스템 `python3`(3.9)에는 의존성이 없어 `import yaml` 단계에서 실패한다. 반드시 의존성이 설치된 파이썬(이 환경은 `/opt/anaconda3/bin/python3`, **3.13**)으로 실행해야 35 tests가 통과한다. 프로젝트 문서는 Python **3.11** 기준인데 실제 검증 환경은 3.13 — **버전 불일치**를 온보딩 문서에 명시하거나 `.python-version`/venv로 고정할 필요.
 
 ---
 
@@ -164,7 +175,7 @@
 > (참고: 저장소 공유 자체의 하드 블로커였던 "시크릿 유출"은 점검 결과 무결. 아래는 네트워크 노출·파일럿 전 필수.)
 
 1. **[보안·높음] path traversal 격리검사 추가** — [scribe.py:210](../vigent-core/agents/scribe.py#L210) `_evidence_data_uri` 및 [scribe.py:284](../vigent-core/agents/scribe.py#L284) `cv2.imread` 경로에 `data/evidence` 하위 강제(`is_relative_to`). 임의 파일 읽기 차단.
-2. **[보안·높음] 취약 의존성 업그레이드** — pillow→12.3.0, requests→2.33.0, python-dotenv→1.2.2, setuptools→83.0.0, torch(CVE-2025-3000 대응버전 확인). 업그레이드 후 30 tests + 검출 회귀 확인.
+2. **[보안·높음] 취약 의존성 업그레이드** — pillow→12.3.0, requests→2.33.0, python-dotenv→1.2.2, setuptools→83.0.0, torch(CVE-2025-3000 대응버전 확인). 업그레이드 후 35 tests + 검출 회귀 확인.
 3. **[운영·중간] 공유/파일럿 환경 `VIGENT_API_TOKEN` 상시화** — 무인증 로컬모드를 신뢰 못 하는 네트워크에서 기동 금지(규칙으로 문서화).
 
 ### P1 — 첫 2주 내 권장
@@ -180,7 +191,7 @@
 11. **[구조] 위험구역 로딩 3벌 통합**(§2.2), `_load_zone` 동명이인 정리.
 12. **[품질] main.py/worker.py 반환 타입 힌트 보강**, mypy 점진 도입.
 13. **[품질] worker.py `_loop` 책임 분해**(162줄 → 캡처/트래커/루프 분리).
-14. **[테스트] 커버리지 확대** — 최소 `guard.detect`·`analyst`·엔드포인트 스모크 테스트 추가, CI에서 30 tests 자동 실행.
+14. **[테스트] 커버리지 확대** — 최소 `guard.detect`·`analyst`·엔드포인트 스모크 테스트 추가, CI에서 35 tests 자동 실행.
 15. **[위생] 워킹트리 정리** — 사본 폴더(`VIGENT USB/` 등)를 리포 밖으로 이동 또는 `.gitignore`, `vigent-core/vigent-core/` 워크트리 잔재 제거, 한국어 식별자 통일.
 
 ---
@@ -189,7 +200,7 @@
 
 ```bash
 # 테스트 (반드시 의존성 있는 파이썬으로)
-/opt/anaconda3/bin/python3 -m unittest discover -s tests      # 30 tests OK
+/opt/anaconda3/bin/python3 -m unittest discover -s tests      # 35 tests OK
 
 # 의존성 취약점
 /opt/anaconda3/bin/python3 -m pip_audit -r requirements.txt
