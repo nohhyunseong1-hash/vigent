@@ -1,0 +1,90 @@
+<!DOCTYPE html><html lang="ko"><head><meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>VIGENT · 안전 자동처리 콘솔</title><style>/*CSS*/
+  .top{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px}
+  .stat{display:flex;gap:10px;margin:10px 0}
+  .stat .box{flex:1;background:#17150e;border:1px solid #2a2a2e;border-radius:10px;padding:12px;text-align:center}
+  .stat .box b{display:block;font-size:24px;color:#d4a017}
+  .disc{background:#3a2a0b;border:1px solid #a16207;color:#fde68a;border-radius:8px;padding:10px 12px;font-size:12.5px;margin:10px 0;line-height:1.6}
+  .ev{background:#17150e;border:1px solid #2a2a2e;border-radius:12px;padding:14px;margin-bottom:12px}
+  .ev .hd{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap}
+  .ev .rule{font-weight:700;font-size:15px}
+  .lv{padding:2px 8px;border-radius:6px;font-size:11px;font-weight:700}
+  .lv.high{background:#7f1d1d;color:#fecaca} .lv.mid{background:#78350f;color:#fed7aa} .lv.low{background:#14532d;color:#bbf7d0}
+  .pipe{display:flex;gap:6px;flex-wrap:wrap;margin:10px 0;font-size:12px}
+  .step{padding:4px 9px;border-radius:999px;border:1px solid #2a2a2e;color:#94a3b8;background:#0e0c08}
+  .step.on{border-color:#15803d;color:#bbf7d0;background:#0f2a18}
+  .step.wait{border-color:#a16207;color:#fde68a;background:#3a2a0b}
+  .ev .meta{font-size:12.5px;color:#cbd5e1;margin:4px 0;line-height:1.6} .ev .meta b{color:#d4a017}
+  .ev img{max-width:160px;border-radius:8px;border:1px solid #2a2a2e;margin-top:6px;display:block}
+  .acts{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+  .ok{color:#86efac;font-size:13px;align-self:center}
+</style></head><body><div class="wrap">
+  <div class="top">
+    <h1>🛡 안전 자동처리 콘솔</h1>
+    <div style="display:flex;gap:8px">
+      <a class="btn" href="/safety">← 실시간 관제</a>
+      <a class="btn" href="/safety/auto/audit">🧾 감사추적</a>
+    </div>
+  </div>
+  <div class="sub">실시간 관제(비전)에서 잡힌 위험이 여기로 모여, 증거·법령·위험성평가·조치로 자동 정리됩니다.</div>
+  <div class="disc">⚠ 본 콘솔의 판정·권고는 <b>보조 신호</b>입니다. 위험성평가·조치의 <b>최종 승인은 안전관리자</b>가 수행하며,
+    법적 책임은 사용자·사업주에게 있습니다. 인증 안전장치(비상정지 등)를 대체하지 않습니다(§8).</div>
+  <div class="stat" id="stat"></div>
+  <div id="feed"><div class="dim">불러오는 중…</div></div>
+</div>
+<script>
+  const esc = s => String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  const lvClass = l => (l==='high'?'high':((l==='mid'||l==='medium')?'mid':'low'));
+  let DATA = {events:[], summary:{}};
+  function step(label,on,wait){ return '<span class="step'+(on?' on':(wait?' wait':''))+'">'+esc(label)+'</span>'; }
+  function card(e,i){
+    const ok = e.approved;
+    const pipe = step('감지',true,false)+step('증거',!!e.evidence_url,false)+step('법령',!!e.law,false)+
+                 step(ok?'위험성평가 ✓':'위험성평가 승인대기', ok, !ok)+
+                 step(ok?'조치 ✓':'조치 권고', ok, !ok);
+    const img = e.evidence_url ? '<img src="'+esc(e.evidence_url)+'" alt="증거">' : '';
+    const acts = ok
+      ? '<span class="ok">✅ '+esc(e.approver||'안전관리자')+' 승인됨'+(e.ra_aid?' · <a href="/safety/risk-assessment/'+esc(e.ra_aid)+'" target="_blank">평가서 열기 ↗</a>':'')+'</span>'
+      : '<button class="btn primary" data-i="'+i+'" data-act="risk_assessment">위험성평가 승인·생성</button>'+
+        '<button class="btn" data-i="'+i+'" data-act="acknowledge">조치 확인</button>';
+    return '<div class="ev" id="ev'+i+'">'+
+      '<div class="hd"><span class="rule">'+esc(e.rule||'이벤트')+'</span>'+
+        '<span><span class="lv '+lvClass(e.level)+'">'+esc((e.level||'').toUpperCase()||'-')+'</span> '+
+        '<span class="dim">'+esc((e.date||'')+' '+(e.time||''))+' · '+esc(e.site||'-')+'</span></span></div>'+
+      '<div class="pipe">'+pipe+'</div>'+
+      (e.law?'<div class="meta"><b>관련 법령</b> '+esc(e.law)+'</div>':'')+
+      '<div class="meta"><b>권고 조치</b> '+esc(e.advisory)+'</div>'+ img +
+      '<div class="acts">'+acts+'</div></div>';
+  }
+  function render(){
+    const s = DATA.summary||{};
+    document.getElementById('stat').innerHTML =
+      '<div class="box"><b>'+(s['감지']||0)+'</b>감지</div>'+
+      '<div class="box"><b>'+(s['증거']||0)+'</b>증거</div>'+
+      '<div class="box"><b>'+(s['승인']||0)+'</b>승인(서류·조치)</div>';
+    const feed = document.getElementById('feed');
+    if(!(DATA.events||[]).length){ feed.innerHTML='<div class="dim">표시할 위험 이벤트가 없습니다. 실시간 관제에서 위험이 발생하면 여기에 쌓입니다.</div>'; return; }
+    feed.innerHTML = DATA.events.map((e,i)=>card(e,i)).join('');
+  }
+  async function load(){
+    try{ const r = await fetch('/safety/auto/feed'); DATA = await r.json(); render(); }
+    catch(e){ document.getElementById('feed').innerHTML = '<div class="dim">불러오기 오류: '+e+'</div>'; }
+  }
+  async function approve(i, action){
+    const e = DATA.events[i]; if(!e) return;
+    const btns = document.querySelectorAll('#ev'+i+' .acts button'); btns.forEach(b=>b.disabled=true);
+    try{
+      const r = await fetch('/safety/auto/approve',{method:'POST',headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({event_ts:e.ts, rule:e.rule, site:e.site, action:action})});
+      const j = await r.json();
+      if(j && j.ok){ if(j.ra_aid) window.open('/safety/risk-assessment/'+j.ra_aid,'_blank'); load(); }
+      else { alert('승인 실패'); btns.forEach(b=>b.disabled=false); }
+    }catch(err){ alert('오류: '+err); btns.forEach(b=>b.disabled=false); }
+  }
+  document.getElementById('feed').addEventListener('click', ev=>{
+    const b = ev.target.closest('button[data-act]'); if(!b) return;
+    approve(parseInt(b.dataset.i,10), b.dataset.act);
+  });
+  load();
+</script></body></html>

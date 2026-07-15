@@ -16,6 +16,7 @@ main.py — VIGENT 공유 코어 FastAPI 골격 (§15-2)
 from __future__ import annotations
 
 import asyncio
+import functools
 import hmac
 import json
 import os
@@ -781,229 +782,16 @@ _TBM_CSS = """
 """
 
 # 작성 화면(plain 문자열 — JS 중괄호 보존). /*CSS*/ <!--CHECKLIST--> <!--PROCESSLIST--> 가 치환된다.
-_TBM_NEW_HTML = r"""<!DOCTYPE html><html lang="ko"><head><meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>VIGENT · 새 TBM 회의록</title><style>/*CSS*/</style></head><body><div class="wrap">
-  <h1>📋 새 TBM 회의록 작성</h1>
-  <div class="sub">작업 전 안전점검 회의(툴박스미팅) · 작성 후 저장하면 인쇄/PDF 가능</div>
 
-  <div class="card"><h2>작업 정보</h2>
-    <label class="fld">현장</label><input id="site" type="text" placeholder="예: ○○변전소 22.9kV 개폐기 교체 현장">
-    <label class="fld">작업공종</label>
-    <div class="row"><input id="process" type="text" list="processList" placeholder="예: 활선작업 / 고소작업 / 굴착작업"
-      onkeydown="if(event.key==='Enter'){event.preventDefault();getSuggest();}">
-      <button class="btn add" onclick="getSuggest()">🔎 위험요인 추천</button></div>
-    <datalist id="processList"><!--PROCESSLIST--></datalist>
-    <div id="suggestBox" class="suggest" style="display:none"></div>
-    <label class="fld">작업내용</label><textarea id="work_desc" placeholder="오늘 수행할 작업 내용을 적습니다"></textarea>
-    <label class="fld">감독관</label><input id="supervisor" type="text" placeholder="예: 홍길동 감독관">
-  </div>
+# ── 인라인 HTML 분리(P1-7): templates/ 에서 1회 로드·캐시(바이트 동일) ──
+@functools.lru_cache(maxsize=None)
+def _tpl(name: str) -> str:
+    """templates/<name> 를 1회 읽어 캐시. 기동 후 첫 요청에 로드·이후 재사용."""
+    return (_HERE / "templates" / name).read_text(encoding="utf-8")
 
-  <div class="card"><h2>중점 관리 위험요인</h2>
-    <div class="row"><input id="hazIn" type="text" placeholder="예: 활선 감전 위험"
-      onkeydown="if(event.key==='Enter'){event.preventDefault();addHaz();}">
-      <button class="btn add" onclick="addHaz()">추가</button></div>
-    <div id="hazList" style="margin-top:6px"></div>
-  </div>
-
-  <div class="card"><h2>작업 전 안전점검</h2>
-    <div id="chkList"><!--CHECKLIST--></div>
-  </div>
-
-  <div class="card"><h2>참석 작업자(서명)</h2>
-    <div class="row"><input id="wkIn" type="text" placeholder="작업자 이름"
-      onkeydown="if(event.key==='Enter'){event.preventDefault();addWk();}">
-      <button class="btn add" onclick="addWk()">추가</button></div>
-    <div id="wkList" style="margin-top:6px"></div>
-    <small style="color:#94a3b8;display:block;margin-top:6px">※ 회의 내용을 확인한 작업자는 '서명'에 체크합니다.</small>
-  </div>
-
-  <div class="card"><h2>전달사항</h2>
-    <textarea id="notes" placeholder="추가 전달·공지 사항(선택)"></textarea>
-  </div>
-
-  <div class="bar">
-    <a class="btn" href="/safety/tbm">취소</a>
-    <button class="btn primary" id="saveBtn" onclick="save()">저장하기</button>
-  </div>
-</div>
-<script>
-  const hazards = [];
-  const workers = [];
-  let lastSuggest = null;
-  function escHtml(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
-  async function getSuggest(){
-    const process = document.getElementById('process').value.trim();
-    const box = document.getElementById('suggestBox');
-    box.style.display='block'; box.innerHTML='<div class="dim">추천 불러오는 중…</div>';
-    try{
-      const res = await fetch('/safety/tbm/suggest?process='+encodeURIComponent(process));
-      lastSuggest = await res.json(); renderSuggest(lastSuggest);
-    }catch(e){ box.innerHTML='<div class="dim">추천 오류: '+e+'</div>'; }
-  }
-  function renderSuggest(s){
-    const box = document.getElementById('suggestBox');
-    const label = s.fallback ? '⚠ 일반작업 기준(공종 미매칭) — 공종을 더 구체적으로 입력하면 정확해집니다' : ('✅ 매칭 공종: '+escHtml(s.matched));
-    const chip = (v)=>'<span class="tag sg" data-val="'+escHtml(v)+'" onclick="pickChip(this)">＋ '+escHtml(v)+'</span>';
-    const hazChips = (s.hazards||[]).map(chip).join('') || '<span class="dim">없음</span>';
-    const chkChips = (s.checklist||[]).map(chip).join('') || '<span class="dim">없음</span>';
-    const cites = (s.citations||[]).map(c=>'<li><b>'+escHtml(c.source)+'</b> '+escHtml(c.clause)+'<br><span class="dim">'+escHtml(c.snippet)+'</span></li>').join('') || '<li class="dim">근거 없음</li>';
-    box.innerHTML =
-      '<div class="sg-h">'+label+'</div>'+
-      '<div class="sg-sec">중점 위험요인 <button class="btn add sm" onclick="addAll(\'haz\')">모두 추가</button></div><div data-kind="haz">'+hazChips+'</div>'+
-      '<div class="sg-sec">작업 전 점검항목 <button class="btn add sm" onclick="addAll(\'chk\')">모두 추가</button></div><div data-kind="chk">'+chkChips+'</div>'+
-      '<details class="sg-sec"><summary>관련 법령 근거 ('+(s.citations||[]).length+')</summary><ul class="cites">'+cites+'</ul></details>';
-  }
-  function pickChip(el){
-    const v = el.dataset.val; const kind = el.parentElement.dataset.kind;
-    if(kind==='haz'){ if(!hazards.includes(v)){ hazards.push(v); renderHaz(); } }
-    else { addChkItem(v); }
-    el.classList.add('added'); el.setAttribute('onclick','');
-  }
-  function addAll(kind){
-    if(!lastSuggest) return;
-    document.querySelectorAll('#suggestBox [data-kind="'+kind+'"] .tag.sg:not(.added)').forEach(pickChip);
-  }
-  function chkExists(v){ return [...document.querySelectorAll('#chkList .chk input')].some(i=>i.dataset.item===v); }
-  function addChkItem(v){
-    if(chkExists(v)) return;
-    const lab=document.createElement('label'); lab.className='chk';
-    lab.innerHTML='<input type="checkbox" checked data-item="'+escHtml(v)+'"><span>'+escHtml(v)+'</span>';
-    document.getElementById('chkList').appendChild(lab);
-  }
-  function renderHaz(){
-    document.getElementById('hazList').innerHTML = hazards.map((h,idx)=>
-      '<span class="tag">'+h+' <b onclick="delHaz('+idx+')">✕</b></span>').join('');
-  }
-  function addHaz(){
-    const el = document.getElementById('hazIn'); const v = el.value.trim();
-    if(!v) return; hazards.push(v); el.value=''; el.focus(); renderHaz();
-  }
-  function delHaz(i){ hazards.splice(i,1); renderHaz(); }
-  function renderWk(){
-    document.getElementById('wkList').innerHTML = workers.map((w,idx)=>
-      '<div class="wk"><span class="nm">'+w.name+'</span>'+
-      '<label><input type="checkbox" '+(w.signed?'checked':'')+' onchange="signWk('+idx+',this.checked)"> 서명</label>'+
-      '<b style="cursor:pointer;color:#f87171" onclick="delWk('+idx+')">✕</b></div>').join('');
-  }
-  function addWk(){
-    const el = document.getElementById('wkIn'); const v = el.value.trim();
-    if(!v) return; workers.push({name:v, signed:false}); el.value=''; el.focus(); renderWk();
-  }
-  function signWk(i,ok){ workers[i].signed = ok; }
-  function delWk(i){ workers.splice(i,1); renderWk(); }
-  async function save(){
-    const btn = document.getElementById('saveBtn'); btn.disabled = true; btn.textContent='저장 중…';
-    const checklist = [...document.querySelectorAll('#chkList .chk input')].map(i=>({item:i.dataset.item, ok:i.checked}));
-    const payload = {
-      site: document.getElementById('site').value,
-      process: document.getElementById('process').value,
-      work_desc: document.getElementById('work_desc').value,
-      supervisor: document.getElementById('supervisor').value,
-      hazards, checklist, workers,
-      notes: document.getElementById('notes').value,
-    };
-    try{
-      const res = await fetch('/safety/tbm',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
-      const j = await res.json();
-      if(j && j.id){ location.href = '/safety/tbm/'+j.id; }
-      else { alert('저장 실패'); btn.disabled=false; btn.textContent='저장하기'; }
-    }catch(e){ alert('저장 오류: '+e); btn.disabled=false; btn.textContent='저장하기'; }
-  }
-</script></body></html>"""
 
 
 # 안전 자동처리 콘솔 화면(plain 문자열 — JS 중괄호 보존). /*CSS*/ 만 치환된다.
-_AUTO_HTML = r"""<!DOCTYPE html><html lang="ko"><head><meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>VIGENT · 안전 자동처리 콘솔</title><style>/*CSS*/
-  .top{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px}
-  .stat{display:flex;gap:10px;margin:10px 0}
-  .stat .box{flex:1;background:#17150e;border:1px solid #2a2a2e;border-radius:10px;padding:12px;text-align:center}
-  .stat .box b{display:block;font-size:24px;color:#d4a017}
-  .disc{background:#3a2a0b;border:1px solid #a16207;color:#fde68a;border-radius:8px;padding:10px 12px;font-size:12.5px;margin:10px 0;line-height:1.6}
-  .ev{background:#17150e;border:1px solid #2a2a2e;border-radius:12px;padding:14px;margin-bottom:12px}
-  .ev .hd{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap}
-  .ev .rule{font-weight:700;font-size:15px}
-  .lv{padding:2px 8px;border-radius:6px;font-size:11px;font-weight:700}
-  .lv.high{background:#7f1d1d;color:#fecaca} .lv.mid{background:#78350f;color:#fed7aa} .lv.low{background:#14532d;color:#bbf7d0}
-  .pipe{display:flex;gap:6px;flex-wrap:wrap;margin:10px 0;font-size:12px}
-  .step{padding:4px 9px;border-radius:999px;border:1px solid #2a2a2e;color:#94a3b8;background:#0e0c08}
-  .step.on{border-color:#15803d;color:#bbf7d0;background:#0f2a18}
-  .step.wait{border-color:#a16207;color:#fde68a;background:#3a2a0b}
-  .ev .meta{font-size:12.5px;color:#cbd5e1;margin:4px 0;line-height:1.6} .ev .meta b{color:#d4a017}
-  .ev img{max-width:160px;border-radius:8px;border:1px solid #2a2a2e;margin-top:6px;display:block}
-  .acts{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
-  .ok{color:#86efac;font-size:13px;align-self:center}
-</style></head><body><div class="wrap">
-  <div class="top">
-    <h1>🛡 안전 자동처리 콘솔</h1>
-    <div style="display:flex;gap:8px">
-      <a class="btn" href="/safety">← 실시간 관제</a>
-      <a class="btn" href="/safety/auto/audit">🧾 감사추적</a>
-    </div>
-  </div>
-  <div class="sub">실시간 관제(비전)에서 잡힌 위험이 여기로 모여, 증거·법령·위험성평가·조치로 자동 정리됩니다.</div>
-  <div class="disc">⚠ 본 콘솔의 판정·권고는 <b>보조 신호</b>입니다. 위험성평가·조치의 <b>최종 승인은 안전관리자</b>가 수행하며,
-    법적 책임은 사용자·사업주에게 있습니다. 인증 안전장치(비상정지 등)를 대체하지 않습니다(§8).</div>
-  <div class="stat" id="stat"></div>
-  <div id="feed"><div class="dim">불러오는 중…</div></div>
-</div>
-<script>
-  const esc = s => String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-  const lvClass = l => (l==='high'?'high':((l==='mid'||l==='medium')?'mid':'low'));
-  let DATA = {events:[], summary:{}};
-  function step(label,on,wait){ return '<span class="step'+(on?' on':(wait?' wait':''))+'">'+esc(label)+'</span>'; }
-  function card(e,i){
-    const ok = e.approved;
-    const pipe = step('감지',true,false)+step('증거',!!e.evidence_url,false)+step('법령',!!e.law,false)+
-                 step(ok?'위험성평가 ✓':'위험성평가 승인대기', ok, !ok)+
-                 step(ok?'조치 ✓':'조치 권고', ok, !ok);
-    const img = e.evidence_url ? '<img src="'+esc(e.evidence_url)+'" alt="증거">' : '';
-    const acts = ok
-      ? '<span class="ok">✅ '+esc(e.approver||'안전관리자')+' 승인됨'+(e.ra_aid?' · <a href="/safety/risk-assessment/'+esc(e.ra_aid)+'" target="_blank">평가서 열기 ↗</a>':'')+'</span>'
-      : '<button class="btn primary" data-i="'+i+'" data-act="risk_assessment">위험성평가 승인·생성</button>'+
-        '<button class="btn" data-i="'+i+'" data-act="acknowledge">조치 확인</button>';
-    return '<div class="ev" id="ev'+i+'">'+
-      '<div class="hd"><span class="rule">'+esc(e.rule||'이벤트')+'</span>'+
-        '<span><span class="lv '+lvClass(e.level)+'">'+esc((e.level||'').toUpperCase()||'-')+'</span> '+
-        '<span class="dim">'+esc((e.date||'')+' '+(e.time||''))+' · '+esc(e.site||'-')+'</span></span></div>'+
-      '<div class="pipe">'+pipe+'</div>'+
-      (e.law?'<div class="meta"><b>관련 법령</b> '+esc(e.law)+'</div>':'')+
-      '<div class="meta"><b>권고 조치</b> '+esc(e.advisory)+'</div>'+ img +
-      '<div class="acts">'+acts+'</div></div>';
-  }
-  function render(){
-    const s = DATA.summary||{};
-    document.getElementById('stat').innerHTML =
-      '<div class="box"><b>'+(s['감지']||0)+'</b>감지</div>'+
-      '<div class="box"><b>'+(s['증거']||0)+'</b>증거</div>'+
-      '<div class="box"><b>'+(s['승인']||0)+'</b>승인(서류·조치)</div>';
-    const feed = document.getElementById('feed');
-    if(!(DATA.events||[]).length){ feed.innerHTML='<div class="dim">표시할 위험 이벤트가 없습니다. 실시간 관제에서 위험이 발생하면 여기에 쌓입니다.</div>'; return; }
-    feed.innerHTML = DATA.events.map((e,i)=>card(e,i)).join('');
-  }
-  async function load(){
-    try{ const r = await fetch('/safety/auto/feed'); DATA = await r.json(); render(); }
-    catch(e){ document.getElementById('feed').innerHTML = '<div class="dim">불러오기 오류: '+e+'</div>'; }
-  }
-  async function approve(i, action){
-    const e = DATA.events[i]; if(!e) return;
-    const btns = document.querySelectorAll('#ev'+i+' .acts button'); btns.forEach(b=>b.disabled=true);
-    try{
-      const r = await fetch('/safety/auto/approve',{method:'POST',headers:{'Content-Type':'application/json'},
-        body:JSON.stringify({event_ts:e.ts, rule:e.rule, site:e.site, action:action})});
-      const j = await r.json();
-      if(j && j.ok){ if(j.ra_aid) window.open('/safety/risk-assessment/'+j.ra_aid,'_blank'); load(); }
-      else { alert('승인 실패'); btns.forEach(b=>b.disabled=false); }
-    }catch(err){ alert('오류: '+err); btns.forEach(b=>b.disabled=false); }
-  }
-  document.getElementById('feed').addEventListener('click', ev=>{
-    const b = ev.target.closest('button[data-act]'); if(!b) return;
-    approve(parseInt(b.dataset.i,10), b.dataset.act);
-  });
-  load();
-</script></body></html>"""
 
 
 @app.get("/safety/tbm", response_class=HTMLResponse)
@@ -1035,7 +823,7 @@ def tbm_new():
         '<label class="chk"><input type="checkbox" checked data-item="ITEM"><span>ITEM</span></label>'
         .replace("ITEM", item) for item in tbm_store.DEFAULT_CHECKLIST)
     process_html = "".join(f'<option value="{j["name"]}">' for j in tbm_store.jsa_catalog())
-    page = (_TBM_NEW_HTML.replace("/*CSS*/", _TBM_CSS)
+    page = (_tpl("tbm_new.html").replace("/*CSS*/", _TBM_CSS)
             .replace("<!--CHECKLIST-->", checklist_html)
             .replace("<!--PROCESSLIST-->", process_html))
     return page
@@ -1263,7 +1051,7 @@ def safety_auto_audit():
 @app.get("/safety/auto", response_class=HTMLResponse)
 def safety_auto_console():
     """안전 자동처리 콘솔(읽기 + 승인). 비전이 잡은 위험 → 서류·조치 자동 정리."""
-    return _AUTO_HTML.replace("/*CSS*/", _TBM_CSS)
+    return _tpl("auto.html").replace("/*CSS*/", _TBM_CSS)
 
 
 # ── 서버사이드 추론 워커(브라우저 없이 서버가 영상 감시) — 다현장 N대 관리 ──
