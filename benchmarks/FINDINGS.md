@@ -275,3 +275,38 @@ F-8 진단 중, 서버 detect_frame 이 **연속 프레임 추적**(`guard._trac
 - **★★ 필요 footage 스펙(답사 촬영 명세)**: **① 고정 카메라(삼각대/거치)** ② **후크·하물이 화면에 크게·연속 가시** ③ **인양 1사이클 전체**(결속→미동권상 10~20cm→작업자 이탈→본인양) ④ 작업자·하물 동시 프레임 내. 이 조건 충족 클립 확보 시 (a) 경보 여유시간 실측 가능.
 - **★ 합성 시나리오 경보 여유시간 0.27s = 산출 '방법' 시연일 뿐. 실측 아님.** 사업계획서·데모에 "경보 여유시간" 수치로 **인용 금지**(적합 footage 실측 전까지). §7.
 - 시사점(카메라 배치): 광역 CCTV(존 감시)로는 하물 높이·포즈 판정 불가 실측됨 → **광역 CCTV + 근접 카메라(하물/포즈) 2대 구성**이 근골격·인양 판정에 필요. C 부분실행 결과로 근거화.
+
+## F-14 — 동시 부하 시 네이티브 크래시 (PyThreadState_Get: GIL released) (2026-07-14)
+- **증상**: 서버가 요청을 정상 처리하다가 **런타임 중 네이티브 크래시**로 프로세스 종료(exit 133 = SIGTRAP).
+  ```
+  Fatal Python error: PyThreadState_Get: the function must be called with the GIL held,
+  after Python initialization and before Python finalization,
+  but the GIL is released (the current Python thread state is NULL)
+  Python runtime state: initialized
+  ```
+- **재현 조건(관측)**: 브라우저 **2개 연결(53791·53794)**이 `/safety/incident/frame`(재해분석 영상 타임라인)을 연타하고, 이어 `/safety/incident/analyze` ×2(imgsz=1280 검출 + OpenAI 텍스트 종합의견 200 OK)를 처리하던 중, 사소한 `GET /home` 직후 크래시. → **동시 부하 + 무거운 다중 추론**.
+- **로그 시그니처(핵심)**: faulthandler 덤프의 **모든 Python 스레드가 idle**(anyio 워커 `queue.get` 대기 · tqdm 모니터 ×3 `wait` · uvicorn asyncio `run`). 즉 fault 는 **Python 이 관리하지 않는 네이티브(C/C++) 스레드**에서 발생 = GIL 없이 Python 을 호출한 확장 모듈. 종료 시 **`loky` 세마포어 누수 경고**:
+  `resource_tracker: There appear to be 1 leaked semaphore objects to clean up at shutdown: {'/loky-...'}`.
+- **해석(추정, 미확정)**: torch/MPS 다모델·동시추론 불안정의 전형. CLAUDE.md 기록("MPS 다모델 반복추론 시 크래시", `_DETECT_LOCK` 직렬화, guard `prefer_mps=False`)과 시그니처 일치. **loky(joblib/torch 프로세스풀) 잔재**가 등장하는 점도 네이티브 병렬 경로 관여를 시사. **단 원인 확정은 조사 필요**(§3 태스크: MPS 경로·락 커버리지·재현).
+- **LLM 변경(커밋 7382364)과의 관계**: 직접 원인일 가능성 **낮음**(크래시는 네이티브 스레드, Python llm_provider 아님, OpenAI 호출은 크래시 전 전부 200). 단 `reason_text` 가 이제 **네트워크 블로킹 호출**을 요청 스레드풀에서 수행 → 워커 점유 시간↑ → 기존 torch/MPS 레이스 **확률 간접 상승 가능성**은 배제 못 함(§4 완화 대상).
+- **관련**: [[CLAUDE.md MPS 다모델 크래시]] · `COMMERCIAL_AUDIT.md`의 **"24h 무인 안정성·라이브 추적 계층·다중 카메라 미검증"** 리스크의 **실제 발현 사례**(1h soak 는 합격했으나 실브라우저 동시부하에서 크래시 — 감사 예측 적중).
+- **방어(진행 예정)**: 전역 예외 핸들러(현재 3건)는 **네이티브 크래시를 못 잡음** → watchdog 자동재기동이 실질 방어. `deploy/watchdog.sh` 존재하나 macOS launchd 실증 미완(F-14 §2에서 실증).
+
+## F-15 — P0 보안 조치 라운드 (path traversal · 의존성 · 토큰) (2026-07-15)
+검증 파이썬 고정: `/opt/anaconda3/bin/python3` **3.13.9**(`.python-version`). 전 단계 34 tests OK.
+
+- **P0-1 path traversal 차단** (`scribe.py`): evidence 경로를 `_safe_evidence_path()`로 `data/evidence` 하위 격리(`resolve()`+`is_relative_to`). `_evidence_data_uri`·`cv2.imread`(VLM) 두 경로 적용. 회귀 테스트 4종(탈출경로 None·`/etc/passwd` 이중방어·정상경로 보존). 커밋 `e8d590f`.
+- **P0-2a 의존성 업그레이드**(pip-audit 실측 before→after):
+  | 패키지 | before | after | 취약점 |
+  |---|---|---|---|
+  | Pillow | 12.0.0 | **12.3.0** | PYSEC-2026-2249~2874 (12건) → **0** |
+  | requests | 2.32.5 | **2.33.0** | PYSEC-2026-2275 → **0** |
+  | python-dotenv | 1.1.0 | **1.2.2** | PYSEC-2026-2270 → **0** |
+  | setuptools | 80.9.0 | **83.0.0** | PYSEC-2026-3447 → **0** |
+  - ⚠️ **setuptools 83 ↔ torch 2.12 충돌**: torch 가 `setuptools<82` 선언(83 은 `pkg_resources` 제거). **requirements.txt 엔 setuptools 핀하지 않음**(핀 시 pip 충돌). **런타임 무영향 실증**: torch/rfdetr import OK · `/detect/frame` 정상(person 6, 전체 검출 스택) · 서버 로그 pkg_resources 에러 0. `pkg_resources` 는 rfdetr **학습 loss** 경로에만 관여(추론 서버 미사용). 커밋 `808ab00`.
+- **P0-2b torch CVE-2025-3000 — 조사만, 업그레이드 안 함(정당)**:
+  - pip-audit: **fix=[] (수정 버전 없음)** → 업그레이드로 해소 불가.
+  - 취약 함수 `torch.jit.script`(조작 입력 시 메모리 손상). **VIGENT 코드 미사용**(jit/load/compile 0건). 검출 스택 중 **rfdetr 2파일만** 사용: `criterion.py`·`box_ops.py` 의 **학습용 loss 함수(dice/sigmoid_ce)를 import 시 스크립트** = rfdetr **자체 고정 함수**(사용자 입력 아님). 서버는 **추론 전용**이라 학습 loss 경로 미실행.
+  - **판정: 공격면 도달 불가.** `/detect/frame` 입력은 이미지(numpy)뿐 — `torch.jit.script` 에 공격자 제어 입력 0. F-14(MPS 크래시) 이력까지 감안해 **torch 2.12.0 유지**. 업그레이드는 별도 합의 후.
+- **P0-3 토큰 정책**(`main.py`): 로컬 바인딩+무토큰 기동 시 경고 1줄("공유 네트워크·파일럿 필수"). 토큰 비교 `hmac.compare_digest`(상수시간, 타이밍 사이드채널 차단). `DEPLOYMENT.md` 규칙 명문화. 커밋 `32c1b34`.
+- **범위 준수**: P0 밖 리팩터(main.py 분할·vlm_text 헬퍼 등)는 미착수(다음 라운드).
