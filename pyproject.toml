@@ -1,0 +1,22 @@
+# VIGENT — ruff 린터/포매터 최소 구성 (P1-5)
+# 정본 파이썬: 3.13 (.python-version). 로직 변경 없이 포맷·import 정렬만 자동수정.
+[tool.ruff]
+line-length = 120
+target-version = "py313"
+# 사본/아카이브/산출물은 린트 대상에서 제외(.gitignore 와 정합)
+extend-exclude = [
+    "VIGENT_archive", "VIGENT USB", "vigent-landing 2", "vigentFacialRecognition",
+    "VIGENT_artifacts", "benchmarks/results", "runs", "data", "weights",
+    "cloud", "**/vendor/**",
+]
+
+[tool.ruff.lint]
+# 최소 규칙: pyflakes(F) · import 정렬(I) · pycodestyle 경고(E/W) · blind-except(BLE).
+#   ★ BLE001 유지 = 기존 '# noqa: BLE001'(의도된 폴백 패턴) 규율과 정합.
+select = ["E", "F", "I", "W", "BLE"]
+# E501(라인 길이)은 format 이 관리 + 기존 긴 라인 대량 경고 억제(로직 무관).
+ignore = ["E501"]
+
+[tool.ruff.format]
+# 문서·주석의 한국어 그대로, 따옴표는 기존 관례 최대 보존
+quote-style = "preserve"

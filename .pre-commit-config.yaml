@@ -1,0 +1,11 @@
+# VIGENT pre-commit — ruff 최소 구성 (P1-5)
+#   설치:  /opt/anaconda3/bin/python3 -m pip install pre-commit && pre-commit install
+#   ★ lint(자동수정: import 정렬·unused 제거)만. ruff-format 훅은 의도적으로 제외 —
+#     전체 포맷은 의도된 밀집 스타일을 대량 변경(87파일/5641줄)하므로 별도 결정 후 적용.
+repos:
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.12.0
+    hooks:
+      - id: ruff
+        args: ["--fix"]
+      # - id: ruff-format   # 보류: 대량 reformat(밀집 스타일 확장) — 합의 후 활성화
