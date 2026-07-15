@@ -25,8 +25,8 @@ import threading
 import traceback
 from pathlib import Path
 
-from fastapi import Body, FastAPI, HTTPException, Request, Response, WebSocket
-from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, PlainTextResponse
+from fastapi import Body, FastAPI, HTTPException, Request, Response
+from fastapi.responses import FileResponse, HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
@@ -54,6 +54,7 @@ import vlog  # noqa: E402  로깅 인프라(C-S1)
 from app_state import DEFAULT_THEME, STATE  # noqa: E402
 from app_state import DETECT_LOCK as _DETECT_LOCK  # noqa: E402
 from app_state import load_theme as _load_theme  # noqa: E402
+from routers import tapo as _tapo_router  # noqa: E402
 
 _log = vlog.get("vigent")               # print 대체 — 콘솔+파일 로테이션
 _START_TS = _time.time()                # uptime 기준(모듈 로드 시각)
@@ -72,6 +73,7 @@ def _product_version() -> str:
 # DEFAULT_THEME 는 app_state.py 로 분리(P1-7) — 위 import 에서 가져온다.
 
 app = FastAPI(title="VIGENT Core", version=_product_version())
+app.include_router(_tapo_router.router)   # /tapo/* (P1-7)
 
 # ── 보안(C-S0): 바인딩·토큰 인증·웹훅 화이트리스트 ─────────────────────────
 #   기본은 로컬 전용(127.0.0.1)·무토큰(개발 편의). 외부 노출은 명시적 opt-in.
@@ -1596,60 +1598,7 @@ def alerts_test(payload: dict = Body(default={}), theme: str = DEFAULT_THEME):
 
 
 # ── go2rtc 자산·WS 중계(같은 출처 :8010 로 만들어 CORS 회피) ──
-@app.get("/tapo/video-rtc.js")
-def tapo_videortc_js():
-    """go2rtc 의 video-rtc.js(ES모듈)를 VIGENT 서버가 대신 받아 같은 출처로 제공."""
-    import urllib.request
-    try:
-        with urllib.request.urlopen("http://localhost:1984/video-rtc.js", timeout=5) as r:
-            return Response(r.read(), media_type="application/javascript")
-    except Exception as ex:  # noqa: BLE001
-        raise HTTPException(status_code=502, detail=f"go2rtc 미실행: {ex}")
-
-
-@app.websocket("/tapo/ws")
-async def tapo_ws(ws: WebSocket):
-    """브라우저 ↔ go2rtc WebSocket(/api/ws?src=tapo) 양방향 중계(같은 출처)."""
-    await ws.accept()
-    import websockets
-    try:
-        async with websockets.connect("ws://localhost:1984/api/ws?src=tapo") as up:
-            async def c2u():
-                while True:
-                    data = await ws.receive()
-                    if data.get("type") == "websocket.disconnect":
-                        break
-                    if data.get("text") is not None:
-                        await up.send(data["text"])
-                    elif data.get("bytes") is not None:
-                        await up.send(data["bytes"])
-
-            async def u2c():
-                async for msg in up:
-                    if isinstance(msg, (bytes, bytearray)):
-                        await ws.send_bytes(msg)
-                    else:
-                        await ws.send_text(msg)
-
-            await asyncio.gather(c2u(), u2c())
-    except Exception:  # noqa: BLE001  연결 종료/실패 시 조용히 닫음
-        pass
-
-
-# ── go2rtc WebRTC 신호 중계(같은 출처로 만들어 CORS 회피) ──
-@app.post("/tapo/webrtc")
-async def tapo_webrtc(request: Request):
-    """브라우저 ↔ go2rtc WebRTC 핸드셰이크(SDP)를 VIGENT 서버가 중계.
-    영상(미디어)은 WebRTC로 직접 흐르고, 여기선 SDP 신호만 전달 → CORS 문제 없음."""
-    import urllib.request
-    sdp = await request.body()
-    req = urllib.request.Request("http://localhost:1984/api/webrtc?src=tapo",
-                                 data=sdp, method="POST")
-    try:
-        with urllib.request.urlopen(req, timeout=10) as r:
-            return PlainTextResponse(r.read().decode())
-    except Exception as ex:  # noqa: BLE001
-        raise HTTPException(status_code=502, detail=f"go2rtc 연결 실패: {ex}")
+# ── /tapo/* 라우트는 routers/tapo.py 로 분리(P1-7) — 위에서 include_router 등록 ──
 
 
 # ── rf-detr permissive 백엔드(탐지·추적·위험구역·VLM) ──
