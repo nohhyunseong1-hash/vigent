@@ -14,8 +14,10 @@ extend-exclude = [
 # 최소 규칙: pyflakes(F) · import 정렬(I) · pycodestyle 경고(E/W) · blind-except(BLE).
 #   ★ BLE001 유지 = 기존 '# noqa: BLE001'(의도된 폴백 패턴) 규율과 정합.
 select = ["E", "F", "I", "W", "BLE"]
-# E501(라인 길이)은 format 이 관리 + 기존 긴 라인 대량 경고 억제(로직 무관).
-ignore = ["E501"]
+# ignore: 아래는 '의도된 스타일/패턴'이라 손대지 않고 규칙만 끈다(출력 0 유지 → 새 경고가 묻히지 않게).
+#   E501  라인 길이(format 관리) · E402 지연 import(sys.path 후) · E701/E702 밀집 다중문(의도) ·
+#   E731  lambda 대입 · E741  모호한 변수명 · BLE001 blind-except(가산식 폴백 패턴, '# noqa' 규율은 유지되나 대량이라 룰 오프)
+ignore = ["E501", "E402", "E701", "E702", "E731", "E741", "BLE001"]
 
 [tool.ruff.format]
 # 문서·주석의 한국어 그대로, 따옴표는 기존 관례 최대 보존

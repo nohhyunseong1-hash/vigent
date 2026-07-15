@@ -75,7 +75,7 @@ def load_whitelist() -> dict[str, Any]:
             continue
         lo = int(s.get("article_from", 0) or 0)
         hi = int(s.get("article_to", lo) or lo)
-        has_text = bool(str(s.get("text") or "").strip()) and "정본" in str(s.get("text_status", ""))
+        has_text = bool(str(s.get("text") or "").strip()) and "정본" in str(s.get("text_status", ""))  # noqa: F841  향후 내용대조 승격용(의도적 미사용)
         index.setdefault(lk, []).append((lo, hi, s.get("article", ""), ))
         # has_text 는 향후 내용 대조 승격용(현재 정본 0건이라 미사용)
     return {"enabled": True, "index": index, "meta": data.get("_meta", {})}

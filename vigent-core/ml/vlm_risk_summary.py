@@ -11,6 +11,7 @@ import re
 import sys
 import time
 from pathlib import Path
+from typing import Any  # format_facts 의 list[Any] annotation 용(F821 수정)
 
 ROOT = Path(__file__).resolve().parent.parent.parent
 
