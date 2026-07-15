@@ -11,7 +11,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "vigent-core"))
 
-from rig_monitor import RigStateMachine, RigConfig, ALARM, HOISTING  # noqa: E402
+from rig_monitor import ALARM, HOISTING, RigConfig, RigStateMachine  # noqa: E402
 
 DT = 0.1
 

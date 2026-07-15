@@ -12,7 +12,7 @@ from typing import Tuple
 
 import numpy as np
 
-from .pose_features import NUM_FEATURES, FEATURE_NAMES
+from .pose_features import FEATURE_NAMES, NUM_FEATURES
 
 CLASS_NAMES = ["safe", "caution", "danger"]
 NUM_CLASSES = len(CLASS_NAMES)

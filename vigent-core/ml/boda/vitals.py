@@ -33,14 +33,13 @@ def estimate_bpm(samples: List[float], fs: float, lo: float = 0.7, hi: float = 3
     sig = sig / std
     try:
         from scipy.signal import butter, filtfilt
-        from scipy.fft import fft
         ny = 0.5 * fs
         b, a = butter(5, [lo / ny, hi / ny], btype="band")
         fsig = filtfilt(b, a, sig)
     except Exception:
         # scipy 없거나 실패 → 단순 FFT (필터 없이)
         try:
-            from numpy.fft import fft  # type: ignore
+            pass  # type: ignore
         except Exception:
             return None
         fsig = sig

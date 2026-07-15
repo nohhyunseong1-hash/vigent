@@ -25,8 +25,8 @@ def main() -> None:
     args = ap.parse_args()
     data_yaml = args.data if Path(args.data).is_absolute() else str(ROOT / args.data)
 
-    from ultralytics import YOLO
     import torch
+    from ultralytics import YOLO
     device = "mps" if torch.backends.mps.is_available() else "cpu"
     print(f"[VIGENT 재학습] base={Path(args.base).name} device={device} "
           f"epochs={args.epochs} imgsz={args.imgsz} batch={args.batch}")

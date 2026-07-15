@@ -156,8 +156,8 @@ class _Embed:
             return None
         try:
             if self.model is None:
-                from sentence_transformers import SentenceTransformer
                 import numpy as np
+                from sentence_transformers import SentenceTransformer
                 self.model = SentenceTransformer("jhgan/ko-sroberta-multitask")
                 docs = _corpus()
                 texts = [d["title"] + " " + d["text"] + " " + " ".join(d.get("refs", [])) for d in docs]

@@ -15,22 +15,20 @@ import datetime
 import json
 from pathlib import Path
 
-import numpy as np
-
 try:
-    from .pose_features import extract_features
+    from ..data_engine import DataEngine
     from .bootstrap_labels import rule_label
     from .fall_model import rule_label_fall
-    from ..data_engine import DataEngine
+    from .pose_features import extract_features
 except ImportError:  # 단독/스크립트 실행
     import sys
     HERE = Path(__file__).resolve().parent
     sys.path.insert(0, str(HERE))
     sys.path.insert(0, str(HERE.parent))
-    from pose_features import extract_features
     from bootstrap_labels import rule_label
-    from fall_model import rule_label_fall
     from data_engine import DataEngine
+    from fall_model import rule_label_fall
+    from pose_features import extract_features
 
 _ROOT = Path(__file__).resolve().parent.parent.parent
 ANN_VAL = _ROOT / "data" / "external" / "incoming" / "annotations" / "person_keypoints_val2017.json"

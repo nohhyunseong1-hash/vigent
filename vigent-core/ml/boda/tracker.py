@@ -1,6 +1,7 @@
-import time
-from typing import List, Dict, Tuple
 import math
+import time
+from typing import Dict, List
+
 
 def iou(boxA: List[float], boxB: List[float]) -> float:
     xA = max(boxA[0], boxB[0])

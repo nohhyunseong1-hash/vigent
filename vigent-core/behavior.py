@@ -68,7 +68,8 @@ _PROMPT = (
 
 def _parse_json_behaviors(txt: str):
     """VLM 응답에서 JSON 배열 추출. 실패 시 None(→키워드 폴백)."""
-    import json, re
+    import json
+    import re
     m = re.search(r"\[.*\]", txt, re.S)
     if not m:
         return [] if "[]" in txt else None

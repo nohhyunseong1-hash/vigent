@@ -10,10 +10,8 @@ from __future__ import annotations
 
 import base64
 import json
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
-from typing import Any, Dict, List
-
 
 # 위험요인 → 국내 위험성평가 양식 컬럼 자동 채움.
 # (세부작업, 위험분류, 위험발생 상황·결과, 관련근거(법적기준), 현재 안전보건조치, 중대성(강도), 감소대책)

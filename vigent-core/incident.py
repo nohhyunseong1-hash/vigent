@@ -11,7 +11,6 @@ from __future__ import annotations
 
 from typing import Any
 
-
 _ACCIDENT_PROMPT = (
     "너는 산업재해 조사관 AI다. 이 현장/CCTV 사진을 보고 아래 JSON으로만 답하라.\n"
     '{"work":"무슨 작업을 하는 장면인지 한국어로","accident_type":"재해유형(끼임/추락/부딪힘/감전/화재/질식/전도/낙하물/무너짐/없음 중 하나)",'
@@ -114,6 +113,7 @@ def infer_cause(hazard_list: list[dict[str, Any]] | None = None, environment: st
     try:
         import json
         import re
+
         import llm_provider
         facts = (f"확정 위험(CNN 탐지): {', '.join(haz) or '없음'}\n"
                  f"환경: {environment or '불명확'}\n작업: {act}\n"

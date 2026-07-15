@@ -15,15 +15,17 @@ from typing import Tuple
 import numpy as np
 
 try:
-    from .pose_features import NUM_FEATURES, FEATURE_NAMES
-    from .bootstrap_labels import make_dataset, CLASS_NAMES, NUM_CLASSES
-    from .fall_model import make_fall_dataset, FALL_CLASSES, NUM_FALL_CLASSES, DEFAULT_FALL_WEIGHTS
-    from .train_posture_classifier import TFJS_DIR as POSTURE_DIR, ARTIFACT as POSTURE_KERAS
+    from .bootstrap_labels import CLASS_NAMES, NUM_CLASSES, make_dataset
+    from .fall_model import DEFAULT_FALL_WEIGHTS, FALL_CLASSES, NUM_FALL_CLASSES, make_fall_dataset
+    from .pose_features import FEATURE_NAMES, NUM_FEATURES
+    from .train_posture_classifier import ARTIFACT as POSTURE_KERAS
+    from .train_posture_classifier import TFJS_DIR as POSTURE_DIR
 except ImportError:  # pragma: no cover
-    from pose_features import NUM_FEATURES, FEATURE_NAMES
-    from bootstrap_labels import make_dataset, CLASS_NAMES, NUM_CLASSES
-    from fall_model import make_fall_dataset, FALL_CLASSES, NUM_FALL_CLASSES, DEFAULT_FALL_WEIGHTS
-    from train_posture_classifier import TFJS_DIR as POSTURE_DIR, ARTIFACT as POSTURE_KERAS
+    from bootstrap_labels import CLASS_NAMES, NUM_CLASSES, make_dataset
+    from fall_model import DEFAULT_FALL_WEIGHTS, FALL_CLASSES, NUM_FALL_CLASSES, make_fall_dataset
+    from pose_features import FEATURE_NAMES, NUM_FEATURES
+    from train_posture_classifier import ARTIFACT as POSTURE_KERAS
+    from train_posture_classifier import TFJS_DIR as POSTURE_DIR
 
 
 def assemble_training_data(bootstrap: Tuple[np.ndarray, np.ndarray],

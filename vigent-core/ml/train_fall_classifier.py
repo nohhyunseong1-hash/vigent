@@ -5,16 +5,15 @@
 from __future__ import annotations
 
 import json
-from pathlib import Path
 
 import numpy as np
 
 try:
-    from .fall_model import make_fall_dataset, FALL_CLASSES, NUM_FALL_CLASSES, DEFAULT_FALL_WEIGHTS
-    from .pose_features import NUM_FEATURES, FEATURE_NAMES
+    from .fall_model import DEFAULT_FALL_WEIGHTS, FALL_CLASSES, NUM_FALL_CLASSES, make_fall_dataset
+    from .pose_features import FEATURE_NAMES, NUM_FEATURES
 except ImportError:
-    from fall_model import make_fall_dataset, FALL_CLASSES, NUM_FALL_CLASSES, DEFAULT_FALL_WEIGHTS
-    from pose_features import NUM_FEATURES, FEATURE_NAMES
+    from fall_model import DEFAULT_FALL_WEIGHTS, FALL_CLASSES, NUM_FALL_CLASSES, make_fall_dataset
+    from pose_features import FEATURE_NAMES, NUM_FEATURES
 
 
 def main(epochs: int = 30):

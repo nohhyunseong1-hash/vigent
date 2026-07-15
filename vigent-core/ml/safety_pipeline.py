@@ -14,14 +14,11 @@ from pathlib import Path
 import cv2
 import numpy as np
 import supervision as sv
-import torch
 from PIL import Image
-
 from rfdetr import RFDETRNano
 from rfdetr.util.coco_classes import COCO_CLASSES
+from rfdetr_zone_track import load_zone_config  # 설정 로더 재사용
 from trackers import SORTTracker
-
-from rfdetr_zone_track import load_zone_config   # 설정 로더 재사용
 
 ROOT = Path(__file__).resolve().parent.parent.parent
 VLM_COOLDOWN_S = 8.0          # 같은 이벤트 반복 호출 방지(VLM 무거움)
@@ -31,7 +28,6 @@ def _resolve_source(source: str) -> str:
     """source='env' 면 .env 의 RTSP_URL 을 읽는다(비번 노출 방지)."""
     if source.lower() != "env":
         return source
-    import os
     env = ROOT / ".env"
     if env.exists():
         for line in env.read_text(encoding="utf-8", errors="ignore").splitlines():

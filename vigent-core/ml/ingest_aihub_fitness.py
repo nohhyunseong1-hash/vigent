@@ -9,19 +9,18 @@ COCO-17 pts → pose_features 특징 벡터. 데이터엔진 'form' 학습파일
 from __future__ import annotations
 
 import datetime
-import glob
 import json
 from pathlib import Path
 
 try:
-    from .form_model import pts_to_keypoints, extract_form_features
     from ..data_engine import DataEngine
+    from .form_model import extract_form_features, pts_to_keypoints
 except ImportError:
     import sys
     HERE = Path(__file__).resolve().parent
     sys.path.insert(0, str(HERE)); sys.path.insert(0, str(HERE.parent))
-    from form_model import pts_to_keypoints, extract_form_features
     from data_engine import DataEngine
+    from form_model import extract_form_features, pts_to_keypoints
 
 _ROOT = Path(__file__).resolve().parent.parent.parent
 DE_ROOT = _ROOT / "data" / "data_engine"

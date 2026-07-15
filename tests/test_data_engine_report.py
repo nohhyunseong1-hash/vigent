@@ -1,5 +1,4 @@
 """6단계 검증 — 데이터엔진(증거·로그 저장/집계) + 리포트(목록·다시열기·표준양식)"""
-import base64
 import sys
 import unittest
 from pathlib import Path

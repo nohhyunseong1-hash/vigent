@@ -22,9 +22,8 @@ from pathlib import Path
 from typing import Any
 
 import cv2
-import numpy as np
-
 import data_engine
+import numpy as np
 import proximity
 import tuning
 import vlog
@@ -94,7 +93,6 @@ def _derive(out: dict, zone: list, aspect_hw: float | None = None) -> list[tuple
     if sig.get("fire_smoke"):
         fired.append(("fire_smoke", "critical", "화재/연기 감지"))
     # 동적 작업반경(협착) — 지게차·차량 근처에 사람 진입(거리 자동추정)
-    import os
     radius = float(tuning.val("proximity", "radius_m", 3.0, env="VIGENT_RADIUS_M"))
     for hz in proximity.detect(out.get("detections", []), radius, aspect_hw=aspect_hw):  # 감사 E-1
         fired.append(("proximity_hazard", "high",

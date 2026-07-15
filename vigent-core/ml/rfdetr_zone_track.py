@@ -18,7 +18,6 @@ import supervision as sv
 import torch
 import yaml
 from PIL import Image
-
 from rfdetr import RFDETRNano
 from rfdetr.util.coco_classes import COCO_CLASSES
 from trackers import SORTTracker

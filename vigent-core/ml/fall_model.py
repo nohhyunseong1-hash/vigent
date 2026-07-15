@@ -14,10 +14,10 @@ from typing import Any, Dict, List, Optional, Sequence, Tuple
 import numpy as np
 
 try:
-    from .pose_features import extract_features, FEATURE_NAMES, NUM_FEATURES
+    from .pose_features import FEATURE_NAMES, NUM_FEATURES, extract_features
     from .posture_model import forward_json
 except ImportError:  # pragma: no cover
-    from pose_features import extract_features, FEATURE_NAMES, NUM_FEATURES
+    from pose_features import FEATURE_NAMES, NUM_FEATURES, extract_features
     from posture_model import forward_json
 
 FALL_CLASSES = ["normal", "fall"]

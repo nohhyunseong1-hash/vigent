@@ -64,8 +64,8 @@ RFDETR_MODELS = {"nano": "RFDETRNano", "small": "RFDETRSmall",
 
 def run_detector(items, target_name: str, conf: float, model_name: str = "nano"):
     """rf-detr 로 추론 → 타깃 클래스만 supervision Detections 로."""
-    import torch
     import rfdetr
+    import torch
     from PIL import Image
     from rfdetr.util.coco_classes import COCO_CLASSES
     dev = "mps" if torch.backends.mps.is_available() else "cpu"
@@ -106,7 +106,7 @@ def main():
     gts = [gt for _p, gt, _wh in items]
 
     # 지표 계산(supervision)
-    from supervision.metrics import MeanAveragePrecision, Precision, Recall, F1Score
+    from supervision.metrics import F1Score, MeanAveragePrecision, Precision, Recall
     mAP = MeanAveragePrecision().update(preds, gts).compute()
     prec = Precision().update(preds, gts).compute()
     rec = Recall().update(preds, gts).compute()

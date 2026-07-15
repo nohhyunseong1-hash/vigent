@@ -54,9 +54,9 @@ class RFDetrService:
     def _ensure(self):
         if self._model is not None:
             return
+        import device as _device
         from rfdetr import RFDETRNano
         from trackers import SORTTracker
-        import device as _device
         dev = _device.pick_device(prefer_mps=True)   # 감사 C-1: CUDA→MPS→CPU (리눅스서 GPU 사용)
         self._model = RFDETRNano(device=dev)
         try:
@@ -152,6 +152,7 @@ class VLMService:
         """빠른 단발 질의(PPE 등 단답) — 작은 이미지·짧은 토큰·재시도 없음."""
         import os
         import sys
+
         import cv2
         sys.path.insert(0, str(Path(__file__).resolve().parent / "ml"))
         if self._vlm is None:

@@ -11,16 +11,16 @@ from pathlib import Path
 import numpy as np
 
 try:
-    from .pose_features import FEATURE_NAMES
-    from .form_model import FORM_CLASSES, NUM_FORM_CLASSES, DEFAULT_FORM_WEIGHTS, FORM_NUM_FEATURES
     from ..data_engine import DataEngine
+    from .form_model import DEFAULT_FORM_WEIGHTS, FORM_CLASSES, FORM_NUM_FEATURES, NUM_FORM_CLASSES
+    from .pose_features import FEATURE_NAMES
 except ImportError:
     import sys
     HERE = Path(__file__).resolve().parent
     sys.path.insert(0, str(HERE)); sys.path.insert(0, str(HERE.parent))
-    from pose_features import FEATURE_NAMES
-    from form_model import FORM_CLASSES, NUM_FORM_CLASSES, DEFAULT_FORM_WEIGHTS, FORM_NUM_FEATURES
     from data_engine import DataEngine
+    from form_model import DEFAULT_FORM_WEIGHTS, FORM_CLASSES, FORM_NUM_FEATURES, NUM_FORM_CLASSES
+    from pose_features import FEATURE_NAMES
 
 _ROOT = Path(__file__).resolve().parent.parent.parent
 

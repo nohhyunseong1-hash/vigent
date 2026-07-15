@@ -14,10 +14,10 @@ from pathlib import Path
 import numpy as np
 
 try:
-    from .bootstrap_labels import make_dataset, NUM_CLASSES, CLASS_NAMES
+    from .bootstrap_labels import CLASS_NAMES, NUM_CLASSES, make_dataset
     from .pose_features import NUM_FEATURES
 except ImportError:  # 단독 실행
-    from bootstrap_labels import make_dataset, NUM_CLASSES, CLASS_NAMES
+    from bootstrap_labels import CLASS_NAMES, NUM_CLASSES, make_dataset
     from pose_features import NUM_FEATURES
 
 HERE = Path(__file__).resolve().parent
@@ -71,8 +71,9 @@ def main(epochs: int = 40):
 def export_weights_json(model):
     """Keras MLP 가중치를 브라우저가 바로 쓰는 JSON으로 저장."""
     import json
-    from .pose_features import FEATURE_NAMES
+
     from .bootstrap_labels import CLASS_NAMES
+    from .pose_features import FEATURE_NAMES
 
     layers = []
     for layer in model.layers:

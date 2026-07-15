@@ -20,7 +20,7 @@ _COCO17 = 17
 
 class RtmPoseDetector:
     def __init__(self, mode: str = "balanced", device: str = "cpu", backend: str = "onnxruntime"):
-        from rtmlib import Body   # lazy import — 사용 시에만 로드(모델 onnx 최초 1회 다운로드)
+        from rtmlib import Body  # lazy import — 사용 시에만 로드(모델 onnx 최초 1회 다운로드)
         # Body = RTMDet(사람검출) + RTMPose(포즈), to_openpose=False → COCO-17 출력.
         self._body = Body(mode=mode, backend=backend, device=device)
         self._mode, self._device = mode, device

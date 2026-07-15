@@ -11,10 +11,9 @@ import time
 from datetime import datetime
 from pathlib import Path
 
-import numpy as np
-
 ROOT = Path(__file__).resolve().parent.parent.parent
 import sys
+
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import eval_accuracy as ev
 
@@ -25,7 +24,7 @@ def measure(ds: Path, split: str, target: str, conf: float, limit: int, model: s
         items = items[:limit]
     preds, dev, per_img = ev.run_detector(items, target.lower(), conf, model)
     gts = [gt for _p, gt, _wh in items]
-    from supervision.metrics import MeanAveragePrecision, Precision, Recall, F1Score
+    from supervision.metrics import F1Score, MeanAveragePrecision, Precision, Recall
     mAP = MeanAveragePrecision().update(preds, gts).compute()
     prec = Precision().update(preds, gts).compute()
     rec = Recall().update(preds, gts).compute()

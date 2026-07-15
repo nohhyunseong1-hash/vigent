@@ -6,9 +6,7 @@ site.yaml(현장·카메라)·notify.yaml(알림)을 화면에서 읽고 쓰고,
 """
 from __future__ import annotations
 
-import html
 from pathlib import Path
-from typing import Any
 
 _ROOT = Path(__file__).resolve().parent.parent
 _SITE = _ROOT / "config" / "site.yaml"

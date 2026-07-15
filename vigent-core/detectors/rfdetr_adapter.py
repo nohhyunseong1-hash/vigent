@@ -21,7 +21,7 @@ class RfdetrDetector(BaseDetector):
         from pathlib import Path
         sys.path.insert(0, str(Path(__file__).resolve().parent.parent))  # device 모듈 경로
         import device as _device
-        from rfdetr import RFDETRNano   # lazy import
+        from rfdetr import RFDETRNano  # lazy import
         dev = _device.pick_device(prefer_mps=True)   # RF-DETR 은 MPS 안전
         kwargs: dict[str, Any] = {"device": dev}
         if weights:

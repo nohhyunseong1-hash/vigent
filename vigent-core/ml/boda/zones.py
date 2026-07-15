@@ -2,6 +2,7 @@ import json
 from pathlib import Path
 from typing import List, Tuple
 
+
 def load_zones(path: str = None):
     base = Path(__file__).resolve().parent
     cfg = base / 'config'

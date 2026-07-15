@@ -12,7 +12,6 @@ vision_loader.py — vision.yaml 파서 + 폴백 로더
 """
 from __future__ import annotations
 
-import os
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any

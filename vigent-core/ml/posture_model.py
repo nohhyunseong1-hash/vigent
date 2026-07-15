@@ -17,11 +17,11 @@ from typing import Any, Dict, List, Optional, Sequence
 import numpy as np
 
 try:
-    from .pose_features import extract_features, NUM_FEATURES
-    from .bootstrap_labels import rule_label, CLASS_NAMES
+    from .bootstrap_labels import CLASS_NAMES, rule_label
+    from .pose_features import NUM_FEATURES, extract_features
 except ImportError:  # pragma: no cover
-    from pose_features import extract_features, NUM_FEATURES
-    from bootstrap_labels import rule_label, CLASS_NAMES
+    from bootstrap_labels import CLASS_NAMES, rule_label
+    from pose_features import NUM_FEATURES, extract_features
 
 _HERE = Path(__file__).resolve().parent
 DEFAULT_MODEL_PATH = _HERE / "artifacts" / "posture_classifier.keras"

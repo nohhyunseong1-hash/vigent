@@ -15,10 +15,10 @@ from typing import Any, Dict, List, Optional, Sequence
 import numpy as np
 
 try:
-    from .pose_features import extract_features, NUM_FEATURES
+    from .pose_features import NUM_FEATURES, extract_features
     from .posture_model import forward_json
 except ImportError:  # pragma: no cover
-    from pose_features import extract_features, NUM_FEATURES
+    from pose_features import NUM_FEATURES, extract_features
     from posture_model import forward_json
 
 FORM_CLASSES = ["incorrect", "correct"]   # 0=오자세, 1=정자세

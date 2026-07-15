@@ -15,21 +15,19 @@ main.py — VIGENT 공유 코어 FastAPI 골격 (§15-2)
 """
 from __future__ import annotations
 
+import asyncio
 import hmac
+import json
 import os
 import sys
 import threading
 import traceback
 from pathlib import Path
 
-import json
-
-import asyncio
-
 from fastapi import Body, FastAPI, HTTPException, Request, Response, WebSocket
 from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, PlainTextResponse
-from pydantic import BaseModel
 from fastapi.staticfiles import StaticFiles
+from pydantic import BaseModel
 
 # .env 의 비밀키(텔레그램·웹훅 등)를 환경변수로 로드(있으면). 없어도 무해.
 try:
@@ -44,13 +42,14 @@ _ROOT = _HERE.parent                              # 프로젝트 루트
 if str(_HERE) not in sys.path:
     sys.path.insert(0, str(_HERE))
 
-from agents import build_agents          # noqa: E402
-import audit_store                        # noqa: E402
-import data_engine                       # noqa: E402
-import tbm_store                          # noqa: E402
-import vision_loader                     # noqa: E402
-import vlog                              # noqa: E402  로깅 인프라(C-S1)
-import time as _time                     # noqa: E402
+import time as _time  # noqa: E402
+
+import audit_store  # noqa: E402
+import data_engine  # noqa: E402
+import tbm_store  # noqa: E402
+import vision_loader  # noqa: E402
+import vlog  # noqa: E402  로깅 인프라(C-S1)
+from agents import build_agents  # noqa: E402
 
 _log = vlog.get("vigent")               # print 대체 — 콘솔+파일 로테이션
 _START_TS = _time.time()                # uptime 기준(모듈 로드 시각)
@@ -445,7 +444,7 @@ def dispatch_relay(payload: dict = Body(default={}), theme: str = DEFAULT_THEME)
     dispatcher = bundle["agents"].get("Dispatcher")
     _event = payload.get("event", "guard_bypass")
     result = dispatcher.relay(_event, payload.get("meta"))
-    import datetime as _dt   # 구조화 이벤트 로그(C-S1, D3 감사추적)
+    import datetime as _dt  # 구조화 이벤트 로그(C-S1, D3 감사추적)
     vlog.log_event({"ts": _dt.datetime.now().isoformat(timespec="seconds"),
                     "type": "dispatch_relay", "event": _event, "theme": theme, "result": result})
     return result
@@ -522,6 +521,7 @@ def _decode_data_url(image: str):
     """data:image/...;base64,... → cv2 BGR numpy. 실패하면 None."""
     import base64
     import re
+
     import cv2
     import numpy as np
     m = re.match(r"^data:image/\w+;base64,(.+)$", image or "", re.S)
@@ -1628,8 +1628,8 @@ def safety_voice_page():
 @app.post("/safety/voice/ask")
 def safety_voice_ask(payload: dict = Body(...)):
     """음성 질문(텍스트) → 안전 지식 엔진 답변(음성 읽기용·근거 포함)."""
-    import safety_rag
     import safety_brain
+    import safety_rag
     q = (payload.get("question") or "").strip()
     if not q:
         return {"ok": False, "answer": "질문을 다시 말씀해 주세요."}

@@ -23,7 +23,7 @@ class YoloDetector(BaseDetector):
 
     def __init__(self, path: str, device: str, default_imgsz: int,
                  label_normalize: dict, junk: set):
-        from ultralytics import YOLO   # lazy import — 백엔드 사용 시에만 로드
+        from ultralytics import YOLO  # lazy import — 백엔드 사용 시에만 로드
         self.model = YOLO(path)
         self.device = device
         self.default_imgsz = default_imgsz

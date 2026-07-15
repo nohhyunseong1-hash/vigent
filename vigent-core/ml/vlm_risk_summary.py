@@ -150,7 +150,7 @@ class RiskVLM:
         """MLX 모델 1회 로드(최초 MLX 추론 시). 이미 로드됐으면 즉시 반환."""
         if self._loaded:
             return
-        from mlx_vlm import load, generate
+        from mlx_vlm import generate, load
         from mlx_vlm.prompt_utils import apply_chat_template
         from mlx_vlm.utils import load_config
         self._generate = generate
@@ -169,6 +169,7 @@ class RiskVLM:
             return None
         try:
             import sys
+
             import cv2
             sys.path.insert(0, str(ROOT / "vigent-core"))
             import llm_provider

@@ -18,9 +18,9 @@ from datetime import datetime, timedelta, timezone
 from typing import Any, Dict, List
 
 try:
-    from backend.report_builder import RISK_ASSESS, _likelihood, _level, _HZ_KO
+    from backend.report_builder import _HZ_KO, RISK_ASSESS, _level, _likelihood
 except ImportError:  # 서버 실행 위치에 따른 폴백
-    from report_builder import RISK_ASSESS, _likelihood, _level, _HZ_KO
+    from report_builder import _HZ_KO, RISK_ASSESS, _level, _likelihood
 
 KST = timezone(timedelta(hours=9))
 
