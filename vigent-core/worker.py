@@ -231,8 +231,8 @@ class FallTracker:
                         v = _vc.confirm(frame, "fall_suspected", reason=reason)
                         if v.get("available") and v.get("suppress"):
                             continue
-                    except Exception:  # noqa: BLE001
-                        pass
+                    except Exception as _we:  # noqa: BLE001
+                        _WLOG.debug("worker 무시 예외 [프레임 캡처/처리]: %s", _we)
                 return True, reason
         return False, ""
 
@@ -408,8 +408,8 @@ class _StreamCapture:
         cap = cv2.VideoCapture(int(self.source) if self.source.isdigit() else self.source)
         try:
             cap.set(cv2.CAP_PROP_BUFFERSIZE, _CAP_BUFFERSIZE)   # 보조(웹캠/V4L2 등 일부만 존중; FFmpeg/RTSP 는 무시될 수 있음)
-        except Exception:  # noqa: BLE001
-            pass
+        except Exception as _we:  # noqa: BLE001
+            _WLOG.debug("worker 무시 예외 [cap 버퍼설정]: %s", _we)
         return cap
 
     def _run(self):
@@ -428,8 +428,8 @@ class _StreamCapture:
                                   self.name, self.source, self.reconnects, rbackoff)
                     try:
                         cap.release()
-                    except Exception:  # noqa: BLE001
-                        pass
+                    except Exception as _we:  # noqa: BLE001
+                        _WLOG.debug("worker 무시 예외 [cap release]: %s", _we)
                     slept = 0.0
                     while slept < rbackoff and not self._stop.is_set():
                         time.sleep(0.2)
@@ -447,8 +447,8 @@ class _StreamCapture:
                 self._ts = time.time()
         try:
             cap.release()
-        except Exception:  # noqa: BLE001
-            pass
+        except Exception as _we:  # noqa: BLE001
+            _WLOG.debug("worker 무시 예외 [cap release]: %s", _we)
 
     def read_latest(self):
         """(frame, slot_ts) 반환. 아직 첫 프레임 없으면 (None, 0.0).
@@ -547,8 +547,8 @@ class Worker:
                 try:
                     if self._cap is not None:
                         self._cap.release()           # cap.read() 블로킹을 깨워 즉시 탈출 유도
-                except Exception:  # noqa: BLE001
-                    pass
+                except Exception as _we:  # noqa: BLE001
+                    _WLOG.debug("worker 무시 예외 [cap release(깨우기)]: %s", _we)
 
     def _run_supervised(self, guard, lock, source, name, fps, detectors, zone=None):
         """워커 루프 감독자(1단계 안정성 핵심).
@@ -621,8 +621,8 @@ class Worker:
             if is_stream:
                 try:
                     cap.set(cv2.CAP_PROP_BUFFERSIZE, _CAP_BUFFERSIZE)   # 보조(FFmpeg/RTSP 는 무시될 수 있음 → thread 모드 권장)
-                except Exception:  # noqa: BLE001
-                    pass
+                except Exception as _we:  # noqa: BLE001
+                    _WLOG.debug("worker 무시 예외 [cap 버퍼설정]: %s", _we)
             self._cap = cap                          # 감시 스레드가 hang 시 release 로 언블록
         read_fails = 0
         rbackoff = 1.0
@@ -667,8 +667,8 @@ class Worker:
                                               name, source, self.state["reconnects"], rbackoff)
                                 try:
                                     cap.release()
-                                except Exception:  # noqa: BLE001
-                                    pass
+                                except Exception as _we:  # noqa: BLE001
+                                    _WLOG.debug("worker 무시 예외 [cap release(재연결)]: %s", _we)
                                 slept = 0.0
                                 while slept < rbackoff and not self._stop.is_set() and not self._restart_req.is_set():
                                     time.sleep(0.2)
@@ -676,8 +676,8 @@ class Worker:
                                 cap = cv2.VideoCapture(int(source) if source.isdigit() else source)
                                 try:
                                     cap.set(cv2.CAP_PROP_BUFFERSIZE, _CAP_BUFFERSIZE)   # 재연결 후에도 버퍼 최소화 유지
-                                except Exception:  # noqa: BLE001
-                                    pass
+                                except Exception as _we:  # noqa: BLE001
+                                    _WLOG.debug("worker 무시 예외 [cap 버퍼설정(재연결)]: %s", _we)
                                 self._cap = cap
                                 rbackoff = min(rbackoff * 2, _RECONNECT_MAX)   # 지수 백오프(상한 _RECONNECT_MAX)
                                 read_fails = 0
@@ -704,8 +704,8 @@ class Worker:
                             safe = "".join(c if c.isalnum() else "_" for c in str(name))[:20]
                             cv2.imwrite(str(dataset_dir / f"{safe}_{int(t0)}.jpg"), frame)
                             self.state["collected"] = self.state.get("collected", 0) + 1
-                        except Exception:  # noqa: BLE001
-                            pass
+                        except Exception as _we:  # noqa: BLE001
+                            _WLOG.debug("worker 무시 예외 [수집 카운트 갱신]: %s", _we)
                     with lock:                            # 코어 추론 직렬화(브라우저와 충돌 방지)
                         out = guard.detect(frame, detectors=detectors)
                         # 포즈(낙상·근골격) top-down 입력 = guard.detect person 박스(RF-DETR·_nms/_track 적용, 픽셀).
