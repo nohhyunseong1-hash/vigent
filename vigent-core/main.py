@@ -48,9 +48,12 @@ import time as _time  # noqa: E402
 import audit_store  # noqa: E402
 import data_engine  # noqa: E402
 import tbm_store  # noqa: E402
-import vision_loader  # noqa: E402
 import vlog  # noqa: E402  로깅 인프라(C-S1)
-from agents import build_agents  # noqa: E402
+
+# 공유 런타임 상태는 app_state.py 로 분리(P1-7) — 라우터들이 main 을 import 하지 않고 공유.
+from app_state import DEFAULT_THEME, STATE  # noqa: E402
+from app_state import DETECT_LOCK as _DETECT_LOCK  # noqa: E402
+from app_state import load_theme as _load_theme  # noqa: E402
 
 _log = vlog.get("vigent")               # print 대체 — 콘솔+파일 로테이션
 _START_TS = _time.time()                # uptime 기준(모듈 로드 시각)
@@ -66,7 +69,7 @@ def _product_version() -> str:
 # ─────────────────────────────────────────────────────────────
 # 앱 + 시작 시 1회 로드
 # ─────────────────────────────────────────────────────────────
-DEFAULT_THEME = os.environ.get("VIGENT_THEME", "safety")
+# DEFAULT_THEME 는 app_state.py 로 분리(P1-7) — 위 import 에서 가져온다.
 
 app = FastAPI(title="VIGENT Core", version=_product_version())
 
@@ -193,22 +196,8 @@ def _is_safety_label(label: str) -> bool:
     return any(k in l for k in ("hardhat", "helmet", "vest", "mask", "glove", "goggle", "boots"))
 
 
-# 코어가 들고 있는 런타임 상태(테마별 파이프라인 + 에이전트)
-STATE: dict[str, dict] = {}
-
-# YOLO 추론 직렬화 락 — ultralytics 모델 로딩/추론은 동시성 안전하지 않다.
-# 브라우저가 6fps로 동시에 /detect/frame 을 호출하면 같은 모델을 여러 스레드가
-# 동시에 로드/추론하다 네이티브 크래시가 난다 → 락으로 한 번에 하나씩만.
-_DETECT_LOCK = threading.Lock()
-
-
-def _load_theme(theme: str) -> dict:
-    """테마 1개를 로드해 STATE 에 캐시."""
-    cfg = vision_loader.load_vision(theme)
-    agents = build_agents(cfg)
-    bundle = {"config": cfg, "agents": agents}
-    STATE[theme] = bundle
-    return bundle
+# STATE · _DETECT_LOCK · _load_theme 는 app_state.py 로 분리(P1-7) — 위 import 에서 가져온다
+# (STATE/DETECT_LOCK/load_theme). 라우터가 main 을 import 하지 않고 공유하기 위함.
 
 
 # ── 1단계 안정성: 전역 예외 안전망(무증상 실패 차단) ──
