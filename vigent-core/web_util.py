@@ -65,6 +65,11 @@ def _incident_boxes(out: dict, prox: list) -> list:
         boxes.append({"class": cls, "bbox": [round(v, 4) for v in bb], "hazard": bool(hazard)})
     return boxes
 
+def _zone_points(z: dict) -> list[tuple[float, float]]:
+    """위험구역 json dict → 정규화 (x,y) 튜플 목록. worker·rfdetr_service 공용(P2-11 중복 제거).
+    ※ 파일 읽기·에러처리·경로결정은 각 호출자가 유지(계약이 달라 함수 자체는 통합 안 함).순수 변환만 공유."""
+    return [(p["x"], p["y"]) for p in z.get("points", [])]
+
 def _zone_cfg_path(theme: str, key: str) -> str | None:
     bundle = STATE.get(theme) or _load_theme(theme)
     return (bundle["config"].raw.get("judgment", {}) or {}).get("zones", {}).get(key)

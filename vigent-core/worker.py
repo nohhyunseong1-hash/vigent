@@ -27,6 +27,7 @@ import numpy as np
 import proximity
 import tuning
 import vlog
+from web_util import _zone_points
 
 _ROOT = Path(__file__).resolve().parent.parent
 _WLOG = vlog.get("vigent.worker")   # 워커 예외·재시작 구조화 로깅(1단계 안정성)
@@ -65,7 +66,7 @@ def _load_zone() -> list[tuple[float, float]]:
         return []
     try:
         z = json.loads(p.read_text(encoding="utf-8"))
-        return [(pt["x"], pt["y"]) for pt in z.get("points", [])]
+        return _zone_points(z)
     except (ValueError, OSError, KeyError):
         return []
 

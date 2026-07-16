@@ -12,12 +12,15 @@ from pathlib import Path
 from typing import Any
 
 import numpy as np
+from web_util import _zone_points
 
 ROOT = Path(__file__).resolve().parent.parent
 
 
-def _load_zone(theme: str = "safety"):
-    """vision.yaml + danger_zone.json 에서 위험구역(정규화 폴리곤)·임계값."""
+def _load_zone_and_threshold(theme: str = "safety"):
+    """vision.yaml + danger_zone.json 에서 위험구역(정규화 폴리곤)·임계값.
+    ※ worker._load_zone(config/danger_zone.json 직접·튜플만)과 이름·계약이 달라 P2-11에서
+      명확히 rename(동명이인 혼동 제거). 공통 점추출만 web_util._zone_points 로 공유."""
     import yaml
     vy = yaml.safe_load(open(ROOT / "themes" / theme / "vision.yaml", encoding="utf-8"))
     jud = vy.get("judgment", {}) or {}
@@ -26,7 +29,7 @@ def _load_zone(theme: str = "safety"):
     pts = []
     if zpath and (ROOT / zpath).exists():
         z = json.load(open(ROOT / zpath, encoding="utf-8"))
-        pts = [(p["x"], p["y"]) for p in z.get("points", [])]
+        pts = _zone_points(z)
     return pts, thr
 
 
@@ -75,7 +78,7 @@ class RFDetrService:
         from rfdetr.util.coco_classes import COCO_CLASSES
 
         h, w = image_bgr.shape[:2]
-        pts, thr = _load_zone("safety")              # 매 프레임 설정 반영(화면서 구역 바꾸면 즉시)
+        pts, thr = _load_zone_and_threshold("safety")   # 매 프레임 설정 반영(화면서 구역 바꾸면 즉시)
         det = self._model.predict(
             Image.fromarray(cv2.cvtColor(image_bgr, cv2.COLOR_BGR2RGB)), threshold=thr)
         # 추적: SORTTracker 로 프레임 간 track id 부여(침입자 식별). 감사 A: 과거엔 생성만 하고
