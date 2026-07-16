@@ -28,6 +28,7 @@
 - **왜 미뤘나**: 이 리포는 **git 원격이 아직 없어**(로컬 커밋만) Actions가 한 번도 실행되지 않음. CI yaml의 각 명령은 로컬에서 재현해 통과 확인했으나, 리눅스 러너 실행은 이 환경에서 검증 불가. (P2-14·P2-12 공통 고지)
 - **리스크**: 낮음. 다만 리눅스 러너에서 torch/onnxruntime 설치 실패, 또는 `python -m mypy`/`check_openapi_diff.py`의 `import main` 시 Apple전용 의존(mlx 등 — 현재 하드 import 없음 확인)이 첫 런에서 드러날 수 있음.
 - **권장 접근**: ① GitHub 리포 생성·`git remote add origin`·`git push -u origin main` → ② Actions 탭에서 CI 런의 4개 스텝(ruff/mypy/unittest/체커) green 확인 → ③ 실패 시 로그로 원인 분석(requirements 핀 조정 등). 상세 체크리스트는 [ONBOARDING.md](ONBOARDING.md) §6.
+- **가중치·F-8 맥락(첫 런 실패로 확인)**: **CI 러너에는 커스텀 가중치(`weights/*.pth`, `.gitignore` 제외)가 없는 것이 정상 상태**다. Guard 생성 시 F-8 기동거부가 발동하므로, `ci.yml` gates 잡에 `VIGENT_ALLOW_FALLBACK: "1"`(F-8 공식 opt-in 처리 경로)을 둔다 — 현재 CI 테스트는 실제 `guard.detect()`를 호출하지 않아 COCO 다운로드는 발생하지 않는다. **나중에 CI에 검출 테스트(guard.detect 호출)를 추가하는 사람**은 이 폴백이 COCO 사전학습을 쓴다는 점(커스텀 검출 저하)을 인지하고, 검출 정확도를 단정하는 assert 는 피하거나 더미 가중치를 주입할 것.
 
 ## B2. 런타임 가변 config 파일 격리 — [중]
 - **무엇**: `config/danger_zone.json`·`config/machine_zone.json` 등 **런타임에 앱이 덮어쓰는 파일이 git 추적 대상**이라, UI로 위험구역을 그릴 때마다 워킹트리가 더러워지고 실수로 커밋에 섞인다(계속 churn).
