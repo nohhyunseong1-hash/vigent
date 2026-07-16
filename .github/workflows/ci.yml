@@ -30,9 +30,13 @@ jobs:
           pip uninstall -y opencv-python opencv-contrib-python || true
           pip install --force-reinstall --no-deps opencv-contrib-python-headless==4.13.0.92
           pip install ruff==0.12.0   # .pre-commit-config 와 동일 핀(버전 드리프트로 새 경고 방지)
+          pip install mypy==1.17.1   # P2-12 점진 타입검사(로컬과 동일 핀)
 
       - name: ruff (린트 — 청정 표면 vigent-core·tests, 출력 0 유지)
         run: ruff check vigent-core tests
+
+      - name: mypy (점진 타입검사 — pyproject files 화이트리스트만, 0 에러 유지)
+        run: python -m mypy
 
       - name: 단위 테스트(unittest)
         run: python -m unittest discover -s tests
