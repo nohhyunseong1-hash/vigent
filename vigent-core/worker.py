@@ -843,7 +843,7 @@ class WorkerManager:
         if not cfg:
             return {"ok": False, "error": "config/site.yaml 없음", "started": []}
         self.site = str(cfg.get("site", ""))
-        started = []
+        started: list[dict] = []
         for cam in cfg.get("cameras", []) or []:
             cid = str(cam.get("id") or f"cam{len(started)+1}")
             r = self.start(guard, infer_lock, cid, str(cam.get("source", "")),

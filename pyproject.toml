@@ -30,6 +30,7 @@ quote-style = "preserve"
 python_version = "3.13"
 mypy_path = "vigent-core"            # 모듈이 bare import(import app_state 등) → sys.path 처럼 해석
 ignore_missing_imports = true        # cv2·rfdetr·supervision 등 스텁 없는 서드파티는 무시
+disable_error_code = ["import-untyped"]   # PyYAML 등 스텁 미제공 라이브러리(우리 코드만 타입, 서드파티 스텁은 도입 안 함)
 follow_imports = "silent"            # 비대상 import 모듈은 따라가되 그쪽 에러는 보고 안 함(점진)
 check_untyped_defs = true            # 미힌트 함수도 '본문'은 타입검사(라우터 핸들러 대상)
 files = [
@@ -48,6 +49,8 @@ files = [
     "vigent-core/routers/ppe.py",
     "vigent-core/routers/recognition.py",
     "vigent-core/routers/safety_core.py",
+    "vigent-core/worker.py",
+    "vigent-core/main.py",
 ]
 
 # 완전 타입 강제 — 비핸들러 모듈만(미힌트 함수를 에러로). 힌트 보강이 실질이 되도록.
@@ -59,12 +62,17 @@ module = [
 disallow_untyped_defs = true
 disallow_incomplete_defs = true
 
-# 라우터는 '관대' 검사(P2-12): 반환힌트 강제 안 함 — FastAPI(≥0.89)가 핸들러 반환타입을
-#   response_model 로 채택해 -> dict/str 추가 시 OpenAPI 응답스키마가 바뀜(동작 불변 위반).
-#   대신 전역 check_untyped_defs 로 '본문'만 타입검사(새 타입에러 유입 방지). 반환힌트는 붙이지 않는다.
+# 라우터·worker·main 은 '관대' 검사(P2-12): 반환힌트 강제 안 함.
+#   - 라우터: FastAPI(≥0.89)가 핸들러 반환타입을 response_model 로 채택 → -> dict/str 추가 시
+#     OpenAPI 응답스키마가 바뀜(동작 불변 위반).
+#   - worker: 여러 함수가 cv2.VideoCapture·numpy·복합 tuple 을 반환 → 정확 타입에 Any 불가피(규칙4 → 제외).
+#   - main: 라우트 핸들러 root() 가 라우터와 동일 이슈.
+#   대신 전역 check_untyped_defs 로 '본문'만 타입검사(새 타입에러 유입 방지). 반환힌트는 강제하지 않는다.
 [[tool.mypy.overrides]]
 module = [
     "routers.*",
+    "worker",
+    "main",
 ]
 disallow_untyped_defs = false
 disallow_incomplete_defs = false
