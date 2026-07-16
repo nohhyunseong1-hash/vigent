@@ -657,7 +657,10 @@ class Worker:
             _WLOG.error("워커 '%s'(%s) 프레임 처리 예외 — 계속 진행\n%s",
                         ctx.name, ctx.source, traceback.format_exc())
 
-    def _loop(self, guard, lock, source, name, fps, detectors, zone=None):
+    def _setup_run(self, source, name, fps, detectors, zone):
+        """_loop 시작 준비 — 트래커·수집설정·zone 컨텍스트(ctx) + 소스판별 + 캡처 초기화(P2-13 분해).
+        반환값을 _loop 이 '동일 이름' 지역변수로 언팩하므로 획득 루프 본문은 변경되지 않는다.
+        self._cap/_streamcap 부수효과(hang 감시 스레드가 release 로 언블록)는 여기서 설정."""
         import os
         interval = 1.0 / max(0.2, fps)
         # 데이터 수집 모드(파일럿 학습용) — VIGENT_COLLECT=1 이면 일정 간격으로 프레임 저장
@@ -692,6 +695,11 @@ class Worker:
                 except Exception as _we:  # noqa: BLE001
                     _WLOG.debug("worker 무시 예외 [cap 버퍼설정]: %s", _we)
             self._cap = cap                          # 감시 스레드가 hang 시 release 로 언블록
+        return interval, ctx, static, is_image, is_file_video, is_stream, use_capture_thread, cap, streamcap
+
+    def _loop(self, guard, lock, source, name, fps, detectors, zone=None):
+        (interval, ctx, static, is_image, is_file_video, is_stream,
+         use_capture_thread, cap, streamcap) = self._setup_run(source, name, fps, detectors, zone)
         read_fails = 0
         rbackoff = 1.0
         slot_frame_ts = 0.0                          # 캡처 스레드 모드의 하트비트 기준(슬롯 갱신 시각)
