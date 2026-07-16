@@ -44,6 +44,8 @@ VIGENT USB/
 vigent-landing 2/
 vigentFacialRecognition/
 VIGENT_artifacts/
+# 일회성 의존성 스냅샷(재생성 가능 — pip freeze). 디스크 보존, 추적만 해제(P2-15)
+backup/
 # ── 개인 실행/메모 (데스크탑 한글 .command/.md) ──
 /VIGENT *.command
 /VIGENT *.md
