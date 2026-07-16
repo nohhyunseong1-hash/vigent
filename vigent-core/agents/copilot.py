@@ -92,8 +92,8 @@ class CopilotAgent(BaseAgent):
                               "rule": rid})
         if not cites:
             return {"matched": False, "citations": [], "관련법령": ""}
-        법령 = "; ".join(f"{c['source']} {c['clause']}" for c in cites[:3])
-        return {"matched": True, "citations": cites, "관련법령": 법령}
+        law_str = "; ".join(f"{c['source']} {c['clause']}" for c in cites[:3])
+        return {"matched": True, "citations": cites, "관련법령": law_str}
 
     def enrich_vlm(self, vlm: dict[str, Any]) -> dict[str, Any]:
         """VLM 위험요약 dict 의 빈 '관련법령' 을, 위험요인+근거 텍스트로 매칭해 채운다.

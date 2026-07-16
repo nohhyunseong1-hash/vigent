@@ -43,11 +43,11 @@ def build_hazard_list(detections, in_danger_zone: bool = False) -> list[dict[str
     같은 항목(예: NO-Hardhat 중복 검출)은 최고 신뢰도 1개로 합친다. 없으면 빈 리스트."""
     kb = _rule_kb()
 
-    def _item(rule: str, 항목: str, 클래스: str, conf: Any) -> dict[str, Any]:
+    def _item(rule: str, ppe_item: str, cls: str, conf: Any) -> dict[str, Any]:
         r = kb.get(rule, {})
         sev = int(r.get("sev", 2))
-        return {"항목": 항목, "등급": _SEV_TIER.get(sev, "중간"),
-                "근거탐지": {"클래스": 클래스, "신뢰도": conf},
+        return {"항목": ppe_item, "등급": _SEV_TIER.get(sev, "중간"),
+                "근거탐지": {"클래스": cls, "신뢰도": conf},
                 "법령": r.get("law", ""), "규칙코드": rule,
                 "출처": "규칙층(YOLO 탐지 기반)"}
 
@@ -69,15 +69,15 @@ def build_hazard_list(detections, in_danger_zone: bool = False) -> list[dict[str
         low = _label(d).lower()
         if low not in _PPE_MAP:
             continue
-        항목 = _PPE_MAP[low]
+        ppe_item = _PPE_MAP[low]
         conf = _conf(d)
-        prev = best.get(항목)
+        prev = best.get(ppe_item)
         try:
             better = prev is None or (conf is not None
                                       and float(conf) > float(prev["근거탐지"]["신뢰도"] or 0))
         except (TypeError, ValueError):
             better = prev is None
         if better:
-            best[항목] = _item("ppe_missing", 항목, _label(d), conf)
+            best[ppe_item] = _item("ppe_missing", ppe_item, _label(d), conf)
     items.extend(best.values())
     return items
