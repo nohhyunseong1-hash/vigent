@@ -1,0 +1,41 @@
+# VIGENT CI (P2-14) — 로컬 게이트(ruff·unittest·OpenAPI 체커)를 그대로 자동화.
+#   기존 로컬 절차(docs/ONBOARDING.md §2)와 동일 명령을 CI 에서 실행한다.
+#   ※ ruff 범위는 '청정 유지 표면'인 vigent-core/·tests/ 로 스코프한다.
+#     tools/·benchmarks/·training/·일부 scripts/ 에는 기존 lint 부채가 있어(범위 밖) 포함하지 않는다.
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  gates:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Python 3.13 설정(.python-version 정합)
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: 의존성 설치(headless opencv 단일화)
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          # supervision·rfdetr·rtmlib 가 GUI opencv 를 전이의존으로 끌어와 headless 를 가린다.
+          # ONBOARDING §2.2 절차대로 GUI opencv 제거 후 headless 강제 재설치.
+          pip uninstall -y opencv-python opencv-contrib-python || true
+          pip install --force-reinstall --no-deps opencv-contrib-python-headless==4.13.0.92
+          pip install ruff==0.12.0   # .pre-commit-config 와 동일 핀(버전 드리프트로 새 경고 방지)
+
+      - name: ruff (린트 — 청정 표면 vigent-core·tests, 출력 0 유지)
+        run: ruff check vigent-core tests
+
+      - name: 단위 테스트(unittest)
+        run: python -m unittest discover -s tests
+
+      - name: OpenAPI move-only 체커(경로·메서드 106 + WebSocket 무변경)
+        run: python scripts/check_openapi_diff.py
