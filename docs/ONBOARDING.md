@@ -151,7 +151,7 @@ vigent-core/
 | **[main.py](../vigent-core/main.py) + [routers/](../vigent-core/routers/)** | ✅ P1-7에서 302줄(앱 인프라만)로 분할 — 라우트는 도메인별 `routers/*.py`에 있다(§3.5). 라우트를 옮기거나 추가하면 라우터가 `main`을 import하지 않게 하고(순환 금지), `scripts/check_openapi_diff.py`로 회귀를 확인. `/` 루트는 `app.version` 참조로 main에 잔류. | §3.5 · CODE_REVIEW §2.1 |
 | **가중치 폴백** | 모델 파일이 없으면 **조용히** 휴리스틱으로 폴백해 정확도가 급락하지만 서버는 정상 기동한다. 검출 이상 시 로그의 `→ LOADED` 먼저 확인. | CLAUDE.md F-8 |
 | **[worker.py](../vigent-core/worker.py) `_loop`** | 162줄에 캡처·트래커·루프가 뭉쳐 있고 `except: pass`가 많아 캡처 실패가 은폐될 수 있다. 수정 시 로깅부터 붙일 것. | CODE_REVIEW §2.4 |
-| **VLM 호출부** | 6개 모듈에 관용구가 복붙되어 있다. 한 곳만 고치면 나머지 5곳이 남는다. `vlm_text()` 헬퍼화 전까지는 전체 검색으로 일괄 반영. | CODE_REVIEW §2.2 |
+| **VLM 호출부** | P1-6에서 `rfdetr_service.vlm_text()`(텍스트 요약)로 일부 흡수. **dict(구조화) 반환이 필요한 소비처 11곳은 `summarize_bgr` 직접 호출 유지**(의도적 범위 제외 → [P3_BACKLOG.md](P3_BACKLOG.md) B6). 이 관용구를 고칠 땐 전체 검색으로 확인. | CODE_REVIEW §2.2 · P1-6 |
 | **증거 경로(scribe)** | `evidence_paths` path traversal — ✅ **P0-1(e8d590f)에서 해소**: `_safe_evidence_path()` 로 `data/evidence` 하위 격리(`is_relative_to`). 이 경로 근처를 만질 땐 격리검사 유지. | CODE_REVIEW §3.1 |
 | **[rig_monitor.py](../vigent-core/rig_monitor.py)** | **로직만 존재·파이프라인 미배선**(어떤 라이브 경로도 호출 안 함, 유닛테스트 5만 사용). 핵심 경보(하물 높이) 실영상 검증은 **적합 footage(근접 카메라 인양 1사이클) 확보 대기** — 광역 CCTV 는 하물/후크 미가시(작업자 26~64px 실측, F-13). "동작한다"·"제품 기능" 가정 금지. | FINDINGS F-13 · CODE_REVIEW §2.3 |
 | **포즈 슬롯 주석** | vision.yaml의 pose/tracker/temporal 슬롯(rtmpose·ByteTrack·mmaction2)은 "미설치·미사용" 정직 표기. 실동작은 yolov8n-pose + MediaPipe. yaml만 보고 판단 금지. | vision.yaml 주석 |
@@ -165,5 +165,23 @@ vigent-core/
 
 - **커밋:** 의미 있는 진행마다 커밋, 메시지는 **한국어**. 히스토리 품질은 양호하니 이 관례를 유지.
 - **브랜치:** 목적별 브랜치 관례 존재(`audit/*`·`eval/*`·`design/*`). 아직 문서화된 규칙은 없음 → 팀 합의 후 이 문서에 추가 권장.
-- **린터:** ✅ ruff 도입됨(P1-5, `pyproject.toml` + `.pre-commit-config.yaml`). lint 훅(--fix)만, 전체 format 은 보류(밀집 스타일). `except Exception: # noqa: BLE001`, 영문 식별자 + 한국어 주석 관례는 유지. **CI 는 아직 없음**(수동 `ruff check` + `unittest`).
 - **막혔을 때:** 추측하지 말고 질문한다. 측정 안 한 수치(정확도 %)는 지어내지 않는다(규칙 7).
+
+---
+
+## 6. 검증 게이트 (P0~P2 완료 — 변경 시 반드시 통과)
+
+CODE_REVIEW.md §5의 조치 목록(P0~P2)이 완료됐다. 코드를 바꾸면 아래 게이트를 모두 통과시킨 뒤 커밋한다(각 항목은 로컬 명령 = CI 스텝과 동일).
+
+| 게이트 | 명령 | 기준 |
+|---|---|---|
+| **ruff**(린트) | `ruff check vigent-core tests` | 출력 0(P1-5 도입, 룰 `pyproject.toml`) |
+| **mypy**(점진 타입) | `python -m mypy` | 화이트리스트 0 에러(P2-12: app_state·web_util strict + 라우터·worker·main 관대) |
+| **단위 테스트** | `/opt/anaconda3/bin/python3 -m unittest discover -s tests` | **55 tests** 통과(P2-14로 엔드포인트 스모크·worker 테스트 추가) |
+| **OpenAPI 무변경** | `python scripts/check_openapi_diff.py` | 경로·메서드 **106** == baseline + WebSocket `/tapo/ws` 불변 |
+| **CI** | `.github/workflows/ci.yml` | push/PR(main) 시 위 4개 자동 실행(P2-14). ★첫 실제 런 green 은 원격 연결 후 확인 필요 → [P3_BACKLOG.md](P3_BACKLOG.md) B1 |
+
+> **주의:** `-> dict`/`-> str` 같은 **라우트 핸들러 반환 타입은 붙이지 않는다** — FastAPI(≥0.89)가 이를 `response_model`로 채택해 OpenAPI 응답 스키마가 바뀐다(동작 변경). 라우터는 mypy '관대' 모드로 본문만 검사한다(P2-12).
+
+- **린터/타입 관례:** `except Exception: # noqa: BLE001`, 영문 식별자 + 한국어 주석 관례 유지. ruff format 훅은 보류(밀집 스타일).
+- **남은 후속 작업:** P0~P2 완료 후 미룬 항목은 [P3_BACKLOG.md](P3_BACKLOG.md)에 우선순위·리스크와 함께 정리돼 있다.

@@ -187,12 +187,13 @@
 9. **[안정성] worker의 `except: pass`에 로깅 추가** — 캡처 실패 은폐 방지(§2.4).
 10. **[결정 필요] `rig_monitor.py` 배선 여부 확정** — 파이프라인 연결 or 명시적 "대기 중" 표기.
 
-### P2 — 여유 있을 때
-11. **[구조] 위험구역 로딩 3벌 통합**(§2.2), `_load_zone` 동명이인 정리.
-12. **[품질] main.py/worker.py 반환 타입 힌트 보강**, mypy 점진 도입.
-13. **[품질] worker.py `_loop` 책임 분해**(162줄 → 캡처/트래커/루프 분리).
-14. **[테스트] 커버리지 확대** — 최소 `guard.detect`·`analyst`·엔드포인트 스모크 테스트 추가, CI에서 35 tests 자동 실행.
-15. **[위생] 워킹트리 정리** — 사본 폴더(`VIGENT USB/` 등)를 리포 밖으로 이동 또는 `.gitignore`, `vigent-core/vigent-core/` 워크트리 잔재 제거, 한국어 식별자 통일.
+### P2 — 여유 있을 때 → ✅ **전부 완료(2026-07-16)**
+> 미룬 세부(worker 반환힌트·ml 중복 등)는 [P3_BACKLOG.md](P3_BACKLOG.md) 로 이관.
+11. ✅ **[구조] 위험구역 로딩** — `web_util._zone_points` 순수 헬퍼로 중복 제거 + `_load_zone` 동명이인 정리(P2-11). ml/rfdetr_zone_track 1곳은 B7 이관.
+12. ✅ **[품질] 반환 타입힌트 + mypy 점진 도입**(P2-12) — app_state·web_util strict, 라우터·worker·main 관대(본문검사), CI 게이트 포함. worker 반환힌트 28개는 B5 이관.
+13. ✅ **[품질] worker.py `_loop` 책임 분해**(P2-13) — `_process_frame`·`_setup_run` 추출(165→94줄) + 단위테스트·런타임 스모크.
+14. ✅ **[테스트] 커버리지 + CI**(P2-14) — 엔드포인트 스모크 7개(44→55 tests) + GitHub Actions(ruff·mypy·unittest·체커). 첫 실런 검증은 B1.
+15. ✅ **[위생] 워킹트리 정리**(P2-15) — 사본 폴더 `.gitignore`, `vigent-core/vigent-core/` 잔재 제거, backup 언트랙, 한국어 식별자 정리.
 
 ---
 
