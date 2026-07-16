@@ -105,7 +105,7 @@ def _zone_set(theme: str, key: str, payload: dict) -> dict:
         json.dump({"points": points}, f, ensure_ascii=False)
     return {"ok": True, "count": len(points), "saved_to": str(zone_path)}
 
-def _is_safety_label(label: str) -> bool:
+def _is_safety_label(label: "str | None") -> bool:   # 본문이 (label or "")로 None 안전 → 시그니처도 그에 맞춤(P2-12)
     l = (label or "").lower()
     if l in _SAFETY_KEEP:
         return True

@@ -31,12 +31,26 @@ python_version = "3.13"
 mypy_path = "vigent-core"            # 모듈이 bare import(import app_state 등) → sys.path 처럼 해석
 ignore_missing_imports = true        # cv2·rfdetr·supervision 등 스텁 없는 서드파티는 무시
 follow_imports = "silent"            # 비대상 import 모듈은 따라가되 그쪽 에러는 보고 안 함(점진)
+check_untyped_defs = true            # 미힌트 함수도 '본문'은 타입검사(라우터 핸들러 대상)
 files = [
     "vigent-core/app_state.py",
     "vigent-core/web_util.py",
+    "vigent-core/routers/vitals.py",
+    "vigent-core/routers/dispatch.py",
+    "vigent-core/routers/system.py",
+    "vigent-core/routers/tapo.py",
+    "vigent-core/routers/incident.py",
+    "vigent-core/routers/detect.py",
+    "vigent-core/routers/office.py",
+    "vigent-core/routers/zone.py",
+    "vigent-core/routers/sports.py",
+    "vigent-core/routers/tbm.py",
+    "vigent-core/routers/ppe.py",
+    "vigent-core/routers/recognition.py",
+    "vigent-core/routers/safety_core.py",
 ]
 
-# 화이트리스트 모듈은 '완전 타입' 강제 — 힌트 보강이 실질이 되도록(미힌트 함수를 에러로).
+# 완전 타입 강제 — 비핸들러 모듈만(미힌트 함수를 에러로). 힌트 보강이 실질이 되도록.
 [[tool.mypy.overrides]]
 module = [
     "app_state",
@@ -44,3 +58,13 @@ module = [
 ]
 disallow_untyped_defs = true
 disallow_incomplete_defs = true
+
+# 라우터는 '관대' 검사(P2-12): 반환힌트 강제 안 함 — FastAPI(≥0.89)가 핸들러 반환타입을
+#   response_model 로 채택해 -> dict/str 추가 시 OpenAPI 응답스키마가 바뀜(동작 불변 위반).
+#   대신 전역 check_untyped_defs 로 '본문'만 타입검사(새 타입에러 유입 방지). 반환힌트는 붙이지 않는다.
+[[tool.mypy.overrides]]
+module = [
+    "routers.*",
+]
+disallow_untyped_defs = false
+disallow_incomplete_defs = false

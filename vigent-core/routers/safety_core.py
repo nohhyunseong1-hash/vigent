@@ -273,7 +273,7 @@ def safety_auto_approve(payload: dict = Body(...), theme: str = DEFAULT_THEME):
             import vlm_confirm as _vc
             for i, p in enumerate(ev_paths[:4]):
                 note = ""
-                fp = _ROOT / p
+                fp = _ROOT / p  # type: ignore[operator]  # 오탐: ev_paths 는 위 `if e.get("evidence")`(truthy) 필터분만 → p 는 None 아님
                 if i == 0 and fp.exists():        # 첫 사진만 VLM 장면분석(지연 제한)
                     note = _vc.describe_scene(cv2.imread(str(fp)))
                 ev_items.append({"path": p, "note": note})
@@ -472,7 +472,7 @@ def safety_sensor(payload: dict = Body(...), theme: str = DEFAULT_THEME):
     """
     stype = str(payload.get("type") or "").lower()
     try:
-        value = float(payload.get("value"))
+        value = float(payload.get("value"))  # type: ignore[arg-type]  # 오탐: None 이면 아래 except (TypeError) 로 처리(방어적)
     except (TypeError, ValueError):
         return {"ok": False, "error": "value(숫자) 필요"}
     site = payload.get("site") or "현장"
