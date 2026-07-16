@@ -85,11 +85,11 @@ VIGENT_HOST=0.0.0.0 VIGENT_API_TOKEN=<비밀> ./run.sh
  → 발화 위험 [(rule, level, note)] (worker.py:81 _fired)
  → data_engine.log_event(...)                 # 자동처리 콘솔 노출
 ```
-브라우저 실시간 뷰는 별도 경로: 프론트가 `POST /detect/frame` → `guard.detect`([main.py](../vigent-core/main.py), `_DETECT_LOCK`로 직렬화).
+브라우저 실시간 뷰는 별도 경로: 프론트가 `POST /detect/frame` → `guard.detect`([routers/detect.py](../vigent-core/routers/detect.py), `_DETECT_LOCK`로 직렬화).
 
 ### 흐름 B — AI 에이전트가 위험성평가서 생성
 ```
-POST /safety/risk-assessment  (main.py:498)   # body={events:[{rule,count}], site, process}
+POST /safety/risk-assessment  (routers/safety_core.py)  # body={events:[{rule,count}], site, process}
  → STATE[theme]["agents"]["Scribe"].generate(events, ...)
  → Scribe: 규칙→위험성평가표 매핑(RULE_KB) + Copilot 법령근거 삽입
  → (narrative=true 일 때만) llm_provider.reason_text 로 '종합의견' 한 문단
@@ -118,11 +118,37 @@ guard.detect person 박스 → RTMPose/yolov8n-pose → COCO-17 키포인트
 
 ---
 
+## 3.5 vigent-core 모듈 구조 (P1-7 분할)
+
+과거 `main.py`는 2293줄 God 파일에 모든 라우트·인라인 HTML·공유 헬퍼가 섞여 있었다. P1-7에서 **순수 이동(move-only)** 원칙으로 도메인별 `routers/` 모듈로 분할했다 — 동작·경로·응답·라우트 등록 집합(OpenAPI 106개 + WebSocket `/tapo/ws`)은 커밋마다 diff 0으로 검증했다.
+
+```
+vigent-core/
+  main.py            (302줄) 앱 인프라만: app 생성 · include_router 13개 · 미들웨어 3개
+                     (_auth_guard·_theme_gate·_no_cache_dynamic) · 예외핸들러 · startup/shutdown
+                     · static/evidence 마운트 · `/` 루트 1개
+  app_state.py       공유 런타임 상태: STATE · DETECT_LOCK · DEFAULT_THEME · load_theme · _START_TS
+  web_util.py        공유 웹 헬퍼: 이미지 디코드·박스·zone·안전라벨·웹훅 화이트리스트·_tpl·
+                     _env_or_dotenv·_evidence_url·_product_version·_TBM_CSS
+  routers/
+    tapo.py(3) vitals.py(1) zone.py(7) sports.py(6) office.py(5) system.py(2) detect.py(4)
+    incident.py(3) tbm.py(6) ppe.py(7) recognition.py(4) dispatch.py(1) safety_core.py(57)
+```
+파일 옆 숫자 = 라우트 데코레이터 수. **routers 합계 106** + main의 `/` 루트 1 = OpenAPI 107개 라우트 (그중 `/tapo/ws`는 WebSocket이라 OpenAPI 경로집계 106에는 빠지고 별도 추적).
+
+**핵심 규칙(구조 유지 시 반드시):**
+- **라우터는 `main`을 import하지 않는다(순환 금지).** 공유가 필요하면 런타임 상태는 `app_state`, 웹 헬퍼는 `web_util`에 둔다 — 둘 다 main을 import하지 않는다. 여러 도메인이 쓰는 헬퍼를 새로 발견하면 `web_util`로 올린다(예: `_TBM_CSS`는 tbm·safety_core 두 도메인이 공유해서 web_util에 상주).
+- **`/` 루트는 의도적으로 main.py에 잔류한다.** `app.version`(FastAPI 인스턴스)을 직접 참조하는 유일한 라우트라, 라우터로 옮기면 순환이 되거나 `app.version`을 다른 표현으로 바꿔야 해(move-only 위반) 그대로 둔다.
+- **`/{theme}` 캐치올 순서:** safety_core를 include 목록 **맨 마지막**에 등록하고 모듈 내 소스 순서를 보존해야 `/health` 같은 리터럴 경로를 가리지 않는다.
+- **회귀 검증:** 라우트를 옮기거나 추가하면 `scripts/check_openapi_diff.py`(경로·메서드 집합 + WebSocket 무변경)로 확인한다.
+
+---
+
 ## 4. 조심해야 할 영역 (건드리기 전에 읽을 것)
 
 | 영역 | 주의 | 근거 |
 |---|---|---|
-| **[main.py](../vigent-core/main.py)** | 2293줄 God 파일. 6개 도메인 라우트 + 인라인 HTML이 섞여 있어 변경 영향범위가 넓다. 도메인별로 국소 수정하고, 리팩터 시 라우트 회귀를 반드시 확인. | CODE_REVIEW §2.1 |
+| **[main.py](../vigent-core/main.py) + [routers/](../vigent-core/routers/)** | ✅ P1-7에서 302줄(앱 인프라만)로 분할 — 라우트는 도메인별 `routers/*.py`에 있다(§3.5). 라우트를 옮기거나 추가하면 라우터가 `main`을 import하지 않게 하고(순환 금지), `scripts/check_openapi_diff.py`로 회귀를 확인. `/` 루트는 `app.version` 참조로 main에 잔류. | §3.5 · CODE_REVIEW §2.1 |
 | **가중치 폴백** | 모델 파일이 없으면 **조용히** 휴리스틱으로 폴백해 정확도가 급락하지만 서버는 정상 기동한다. 검출 이상 시 로그의 `→ LOADED` 먼저 확인. | CLAUDE.md F-8 |
 | **[worker.py](../vigent-core/worker.py) `_loop`** | 162줄에 캡처·트래커·루프가 뭉쳐 있고 `except: pass`가 많아 캡처 실패가 은폐될 수 있다. 수정 시 로깅부터 붙일 것. | CODE_REVIEW §2.4 |
 | **VLM 호출부** | 6개 모듈에 관용구가 복붙되어 있다. 한 곳만 고치면 나머지 5곳이 남는다. `vlm_text()` 헬퍼화 전까지는 전체 검색으로 일괄 반영. | CODE_REVIEW §2.2 |

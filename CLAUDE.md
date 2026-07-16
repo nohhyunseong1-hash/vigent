@@ -39,9 +39,16 @@
 ~/Desktop/VIGENT/                  ← 작업 폴더 (여기)
   CLAUDE.md
   VIGENT_META_PROMPT.md
-  vigent-core/   themes/{safety,office,sports}/   config/  data/  runs/  tests/
+  vigent-core/
+    main.py            앱 인프라만(302줄): app 생성 · include_router · 미들웨어 · startup · `/` 루트
+    app_state.py       공유 런타임 상태(STATE·DETECT_LOCK·load_theme 등) — main 미import
+    web_util.py        공유 웹 헬퍼(이미지·zone·_tpl·_TBM_CSS 등) — main 미import
+    routers/           도메인별 APIRouter(P1-7 분할): tapo·vitals·zone·sports·office·system·
+                       detect·incident·tbm·ppe·recognition·dispatch·safety_core
+  themes/{safety,office,sports}/   config/  data/  runs/  tests/
 ~/Desktop/사업계획서/AX안전/        ← 기존 MVP (읽기 전용 참고)
 ```
+> **라우터 규칙(P1-7):** 라우터는 `main`을 import하지 않는다(순환 금지). 공유는 `app_state`(상태)·`web_util`(헬퍼)로. 라우트 변경 시 `scripts/check_openapi_diff.py`로 회귀 확인. 상세는 [docs/ONBOARDING.md](docs/ONBOARDING.md) §3.5.
 
 ## 기술 스택
 Python 3.11 · FastAPI · ultralytics(YOLO11/8, AGPL 주의 — §6) · ByteTrack · RTMPose · mmaction2 · TensorFlow(BODA 분류기) · OpenCV. 프론트는 순수 HTML/JS + CDN(MediaPipe·TF.js). 테스트: `python -m unittest discover -s tests`.
