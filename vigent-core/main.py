@@ -59,6 +59,7 @@ from app_state import load_theme as _load_theme  # noqa: E402
 from routers import detect as _detect_router  # noqa: E402
 from routers import dispatch as _dispatch_router  # noqa: E402
 from routers import office as _office_router  # noqa: E402
+from routers import ppe as _ppe_router  # noqa: E402
 from routers import recognition as _recognition_router  # noqa: E402
 from routers import sports as _sports_router  # noqa: E402
 from routers import system as _system_router  # noqa: E402
@@ -92,6 +93,7 @@ app.include_router(_sports_router.router)   # /sports/* (P1-7)
 app.include_router(_office_router.router)   # /office/* (P1-7)
 app.include_router(_system_router.router)   # /health·/system/* (P1-7)
 app.include_router(_detect_router.router)   # /detect·/rfdetr·/segment (P1-7)
+app.include_router(_ppe_router.router)   # /safety/ppe·/ppe/* (P1-7)
 app.include_router(_recognition_router.router)   # /recognition/* (P1-7)
 app.include_router(_dispatch_router.router)   # /dispatch/relay (P1-7)
 
@@ -871,61 +873,6 @@ def safety_voice_scene(payload: dict = Body(...), theme: str = DEFAULT_THEME):
     return liveguide.build_guidance(dets, bool(payload.get("use_vlm")), image_bgr=img)
 
 
-@app.get("/safety/ppe", response_class=HTMLResponse)
-def safety_ppe_page():
-    """현장 보호구 설정 — 현장별 필수 보호구 선택."""
-    import ppe_check
-    return ppe_check.render()
-
-
-@app.get("/safety/ppe/live", response_class=HTMLResponse)
-def safety_ppe_live_page():
-    """실시간 보호구 감지 — 카메라 + 주기 점검(VLM)."""
-    import ppe_check
-    return ppe_check.render_live()
-
-
-@app.get("/safety/ppe/catalog")
-def safety_ppe_catalog():
-    """보호구 카탈로그(id·라벨·방식) — 메인 화면 메뉴에서 선택용."""
-    import ppe_check
-    return {"catalog": [{"id": p["id"], "label": p["label"], "method": p["method"]}
-                        for p in ppe_check.PPE_CATALOG],
-            "rules": ppe_check.get_rules()}
-
-
-@app.get("/safety/ppe/rules")
-def safety_ppe_rules_get():
-    import ppe_check
-    return ppe_check.get_rules()
-
-
-@app.post("/safety/ppe/rules")
-def safety_ppe_rules_set(payload: dict = Body(...)):
-    import ppe_check
-    return ppe_check.save_rules(payload.get("required") or [], payload.get("site", ""))
-
-
-@app.post("/safety/ppe/check")
-def safety_ppe_check(payload: dict = Body(...), theme: str = DEFAULT_THEME):
-    """이미지 → 현장 필수 보호구 착용 점검(미착용 경고). use_vlm 권장."""
-    import ppe_check
-    raw = payload.get("image_base64") or payload.get("image") or ""
-    img = _img_from_b64(raw)
-    if img is None:
-        return {"ok": False, "error": "이미지 없음"}
-    bundle = STATE.get(theme) or _load_theme(theme)
-    guard = bundle["agents"].get("Guard")
-    try:
-        with _DETECT_LOCK:
-            out = guard.detect(img, detectors=["person", "ppe"])
-        dets = out.get("detections", [])
-    except Exception:  # noqa: BLE001
-        dets = []
-    return ppe_check.check(dets, image_bgr=img, required=payload.get("required"),
-                           use_vlm=bool(payload.get("use_vlm", True)))
-
-
 @app.post("/safety/sensor")
 def safety_sensor(payload: dict = Body(...), theme: str = DEFAULT_THEME):
     """IoT 센서 값 수신 → 임계 초과 시 위험 기록 + 알림.
@@ -1265,9 +1212,6 @@ def alerts_test(payload: dict = Body(default={}), theme: str = DEFAULT_THEME):
 # ── AX 프론트(realtime_core.js) 호환 스텁 ──
 # AX 엔진이 호출하는 보조 엔드포인트들. 핵심 인식은 브라우저(coco-ssd)에서 돌고,
 # 아래는 '없으면 404 콘솔에러'만 막는 안전 스텁(빈 결과). 점진적으로 실제 구현 가능.
-@app.post("/ppe/analyze-frame")
-def stub_ppe_analyze(payload: dict = Body(default={})):
-    return {"ok": True, "ppe": [], "note": "stub"}
 
 
 @app.post("/safety/fall")
