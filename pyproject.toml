@@ -33,12 +33,14 @@ ignore_missing_imports = true        # cv2·rfdetr·supervision 등 스텁 없�
 follow_imports = "silent"            # 비대상 import 모듈은 따라가되 그쪽 에러는 보고 안 함(점진)
 files = [
     "vigent-core/app_state.py",
+    "vigent-core/web_util.py",
 ]
 
 # 화이트리스트 모듈은 '완전 타입' 강제 — 힌트 보강이 실질이 되도록(미힌트 함수를 에러로).
 [[tool.mypy.overrides]]
 module = [
     "app_state",
+    "web_util",
 ]
 disallow_untyped_defs = true
 disallow_incomplete_defs = true

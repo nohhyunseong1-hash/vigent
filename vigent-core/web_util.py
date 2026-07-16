@@ -10,10 +10,14 @@ import functools
 import json
 import os
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 from app_state import STATE
 from app_state import load_theme as _load_theme
 from fastapi import HTTPException
+
+if TYPE_CHECKING:                     # numpy 는 타입검사 전용(런타임 import 는 함수 내부 유지 — 동작·기동비용 불변)
+    import numpy as np
 
 _HERE = Path(__file__).resolve().parent            # vigent-core/ (main._HERE 와 동일)
 _ROOT = _HERE.parent                               # 프로젝트 루트(main._ROOT 와 동일 값, 독립 계산)
@@ -22,7 +26,7 @@ _SAFETY_KEEP = {"person", "knife", "scissors", "car", "truck", "bus", "motorcycl
                 "bicycle", "forklift", "train", "boat", "fire", "smoke", "cigarette"}
 
 
-def _decode_data_url(image: str):
+def _decode_data_url(image: str) -> "np.ndarray | None":
     """data:image/...;base64,... → cv2 BGR numpy. 실패하면 None."""
     import base64
     import re
@@ -38,7 +42,7 @@ def _decode_data_url(image: str):
     except Exception:  # noqa: BLE001
         return None
 
-def _img_from_b64(raw):
+def _img_from_b64(raw: "str | None") -> "np.ndarray | None":
     """base64 또는 data:URL 문자열 → BGR numpy(없거나 실패 시 None). data: 접두어 자동 보정.
     여러 엔드포인트의 동일 디코드 블록을 한 곳으로 통합."""
     if not raw:
@@ -48,7 +52,7 @@ def _img_from_b64(raw):
 
 def _incident_boxes(out: dict, prox: list) -> list:
     """탐지 결과 → 박스 목록(정규화 bbox + 위험여부). 협착쌍·화재·보호구미착용을 위험으로 표시."""
-    def overlap(a, b):
+    def overlap(a: "list[float]", b: "list[float]") -> bool:
         ix = max(0.0, min(a[2], b[2]) - max(a[0], b[0]))
         iy = max(0.0, min(a[3], b[3]) - max(a[1], b[1]))
         return ix * iy > 0
