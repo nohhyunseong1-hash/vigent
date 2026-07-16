@@ -58,6 +58,7 @@ from app_state import (  # noqa: E402
 from app_state import DETECT_LOCK as _DETECT_LOCK  # noqa: E402
 from app_state import load_theme as _load_theme  # noqa: E402
 from routers import detect as _detect_router  # noqa: E402
+from routers import dispatch as _dispatch_router  # noqa: E402
 from routers import office as _office_router  # noqa: E402
 from routers import sports as _sports_router  # noqa: E402
 from routers import system as _system_router  # noqa: E402
@@ -68,13 +69,11 @@ from routers import zone as _zone_router  # noqa: E402
 # 공유 웹 헬퍼는 web_util.py 로 분리(P1-7) — 동일 이름 re-import(사용부 무변경)
 from web_util import (  # noqa: E402  # noqa: E402
     _decode_data_url,
-    _env_or_dotenv,
     _evidence_url,
     _img_from_b64,
     _incident_boxes,
     _product_version,
     _tpl,
-    _webhook_allowed,
 )
 
 _log = vlog.get("vigent")               # print 대체 — 콘솔+파일 로테이션
@@ -93,6 +92,7 @@ app.include_router(_sports_router.router)   # /sports/* (P1-7)
 app.include_router(_office_router.router)   # /office/* (P1-7)
 app.include_router(_system_router.router)   # /health·/system/* (P1-7)
 app.include_router(_detect_router.router)   # /detect·/rfdetr·/segment (P1-7)
+app.include_router(_dispatch_router.router)   # /dispatch/relay (P1-7)
 
 # ── 보안(C-S0): 바인딩·토큰 인증·웹훅 화이트리스트 ─────────────────────────
 #   기본은 로컬 전용(127.0.0.1)·무토큰(개발 편의). 외부 노출은 명시적 opt-in.
@@ -257,26 +257,6 @@ def favicon():
 
 
 # vision.yaml judgment.zones 의 키 → 실제 파일 경로
-
-
-@app.post("/dispatch/relay")
-def dispatch_relay(payload: dict = Body(default={}), theme: str = DEFAULT_THEME):
-    """§8 보조 방호신호. guard_bypass(critical) 발생 시 프론트가 호출.
-    ⚠ 비전은 보조·감시 계층이며 1차 비상정지를 대체하지 않는다."""
-    # 웹훅 목적지 화이트리스트(C-S0): WEBHOOK_URL 이 설정돼 있고 미등재 호스트면 거부.
-    #   (미설정=텔레그램만/무전송 → 통과. 안전경보 경로를 정상설정에서 막지 않음.)
-    _wh = _env_or_dotenv("WEBHOOK_URL")
-    if _wh and not _webhook_allowed(_wh):
-        raise HTTPException(status_code=403,
-                            detail="dispatch 웹훅 목적지 미허용 — config/security.json allowed_webhook_hosts 에 호스트 등록 필요")
-    bundle = STATE.get(theme) or _load_theme(theme)
-    dispatcher = bundle["agents"].get("Dispatcher")
-    _event = payload.get("event", "guard_bypass")
-    result = dispatcher.relay(_event, payload.get("meta"))
-    import datetime as _dt  # 구조화 이벤트 로그(C-S1, D3 감사추적)
-    vlog.log_event({"ts": _dt.datetime.now().isoformat(timespec="seconds"),
-                    "type": "dispatch_relay", "event": _event, "theme": theme, "result": result})
-    return result
 
 
 @app.post("/safety/judge")
