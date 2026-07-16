@@ -22,3 +22,23 @@ ignore = ["E501", "E402", "E701", "E702", "E731", "E741", "BLE001"]
 [tool.ruff.format]
 # 문서·주석의 한국어 그대로, 따옴표는 기존 관례 최대 보존
 quote-style = "preserve"
+
+# ── mypy 점진 도입 (P2-12) ──
+# 원칙: strict 전면 금지. 아래 files 화이트리스트 모듈만 검사하고, 정리된 모듈부터 하나씩 편입한다.
+#   대상 순서: app_state → web_util → routers/ → worker → main.
+[tool.mypy]
+python_version = "3.13"
+mypy_path = "vigent-core"            # 모듈이 bare import(import app_state 등) → sys.path 처럼 해석
+ignore_missing_imports = true        # cv2·rfdetr·supervision 등 스텁 없는 서드파티는 무시
+follow_imports = "silent"            # 비대상 import 모듈은 따라가되 그쪽 에러는 보고 안 함(점진)
+files = [
+    "vigent-core/app_state.py",
+]
+
+# 화이트리스트 모듈은 '완전 타입' 강제 — 힌트 보강이 실질이 되도록(미힌트 함수를 에러로).
+[[tool.mypy.overrides]]
+module = [
+    "app_state",
+]
+disallow_untyped_defs = true
+disallow_incomplete_defs = true
