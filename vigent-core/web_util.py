@@ -125,6 +125,9 @@ def _tpl(name: str) -> str:
     """templates/<name> 를 1회 읽어 캐시. 기동 후 첫 요청에 로드·이후 재사용."""
     return (_HERE / "templates" / name).read_text(encoding="utf-8")
 
+# TBM·auto 페이지 공유 CSS(P1-7) — tbm·safety_core 두 도메인이 함께 쓰므로 web_util 상주.
+_TBM_CSS = _tpl("tbm.css")   # templates/tbm.css 로드 — 내용 분리 전과 바이트 동일
+
 def _env_or_dotenv(key: str) -> str:
     """환경변수 우선, 없으면 .env 에서 key 값을 읽는다(비밀은 코드/응답에 노출 안 함)."""
     v = os.environ.get(key, "").strip()
