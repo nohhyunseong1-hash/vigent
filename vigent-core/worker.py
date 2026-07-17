@@ -28,6 +28,7 @@ import proximity
 import runtime_config
 import tuning
 import vlog
+import zone_tile
 from web_util import zone_points
 
 _ROOT = Path(__file__).resolve().parent.parent
@@ -640,6 +641,25 @@ class Worker:
                 except Exception:  # noqa: BLE001  가산 레이어 — 실패해도 낙상·탐지 무중단
                     ergo_fired = []
             fired = _derive(out, ctx.zone, frame.shape[0] / frame.shape[1])
+            # B9: 위험구역 한정 타일 재검출(가산·기본 off, VIGENT_ZONE_TILE=1). zone 내 놓친 소형 person 회수.
+            #   ★확인1(스코프 한정): 타일 박스는 zone_intrusion 발화에만 쓴다 — 공유 out["detections"] 에
+            #     병합하지 않음 → proximity/crowd/motion/트래커/PPE 전부 무영향.
+            #   ★확인2(이종 검출기): 일반검출=guard(설정 검출기), 타일=rfdetr_service(RF-DETR 저임계) — 다른 모델일 수
+            #     있다. 여기선 '박스가 zone 안에 있냐'만 보므로 문제없음. 나중에 conf 비교를 넣으려면 두 모델의
+            #     conf 가 비교 불가능한 척도임에 주의(RF-DETR vs guard).
+            #   every-N: VIGENT_ZONE_TILE_EVERY(기본 1). N 프레임마다만 타일 → 최악 지연 = N/fps 초(침입은 지속).
+            if os.environ.get("VIGENT_ZONE_TILE") == "1" and ctx.zone \
+                    and not any(r[0] == "zone_intrusion" for r in fired):
+                _every = max(1, int(os.environ.get("VIGENT_ZONE_TILE_EVERY", "1")))
+                if self.state["frames"] % _every == 0:
+                    try:
+                        import rfdetr_service as _rfs  # 지역 import: off 면 로드·import 조차 안 함
+                        _extra = zone_tile.zone_tile_detect(
+                            frame, ctx.zone, lambda img: _rfs.rfdetr.detect_persons(img, thr=0.1))
+                        if any(zone_tile.foot_in_zone(d["bbox"], ctx.zone) for d in _extra):
+                            fired.append(("zone_intrusion", "high", "위험구역 내 작업자 감지(구역-타일 회수)"))
+                    except Exception as _ze:  # noqa: BLE001  가산 레이어 — 실패해도 기존 검출 무중단
+                        _WLOG.debug("worker 무시 예외 [zone-tile]: %s", _ze)
             if fall:
                 fired.append(("fall_suspected", "critical", f"작업자 낙상 의심 — {freason}"))
             fired += ctx.mtrack.update(out.get("detections", []), t0)   # 무동작·급이동

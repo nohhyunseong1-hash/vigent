@@ -130,6 +130,27 @@ class RFDetrService:
                 "intrusion": {"count": n_in, "ids": ids_in},
                 "device": getattr(self, "device", "?")}
 
+    def detect_persons(self, image_bgr: np.ndarray, thr: float = 0.1) -> list[dict[str, Any]]:
+        """저임계 person 검출(정규화 bbox·무추적) — B9 위험구역 타일 재검출 전용 가산 경로.
+        ★지연 로드: 호출 시에만 _ensure()(모델 로드). 안 부르면 로드·메모리 영향 0.
+        ★이종 검출기 주의: 일반 detect()/guard 검출기와 별개인 RF-DETR 저임계 경로다.
+          반환 conf 는 RF-DETR 척도이므로 guard(YOLO 등) conf 와 직접 비교 불가."""
+        self._ensure()
+        import cv2
+        from PIL import Image
+        from rfdetr.util.coco_classes import COCO_CLASSES
+        h, w = image_bgr.shape[:2]
+        det = self._model.predict(
+            Image.fromarray(cv2.cvtColor(image_bgr, cv2.COLOR_BGR2RGB)), threshold=thr)
+        out = []
+        for i in range(len(det)):
+            if COCO_CLASSES[det.class_id[i]] != "person":
+                continue
+            x1, y1, x2, y2 = (float(v) for v in det.xyxy[i])
+            out.append({"label": "person", "conf": round(float(det.confidence[i]), 3),
+                        "bbox": [x1 / w, y1 / h, x2 / w, y2 / h]})
+        return out
+
 
 class VLMService:
     """mlx-vlm 위험요약. 지연 로드 싱글톤(무겁다)."""
