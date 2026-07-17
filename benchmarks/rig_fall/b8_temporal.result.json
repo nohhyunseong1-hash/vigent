@@ -1,0 +1,47 @@
+{
+  "params": {
+    "fps_sample": 2,
+    "static_eps": 0.025,
+    "match": 0.07,
+    "gap": 2,
+    "zone": [
+      0.2,
+      0.55,
+      0.52,
+      0.85
+    ],
+    "roi": [
+      0.27,
+      0.6,
+      0.42,
+      0.8
+    ]
+  },
+  "incident": {
+    "n_tracks": 10,
+    "fallen_max_static_s": 8.0
+  },
+  "noincident": {
+    "n_tracks": 43
+  },
+  "sweep": [
+    {
+      "T_s": 3,
+      "incident_caught": true,
+      "fallen_static_s": 8.0,
+      "noincident_FP_tracks": 6
+    },
+    {
+      "T_s": 5,
+      "incident_caught": true,
+      "fallen_static_s": 8.0,
+      "noincident_FP_tracks": 3
+    },
+    {
+      "T_s": 10,
+      "incident_caught": false,
+      "fallen_static_s": 8.0,
+      "noincident_FP_tracks": 1
+    }
+  ]
+}
