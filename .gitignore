@@ -51,6 +51,8 @@ backup/
 /VIGENT *.md
 # ── 벤치 산출물(대용량 바이너리 — 근거는 FINDINGS 텍스트로 인용) ──
 benchmarks/results/
+# ── 검증용 원본 영상(대용량 바이너리 — 커밋 금지, 로컬 관리). B4 rig_monitor 검증 등 ──
+footage/
 # ── 사업 문서 (새 개발자 비공개, 저장소 밖 관리) ──
 /VIGENT_사업추진계획서*.md
 business_assets/
