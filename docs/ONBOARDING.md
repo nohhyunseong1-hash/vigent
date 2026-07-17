@@ -52,6 +52,9 @@ cp .env.example .env
 #   VIGENT_LLM_PROVIDER — openai(기본) | anthropic
 #   ROBOFLOW_API_KEY    — 학습 데이터 다운로드용(런타임 불필요)
 #   RTSP_URL            — 실제 카메라 연결 시
+#   VIGENT_ZONE_TILE=1  — (B9) 위험구역 한정 타일 재검출로 소형 작업자 zone_intrusion recall↑
+#                          (기본 off). 켜면 프레임당 ~415ms 추가(CPU) → 아래 EVERY 로 조절·GPU 권장.
+#   VIGENT_ZONE_TILE_EVERY=N — N프레임마다만 타일(기본 1). 최악 지연 N/fps초. CPU면 N≥4 권장.
 ```
 `.env`는 `.gitignore`로 커밋되지 않는다(규칙 5). **절대 키를 코드/채팅에 쓰지 않는다.**
 

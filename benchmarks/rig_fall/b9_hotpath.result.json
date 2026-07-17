@@ -1,0 +1,10 @@
+{
+  "model_load_incl_first_s": 176.8,
+  "tile_per_frame_ms_avg": 415.3,
+  "tile_per_frame_ms_min_max": [
+    343.7,
+    484.9
+  ],
+  "n": 11,
+  "env": "CPU RF-DETR COCO 폴백(GPU는 훨씬 빠름)"
+}

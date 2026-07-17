@@ -16,7 +16,7 @@
 | ~~B3~~ | ~~web_util 언더스코어 prefix 정리~~ ✅ 완료 | — | — | 공개함수 12개 rename |
 | B4 | rig_monitor 배선 — 상태기(b) 검증완료, 배선은 B8 의존 | 중(제품) | 중 | P1-10·F-13 |
 | ~~B8~~ | ~~쓰러진/저자세 사람 검출 개선~~ ⛔ 종결(해상도 한계) — 검출강화는 B9로 | — | — | 실측 4R |
-| **B9** | **구역-타일링 검출 강화**(광역 CCTV 소형객체 recall↑) — B8 부산물 | 중(제품) | 낮음 | B8 실측 |
+| ~~B9~~ | ~~구역-타일링 검출 강화~~ ✅ 구현완료(기본 off, VIGENT_ZONE_TILE) | — | — | 커밋 ①②③ |
 | B5 | worker 반환 타입힌트 보강(28) | 낮~중 | 낮음 | P2-12 |
 | B6 | vlm_text 헬퍼 미적용 11곳 | 낮 | 낮음 | P1-6 |
 | B7 | ml/rfdetr_zone_track 중복 제거 | 낮 | 낮음 | P2-11 |
@@ -123,7 +123,18 @@
 - **실측 근거(크레인재해 영상)**: 전체프레임 기본검출 person recall 0%(쓰러진자)·평균 0.65명/frame → **구역-타일링(임계~0.1)으로 89~95%**. conf 도 0.24→최대 0.56 으로 상승. 문제 핵심이 '해상도(작은 객체)'임을 확정.
 - **재사용처**: 광역 CCTV 의 모든 소형객체 기능 — **zone_intrusion(위험구역 침입) recall**, 협착(proximity) 사람 카운트, 인원 밀집(crowd) 등. 위험구역은 이미 정의돼 있으니(danger_zone) 그 구역에만 타일 추론을 얹으면 됨.
 - **비용/리스크**: 타일링은 구역당 추론 1~N회(전체 프레임 3.8× 아님, 구역 한정). 저임계는 오탐↑라 구역 스코프 + 기존 임계 유지(가산). 핫패스 영향은 구역 크기·타일 수로 조절. **기존 일반검출 무영향(가산 레이어, 규칙6).**
-- **권장 접근**: rig 낙상과 분리해 독립 추진. `guard.detect`/`worker` 에 "위험구역 내부만 타일 재검출 → 침입 판정 보강" 가산 경로. 착수 전 zone_intrusion recall 개선치·핫패스 비용 실측.
+- **구현 완료(2026-07-17, 커밋 ①②③) — 기본 off**:
+  - `zone_tile.py`(가산 헬퍼, detector 주입식): 구역 크롭 확대 재검출 → zone 내부 person 박스. `foot_in_zone` 판정.
+  - `rfdetr_service.detect_persons(img, thr=0.1)`: 저임계 person 검출 가산 메서드(지연로드 — off 면 모델 로드 0).
+  - `worker._process_frame`: `VIGENT_ZONE_TILE=1` 일 때만 `_derive` 직후 구역-타일 재검출 → zone 내부 person 있으면 **zone_intrusion 만** 추가발화(★스코프 한정: 공유 detections 미병합 → proximity/crowd/motion/PPE 무영향, 확인1). 중복 발화 금지.
+  - `VIGENT_ZONE_TILE_EVERY=N`: N프레임마다 타일(기본 1). 최악 지연 = N/fps초.
+- **검증(③)**:
+  - **recall 개선**: 소형 person recall 0%→**89~95%**(B8 실측), conf 0.24→0.56 → zone_intrusion recall 직결.
+  - **오탐 변화**: 저임계 타일은 노이즈 후보를 냄(B8 ①) → **h≥15px 필터 + zone_intrusion 쿨다운 15s** 로 완화. 노이즈 박스가 false zone_intrusion 가능성 잔존 → **활성 전 현장별 오탐 확인 권장**. 기본 off + 스코프 한정으로 위험 국한.
+  - **핫패스 비용**: 구역-타일 추론 **≈415ms/frame**(CPU RF-DETR 폴백, 343~485ms; **GPU 훨씬 빠름**). 2fps 워커에서 매 프레임은 과부하 → **every-N 권장**(N=4면 amortized ~104ms/frame).
+  - **카메라 확장**: `DETECT_LOCK` 직렬화라 추가부하 = ΣK(415ms/N). N·구역크기·GPU로 조절.
+  - 게이트: ruff0·mypy19·73→76 tests·OpenAPI106·순환0. 기본 off 라 프로덕션 동작 변화 0.
+- **운영 가이드**: `VIGENT_ZONE_TILE=1` 로 활성, `VIGENT_ZONE_TILE_EVERY=N`(CPU면 N≥4 또는 GPU 권장). 활성 전 현장 오탐·핫패스 비용 실측. (재사용 확장: proximity·crowd 등 다른 소형객체 기능에도 동일 헬퍼 적용 가능 — 후속.)
 
 ## B5. worker 반환 타입힌트 보강(28개) — [낮~중]
 - **무엇**: `worker.py`의 미힌트 함수 28개에 반환 타입 부여(현재는 '관대' 모드로 본문만 검사).
