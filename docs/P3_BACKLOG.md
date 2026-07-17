@@ -11,7 +11,7 @@
 
 | # | 항목 | 우선순위 | 리스크 | 출처 |
 |---|---|---|---|---|
-| B1 | CI 첫 실행 green 실검증 | **높음** | 낮음 | P2-14·P2-12 |
+| ~~B1~~ | ~~CI 첫 실행 green 실검증~~ ✅ 완료 | — | — | run #2 green(4m 1s) |
 | B2 | 런타임 가변 config 파일 격리 | 중 | 중(설계 변경) | danger_zone 조사·08fa161 |
 | B3 | web_util 언더스코어 prefix 정리 | 중 | 낮음 | P1-7 |
 | B4 | rig_monitor 배선 여부 결정 | 중(제품) | 중(실영상 필요) | P1-10·F-13 |
@@ -23,9 +23,9 @@
 
 ---
 
-## B1. CI 첫 실행 green 실검증 — [높음]
-- **무엇**: `.github/workflows/ci.yml`(ruff·mypy·unittest·OpenAPI 체커)의 실제 GitHub Actions 첫 런이 green 인지 확인.
-- **왜 미뤘나**: 이 리포는 **git 원격이 아직 없어**(로컬 커밋만) Actions가 한 번도 실행되지 않음. CI yaml의 각 명령은 로컬에서 재현해 통과 확인했으나, 리눅스 러너 실행은 이 환경에서 검증 불가. (P2-14·P2-12 공통 고지)
+## B1. CI 첫 실행 green 실검증 — ✅ 완료 (2026-07-17, run #2 gates 4m 1s Success)
+- **결과**: GitHub Actions CI 4개 스텝(ruff·mypy·unittest·OpenAPI 체커) 전부 green. 첫 런은 CI 러너 가중치 부재로 F-8 기동거부 실패 → `VIGENT_ALLOW_FALLBACK=1`(F-8 공식 opt-in) 반영 후 run #2 통과.
+- **무엇이었나**: `.github/workflows/ci.yml`의 실제 GitHub Actions 첫 런 green 확인. (원격 미연결로 미뤘던 항목)
 - **리스크**: 낮음. 다만 리눅스 러너에서 torch/onnxruntime 설치 실패, 또는 `python -m mypy`/`check_openapi_diff.py`의 `import main` 시 Apple전용 의존(mlx 등 — 현재 하드 import 없음 확인)이 첫 런에서 드러날 수 있음.
 - **권장 접근**: ① GitHub 리포 생성·`git remote add origin`·`git push -u origin main` → ② Actions 탭에서 CI 런의 4개 스텝(ruff/mypy/unittest/체커) green 확인 → ③ 실패 시 로그로 원인 분석(requirements 핀 조정 등). 상세 체크리스트는 [ONBOARDING.md](ONBOARDING.md) §6.
 - **가중치·F-8 맥락(첫 런 실패로 확인)**: **CI 러너에는 커스텀 가중치(`weights/*.pth`, `.gitignore` 제외)가 없는 것이 정상 상태**다. Guard 생성 시 F-8 기동거부가 발동하므로, `ci.yml` gates 잡에 `VIGENT_ALLOW_FALLBACK: "1"`(F-8 공식 opt-in 처리 경로)을 둔다 — 현재 CI 테스트는 실제 `guard.detect()`를 호출하지 않아 COCO 다운로드는 발생하지 않는다. **나중에 CI에 검출 테스트(guard.detect 호출)를 추가하는 사람**은 이 폴백이 COCO 사전학습을 쓴다는 점(커스텀 검출 저하)을 인지하고, 검출 정확도를 단정하는 assert 는 피하거나 더미 가중치를 주입할 것.
