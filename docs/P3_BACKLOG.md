@@ -12,7 +12,7 @@
 | # | 항목 | 우선순위 | 리스크 | 출처 |
 |---|---|---|---|---|
 | ~~B1~~ | ~~CI 첫 실행 green 실검증~~ ✅ 완료 | — | — | run #2 green(4m 1s) |
-| B2 | 런타임 가변 config 파일 격리 | 중 | 중(설계 변경) | danger_zone 조사·08fa161 |
+| ~~B2~~ | ~~런타임 가변 config 파일 격리~~ ✅ 완료 | — | — | runtime_config.py |
 | B3 | web_util 언더스코어 prefix 정리 | 중 | 낮음 | P1-7 |
 | B4 | rig_monitor 배선 여부 결정 | 중(제품) | 중(실영상 필요) | P1-10·F-13 |
 | B5 | worker 반환 타입힌트 보강(28) | 낮~중 | 낮음 | P2-12 |
@@ -31,10 +31,10 @@
 - **가중치·F-8 맥락(첫 런 실패로 확인)**: **CI 러너에는 커스텀 가중치(`weights/*.pth`, `.gitignore` 제외)가 없는 것이 정상 상태**다. Guard 생성 시 F-8 기동거부가 발동하므로, `ci.yml` gates 잡에 `VIGENT_ALLOW_FALLBACK: "1"`(F-8 공식 opt-in 처리 경로)을 둔다 — 현재 CI 테스트는 실제 `guard.detect()`를 호출하지 않아 COCO 다운로드는 발생하지 않는다. **나중에 CI에 검출 테스트(guard.detect 호출)를 추가하는 사람**은 이 폴백이 COCO 사전학습을 쓴다는 점(커스텀 검출 저하)을 인지하고, 검출 정확도를 단정하는 assert 는 피하거나 더미 가중치를 주입할 것.
 
 ## B2. 런타임 가변 config 파일 격리 — [중]
-- **무엇**: `config/danger_zone.json`·`config/machine_zone.json` 등 **런타임에 앱이 덮어쓰는 파일이 git 추적 대상**이라, UI로 위험구역을 그릴 때마다 워킹트리가 더러워지고 실수로 커밋에 섞인다(계속 churn).
-- **왜 미뤘나**: 이번 세션 조사 결과 danger_zone.json 오염은 **런타임 정상 동작**(UI에서 `POST /zone/danger`로 구역 편집)이 원인 — 테스트 버그 아님(자동화는 `/zone/machine`만 만지고 원복). 즉 tmp 격리 같은 테스트 수정으로 풀 문제가 아니라 **구조 문제**. 이전 커밋 `08fa161`도 "런타임 가변 파일이 git 추적 대상인 구조 자체를 재검토" 라고 백로그로 남김.
-- **리스크**: 중. 저장 경로를 바꾸면 기존 UI/워커의 zone 로드 경로도 함께 옮겨야 함(저하 없이).
-- **권장 접근**: 런타임 zone write 대상을 `data/`(gitignore) 하위로 분리하고, `config/*.json`은 **읽기전용 기본값(시드)**로만 둠. vision.yaml zones 매핑을 data 경로로 바꾸되, 시드가 없으면 config 기본값을 복사하는 폴백. 착수 전 저하 없음 계획 보고 필수.
+- **해결(2026-07-17)**: `runtime_config.py` 신설 — **config/ 는 커밋된 읽기전용 시드**, **런타임 write 는 `data/config/`(gitignore)** 로. `read_path`(런타임 우선→시드 폴백)·`runtime_path`(항상 data/). 배선: `web_util._zone_get/_zone_set` · `worker._load_zone` · `rfdetr_service._load_zone_and_threshold` · `ppe_check.get_rules/save_rules`.
+- **전수 조사 결과**: 런타임 write + git 추적은 **3개뿐** — `config/danger_zone.json`·`config/machine_zone.json`(이미 빈값)·`config/ppe_rules.yaml`(코드 기본값 `_DEFAULT_REQUIRED`와 동일). site/notify.yaml 은 이미 gitignore, demo·zones.json 은 data/·오프라인이라 무관.
+- **마이그레이션 결정(조건 3 → 자동복사 미포함)**: read 폴백(data/→config/ 시드)이 기존 config/ 커스터마이즈를 투명하게 읽어 데이터 손실 0 + 아직 실배포 없음 → 기동 시 상시 자동복사(부작용·테스트 결합)는 도입하지 않음. **기존 배포에서 config/ 를 이미 수정(구역 그림)한 경우**: 그 값이 시드로 계속 읽히므로 동작엔 문제없고, 트리를 깨끗이 하려면 **1회 `git checkout config/danger_zone.json config/machine_zone.json config/ppe_rules.yaml`**(그린 값은 이후 UI 저장 시 data/ 로 이관됨) 하면 됨. 실배포가 생기면 상시 로직 대신 1회성 opt-in 스크립트를 별도 추가.
+- **검증**: `tests/test_runtime_config.py`(시드만/런타임만/둘 다) + fresh-clone 상태(data/ 부재)에서 시드 로드 실증(zone 3점·ppe 기본값) + write→data/·config/ 불변 실증 + CI green(B1과 동일 환경).
 
 ## B3. web_util 언더스코어 prefix 정리 — [중]
 - **무엇**: P1-7 분할 때 `web_util`로 옮긴 공용 헬퍼들의 `_` prefix(예: `_tpl`·`_zone_get`·`_product_version`)를 공개 API 이름으로 정리(_제거).

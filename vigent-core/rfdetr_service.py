@@ -12,6 +12,7 @@ from pathlib import Path
 from typing import Any
 
 import numpy as np
+import runtime_config
 from web_util import _zone_points
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -27,9 +28,11 @@ def _load_zone_and_threshold(theme: str = "safety"):
     thr = float(jud.get("detect_threshold", 0.4))
     zpath = (jud.get("zones", {}) or {}).get("danger_zones")
     pts = []
-    if zpath and (ROOT / zpath).exists():
-        z = json.load(open(ROOT / zpath, encoding="utf-8"))
-        pts = _zone_points(z)
+    if zpath:
+        zp = runtime_config.read_path(zpath)   # B2: 런타임(data/) 우선 → config/ 시드 폴백
+        if zp.exists():
+            z = json.load(open(zp, encoding="utf-8"))
+            pts = _zone_points(z)
     return pts, thr
 
 

@@ -156,6 +156,7 @@ vigent-core/
 | **[rig_monitor.py](../vigent-core/rig_monitor.py)** | **로직만 존재·파이프라인 미배선**(어떤 라이브 경로도 호출 안 함, 유닛테스트 5만 사용). 핵심 경보(하물 높이) 실영상 검증은 **적합 footage(근접 카메라 인양 1사이클) 확보 대기** — 광역 CCTV 는 하물/후크 미가시(작업자 26~64px 실측, F-13). "동작한다"·"제품 기능" 가정 금지. | FINDINGS F-13 · CODE_REVIEW §2.3 |
 | **포즈 슬롯 주석** | vision.yaml의 pose/tracker/temporal 슬롯(rtmpose·ByteTrack·mmaction2)은 "미설치·미사용" 정직 표기. 실동작은 yolov8n-pose + MediaPipe. yaml만 보고 판단 금지. | vision.yaml 주석 |
 | **의존성 취약점** | pillow·torch·requests 등 16건(pip-audit 확인). 업그레이드는 검출 회귀 테스트와 함께(규칙 §6: 저하 금지). | CODE_REVIEW §3.2 |
+| **config/ 는 읽기전용 시드** | 위험구역·PPE 규칙 등 **런타임 가변 설정은 `data/config/`(gitignore)에 저장**되고 `config/*.json\|yaml`은 커밋된 기본값(시드)일 뿐이다(B2, `runtime_config.py`). 읽기=런타임 우선→시드 폴백, 쓰기=항상 data/. **config/ 파일에 런타임 write 를 새로 추가하지 말 것**(git 오염) — `runtime_config.read_path/runtime_path` 경유. | [P3_BACKLOG.md](P3_BACKLOG.md) B2 |
 | **읽기 전용 MVP** | `~/Desktop/사업계획서/AX안전`은 원본 MVP로 **읽기 전용**. 자산은 복사만. 수정·삭제 금지(규칙 1). | CLAUDE.md |
 | **동시 세션** | 여러 백그라운드 세션은 반드시 git worktree로 격리(공유 워킹트리 checkout 금지). 커밋 전 `git branch --show-current` 확인. | CLAUDE.md §8 |
 

@@ -12,6 +12,7 @@ import os
 from pathlib import Path
 from typing import TYPE_CHECKING
 
+import runtime_config
 from app_state import STATE
 from app_state import load_theme as _load_theme
 from fastapi import HTTPException
@@ -82,7 +83,7 @@ def _zone_get(theme: str, key: str) -> dict:
     zone_path = _zone_cfg_path(theme, key)
     if not zone_path:
         return {"points": []}
-    p = _ROOT / zone_path
+    p = runtime_config.read_path(zone_path)   # B2: 런타임(data/) 우선 → 없으면 config/ 시드
     if not p.exists():
         return {"points": []}
     with open(p, "r", encoding="utf-8") as f:
@@ -99,11 +100,11 @@ def _zone_set(theme: str, key: str, payload: dict) -> dict:
         except (KeyError, TypeError, ValueError):
             raise HTTPException(status_code=400, detail="points 형식 오류({x,y} 필요)")
         points.append({"x": max(0.0, min(1.0, x)), "y": max(0.0, min(1.0, y))})
-    p = _ROOT / zone_path
+    p = runtime_config.runtime_path(zone_path)   # B2: 런타임 write 는 항상 data/ 하위(config/ 는 시드로 불변)
     p.parent.mkdir(parents=True, exist_ok=True)
     with open(p, "w", encoding="utf-8") as f:
         json.dump({"points": points}, f, ensure_ascii=False)
-    return {"ok": True, "count": len(points), "saved_to": str(zone_path)}
+    return {"ok": True, "count": len(points), "saved_to": str(p.relative_to(_ROOT))}
 
 def _is_safety_label(label: "str | None") -> bool:   # 본문이 (label or "")로 None 안전 → 시그니처도 그에 맞춤(P2-12)
     l = (label or "").lower()

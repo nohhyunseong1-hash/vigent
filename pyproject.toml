@@ -36,6 +36,7 @@ check_untyped_defs = true            # 미힌트 함수도 '본문'은 타입검
 files = [
     "vigent-core/app_state.py",
     "vigent-core/web_util.py",
+    "vigent-core/runtime_config.py",
     "vigent-core/routers/vitals.py",
     "vigent-core/routers/dispatch.py",
     "vigent-core/routers/system.py",
@@ -58,6 +59,7 @@ files = [
 module = [
     "app_state",
     "web_util",
+    "runtime_config",
 ]
 disallow_untyped_defs = true
 disallow_incomplete_defs = true

@@ -11,11 +11,11 @@
 """
 from __future__ import annotations
 
-from pathlib import Path
 from typing import Any
 
-_ROOT = Path(__file__).resolve().parent.parent
-_RULES = _ROOT / "config" / "ppe_rules.yaml"
+import runtime_config
+
+_RULES_REL = "config/ppe_rules.yaml"   # B2: 시드 경로. 실제 read/write 는 runtime_config 로(런타임=data/, 시드=config/)
 
 # 보호구 카탈로그 — 현장이 이 중에서 '필수'를 고른다
 PPE_CATALOG: list[dict[str, Any]] = [
@@ -51,10 +51,11 @@ _DEFAULT_REQUIRED = ["hardhat", "safety_vest"]
 
 def get_rules() -> dict[str, Any]:
     """현장 설정(필수 보호구 id 목록). 없으면 기본값."""
-    if _RULES.exists():
+    _rules = runtime_config.read_path(_RULES_REL)   # B2: 런타임(data/) 우선 → config/ 시드 폴백
+    if _rules.exists():
         try:
             import yaml
-            d = yaml.safe_load(_RULES.read_text(encoding="utf-8")) or {}
+            d = yaml.safe_load(_rules.read_text(encoding="utf-8")) or {}
             req = d.get("required")
             if isinstance(req, list):
                 return {"required": [r for r in req if r in _BY_ID], "site": d.get("site", "")}
@@ -65,10 +66,11 @@ def get_rules() -> dict[str, Any]:
 
 def save_rules(required: list[str], site: str = "") -> dict[str, Any]:
     req = [r for r in (required or []) if r in _BY_ID]
-    _RULES.parent.mkdir(parents=True, exist_ok=True)
+    _rules = runtime_config.runtime_path(_RULES_REL)   # B2: 런타임 write 는 항상 data/ 하위
+    _rules.parent.mkdir(parents=True, exist_ok=True)
     try:
         import yaml
-        _RULES.write_text(yaml.safe_dump({"site": site, "required": req}, allow_unicode=True),
+        _rules.write_text(yaml.safe_dump({"site": site, "required": req}, allow_unicode=True),
                           encoding="utf-8")
     except Exception:  # noqa: BLE001
         pass

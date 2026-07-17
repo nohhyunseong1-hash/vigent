@@ -25,6 +25,7 @@ import cv2
 import data_engine
 import numpy as np
 import proximity
+import runtime_config
 import tuning
 import vlog
 from web_util import _zone_points
@@ -60,8 +61,8 @@ def _point_in_poly(x: float, y: float, poly) -> bool:
 
 
 def _load_zone() -> list[tuple[float, float]]:
-    """config/danger_zone.json 의 정규화 폴리곤(없으면 빈 목록)."""
-    p = _ROOT / "config" / "danger_zone.json"
+    """danger_zone 의 정규화 폴리곤(없으면 빈 목록). B2: 런타임(data/) 우선 → config/ 시드 폴백."""
+    p = runtime_config.read_path("config/danger_zone.json")
     if not p.exists():
         return []
     try:
