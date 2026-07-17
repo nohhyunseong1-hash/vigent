@@ -13,7 +13,7 @@ from typing import Any
 
 import numpy as np
 import runtime_config
-from web_util import _zone_points
+from web_util import zone_points
 
 ROOT = Path(__file__).resolve().parent.parent
 
@@ -21,7 +21,7 @@ ROOT = Path(__file__).resolve().parent.parent
 def _load_zone_and_threshold(theme: str = "safety"):
     """vision.yaml + danger_zone.json 에서 위험구역(정규화 폴리곤)·임계값.
     ※ worker._load_zone(config/danger_zone.json 직접·튜플만)과 이름·계약이 달라 P2-11에서
-      명확히 rename(동명이인 혼동 제거). 공통 점추출만 web_util._zone_points 로 공유."""
+      명확히 rename(동명이인 혼동 제거). 공통 점추출만 web_util.zone_points 로 공유."""
     import yaml
     vy = yaml.safe_load(open(ROOT / "themes" / theme / "vision.yaml", encoding="utf-8"))
     jud = vy.get("judgment", {}) or {}
@@ -32,7 +32,7 @@ def _load_zone_and_threshold(theme: str = "safety"):
         zp = runtime_config.read_path(zpath)   # B2: 런타임(data/) 우선 → config/ 시드 폴백
         if zp.exists():
             z = json.load(open(zp, encoding="utf-8"))
-            pts = _zone_points(z)
+            pts = zone_points(z)
     return pts, thr
 
 

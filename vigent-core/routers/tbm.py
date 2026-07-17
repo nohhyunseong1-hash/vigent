@@ -9,7 +9,7 @@ from app_state import DEFAULT_THEME, STATE
 from app_state import load_theme as _load_theme
 from fastapi import APIRouter, Body, HTTPException
 from fastapi.responses import HTMLResponse
-from web_util import _TBM_CSS, _tpl
+from web_util import _TBM_CSS, tpl
 
 router = APIRouter()
 
@@ -55,7 +55,7 @@ def tbm_new():
         '<label class="chk"><input type="checkbox" checked data-item="ITEM"><span>ITEM</span></label>'
         .replace("ITEM", item) for item in tbm_store.DEFAULT_CHECKLIST)
     process_html = "".join(f'<option value="{j["name"]}">' for j in tbm_store.jsa_catalog())
-    page = (_tpl("tbm_new.html").replace("/*CSS*/", _TBM_CSS)
+    page = (tpl("tbm_new.html").replace("/*CSS*/", _TBM_CSS)
             .replace("<!--CHECKLIST-->", checklist_html)
             .replace("<!--PROCESSLIST-->", process_html))
     return page

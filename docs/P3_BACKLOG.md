@@ -13,7 +13,7 @@
 |---|---|---|---|---|
 | ~~B1~~ | ~~CI 첫 실행 green 실검증~~ ✅ 완료 | — | — | run #2 green(4m 1s) |
 | ~~B2~~ | ~~런타임 가변 config 파일 격리~~ ✅ 완료 | — | — | runtime_config.py |
-| B3 | web_util 언더스코어 prefix 정리 | 중 | 낮음 | P1-7 |
+| ~~B3~~ | ~~web_util 언더스코어 prefix 정리~~ ✅ 완료 | — | — | 공개함수 12개 rename |
 | B4 | rig_monitor 배선 여부 결정 | 중(제품) | 중(실영상 필요) | P1-10·F-13 |
 | B5 | worker 반환 타입힌트 보강(28) | 낮~중 | 낮음 | P2-12 |
 | B6 | vlm_text 헬퍼 미적용 11곳 | 낮 | 낮음 | P1-6 |
@@ -36,11 +36,11 @@
 - **마이그레이션 결정(조건 3 → 자동복사 미포함)**: read 폴백(data/→config/ 시드)이 기존 config/ 커스터마이즈를 투명하게 읽어 데이터 손실 0 + 아직 실배포 없음 → 기동 시 상시 자동복사(부작용·테스트 결합)는 도입하지 않음. **기존 배포에서 config/ 를 이미 수정(구역 그림)한 경우**: 그 값이 시드로 계속 읽히므로 동작엔 문제없고, 트리를 깨끗이 하려면 **1회 `git checkout config/danger_zone.json config/machine_zone.json config/ppe_rules.yaml`**(그린 값은 이후 UI 저장 시 data/ 로 이관됨) 하면 됨. 실배포가 생기면 상시 로직 대신 1회성 opt-in 스크립트를 별도 추가.
 - **검증**: `tests/test_runtime_config.py`(시드만/런타임만/둘 다) + fresh-clone 상태(data/ 부재)에서 시드 로드 실증(zone 3점·ppe 기본값) + write→data/·config/ 불변 실증 + CI green(B1과 동일 환경).
 
-## B3. web_util 언더스코어 prefix 정리 — [중]
-- **무엇**: P1-7 분할 때 `web_util`로 옮긴 공용 헬퍼들의 `_` prefix(예: `_tpl`·`_zone_get`·`_product_version`)를 공개 API 이름으로 정리(_제거).
-- **왜 미뤘나**: P1-7은 **move-only** 원칙이라 이름을 그대로 유지("공개 API 정리는 분할 완료 후 별도" — [web_util.py](../vigent-core/web_util.py) 헤더 주석). 분할이 끝났으니 이제 착수 가능.
-- **리스크**: 낮음(순수 rename). 다만 import 하는 모든 모듈(routers·worker·rfdetr_service·main)을 일괄 갱신해야 하고, mypy·ruff·체커로 회귀 확인.
-- **권장 접근**: 헬퍼별로 `_x → x` rename + 전 호출부 일괄 치환 커밋. 한 번에 몰지 말고 몇 개씩. 게이트(mypy·ruff·55 tests·체커) 유지.
+## B3. web_util 언더스코어 prefix 정리 — ✅ 완료 (2026-07-17)
+- **한 것**: web_util 의 **공개 헬퍼 함수 12개**를 `_x → x` 로 rename(순수 rename, 로직 불변) + 전 호출부(main·worker·rfdetr_service·routers 13) 일괄 갱신.
+- **대응표**: `_decode_data_url→decode_data_url` · `_img_from_b64→img_from_b64` · `_incident_boxes→incident_boxes` · `_zone_points→zone_points` · `_zone_get→zone_get` · `_zone_set→zone_set` · `_is_safety_label→is_safety_label` · `_webhook_allowed→webhook_allowed` · `_tpl→tpl` · `_env_or_dotenv→env_or_dotenv` · `_evidence_url→evidence_url` · `_product_version→product_version`.
+- **유지(_ 그대로)**: 내부 전용 함수 `_zone_cfg_path`·`_load_allowed_webhook_hosts`(외부 미import), 모듈 상수 `_HERE`·`_ROOT`·`_SAFETY_KEEP`·`_TBM_CSS`(함수 아님 + `_ROOT` 는 타 모듈 로컬과 충돌 회피).
+- **검증**: shadowing/충돌 0(사전 grep) · 옛 이름 잔여 0(grep) · ruff 0 · mypy 18파일 · 60 tests · OpenAPI 106.
 
 ## B4. rig_monitor 배선 여부 결정 — [중·제품]
 - **무엇**: [rig_monitor.py](../vigent-core/rig_monitor.py)(줄걸이 상태기계)는 로직 완성이나 라이브 경로(main·worker)에 **미배선**, 유닛테스트에서만 사용.

@@ -7,7 +7,7 @@ import vlog
 from app_state import DEFAULT_THEME, STATE
 from app_state import load_theme as _load_theme
 from fastapi import APIRouter, Body, HTTPException
-from web_util import _env_or_dotenv, _webhook_allowed
+from web_util import env_or_dotenv, webhook_allowed
 
 router = APIRouter()
 
@@ -18,8 +18,8 @@ def dispatch_relay(payload: dict = Body(default={}), theme: str = DEFAULT_THEME)
     ⚠ 비전은 보조·감시 계층이며 1차 비상정지를 대체하지 않는다."""
     # 웹훅 목적지 화이트리스트(C-S0): WEBHOOK_URL 이 설정돼 있고 미등재 호스트면 거부.
     #   (미설정=텔레그램만/무전송 → 통과. 안전경보 경로를 정상설정에서 막지 않음.)
-    _wh = _env_or_dotenv("WEBHOOK_URL")
-    if _wh and not _webhook_allowed(_wh):
+    _wh = env_or_dotenv("WEBHOOK_URL")
+    if _wh and not webhook_allowed(_wh):
         raise HTTPException(status_code=403,
                             detail="dispatch 웹훅 목적지 미허용 — config/security.json allowed_webhook_hosts 에 호스트 등록 필요")
     bundle = STATE.get(theme) or _load_theme(theme)

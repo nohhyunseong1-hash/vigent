@@ -7,7 +7,7 @@ from app_state import DEFAULT_THEME, STATE
 from app_state import DETECT_LOCK as _DETECT_LOCK
 from app_state import load_theme as _load_theme
 from fastapi import APIRouter, Body, HTTPException
-from web_util import _decode_data_url, _is_safety_label
+from web_util import decode_data_url, is_safety_label
 
 router = APIRouter()
 
@@ -24,7 +24,7 @@ def detect_frame(payload: dict = Body(...), theme: str = DEFAULT_THEME):
     raw = payload.get("image_base64") or payload.get("image") or ""
     if raw and not raw.startswith("data:"):
         raw = "data:image/jpeg;base64," + raw
-    img = _decode_data_url(raw)
+    img = decode_data_url(raw)
     if img is None:
         raise HTTPException(status_code=400, detail="이미지 디코딩 실패(image_base64/image 확인)")
     # 검출기 선택: 안전 모드(ppe=true)면 person+ppe+fire(보호구·화재), 아니면 person만.
@@ -57,7 +57,7 @@ def detect_frame(payload: dict = Body(...), theme: str = DEFAULT_THEME):
                               round((x2 - x1) * W, 1), round((y2 - y1) * H, 1)]})
     # 안전 전용: 잡동사니(노트북·TV·의자 등) 서버단에서 제거 → 사람·위험물·차량·화재·보호구만
     if payload.get("safety_only"):
-        dets = [d for d in dets if _is_safety_label(d.get("class"))]
+        dets = [d for d in dets if is_safety_label(d.get("class"))]
     hazards = [{"type": d.get("label", "").lower(), "label": d.get("label"),
                 "confidence": d.get("conf", 0),
                 "severity": "high" if d.get("conf", 0) >= 0.5 else "mid"}
@@ -75,7 +75,7 @@ def detect_frame(payload: dict = Body(...), theme: str = DEFAULT_THEME):
 def rfdetr_frame(payload: dict = Body(...)):
     """웹캠 프레임 → rf-detr 사람탐지 + 추적 + 위험구역 침입 판정(빠름)."""
     import rfdetr_service
-    img = _decode_data_url(payload.get("image", ""))
+    img = decode_data_url(payload.get("image", ""))
     if img is None:
         raise HTTPException(status_code=400, detail="image(data URL) 디코딩 실패")
     return rfdetr_service.rfdetr.detect(img)
@@ -84,7 +84,7 @@ def rfdetr_frame(payload: dict = Body(...)):
 def rfdetr_vlm(payload: dict = Body(...)):
     """이벤트 프레임 → mlx-vlm 위험요약 JSON(느림, 프론트가 침입 시 드물게 호출)."""
     import rfdetr_service
-    img = _decode_data_url(payload.get("image", ""))
+    img = decode_data_url(payload.get("image", ""))
     if img is None:
         raise HTTPException(status_code=400, detail="image(data URL) 디코딩 실패")
     return rfdetr_service.vlm.summarize_bgr(img)

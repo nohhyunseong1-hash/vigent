@@ -8,7 +8,7 @@ from app_state import DETECT_LOCK as _DETECT_LOCK
 from app_state import load_theme as _load_theme
 from fastapi import APIRouter, Body
 from fastapi.responses import HTMLResponse
-from web_util import _img_from_b64
+from web_util import img_from_b64
 
 router = APIRouter()
 
@@ -48,7 +48,7 @@ def safety_ppe_check(payload: dict = Body(...), theme: str = DEFAULT_THEME):
     """이미지 → 현장 필수 보호구 착용 점검(미착용 경고). use_vlm 권장."""
     import ppe_check
     raw = payload.get("image_base64") or payload.get("image") or ""
-    img = _img_from_b64(raw)
+    img = img_from_b64(raw)
     if img is None:
         return {"ok": False, "error": "이미지 없음"}
     bundle = STATE.get(theme) or _load_theme(theme)

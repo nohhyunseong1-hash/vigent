@@ -66,7 +66,7 @@ from routers import zone as _zone_router  # noqa: E402
 
 # 공유 웹 헬퍼는 web_util.py 로 분리(P1-7) — 동일 이름 re-import(사용부 무변경)
 from web_util import (  # noqa: E402  # noqa: E402
-    _product_version,
+    product_version,
 )
 
 _log = vlog.get("vigent")               # print 대체 — 콘솔+파일 로테이션
@@ -77,7 +77,7 @@ _log = vlog.get("vigent")               # print 대체 — 콘솔+파일 로테�
 # ─────────────────────────────────────────────────────────────
 # DEFAULT_THEME 는 app_state.py 로 분리(P1-7) — 위 import 에서 가져온다.
 
-app = FastAPI(title="VIGENT Core", version=_product_version())
+app = FastAPI(title="VIGENT Core", version=product_version())
 app.include_router(_tapo_router.router)   # /tapo/* (P1-7)
 app.include_router(_vitals_router.router)   # /vitals/* (P1-7)
 app.include_router(_zone_router.router)   # /zone/* (P1-7)

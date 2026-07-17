@@ -6,7 +6,7 @@ from app_state import _START_TS, DEFAULT_THEME, STATE
 from app_state import load_theme as _load_theme
 from fastapi import APIRouter
 from fastapi.responses import JSONResponse
-from web_util import _ROOT, _product_version
+from web_util import _ROOT, product_version
 
 router = APIRouter()
 
@@ -49,7 +49,7 @@ def health(theme: str = DEFAULT_THEME):
         llm = {"provider": "unknown", "available": False}
     return {
         "status": "ok",
-        "version": _product_version(),
+        "version": product_version(),
         "uptime_s": round(_time.time() - _START_TS, 1),
         "theme": theme,
         "loaded": bool(bundle),

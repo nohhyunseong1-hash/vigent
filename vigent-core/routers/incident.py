@@ -7,7 +7,7 @@ from app_state import DETECT_LOCK as _DETECT_LOCK
 from app_state import load_theme as _load_theme
 from fastapi import APIRouter, Body
 from fastapi.responses import HTMLResponse
-from web_util import _img_from_b64, _incident_boxes
+from web_util import img_from_b64, incident_boxes
 
 router = APIRouter()
 
@@ -24,7 +24,7 @@ def safety_incident_frame(payload: dict = Body(...), theme: str = DEFAULT_THEME)
     반환: {score, person_count, hazards:[유형], detections:[클래스]}."""
     import proximity as _prox
     raw = payload.get("image_base64") or payload.get("image") or ""
-    img = _img_from_b64(raw)
+    img = img_from_b64(raw)
     if img is None:
         return {"score": 0, "hazards": []}
     bundle = STATE.get(theme) or _load_theme(theme)
@@ -51,7 +51,7 @@ def safety_incident_frame(payload: dict = Body(...), theme: str = DEFAULT_THEME)
         hz.append("보호구 미착용")
     return {"score": score, "person_count": pc, "hazards": hz,
             "detections": [d.get("label") for d in out.get("detections", [])],
-            "boxes": _incident_boxes(out, prox)}
+            "boxes": incident_boxes(out, prox)}
 
 @router.post("/safety/incident/analyze")
 def safety_incident_analyze(payload: dict = Body(...), theme: str = DEFAULT_THEME):
@@ -60,7 +60,7 @@ def safety_incident_analyze(payload: dict = Body(...), theme: str = DEFAULT_THEM
     raw = payload.get("image_base64") or payload.get("image")
     if not raw:
         return {"ok": False, "error": "이미지 없음"}
-    img = _img_from_b64(raw)
+    img = img_from_b64(raw)
     if img is None:
         return {"ok": False, "error": "이미지 디코딩 실패"}
     bundle = STATE.get(theme) or _load_theme(theme)
@@ -79,6 +79,6 @@ def safety_incident_analyze(payload: dict = Body(...), theme: str = DEFAULT_THEM
         out, present = {"detections": []}, []
     result = incident.analyze(img, present_classes=present, use_vlm=bool(payload.get("use_vlm")))
     import proximity as _prox
-    result["boxes"] = _incident_boxes(out, _prox.detect(
+    result["boxes"] = incident_boxes(out, _prox.detect(
         out.get("detections", []), aspect_hw=img.shape[0] / img.shape[1]))   # 감사 E-1
     return result

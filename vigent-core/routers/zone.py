@@ -6,7 +6,7 @@ import data_engine
 from app_state import DEFAULT_THEME, STATE
 from app_state import load_theme as _load_theme
 from fastapi import APIRouter, Body, HTTPException  # noqa: F401  (일부 라우트에서 사용)
-from web_util import _decode_data_url, _zone_get, _zone_set
+from web_util import decode_data_url, zone_get, zone_set
 
 router = APIRouter()
 
@@ -14,22 +14,22 @@ router = APIRouter()
 @router.get("/zone/danger")
 def zone_danger(theme: str = DEFAULT_THEME):
     """일반 위험구역 폴리곤(정규화 좌표) 반환."""
-    return _zone_get(theme, "danger_zones")
+    return zone_get(theme, "danger_zones")
 
 @router.post("/zone/danger")
 def set_zone_danger(payload: dict = Body(...), theme: str = DEFAULT_THEME):
     """일반 위험구역 폴리곤 저장. payload={"points":[{"x":..,"y":..}, ...]}"""
-    return _zone_set(theme, "danger_zones", payload)
+    return zone_set(theme, "danger_zones", payload)
 
 @router.get("/zone/machine")
 def zone_machine(theme: str = DEFAULT_THEME):
     """프레스/전단기 방호구역 폴리곤(정규화 좌표) 반환(§8)."""
-    return _zone_get(theme, "machine_hazard_zones")
+    return zone_get(theme, "machine_hazard_zones")
 
 @router.post("/zone/machine")
 def set_zone_machine(payload: dict = Body(...), theme: str = DEFAULT_THEME):
     """프레스/전단기 방호구역 폴리곤 저장(손 진입 시 guard_bypass=critical)."""
-    return _zone_set(theme, "machine_hazard_zones", payload)
+    return zone_set(theme, "machine_hazard_zones", payload)
 
 @router.get("/zone/state")
 @router.post("/zone/state")
@@ -50,7 +50,7 @@ def zone_intrusion_alert(payload: dict = Body(default={}), theme: str = DEFAULT_
     # 증거 저장 + 인식로그 기록(데이터엔진) → 자동처리 콘솔에 노출. decoded 는 VLM 확정에 재사용.
     img = payload.get("image_base64")
     img_url = (img if (img or "").startswith("data:") else "data:image/jpeg;base64," + img) if img else None
-    decoded = _decode_data_url(img_url) if img_url else None
+    decoded = decode_data_url(img_url) if img_url else None
     rec = data_engine.log_event(rule="zone_intrusion", level="high",
                                 site=zone_name, note=", ".join(reasons), image_data_url=img_url)
     saved = rec.get("evidence")

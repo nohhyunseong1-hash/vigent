@@ -5,7 +5,7 @@ from app_state import STATE
 from app_state import load_theme as _load_theme
 from fastapi import APIRouter, Body, HTTPException
 from fastapi.responses import HTMLResponse
-from web_util import _ROOT, _decode_data_url, _webhook_allowed
+from web_util import _ROOT, decode_data_url, webhook_allowed
 
 _HERE = Path(__file__).resolve().parent.parent   # vigent-core/ (main._HERE 와 동일)
 
@@ -24,7 +24,7 @@ def office_coach(payload: dict = Body(default={})):
     if not raw_img:
         raise HTTPException(status_code=400, detail="image 필요")
     try:
-        img = _decode_data_url(raw_img)
+        img = decode_data_url(raw_img)
     except Exception:  # noqa: BLE001
         img = None
     if img is None:
@@ -77,7 +77,7 @@ def office_webhook(payload: dict = Body(default={})):
         raise HTTPException(status_code=400, detail="text 필요")
     if not url:
         return {"ok": False, "fallback": True, "note": ".env 에 OFFICE_WEBHOOK_URL 없음(미발송)"}
-    if not _webhook_allowed(url):   # C-S0 목적지 화이트리스트
+    if not webhook_allowed(url):   # C-S0 목적지 화이트리스트
         raise HTTPException(status_code=403,
                             detail="웹훅 목적지 미허용 — config/security.json allowed_webhook_hosts 에 호스트 등록 필요")
     import json as _json

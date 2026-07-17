@@ -18,11 +18,11 @@ from pydantic import BaseModel
 from web_util import (
     _ROOT,
     _TBM_CSS,
-    _decode_data_url,
-    _evidence_url,
-    _img_from_b64,
-    _incident_boxes,
-    _tpl,
+    decode_data_url,
+    evidence_url,
+    img_from_b64,
+    incident_boxes,
+    tpl,
 )
 
 router = APIRouter()
@@ -119,7 +119,7 @@ def safety_live_analyze(payload: dict = Body(...)):
     OpenAI 키 있으면 OpenAI, 실패/키없음이면 로컬 MLX 폴백(가산식). 프레임 전처리는 프론트 그대로(블러 등 미개입)."""
     import json as _json
     import re as _re
-    img = _img_from_b64(payload.get("image_base64") or payload.get("image"))
+    img = img_from_b64(payload.get("image_base64") or payload.get("image"))
     if img is None:
         return {"ok": False, "error": "이미지 없음"}
     PROMPT = ('이 산업현장 CCTV 프레임을 보고 아래 JSON 하나로만 답하라(설명·코드블록 없이):\n'
@@ -239,7 +239,7 @@ def safety_auto_feed(theme: str = DEFAULT_THEME, hours: float = 24, limit: int =
         out.append({
             "ts": e.get("ts"), "time": e.get("time"), "date": e.get("date"),
             "rule": rule, "level": e.get("level", ""), "site": e.get("site", ""),
-            "evidence_url": _evidence_url(e.get("evidence")),
+            "evidence_url": evidence_url(e.get("evidence")),
             "law": law,
             "advisory": _ADVISORY.get(rule, "안전관리자 확인 후 현장 상황에 맞는 조치"),
             "approved": bool(appr),
@@ -308,7 +308,7 @@ def safety_auto_audit():
 @router.get("/safety/auto", response_class=HTMLResponse)
 def safety_auto_console():
     """안전 자동처리 콘솔(읽기 + 승인). 비전이 잡은 위험 → 서류·조치 자동 정리."""
-    return _tpl("auto.html").replace("/*CSS*/", _TBM_CSS)
+    return tpl("auto.html").replace("/*CSS*/", _TBM_CSS)
 
 @router.post("/worker/start")
 def worker_start(payload: dict = Body(...), theme: str = DEFAULT_THEME):
@@ -386,7 +386,7 @@ def safety_brain_assess(payload: dict = Body(...)):
     if raw:
         if not str(raw).startswith("data:"):
             raw = "data:image/jpeg;base64," + raw
-        img = _decode_data_url(raw)
+        img = decode_data_url(raw)
     return safety_brain.assess(payload.get("activity", ""), payload.get("present"),
                                image_bgr=img, use_vlm=bool(payload.get("use_vlm")))
 
@@ -410,7 +410,7 @@ def safety_eval_run(payload: dict = Body(...), theme: str = DEFAULT_THEME):
     results, details = [], []
     for idx, it in enumerate(items):
         raw = it.get("image_base64") or ""
-        img = _img_from_b64(raw)
+        img = img_from_b64(raw)
         if img is None:
             continue
         boxes, dets, hazards = [], [], []
@@ -418,7 +418,7 @@ def safety_eval_run(payload: dict = Body(...), theme: str = DEFAULT_THEME):
             with _DETECT_LOCK:
                 out = guard.detect(img, detectors=["person", "ppe", "forklift", "fire_smoke"])
             dets = out.get("detections", [])
-            boxes = _incident_boxes(out, _prox.detect(dets))
+            boxes = incident_boxes(out, _prox.detect(dets))
             pred = evaluator.predict(dets, metric) if metric != "auto" else False
             if metric == "auto":
                 hazards = evaluator.detected_hazards(dets)
@@ -449,7 +449,7 @@ def safety_voice_scene(payload: dict = Body(...), theme: str = DEFAULT_THEME):
     """실시간 프레임 → 위험·작업 인식 → 음성 안내 메시지(speak)."""
     import liveguide
     raw = payload.get("image_base64") or payload.get("image") or ""
-    img = _img_from_b64(raw)
+    img = img_from_b64(raw)
     if img is None:
         return {"ok": False, "error": "이미지 없음"}
     bundle = STATE.get(theme) or _load_theme(theme)
@@ -511,7 +511,7 @@ def safety_behavior_analyze(payload: dict = Body(...)):
     """VLM 행동분석 — 흡연·졸음·통화·폭력·절차위반 + 규칙행동 재확인. use_vlm 권장."""
     import behavior
     raw = payload.get("image_base64") or payload.get("image") or ""
-    img = _img_from_b64(raw)
+    img = img_from_b64(raw)
     if img is None:
         return {"ok": False, "error": "이미지 없음"}
     return behavior.analyze(img, use_vlm=bool(payload.get("use_vlm", True)),
@@ -558,7 +558,7 @@ def safety_context(payload: dict = Body(...), theme: str = DEFAULT_THEME):
     raw = payload.get("image_base64") or payload.get("image")
     img = None
     if raw:
-        img = _img_from_b64(raw)
+        img = img_from_b64(raw)
     ctx = safety_brain.assess_context(payload.get("present"), image_bgr=img,
                                       use_vlm=bool(payload.get("use_vlm")))
     res = ctx.get("assessment")
@@ -586,7 +586,7 @@ def safety_brain_inspect(payload: dict = Body(...), theme: str = DEFAULT_THEME):
     raw = payload.get("image_base64") or payload.get("image")
     img = None
     if raw:
-        img = _img_from_b64(raw)
+        img = img_from_b64(raw)
     activity = payload.get("activity", "")
     detected = None
     if activity == "auto":                          # 작업을 스스로 인식
@@ -719,7 +719,7 @@ def safety_fall_alert(payload: dict = Body(default={}), theme: str = DEFAULT_THE
     # 증거 저장 + 인식로그 기록(데이터엔진) → 자동처리 콘솔에 노출. decoded 는 VLM 확정에 재사용.
     img = payload.get("image_base64")
     img_url = (img if (img or "").startswith("data:") else "data:image/jpeg;base64," + img) if img else None
-    decoded = _decode_data_url(img_url) if img_url else None
+    decoded = decode_data_url(img_url) if img_url else None
     rec = data_engine.log_event(rule="fall_suspected", level=verdict.get("level", "high"),
                                 site=payload.get("site", ""), note="낙상 감지", image_data_url=img_url)
     saved = rec.get("evidence")
@@ -776,7 +776,7 @@ def safety_confirm(payload: dict = Body(...)):
     raw = payload.get("image") or payload.get("image_base64") or ""
     if raw and not raw.startswith("data:"):
         raw = "data:image/jpeg;base64," + raw
-    return vlm_confirm.confirm(_decode_data_url(raw), payload.get("rule", ""),
+    return vlm_confirm.confirm(decode_data_url(raw), payload.get("rule", ""),
                                reason=payload.get("reason", ""))
 
 @router.get("/alerts/status")

@@ -2,7 +2,8 @@
 
 이미지 디코드·검출 박스·위험구역 조회/저장·안전라벨 필터 등 여러 도메인이 공유하는 헬퍼.
 ★ main 을 import 하지 않는다(순환 방지). 공유 상태(STATE/load_theme)는 app_state 에서 가져온다.
-※ 이름의 언더스코어 prefix 는 move-only 원칙상 그대로 유지(공개 API 정리는 분할 완료 후 별도).
+※ 공개 헬퍼 함수는 언더스코어 없는 이름(B3). 내부 전용(_zone_cfg_path·_load_allowed_webhook_hosts)과
+  모듈 상수(_HERE·_ROOT·_SAFETY_KEEP·_TBM_CSS)는 _ 유지.
 """
 from __future__ import annotations
 
@@ -27,7 +28,7 @@ _SAFETY_KEEP = {"person", "knife", "scissors", "car", "truck", "bus", "motorcycl
                 "bicycle", "forklift", "train", "boat", "fire", "smoke", "cigarette"}
 
 
-def _decode_data_url(image: str) -> "np.ndarray | None":
+def decode_data_url(image: str) -> "np.ndarray | None":
     """data:image/...;base64,... → cv2 BGR numpy. 실패하면 None."""
     import base64
     import re
@@ -43,15 +44,15 @@ def _decode_data_url(image: str) -> "np.ndarray | None":
     except Exception:  # noqa: BLE001
         return None
 
-def _img_from_b64(raw: "str | None") -> "np.ndarray | None":
+def img_from_b64(raw: "str | None") -> "np.ndarray | None":
     """base64 또는 data:URL 문자열 → BGR numpy(없거나 실패 시 None). data: 접두어 자동 보정.
     여러 엔드포인트의 동일 디코드 블록을 한 곳으로 통합."""
     if not raw:
         return None
     rawd = raw if str(raw).startswith("data:") else "data:image/jpeg;base64," + raw
-    return _decode_data_url(rawd)
+    return decode_data_url(rawd)
 
-def _incident_boxes(out: dict, prox: list) -> list:
+def incident_boxes(out: dict, prox: list) -> list:
     """탐지 결과 → 박스 목록(정규화 bbox + 위험여부). 협착쌍·화재·보호구미착용을 위험으로 표시."""
     def overlap(a: "list[float]", b: "list[float]") -> bool:
         ix = max(0.0, min(a[2], b[2]) - max(a[0], b[0]))
@@ -70,7 +71,7 @@ def _incident_boxes(out: dict, prox: list) -> list:
         boxes.append({"class": cls, "bbox": [round(v, 4) for v in bb], "hazard": bool(hazard)})
     return boxes
 
-def _zone_points(z: dict) -> list[tuple[float, float]]:
+def zone_points(z: dict) -> list[tuple[float, float]]:
     """위험구역 json dict → 정규화 (x,y) 튜플 목록. worker·rfdetr_service 공용(P2-11 중복 제거).
     ※ 파일 읽기·에러처리·경로결정은 각 호출자가 유지(계약이 달라 함수 자체는 통합 안 함).순수 변환만 공유."""
     return [(p["x"], p["y"]) for p in z.get("points", [])]
@@ -79,7 +80,7 @@ def _zone_cfg_path(theme: str, key: str) -> str | None:
     bundle = STATE.get(theme) or _load_theme(theme)
     return (bundle["config"].raw.get("judgment", {}) or {}).get("zones", {}).get(key)
 
-def _zone_get(theme: str, key: str) -> dict:
+def zone_get(theme: str, key: str) -> dict:
     zone_path = _zone_cfg_path(theme, key)
     if not zone_path:
         return {"points": []}
@@ -89,7 +90,7 @@ def _zone_get(theme: str, key: str) -> dict:
     with open(p, "r", encoding="utf-8") as f:
         return json.load(f)
 
-def _zone_set(theme: str, key: str, payload: dict) -> dict:
+def zone_set(theme: str, key: str, payload: dict) -> dict:
     zone_path = _zone_cfg_path(theme, key)
     if not zone_path:
         raise HTTPException(status_code=400, detail=f"vision.yaml 에 {key} 경로가 없음")
@@ -106,7 +107,7 @@ def _zone_set(theme: str, key: str, payload: dict) -> dict:
         json.dump({"points": points}, f, ensure_ascii=False)
     return {"ok": True, "count": len(points), "saved_to": str(p.relative_to(_ROOT))}
 
-def _is_safety_label(label: "str | None") -> bool:   # 본문이 (label or "")로 None 안전 → 시그니처도 그에 맞춤(P2-12)
+def is_safety_label(label: "str | None") -> bool:   # 본문이 (label or "")로 None 안전 → 시그니처도 그에 맞춤(P2-12)
     l = (label or "").lower()
     if l in _SAFETY_KEEP:
         return True
@@ -121,7 +122,7 @@ def _load_allowed_webhook_hosts() -> set[str]:
     except Exception:  # noqa: BLE001  설정 없으면 빈 집합(전부 미허용 = fail-closed)
         return set()
 
-def _webhook_allowed(url: str) -> bool:
+def webhook_allowed(url: str) -> bool:
     """url 의 호스트가 화이트리스트에 있으면 True(서브도메인 endswith 매칭)."""
     from urllib.parse import urlparse
     host = (urlparse(url).hostname or "").lower()
@@ -131,14 +132,14 @@ def _webhook_allowed(url: str) -> bool:
 
 
 @functools.lru_cache(maxsize=None)
-def _tpl(name: str) -> str:
+def tpl(name: str) -> str:
     """templates/<name> 를 1회 읽어 캐시. 기동 후 첫 요청에 로드·이후 재사용."""
     return (_HERE / "templates" / name).read_text(encoding="utf-8")
 
 # TBM·auto 페이지 공유 CSS(P1-7) — tbm·safety_core 두 도메인이 함께 쓰므로 web_util 상주.
-_TBM_CSS = _tpl("tbm.css")   # templates/tbm.css 로드 — 내용 분리 전과 바이트 동일
+_TBM_CSS = tpl("tbm.css")   # templates/tbm.css 로드 — 내용 분리 전과 바이트 동일
 
-def _env_or_dotenv(key: str) -> str:
+def env_or_dotenv(key: str) -> str:
     """환경변수 우선, 없으면 .env 에서 key 값을 읽는다(비밀은 코드/응답에 노출 안 함)."""
     v = os.environ.get(key, "").strip()
     if v:
@@ -150,13 +151,13 @@ def _env_or_dotenv(key: str) -> str:
                 return line.split("=", 1)[1].strip().strip('"').strip("'")
     return ""
 
-def _evidence_url(path: str | None) -> str | None:
+def evidence_url(path: str | None) -> str | None:
     """data/evidence/... 저장경로 → /evidence/... 서빙 URL."""
     if path and path.startswith("data/evidence/"):
         return "/evidence/" + path[len("data/evidence/"):]
     return None
 
-def _product_version() -> str:
+def product_version() -> str:
     """제품 버전 단일 소스(VERSION 파일). /health·app.version 이 함께 사용."""
     try:
         return (_ROOT / "VERSION").read_text(encoding="utf-8").strip()
