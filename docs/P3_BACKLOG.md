@@ -18,7 +18,7 @@
 | ~~B8~~ | ~~쓰러진/저자세 사람 검출 개선~~ ⛔ 종결(해상도 한계) — 검출강화는 B9로 | — | — | 실측 4R |
 | ~~B9~~ | ~~구역-타일링 검출 강화~~ ✅ 구현완료(기본 off, VIGENT_ZONE_TILE) | — | — | 커밋 ①②③ |
 | B5 | worker 반환 타입힌트 보강(28) | 낮~중 | 낮음 | P2-12 |
-| B6 | vlm_text 헬퍼 미적용 11곳 | 낮 | 낮음 | P1-6 |
+| ~~B6~~ | ~~vlm_text 헬퍼 미적용 11곳~~ ⛔ 재평가 후 종결(적용 안 함) | — | — | P1-6 |
 | ~~B7~~ | ~~ml/rfdetr_zone_track 중복 제거~~ ✅ 완료(zone_geom 순수모듈) | — | — | P2-11 |
 
 기존 다른 트랙의 백로그(참조)는 맨 아래 별도.
@@ -134,7 +134,8 @@
   - **핫패스 비용**: 구역-타일 추론 **≈415ms/frame**(CPU RF-DETR 폴백, 343~485ms; **GPU 훨씬 빠름**). 2fps 워커에서 매 프레임은 과부하 → **every-N 권장**(N=4면 amortized ~104ms/frame).
   - **카메라 확장**: `DETECT_LOCK` 직렬화라 추가부하 = ΣK(415ms/N). N·구역크기·GPU로 조절.
   - 게이트: ruff0·mypy19·73→76 tests·OpenAPI106·순환0. 기본 off 라 프로덕션 동작 변화 0.
-- **운영 가이드**: `VIGENT_ZONE_TILE=1` 로 활성, `VIGENT_ZONE_TILE_EVERY=N`(CPU면 N≥4 또는 GPU 권장). 활성 전 현장 오탐·핫패스 비용 실측. (재사용 확장: proximity·crowd 등 다른 소형객체 기능에도 동일 헬퍼 적용 가능 — 후속.)
+- **운영 가이드**: `VIGENT_ZONE_TILE=1` 로 활성, `VIGENT_ZONE_TILE_EVERY=N`(CPU면 N≥4 또는 GPU 권장). 활성 전 현장 오탐·핫패스 비용 실측.
+- **확장 보류(proximity·crowd)**: 동일 헬퍼를 협착(proximity)·인원밀집(crowd) 등 다른 소형객체 기능에도 적용 가능하나, **현장 오탐 확인(활성 후 실측) 전까지 보류.** zone_intrusion 에서 저임계 타일의 오탐율이 현장에서 검증된 뒤 확장 판단.
 
 ## B5. worker 반환 타입힌트 보강 — ✅ 부분완료(2026-07-17)
 - **한 것**: worker 미힌트 함수 **29→13** (16개에 힌트 부여, 동작 불변). numpy 는 이미 최상위 import 라 `np.ndarray` 직접 사용. mypy 0·ruff 0·76 tests.
@@ -146,11 +147,14 @@
   - `WorkerManager.__init__` — 위 그룹과 함께 남김(경미).
 - **결론(규칙4·무리하지 말 것)**: 나머지는 cv2 스텁 부재·guard 덕타입이라 억지 Any/type:ignore 를 쓰지 않고 lenient(본문검사)로 유지. worker strict 승격은 **cv2 타입 스텁 or guard Protocol 도입 후** 재개.
 
-## B6. vlm_text 헬퍼 미적용 11곳 — [낮]
-- **무엇**: P1-6에서 만든 `rfdetr_service.vlm_text()`(텍스트 요약 흡수) 미적용 소비처 — `summarize_bgr` 직접 호출이 남은 곳(behavior.py·scene_vlm.py·vlm_confirm.py·incident.py·routers/office·safety_core·detect 등).
-- **왜 미뤘나**: P1-6은 "텍스트형 사이트에만 적용"으로 종결(`60eaa04`). 나머지는 **dict(구조화) 반환이 필요한 소비처**라 `str|None` 반환의 vlm_text로는 못 흡수 — 의도적 범위 제외.
-- **리스크**: 낮음. 무리한 통합은 오히려 저하.
-- **권장 접근**: dict 반환이 필요한 곳을 흡수할 `vlm_dict()` 류 2차 헬퍼가 정말 중복을 줄이는지 먼저 검토 후, 이득이 분명할 때만.
+## B6. vlm_text 헬퍼 미적용 11곳 — ⛔ 재평가 후 종결(적용 안 함, 2026-07-17)
+- **재평가 대상**: `summarize_bgr` 직접 호출 잔여(scene_vlm ×2·behavior·incident·vlm_confirm ×2·routers office/safety_core/detect). `vlm_dict()` 2차 헬퍼가 실익 있는지 검토(구현 금지, 재평가만).
+- **분석**: 흡수 가능한 preamble(지역 import + 호출 + except + `_error`/dict 가드) ~6줄 × ~5곳 = ~20줄 절감(모뎀). 그러나:
+  - **폴백이 사이트마다 다름**(None/""/`_fallback(msg)`/`_parse_accident`) → `vlm_dict→None` 은 vlm_confirm 의 `_error` 메시지를 잃음(불완전 흡수).
+  - scene_vlm 은 dict 받아 raw 재파싱, vlm_confirm 은 2단 try(로드/추론 분리) → 1:1 부적합.
+  - behavior.py 는 실은 **str 소비처**(raw 추출·join) — dict 아님, 기존 `vlm_text()` 케이스(별개·경미).
+- **결론**: 흡수 대상이 전부 **폴백-크리티컬 프로덕션 VLM 경로**(재해분석·장면이해·PPE확정·라우터). 저우선 정리를 위해 7곳을 건드릴 리스크 > 모뎀한 dedup 이득. **적용 안 함으로 종결**(규칙: 무리하지 말 것·구현 강행 금지·애매하면 종결). 남은 중복은 의도적 수용.
+- **선택적 후속(강제 아님)**: behavior.py 1곳만 기존 `vlm_text()`(str)로 교체하면 자연스러우나, 단독 이득이 작아 보류.
 
 ## B7. ml/rfdetr_zone_track.py 중복 comprehension 제거 — ✅ 완료(2026-07-17)
 - **한 것**: `zone_points` 를 **의존 없는 순수 모듈 `zone_geom.py`** 로 분리(fastapi/app_state 무관).
