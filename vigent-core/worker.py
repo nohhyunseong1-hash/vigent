@@ -47,7 +47,7 @@ _COOLDOWN_S = float(tuning.val("detect", "cooldown_s", 15.0))
 _FALL_ANGLE = float(tuning.val("fall", "angle_deg", 55))   # 쓰러짐 몸통각 임계
 
 
-def _point_in_poly(x: float, y: float, poly) -> bool:
+def _point_in_poly(x: float, y: float, poly: list) -> bool:
     """정규화 좌표(0~1) 점이 폴리곤 내부인지 — ray casting."""
     n = len(poly)
     inside = False
@@ -73,7 +73,7 @@ def _load_zone() -> list[tuple[float, float]]:
         return []
 
 
-def _frame_to_dataurl(frame) -> str | None:
+def _frame_to_dataurl(frame: "np.ndarray") -> str | None:
     """BGR 프레임 → JPEG data URL(증거 저장용)."""
     ok, buf = cv2.imencode(".jpg", frame, [cv2.IMWRITE_JPEG_QUALITY, 75])
     return ("data:image/jpeg;base64," + base64.b64encode(buf.tobytes()).decode()) if ok else None
@@ -108,9 +108,9 @@ def _derive(out: dict, zone: list, aspect_hw: float | None = None) -> list[tuple
     return fired
 
 
-def _person_metrics(xy, cf, H, min_kp=0.3):
+def _person_metrics(xy: "np.ndarray", cf: "np.ndarray", H: int, min_kp: float = 0.3) -> "dict[str, Any] | None":
     """사람 1명의 키포인트 → 자세 지표. None 이면 판단 불가(어깨·엉덩이 미검출)."""
-    def gp(idxs):
+    def gp(idxs: list) -> "np.ndarray | None":
         pts = [xy[j] for j in idxs if cf[j] >= min_kp]
         return np.mean(pts, axis=0) if pts else None
     sc = gp([5, 6])          # 어깨중심
@@ -139,11 +139,11 @@ class _PoseModel:
 
     출력 계약은 기존과 동일(사람별 metrics dict + kp_xy/kp_cf) → FallTracker/ErgonomicsTracker 무변경."""
 
-    def __init__(self):
-        self._m = None
+    def __init__(self) -> None:
+        self._m: Any = None            # RtmPoseDetector(지연 import) → Any
         self._failed = False
 
-    def persons(self, frame, boxes=None, min_kp=0.3):
+    def persons(self, frame: "np.ndarray", boxes: list | None = None, min_kp: float = 0.3) -> "list[dict[str, Any]]":
         """boxes: 사람 픽셀 박스 [[x1,y1,x2,y2],..](guard.detect person 유래). None/[] → []."""
         if self._m is None and not self._failed:
             try:
@@ -183,11 +183,11 @@ class FallTracker:
     MATCH = 0.18         # 사람 프레임간 매칭 거리(대각선 정규화)
     HIST_S = 3.0
 
-    def __init__(self, vlm=False):
-        self._tracks = []
+    def __init__(self, vlm=False) -> None:
+        self._tracks: list = []
         self._vlm = vlm
 
-    def update(self, frame, ts, boxes=None):
+    def update(self, frame, ts, boxes=None) -> "tuple[bool, str]":
         """프레임 처리 → (낙상여부, 사유). 모델/키포인트 없으면 (False,'').
         boxes: guard.detect person 박스(픽셀) — RTMPose top-down 입력."""
         H, W = frame.shape[:2]
@@ -251,7 +251,7 @@ class ErgonomicsTracker:
     MATCH = 0.18            # 사람 프레임간 매칭 거리(대각선 정규화) — 낙상과 동일
     _MIN_INTERVAL = 0.5    # 평가 최소 간격(초): 저빈도 스로틀로 추가 포즈추론 비용 최소화
 
-    def __init__(self, theme: str = "safety"):
+    def __init__(self, theme: str = "safety") -> None:
         import ergonomics as _erg
         self._erg = _erg
         cfg = _erg.load_ergonomics(theme)
@@ -265,7 +265,7 @@ class ErgonomicsTracker:
         self._tracks: list[dict] = []
         self._last_ts = 0.0
 
-    def update(self, frame, ts, boxes=None):
+    def update(self, frame, ts, boxes=None) -> "list[tuple[str, str, str]]":
         """반환: [(rule, level, note), ...] — hold 지속이 확정된 사람만. 없으면 [].
         boxes: guard.detect person 박스(픽셀) — RTMPose top-down 입력."""
         if not self._enabled:
@@ -336,7 +336,7 @@ class MotionTracker:
     RAPID_T = 1.0
     HIST_S = 60.0
 
-    def __init__(self):
+    def __init__(self) -> None:
         self._tracks: list[dict] = []
 
     def update(self, detections, ts) -> list[tuple[str, str, str]]:
@@ -453,7 +453,7 @@ class _StreamCapture:
         except Exception as _we:  # noqa: BLE001
             _WLOG.debug("worker 무시 예외 [cap release]: %s", _we)
 
-    def read_latest(self):
+    def read_latest(self) -> "tuple[np.ndarray | None, float]":
         """(frame, slot_ts) 반환. 아직 첫 프레임 없으면 (None, 0.0).
         캡처가 매 프레임 새 배열을 슬롯에 넣으므로 반환 참조는 이후 덮어써도 안전(불변)."""
         with self._lock:

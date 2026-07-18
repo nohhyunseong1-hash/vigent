@@ -136,11 +136,15 @@
   - 게이트: ruff0·mypy19·73→76 tests·OpenAPI106·순환0. 기본 off 라 프로덕션 동작 변화 0.
 - **운영 가이드**: `VIGENT_ZONE_TILE=1` 로 활성, `VIGENT_ZONE_TILE_EVERY=N`(CPU면 N≥4 또는 GPU 권장). 활성 전 현장 오탐·핫패스 비용 실측. (재사용 확장: proximity·crowd 등 다른 소형객체 기능에도 동일 헬퍼 적용 가능 — 후속.)
 
-## B5. worker 반환 타입힌트 보강(28개) — [낮~중]
-- **무엇**: `worker.py`의 미힌트 함수 28개에 반환 타입 부여(현재는 '관대' 모드로 본문만 검사).
-- **왜 미뤘나**: P2-12에서 `_setup_run`(9-tuple)·`persons`/`_person_metrics`(numpy)·캡처(`cv2.VideoCapture`) 등 여러 함수가 **정확 타입에 Any가 불가피** → 규칙4(Any 남발 금지)로 반환힌트 강제를 제외하고 body-check만 편입.
-- **리스크**: 낮음(힌트만, 동작 불변). 단 numpy(`np.ndarray`)·cv2 반환은 `TYPE_CHECKING` import + Protocol/별칭 설계 필요.
-- **권장 접근**: 정확 타입이 명확한 함수부터 점진 부여(`__init__ -> None` 등) → 명확해지면 worker를 strict override로 승격. numpy/cv2 반환은 타입 별칭 도입 후.
+## B5. worker 반환 타입힌트 보강 — ✅ 부분완료(2026-07-17)
+- **한 것**: worker 미힌트 함수 **29→13** (16개에 힌트 부여, 동작 불변). numpy 는 이미 최상위 import 라 `np.ndarray` 직접 사용. mypy 0·ruff 0·76 tests.
+  - 부여: `_point_in_poly`·`_frame_to_dataurl`·`_person_metrics`/`gp`(np.ndarray)·`persons`·`read_latest`(tuple)·`FallTracker/ErgonomicsTracker.update`(반환)·`_PoseModel`/`FallTracker`/`MotionTracker`/`ErgonomicsTracker.__init__ -> None`(+ `self._m: Any`·`self._tracks: list` 변수annotation).
+- **잔여 13개(불가피 — 그대로 둠, 사유)**:
+  - **cv2.VideoCapture 경로(스텁 없음 → Any + None→객체 재대입)**: `_open`·`_setup_run`(9-tuple w/ cv2)·`_loop`(cap 재접속 재대입)·`Worker.__init__`(self._cap)·`_StreamCapture.__init__/start/_run/stop`. 반환/변수 힌트를 붙이면 mypy 가 해당 함수를 typed 승격 → `cap=None`(None추론)↔`cv2.VideoCapture` 재대입 충돌. cv2 는 스텁이 없어(전역 `disable_error_code=import-untyped`) 깨끗한 해결 불가.
+  - **_FrameCtx.__init__**: 파라미터를 타이핑하면 그 호출부 `_setup_run`(cv2 캡처 함수)가 strict 로 승격돼 위 cap 충돌을 유발(cascade) → 미타이핑 유지.
+  - **guard(에이전트, 느슨한 덕타입) 인자**: `_process_frame`·`_run_supervised`·`_hang_watch`. guard 는 깨끗이 import 가능한 타입이 없어(Protocol 도입 전) Any → 보류.
+  - `WorkerManager.__init__` — 위 그룹과 함께 남김(경미).
+- **결론(규칙4·무리하지 말 것)**: 나머지는 cv2 스텁 부재·guard 덕타입이라 억지 Any/type:ignore 를 쓰지 않고 lenient(본문검사)로 유지. worker strict 승격은 **cv2 타입 스텁 or guard Protocol 도입 후** 재개.
 
 ## B6. vlm_text 헬퍼 미적용 11곳 — [낮]
 - **무엇**: P1-6에서 만든 `rfdetr_service.vlm_text()`(텍스트 요약 흡수) 미적용 소비처 — `summarize_bgr` 직접 호출이 남은 곳(behavior.py·scene_vlm.py·vlm_confirm.py·incident.py·routers/office·safety_core·detect 등).
