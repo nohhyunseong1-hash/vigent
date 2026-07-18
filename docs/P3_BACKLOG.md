@@ -19,7 +19,7 @@
 | ~~B9~~ | ~~구역-타일링 검출 강화~~ ✅ 구현완료(기본 off, VIGENT_ZONE_TILE) | — | — | 커밋 ①②③ |
 | B5 | worker 반환 타입힌트 보강(28) | 낮~중 | 낮음 | P2-12 |
 | B6 | vlm_text 헬퍼 미적용 11곳 | 낮 | 낮음 | P1-6 |
-| B7 | ml/rfdetr_zone_track 중복 제거 | 낮 | 낮음 | P2-11 |
+| ~~B7~~ | ~~ml/rfdetr_zone_track 중복 제거~~ ✅ 완료(zone_geom 순수모듈) | — | — | P2-11 |
 
 기존 다른 트랙의 백로그(참조)는 맨 아래 별도.
 
@@ -152,11 +152,12 @@
 - **리스크**: 낮음. 무리한 통합은 오히려 저하.
 - **권장 접근**: dict 반환이 필요한 곳을 흡수할 `vlm_dict()` 류 2차 헬퍼가 정말 중복을 줄이는지 먼저 검토 후, 이득이 분명할 때만.
 
-## B7. ml/rfdetr_zone_track.py 중복 comprehension 제거 — [낮]
-- **무엇**: `ml/rfdetr_zone_track.py:38`의 "zone json → (x,y) 튜플" comprehension이 `web_util._zone_points`와 중복.
-- **왜 미뤘나**: P2-11에서 `web_util._zone_points`로 통합했으나, 주변 ml 스크립트에 `web_util`(→fastapi·app_state)을 끌어들이지 않으려 이 파일은 제외.
-- **리스크**: 낮음.
-- **권장 접근**: 순수 헬퍼 `_zone_points`를 **의존 없는 경량 모듈**(예: `zone_util.py`)로 분리하고, worker·rfdetr_service·ml·web_util 4곳이 그걸 재사용. fastapi 유입 없이 완전 통합 달성.
+## B7. ml/rfdetr_zone_track.py 중복 comprehension 제거 — ✅ 완료(2026-07-17)
+- **한 것**: `zone_points` 를 **의존 없는 순수 모듈 `zone_geom.py`** 로 분리(fastapi/app_state 무관).
+  - web_util: `def zone_points` 제거 → `from zone_geom import zone_points`(재export, worker·rfdetr_service 는 여전히 `from web_util import zone_points` 로 무변경).
+  - ml/rfdetr_zone_track: `sys.path` 에 vigent-core 추가(worker._PoseModel 과 동일 기존 패턴) → `from zone_geom import zone_points` 로 인라인 comprehension 대체.
+- **결과**: worker·rfdetr_service·web_util·ml **4곳이 단일 순수 함수 공유**, fastapi 유입 0. zone_geom mypy strict 편입.
+- **게이트**: ruff 0 · mypy 20파일 0 · 76 tests · OpenAPI 106 · 순환 0.
 
 ---
 

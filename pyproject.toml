@@ -38,6 +38,7 @@ files = [
     "vigent-core/web_util.py",
     "vigent-core/runtime_config.py",
     "vigent-core/zone_tile.py",
+    "vigent-core/zone_geom.py",
     "vigent-core/routers/vitals.py",
     "vigent-core/routers/dispatch.py",
     "vigent-core/routers/system.py",
@@ -62,6 +63,7 @@ module = [
     "web_util",
     "runtime_config",
     "zone_tile",
+    "zone_geom",
 ]
 disallow_untyped_defs = true
 disallow_incomplete_defs = true

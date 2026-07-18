@@ -17,6 +17,7 @@ import runtime_config
 from app_state import STATE
 from app_state import load_theme as _load_theme
 from fastapi import HTTPException
+from zone_geom import zone_points  # noqa: F401  재export(worker·rfdetr_service 가 web_util 에서 import·B7)
 
 if TYPE_CHECKING:                     # numpy 는 타입검사 전용(런타임 import 는 함수 내부 유지 — 동작·기동비용 불변)
     import numpy as np
@@ -70,11 +71,6 @@ def incident_boxes(out: dict, prox: list) -> list:
                   or any(pb and overlap(bb, pb) for pb in prox_persons))
         boxes.append({"class": cls, "bbox": [round(v, 4) for v in bb], "hazard": bool(hazard)})
     return boxes
-
-def zone_points(z: dict) -> list[tuple[float, float]]:
-    """위험구역 json dict → 정규화 (x,y) 튜플 목록. worker·rfdetr_service 공용(P2-11 중복 제거).
-    ※ 파일 읽기·에러처리·경로결정은 각 호출자가 유지(계약이 달라 함수 자체는 통합 안 함).순수 변환만 공유."""
-    return [(p["x"], p["y"]) for p in z.get("points", [])]
 
 def _zone_cfg_path(theme: str, key: str) -> str | None:
     bundle = STATE.get(theme) or _load_theme(theme)

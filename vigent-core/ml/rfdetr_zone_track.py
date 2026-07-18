@@ -23,6 +23,8 @@ from rfdetr.util.coco_classes import COCO_CLASSES
 from trackers import SORTTracker
 
 ROOT = Path(__file__).resolve().parent.parent.parent
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))   # vigent-core (zone_geom 등 순수 코어 모듈)
+from zone_geom import zone_points  # noqa: E402  (sys.path 설정 후) — B7 web_util 과 공유
 
 
 def load_zone_config(theme: str = "safety"):
@@ -35,7 +37,7 @@ def load_zone_config(theme: str = "safety"):
     pts_norm = []
     if zone_path and (ROOT / zone_path).exists():
         z = yaml.safe_load(open(ROOT / zone_path, encoding="utf-8"))  # json 도 yaml 로 읽힘
-        pts_norm = [(p["x"], p["y"]) for p in z.get("points", [])]
+        pts_norm = zone_points(z)   # B7: web_util 과 공유(순수 zone_geom — fastapi 유입 없음)
     return pts_norm, thr
 
 
