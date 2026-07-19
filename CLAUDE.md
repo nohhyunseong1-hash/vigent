@@ -1,6 +1,6 @@
 # CLAUDE.md — VIGENT 프로젝트 규칙서
 
-> 이 파일은 Claude Code가 매 대화마다 자동으로 읽는다. 상세 설계는 `VIGENT_META_PROMPT.md`를 따른다.
+> 이 파일은 Claude Code가 매 대화마다 자동으로 읽는다. 상세 설계는 `md/VIGENT_META_PROMPT.md`를 따른다.
 
 ## 프로젝트
 - **VIGENT**: Vision + AI Agent 산업특화 플랫폼. 공유 코어 1개 + 테마(safety/office/sports)별 `vision.yaml` 분기.
@@ -14,7 +14,7 @@
 ## 절대 규칙 (반드시 준수)
 1. **기존 MVP 폴더 `~/Desktop/사업계획서/AX안전` 은 읽기 전용.** 절대 수정·삭제하지 않는다. 자산은 **복사**해서 가져온다.
 2. **파괴적 작업은 먼저 보여주고 확인받는다** — 파일 삭제, 덮어쓰기, 대량 변경, 외부 전송/설치는 실행 전 계획을 보여주고 내 "진행해"를 기다린다.
-3. **한 번에 한 단계만.** `VIGENT_META_PROMPT.md` §15 빌드 순서를 한 단계씩 진행하고, 끝나면 멈춰서 결과를 보고한다. 다음 단계로 임의로 넘어가지 않는다.
+3. **한 번에 한 단계만.** `md/VIGENT_META_PROMPT.md` §15 빌드 순서를 한 단계씩 진행하고, 끝나면 멈춰서 결과를 보고한다. 다음 단계로 임의로 넘어가지 않는다.
 4. **의미 있는 진행마다 git 커밋.** 동작 확인이 끝나면 변경사항을 커밋한다(커밋 메시지는 한국어).
 5. **비밀키·토큰은 코드/채팅에 쓰지 않는다.** `.env` 파일에 두고 `.gitignore`에 추가한다.
 6. **기능은 좋아지는 방향으로만.** 어떤 작업이든 기존 동작·인식·정확도·속도를 저하시킬 우려가 있으면, 실행하기 전에 "무엇이 좋아지고 무엇이 나빠질 수 있는지"를 먼저 보고하고 내 승인을 받는다. 저하가 불가피한 트레이드오프는 임의로 진행하지 않는다. 변경 후 저하가 확인되면 즉시 직전 상태로 되돌린다.
@@ -37,8 +37,8 @@
 ## 폴더 구조 (목표)
 ```
 ~/Desktop/VIGENT/                  ← 작업 폴더 (여기)
-  CLAUDE.md
-  VIGENT_META_PROMPT.md
+  CLAUDE.md          README.md          (루트 고정 — 자동로드·GitHub 첫화면)
+  md/                VIGENT_META_PROMPT.md · DEPLOYMENT.md · RELEASES.md 등 문서 모음
   vigent-core/
     main.py            앱 인프라만(302줄): app 생성 · include_router · 미들웨어 · startup · `/` 루트
     app_state.py       공유 런타임 상태(STATE·DETECT_LOCK·load_theme 등) — main 미import

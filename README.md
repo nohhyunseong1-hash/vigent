@@ -52,7 +52,7 @@ curl -s http://127.0.0.1:8010/health | /opt/anaconda3/bin/python3 -m json.tool
 | 문서 | 내용 |
 |---|---|
 | [docs/ONBOARDING.md](docs/ONBOARDING.md) | 신규 개발자용 — 아키텍처·핵심 흐름·엔드포인트 지도 |
-| [DEPLOYMENT.md](DEPLOYMENT.md) | 표준 기동·확인(/health 3슬롯)·재기동·좀비 방지·환경변수 |
+| [DEPLOYMENT.md](md/DEPLOYMENT.md) | 표준 기동·확인(/health 3슬롯)·재기동·좀비 방지·환경변수 |
 | [docs/CODE_REVIEW.md](docs/CODE_REVIEW.md) | 코드 검토 스냅샷(이슈·우선순위) |
 | [benchmarks/FINDINGS.md](benchmarks/FINDINGS.md) | 측정·이관 과정의 리스크와 후속 태스크(F-1~) |
 | [CLAUDE.md](CLAUDE.md) | AI 도구(에이전트) 작업 규칙 |

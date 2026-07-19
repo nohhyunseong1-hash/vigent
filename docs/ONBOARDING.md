@@ -1,7 +1,7 @@
 # VIGENT 온보딩 가이드 (신규 개발자용)
 
 > 이 문서만 따라 하면 로컬에서 서버를 띄우고 핵심 흐름을 이해할 수 있도록 작성했다.
-> 상세 검토·이슈 목록은 [CODE_REVIEW.md](CODE_REVIEW.md), 배포 절차는 [../DEPLOYMENT.md](../DEPLOYMENT.md), AI 도구 규칙은 [../CLAUDE.md](../CLAUDE.md) 참조.
+> 상세 검토·이슈 목록은 [CODE_REVIEW.md](CODE_REVIEW.md), 배포 절차는 [../DEPLOYMENT.md](../md/DEPLOYMENT.md), AI 도구 규칙은 [../CLAUDE.md](../CLAUDE.md) 참조.
 
 ---
 
