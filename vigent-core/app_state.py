@@ -18,10 +18,12 @@ DEFAULT_THEME = os.environ.get("VIGENT_THEME", "safety")
 # 코어가 들고 있는 런타임 상태(테마별 파이프라인 + 에이전트)
 STATE: dict[str, dict] = {}
 
-# YOLO 추론 직렬화 락 — ultralytics 모델 로딩/추론은 동시성 안전하지 않다.
-# 브라우저가 6fps로 동시에 /detect/frame 을 호출하면 같은 모델을 여러 스레드가
-# 동시에 로드/추론하다 네이티브 크래시가 난다 → 락으로 한 번에 하나씩만.
-DETECT_LOCK = threading.Lock()
+# 네이티브 추론 직렬화 락(F-14) — 모든 MPS 추론엔진(guard.detect·rfdetr_service.detect·
+#   VLM summarize/quick)을 '한 번에 하나만' 실행시킨다. MPS 다모델 동시추론은 GIL 밖 네이티브
+#   스레드에서 크래시(F-14: PyThreadState_Get GIL released)를 낸다.
+#   ★ RLock: 워커 낙상확정 경로가 `with lock:` 안에서 VLM(같은 락)을 재획득하므로 재진입 필요
+#     (worker._process_frame → ftrack.update → vlm_confirm → rfdetr_service.vlm). Lock 이면 자기 데드락.
+DETECT_LOCK = threading.RLock()
 
 
 def load_theme(theme: str) -> dict:

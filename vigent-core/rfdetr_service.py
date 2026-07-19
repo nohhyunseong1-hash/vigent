@@ -13,6 +13,7 @@ from typing import Any
 
 import numpy as np
 import runtime_config
+from app_state import DETECT_LOCK  # F-14: 네이티브 추론 직렬화(RLock) — MPS 다모델 동시추론 크래시 차단
 from web_util import zone_points
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -74,82 +75,84 @@ class RFDetrService:
 
     def detect(self, image_bgr: np.ndarray) -> dict[str, Any]:
         """프레임 추론. 반환: 정규화 bbox·라벨·id 목록 + 위험구역 침입."""
-        self._ensure()
-        import cv2
-        import supervision as sv
-        from PIL import Image
-        from rfdetr.util.coco_classes import COCO_CLASSES
+        with DETECT_LOCK:   # F-14: 네이티브 추론 직렬화
+            self._ensure()
+            import cv2
+            import supervision as sv
+            from PIL import Image
+            from rfdetr.util.coco_classes import COCO_CLASSES
 
-        h, w = image_bgr.shape[:2]
-        pts, thr = _load_zone_and_threshold("safety")   # 매 프레임 설정 반영(화면서 구역 바꾸면 즉시)
-        det = self._model.predict(
-            Image.fromarray(cv2.cvtColor(image_bgr, cv2.COLOR_BGR2RGB)), threshold=thr)
-        # 추적: SORTTracker 로 프레임 간 track id 부여(침입자 식별). 감사 A: 과거엔 생성만 하고
-        # 호출하지 않아 id 가 항상 -1이었음 → 실제 update 로 배선. 실패/빈 결과면 raw 탐지 유지(폴백).
-        try:
-            tracked = self._tracker.update(det)
-            if tracked is not None and len(tracked) > 0:
-                det = tracked
-        except Exception:  # noqa: BLE001  추적 실패해도 탐지는 유지(절대 저하 없음)
-            pass
-        tids = getattr(det, "tracker_id", None)
-        names = [COCO_CLASSES[c] for c in det.class_id]   # 80종 전부 유지(사람만 거르지 않음)
+            h, w = image_bgr.shape[:2]
+            pts, thr = _load_zone_and_threshold("safety")   # 매 프레임 설정 반영(화면서 구역 바꾸면 즉시)
+            det = self._model.predict(
+                Image.fromarray(cv2.cvtColor(image_bgr, cv2.COLOR_BGR2RGB)), threshold=thr)
+            # 추적: SORTTracker 로 프레임 간 track id 부여(침입자 식별). 감사 A: 과거엔 생성만 하고
+            # 호출하지 않아 id 가 항상 -1이었음 → 실제 update 로 배선. 실패/빈 결과면 raw 탐지 유지(폴백).
+            try:
+                tracked = self._tracker.update(det)
+                if tracked is not None and len(tracked) > 0:
+                    det = tracked
+            except Exception:  # noqa: BLE001  추적 실패해도 탐지는 유지(절대 저하 없음)
+                pass
+            tids = getattr(det, "tracker_id", None)
+            names = [COCO_CLASSES[c] for c in det.class_id]   # 80종 전부 유지(사람만 거르지 않음)
 
-        # 위험구역 침입은 '사람'에만 적용 → 좌표가 구역 안인지 판정
-        zone = None
-        if len(pts) >= 3:
-            zone = sv.PolygonZone(polygon=(np.array(pts) * [w, h]).astype(int))
-            zone.trigger(det)            # 내부 카운트 갱신(개별 마스크는 아래서 직접 계산)
-        poly = (np.array(pts) * [w, h]) if len(pts) >= 3 else None
+            # 위험구역 침입은 '사람'에만 적용 → 좌표가 구역 안인지 판정
+            zone = None
+            if len(pts) >= 3:
+                zone = sv.PolygonZone(polygon=(np.array(pts) * [w, h]).astype(int))
+                zone.trigger(det)            # 내부 카운트 갱신(개별 마스크는 아래서 직접 계산)
+            poly = (np.array(pts) * [w, h]) if len(pts) >= 3 else None
 
-        def _in_zone(box):
-            if poly is None:
-                return False
-            cx, cy = (box[0] + box[2]) / 2, box[3]          # 발 위치(하단 중앙)
-            return bool(_point_in_poly(cx, cy, poly))
+            def _in_zone(box):
+                if poly is None:
+                    return False
+                cx, cy = (box[0] + box[2]) / 2, box[3]          # 발 위치(하단 중앙)
+                return bool(_point_in_poly(cx, cy, poly))
 
-        out, n_in, ids_in = [], 0, []
-        for i in range(len(det)):
-            label = names[i]
-            x1, y1, x2, y2 = (float(v) for v in det.xyxy[i])
-            tid = int(tids[i]) if tids is not None and tids[i] is not None else -1
-            inz = (label == "person") and _in_zone((x1, y1, x2, y2))
-            if inz:
-                n_in += 1
-                if tid >= 0:
-                    ids_in.append(tid)
-            out.append({
-                "label": label,
-                "conf": round(float(det.confidence[i]), 2),
-                "id": tid,
-                "in_zone": inz,
-                "bbox": [round(x1 / w, 4), round(y1 / h, 4), round(x2 / w, 4), round(y2 / h, 4)],
-            })
-        person_count = sum(1 for d in out if d["label"] == "person")
-        return {"detections": out, "person_count": person_count,
-                "intrusion": {"count": n_in, "ids": ids_in},
-                "device": getattr(self, "device", "?")}
+            out, n_in, ids_in = [], 0, []
+            for i in range(len(det)):
+                label = names[i]
+                x1, y1, x2, y2 = (float(v) for v in det.xyxy[i])
+                tid = int(tids[i]) if tids is not None and tids[i] is not None else -1
+                inz = (label == "person") and _in_zone((x1, y1, x2, y2))
+                if inz:
+                    n_in += 1
+                    if tid >= 0:
+                        ids_in.append(tid)
+                out.append({
+                    "label": label,
+                    "conf": round(float(det.confidence[i]), 2),
+                    "id": tid,
+                    "in_zone": inz,
+                    "bbox": [round(x1 / w, 4), round(y1 / h, 4), round(x2 / w, 4), round(y2 / h, 4)],
+                })
+            person_count = sum(1 for d in out if d["label"] == "person")
+            return {"detections": out, "person_count": person_count,
+                    "intrusion": {"count": n_in, "ids": ids_in},
+                    "device": getattr(self, "device", "?")}
 
     def detect_persons(self, image_bgr: np.ndarray, thr: float = 0.1) -> list[dict[str, Any]]:
         """저임계 person 검출(정규화 bbox·무추적) — B9 위험구역 타일 재검출 전용 가산 경로.
         ★지연 로드: 호출 시에만 _ensure()(모델 로드). 안 부르면 로드·메모리 영향 0.
         ★이종 검출기 주의: 일반 detect()/guard 검출기와 별개인 RF-DETR 저임계 경로다.
           반환 conf 는 RF-DETR 척도이므로 guard(YOLO 등) conf 와 직접 비교 불가."""
-        self._ensure()
-        import cv2
-        from PIL import Image
-        from rfdetr.util.coco_classes import COCO_CLASSES
-        h, w = image_bgr.shape[:2]
-        det = self._model.predict(
-            Image.fromarray(cv2.cvtColor(image_bgr, cv2.COLOR_BGR2RGB)), threshold=thr)
-        out = []
-        for i in range(len(det)):
-            if COCO_CLASSES[det.class_id[i]] != "person":
-                continue
-            x1, y1, x2, y2 = (float(v) for v in det.xyxy[i])
-            out.append({"label": "person", "conf": round(float(det.confidence[i]), 3),
-                        "bbox": [x1 / w, y1 / h, x2 / w, y2 / h]})
-        return out
+        with DETECT_LOCK:   # F-14: 네이티브 추론 직렬화
+            self._ensure()
+            import cv2
+            from PIL import Image
+            from rfdetr.util.coco_classes import COCO_CLASSES
+            h, w = image_bgr.shape[:2]
+            det = self._model.predict(
+                Image.fromarray(cv2.cvtColor(image_bgr, cv2.COLOR_BGR2RGB)), threshold=thr)
+            out = []
+            for i in range(len(det)):
+                if COCO_CLASSES[det.class_id[i]] != "person":
+                    continue
+                x1, y1, x2, y2 = (float(v) for v in det.xyxy[i])
+                out.append({"label": "person", "conf": round(float(det.confidence[i]), 3),
+                            "bbox": [x1 / w, y1 / h, x2 / w, y2 / h]})
+            return out
 
 
 class VLMService:
@@ -161,33 +164,35 @@ class VLMService:
     def summarize_bgr(self, image_bgr: np.ndarray, prompt: str | None = None,
                       max_tokens: int = 260, enrich: bool = True,
                       facts: str | None = None) -> dict[str, Any]:
-        import os
-        import sys
-        sys.path.insert(0, str(Path(__file__).resolve().parent / "ml"))
-        import cv2
-        if self._vlm is None:
-            from vlm_risk_summary import RiskVLM
-            self._vlm = RiskVLM()
-        # 고유 파일명(PID) — 동시요청이 서로의 프레임을 덮어써 오분석하는 레이스 방지(감사 E-3/C-4)
-        tmp = Path("/tmp") / f"vigent_vlm_event_{os.getpid()}.jpg"
-        cv2.imwrite(str(tmp), image_bgr)
-        return self._vlm.summarize(str(tmp), prompt=prompt, max_tokens=max_tokens,
-                                   enrich=enrich, facts=facts)
+        with DETECT_LOCK:   # F-14: 네이티브 추론 직렬화
+            import os
+            import sys
+            sys.path.insert(0, str(Path(__file__).resolve().parent / "ml"))
+            import cv2
+            if self._vlm is None:
+                from vlm_risk_summary import RiskVLM
+                self._vlm = RiskVLM()
+            # 고유 파일명(PID) — 동시요청이 서로의 프레임을 덮어써 오분석하는 레이스 방지(감사 E-3/C-4)
+            tmp = Path("/tmp") / f"vigent_vlm_event_{os.getpid()}.jpg"
+            cv2.imwrite(str(tmp), image_bgr)
+            return self._vlm.summarize(str(tmp), prompt=prompt, max_tokens=max_tokens,
+                                       enrich=enrich, facts=facts)
 
     def quick_bgr(self, image_bgr: np.ndarray, prompt: str,
                   max_tokens: int = 64, max_side: int = 640) -> dict[str, Any]:
         """빠른 단발 질의(PPE 등 단답) — 작은 이미지·짧은 토큰·재시도 없음."""
-        import os
-        import sys
+        with DETECT_LOCK:   # F-14: 네이티브 추론 직렬화
+            import os
+            import sys
 
-        import cv2
-        sys.path.insert(0, str(Path(__file__).resolve().parent / "ml"))
-        if self._vlm is None:
-            from vlm_risk_summary import RiskVLM
-            self._vlm = RiskVLM()
-        tmp = Path("/tmp") / f"vigent_vlm_quick_{os.getpid()}.jpg"
-        cv2.imwrite(str(tmp), image_bgr)
-        return self._vlm.quick(str(tmp), prompt, max_tokens=max_tokens, max_side=max_side)
+            import cv2
+            sys.path.insert(0, str(Path(__file__).resolve().parent / "ml"))
+            if self._vlm is None:
+                from vlm_risk_summary import RiskVLM
+                self._vlm = RiskVLM()
+            tmp = Path("/tmp") / f"vigent_vlm_quick_{os.getpid()}.jpg"
+            cv2.imwrite(str(tmp), image_bgr)
+            return self._vlm.quick(str(tmp), prompt, max_tokens=max_tokens, max_side=max_side)
 
 
 # 서버 전역 싱글톤
