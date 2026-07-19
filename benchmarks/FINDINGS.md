@@ -292,6 +292,14 @@ F-8 진단 중, 서버 detect_frame 이 **연속 프레임 추적**(`guard._trac
 - **관련**: [[CLAUDE.md MPS 다모델 크래시]] · `COMMERCIAL_AUDIT.md`의 **"24h 무인 안정성·라이브 추적 계층·다중 카메라 미검증"** 리스크의 **실제 발현 사례**(1h soak 는 합격했으나 실브라우저 동시부하에서 크래시 — 감사 예측 적중).
 - **방어(진행 예정)**: 전역 예외 핸들러(현재 3건)는 **네이티브 크래시를 못 잡음** → watchdog 자동재기동이 실질 방어. `deploy/watchdog.sh` 존재하나 macOS launchd 실증 미완(F-14 §2에서 실증).
 
+### ✅ F-14 해소 — 단일 MPS 추론 락 통합 (2026-07-19, 커밋 361eb32)
+- **확정 원인(코드 분석)**: `guard.detect`·`rfdetr_service.detect`·`VLM(mlx-vlm)` **셋 다 MPS**(guard도 rfdetr_adapter `prefer_mps=True` → device.py의 "guard=CPU" 주석은 YOLO 시절 잔재·오기). `_DETECT_LOCK` 은 **guard(라우터 래핑)만** 직렬화하고 **rfdetr_service·VLM 은 무락** → 두 요청이 MPS 추론을 동시 실행 = F-14. (재현조건 incident/frame+analyze ×2 와 정확히 일치.)
+- **해소**: `app_state.DETECT_LOCK` **Lock→RLock**, `rfdetr_service.detect·detect_persons·summarize_bgr·quick_bgr` 를 이 락으로 래핑 → 모든 네이티브 MPS 추론이 guard 와 **한 락 공유(한 번에 하나만)**. RLock 사유: 워커 낙상확정이 `with lock:` 안에서 VLM(같은 락) 재획득(자기 데드락 방지).
+- **VLM 블록 윈도우(운영 주의, Q1)**: VLM 추론 6~8s 동안 **다른 스레드의 검출이 대기**(같은 락). VLM 트리거는:
+  - **자동 1곳**: 워커 `FallTracker(vlm=_vlm_fall)` 낙상확정 — **기본 off**. on 시 낙상의심 프레임에서 VLM(6~8s) → 워커 자체는 계속(RLock 재진입), 단 **그 6~8s간 `/detect/frame` 등 타 검출 대기**. 사고는 이미 발화 후(쿨다운 15s)라 재경보 누락은 없으나 **직후 라이브 검출 6~8s 공백** 발생 → 라이브 감시 중엔 `_vlm_fall` off 권장 or 트레이드오프 수용.
+  - **나머지 전부 수동**(use_vlm API): incident/analyze·behavior·scene·live-analyze·office·ppe·rfdetr/vlm. 저빈도라 영향 작으나, 호출 중 라이브 검출 대기됨(문서화).
+- **미검증**: 실제 크래시 재현(MPS+커스텀가중치+동시부하)은 불안정·느려 코드분석 기반 해소. 실증은 F-14(3) 혼합 스트레스 스크립트로 크래시 무발생 확인 예정.
+
 ## F-15 — P0 보안 조치 라운드 (path traversal · 의존성 · 토큰) (2026-07-15)
 검증 파이썬 고정: `/opt/anaconda3/bin/python3` **3.13.9**(`.python-version`). 전 단계 34 tests OK.
 

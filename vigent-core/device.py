@@ -4,9 +4,16 @@
 리눅스/Jetson에선 CUDA를 두고 CPU로 강등되거나(C-1), worker는 'cpu' 하드코딩이었다(C-2).
 여기 하나로 모은다. 우선순위: 강제(env) → CUDA → (선택)MPS → CPU.
 
-모델별 제약 보존: ultralytics(YOLO)는 macOS MPS에서 다회추론 시 네이티브 크래시가 관찰되어
-guard·worker(pose)는 prefer_mps=False(맥에선 CPU). rfdetr·pipeline은 MPS 정상이라 True.
-→ 현재 맥 동작은 그대로, 리눅스/CUDA 박스에서만 GPU를 실제로 쓴다(저하 없음, 이식성↑).
+모델별 제약 보존: ultralytics(YOLO)는 macOS MPS에서 다회추론 시 네이티브 크래시가 관찰돼
+YOLO 경로(guard.self.device·worker)는 prefer_mps=False(맥=CPU). RF-DETR·mlx-vlm 은 MPS 정상이라 True.
+→ 리눅스/CUDA 박스에서만 GPU를 실제로 쓴다(저하 없음, 이식성↑).
+
+★ 실측 device 현황(2026-07-19, F-14 진단):
+  - guard.detect = **MPS** — vision.yaml 전 슬롯 backend:rfdetr → RfdetrDetector(prefer_mps=True).
+    (guard.self.device=CPU 는 YOLO 어댑터 전용, RF-DETR 검출엔 미전달. "guard=CPU"로 오해 금지.)
+  - rfdetr_service.detect = **MPS** · VLM(mlx-vlm) = **MPS** · pose(RTMPose/onnxruntime) = **CPU**.
+  → guard·rfdetr_service·VLM 셋 다 MPS 이므로 **동시추론 시 크래시(F-14)**. app_state.DETECT_LOCK(RLock)
+    으로 셋을 한 락에 직렬화(F-14 해소). 새 MPS 추론 경로 추가 시 반드시 이 락으로 감쌀 것.
 """
 from __future__ import annotations
 
