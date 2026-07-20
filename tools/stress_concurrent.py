@@ -78,6 +78,8 @@ def _args():
                    help="요청 타임아웃(초). 첫 VLM/모델로드가 느려 넉넉히. 기본 120")
     p.add_argument("--vlm-ratio", type=float, default=0.1,
                    help="VLM(느린 6~8s) 경로 비율 0~1. 기본 0.1(과다하면 처리량↓). 0=VLM 제외")
+    p.add_argument("--delay", type=float, default=0.0,
+                   help="요청 간 대기(초/스레드) — 소크 병행 시 워커 락기아 방지용 완만한 부하. 기본 0(최대속도)")
     p.add_argument("--endpoints", default="detect,rfdetr,incident_frame,incident_analyze",
                    help="쉼표구분: detect,rfdetr,rfdetr_vlm,incident_frame,incident_analyze,ppe")
     p.add_argument("--img", default="", help="테스트 이미지 경로(없으면 합성 노이즈 생성)")
@@ -191,10 +193,14 @@ class _Shared:
         self.died_at = None      # elapsed 초
 
 
-def _worker(tid: int, sh: _Shared, endpoints, vlm_ratio, url, token, timeout, t_start):
+def _worker(tid: int, sh: _Shared, endpoints, vlm_ratio, url, token, timeout, t_start, delay=0.0):
     i = 0
     n_ep = len(endpoints)
     while not sh.stop.is_set():
+        if delay > 0 and i > 0:
+            sh.stop.wait(delay)   # 요청 간 완만한 대기(중단신호에 즉시 반응)
+            if sh.stop.is_set():
+                break
         name, path, base_payload = endpoints[(tid + i) % n_ep]   # 스레드마다 위상 어긋나게 라운드로빈
         payload = dict(base_payload)
         # analyze/ppe 는 vlm_ratio 확률로 무거운 VLM 경로를 켠다(느린 6~8s 동시 유발)
@@ -267,7 +273,8 @@ def main():
         threads.append(mon)
     for tid in range(a.concurrency):
         th = threading.Thread(target=_worker,
-                              args=(tid, sh, endpoints, vlm_ratio, a.url, a.token, a.timeout, t_start),
+                              args=(tid, sh, endpoints, vlm_ratio, a.url, a.token, a.timeout, t_start,
+                                    a.delay),
                               daemon=True)
         th.start()
         threads.append(th)
