@@ -8,6 +8,8 @@
 from __future__ import annotations
 
 import json
+import queue
+import threading
 from pathlib import Path
 from typing import Any
 
@@ -155,44 +157,92 @@ class RFDetrService:
             return out
 
 
+class _PinnedRunner:
+    """단일 전용 데몬 스레드에서만 작업을 실행한다(호출 스레드는 결과를 기다림).
+
+    ★F-14 근본 해소(2026-07-20, benchmarks/FINDINGS.md 참조): mlx-vlm(Apple MLX) 추론을
+    FastAPI 의 '수명 짧은' 워커 스레드(anyio threadpool)에서 돌리면, 그 스레드가 teardown 될 때
+    네이티브 MLX 스레드가 GIL 없이 파이썬을 호출해 프로세스가 즉사한다(`PyThreadState_Get`, exit 133).
+    격리 실험으로 확정: 검출(PyTorch-MPS) 단독=생존 · VLM(MLX) 단독=크래시 · 고정스레드 경유=생존.
+    → 모든 VLM 추론을 '수명=프로세스 전체'인 이 스레드에서만 실행해 스레드 teardown 자체를 없앤다.
+    DETECT_LOCK 직렬화(검출과 상호배제)는 호출 스레드가 그대로 잡으므로(RLock 재진입 유지) 이 스레드는
+    락을 건드리지 않는다(교차 데드락 없음)."""
+
+    def __init__(self, name: str):
+        self._q: queue.Queue = queue.Queue()
+        self._t = threading.Thread(target=self._loop, name=name, daemon=True)
+        self._t.start()
+
+    def _loop(self):
+        while True:
+            fn, args, kw, ev, box = self._q.get()
+            try:
+                box[0] = fn(*args, **kw)
+            except BaseException as e:  # noqa: BLE001  호출 스레드로 그대로 전파
+                box[1] = e
+            ev.set()
+
+    def run(self, fn, *args, **kw):
+        ev = threading.Event()
+        box: list = [None, None]
+        self._q.put((fn, args, kw, ev, box))
+        ev.wait()
+        if box[1] is not None:
+            raise box[1]
+        return box[0]
+
+
+# VLM(MLX) 전용 고정 스레드 — F-14. 모든 mlx-vlm 실행은 반드시 이 스레드에서만.
+_VLM_RUNNER = _PinnedRunner("vigent-vlm")
+
+
 class VLMService:
-    """mlx-vlm 위험요약. 지연 로드 싱글톤(무겁다)."""
+    """mlx-vlm 위험요약. 지연 로드 싱글톤(무겁다). 실제 MLX 실행은 _VLM_RUNNER(고정 스레드)에서만(F-14)."""
 
     def __init__(self):
         self._vlm = None
 
+    def _ensure(self):
+        """RiskVLM(MLX 모델) 로드 — _VLM_RUNNER 스레드에서만 호출되어야 한다(F-14)."""
+        if self._vlm is None:
+            import sys
+            sys.path.insert(0, str(Path(__file__).resolve().parent / "ml"))
+            from vlm_risk_summary import RiskVLM
+            self._vlm = RiskVLM()
+
+    def _summarize_impl(self, image_bgr, prompt, max_tokens, enrich, facts):
+        import os
+
+        import cv2
+        self._ensure()
+        # 고유 파일명(PID) — 동시요청이 서로의 프레임을 덮어써 오분석하는 레이스 방지(감사 E-3/C-4)
+        tmp = Path("/tmp") / f"vigent_vlm_event_{os.getpid()}.jpg"
+        cv2.imwrite(str(tmp), image_bgr)
+        return self._vlm.summarize(str(tmp), prompt=prompt, max_tokens=max_tokens,
+                                   enrich=enrich, facts=facts)
+
     def summarize_bgr(self, image_bgr: np.ndarray, prompt: str | None = None,
                       max_tokens: int = 260, enrich: bool = True,
                       facts: str | None = None) -> dict[str, Any]:
-        with DETECT_LOCK:   # F-14: 네이티브 추론 직렬화
-            import os
-            import sys
-            sys.path.insert(0, str(Path(__file__).resolve().parent / "ml"))
-            import cv2
-            if self._vlm is None:
-                from vlm_risk_summary import RiskVLM
-                self._vlm = RiskVLM()
-            # 고유 파일명(PID) — 동시요청이 서로의 프레임을 덮어써 오분석하는 레이스 방지(감사 E-3/C-4)
-            tmp = Path("/tmp") / f"vigent_vlm_event_{os.getpid()}.jpg"
-            cv2.imwrite(str(tmp), image_bgr)
-            return self._vlm.summarize(str(tmp), prompt=prompt, max_tokens=max_tokens,
-                                       enrich=enrich, facts=facts)
+        # DETECT_LOCK 은 호출 스레드가 잡아 검출(PyTorch-MPS)과 상호배제 + worker RLock 재진입 유지.
+        # 실제 MLX 추론은 _VLM_RUNNER(고정 데몬 스레드)에서만 — 워커스레드 teardown 크래시 제거(F-14).
+        with DETECT_LOCK:
+            return _VLM_RUNNER.run(self._summarize_impl, image_bgr, prompt, max_tokens, enrich, facts)
+
+    def _quick_impl(self, image_bgr, prompt, max_tokens, max_side):
+        import os
+
+        import cv2
+        self._ensure()
+        tmp = Path("/tmp") / f"vigent_vlm_quick_{os.getpid()}.jpg"
+        cv2.imwrite(str(tmp), image_bgr)
+        return self._vlm.quick(str(tmp), prompt, max_tokens=max_tokens, max_side=max_side)
 
     def quick_bgr(self, image_bgr: np.ndarray, prompt: str,
                   max_tokens: int = 64, max_side: int = 640) -> dict[str, Any]:
         """빠른 단발 질의(PPE 등 단답) — 작은 이미지·짧은 토큰·재시도 없음."""
-        with DETECT_LOCK:   # F-14: 네이티브 추론 직렬화
-            import os
-            import sys
-
-            import cv2
-            sys.path.insert(0, str(Path(__file__).resolve().parent / "ml"))
-            if self._vlm is None:
-                from vlm_risk_summary import RiskVLM
-                self._vlm = RiskVLM()
-            tmp = Path("/tmp") / f"vigent_vlm_quick_{os.getpid()}.jpg"
-            cv2.imwrite(str(tmp), image_bgr)
-            return self._vlm.quick(str(tmp), prompt, max_tokens=max_tokens, max_side=max_side)
+        with DETECT_LOCK:
+            return _VLM_RUNNER.run(self._quick_impl, image_bgr, prompt, max_tokens, max_side)
 
 
 # 서버 전역 싱글톤

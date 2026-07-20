@@ -292,13 +292,27 @@ F-8 진단 중, 서버 detect_frame 이 **연속 프레임 추적**(`guard._trac
 - **관련**: [[CLAUDE.md MPS 다모델 크래시]] · `COMMERCIAL_AUDIT.md`의 **"24h 무인 안정성·라이브 추적 계층·다중 카메라 미검증"** 리스크의 **실제 발현 사례**(1h soak 는 합격했으나 실브라우저 동시부하에서 크래시 — 감사 예측 적중).
 - **방어(진행 예정)**: 전역 예외 핸들러(현재 3건)는 **네이티브 크래시를 못 잡음** → watchdog 자동재기동이 실질 방어. `deploy/watchdog.sh` 존재하나 macOS launchd 실증 미완(F-14 §2에서 실증).
 
-### ✅ F-14 해소 — 단일 MPS 추론 락 통합 (2026-07-19, 커밋 361eb32)
-- **확정 원인(코드 분석)**: `guard.detect`·`rfdetr_service.detect`·`VLM(mlx-vlm)` **셋 다 MPS**(guard도 rfdetr_adapter `prefer_mps=True` → device.py의 "guard=CPU" 주석은 YOLO 시절 잔재·오기). `_DETECT_LOCK` 은 **guard(라우터 래핑)만** 직렬화하고 **rfdetr_service·VLM 은 무락** → 두 요청이 MPS 추론을 동시 실행 = F-14. (재현조건 incident/frame+analyze ×2 와 정확히 일치.)
-- **해소**: `app_state.DETECT_LOCK` **Lock→RLock**, `rfdetr_service.detect·detect_persons·summarize_bgr·quick_bgr` 를 이 락으로 래핑 → 모든 네이티브 MPS 추론이 guard 와 **한 락 공유(한 번에 하나만)**. RLock 사유: 워커 낙상확정이 `with lock:` 안에서 VLM(같은 락) 재획득(자기 데드락 방지).
-- **VLM 블록 윈도우(운영 주의, Q1)**: VLM 추론 6~8s 동안 **다른 스레드의 검출이 대기**(같은 락). VLM 트리거는:
-  - **자동 1곳**: 워커 `FallTracker(vlm=_vlm_fall)` 낙상확정 — **기본 off**. on 시 낙상의심 프레임에서 VLM(6~8s) → 워커 자체는 계속(RLock 재진입), 단 **그 6~8s간 `/detect/frame` 등 타 검출 대기**. 사고는 이미 발화 후(쿨다운 15s)라 재경보 누락은 없으나 **직후 라이브 검출 6~8s 공백** 발생 → 라이브 감시 중엔 `_vlm_fall` off 권장 or 트레이드오프 수용.
-  - **나머지 전부 수동**(use_vlm API): incident/analyze·behavior·scene·live-analyze·office·ppe·rfdetr/vlm. 저빈도라 영향 작으나, 호출 중 라이브 검출 대기됨(문서화).
-- **미검증**: 실제 크래시 재현(MPS+커스텀가중치+동시부하)은 불안정·느려 코드분석 기반 해소. 실증은 F-14(3) 혼합 스트레스 스크립트로 크래시 무발생 확인 예정.
+### ⚠️→✅ F-14 — 1차 가설(단일 락) 반증 후 근본원인 규명·해소 (2026-07-20, 실측)
+
+> **정정(규칙7)**: 2026-07-19 커밋 361eb32 의 "단일 MPS 락으로 F-14 해소" 주장은 **틀렸다**. 새로 만든
+> 동시요청 스트레스 도구(`tools/stress_concurrent.py`)로 **실제 크래시를 재현**해 검증한 결과, 락은
+> 추론을 직렬화하지만 **크래시는 못 막았다**. 아래는 실측 기반 확정 원인·해소.
+
+- **1차 가설(반증됨)**: `_DETECT_LOCK` 이 guard 만 직렬화하고 rfdetr_service·VLM 은 무락이라 동시추론 크래시라 봄. → Lock→RLock + rfdetr_service 4메서드 래핑(361eb32). **스트레스 실측: 요청은 전부 200(직렬화는 됨)인데 서버가 여전히 크래시(exit 133).** 락은 필요하나 불충분.
+- **격리 실험(클린룸 단일프로세스, exit 133 = 크래시)** — `scratchpad/f14_*` 하네스:
+
+  | 실험 | 결과 |
+  |---|---|
+  | 검출만(RF-DETR, PyTorch-MPS) 40회 + teardown | ✅ 생존 |
+  | **VLM만(mlx-vlm, MLX) 24회 + teardown** | ❌ **크래시 133** |
+  | 검출+VLM | ❌ 크래시 |
+  | enrich(법령RAG) on vs off | 둘 다 크래시 → **enrich 무관** |
+  | 다중 MPS 프로세스(초기 교란) | 크래시 악화(더 빨리) — 단 단일도 크래시라 **주원인 아님** |
+  | **VLM 을 전용 고정 데몬 스레드 경유** 24회 | ✅ **생존** |
+- **확정 원인**: `mlx-vlm`(Apple MLX)을 FastAPI 의 **수명 짧은 워커 스레드**(anyio threadpool, sync 핸들러 실행처)에서 돌리면, 그 스레드가 **teardown 될 때 네이티브 MLX 스레드가 GIL 없이 파이썬을 호출**해 프로세스가 즉사(`PyThreadState_Get: GIL released`, exit 133). 크래시 스레드는 항상 `<no Python frame>`(네이티브)이고 시점은 **부하 정점이 아니라 스레드 종료 무렵**. PyTorch-MPS 검출·enrich·다중프로세스는 무관/악화요인. 락이 못 막은 이유가 이것(네이티브 teardown 은 파이썬 락 밖).
+- **해소(실증)**: 모든 VLM 추론을 **수명=프로세스 전체인 단일 전용 데몬 스레드**(`rfdetr_service._VLM_RUNNER`)에서만 실행 → 워커스레드 teardown 자체가 없어 fault 소멸. `DETECT_LOCK`(RLock)은 호출 스레드가 계속 잡아 **검출(PyTorch-MPS)과 VLM(MLX)의 동시 Metal 접근 배제 + worker 재진입** 보조 역할로 존치. 프로세스 격리(트랙의 최후수단)보다 가볍고 **VLM 결과·속도 동일(저하 0)**.
+- **종단 검증**: 미수정 서버 = 동일 부하에서 매번 크래시(종료후 /health 실패). **수정본 서버 = 동일 부하 2회(총 43요청, VLM 포함) 전부 생존 · 종료후 /health 200 · 프로세스 생존.** 재현·회귀가드는 `tools/stress_concurrent.py`.
+- **VLM 블록 윈도우(운영 주의)**: VLM 추론 중 다른 검출은 락 대기(불변). 자동 트리거는 워커 `_vlm_fall`(기본 off) 1곳, 나머지는 수동(use_vlm). 라이브 감시 중엔 `_vlm_fall` off 권장.
 
 ## F-15 — P0 보안 조치 라운드 (path traversal · 의존성 · 토큰) (2026-07-15)
 검증 파이썬 고정: `/opt/anaconda3/bin/python3` **3.13.9**(`.python-version`). 전 단계 34 tests OK.

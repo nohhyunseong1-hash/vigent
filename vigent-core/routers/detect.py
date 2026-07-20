@@ -28,7 +28,10 @@ def detect_frame(payload: dict = Body(...), theme: str = DEFAULT_THEME):
     if img is None:
         raise HTTPException(status_code=400, detail="이미지 디코딩 실패(image_base64/image 확인)")
     # 검출기 선택: 안전 모드(ppe=true)면 person+ppe+fire(보호구·화재), 아니면 person만.
-    # CPU에서 다모델 지속/동시 부하 안정 검증됨. MPS는 다모델 반복추론 시 크래시 → 기본 CPU(guard) 유지.
+    # ★device 정정(F-14, 2026-07-19): guard.detect 는 실제 **MPS**로 돈다(vision.yaml 전 슬롯
+    #   backend:rfdetr → RfdetrDetector prefer_mps=True). 과거 "guard=CPU" 주석은 YOLO 시절 잔재로 오류.
+    #   MPS 다모델 동시추론 크래시(F-14)는 CPU 강등이 아니라 아래 _DETECT_LOCK 로 guard·rfdetr·VLM
+    #   3개 MPS 엔진을 직렬화해 차단한다(app_state.DETECT_LOCK, RLock). device 상세는 device.py 상단.
     # ★ forklift 잠정 비활성(F-7, 2026-07-11 실측): 과소학습으로 정탐/오탐 conf가 완전 겹쳐(정탐 p50 0.002,
     #   max 0.005 = 오탐과 동일) 임계로 분리 불가. 사람 몸통을 conf 0.002로 오인(웹캠 벤치 pos_bare 100%).
     #   → 라이브·safety-local 소비 경로에서 제외해 사람 오인 박스 차단. 임계 0.30 은폐형 off는 기각(명시적 비활성).

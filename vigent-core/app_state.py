@@ -18,11 +18,15 @@ DEFAULT_THEME = os.environ.get("VIGENT_THEME", "safety")
 # 코어가 들고 있는 런타임 상태(테마별 파이프라인 + 에이전트)
 STATE: dict[str, dict] = {}
 
-# 네이티브 추론 직렬화 락(F-14) — 모든 MPS 추론엔진(guard.detect·rfdetr_service.detect·
-#   VLM summarize/quick)을 '한 번에 하나만' 실행시킨다. MPS 다모델 동시추론은 GIL 밖 네이티브
-#   스레드에서 크래시(F-14: PyThreadState_Get GIL released)를 낸다.
+# 추론 직렬화 락 — 모든 MPS 추론엔진(guard.detect·rfdetr_service.detect·VLM summarize/quick)을
+#   '한 번에 하나만' 실행시켜 검출(PyTorch-MPS)과 VLM(MLX)이 Metal 을 동시에 만지지 않게 한다.
+#   ★F-14 본질은 이 락으로 못 막는다: mlx-vlm 을 '수명 짧은' 워커 스레드에서 돌리면 그 스레드
+#     teardown 시 네이티브 MLX 스레드가 GIL 없이 파이썬을 호출해 프로세스가 즉사한다(exit 133).
+#     실제 해소는 rfdetr_service._VLM_RUNNER(VLM 전용 고정 데몬 스레드)다 — 이 락은 '동시 Metal 접근
+#     배제'라는 보조 역할. 상세·실증: benchmarks/FINDINGS.md F-14(2026-07-20).
 #   ★ RLock: 워커 낙상확정 경로가 `with lock:` 안에서 VLM(같은 락)을 재획득하므로 재진입 필요
 #     (worker._process_frame → ftrack.update → vlm_confirm → rfdetr_service.vlm). Lock 이면 자기 데드락.
+#     (VLM 실행은 고정 스레드로 위임되나 락은 여전히 호출 스레드가 잡으므로 재진입 계약 유지.)
 DETECT_LOCK = threading.RLock()
 
 
