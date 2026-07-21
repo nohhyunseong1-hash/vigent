@@ -20,8 +20,16 @@
 | B5 | worker 반환 타입힌트 보강(28) | 낮~중 | 낮음 | P2-12 |
 | ~~B6~~ | ~~vlm_text 헬퍼 미적용 11곳~~ ⛔ 재평가 후 종결(적용 안 함) | — | — | P1-6 |
 | ~~B7~~ | ~~ml/rfdetr_zone_track 중복 제거~~ ✅ 완료(zone_geom 순수모듈) | — | — | P2-11 |
+| B10 | 추적기 MOTA/IDF1 라벨 재확인(SORT→ByteTrack 검증) | 중 | 낮음 | item4 A/B |
 
 기존 다른 트랙의 백로그(참조)는 맨 아래 별도.
+
+<a id="b10"></a>
+## B10. 추적기 MOTA/IDF1 라벨 재확인 — [중]
+- **배경**: item4(2026-07-21) 추적기 A/B(`tools/track_quality.py`)에서 현행 SORT 가 크레인 다중작업자 400f 에서 심각히 단편화(39 ID·ID스위치 13·단편화 3.9)됨을 확인, **ByteTrack**(5 ID·0 스위치·단편화 1.0)으로 교체(rfdetr_service·rfdetr_zone_track). 게이트 통과·저하 없음.
+- **한계(교체 근거의 캐비어트)**: ① **GT 트랙ID 없는 프록시 지표**(ID스위치·단편화는 IoU 매칭 기반, '5명=정답'은 최대동시 가정) ② **다중인 클립 1개**(크레인)뿐 — walk 클립은 단일인이라 변별 없음 ③ 검출은 COCO nano(단 4추적기 동일 입력이라 A/B 자체는 공정).
+- **할 일(라벨/footage 확보 후)**: 다중인 현장 클립에 **트랙ID GT 라벨** → **MOTA·IDF1·IDsw** 정식 산출로 ByteTrack 우위 재확인. 필요 시 ByteTrack 파라미터(`track_activation_threshold`·`lost_track_buffer`·`minimum_iou_threshold`) 현장 튜닝(현재 기본값). `tools/track_quality.py` 를 GT 대조 모드로 확장.
+- **재개 조건**: 다인 top-down 현장 클립 + 트랙ID 라벨(F-1·라이브 추적 백로그와 묶어 진행).
 
 <a id="b8"></a>
 ## B8. 쓰러진/저자세 사람 검출 개선 — [높음·제품]

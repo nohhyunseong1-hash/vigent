@@ -20,7 +20,7 @@ import yaml
 from PIL import Image
 from rfdetr import RFDETRNano
 from rfdetr.util.coco_classes import COCO_CLASSES
-from trackers import SORTTracker
+from trackers import ByteTrackTracker
 
 ROOT = Path(__file__).resolve().parent.parent.parent
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))   # vigent-core (zone_geom 등 순수 코어 모듈)
@@ -67,7 +67,7 @@ def main(source: str, out: str | None = None) -> None:
     model = RFDETRNano(device=device)
     try: model.optimize_for_inference()
     except Exception: pass
-    tracker = SORTTracker()
+    tracker = ByteTrackTracker()   # F-8(item4): SORT→ByteTrack (다중작업자 단편화 개선, tools/track_quality.py)
 
     box_an = sv.BoxAnnotator(thickness=2)
     lbl_an = sv.LabelAnnotator()

@@ -1,7 +1,7 @@
 """rf-detr 백엔드 서비스 — 웹 화면이 호출하는 탐지·추적·위험구역·VLM (permissive).
 
 - 모델은 1회 로드해 재사용(서버 수명 동안).
-- detect(): 프레임 → rf-detr 사람탐지 → SORTTracker 추적 → 위험구역 침입 판정.
+- detect(): 프레임 → rf-detr 사람탐지 → ByteTrack 추적 → 위험구역 침입 판정.
 - summarize(): 이벤트 프레임 → mlx-vlm 위험요약 JSON(무겁고 느림, 프론트가 드물게 호출).
 전부 로컬·permissive(rfdetr/trackers Apache-2.0, supervision/mlx-vlm MIT).
 """
@@ -65,14 +65,19 @@ class RFDetrService:
             return
         import device as _device
         from rfdetr import RFDETRNano
-        from trackers import SORTTracker
+        from trackers import ByteTrackTracker
         dev = _device.pick_device(prefer_mps=True)   # 감사 C-1: CUDA→MPS→CPU (리눅스서 GPU 사용)
         self._model = RFDETRNano(device=dev)
         try:
             self._model.optimize_for_inference()
         except Exception:  # noqa: BLE001
             pass
-        self._tracker = SORTTracker()
+        # F-8(item4, 2026-07-21): SORTTracker→ByteTrackTracker. 크레인 다중작업자 A/B 실측상 SORT 는
+        #   실 ~5명을 39 ID 로 단편화(단편화 3.9·ID스위치 13), ByteTrack 은 5 ID·0 스위치로 안정
+        #   (tools/track_quality.py). zone_intrusion 침입자 식별 정확도 직결. 파라미터는 기본값 유지
+        #   (lost_track_buffer=30·frame_rate=30·track_activation_threshold=0.7·minimum_iou_threshold=0.1
+        #    ·high_conf_det_threshold=0.6·minimum_consecutive_frames=2) — 현장 튜닝은 P3 백로그.
+        self._tracker = ByteTrackTracker()
         self.device = dev
 
     def detect(self, image_bgr: np.ndarray) -> dict[str, Any]:
@@ -88,7 +93,7 @@ class RFDetrService:
             pts, thr = _load_zone_and_threshold("safety")   # 매 프레임 설정 반영(화면서 구역 바꾸면 즉시)
             det = self._model.predict(
                 Image.fromarray(cv2.cvtColor(image_bgr, cv2.COLOR_BGR2RGB)), threshold=thr)
-            # 추적: SORTTracker 로 프레임 간 track id 부여(침입자 식별). 감사 A: 과거엔 생성만 하고
+            # 추적: ByteTrack 으로 프레임 간 track id 부여(침입자 식별). 감사 A: 과거엔 생성만 하고
             # 호출하지 않아 id 가 항상 -1이었음 → 실제 update 로 배선. 실패/빈 결과면 raw 탐지 유지(폴백).
             try:
                 tracked = self._tracker.update(det)
