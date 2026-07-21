@@ -57,8 +57,8 @@
 
 ### 🟡 보안·규정
 
-8. **인증 체계는 최소 수준** — 토큰 `hmac.compare_digest`(P0-3)·클라우드 VLM opt-in(F-12)·path traversal 차단(P0-1)은 되어 있음. **그러나**: 무토큰 로컬모드 DNS-rebinding(Host 미검증, CODE_REVIEW §3.3), 파일럿 네트워크 노출 시 `VIGENT_API_TOKEN` 상시화가 **규칙으로만 있고 강제 아님**. TLS/역프록시 배포 가이드 미비.
-9. **영상 개인정보 처리 미비(safety)** — 증거 프레임은 로컬 저장이나 [data_engine.py:12](../vigent-core/data_engine.py#L12) 가 **"얼굴 비식별화·암호화는 상용 단계 과제"**라 명시(=미구현). safety 현장 영상의 **작업자 식별·보관기간·동의·노사협의** 방침이 코드·문서에 없음 → 개인정보보호법·근로기준법 대상(파일럿 전 필수).
+8. **인증 체계 — 🟢 파일럿 기준 대부분 해소(2026-07-21, item3)** — 토큰 `hmac.compare_digest`(P0-3)·클라우드 VLM opt-in(F-12)·path traversal 차단(P0-1)에 더해: **DNS-rebinding 방어**(Host 허용목록, CODE_REVIEW §3.3 해소) + **토큰 강제 옵션**(`VIGENT_REQUIRE_TOKEN=1` → 로컬 무인증 금지) + **TLS 배포 가이드**([TLS_DEPLOYMENT.md](TLS_DEPLOYMENT.md)) 추가. 회귀 테스트 6종(`test_security_gate`). 남은 것: 실배포에서 TLS·역프록시 실구성 검증(현장).
+9. **영상 개인정보 — 🟡 정책 초안 작성, 기술통제 일부 미구현** — [PRIVACY_POLICY_DRAFT.md](PRIVACY_POLICY_DRAFT.md) 신설(수집항목·법적근거·보관·동의·노사협의·클라우드 위탁·정보주체 권리). **그러나 미구현(정직)**: safety 증거프레임 **얼굴 비식별화·보관기간 자동파기·저장 암호화**는 여전히 미구현([data_engine.py:12](../vigent-core/data_engine.py#L12) 주석대로) → 파일럿 전 §6·§5 구현 + 법무 검토 + 고지·동의·노사협의(§10) 필요.
 10. **산업안전 규제 관점 미정리** — 중대재해처벌법·산안법 하에서 VIGENT 는 **보조 신호**일 뿐 법적 안전조치를 대체하지 못함(경계는 명시됨). 파일럿 계약서에 **"인증 안전기능 대체 아님·오탐/미탐 면책·데이터 소유"** 명문화 필요(법무 검토 = 기술 외 블로커).
 
 ### 🟢 데이터

@@ -105,6 +105,14 @@ if not _IS_LOOPBACK and not _API_TOKEN:
         "  · 외부 노출  : VIGENT_API_TOKEN=<비밀토큰> 설정 후 기동(전 라우트 Bearer 인증)\n\n"
         % _BIND_HOST)
     raise SystemExit(1)
+# 파일럿/공유 환경 강제(item3): VIGENT_REQUIRE_TOKEN=1 이면 로컬이라도 무토큰 기동 거부.
+#   → "토큰 상시화가 규칙으로만 있고 강제 아님" 갭 해소(준비도 블로커 8). 기본 미설정=기존 동작 유지.
+_REQUIRE_TOKEN = os.environ.get("VIGENT_REQUIRE_TOKEN", "").strip().lower() in ("1", "true", "yes", "on")
+if _REQUIRE_TOKEN and not _API_TOKEN:
+    sys.stderr.write(
+        "\n[VIGENT 보안 오류] VIGENT_REQUIRE_TOKEN 설정됨 — 무인증 기동을 금지합니다.\n"
+        "  파일럿/공유 환경 정책: VIGENT_API_TOKEN=<비밀토큰> 설정 후 기동(로컬 포함 전 라우트 인증).\n\n")
+    raise SystemExit(1)
 # 로컬 바인딩 + 무토큰(개발 편의로 허용)이라도, 공유 네트워크에서는 위험 → 기동 시 1줄 경고(P0-3).
 if _IS_LOOPBACK and not _API_TOKEN:
     sys.stderr.write(
@@ -112,6 +120,31 @@ if _IS_LOOPBACK and not _API_TOKEN:
         "공유 네트워크·파일럿 환경에서는 VIGENT_API_TOKEN 설정이 필수입니다.\n")
 # 토큰 미설정(로컬)이면 인증 생략. 설정 시 아래 경로만 예외(모니터링·파비콘).
 _AUTH_EXEMPT = {"/health", "/favicon.ico"}
+
+# ── DNS-rebinding 방어(item3, CODE_REVIEW §3.3): Host 헤더 허용목록 ──
+#   로컬 무토큰 모드는 전 라우트 무인증 → 악성 웹페이지가 DNS rebinding 으로 피해자 브라우저를 통해
+#   127.0.0.1 제어 API(/worker/start·/site/config·/notify/config)에 도달 가능. Host(포트 제외)를
+#   허용목록으로 제한해 차단. VIGENT_ALLOWED_HOSTS(콤마) 로 명시 지정 가능.
+#   기본: 루프백 명 + 'testserver'(FastAPI TestClient 기본 Host — 실배포엔 존재하지 않아 무해).
+#   외부 바인딩 + 미지정 → None(검사 스킵): 접근 호스트가 다양하므로 토큰으로 방어(관리자 목록 지정 권장).
+def _host_allowlist():
+    explicit = [h.strip().lower() for h in os.environ.get("VIGENT_ALLOWED_HOSTS", "").split(",") if h.strip()]
+    if explicit:
+        return set(explicit)
+    if _IS_LOOPBACK:
+        return {"127.0.0.1", "localhost", "::1", "[::1]", "testserver"}
+    return None
+
+
+_ALLOWED_HOSTS = _host_allowlist()
+
+
+def _host_only(raw: str) -> str:
+    """Host 헤더에서 포트 제거(IPv6 '[::1]:8010' 포함)."""
+    h = raw.strip().lower()
+    if h.startswith("["):                     # IPv6: [::1]:port → [::1]
+        return h[:h.index("]") + 1] if "]" in h else h
+    return h.split(":")[0]
 
 # ── 제품 분리(C-S3): VIGENT_THEMES 로 타 제품(office/sports) 라우트 게이트 ──
 #   기본 'safety' → safety 배포에는 office/sports 라우트가 404(타 제품 미노출). 다중 제품이면 콤마로: "safety,office,sports"
@@ -121,7 +154,12 @@ _GATED_PREFIXES = {"/office": "office", "/sports": "sports"}  # safety 는 코�
 
 @app.middleware("http")
 async def _auth_guard(request, call_next):
-    """VIGENT_API_TOKEN 설정 시 전 라우트 Bearer 검증(미설정=로컬 개발 무인증)."""
+    """보안 게이트: ① Host 허용목록(DNS-rebinding 방어) ② VIGENT_API_TOKEN Bearer 검증.
+    토큰 미설정=로컬 개발 무인증이지만 Host 검증은 유지(무토큰 모드가 rebinding 에 가장 취약)."""
+    if _ALLOWED_HOSTS is not None and request.method != "OPTIONS":
+        host = _host_only(request.headers.get("host", ""))
+        if host and host not in _ALLOWED_HOSTS:
+            return JSONResponse({"detail": "forbidden host"}, status_code=403)
     if _API_TOKEN and request.method != "OPTIONS":
         path = request.url.path
         if path not in _AUTH_EXEMPT:
