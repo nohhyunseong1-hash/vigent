@@ -217,6 +217,21 @@ F-8 진단 중, 서버 detect_frame 이 **연속 프레임 추적**(`guard._trac
 - ID 스위치(사람 뒤바뀜), 유령 추적(잔상 박스), 다인 근접 시 트랙 오염(전역 `_tracks` 공유 — guard.py 옵션A 미적용), 프레임 드랍 시 잔상.
 - → **연속 프레임 시퀀스 회귀** 필요. **F-1(다인 top-down 박스 품질)·T10c-V(현장 클립)와 묶어** 사용자 촬영 클립 도착 시 함께 검증. 낱장 mAP 로는 안 잡히는 **'측정≠배포' 리스크**로 태깅.
 
+#### 📊 추적기 A/B 실측 (item4, 2026-07-21) — `tools/track_quality.py`
+검출(RF-DETR)을 프레임당 1회 캐시 → 동일 검출을 4개 추적기(같은 `trackers` 패키지)에 통과시켜 추적기만 변수로 비교. GT 트랙ID 없어 **상대비교용 프록시 지표**(라벨 확보 시 MOTA/IDF1 대체).
+
+| 영상 | 추적기 | 고유ID | ID스위치 | 단편화(ID/최대동시) | 트랙길이 mean/med |
+|---|---|---|---|---|---|
+| 크레인 400f(1954검출) | **SORT(현행)** | 39 | **13** | **3.9** | 46/15 |
+| | ByteTrack | 5 | **0** | 1.0 | 245/**310** |
+| | OCSORT | 5 | 0 | 1.0 | 140/126 |
+| | BoTSORT | 5 | 0 | 1.25 | 191/180 |
+| walk 48f(단일인) | 4종 전부 | 1 | 0 | 1.0 | ~47 |
+
+- **소견**: 다중작업자에서 **현행 SORT 가 심각히 단편화** — 실제 ~5명을 **39 ID 로 쪼갬(단편화 3.9배)·ID스위치 13**. ByteTrack/OCSORT/BoTSORT 는 5 ID·0 스위치로 안정. **ByteTrack 최고**(0 스위치·단편화 1.0·최장 트랙). zone_intrusion 침입자 식별 정확도에 직결.
+- **캐비어트(규칙7)**: ①GT 없는 프록시(‘5명=정답’은 최대동시 가정) ②단일 클립 ③검출은 COCO nano(단 4추적기 동일 입력이라 A/B 공정). 강한·일관된 신호이나 최종 채택은 라벨·다중클립 재확인 권장.
+- **제안(미적용, 승인 대기)**: `rfdetr_service.py`·`ml/rfdetr_zone_track.py` 의 `SORTTracker` → `ByteTrackTracker` 드롭인 교체(같은 패키지·`.update()` 동일 인터페이스). 저하 위험 낮고 추적 안정성 대폭 개선. 규칙6 준수 위해 사용자 승인 후 적용.
+
 ### 메모 — 워크트리 gitignore 자산 누락 반복 사고 (2026-07-07 정리)
 하루 동안 **F-8(weights 누락→COCO 폴백)·vendor 404(정적 JS 누락)** 가 전부 **같은 뿌리**였다 — `git worktree add` 는 **추적 파일만** 체크아웃하고 `.gitignore` 자산(`vigent-core/weights/`·`data/`·`benchmarks/data/`·`vigent-core/static/vendor/`)은 빠진다. 파생 여진: 좀비 서버(cwd 소멸), 가중치 COCO 폴백, 정적 JS 404(검출·스켈레톤 미표시).
 - **근본 대응**: `scripts/setup_worktree.sh` 가 **weights/data/benchmarks-data/vendor 전부** 심링크·검증 + `main.py` `StaticFiles(follow_symlink=VIGENT_DEV_SYMLINK=="1")` 게이트(배포 기본 차단, 개발 워크트리 opt-in — StaticFiles 는 디렉토리 밖 심링크를 traversal 방지로 거부하므로).
