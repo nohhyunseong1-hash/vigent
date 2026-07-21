@@ -43,3 +43,21 @@
 - 남은 개선 백로그: 빈도 과소평가 1건, 크레인 특화 제40·146조 미인용(×2), 제15조 환각.
 
 파일: `item_NN_*.md`(정답 서식), `item_NN_*_scribe.json`(현재 제품 출력 덤프, 대조용).
+
+---
+
+## 회귀 프레임 (item5, 2026-07-21) — `scripts/golden_regression.py`
+
+전 골든항목(crane·confined·press)을 한 번에 채점하고 **베이스라인 대비 회귀**를 감지한다. `golden_score_checklist.score_checklist()`(함수화)를 반복 호출.
+
+```bash
+python3 scripts/golden_regression.py                    # 회귀 검사(종료코드 0=없음 / 1=감지)
+python3 scripts/golden_regression.py --variance 5       # 동일입력 N회 분산(비결정성 점검)
+python3 scripts/golden_regression.py --update-baseline  # 현재 점수를 기준선으로(신중히)
+```
+
+- **베이스라인 의미(중요)**: `regression_baseline.json` 은 **'회귀 감지 기준선'**(코드 변경이 점수를 떨어뜨렸는지)이지 **'품질 합격선'이 아니다.** 현재 점수가 정답이라는 검증은 없음 — 법령재현 4/6·환각 4 같은 절대값의 타당성은 **강사 재검수(별도 과제)**. 러너 출력에도 이 경고를 명시.
+- **결정성(실측)**: 채점 대상 `Scribe.build_checklist`(규칙기반 RULE_KB) + `Copilot.cite`(정적 JSON 코퍼스, RAG 아님) — **VLM·sentence-transformers 미사용**. `--variance 3` 실측 결과 **전 항목 변동 0(결정적) → 노이즈 마진 0**. (VLM 기반 채점을 나중에 추가하면 이 분산 측정으로 마진을 다시 정해야 함.)
+- **지표 방향**: 커버·위험수준·위계·법령재현·수동확인 표면화 = 클수록 좋음(줄면 회귀) / 환각·O오탐 = 작을수록 좋음(늘면 악화).
+- **감지 실증**: 위조 베이스라인(level_ok↑·환각↓)에 대해 정확히 회귀 2건 감지 확인.
+- **CI 편입(제안·미결정)**: 이 채점은 **결정적·의존성 경량**(VLM·MPS·모델 다운로드 없음, 코퍼스 JSON은 리포 내). 따라서 **F-14 계열 이슈 없이 CI 러너에서 실행 가능**하다 — VLM 채점과 다름. `ci.yml` 에 `golden_regression.py`(exit 1=실패) 스텝 추가는 **기술적으로 가능**하나, 채택 여부·베이스라인 갱신 정책은 사용자 판단(현재는 로컬 게이트로 운용 권장, 절대점수 타당성 확정 전엔 회귀 감지 용도로만).

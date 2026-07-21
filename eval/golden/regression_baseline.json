@@ -1,0 +1,53 @@
+{
+  "item_01_crane_checklist": {
+    "id": "item_01_crane_checklist",
+    "items": 7,
+    "rows": 7,
+    "det_X": 3,
+    "covered": 3,
+    "level_ok": 3,
+    "hier_ok": 3,
+    "cite_found": 4,
+    "cite_total": 6,
+    "cite_hall": 4,
+    "manual_needed": 4,
+    "manual_shown": 4,
+    "blind_X": 1,
+    "blind_surfaced": 1,
+    "false_X": 0
+  },
+  "item_02_confined_checklist": {
+    "id": "item_02_confined_checklist",
+    "items": 7,
+    "rows": 7,
+    "det_X": 0,
+    "covered": 0,
+    "level_ok": 0,
+    "hier_ok": 0,
+    "cite_found": 0,
+    "cite_total": 0,
+    "cite_hall": 0,
+    "manual_needed": 7,
+    "manual_shown": 7,
+    "blind_X": 5,
+    "blind_surfaced": 5,
+    "false_X": 0
+  },
+  "item_03_press_checklist": {
+    "id": "item_03_press_checklist",
+    "items": 7,
+    "rows": 7,
+    "det_X": 0,
+    "covered": 0,
+    "level_ok": 0,
+    "hier_ok": 0,
+    "cite_found": 0,
+    "cite_total": 0,
+    "cite_hall": 0,
+    "manual_needed": 7,
+    "manual_shown": 7,
+    "blind_X": 5,
+    "blind_surfaced": 5,
+    "false_X": 0
+  }
+}
