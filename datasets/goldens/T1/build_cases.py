@@ -234,27 +234,33 @@ def build():
                               save=False, mode="checklist", item_pool=pool)
         assessment = res["assessment"]
         cid = f"T1_case_{c['n']:02d}_{c['slug']}"
-        # 강사 정답란(빈칸) — pool 순서대로 items
-        items = [{"check_point": cp, "적정성": "", "위험수준": "", "scribe_rule": r,
-                  "vision_blind": False, "법령": [],
-                  "감소대책": {"제거대체": [], "공학적": [], "관리적": [], "보호구": []}}
-                 for cp, r in c["pool"]]
-        obj = {
-            "id": cid, "domain": c["domain"], "method": "checklist",
-            "corpus_ref": c["corpus"],
-            "scenario": c["scenario"], "site": c["site"], "process": c["process"],
-            "holdout": True, "used_in_training_or_fewshot": False,
-            "verified_by": "", "verified_date": "",
-            "legal_basis": "산업안전보건법 제36조 및 고시 제2024-76호 제7조(체크리스트법)",
-            "note_phrasing": "점검항목 요건 긍정형(O=충족/적정, X=미충족/부적정, − = 해당없음). 정답은 강사 판정 원본.",
-            "input": {"events": c["events"],
-                      "check_points": [cp for cp, _ in c["pool"]]},
-            "scribe_output": assessment,
-            "강사_정답": {"items": items, "rubric": json.loads(json.dumps(RUBRIC_BLANK)),
-                       "critical_errors": json.loads(json.dumps(CRIT_BLANK)),
-                       "verdict": {"pass": None}},
-        }
-        (OUT / f"{cid}.json").write_text(json.dumps(obj, ensure_ascii=False, indent=2), encoding="utf-8")
+        out_path = OUT / f"{cid}.json"
+        # 강사 정답 보존: 기존 파일이 있으면 강사_정답(병합된 답·rubric·근본원인)을 그대로 유지하고
+        # input·scribe_output 만 새 Scribe 로직으로 갱신한다(강사 작업 유실 방지).
+        if out_path.exists():
+            obj = json.loads(out_path.read_text(encoding="utf-8"))
+            obj["input"] = {"events": c["events"], "check_points": [cp for cp, _ in c["pool"]]}
+            obj["scribe_output"] = assessment
+        else:
+            items = [{"check_point": cp, "적정성": "", "위험수준": "", "scribe_rule": r,
+                      "vision_blind": False, "법령": [],
+                      "감소대책": {"제거대체": [], "공학적": [], "관리적": [], "보호구": []}}
+                     for cp, r in c["pool"]]
+            obj = {
+                "id": cid, "domain": c["domain"], "method": "checklist",
+                "corpus_ref": c["corpus"],
+                "scenario": c["scenario"], "site": c["site"], "process": c["process"],
+                "holdout": True, "used_in_training_or_fewshot": False,
+                "verified_by": "", "verified_date": "",
+                "legal_basis": "산업안전보건법 제36조 및 고시 제2024-76호 제7조(체크리스트법)",
+                "note_phrasing": "점검항목 요건 긍정형(O=충족/적정, X=미충족/부적정, − = 해당없음). 정답은 강사 판정 원본.",
+                "input": {"events": c["events"], "check_points": [cp for cp, _ in c["pool"]]},
+                "scribe_output": assessment,
+                "강사_정답": {"items": items, "rubric": json.loads(json.dumps(RUBRIC_BLANK)),
+                           "critical_errors": json.loads(json.dumps(CRIT_BLANK)),
+                           "verdict": {"pass": None}},
+            }
+        out_path.write_text(json.dumps(obj, ensure_ascii=False, indent=2), encoding="utf-8")
         s = assessment["summary"]
         made.append((cid, c["domain"], s["총항목"], s["부적정_X"], s["수동확인"], s["상_높음"]))
     print(f"생성 완료: {len(made)}건 → {OUT.relative_to(ROOT)}")

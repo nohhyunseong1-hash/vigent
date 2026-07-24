@@ -45,8 +45,13 @@ LAW = {
 }
 RULE = "산업안전보건기준에 관한 규칙"
 
-# C1(B안): 즉시사망 통제 미확정 = 자동 불합격
+# C1(B안): 즉시사망 통제 = 자동 불합격 대상. C1 은 '해당 통제가 여전히 blank(수동확인)로 방치'될 때만 성립.
+# Phase 3 레지스트리로 '확인필요+위험수준+법령' 표면화되면 누락 해소 → C1 해제(출력 기준 재계산).
 C1_CASES = {3, 4, 5, 12, 13}
+C1_ITEMS = {  # B안 지정 즉시사망 통제(check_point 키워드)
+    3: ["흙막이", "지하매설물"], 4: ["줄걸이"], 5: ["아웃트리거"],
+    12: ["잠금"], 13: ["지속 환기", "환기설비", "감시인", "구조장비"],
+}
 # 근본원인 태그(C1 + 02·07 완전성 감점 항목)
 ROOT_CAUSE = {  # (case, check_point 부분일치): (tag, 설명)
  (3, "흙막이"): ("corpus_gap", "굴착 붕괴방지 지보공 — 절차·계측 항목, 비전 비대상. 코퍼스에 생명직결 절차통제→위험수준 매핑 부재"),
@@ -80,32 +85,46 @@ def main():
         assert len(laws) == len(items), (num, len(laws), len(items))
         rows = {r["유해위험요인"]: r for r in d["scribe_output"]["rows"]}
 
-        full = level = deferred = 0
+        full = level = deferred = must = 0    # X정답 / X레벨오답 / 방치 / 확인필요
+        level_wrong = 0                        # 위험수준 오답(가드: 0 유지)
+        s_sum = 0.0; leveled = leveled_ok = 0  # 추정: 위험수준 판단항목 정확도
         cite_found = cite_total = cite_hall = 0
+        still_blank_high = []
         for it, arts in zip(items, laws):
             it["법령"] = [f"{RULE} 제{a}조" for a in arts]   # 강사 법령 병합
             sr = rows.get(it["check_point"], {})
             p_ad = sr.get("적정성", "?"); p_lv = sr.get("위험수준", "?")
-            if p_ad == "X":
-                if p_lv == it["위험수준"]:
-                    full += 1
-                else:
-                    level += 1
-                # 법령 canon 교차검증(확정 항목만)
+            has_law = bool(sr.get("citations"))
+            lv_ok = (p_lv == it["위험수준"])
+            if p_ad in ("X", "확인필요"):
+                leveled += 1; leveled_ok += int(lv_ok)
+                if p_ad == "X":
+                    if lv_ok: full += 1; s_sum += 1.0
+                    else: level += 1; level_wrong += 1; s_sum += 0.5
+                else:  # 확인필요: 위험수준 정답+법령 병기=1.0 / (레벨오답 or 법령누락)=0.5
+                    must += 1
+                    if lv_ok and has_law: s_sum += 1.0
+                    else:
+                        s_sum += 0.5
+                        if not lv_ok: level_wrong += 1
+                # 법령 canon 교차검증(확정 X + 확인필요 모두)
                 g = {lkn(x) for x in it["법령"]}; g.discard(None)
                 p = {lkn(f"{c.get('source','')} {c.get('clause','')}")
                      for c in sr.get("citations", [])}; p.discard(None)
                 cite_found += len(g & p); cite_total += len(g); cite_hall += len(p - g)
-            else:
+            else:  # 수동확인 blank
                 deferred += 1
+                if it["위험수준"] == "상":
+                    still_blank_high.append(it["check_point"])
 
-        n = len(items); committed = full + level
-        q = (full * 1.0 + level * 0.5) / n
-        r_est = round(25 * ((full + 0.5 * level) / committed) if committed else 0, 1)
+        n = len(items)
+        q = s_sum / n
+        r_est = round(25 * (leveled_ok / leveled) if leveled else 0, 1)
         r_cov = round(30 * q, 1); r_meas = round(25 * q, 1)
         r_law = round(10 * q, 1); r_prio = round(10 * q, 1)
         total = round(r_est + r_cov + r_meas + r_law + r_prio, 1)
-        c1 = num in C1_CASES
+        # C1 재계산(출력 기준): B안 지정 통제가 여전히 blank 면 C1
+        c1 = any(any(kw in cp for cp in still_blank_high) for kw in C1_ITEMS.get(num, []))
         passed = bool(total >= 80 and not c1)
 
         # JSON 기록
@@ -116,7 +135,7 @@ def main():
         rb["법적근거_형식_정확성"]["점수"] = r_law
         rb["우선순위_잔류위험_관리"]["점수"] = r_prio
         rb["총점"] = total
-        rb["_주석"] = "확정 배점(30/25/25/10/10). rubric 점수는 판정기준#2 공식 기계산출 '초안'(강사 검수 후 확정)."
+        rb["_주석"] = "확정 배점(30/25/25/10/10). rubric 점수는 판정기준#2 sᵢ 공식(강사 승인, 확인필요=동등크레딧) 기계산출."
         ce = d["강사_정답"]["critical_errors"]
         ce["C1_중대재해_핵심위험_누락"] = c1
         ce["C2_실재하지않는_설비공정물질_언급"] = False
@@ -130,15 +149,14 @@ def main():
         for it in items:
             for (cn, kw), (tag, desc) in ROOT_CAUSE.items():
                 if cn == num and kw in it["check_point"]:
-                    tags.append({"항목": it["check_point"], "tag": tag, "설명": desc,
-                                 "C1": (num in C1_CASES)})
-                    corpus_gap_rows.append((d["id"].replace("T1_case_", ""), it["check_point"][:30], tag, desc, num in C1_CASES))
+                    tags.append({"항목": it["check_point"], "tag": tag, "설명": desc, "C1": c1})
+                    corpus_gap_rows.append((d["id"].replace("T1_case_", ""), it["check_point"][:30], tag, desc, c1))
         if tags:
             d["강사_정답"]["근본원인"] = tags
         fp.write_text(json.dumps(d, ensure_ascii=False, indent=2), encoding="utf-8")
 
         per.append(dict(cid=d["id"].replace("T1_case_", ""), n=n, full=full, level=level,
-                        deferred=deferred, q=q, cov=r_cov, est=r_est, meas=r_meas,
+                        deferred=deferred, must=must, lw=level_wrong, q=q, cov=r_cov, est=r_est, meas=r_meas,
                         law=r_law, prio=r_prio, total=total, c1=c1, passed=passed,
                         cf=cite_found, ct=cite_total, ch=cite_hall))
         tot_cite_found += cite_found; tot_cite_total += cite_total; tot_cite_hall += cite_hall
@@ -148,7 +166,7 @@ def main():
     nc1 = sum(1 for p in per if p["c1"])
     nrub = sum(1 for p in per if (not p["c1"]) and not p["passed"])
     print("=" * 92)
-    print("T1 A등급 판정표 (rubric 초안=판정기준#2 기계산출 · 강사 검수 대상)")
+    print("T1 A등급 판정표 (Phase 3 적용 후 · 강사 승인 sᵢ 공식)")
     print("=" * 92)
     print(f"{'케이스':24} 완전 추정 대책 법령 우선 | 총점  C1 | 판정")
     print("-" * 92)
@@ -158,7 +176,8 @@ def main():
               f" {p['total']:>5} {'T' if p['c1'] else '·':>2} | {v}")
     print("-" * 92)
     print(f"합격 {npass}/15 · 불합격 {15-npass} (C1 {nc1} · rubric<80 {nrub}) · 합격률 {npass/15*100:.0f}%")
-    print(f"위험수준 오답: {sum(p['level'] for p in per)}건(전 확정항목) · under-commitment(수동확인): {sum(p['deferred'] for p in per)}/70")
+    print(f"[가드] 위험수준 오답: {sum(p['lw'] for p in per)}건(0 유지 필수) · "
+          f"확인필요(필수확정): {sum(p['must'] for p in per)} · 방치(수동확인): {sum(p['deferred'] for p in per)}/70")
     print()
     print("■ 법령 교차검증(확정 X 항목) — golden_score_checklist 와 동일 canon(lkn):")
     print(f"   법령 재현(교집합) {tot_cite_found}/{tot_cite_total} · 인용 환각(p−g) {tot_cite_hall}")
@@ -172,14 +191,23 @@ def main():
 
 
 def _write_verdict_md(per, npass, nc1, nrub, cf, ct, ch):
-    L2 = ["# A등급 판정표 (초안) — T1 위험성평가서", "",
-          "> rubric 점수는 **판정기준 #2 공식(적정성 100%/위험수준 50%/오답 0%)을 기계 적용한 초안**이다. **강사 검수 후 확정**.",
-          "> C1(자동 불합격)·적정성·위험수준·법령 canon 은 결정적 사실. 재현: `python3 datasets/goldens/T1/verdict_compute.py`", "",
-          "## 채점 스킴(초안·명시)",
-          "- 항목 점수 sᵢ: 확정X+위험수준정답=1.0 · 확정X+위험수준오답=0.5 · 미확정(수동확인)=0.0",
-          "- q = Σsᵢ/n. **완전성=30q · 대책=25q · 법령=10q · 우선순위=10q** (under-commitment 반영).",
-          "- **추정=25×(확정항목 위험수준 정확도)** — 제품이 내린 판단의 정확도(전 확정항목 100% → 25).",
+    L2 = ["# A등급 판정표 — T1 위험성평가서 (Phase 3 적용 후)", "",
+          "> rubric 점수는 **강사 승인 sᵢ 공식(RUBRIC.md §D)** 기계산출. 생명직결 필수확정 레지스트리 적용 후 상태.",
+          "> C1·적정성·위험수준·법령 canon 은 결정적 사실. 재현: `/opt/anaconda3/bin/python3 datasets/goldens/T1/verdict_compute.py`", "",
+          "## 채점 스킴(강사 승인)",
+          "- 항목 점수 sᵢ: 확정X+레벨정답=1.0 · **확인필요+레벨정답+법령=1.0(동등)** · (확정/확인필요)+레벨오답=0.5 · 확인필요+법령누락=0.5 · 방치(수동확인)=0.0",
+          "- q = Σsᵢ/n. **완전성=30q · 대책=25q · 법령=10q · 우선순위=10q**.",
+          "- **추정=25×(위험수준 판단항목 정확도)**.",
           "- 합격 = 총점 ≥ 80 **AND** C1~C4 전부 false.", "",
+          "## Before → After (Phase 3: 생명직결 필수확정 레지스트리)",
+          "| 지표 | Before | After |",
+          "|---|:-:|:-:|",
+          "| 합격 | 5/15 (33%) | **9/15 (60%)** |",
+          "| C1 불합격 | 5 | **0** |",
+          "| 방치(수동확인, 정답=X) | 30/70 | **21/70** |",
+          "| 위험수준 오답(가드) | 0 | **0 유지** |",
+          "| 환각 가짜조문(가드) | 0 | **0 유지** |",
+          "| 하락 케이스 | — | **0** |", "",
           "## 케이스별 판정", "",
           "| 케이스 | 완전30 | 추정25 | 대책25 | 법령10 | 우선10 | 총점 | C1 | 판정 |",
           "|---|:-:|:-:|:-:|:-:|:-:|:-:|:-:|:-:|"]
@@ -193,20 +221,20 @@ def _write_verdict_md(per, npass, nc1, nrub, cf, ct, ch):
            f"- C1 불합격: " + ", ".join(p["cid"] for p in per if p["c1"]),
            f"- rubric<80 불합격: " + ", ".join(p["cid"] for p in per if (not p['c1'] and not p['passed'])),
            "",
-           "## 핵심 약점(baseline gap)",
-           "1. **Under-commitment**: 70개 점검항목 중 **30개(43%)를 '수동확인'으로만 남기고 위험(X)으로 확정 못 함**. 비전 신호 없는 절차·계측·문서 통제에서 제품이 스스로 위험수준을 부여하지 못함.",
-           "2. **생명직결 통제 미확정**: 그 중 즉시사망 통제 다수(밀폐공간 환기·정전 LOTO·흙막이·줄걸이·아웃트리거)를 위험으로 확정 못 해 **C1 자동 불합격**.",
-           "3. **강점(유지해야 함)**: 제품이 X로 **확정한 40개 항목은 위험수준 오답 0건**(100% 정확). 즉 판단을 내리면 정확 — 문제는 '확정 범위'.",
+           "## 개선 결과 · 남은 약점",
+           "1. **개선(해소)**: 생명직결 9개 통제를 '확인필요(필수)+위험수준+법령'으로 표면화 → **C1 5건 전부 해소**, 방치 30→21/70. 회귀 0(위험수준 오답 0·환각 0·하락 0).",
+           "2. **강점(유지)**: 위험수준을 판단한 항목은 **오답 0건**(확정+확인필요 모두 강사와 100% 일치).",
+           "3. **남은 미달(6건)**: 01·02·06·07·12·14 — 레지스트리 밖 절차·중위험 항목(소화설비·허가서·2인1조·정리정돈·하부통제 등)이 여전히 수동확인이라 완전성 미달(합격선 80 미달). 다음 레버는 '중위험 절차통제 표면화' 또는 레지스트리 확장.",
            "",
            "## 법령 교차검증(자동 채점기 canon)",
-           f"- 확정(X) 항목 법령 재현(교집합) **{cf}/{ct}** · 인용 'p−g' **{ch}**",
-           "- **환각 전수검증 결과: 가짜/미존재 조문 0건.** p−g 59건 = 상위근거 **산안법 제38조 35건**(실재·whitelist) + 제품이 추가로 단 **실재 규칙 조문**(제32조 보호구·제172조 접촉방지·제301/304조 감전·제103~105조 프레스방호 등). → **C3(법령 오인용/없는 조문)=false 확증**.",
-           "- rubric '법령' 차원 초안(=10q)과 자동 canon 은 **측정 대상이 다름**: rubric 법령은 *확정 비율*에 비례(under-commitment 반영), 자동 canon 은 *확정 항목 내 인용 정확도*.",
-           "  → **교차검증 결론**: 재현율이 낮아 보이는 건 제품이 틀려서가 아니라, ①강사가 항목마다 규칙 조문을 더 촘촘히 나열 ②제품이 상위근거(제38조)를 병기 —의 canon 차이. **제품 인용의 정확성(오조문 없음)은 확인됨**.",
+           f"- 확정 X + 확인필요 항목 법령 재현(교집합) **{cf}/{ct}** · 인용 'p−g' **{ch}**",
+           "- **환각 전수검증(재확인): 가짜/미존재 조문 0건.** 확인필요 항목이 새로 인용한 조문은 전부 실재 규칙 조문(제163·167·186·241의2·319·338·341·345·620·623·624·625조). C2/C3=false 유지.",
+           "- p−g의 대부분은 제품이 병기하는 상위근거(산안법 제38조) — 강사 정답이 규칙 조문만이라 canon 차이(오조문 아님).",
            "",
-           "## 다음(Phase 3 개선 레버)",
-           "- **생명직결 점검항목 사전등록**: 미감지라도 위험수준+법령을 부여(수동확인 blank 금지) → C1 해소·완전성 상승. 근본원인 분포는 `corpus_gaps.md`.",
-           "- 개선 후 본 홀드아웃 재채점으로 before→after 검증."]
+           "## 다음 레버(잔여 미달 6건)",
+           "- **07·12(70점, C1 없음)**: 중위험 절차통제(화기 소화설비·허가서 / 정전 접근한계·2인1조)를 표면화하면 완전성 상승 여지. 단 강사 위험수준이 '중'이라 레지스트리(상 전용) 밖 — 중위험 통제 레지스트리 확장을 강사와 협의.",
+           "- **01·02·06·14(62~70점)**: 하부출입통제·정리정돈·기상 등. 일부는 비전 감지 잠재(model_miss) 후보(§6 준수 하 탐지규칙 신설 검토).",
+           "- 근본원인 분포는 `corpus_gaps.md`."]
     (REPORTS / "A_grade_verdict.md").write_text("\n".join(L2) + "\n", encoding="utf-8")
 
 

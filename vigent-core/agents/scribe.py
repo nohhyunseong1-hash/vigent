@@ -601,18 +601,34 @@ class ScribeAgent(BaseAgent):
                     row = self._checklist_detected_row(rule, ev, check_point=pit.get("check_point"))
                     if row is None:
                         continue
-                else:                                               # 미감지 요건 → 수동확인
-                    tiers = pit.get("감소대책")
-                    if not isinstance(tiers, dict):
-                        tiers = _classify_measures(str(tiers or ""))
+                else:                                               # 미감지 요건
                     laws = pit.get("법령") or []
-                    row = {"rule": rule, "작업공정": "점검항목", "유해위험요인": pit.get("check_point", ""),
-                           "적정성": "−", "위험수준": "수동확인",
-                           "감소대책": "; ".join(sum(tiers.values(), [])),
-                           "감소대책_위계": tiers,
-                           "관련근거": ", ".join(laws),
-                           "citations": [{"source": src, "clause": cl} for src, cl in map(_split_law, laws)],
-                           "개선후확인": "", "AI감지근거": "비전 미감지 · 수동확인 필요"}
+                    ctrl = None
+                    if not laws:                                    # 법령 미제공 항목만 레지스트리 보강(기존 동작·골든 보존)
+                        import critical_controls as _cc
+                        ctrl = _cc.match_control(pit.get("check_point", ""))
+                    if ctrl is not None:                            # 생명직결 필수확정 → '확인필요' + 위험수준 + 법령(§7)
+                        clav = ctrl.get("법령") or []
+                        _cat = ctrl.get("category", "")
+                        row = {"rule": rule, "작업공정": "점검항목(생명직결·필수확정)",
+                               "유해위험요인": pit.get("check_point", ""),
+                               "적정성": "확인필요", "위험수준": ctrl.get("기본_위험수준", "상"),
+                               "감소대책": f"{_cat} 필수통제 이행·현장 확인",
+                               "감소대책_위계": {"관리적": [f"{_cat} 필수통제 이행 여부 현장 확인(생명직결)"]},
+                               "관련근거": ", ".join(clav),
+                               "citations": [{"source": src, "clause": cl} for src, cl in map(_split_law, clav)],
+                               "개선후확인": "", "AI감지근거": "생명직결 통제 · 비전 미감지 → 현장 확인 필수(필수확정)"}
+                    else:                                           # 일반 미감지 요건 → 수동확인(기존)
+                        tiers = pit.get("감소대책")
+                        if not isinstance(tiers, dict):
+                            tiers = _classify_measures(str(tiers or ""))
+                        row = {"rule": rule, "작업공정": "점검항목", "유해위험요인": pit.get("check_point", ""),
+                               "적정성": "−", "위험수준": "수동확인",
+                               "감소대책": "; ".join(sum(tiers.values(), [])),
+                               "감소대책_위계": tiers,
+                               "관련근거": ", ".join(laws),
+                               "citations": [{"source": src, "clause": cl} for src, cl in map(_split_law, laws)],
+                               "개선후확인": "", "AI감지근거": "비전 미감지 · 수동확인 필요"}
                 rows.append(row)
             _order = {"상": 0, "중": 1, "하": 2, "수동확인": 8}
         else:
@@ -624,8 +640,10 @@ class ScribeAgent(BaseAgent):
             _order = {"상": 0, "중": 1, "하": 2}
         rows.sort(key=lambda r: _order.get(r["위험수준"], 9))
         x_rows = [r for r in rows if r["적정성"] == "X"]
+        must = [r for r in rows if r["적정성"] == "확인필요"]              # 생명직결 필수확정
         manual = [r for r in rows if r["위험수준"] == "수동확인"]
-        high = [r for r in x_rows if r["위험수준"] == "상"]
+        high = [r for r in rows if r["위험수준"] == "상"
+                and r["적정성"] in ("X", "확인필요")]                      # 부적정·필수확정 상위험
         result = {
             "site": site, "process": process,
             "generated_at": datetime.now(KST).strftime("%Y-%m-%d %H:%M KST"),
@@ -637,16 +655,19 @@ class ScribeAgent(BaseAgent):
             "legal_basis": "산업안전보건법 제36조 및 사업장 위험성평가에 관한 지침"
                            "(고용노동부고시 제2024-76호) 제7조에 따른 체크리스트법",
             "status": "draft", "review_required": True,
-            "summary": {"총항목": len(rows), "부적정_X": len(x_rows), "수동확인": len(manual),
-                        "상_높음": len(high), "주요위험": [r["유해위험요인"] for r in high]},
+            "summary": {"총항목": len(rows), "부적정_X": len(x_rows), "확인필요": len(must),
+                        "수동확인": len(manual), "상_높음": len(high),
+                        "주요위험": [r["유해위험요인"] for r in high]},
             "rows": rows,
             "dropped_rules": dropped,
         }
         top = ", ".join(result["summary"]["주요위험"]) or "없음"
+        _must_txt = (f" 생명직결 통제 {len(must)}개는 비전 미감지라도 '확인필요(필수)'로 위험수준·법령과 함께 표면화됐다(현장 확인 필수)."
+                     if must else "")
         _manual_txt = (f" 아울러 {len(manual)}개 요건은 비전 미감지로 '수동확인 필요'로 표기됐다."
                        if manual else "")
         result["narrative"] = (f"체크리스트 점검 결과 {len(x_rows)}개 항목이 부적정(X)으로 감지되었으며, "
-                               f"위험수준 '상' 항목({top})의 개선대책 즉시 이행이 권고된다.{_manual_txt} "
+                               f"위험수준 '상' 항목({top})의 개선대책 즉시 이행이 권고된다.{_must_txt}{_manual_txt} "
                                f"본 결과는 AI 초안이며 적정성 판단·최종 조치는 안전관리자 확인 하에 이뤄져야 한다.")
         result["narrative_source"] = "로컬 규칙 기반(체크리스트)"
         return result
