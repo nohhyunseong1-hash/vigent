@@ -31,12 +31,19 @@ def _load() -> list[dict[str, Any]]:
     return controls
 
 
-def match_control(check_point: str) -> Optional[dict[str, Any]]:
-    """check_point 가 생명직결 통제 키워드에 부분일치하면 해당 control dict, 아니면 None."""
+def match_control(check_point: str, process: str = "") -> Optional[dict[str, Any]]:
+    """check_point 가 생명직결 통제 키워드에 부분일치하면 해당 control dict, 아니면 None.
+
+    control 에 process_any 가 있으면, process(공정명)가 그 목록 중 하나를 포함할 때만 매칭한다
+    (예: 소화설비는 화기작업 맥락에서만 발동 — 동일 점검항목의 타 공정 오탐 방지).
+    """
     if not check_point:
         return None
     for c in _load():
+        pa = c.get("process_any")
         for kw in c.get("match", []):
             if kw and kw in check_point:
+                if pa and not any(p in (process or "") for p in pa):
+                    break                       # 공정 맥락 불일치 → 이 control 건너뛰고 다음으로
                 return c
     return None

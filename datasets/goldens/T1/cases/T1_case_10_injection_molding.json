@@ -46,7 +46,7 @@
   "scribe_output": {
     "site": "성형공장 사출기 라인",
     "process": "사출성형기 작업·형체부 청소",
-    "generated_at": "2026-07-24 16:48 KST",
+    "generated_at": "2026-07-26 15:09 KST",
     "method": "checklist",
     "method_label": "체크리스트법 (적정성 O/X/− + 상·중·하 병기)",
     "form_standard": "checklist_kr",

@@ -41,7 +41,7 @@
   "scribe_output": {
     "site": "위험물 탱크야드 T-3",
     "process": "저장탱크 내부 청소(밀폐공간 출입)",
-    "generated_at": "2026-07-24 16:48 KST",
+    "generated_at": "2026-07-26 15:09 KST",
     "method": "checklist",
     "method_label": "체크리스트법 (적정성 O/X/− + 상·중·하 병기)",
     "form_standard": "checklist_kr",

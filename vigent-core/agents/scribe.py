@@ -606,7 +606,7 @@ class ScribeAgent(BaseAgent):
                     ctrl = None
                     if not laws:                                    # 법령 미제공 항목만 레지스트리 보강(기존 동작·골든 보존)
                         import critical_controls as _cc
-                        ctrl = _cc.match_control(pit.get("check_point", ""))
+                        ctrl = _cc.match_control(pit.get("check_point", ""), process)
                     if ctrl is not None:                            # 생명직결 필수확정 → '확인필요' + 위험수준 + 법령(§7)
                         clav = ctrl.get("법령") or []
                         _cat = ctrl.get("category", "")
