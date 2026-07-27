@@ -103,6 +103,34 @@ def _suppress_vehicle_dupes(dets: list[dict[str, Any]]) -> list[dict[str, Any]]:
         and any(_iou(d["bbox"], f["bbox"]) > 0.45 for f in forks))]
 
 
+# 교차소스 person 병합 임계(item: box-overlay 안 B). _nms 기본 IoU 0.55 와 TRACK_IOU 0.45 의
+#   불일치로 IoU 0.45~0.55 구간이 새어, 같은 사람이 person 슬롯 + ppe 슬롯('Person')에 각각 잡히면
+#   박스가 2개로 남는다. 이 값(0.45)은 추적 매칭 기준(TRACK_IOU)과 일치시켜 그 누수 구간을 덮는다.
+MERGE_PERSON_IOU = 0.45
+
+
+def _merge_cross_source_person(dets: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """추적 이후 후처리(안 B): **서로 다른 모델 소스(detector)**가 같은 사람을 각각 잡아 생긴
+    person 중복 박스만 병합. 검출·_nms·추적은 건드리지 않는다(미탐 위험 최소).
+
+    병합 조건(모두 충족해야):
+      ① 라벨이 person 인 박스끼리만  ② detector(모델 슬롯)가 **서로 다를 때만**
+      ③ IoU ≥ MERGE_PERSON_IOU(0.45)
+    → **같은 소스(같은 detector)는 절대 병합하지 않는다** — 진짜 두 사람일 수 있으므로(안전).
+    남길 박스: **confidence 높은 쪽**(conf 내림차순으로 먼저 확정한 박스를 유지, 이후 교차소스 중복은 드롭).
+    person 외 클래스(ppe·fire 등)는 그대로 통과."""
+    persons = [d for d in dets if str(d.get("label", "")).lower() == "person"]
+    others = [d for d in dets if str(d.get("label", "")).lower() != "person"]
+    keep: list[dict[str, Any]] = []
+    for d in sorted(persons, key=lambda x: x.get("conf", 0.0), reverse=True):
+        # 이미 확정(keep)한 박스 중 '다른 소스 + 충분히 겹침'이 있으면 이 박스는 그 중복 → 드롭
+        if any(k.get("detector") != d.get("detector")
+               and _iou(k["bbox"], d["bbox"]) >= MERGE_PERSON_IOU for k in keep):
+            continue
+        keep.append(d)
+    return others + keep
+
+
 class GuardAgent(BaseAgent):
     name = "Guard"
     role = "감지: 실시간 탐지·추적·이벤트 스트림 생성"
@@ -367,6 +395,10 @@ class GuardAgent(BaseAgent):
         detections = _nms(detections)
         detections = _suppress_vehicle_dupes(detections)   # 지게차↔버스 오인 중복 제거
         detections = self._track(detections)
+        # 안 B(box-overlay): 추적 이후, 교차소스(person 슬롯↔ppe 슬롯) person 중복만 병합.
+        #   _nms(0.55)↔TRACK_IOU(0.45) 임계 불일치가 남긴 IoU 0.45~0.55 person 이중박스 해소.
+        #   같은 소스는 병합 안 함(진짜 두 사람 보호). 검출·nms·추적 로직은 불변.
+        detections = _merge_cross_source_person(detections)
 
         # 파생 신호(딥러닝 → 규칙 가산용)
         person_count = sum(1 for d in detections if d["label"].lower() == "person")
