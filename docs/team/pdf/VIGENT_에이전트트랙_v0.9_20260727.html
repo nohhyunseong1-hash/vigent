@@ -1,0 +1,799 @@
+<!doctype html><html lang="ko"><head><meta charset="utf-8"><title>VIGENT 에이전트(L2) 트랙 기획안</title><style>
+@page { size: A4; margin: 20mm; }
+* { box-sizing: border-box; }
+body { font-family: 'Pretendard','Noto Sans KR','Apple SD Gothic Neo','Malgun Gothic',sans-serif;
+  font-size: 10.5pt; line-height: 1.6; color: #1a1a1a; margin: 0; }
+.footer { position: fixed; bottom: 6mm; left: 0; right: 0; text-align: center;
+  font-size: 8pt; color: #999; }
+.cover { height: 247mm; display: flex; flex-direction: column; justify-content: center;
+  align-items: center; text-align: center; page-break-after: always; }
+.cover .badge { display:inline-block; border:2px solid #c0392b; color:#c0392b; font-weight:700;
+  padding:4px 14px; border-radius:4px; margin-bottom:24px; font-size:12pt; }
+.cover h1 { font-size: 26pt; margin: 8px 0; }
+.cover .meta { font-size: 12pt; color:#444; margin-top:8px; line-height:2; }
+.cover .conf { margin-top:36px; color:#c0392b; font-weight:700; font-size:12pt; }
+.toc { page-break-after: always; }
+.toc h2 { border-bottom: 2px solid #333; padding-bottom:6px; }
+.toc ol { line-height: 2; font-size: 11pt; }
+.legend { background:#f0f4f8; border:1px solid #d0d8e0; border-radius:6px; padding:10px 14px; margin:16px 0; font-size:10pt; }
+.doc { page-break-before: always; }
+h1 { font-size: 18pt; border-bottom: 2px solid #333; padding-bottom:6px; margin-top:0; }
+h2 { font-size: 14pt; margin-top: 20px; border-left:4px solid #2c6; padding-left:8px; }
+h3 { font-size: 12pt; margin-top: 16px; }
+h4 { font-size: 11pt; margin-top: 12px; }
+p, li { orphans: 2; widows: 2; }
+table { border-collapse: collapse; width: 100%; margin: 12px 0; font-size: 9pt;
+  page-break-inside: avoid; }
+th, td { border: 1px solid #bbb; padding: 5px 7px; text-align: left; vertical-align: top; }
+th { background: #eef2f6; font-weight: 700; }
+pre { background: #f5f5f5; border: 1px solid #e0e0e0; border-radius: 6px; padding: 10px 12px;
+  white-space: pre-wrap; word-break: break-word; font-size: 9pt;
+  font-family: 'D2Coding','SF Mono','Menlo','Apple SD Gothic Neo',monospace; page-break-inside: avoid; }
+code { background: #f0f0f0; border-radius: 3px; padding: 1px 4px; font-size: 9pt;
+  font-family: 'SF Mono','Menlo',monospace; }
+pre code { background: none; padding: 0; }
+blockquote { border-left: 4px solid #ccc; margin: 10px 0; padding: 4px 14px; color: #555; background:#fafafa; }
+a { color: #1a5aa0; text-decoration: none; }
+hr { border: none; border-top: 1px solid #ddd; margin: 18px 0; }
+</style></head><body><div class="footer">VIGENT 대외비 · 초안—검토용 v0.9</div><div class="cover"><div class="badge">초안 — 검토용</div><h1>VIGENT 에이전트(L2) 트랙 기획안</h1><div class="meta">버전 v0.9<br>생성일 2026-07-27</div><div class="conf">대외비 — 외부 배포 금지</div></div><div class="toc"><h2>목차</h2><div class="legend"><b>신호등 범례</b> — 🟢 <b>[완료]</b> 실측·완료 · 🟡 <b>[진행중]</b> 부분·진행 · 🔴 <b>[미착수]</b> 미착수·미검증 (색이 안 보이면 대괄호 텍스트로 판단)</div><ol><li>00. 시작하기 전에 (3분 요약)</li><li>01. 현황 — 숫자로 보기</li><li>20. 에이전트(L2) 트랙 기획안 ★ 핵심 문서 2</li></ol><p style="font-size:9pt;color:#888;">※ 정확한 페이지 번호는 PDF 뷰어의 페이지 표시를 참고하세요. (브라우저 인쇄 시 하단 페이지번호 옵션 사용 가능)</p></div><div class="doc"><h1>00. 시작하기 전에 (3분 요약)</h1>
+<blockquote>
+<p>이 문서는 <strong>팀원 전원(대표 포함)</strong>이 가장 먼저 읽는 문서입니다. 바이브코딩·팀 프로젝트가 처음이어도 괜찮습니다.</p>
+</blockquote>
+<hr />
+<h2>VIGENT가 뭘 만드는 회사인가 (5줄)</h2>
+<ol>
+<li>VIGENT는 <strong>공장·건설현장의 CCTV 영상을 AI가 보고 위험을 잡아내는</strong> 산업안전 플랫폼입니다.</li>
+<li>카메라가 &quot;위험구역에 사람이 들어왔다 / 보호구를 안 썼다 / 불·연기가 났다&quot;를 자동으로 감지해 경보합니다. (이것을 <strong>비전(Vision, L1)</strong>이라 부릅니다.)</li>
+<li>감지 결과로 <strong>위험성평가서 같은 안전 서류를 AI가 자동 작성</strong>합니다. (이것을 <strong>에이전트(Agent, L2)</strong>라 부릅니다.)</li>
+<li>즉 <strong>&quot;보는 눈(비전) + 판단하는 머리(에이전트)&quot;</strong>가 한 시스템으로 붙어 있습니다.</li>
+<li>VIGENT는 <strong>보조 감시 도구</strong>입니다 — 법으로 정해진 안전장치(방호장치 등)를 대체하지 않고, <strong>추가로 지켜보는 신호</strong>를 줍니다.</li>
+</ol>
+<h2>지금 어디까지 왔나 (3줄)</h2>
+<ul>
+<li>비전·에이전트 <strong>코드와 자체 테스트(82개 통과)는 갖춰졌고</strong>, 동시부하 크래시(F-14) 같은 큰 안정성 문제는 해결했습니다.</li>
+<li>하지만 <strong>실제 현장 CCTV로 정확도를 잰 적이 거의 없습니다</strong>(실영상 검증 1건). 공개 데이터셋 수치만 있습니다.</li>
+<li>감지 클래스는 <strong>3클래스 가동(person·PPE·fire/smoke) + forklift(지게차)는 재학습 대기</strong>입니다.</li>
+</ul>
+<h2>앞으로 뭘 할 건가 (3줄)</h2>
+<ul>
+<li><strong>비전(L1)</strong>: 현장 영상으로 정확도(오탐·미탐)를 재고, 부족한 클래스(안전모 미착용 등)를 재학습해 KISA 인증 기준(F1 ≥ 0.90)을 향합니다.</li>
+<li><strong>에이전트(L2)</strong>: AI가 만든 안전서류의 품질을 계측하고, 잘못된 법령 인용(환각)을 막고, 비전 감지와 자동 연동합니다.</li>
+<li>두 트랙이 만나 <strong>파일럿(시범 설치) → 유상 납품</strong>으로 갑니다. 상세 단계는 <code>10</code>·<code>20</code> 문서에 있습니다.</li>
+</ul>
+<hr />
+<h2>문서 읽는 순서</h2>
+<table>
+<thead>
+<tr>
+  <th>순서</th>
+  <th>문서</th>
+  <th>누가 꼭 읽나</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+  <td>1</td>
+  <td><strong>00_시작하기_전에</strong> (이 문서)</td>
+  <td>전원</td>
+</tr>
+<tr>
+  <td>2</td>
+  <td><strong>01_현황_숫자로_보기</strong></td>
+  <td>전원 (특히 대표)</td>
+</tr>
+<tr>
+  <td>3</td>
+  <td><strong>10_비전트랙_기획안</strong></td>
+  <td>비전 담당·대표</td>
+</tr>
+<tr>
+  <td>3</td>
+  <td><strong>20_에이전트트랙_기획안</strong></td>
+  <td>에이전트 담당·대표</td>
+</tr>
+<tr>
+  <td>4</td>
+  <td><strong>30_통합_로드맵</strong></td>
+  <td>전원</td>
+</tr>
+<tr>
+  <td>5</td>
+  <td><strong>40_클로드코드_사용법</strong></td>
+  <td>전원 (개발 참여자 필수)</td>
+</tr>
+<tr>
+  <td>6</td>
+  <td><strong>50_완전초보_온보딩</strong></td>
+  <td><strong>신규 팀원 필수</strong> (설치 처음이면)</td>
+</tr>
+<tr>
+  <td>7</td>
+  <td><strong>60_협업규칙_git</strong></td>
+  <td>코드 만지는 전원</td>
+</tr>
+<tr>
+  <td>8</td>
+  <td><strong>70_역할분담과_주간루틴</strong></td>
+  <td>전원</td>
+</tr>
+<tr>
+  <td>9</td>
+  <td><strong>80_용어사전</strong></td>
+  <td>모르는 단어 나올 때마다</td>
+</tr>
+</tbody>
+</table>
+<ul>
+<li><strong>개발이 처음이면</strong>: 00 → 01 → <strong>50(온보딩)</strong> → 40 → 60 순서를 권장합니다.</li>
+<li><strong>대표·사업 담당이면</strong>: 00 → 01 → 10 → 20 → 30 을 보면 전체 그림과 일정이 잡힙니다.</li>
+</ul>
+<h2>⚠️ 보안 주의 (반드시)</h2>
+<ul>
+<li>이 리포(코드·수치·문서)의 <strong>내용을 외부에 공유하지 마세요.</strong> 대외비입니다.</li>
+<li><strong>공개 시연·외부 발표 전에는 반드시 특허 출원을 먼저</strong> 합니다. (특히 RIG 모듈은 특허 대상이라 세부 동작은 팀 내에서도 <code>[대외비]</code>로 다룹니다.)</li>
+<li><code>.env</code>(비밀키)·모델 가중치·현장 영상은 <strong>절대 git에 올리지 않습니다</strong> (상세: <code>60_협업규칙_git.md</code>).</li>
+</ul>
+<blockquote>
+<p>개발 도구는 <strong>Claude Code 하나로 통일</strong>합니다. 다른 IDE·플러그인은 쓰지 않습니다 (이유·사용법: <code>40_클로드코드_사용법.md</code>).</p>
+</blockquote>
+</div><div class="doc"><h1>01. 현황 — 숫자로 보기</h1>
+<blockquote>
+<p>Phase 1 실태 감사 결과입니다. <strong>모든 숫자에 출처 파일과 확인 명령어</strong>가 붙어 있습니다. 근거 없는 값은 <code>[측정 필요]</code>입니다.
+표기: 🟢실측·완료 / 🟡부분·진행중 / 🔴미착수·미검증</p>
+</blockquote>
+<h2>신호등 요약 (모듈별 한 줄)</h2>
+<table>
+<thead>
+<tr>
+  <th>모듈</th>
+  <th>상태</th>
+  <th>한 줄</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+  <td>비전 검출(3클래스)</td>
+  <td>🟡</td>
+  <td>person·PPE·fire/smoke <strong>가동</strong>, 공개셋 수치만 있음(현장 미검증)</td>
+</tr>
+<tr>
+  <td>비전 forklift(지게차)</td>
+  <td>🔴</td>
+  <td><strong>재학습 대기</strong>(오탐으로 비활성)</td>
+</tr>
+<tr>
+  <td>비전 추적·안정성</td>
+  <td>🟢</td>
+  <td>ByteTrack 교체·F-14 크래시 해소·90분 소크 합격</td>
+</tr>
+<tr>
+  <td>비전 낙상</td>
+  <td>🔴</td>
+  <td>광역 CCTV 해상도로 <strong>자동 낙상 불가</strong>(근접 카메라 필요)</td>
+</tr>
+<tr>
+  <td>에이전트 문서생성</td>
+  <td>🟡</td>
+  <td>위험성평가서 실동작, 나머지 생성기 부분/스텁</td>
+</tr>
+<tr>
+  <td>에이전트 품질계측</td>
+  <td>🟢</td>
+  <td>골든 채점·회귀 엔진·홀드아웃 15케이스(합격 11/15)</td>
+</tr>
+<tr>
+  <td>L1→L2 자동연동</td>
+  <td>🔴</td>
+  <td><strong>빈도 통계 재사용 수준</strong>(항목 자동 O/X 아님) — <code>20</code> 문서 S3 참조</td>
+</tr>
+<tr>
+  <td>RIG 모듈</td>
+  <td>🟡</td>
+  <td>상태기계·테스트 있음 / 실영상 1건 / 하드경보 배선 불가</td>
+</tr>
+<tr>
+  <td>협업 인프라</td>
+  <td>🟢</td>
+  <td>427커밋·게이트·설치문서 있음 / .env·weights는 각자 준비 필요</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2>표 1-A. 비전(L1) 현황</h2>
+<table>
+<thead>
+<tr>
+  <th>항목</th>
+  <th>현재 수치</th>
+  <th>출처 경로</th>
+  <th>확인 명령어</th>
+  <th>상태</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+  <td>감지 클래스</td>
+  <td><strong>3클래스 가동(person·PPE·fire/smoke) + forklift 재학습 대기</strong></td>
+  <td><code>docs/COMMERCIALIZATION_READINESS.md</code> §1</td>
+  <td><code>sed -n '22,26p' docs/COMMERCIALIZATION_READINESS.md</code></td>
+  <td>🟡</td>
+</tr>
+<tr>
+  <td>PPE 착용</td>
+  <td>Hardhat 76·Mask 75·Vest 67 (<strong>recall only, precision 미측정 · MPS/공개셋</strong>)</td>
+  <td>동 §1:24</td>
+  <td><code>sed -n '24p' docs/COMMERCIALIZATION_READINESS.md</code></td>
+  <td>🟢공개셋</td>
+</tr>
+<tr>
+  <td>PPE 미착용(NO-Hardhat)</td>
+  <td><strong>R56.1</strong> (미착용 ≈44% 놓침 · <strong>recall only, precision 미측정</strong>)</td>
+  <td>동 §1:24</td>
+  <td>동</td>
+  <td>🔴약점</td>
+</tr>
+<tr>
+  <td>fire·smoke</td>
+  <td>공개셋 D-Fire <strong>mAP@50 80.13%</strong></td>
+  <td>동 §1:25</td>
+  <td><code>sed -n '25p' ...</code></td>
+  <td>🟢공개셋</td>
+</tr>
+<tr>
+  <td>person mAP</td>
+  <td><strong>[측정 필요]</strong> (readiness &quot;공개셋 mAP 미재확인&quot;) · 웹캠 recall 100%(recall only)</td>
+  <td>동 §1:22</td>
+  <td>클래스별 벤치 재실행 필요</td>
+  <td>🟡</td>
+</tr>
+<tr>
+  <td>forklift</td>
+  <td><strong>비활성</strong>(F-7, 정탐 conf 0.002) · PoC box mAP 8.83→58.62%</td>
+  <td>동 §1:26</td>
+  <td><code>sed -n '26p' ...</code></td>
+  <td>🔴</td>
+</tr>
+<tr>
+  <td>zone_intrusion(타일)</td>
+  <td>소형작업자 recall <strong>0→89~95%</strong>(실영상, <strong>recall only · CPU +415ms/f</strong>)</td>
+  <td>동 §1:23</td>
+  <td><code>sed -n '23p' ...</code></td>
+  <td>🟡</td>
+</tr>
+<tr>
+  <td>클래스별 F1 / KISA 갭</td>
+  <td><strong>[측정 필요]</strong> — P/R/F1 미산출(V-02 티켓)</td>
+  <td>—</td>
+  <td>티켓 V-02 스크립트로 산출</td>
+  <td>🔴</td>
+</tr>
+<tr>
+  <td>추론 지연</td>
+  <td>타일 +415ms/f(<strong>CPU</strong>) · 클래스별=<strong>[측정 필요]</strong></td>
+  <td>동 §1:50</td>
+  <td><code>grep 415ms docs/COMMERCIALIZATION_READINESS.md</code></td>
+  <td>🟡</td>
+</tr>
+<tr>
+  <td>측정 환경</td>
+  <td>현재 <strong>Apple MPS</strong>(CUDA 아님) → <strong>배포 환경(CUDA/엣지)에서 재측정 필요</strong></td>
+  <td>동 §1:50</td>
+  <td>동</td>
+  <td>🟡</td>
+</tr>
+<tr>
+  <td>가중치</td>
+  <td><strong>18개·812MB</strong>(git 미포함)</td>
+  <td><code>vigent-core/weights/</code></td>
+  <td><code>du -sh vigent-core/weights ; ls vigent-core/weights</code></td>
+  <td>🟢</td>
+</tr>
+<tr>
+  <td>포즈·추적</td>
+  <td>포즈=<code>ergonomics.py</code>(yolov8n-pose) · 추적=<strong>ByteTrack</strong></td>
+  <td><code>vigent-core/rfdetr_service.py</code></td>
+  <td><code>grep -n ByteTrack vigent-core/rfdetr_service.py</code></td>
+  <td>🟢</td>
+</tr>
+<tr>
+  <td>파이프라인 진입점</td>
+  <td><code>worker.py</code>(_loop)→<code>rfdetr_service.py</code>(detect)</td>
+  <td><code>vigent-core/worker.py</code></td>
+  <td><code>grep -n '_loop' vigent-core/worker.py</code></td>
+  <td>🟢</td>
+</tr>
+<tr>
+  <td>AGPL 잔존</td>
+  <td>배포 트리 <strong>강카피레프트 0건</strong> ✓</td>
+  <td><code>benchmarks/results/licenses.md</code></td>
+  <td><code>grep -i '0건' benchmarks/results/licenses.md</code></td>
+  <td>🟢</td>
+</tr>
+<tr>
+  <td>재연결·워치독</td>
+  <td>RTSP 지수백오프 재연결 · <code>deploy/watchdog.sh</code> · <strong>F-14 해소</strong>(<code>fd606c1</code>)</td>
+  <td><code>vigent-core/worker.py</code>:41 · <code>deploy/watchdog.sh</code></td>
+  <td><code>grep -n RECONNECT vigent-core/worker.py</code></td>
+  <td>🟢</td>
+</tr>
+<tr>
+  <td>연속구동</td>
+  <td><strong>90분 합성 소크 합격</strong> / 실카메라 24h <strong>[측정 필요]</strong></td>
+  <td><code>audit/soakmon_2026-07-20_validate90m.md</code></td>
+  <td><code>sed -n '1,15p' audit/soakmon_2026-07-20_validate90m.md</code></td>
+  <td>🟡</td>
+</tr>
+<tr>
+  <td>미해결</td>
+  <td>현장 오탐율 미측정 · 낙상 불가(B8) · 엣지 RK3588 포팅 코드 없음</td>
+  <td><code>docs/P3_BACKLOG.md</code> B8</td>
+  <td><code>grep -n '26~64px' docs/P3_BACKLOG.md</code></td>
+  <td>🔴</td>
+</tr>
+</tbody>
+</table>
+<p><strong>이게 무슨 뜻이냐면</strong>: 검출 수치는 <strong>공개 데이터셋 기준</strong>이고 대부분 <strong>recall만</strong> 있습니다(오탐을 뜻하는 precision은 안 쟀습니다). 지금 값은 <strong>맥(MPS)</strong>에서 난 것이라, 실제 배포 장비(<strong>CUDA GPU/엣지</strong>)에선 <strong>다시 측정</strong>해야 합니다.</p>
+<h2>표 1-B. 에이전트(L2) 현황</h2>
+<table>
+<thead>
+<tr>
+  <th>항목</th>
+  <th>현재 수치</th>
+  <th>출처 경로</th>
+  <th>확인 명령어</th>
+  <th>상태</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+  <td>Scribe(평가서)</td>
+  <td>819줄, 실동작</td>
+  <td><code>vigent-core/agents/scribe.py</code></td>
+  <td><code>wc -l vigent-core/agents/scribe.py</code></td>
+  <td>🟢</td>
+</tr>
+<tr>
+  <td>Guard(검출지휘)</td>
+  <td>391줄</td>
+  <td><code>agents/guard.py</code></td>
+  <td><code>wc -l ...</code></td>
+  <td>🟢</td>
+</tr>
+<tr>
+  <td>Copilot(법령)</td>
+  <td>121줄, 화이트리스트 게이트</td>
+  <td><code>agents/copilot.py</code></td>
+  <td><code>wc -l ...</code></td>
+  <td>🟢</td>
+</tr>
+<tr>
+  <td>Dispatcher</td>
+  <td>149줄, fail-closed</td>
+  <td><code>agents/dispatcher.py</code></td>
+  <td><code>wc -l ...</code></td>
+  <td>🟢</td>
+</tr>
+<tr>
+  <td>Analyst</td>
+  <td>164줄</td>
+  <td><code>agents/analyst.py</code></td>
+  <td><code>wc -l ...</code></td>
+  <td>🟡</td>
+</tr>
+<tr>
+  <td>Coach</td>
+  <td><strong>12줄 = 스텁</strong></td>
+  <td><code>agents/coach.py</code></td>
+  <td><code>wc -l ...</code></td>
+  <td>🔴</td>
+</tr>
+<tr>
+  <td>골든셋(체크리스트)</td>
+  <td>3건(crane·confined·press)</td>
+  <td><code>eval/golden/*_checklist.json</code></td>
+  <td><code>ls eval/golden/*_checklist.json</code></td>
+  <td>🟡</td>
+</tr>
+<tr>
+  <td>골든셋(T1 홀드아웃)</td>
+  <td><strong>15케이스 · 합격 11/15</strong> (≥80점 AND 치명적0)</td>
+  <td><code>datasets/goldens/T1/</code>·커밋 <code>d93ec6c</code></td>
+  <td><code>git log --oneline\|grep /15</code></td>
+  <td>🟡</td>
+</tr>
+<tr>
+  <td>최근 채점(crane)</td>
+  <td>커버 3/3·위험수준 3/3·위계 3/3·<strong>법령 4/6·환각 4</strong></td>
+  <td><code>eval/golden/regression_baseline.json</code></td>
+  <td><code>python3 scripts/golden_regression.py</code></td>
+  <td>🟢</td>
+</tr>
+<tr>
+  <td>법령 화이트리스트</td>
+  <td>규칙 <strong>21개</strong> · <code>legal_whitelist.py</code> 189줄</td>
+  <td><code>config/corpus/safety_citations.json</code></td>
+  <td><code>python3 -c &quot;import json;print(len(json.load(open('config/corpus/safety_citations.json'))))&quot;</code></td>
+  <td>🟢</td>
+</tr>
+<tr>
+  <td>환각 차단</td>
+  <td><code>audit_citations</code>(화이트리스트 밖 조문 차단, F-11) / 차단 로그 잔존=<strong>[측정 필요]</strong></td>
+  <td><code>agents/scribe.py</code>:285 · <code>legal_whitelist.py</code></td>
+  <td><code>grep -n audit_citations vigent-core/agents/scribe.py</code></td>
+  <td>🟡</td>
+</tr>
+<tr>
+  <td>LLM 의존</td>
+  <td><strong>외부 API(OpenAI/Anthropic)</strong> · 온프렘(ollama) <strong>제거됨</strong> · 단 법령·위계·빈도는 규칙기반(LLM 무관)</td>
+  <td><code>vigent-core/llm_provider.py</code>:1-13</td>
+  <td><code>sed -n '1,13p' vigent-core/llm_provider.py</code></td>
+  <td>🟡</td>
+</tr>
+<tr>
+  <td>테스트</td>
+  <td>15파일 · <strong>82개 전부 통과</strong>(실행함)</td>
+  <td><code>tests/</code></td>
+  <td><code>python3 -m unittest discover -s tests</code></td>
+  <td>🟢</td>
+</tr>
+<tr>
+  <td><strong>L1→L2 연동</strong></td>
+  <td><strong>빈도 통계 재사용</strong>(count→<code>_likelihood</code>), 요청 시 events 전달 — <strong>항목 자동 O/X 아님</strong></td>
+  <td><code>agents/scribe.py</code>:585,129 · <code>data_engine.py</code>:6</td>
+  <td><code>sed -n '129,130p;585,586p' vigent-core/agents/scribe.py</code></td>
+  <td>🔴</td>
+</tr>
+</tbody>
+</table>
+<p><strong>이게 무슨 뜻이냐면</strong>: 에이전트 6개 중 <strong>4개는 실동작, Coach는 스텁(12줄)</strong>입니다. AI 판단의 <strong>품질을 재는 채점 체계는 갖춰졌지만</strong>(홀드아웃 11/15), 비전 감지가 체크리스트에 <strong>자동으로 O/X를 채우지는 않습니다</strong>(빈도만 재사용) — 이 연결이 <code>20</code> 문서 S3의 핵심 과제입니다.</p>
+<h2>표 1-C. RIG 모듈 현황</h2>
+<table>
+<thead>
+<tr>
+  <th>항목</th>
+  <th>현재 수치</th>
+  <th>출처 경로</th>
+  <th>확인 명령어</th>
+  <th>상태</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+  <td>상태기계</td>
+  <td><code>rig_monitor.py</code>·<code>rig_replay.py</code> (세부 전이·임계 = <strong>[대외비]</strong>)</td>
+  <td><code>vigent-core/rig_monitor.py</code></td>
+  <td><code>ls -la vigent-core/rig_*.py</code></td>
+  <td>🟢로직</td>
+</tr>
+<tr>
+  <td>단위 테스트</td>
+  <td>monitor 5 + replay 6 = <strong>11개</strong>(82개에 포함)</td>
+  <td><code>tests/test_rig_*.py</code></td>
+  <td><code>grep -c 'def test_' tests/test_rig_*.py</code></td>
+  <td>🟢</td>
+</tr>
+<tr>
+  <td>실영상 검증</td>
+  <td>낙상경보 타이밍 <strong>1건</strong>(t=38→ALARM t=38.21s)</td>
+  <td><code>docs/COMMERCIALIZATION_READINESS.md</code>:30</td>
+  <td><code>sed -n '30p' ...</code></td>
+  <td>🟡n=1</td>
+</tr>
+<tr>
+  <td>라이브 배선</td>
+  <td>하드 fall-alarm <strong>배선 불가 확정</strong>(B8)</td>
+  <td><code>docs/P3_BACKLOG.md</code> B8</td>
+  <td><code>grep '배선 불가' docs/COMMERCIALIZATION_READINESS.md</code></td>
+  <td>🔴</td>
+</tr>
+<tr>
+  <td>HW(LED·부저)·음성</td>
+  <td><strong>설계 단계</strong>(구현 코드 미확인) = <strong>[측정 필요]</strong></td>
+  <td>—</td>
+  <td><code>grep -rl 'buzzer\|LED' vigent-core/</code></td>
+  <td>🔴</td>
+</tr>
+</tbody>
+</table>
+<p><strong>이게 무슨 뜻이냐면</strong>: RIG는 <strong>핵심 로직·테스트는 있으나</strong> 실영상 검증이 1건뿐이고, 현재 카메라로는 자동 하드경보를 못 겁니다. LED·부저·음성은 아직 설계입니다. (특허 대상이라 세부는 대외비)</p>
+<h2>표 1-D. 리포·협업 인프라 현황</h2>
+<table>
+<thead>
+<tr>
+  <th>항목</th>
+  <th>현재 수치</th>
+  <th>출처 경로</th>
+  <th>확인 명령어</th>
+  <th>상태</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+  <td>총 커밋</td>
+  <td><strong>427</strong></td>
+  <td>git</td>
+  <td><code>git log --oneline \| wc -l</code></td>
+  <td>🟢</td>
+</tr>
+<tr>
+  <td>브랜치</td>
+  <td>main(clean) + 6개</td>
+  <td>git</td>
+  <td><code>git branch -a</code></td>
+  <td>🟢</td>
+</tr>
+<tr>
+  <td>미커밋 변경</td>
+  <td><strong>0건</strong></td>
+  <td>git</td>
+  <td><code>git status --short</code></td>
+  <td>🟢</td>
+</tr>
+<tr>
+  <td>README·CLAUDE·gitignore</td>
+  <td>모두 존재</td>
+  <td>루트</td>
+  <td><code>ls README.md CLAUDE.md .gitignore</code></td>
+  <td>🟢</td>
+</tr>
+<tr>
+  <td>requirements</td>
+  <td><strong>완전 핀</strong>(17패키지 <code>==</code>)</td>
+  <td><code>requirements.txt</code></td>
+  <td><code>grep -c '==' requirements.txt</code></td>
+  <td>🟢</td>
+</tr>
+<tr>
+  <td>신규 막힘 ① <code>.env</code></td>
+  <td>없음 → <code>.env.example</code> 복사·키 입력 필요</td>
+  <td><code>.env.example</code></td>
+  <td><code>ls -la .env .env.example</code></td>
+  <td>🔴</td>
+</tr>
+<tr>
+  <td>신규 막힘 ② weights</td>
+  <td><strong>812MB git 미포함</strong> → 수동 복사(없으면 COCO 폴백, F-8)</td>
+  <td><code>.gitignore</code></td>
+  <td><code>git check-ignore vigent-core/weights</code></td>
+  <td>🔴</td>
+</tr>
+<tr>
+  <td>신규 막힘 ③ 설치문서</td>
+  <td><strong>있음</strong> <code>docs/ONBOARDING.md</code></td>
+  <td><code>docs/ONBOARDING.md</code></td>
+  <td><code>ls docs/ONBOARDING.md</code></td>
+  <td>🟢</td>
+</tr>
+<tr>
+  <td>신규 막힘 ④ 진입점</td>
+  <td><code>run.sh</code> / <code>uvicorn main:app</code>(cwd=vigent-core)</td>
+  <td><code>run.sh</code>·ONBOARDING §2.5</td>
+  <td><code>grep -n uvicorn docs/ONBOARDING.md</code></td>
+  <td>🟢</td>
+</tr>
+</tbody>
+</table>
+<p><strong>이게 무슨 뜻이냐면</strong>: 코드·이력·문서는 잘 관리돼 있고, 신규 팀원이 실제로 막히는 건 <strong><code>.env</code>와 <code>weights/</code> 두 개뿐</strong>입니다(둘 다 git으로 안 와서 각자 준비).</p>
+<hr />
+<h2>지금 당장 팔 수 있는가? (정직한 답 3줄)</h2>
+<ol>
+<li><strong>아니요.</strong> 현장 실영상으로 정확도(오탐·미탐)를 잰 적이 없고(1건뿐), KISA 인증 기준(F1≥0.90)도 아직 측정 전입니다.</li>
+<li><strong>가장 가까운 판매 가능 형태는 &quot;위험구역 침입 경보 단일 기능 파일럿(시범)&quot;</strong>입니다 — 이건 자체 검증이 가장 앞서 있습니다(타일 recall 89~95%).</li>
+<li><strong>먼저 필요한 것</strong>: 현장 카메라 1대 + 실영상 오탐율 측정 + GPU 장비. (상세: <code>docs/PILOT_PROPOSAL.md</code>·<code>docs/INFRA_REQUIREMENTS.md</code>)</li>
+</ol>
+</div><div class="doc"><h1>20. 에이전트(L2) 트랙 기획안 ★ 핵심 문서 2</h1>
+<h2>(1) 이 트랙이 파는 것</h2>
+<ul>
+<li><strong>AI가 안전 서류를 자동 작성</strong>합니다 — 위험성평가서를 감지 이벤트로부터 초안 생성(법령 근거 인용 포함).</li>
+<li><strong>잘못된 법령 인용(환각)을 차단</strong>합니다 — 화이트리스트 밖 조문은 막습니다.</li>
+<li><strong>안전관리자의 반복 문서 작업을 줄여</strong> 시간을 돌려줍니다.</li>
+</ul>
+<hr />
+<h2>(2) 상용화 단계 정의 (S0~S6)</h2>
+<table>
+<thead>
+<tr>
+  <th>단계</th>
+  <th>이름</th>
+  <th>완료 판정 기준(숫자)</th>
+  <th>현재 상태</th>
+  <th>남은 작업</th>
+  <th>예상 소요(추정)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+  <td><strong>S0</strong> ▶</td>
+  <td>파이프라인 구현</td>
+  <td>6에이전트 전부 실동작 + 산출물 1건 end-to-end</td>
+  <td>🟡 4개 실동작·Coach <strong>스텁(12줄)</strong>, 위험성평가서 1건 실동작</td>
+  <td>Coach 구현 or 범위 확정</td>
+  <td>2~3일</td>
+</tr>
+<tr>
+  <td><strong>S1</strong> ▶</td>
+  <td>품질 계측 체계</td>
+  <td>골든셋 N건 + 채점 엔진 + 평균 점수 기록</td>
+  <td>🟢 회귀 엔진 + <strong>홀드아웃 15케이스(합격 11/15)</strong></td>
+  <td>골든 확대·절대품질 강사 재검수</td>
+  <td>진행중</td>
+</tr>
+<tr>
+  <td>S2</td>
+  <td>환각·법령 통제</td>
+  <td>화이트리스트 밖 조문 인용 <strong>0건</strong> + 차단 로그 남음</td>
+  <td>🟡 차단 로직 있음(F-11) / <strong>차단 로그 잔존 [측정 필요]</strong></td>
+  <td>차단 로그 확인·환각 4건 원인 분석</td>
+  <td>3~5시간</td>
+</tr>
+<tr>
+  <td>S3</td>
+  <td>L1 연동</td>
+  <td>비전 이벤트 → <strong>체크리스트 자동 반영</strong> 경로 실동작</td>
+  <td>🔴 <strong>미완</strong> — 현재 <strong>빈도 통계 재사용</strong>(count→_likelihood), 항목 자동 O/X 아님</td>
+  <td>라이브 감지→항목 O/X 자동반영 배선(A-01)</td>
+  <td>[측정 필요]</td>
+</tr>
+<tr>
+  <td>S4</td>
+  <td>현장 수용성 검증</td>
+  <td>실제 안전관리자 N명 리뷰 통과 + 수정요청 반영</td>
+  <td>🔴 미착수</td>
+  <td>관리자 리뷰 세션</td>
+  <td>현장 의존</td>
+</tr>
+<tr>
+  <td>S5</td>
+  <td>폐쇄망 대응</td>
+  <td>외부 API 없이 <strong>온프렘 LLM으로 동일 품질</strong> 재현</td>
+  <td>🟡 핵심(법령·위계·빈도)은 <strong>규칙기반=오프라인 동작</strong> / <strong>텍스트 LLM은 외부 API(OpenAI·Anthropic)뿐, 온프렘(ollama) 제거됨</strong></td>
+  <td>종합의견용 온프렘 LLM 재도입·로컬 VLM 대안</td>
+  <td>1~2주</td>
+</tr>
+<tr>
+  <td>S6</td>
+  <td>유상 납품</td>
+  <td>첫 유상 계약 / 구독 전환</td>
+  <td>🔴 미착수</td>
+  <td>파일럿 후</td>
+  <td>장기</td>
+</tr>
+</tbody>
+</table>
+<p><strong>▶ 현재 위치 = S0~S1 병행</strong> (파이프라인 대부분 실동작 + 품질 계측 시작. 단 S3 연동은 미완).</p>
+<h3>각 단계를 건너뛰면 어떤 사고가 나는가</h3>
+<ul>
+<li><strong>S0 생략</strong> → 산출물이 end-to-end로 안 나와 데모조차 불가.</li>
+<li><strong>S1 생략</strong> → 품질을 못 재서 코드 바꿀 때마다 <strong>몰래 나빠져도 모름</strong>(회귀).</li>
+<li><strong>S2 생략</strong> → <strong>잘못된 법령 조문이 고객 문서에 그대로 실림</strong>(신뢰·법적 리스크).</li>
+<li><strong>S3 생략</strong> → 비전이 잡은 위험이 서류에 자동 반영 안 됨 → &quot;AI 자동화&quot;라는 핵심 가치 상실(수동 입력과 다를 바 없음).</li>
+<li><strong>S4 생략</strong> → 현장 안전관리자가 안 쓰는 서류를 만들게 됨(수용성 0).</li>
+<li><strong>S5 생략</strong> → 폐쇄망(인터넷 차단) 공장에서 종합의견 생성 불가.</li>
+</ul>
+<h3>S3·S5 판정 근거 (감사 실측)</h3>
+<ul>
+<li><strong>S3</strong>: <code>agents/scribe.py:129,585</code>가 이벤트의 <code>count</code>(빈도)를 <code>_likelihood</code>로 변환해 쓰고, 감지 규칙→적정성 X 매핑은 <strong>요청 시 events를 넘겨받아</strong> 처리. <code>data_engine.py:6</code> &quot;빈도 집계로 재사용&quot; 명시 → <strong>라이브 자동 O/X 파이프라인 아님 = 미완.</strong> 확인: <code>sed -n '129,130p;585,586p' vigent-core/agents/scribe.py</code></li>
+<li><strong>S5</strong>: <code>llm_provider.py:1-13</code> — provider=openai/anthropic(둘 다 외부), ollama(온프렘) 제거됨(2026-07-14). 단 법령·위계·빈도는 규칙기반이라 LLM 없이 동작. 확인: <code>sed -n '1,13p' vigent-core/llm_provider.py</code></li>
+</ul>
+<hr />
+<h2>(3) 마일스톤 → 티켓 분해 (S0→S3)</h2>
+<blockquote>
+<p><strong>★ A-01(S3 연동)을 A 트랙 최상단 고정</strong> — 감사에서 L1→L2 자동연동이 미완으로 확정됨. 의존: <code>A-01 → A-02</code> · <code>A-03 → A-04</code></p>
+</blockquote>
+<pre><code>[A-01] 비전 이벤트 → 체크리스트 항목 자동 O/X 반영 (S3, 최우선)
+왜 하는가 : 현재는 빈도만 재사용 → &quot;AI 자동화&quot; 핵심 가치가 비어 있음. 감지→서류 자동반영이 이 트랙의 심장.
+담당      : (미정)
+난이도    : ★★★       예상 : 6시간(설계) + 배선 별도
+시작 조건 : data_engine.log_event·scribe.build_checklist 흐름 이해
+완료 조건 : [ ] 감지 이벤트가 해당 체크리스트 항목을 자동 X로 표시(빈도만이 아니라 항목 매핑)
+            [ ] 미감지 요건은 '수동확인'으로 유지(조용한 놓침 방지)
+            [ ] 회귀 러너(golden_regression) 통과 유지
+건드리면 안 되는 파일 : eval/golden/regression_baseline.json(먼저 근거 없이 갱신 금지)
+Claude Code 지시문 : &quot;data_engine.log_event → scribe.build_checklist 경로를 조사해줘. 지금은 이벤트 빈도(count)만 재사용하는데, 감지된 규칙이 체크리스트의 해당 항목을 자동으로 X로 반영하도록 바꾸는 설계를 먼저 계획으로 보여줘. 미감지 항목은 '수동확인' 유지. golden_regression 회귀 없게. 코드 수정 전 계획 승인받기.&quot;
+</code></pre>
+<pre><code>[A-02] 환각 차단 로그 실증 + 환각 4건 원인 분석 (S2)
+왜 하는가 : 차단 로직은 있으나 로그가 실제 남는지 미확인. crane 골든서 환각 4건 관찰됨.
+담당      : (미정)  ·  난이도 ★★  예상 : 3~5시간
+시작 조건 : legal_whitelist.audit_citations 위치
+완료 조건 : [ ] 화이트리스트 밖 조문 인용 시 차단 로그가 실제 남는지 실증
+            [ ] crane 환각 4건(osha38 등)의 원인 분류
+건드리면 안 되는 파일 : config/corpus/safety_citations.json(코퍼스)
+Claude Code 지시문 : &quot;legal_whitelist.audit_citations이 화이트리스트 밖 조문을 차단할 때 로그가 실제 남는지 확인하고, eval/golden crane 채점의 환각 4건 원인을 분석해줘. 코드 수정 전 계획 먼저.&quot;
+</code></pre>
+<pre><code>[A-03][입문용] 골든셋 1건 추가 + 채점 (S1)
+왜 하는가 : 골든 체크리스트 3건뿐 → 계측 표본 확대. 초보자가 기존 양식 따라 작성 가능.
+담당      : (미정)  ·  난이도 ★  예상 : 3~4시간
+시작 조건 : eval/golden/TEMPLATE.md
+완료 조건 : [ ] 신규 공정 1건 골든 작성 [ ] golden_regression에 반영·채점 [ ] 베이스라인은 근거와 함께만 갱신
+건드리면 안 되는 파일 : 기존 item_01~03 골든
+Claude Code 지시문 : &quot;eval/golden/TEMPLATE.md 양식으로 새 공정 골든셋 1건을 작성하는 절차를 안내하고, scripts/golden_regression.py로 채점해줘. 베이스라인 갱신은 근거 명시 후에만.&quot;
+</code></pre>
+<pre><code>[A-04][입문용] Coach 에이전트 범위 확정 (S0)
+왜 하는가 : Coach가 12줄 스텁 → 구현할지/범위 축소할지 결정 필요.
+담당      : (미정)  ·  난이도 ★  예상 : 2~3시간
+시작 조건 : agents/coach.py·base.py 읽기
+완료 조건 : [ ] Coach가 할 일 정의 or '보류' 명시 [ ] S0 판정에 반영
+건드리면 안 되는 파일 : 다른 agents/*.py
+Claude Code 지시문 : &quot;agents/coach.py(12줄 스텁)와 base.py를 읽고, Coach가 맡을 역할을 정의하거나 '현 단계 보류'로 판정하는 계획을 제시해줘. 코드 수정 전.&quot;
+</code></pre>
+<pre><code>[A-05] 위험성평가서 절대품질 강사 재검수 (S1)
+왜 하는가 : 채점 베이스라인은 '회귀 감지 기준선'이지 '정답 확정' 아님. 법령 4/6 등 절대 타당성 미검증.
+담당      : (미정 / 안전 전문가 협업)  ·  난이도 ★★  예상 : 리뷰 세션 1회
+시작 조건 : crane/confined/press 산출물
+완료 조건 : [ ] 강사가 축별 점수 확정 [ ] 개선 필요 항목 목록화
+건드리면 안 되는 파일 : 없음(검토)
+Claude Code 지시문 : &quot;crane/confined/press 골든 산출물을 강사 재검수용으로 정리하고, 축별(위험요인·법령·위계) 점수를 채울 표를 만들어줘.&quot;
+</code></pre>
+<pre><code>[A-06] TBM·아차사고 생성기 상태 정리 (S0)
+왜 하는가 : 위험성평가서 외 생성기는 부분/백로그 → 실동작 범위 명확화.
+담당      : (미정)  ·  난이도 ★★  예상 : 3~4시간
+완료 조건 : [ ] 각 생성기 실동작/미구현 구분 [ ] 라우트-기능 매핑
+건드리면 안 되는 파일 : agents/scribe.py 핵심 로직
+Claude Code 지시문 : &quot;TBM·관리체계·아차사고 생성기의 실제 동작 여부를 라우트와 코드로 확인해 실동작/미구현 표를 만들어줘. 조사만.&quot;
+</code></pre>
+<pre><code>[A-07] 온프렘 LLM 대안 조사 (S5)
+왜 하는가 : 폐쇄망 공장은 외부 API 불가. 종합의견용 온프렘 LLM 재도입 필요.
+담당      : (미정)  ·  난이도 ★★★  예상 : 조사 1일
+완료 조건 : [ ] 온프렘 후보(로컬 LLM) + 품질/자원 비교 [ ] 규칙기반만으로 커버되는 범위 명시
+건드리면 안 되는 파일 : llm_provider.py(조사 단계)
+Claude Code 지시문 : &quot;폐쇄망용 온프렘 LLM 후보를 조사하고, 현재 규칙기반만으로 커버되는 문서 범위와 LLM이 꼭 필요한 부분(종합의견)을 구분해줘. 코드 수정 없이.&quot;
+</code></pre>
+<pre><code>[A-08] 법령 코퍼스 커버리지 점검 (S2)
+왜 하는가 : 코퍼스 규칙 21개 → 대상 공정 대비 커버리지 확인 필요.
+담당      : (미정)  ·  난이도 ★★  예상 : 3~4시간
+완료 조건 : [ ] 21규칙이 커버하는 공정/미커버 공정 목록 [ ] 보강 우선순위
+건드리면 안 되는 파일 : config/corpus/safety_citations.json(먼저 계획 없이 편집 금지)
+Claude Code 지시문 : &quot;config/corpus/safety_citations.json의 21개 규칙이 커버하는 공정과 빠진 공정을 정리해줘. 조사만.&quot;
+</code></pre>
+<p><strong>의존 관계</strong>: <code>A-01 → A-02</code>(연동 후 환각검증) · <code>A-03 → A-05</code>(골든 확대 후 강사검수) · <code>A-04</code>·<code>A-06</code>·<code>A-07</code>·<code>A-08</code> 병렬.
+<strong>[입문용]</strong>: A-03, A-04.</p>
+<hr />
+<h2>(4) 비전 트랙과의 연결점 (어느 A가 어느 V에 막혀 있나)</h2>
+<table>
+<thead>
+<tr>
+  <th>A 티켓</th>
+  <th>막혀 있는 V 티켓</th>
+  <th>이유</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+  <td><strong>A-01</strong>(이벤트→체크리스트 자동반영)</td>
+  <td><strong>V-01</strong>(가중치 fail-fast)</td>
+  <td>자동반영이 신뢰 있으려면 검출이 폴백 없이 제대로 돌아야 함(F-8)</td>
+</tr>
+<tr>
+  <td>A-02(환각·차단로그)</td>
+  <td>—</td>
+  <td>독립(법령 로직은 검출과 무관)</td>
+</tr>
+<tr>
+  <td>A-05(강사 재검수)</td>
+  <td>V-05(현장 오탐 샘플)</td>
+  <td>실제 감지 결과라야 서류 품질이 현장 의미를 가짐</td>
+</tr>
+<tr>
+  <td>A-07(온프렘 LLM)</td>
+  <td>V-08(엣지 포팅)</td>
+  <td>폐쇄망·엣지 배포는 함께 묶여 감(온프렘 환경)</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2>이 트랙의 3대 리스크</h2>
+<ol>
+<li><strong>환각(잘못된 법령 인용)이 고객 문서에 실림</strong> — 신뢰·법적 리스크.<ul>
+<li><strong>조기 경보</strong>: A-02에서 차단 로그가 실제로 안 남거나, 환각 건수가 골든 확대 시 늘면.</li>
+</ul>
+</li>
+<li><strong>L1↔L2 연동 미완이 방치됨</strong> — &quot;AI 자동화&quot; 가치가 비어 파일럿 설득력 하락.<ul>
+<li><strong>조기 경보</strong>: A-01이 계속 뒤로 밀리고 데모가 여전히 수동 입력이면.</li>
+</ul>
+</li>
+<li><strong>폐쇄망 대응 공백</strong> — 공장 다수가 인터넷 차단 → 외부 API 의존이 납품 장벽.<ul>
+<li><strong>조기 경보</strong>: 파일럿 후보가 &quot;인터넷 안 됨&quot;을 조건으로 내거는데 온프렘 대안이 없으면.</li>
+</ul>
+</li>
+</ol>
+</div></body></html>

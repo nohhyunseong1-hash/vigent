@@ -1,0 +1,819 @@
+<!doctype html><html lang="ko"><head><meta charset="utf-8"><title>VIGENT 신규 팀원 온보딩</title><style>
+@page { size: A4; margin: 20mm; }
+* { box-sizing: border-box; }
+body { font-family: 'Pretendard','Noto Sans KR','Apple SD Gothic Neo','Malgun Gothic',sans-serif;
+  font-size: 10.5pt; line-height: 1.6; color: #1a1a1a; margin: 0; }
+.footer { position: fixed; bottom: 6mm; left: 0; right: 0; text-align: center;
+  font-size: 8pt; color: #999; }
+.cover { height: 247mm; display: flex; flex-direction: column; justify-content: center;
+  align-items: center; text-align: center; page-break-after: always; }
+.cover .badge { display:inline-block; border:2px solid #c0392b; color:#c0392b; font-weight:700;
+  padding:4px 14px; border-radius:4px; margin-bottom:24px; font-size:12pt; }
+.cover h1 { font-size: 26pt; margin: 8px 0; }
+.cover .meta { font-size: 12pt; color:#444; margin-top:8px; line-height:2; }
+.cover .conf { margin-top:36px; color:#c0392b; font-weight:700; font-size:12pt; }
+.toc { page-break-after: always; }
+.toc h2 { border-bottom: 2px solid #333; padding-bottom:6px; }
+.toc ol { line-height: 2; font-size: 11pt; }
+.legend { background:#f0f4f8; border:1px solid #d0d8e0; border-radius:6px; padding:10px 14px; margin:16px 0; font-size:10pt; }
+.doc { page-break-before: always; }
+h1 { font-size: 18pt; border-bottom: 2px solid #333; padding-bottom:6px; margin-top:0; }
+h2 { font-size: 14pt; margin-top: 20px; border-left:4px solid #2c6; padding-left:8px; }
+h3 { font-size: 12pt; margin-top: 16px; }
+h4 { font-size: 11pt; margin-top: 12px; }
+p, li { orphans: 2; widows: 2; }
+table { border-collapse: collapse; width: 100%; margin: 12px 0; font-size: 9pt;
+  page-break-inside: avoid; }
+th, td { border: 1px solid #bbb; padding: 5px 7px; text-align: left; vertical-align: top; }
+th { background: #eef2f6; font-weight: 700; }
+pre { background: #f5f5f5; border: 1px solid #e0e0e0; border-radius: 6px; padding: 10px 12px;
+  white-space: pre-wrap; word-break: break-word; font-size: 9pt;
+  font-family: 'D2Coding','SF Mono','Menlo','Apple SD Gothic Neo',monospace; page-break-inside: avoid; }
+code { background: #f0f0f0; border-radius: 3px; padding: 1px 4px; font-size: 9pt;
+  font-family: 'SF Mono','Menlo',monospace; }
+pre code { background: none; padding: 0; }
+blockquote { border-left: 4px solid #ccc; margin: 10px 0; padding: 4px 14px; color: #555; background:#fafafa; }
+a { color: #1a5aa0; text-decoration: none; }
+hr { border: none; border-top: 1px solid #ddd; margin: 18px 0; }
+</style></head><body><div class="footer">VIGENT 대외비 · 초안—검토용 v0.9</div><div class="cover"><div class="badge">초안 — 검토용</div><h1>VIGENT 신규 팀원 온보딩</h1><div class="meta">버전 v0.9<br>생성일 2026-07-27</div><div class="conf">대외비 — 외부 배포 금지</div></div><div class="toc"><h2>목차</h2><div class="legend"><b>신호등 범례</b> — 🟢 <b>[완료]</b> 실측·완료 · 🟡 <b>[진행중]</b> 부분·진행 · 🔴 <b>[미착수]</b> 미착수·미검증 (색이 안 보이면 대괄호 텍스트로 판단)</div><ol><li>00. 시작하기 전에 (3분 요약)</li><li>40. Claude Code 사용법 ★ 바이브코딩 규칙</li><li>50. 완전초보 온보딩 (가장 자세하게)</li><li>60. 협업 규칙 — Git</li><li>70. 역할 분담과 주간 루틴</li><li>80. 용어 사전</li></ol><p style="font-size:9pt;color:#888;">※ 정확한 페이지 번호는 PDF 뷰어의 페이지 표시를 참고하세요. (브라우저 인쇄 시 하단 페이지번호 옵션 사용 가능)</p></div><div class="doc"><h1>00. 시작하기 전에 (3분 요약)</h1>
+<blockquote>
+<p>이 문서는 <strong>팀원 전원(대표 포함)</strong>이 가장 먼저 읽는 문서입니다. 바이브코딩·팀 프로젝트가 처음이어도 괜찮습니다.</p>
+</blockquote>
+<hr />
+<h2>VIGENT가 뭘 만드는 회사인가 (5줄)</h2>
+<ol>
+<li>VIGENT는 <strong>공장·건설현장의 CCTV 영상을 AI가 보고 위험을 잡아내는</strong> 산업안전 플랫폼입니다.</li>
+<li>카메라가 &quot;위험구역에 사람이 들어왔다 / 보호구를 안 썼다 / 불·연기가 났다&quot;를 자동으로 감지해 경보합니다. (이것을 <strong>비전(Vision, L1)</strong>이라 부릅니다.)</li>
+<li>감지 결과로 <strong>위험성평가서 같은 안전 서류를 AI가 자동 작성</strong>합니다. (이것을 <strong>에이전트(Agent, L2)</strong>라 부릅니다.)</li>
+<li>즉 <strong>&quot;보는 눈(비전) + 판단하는 머리(에이전트)&quot;</strong>가 한 시스템으로 붙어 있습니다.</li>
+<li>VIGENT는 <strong>보조 감시 도구</strong>입니다 — 법으로 정해진 안전장치(방호장치 등)를 대체하지 않고, <strong>추가로 지켜보는 신호</strong>를 줍니다.</li>
+</ol>
+<h2>지금 어디까지 왔나 (3줄)</h2>
+<ul>
+<li>비전·에이전트 <strong>코드와 자체 테스트(82개 통과)는 갖춰졌고</strong>, 동시부하 크래시(F-14) 같은 큰 안정성 문제는 해결했습니다.</li>
+<li>하지만 <strong>실제 현장 CCTV로 정확도를 잰 적이 거의 없습니다</strong>(실영상 검증 1건). 공개 데이터셋 수치만 있습니다.</li>
+<li>감지 클래스는 <strong>3클래스 가동(person·PPE·fire/smoke) + forklift(지게차)는 재학습 대기</strong>입니다.</li>
+</ul>
+<h2>앞으로 뭘 할 건가 (3줄)</h2>
+<ul>
+<li><strong>비전(L1)</strong>: 현장 영상으로 정확도(오탐·미탐)를 재고, 부족한 클래스(안전모 미착용 등)를 재학습해 KISA 인증 기준(F1 ≥ 0.90)을 향합니다.</li>
+<li><strong>에이전트(L2)</strong>: AI가 만든 안전서류의 품질을 계측하고, 잘못된 법령 인용(환각)을 막고, 비전 감지와 자동 연동합니다.</li>
+<li>두 트랙이 만나 <strong>파일럿(시범 설치) → 유상 납품</strong>으로 갑니다. 상세 단계는 <code>10</code>·<code>20</code> 문서에 있습니다.</li>
+</ul>
+<hr />
+<h2>문서 읽는 순서</h2>
+<table>
+<thead>
+<tr>
+  <th>순서</th>
+  <th>문서</th>
+  <th>누가 꼭 읽나</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+  <td>1</td>
+  <td><strong>00_시작하기_전에</strong> (이 문서)</td>
+  <td>전원</td>
+</tr>
+<tr>
+  <td>2</td>
+  <td><strong>01_현황_숫자로_보기</strong></td>
+  <td>전원 (특히 대표)</td>
+</tr>
+<tr>
+  <td>3</td>
+  <td><strong>10_비전트랙_기획안</strong></td>
+  <td>비전 담당·대표</td>
+</tr>
+<tr>
+  <td>3</td>
+  <td><strong>20_에이전트트랙_기획안</strong></td>
+  <td>에이전트 담당·대표</td>
+</tr>
+<tr>
+  <td>4</td>
+  <td><strong>30_통합_로드맵</strong></td>
+  <td>전원</td>
+</tr>
+<tr>
+  <td>5</td>
+  <td><strong>40_클로드코드_사용법</strong></td>
+  <td>전원 (개발 참여자 필수)</td>
+</tr>
+<tr>
+  <td>6</td>
+  <td><strong>50_완전초보_온보딩</strong></td>
+  <td><strong>신규 팀원 필수</strong> (설치 처음이면)</td>
+</tr>
+<tr>
+  <td>7</td>
+  <td><strong>60_협업규칙_git</strong></td>
+  <td>코드 만지는 전원</td>
+</tr>
+<tr>
+  <td>8</td>
+  <td><strong>70_역할분담과_주간루틴</strong></td>
+  <td>전원</td>
+</tr>
+<tr>
+  <td>9</td>
+  <td><strong>80_용어사전</strong></td>
+  <td>모르는 단어 나올 때마다</td>
+</tr>
+</tbody>
+</table>
+<ul>
+<li><strong>개발이 처음이면</strong>: 00 → 01 → <strong>50(온보딩)</strong> → 40 → 60 순서를 권장합니다.</li>
+<li><strong>대표·사업 담당이면</strong>: 00 → 01 → 10 → 20 → 30 을 보면 전체 그림과 일정이 잡힙니다.</li>
+</ul>
+<h2>⚠️ 보안 주의 (반드시)</h2>
+<ul>
+<li>이 리포(코드·수치·문서)의 <strong>내용을 외부에 공유하지 마세요.</strong> 대외비입니다.</li>
+<li><strong>공개 시연·외부 발표 전에는 반드시 특허 출원을 먼저</strong> 합니다. (특히 RIG 모듈은 특허 대상이라 세부 동작은 팀 내에서도 <code>[대외비]</code>로 다룹니다.)</li>
+<li><code>.env</code>(비밀키)·모델 가중치·현장 영상은 <strong>절대 git에 올리지 않습니다</strong> (상세: <code>60_협업규칙_git.md</code>).</li>
+</ul>
+<blockquote>
+<p>개발 도구는 <strong>Claude Code 하나로 통일</strong>합니다. 다른 IDE·플러그인은 쓰지 않습니다 (이유·사용법: <code>40_클로드코드_사용법.md</code>).</p>
+</blockquote>
+</div><div class="doc"><h1>40. Claude Code 사용법 ★ 바이브코딩 규칙</h1>
+<blockquote>
+<p><strong>우리 팀은 Claude Code 하나만 씁니다.</strong> 이유: 도구가 여러 개면 팀원마다 환경·습관이 갈려 협업이 깨집니다. 하나로 통일하면 지시문·문제해결 방식을 공유할 수 있습니다.</p>
+</blockquote>
+<h2>설치·실행 (화면 흐름)</h2>
+<ol>
+<li>터미널을 엽니다 (macOS: Spotlight에서 &quot;터미널&quot; / Windows: PowerShell). 상세는 <code>50_완전초보_온보딩.md</code>.</li>
+<li>프로젝트 폴더로 이동합니다.</li>
+</ol>
+<pre><code class="language-bash">cd ~/Desktop/VIGENT
+</code></pre>
+<p>실행하면 이런 게 보입니다:</p>
+<pre><code>(아무 메시지 없이 프롬프트가 VIGENT 폴더로 바뀝니다)
+</code></pre>
+<ol start="3">
+<li>Claude Code를 실행합니다.</li>
+</ol>
+<pre><code class="language-bash">claude
+</code></pre>
+<p>실행하면 이런 게 보입니다:</p>
+<pre><code>╭──────────────────────────────╮
+│  Claude Code                 │
+│  &gt; (여기에 지시를 입력)       │
+╰──────────────────────────────╯
+</code></pre>
+<h2>좋은 지시문 4원칙</h2>
+<ol>
+<li><strong>목적 먼저</strong> — &quot;무엇을 왜&quot; 한 줄로.</li>
+<li><strong>건드릴 파일 범위 명시</strong> — 어느 파일까지 만져도 되는지.</li>
+<li><strong>완료 조건 제시</strong> — 무엇이 되면 끝인지(숫자로).</li>
+<li><strong>한 번에 하나</strong> — 여러 개를 한꺼번에 시키지 않기.</li>
+</ol>
+<h2>나쁜 지시문 vs 좋은 지시문 (이 프로젝트 실제 작업으로)</h2>
+<p><strong>예시 1 — 정확도 측정</strong></p>
+<ul>
+<li>🔴 나쁨: &quot;정확도 좀 봐줘&quot;</li>
+<li>🟢 좋음: &quot;person·PPE·fire/smoke 클래스별 precision·recall·F1을 산출하는 스크립트를 <code>tools/</code>에 만들어줘. 기존 <code>benchmarks/</code> 코드를 재활용하고, 측정 환경(MPS/CPU)을 리포트에 병기해줘. 코드 수정 전 계획 먼저 보여줘.&quot; (V-02 티켓)</li>
+</ul>
+<p><strong>예시 2 — 추적기 교체</strong></p>
+<ul>
+<li>🔴 나쁨: &quot;추적 더 좋게 바꿔&quot;</li>
+<li>🟢 좋음: &quot;추적기 A/B 결과 SORT가 단편화가 심해. <code>rfdetr_service.py</code>·<code>rfdetr_zone_track.py</code>의 SORTTracker를 ByteTrackTracker로 교체하는 계획을 먼저 보여주고, 게이트(테스트 82) 통과 확인 후 커밋해줘. 다른 파일은 건드리지 마.&quot;</li>
+</ul>
+<p><strong>예시 3 — 연동 배선</strong></p>
+<ul>
+<li>🔴 나쁨: &quot;감지된 거 서류에 자동으로 넣어줘&quot;</li>
+<li>🟢 좋음: &quot;<code>data_engine.log_event → scribe.build_checklist</code> 경로를 조사해줘. 지금은 빈도만 재사용하는데, 감지 규칙이 체크리스트 항목을 자동 X로 반영하도록 바꾸는 설계를 <strong>계획으로 먼저</strong> 보여줘. 미감지 항목은 '수동확인' 유지. <code>golden_regression</code> 회귀 없게.&quot; (A-01 티켓)</li>
+</ul>
+<h2>작업 흐름 (반드시 이 순서)</h2>
+<pre><code>① 지시 입력  →  ② &quot;계획 먼저 보여줘&quot; 요청  →  ③ 계획 확인 후 &quot;진행해&quot; 승인
+   →  ④ 결과·게이트 확인  →  ⑤ 커밋
+</code></pre>
+<ul>
+<li><strong>핵심</strong>: 코드를 바꾸는 지시는 <strong>항상 계획을 먼저 받고</strong> 승인하세요. 바로 실행시키지 않습니다.</li>
+</ul>
+<h2>CLAUDE.md 가 뭔가</h2>
+<ul>
+<li>프로젝트 루트의 <code>CLAUDE.md</code>는 <strong>Claude Code가 매 대화마다 자동으로 읽는 규칙서</strong>입니다.</li>
+<li>여기 규칙을 적어두면 모든 팀원의 Claude Code가 같은 규칙으로 동작합니다.</li>
+<li>규칙 추가법: &quot;CLAUDE.md에 '~~ 규칙을 추가해줘'&quot;라고 지시하면 됩니다. (단, 팀 합의 후)</li>
+</ul>
+<h2>세션 관리</h2>
+<ul>
+<li>대화가 길어지면 <strong>한 작업 끝 → 커밋 → 새 대화 시작</strong>. 짧게 끊어야 Claude가 헷갈리지 않습니다.</li>
+<li><strong>작업 단위로 커밋</strong>하세요. 한 커밋에 여러 작업을 몰지 마세요.</li>
+</ul>
+<h2>절대 하지 말 것</h2>
+<ul>
+<li>❌ 확인 없이 <strong>대량 파일 수정을 승인</strong>하기</li>
+<li>❌ <strong>이해 못 한 코드를 커밋</strong>하기 (뭐 하는지 물어보고 이해한 뒤 커밋)</li>
+<li>❌ <strong>에러를 숨기고 다음 단계로</strong> 넘어가기 (에러는 반드시 해결·공유)</li>
+</ul>
+<h2>막혔을 때 3단계</h2>
+<ol>
+<li><strong>에러 메시지 전문을 복사</strong> (일부만 말고 전체).</li>
+<li><strong>Claude Code에 붙여넣기</strong> + &quot;이 에러가 났어. 원인과 해결을 알려줘&quot;.</li>
+<li>그래도 안 되면 <strong>팀 채널에 에러 전문 공유</strong>.</li>
+</ol>
+</div><div class="doc"><h1>50. 완전초보 온보딩 (가장 자세하게)</h1>
+<blockquote>
+<p>컴퓨터에 <strong>아무것도 안 깔린 상태</strong>를 가정합니다. macOS와 Windows를 나눠서 씁니다.
+상세 개발 환경은 <code>docs/ONBOARDING.md</code>도 함께 참고합니다(이 문서는 그 초보자용 버전입니다).</p>
+</blockquote>
+<hr />
+<h2>⛔ 이거 없으면 아무것도 안 됩니다 (제일 먼저)</h2>
+<p>git으로 코드를 받아도 <strong>아래 2개는 안 따라옵니다.</strong> 반드시 팀에서 따로 받아 넣으세요.</p>
+<h3>① <code>.env</code> (비밀키 파일)</h3>
+<ul>
+<li>git에 올리면 안 되는 API 키가 들어갑니다 → <strong>각자 만들어야</strong> 합니다.</li>
+</ul>
+<pre><code class="language-bash">cp .env.example .env
+</code></pre>
+<p>실행하면 이런 게 보입니다:</p>
+<pre><code>(아무 메시지 없이 .env 파일이 생깁니다)
+</code></pre>
+<ul>
+<li>그다음 <code>.env</code>를 열어 팀에게 받은 키를 채웁니다(예: <code>OPENAI_API_KEY</code>). <strong>키는 절대 채팅·git에 쓰지 마세요.</strong></li>
+</ul>
+<h3>② 모델 가중치 <code>weights/</code> (812MB, 18개 파일)</h3>
+<ul>
+<li>용량이 커서 git에 없습니다. <strong>없으면 검출이 엉뚱하게 동작(COCO 폴백)해 정확도가 급락합니다</strong>(과거 F-8 사고).</li>
+<li>팀 공유 위치(클라우드 드라이브/USB)에서 받아 <strong><code>vigent-core/weights/</code></strong> 폴더에 넣습니다.</li>
+<li>확인:</li>
+</ul>
+<pre><code class="language-bash">ls vigent-core/weights/ | wc -l
+</code></pre>
+<p>실행하면 이런 게 보입니다:</p>
+<pre><code>18
+</code></pre>
+<blockquote>
+<p><code>[스크린샷 자리]</code> weights 폴더에 파일 18개가 들어있는 모습</p>
+</blockquote>
+<p><strong>이 2개가 준비되기 전에는 서버가 제대로 안 돕니다.</strong> 아래 설치를 먼저 하고, 이 2개로 마무리하세요.</p>
+<hr />
+<h2>macOS</h2>
+<h3>1. 터미널 열기</h3>
+<ul>
+<li><code>Cmd(⌘) + Space</code> → &quot;터미널&quot; 입력 → Enter.</li>
+</ul>
+<blockquote>
+<p><code>[스크린샷 자리]</code></p>
+</blockquote>
+<h3>2. 내 위치 확인·이동·목록</h3>
+<pre><code class="language-bash">pwd                    # 지금 어느 폴더인지
+cd ~/Desktop/VIGENT    # VIGENT 폴더로 이동
+ls                     # 폴더 안 목록 보기
+</code></pre>
+<p>실행하면 이런 게 보입니다:</p>
+<pre><code>/Users/본인이름/Desktop/VIGENT
+CLAUDE.md   README.md   vigent-core   docs   ...
+</code></pre>
+<h3>3. Git 확인·설치·설정</h3>
+<pre><code class="language-bash">git --version          # 설치돼 있으면 버전이 뜸
+</code></pre>
+<ul>
+<li>안 깔렸으면: <code>xcode-select --install</code> 실행 → 설치 창을 따라갑니다.</li>
+<li>최초 1회 설정:</li>
+</ul>
+<pre><code class="language-bash">git config --global user.name &quot;본인이름&quot;
+git config --global user.email &quot;본인이메일&quot;
+</code></pre>
+<h3>4. Python·가상환경·의존성</h3>
+<pre><code class="language-bash">python3 --version                    # 3.11~3.13 권장
+python3 -m venv .venv                 # 가상환경 만들기
+source .venv/bin/activate             # 활성화 (앞에 (.venv) 가 붙음)
+pip install -r requirements.txt       # 의존성 설치
+</code></pre>
+<ul>
+<li>opencv 정리(중요, <code>docs/ONBOARDING.md</code> §2.2와 동일):</li>
+</ul>
+<pre><code class="language-bash">pip uninstall -y opencv-python opencv-contrib-python
+pip install --force-reinstall --no-deps opencv-contrib-python-headless==4.13.0.92
+</code></pre>
+<h3>5. 리포 내려받기 (처음 한 번만)</h3>
+<pre><code class="language-bash">git clone &lt;여기에 저장소 주소&gt; VIGENT
+cd VIGENT
+</code></pre>
+<h3>6. Claude Code 설치·실행</h3>
+<pre><code class="language-bash">claude                                # 프로젝트 폴더에서 실행
+</code></pre>
+<blockquote>
+<p><code>[스크린샷 자리]</code> Claude Code 시작 화면</p>
+</blockquote>
+<h3>7. 첫 실행 성공 확인</h3>
+<ul>
+<li>서버 켜기:</li>
+</ul>
+<pre><code class="language-bash">./run.sh
+</code></pre>
+<ul>
+<li>다른 터미널에서:</li>
+</ul>
+<pre><code class="language-bash">curl http://127.0.0.1:8010/health
+</code></pre>
+<p>실행하면 이런 게 보이면 <strong>성공</strong>입니다:</p>
+<pre><code>{&quot;status&quot;:&quot;ok&quot;,&quot;loaded&quot;:true, ... }
+</code></pre>
+<ul>
+<li><code>&quot;loaded&quot;:true</code> 가 보이면 모델이 제대로 올라간 것입니다. (안 뜨면 §가중치 확인)</li>
+</ul>
+<hr />
+<h2>Windows</h2>
+<blockquote>
+<p>⚠️ 이 프로젝트는 macOS에서 개발됐습니다. Windows에서 처음 켤 때 잔가지 조정이 필요할 수 있습니다. <strong>NVIDIA GPU가 있으면 검출이 더 빠르고 재학습도 가능</strong>합니다(상세 <code>docs/INFRA_REQUIREMENTS.md</code>).</p>
+</blockquote>
+<h3>1. 터미널(PowerShell) 열기</h3>
+<ul>
+<li><code>시작</code> 버튼 → &quot;PowerShell&quot; 입력 → Enter.</li>
+</ul>
+<blockquote>
+<p><code>[스크린샷 자리]</code></p>
+</blockquote>
+<h3>2. 내 위치 확인·이동·목록</h3>
+<pre><code class="language-powershell">Get-Location                 # 지금 폴더 (pwd 대신)
+cd $HOME\Desktop\VIGENT      # 이동
+dir                          # 목록 (ls 대신 dir)
+</code></pre>
+<h3>3. Git 확인·설치·설정</h3>
+<pre><code class="language-powershell">git --version
+</code></pre>
+<ul>
+<li>안 깔렸으면: <a href="https://git-scm.com">https://git-scm.com</a> 에서 설치.</li>
+</ul>
+<pre><code class="language-powershell">git config --global user.name &quot;본인이름&quot;
+git config --global user.email &quot;본인이메일&quot;
+</code></pre>
+<h3>4. Python·가상환경·의존성</h3>
+<pre><code class="language-powershell">python --version                     # 3.11~3.13
+python -m venv .venv
+.venv\Scripts\activate               # 활성화 (macOS와 경로 다름)
+pip install -r requirements.txt
+</code></pre>
+<ul>
+<li>⚠️ <strong>로컬 VLM(mlx)은 애플 전용이라 Windows에서 설치·실행 안 됩니다.</strong> <code>requirements-optional.txt</code>의 mlx 줄은 건너뛰고, VLM은 클라우드(<code>OPENAI_API_KEY</code> + <code>.env</code>의 <code>VIGENT_CLOUD_VLM=1</code>)로 씁니다.</li>
+<li>⚠️ <strong>NVIDIA GPU면 torch를 CUDA용으로 따로 설치</strong>하세요(자세히는 <code>docs/INFRA_REQUIREMENTS.md</code>).</li>
+</ul>
+<h3>5·6·7. clone·Claude·실행</h3>
+<pre><code class="language-powershell">git clone &lt;여기에 저장소 주소&gt; VIGENT
+cd VIGENT
+claude
+</code></pre>
+<ul>
+<li>서버 실행 후 확인:</li>
+</ul>
+<pre><code class="language-powershell">curl http://127.0.0.1:8010/health
+</code></pre>
+<p><code>&quot;loaded&quot;:true</code> 가 보이면 성공.</p>
+<hr />
+<h2>자주 나는 에러 5가지와 대처</h2>
+<table>
+<thead>
+<tr>
+  <th>증상</th>
+  <th>원인</th>
+  <th>대처</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+  <td><code>Permission denied</code></td>
+  <td>실행 권한 없음</td>
+  <td><code>chmod +x run.sh</code> (mac) / 관리자 PowerShell</td>
+</tr>
+<tr>
+  <td><code>command not found: claude</code> / <code>python</code></td>
+  <td>미설치·경로 문제</td>
+  <td>재설치, 터미널 새로 열기</td>
+</tr>
+<tr>
+  <td><code>Address already in use</code> (포트 8010)</td>
+  <td>이미 서버가 떠 있음</td>
+  <td>기존 프로세스 종료 후 재실행</td>
+</tr>
+<tr>
+  <td><code>ModuleNotFoundError</code></td>
+  <td>가상환경 미활성</td>
+  <td><code>source .venv/bin/activate</code>(mac)/<code>​.venv\Scripts\activate</code>(win)</td>
+</tr>
+<tr>
+  <td>검출이 안 됨 / <code>&quot;loaded&quot;:false</code></td>
+  <td><strong>모델 가중치 없음</strong></td>
+  <td><code>vigent-core/weights/</code>에 812MB 복사(맨 위 ② 참고)</td>
+</tr>
+</tbody>
+</table>
+<h2>막혔을 때 행동 순서</h2>
+<ol>
+<li><strong>에러 메시지 전체를 복사</strong>한다 (일부만 X).</li>
+<li><strong>Claude Code에</strong> &quot;이 에러가 났어&quot; + 붙여넣기 → 원인·해결 요청.</li>
+<li>그래도 안 되면 <strong>팀 채널에 에러 전문을 공유</strong>한다.</li>
+</ol>
+</div><div class="doc"><h1>60. 협업 규칙 — Git</h1>
+<h2>깃(git)이 뭔가 (비유)</h2>
+<ul>
+<li><strong>게임 세이브 파일</strong>과 같습니다. 작업을 &quot;저장(커밋)&quot;하면 언제든 그 지점으로 돌아갈 수 있습니다.</li>
+<li>여러 명이 각자 세이브를 만들고 <strong>나중에 합치는(merge)</strong> 도구입니다. 문서 버전관리(v1, v2 …)를 자동으로 해준다고 보면 됩니다.</li>
+</ul>
+<h2>반드시 지킬 5가지 규칙 (제일 중요)</h2>
+<ol>
+<li><strong>작업 전 <code>git pull</code></strong> — 남이 올린 최신을 먼저 받는다.</li>
+<li><strong>내 작업은 내 브랜치에서</strong> — <code>main</code>에 직접 작업하지 않는다.</li>
+<li><strong>작업 단위로 커밋</strong> — 한 번에 하나. 메시지에 무엇을 했는지 쓴다.</li>
+<li><strong><code>.env</code>·가중치·현장영상은 절대 올리지 않는다.</strong></li>
+<li><strong>막히면 멈추고 공유</strong> — 특히 충돌(conflict)은 혼자 해결하려 하지 말 것.</li>
+</ol>
+<h2>하루 작업 흐름 (명령어 + 한 줄 해설)</h2>
+<pre><code class="language-bash">git pull                          # 최신 내용 받기
+git checkout -b feat/내작업이름     # 내 작업 공간(브랜치) 만들기
+# ... 작업 ...
+git status                        # 뭐가 바뀌었는지 보기
+git add -A                        # 바뀐 것 전부 담기
+git commit -m &quot;feat: 무엇을 했는지&quot; # 저장(커밋)하기
+git push -u origin feat/내작업이름  # 내 브랜치를 서버에 올리기
+</code></pre>
+<h2>브랜치 이름 규칙</h2>
+<ul>
+<li>형식: <code>종류/짧은설명</code> — 예: <code>feat/f1-측정</code>, <code>fix/포트충돌</code>, <code>docs/온보딩보완</code></li>
+</ul>
+<h2>커밋 메시지 규칙 (종류 + 한글 설명)</h2>
+<ul>
+<li><code>feat:</code> 새 기능 / <code>fix:</code> 버그 수정 / <code>docs:</code> 문서 / <code>test:</code> 테스트 / <code>refactor:</code> 구조 개선</li>
+<li><strong>예시 5개</strong>:<ul>
+<li><code>feat: 클래스별 F1 산출 스크립트 추가 (V-02)</code></li>
+<li><code>fix: 가중치 부재 시 fail-fast 전환 (F-8)</code></li>
+<li><code>docs: 신규 팀원 온보딩 문서 추가</code></li>
+<li><code>test: rig_monitor 상태전이 테스트 보강</code></li>
+<li><code>refactor: 이벤트→체크리스트 연동 구조 정리 (A-01)</code></li>
+</ul>
+</li>
+</ul>
+<h2>절대 치면 안 되는 명령어와 이유</h2>
+<table>
+<thead>
+<tr>
+  <th>명령어</th>
+  <th>왜 위험한가</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+  <td><code>git push --force</code></td>
+  <td>남의 작업을 <strong>덮어써 삭제</strong>할 수 있음</td>
+</tr>
+<tr>
+  <td><code>git reset --hard</code></td>
+  <td>저장 안 한 내 작업이 <strong>되돌릴 수 없이 사라짐</strong></td>
+</tr>
+<tr>
+  <td><code>rm -rf</code></td>
+  <td>폴더·파일을 <strong>복구 불가</strong>하게 삭제</td>
+</tr>
+<tr>
+  <td>main에 직접 push</td>
+  <td>리뷰 없이 전원에게 영향, 사고 시 추적 어려움</td>
+</tr>
+</tbody>
+</table>
+<h2>충돌(conflict)이 났을 때 (초보자)</h2>
+<ol>
+<li><strong>당황하지 마세요.</strong> 흔한 일입니다.</li>
+<li><strong>아무것도 저장하지 말고</strong> 상황 그대로 둡니다.</li>
+<li>화면(충돌 메시지)을 <strong>Claude Code에 그대로 붙여넣고</strong> &quot;충돌이 났어. 어떻게 해결하는지 알려줘&quot;라고 물어봅니다.</li>
+</ol>
+<h2>git에 올리면 안 되는 것 (다시)</h2>
+<ul>
+<li><code>.env</code>, <strong>API 키·비밀번호</strong></li>
+<li><strong>모델 가중치</strong>(<code>weights/</code>, 812MB)</li>
+<li><strong>현장 영상·개인정보</strong> 포함 파일</li>
+<li>(이미 <code>.gitignore</code>가 대부분 막아두지만, 새 파일 추가 시 주의)</li>
+</ul>
+<h2>코드 리뷰 (PR)</h2>
+<ul>
+<li>작업을 올린 뒤 GitHub에서 <strong>PR(Pull Request, 병합 요청)</strong>을 만듭니다.</li>
+<li><strong>리뷰어를 지정</strong>합니다(내 폴더 담당 + 공유부면 양쪽 — <code>70_역할분담</code> 참고).</li>
+<li><strong>승인 없이 merge 금지.</strong> 최소 1명 승인 후 합칩니다.</li>
+</ul>
+</div><div class="doc"><h1>70. 역할 분담과 주간 루틴</h1>
+<h2>역할과 담당 폴더 (파일 충돌을 구조적으로 예방)</h2>
+<blockquote>
+<p>감사 결과 비전·에이전트는 <strong>서로 import하지 않아</strong>(느슨한 결합) 폴더로 나누면 충돌이 거의 없습니다.</p>
+</blockquote>
+<table>
+<thead>
+<tr>
+  <th>역할</th>
+  <th>담당 폴더/파일</th>
+  <th>대표 티켓</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+  <td><strong>비전(L1)</strong></td>
+  <td><code>vigent-core/rfdetr_service.py</code>·<code>worker.py</code>·<code>proximity.py</code>·<code>ergonomics.py</code>·<code>zone_*.py</code>·<code>routers/{detect,zone,ppe}.py</code>·<code>weights/</code></td>
+  <td>V-01~V-08</td>
+</tr>
+<tr>
+  <td><strong>에이전트(L2)</strong></td>
+  <td><code>vigent-core/agents/</code>·<code>routers/{safety_core,tbm,incident}.py</code>·<code>eval/golden/</code>·<code>config/corpus/</code></td>
+  <td>A-01~A-08</td>
+</tr>
+<tr>
+  <td><strong>문서·사업</strong></td>
+  <td><code>docs/</code>·<code>docs/team/</code>·제안서·조달</td>
+  <td>제안·인프라·개인정보</td>
+</tr>
+<tr>
+  <td><strong>현장검증</strong></td>
+  <td>현장 영상 수집·오탐 분류·라벨(데이터, 코드 아님)</td>
+  <td>V-05·A-05</td>
+</tr>
+<tr>
+  <td><strong>공유부(양쪽 리뷰 필수)</strong></td>
+  <td><code>app_state.py</code>·<code>web_util.py</code>·<code>main.py</code>·<code>data_engine.py</code>·<code>vision.yaml</code></td>
+  <td>—</td>
+</tr>
+</tbody>
+</table>
+<ul>
+<li><strong>공유부를 바꿀 땐 반드시 상대 역할과 조율</strong>하고 PR 리뷰를 양쪽에서 받습니다.</li>
+<li>(참고) <code>CODEOWNERS</code> 파일로 이 규칙을 자동화할 수 있습니다 — GitHub에 올린 뒤 도입 검토.</li>
+</ul>
+<h2>주 1회 30분 동기화 미팅 — 아젠다 템플릿</h2>
+<pre><code>1. 지난주 완료 티켓 (각자 1분)              — 5분
+2. 병목 3개(V-01·V-02·A-01) 진행 점검       — 10분
+3. 교차 의존 막힘 확인 (한쪽 늦으면 양쪽 정지) — 5분
+4. 이번 주 각자 목표 티켓 1개 선언           — 5분
+5. 위험 신호(조기 경보) 공유                 — 5분
+</code></pre>
+<h2>데일리 3줄 보고 양식 (팀 채널)</h2>
+<pre><code>[이름] YYYY-MM-DD
+어제 한 것 : (티켓 번호 + 한 줄)
+오늘 할 것 : (티켓 번호 + 한 줄)
+막힌 것    : (없으면 '없음')
+</code></pre>
+<h2>티켓 진행 상태 관리 — 방식 선택</h2>
+<ul>
+<li><strong>A. 문서 체크박스</strong>: 이 문서들의 <code>[ ]</code> 체크박스를 직접 채움. 간단하나 여러 명이 동시에 고치면 충돌.</li>
+<li><strong>B. GitHub Issues</strong>: 티켓 하나 = 이슈 하나. 담당·상태·댓글이 자동 기록되고 PR과 연결됨.</li>
+</ul>
+<blockquote>
+<p><strong>권장: B(GitHub Issues).</strong> 이유 — (1) 충돌 없음(각 이슈 독립), (2) 누가 뭘 하는지 한눈에, (3) PR·커밋과 자동 연결로 이력이 남음. 초보 팀도 &quot;이슈 만들고 → 담당 정하고 → 완료 시 닫기&quot;만 익히면 됩니다.</p>
+</blockquote>
+<h2>팀원별 &quot;첫 주에 이것만 하면 성공&quot;</h2>
+<table>
+<thead>
+<tr>
+  <th>역할</th>
+  <th>첫 주 목표</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+  <td>비전(L1)</td>
+  <td><strong>V-01</strong> 완료(가중치 공유 경로 확정 + fail-fast) — 팀 확장의 1번 장애물 제거</td>
+</tr>
+<tr>
+  <td>에이전트(L2)</td>
+  <td><strong>A-04</strong>(Coach 범위 확정) or <strong>A-03</strong>(골든 1건 추가) 중 1개</td>
+</tr>
+<tr>
+  <td>문서·사업</td>
+  <td>제안서(<code>docs/PILOT_PROPOSAL.md</code>) 현장 맞춤 1버전 다듬기</td>
+</tr>
+<tr>
+  <td>현장검증</td>
+  <td>현장 영상 확보 경로 1개 확정(카메라·연락처)</td>
+</tr>
+<tr>
+  <td>전원</td>
+  <td><code>50_완전초보_온보딩</code> 따라 <strong>서버 <code>/health</code>에 <code>loaded:true</code> 띄우고 첫 커밋</strong></td>
+</tr>
+</tbody>
+</table>
+</div><div class="doc"><h1>80. 용어 사전</h1>
+<blockquote>
+<p>이 리포에서 <strong>실제로 쓰이는 용어</strong>만 모았습니다. 각 항목 = 한 줄 정의 + &quot;우리 프로젝트에선 이렇게&quot;.</p>
+</blockquote>
+<h2>개발·협업</h2>
+<table>
+<thead>
+<tr>
+  <th>용어</th>
+  <th>정의</th>
+  <th>우리 프로젝트에선</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+  <td>커밋(commit)</td>
+  <td>작업 내용을 한 시점으로 저장하는 것</td>
+  <td>&quot;작업 단위로 커밋&quot; — 한 번에 하나</td>
+</tr>
+<tr>
+  <td>브랜치(branch)</td>
+  <td>내 작업만 담는 분리된 공간</td>
+  <td><code>feat/내작업이름</code>으로 만들어 작업</td>
+</tr>
+<tr>
+  <td>PR(Pull Request)</td>
+  <td>내 브랜치를 main에 합쳐달라는 요청</td>
+  <td>승인 없이 merge 금지</td>
+</tr>
+<tr>
+  <td>머지(merge)</td>
+  <td>브랜치를 합치는 것</td>
+  <td>PR 승인 후에만</td>
+</tr>
+<tr>
+  <td>게이트(gate)</td>
+  <td>커밋 전 통과해야 하는 검사</td>
+  <td>ruff·mypy·테스트 82·OpenAPI 무변경</td>
+</tr>
+<tr>
+  <td>스텁(stub)</td>
+  <td>껍데기만 있고 실동작 안 하는 코드</td>
+  <td>Coach 에이전트(12줄)</td>
+</tr>
+<tr>
+  <td>fail-fast</td>
+  <td>문제 시 조용히 넘어가지 않고 즉시 멈춤</td>
+  <td>가중치 없으면 폴백 대신 멈추기(V-01)</td>
+</tr>
+<tr>
+  <td>폴백(fallback)</td>
+  <td>실패 시 대체 동작</td>
+  <td>가중치 없으면 COCO로 폴백(주의: 정확도↓, F-8)</td>
+</tr>
+</tbody>
+</table>
+<h2>비전(L1)</h2>
+<table>
+<thead>
+<tr>
+  <th>용어</th>
+  <th>정의</th>
+  <th>우리 프로젝트에선</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+  <td>mAP</td>
+  <td>검출 정확도 종합 지표(0~1)</td>
+  <td>fire/smoke 공개셋 mAP@50 80.13%</td>
+</tr>
+<tr>
+  <td>precision(정밀도)</td>
+  <td>잡았다고 한 것 중 맞은 비율(오탐의 반대)</td>
+  <td><strong>대부분 미측정</strong> — 재측정 필요</td>
+</tr>
+<tr>
+  <td>recall(재현율)</td>
+  <td>실제 위험 중 잡아낸 비율(미탐의 반대)</td>
+  <td>PPE·person 수치는 대부분 recall만</td>
+</tr>
+<tr>
+  <td>F1</td>
+  <td>precision과 recall의 조화평균</td>
+  <td>KISA 기준 F1≥0.90 (현재 미산출, V-02)</td>
+</tr>
+<tr>
+  <td>추론 지연(latency)</td>
+  <td>한 프레임 처리에 걸리는 시간(ms)</td>
+  <td>타일 +415ms/f(CPU)</td>
+</tr>
+<tr>
+  <td>RF-DETR</td>
+  <td>우리가 쓰는 객체 검출 모델</td>
+  <td>검출 코어(<code>rfdetr_service.py</code>)</td>
+</tr>
+<tr>
+  <td>포즈 추정(pose)</td>
+  <td>사람 관절 위치 추정</td>
+  <td>RTMPose/yolov8n-pose (<code>ergonomics.py</code>)</td>
+</tr>
+<tr>
+  <td>추적(tracking)</td>
+  <td>프레임 간 같은 사람에 같은 ID 부여</td>
+  <td>ByteTrack(SORT에서 교체)</td>
+</tr>
+<tr>
+  <td>ByteTrack</td>
+  <td>우리가 채택한 추적 알고리즘</td>
+  <td>ID 스위치 0으로 개선</td>
+</tr>
+<tr>
+  <td>타일링</td>
+  <td>위험구역만 잘라 재검출해 소형작업자를 잡는 기법</td>
+  <td>recall 0→89~95%(단 +415ms)</td>
+</tr>
+<tr>
+  <td>MPS</td>
+  <td>애플 칩(맥)의 GPU 가속</td>
+  <td>현재 개발환경(배포는 CUDA)</td>
+</tr>
+<tr>
+  <td>CUDA</td>
+  <td>NVIDIA GPU 가속</td>
+  <td>배포·재학습 목표 환경</td>
+</tr>
+<tr>
+  <td>엣지(edge)/RK3588</td>
+  <td>현장 저전력 소형 처리장치</td>
+  <td>포팅 검토 단계(코드 없음)</td>
+</tr>
+</tbody>
+</table>
+<h2>에이전트(L2)</h2>
+<table>
+<thead>
+<tr>
+  <th>용어</th>
+  <th>정의</th>
+  <th>우리 프로젝트에선</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+  <td>에이전트(agent)</td>
+  <td>특정 역할을 맡는 AI 모듈</td>
+  <td>Scribe·Copilot·Guard 등 6개</td>
+</tr>
+<tr>
+  <td>골든셋(golden set)</td>
+  <td>정답이 있는 평가용 표본</td>
+  <td>체크리스트 3건 + 홀드아웃 15케이스</td>
+</tr>
+<tr>
+  <td>채점 엔진</td>
+  <td>산출물을 정답과 비교해 점수화</td>
+  <td><code>golden_regression.py</code></td>
+</tr>
+<tr>
+  <td>베이스라인</td>
+  <td>회귀(나빠짐) 감지 기준선</td>
+  <td><strong>품질 합격선 아님</strong> — 정답 확정 아님</td>
+</tr>
+<tr>
+  <td>화이트리스트</td>
+  <td>허용된 법령 조문 목록</td>
+  <td>밖의 조문 인용은 차단(F-11)</td>
+</tr>
+<tr>
+  <td>환각(hallucination)</td>
+  <td>AI가 없는 사실·조문을 지어냄</td>
+  <td>crane 골든서 4건 관찰</td>
+</tr>
+<tr>
+  <td>상태기계</td>
+  <td>조건에 따라 상태가 전이되는 로직</td>
+  <td>RIG 모듈(세부는 대외비)</td>
+</tr>
+<tr>
+  <td>LLM</td>
+  <td>대형 언어모델(텍스트 생성 AI)</td>
+  <td>OpenAI/Anthropic(외부 API)</td>
+</tr>
+<tr>
+  <td>온프렘(on-prem)</td>
+  <td>외부 클라우드 없이 자체 장비에서 실행</td>
+  <td>폐쇄망 대응 과제(현재 미지원)</td>
+</tr>
+<tr>
+  <td>폐쇄망</td>
+  <td>인터넷이 차단된 내부망</td>
+  <td>공장 다수의 조건(S5)</td>
+</tr>
+</tbody>
+</table>
+<h2>사업·인증</h2>
+<table>
+<thead>
+<tr>
+  <th>용어</th>
+  <th>정의</th>
+  <th>우리 프로젝트에선</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+  <td>파일럿(pilot)</td>
+  <td>유상 전 시범 설치·검증</td>
+  <td>위험구역 침입 단일기능부터</td>
+</tr>
+<tr>
+  <td>KISA 인증</td>
+  <td>지능형 CCTV 성능 인증(F1≥0.90)</td>
+  <td>S4 목표</td>
+</tr>
+<tr>
+  <td>TTA GS</td>
+  <td>SW 품질 인증 등급</td>
+  <td>S5(조달 진입)</td>
+</tr>
+<tr>
+  <td>조달 등록</td>
+  <td>공공조달 판매 자격</td>
+  <td>S5</td>
+</tr>
+</tbody>
+</table>
+</div></body></html>
