@@ -124,7 +124,10 @@ function drawBoxes(dets){
 }
 
 function captureRaw(){ const t=document.createElement('canvas'); t.width=canvas.width; t.height=canvas.height;
-  const c=t.getContext('2d'); c.translate(t.width,0); c.scale(-1,1); c.drawImage(video,0,0,t.width,t.height);
+  // 이중 미러 수정: CSS(#videoEl,#outputCanvas scaleX(-1))가 화면을 이미 좌우반전하므로
+  //   여기서 또 반전(translate/scale)하면 백엔드가 거울 프레임 기준 bbox를 반환→캔버스 CSS 반전과 겹쳐
+  //   박스가 좌우 반대에 그려지고, 비반전 공간에 저장된 위험구역과도 어긋난다. 원본 프레임 그대로 전송.
+  const c=t.getContext('2d'); c.drawImage(video,0,0,t.width,t.height);
   return t.toDataURL('image/jpeg',0.8); }
 
 async function detectLoop(){
