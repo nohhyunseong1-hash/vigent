@@ -550,22 +550,29 @@
     if(c==='fire'||c==='smoke') return '#f08a00';                                // 화재/연기=주황
     return '#8a8a8a';
   }
-  // overlay 백킹스토어=전송프레임 크기(sw×sh), CSS 100%가 컨테이너에 맞춰 늘림(비디오와 동일 채움 가정)
+  // 좌표 수정(1.5단계): 구버전은 백킹스토어를 전송프레임(sw×sh)로 두고 CSS 100%로 컨테이너에 늘려
+  //   "비디오와 동일 채움"을 가정했으나, 비디오는 object-fit:contain 이라 letterbox 여백이 생겨 어긋났고,
+  //   오버레이엔 CSS scaleX(-1) 반전이 없어 비디오(반전)와 좌우 거울로 벌어졌다.
+  //   → 백킹스토어를 오버레이 실제 표시 크기로 두고, mediaRect(contain 영역)+shouldFlipDisplay(미러)로
+  //     전송프레임 좌표를 화면 표시 좌표로 변환해 그린다. 오버레이 자체 반전이 없으므로 글자는 그대로 정상.
   function draw(dets, sw, sh){
-    if(overlay.width!==sw) overlay.width=sw;
-    if(overlay.height!==sh) overlay.height=sh;
-    octx.clearRect(0,0,sw,sh);
-    octx.lineWidth=Math.max(2,sw/320); octx.font='bold '+Math.max(12,Math.round(sw/40))+'px system-ui,sans-serif';
+    overlay.width=overlay.clientWidth; overlay.height=overlay.clientHeight;   // 표시 크기 = 백킹스토어(할당 시 자동 클리어)
+    var r=mediaRect(overlay.width,overlay.height);   // contain 시 비디오 실제 표시 영역 {x,y,w,h}
+    var s=r.w/sw;                                     // 전송프레임 → 표시영역 스케일(sw:sh=vw:vh라 x·y 공통)
+    var flip=shouldFlipDisplay();                     // 카메라 미러 여부(업로드 모드=false → 자동 비반전)
+    octx.lineWidth=Math.max(2,r.w/320); octx.font='bold '+Math.max(12,Math.round(r.w/40))+'px system-ui,sans-serif';
     (dets||[]).forEach(function(d){
       // A안: PPE 감시 목적 → person 박스·라벨 억제(사람 위치는 스켈레톤으로 파악). PPE 전 클래스는 유지.
       //   서버모드에서만 draw() 호출되므로 폴백(COCO-SSD)엔 영향 없음.
       var cls=(d['class']||'').toLowerCase();
       if(cls==='person') return;
       var b=d.bbox||[0,0,0,0], x=b[0],y=b[1],w=b[2],h=b[3], col=colorFor(d['class']);
-      octx.strokeStyle=col; octx.strokeRect(x,y,w,h);
+      var dx=flip ? r.x+r.w-(x+w)*s : r.x+x*s;       // 미러면 x축 반전
+      var dy=r.y+y*s, dw=w*s, dh=h*s;
+      octx.strokeStyle=col; octx.strokeRect(dx,dy,dw,dh);
       var lab=(d['class']||'')+' '+Math.round((d.score||0)*100)+'%', tw=octx.measureText(lab).width+8;
-      octx.fillStyle=col; octx.fillRect(x,Math.max(0,y-19),tw,19);
-      octx.fillStyle='#fff'; octx.fillText(lab,x+4,Math.max(13,y-5));
+      octx.fillStyle=col; octx.fillRect(dx,Math.max(0,dy-19),tw,19);
+      octx.fillStyle='#fff'; octx.fillText(lab,dx+4,Math.max(13,dy-5));
     });
   }
   function capture(){
