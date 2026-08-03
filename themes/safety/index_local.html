@@ -555,32 +555,68 @@
   //   오버레이엔 CSS scaleX(-1) 반전이 없어 비디오(반전)와 좌우 거울로 벌어졌다.
   //   → 백킹스토어를 오버레이 실제 표시 크기로 두고, mediaRect(contain 영역)+shouldFlipDisplay(미러)로
   //     전송프레임 좌표를 화면 표시 좌표로 변환해 그린다. 오버레이 자체 반전이 없으므로 글자는 그대로 정상.
-  function draw(dets, sw, sh){
-    overlay.width=overlay.clientWidth; overlay.height=overlay.clientHeight;   // 표시 크기 = 백킹스토어(할당 시 자동 클리어)
-    var r=mediaRect(overlay.width,overlay.height);   // contain 시 비디오 실제 표시 영역 {x,y,w,h}
-    var s=r.w/sw;                                     // 전송프레임 → 표시영역 스케일(sw:sh=vw:vh라 x·y 공통)
-    var flip=shouldFlipDisplay();                     // 카메라 미러 여부(업로드 모드=false → 자동 비반전)
+  // --- 1.6단계: 반응속도 개선 = 프레임 보간(LERP) + 자가 스케줄 루프 ---
+  var TARGET_MS=350;      // 서버검출 목표 주기(ms). 낮출수록 반응 빠르나 CPU·서버부하↑. 왕복이 이보다 길면
+                          //   setTimeout 잔여=0 이 되어 자동으로 서버 속도에 맞춰 돌아감(과부하 방지 · 규칙6).
+  var LERP=0.35;          // 표시 박스가 목표로 수렴하는 비율(0~1). 높이면 즉각·거칠게, 낮추면 부드럽게·약간 지연.
+  var tracks=[];          // 표시 트랙 {cls,score,cur:[x,y,w,h],tgt:[x,y,w,h]} — 매 rAF cur을 tgt로 LERP
+  var lastSw=0,lastSh=0;  // 최근 전송프레임 크기(표시 변환 스케일 기준)
+  var lastDrawn=0;        // 직전 그린 트랙 수(빈 상태로 전환될 때만 1회 클리어)
+
+  function iou(a,b){      // [x,y,w,h] 두 박스의 교집합/합집합
+    var ix=Math.max(0,Math.min(a[0]+a[2],b[0]+b[2])-Math.max(a[0],b[0]));
+    var iy=Math.max(0,Math.min(a[1]+a[3],b[1]+b[3])-Math.max(a[1],b[1]));
+    var inter=ix*iy, uni=a[2]*a[3]+b[2]*b[3]-inter;
+    return uni>0?inter/uni:0;
+  }
+  // 서버 응답 수용: person 제외(PPE 감시 목적, 위치는 스켈레톤). 같은 클래스·IoU>0.3 이면 기존 트랙에
+  //   매칭해 tgt만 갱신(cur은 rAF가 부드럽게 수렴), 매칭 실패(큰 이동/신규)는 cur=tgt 스냅.
+  function ingest(dets, sw, sh){
+    lastSw=sw; lastSh=sh;
+    var incoming=(dets||[]).filter(function(d){return (d['class']||'').toLowerCase()!=='person';})
+      .map(function(d){return {cls:d['class']||'', score:d.score||0, box:(d.bbox||[0,0,0,0]).slice()};});
+    var used=new Array(tracks.length).fill(false), next=[];
+    incoming.forEach(function(det){
+      var bi=-1, best=0.3;
+      for(var i=0;i<tracks.length;i++){
+        if(used[i]||tracks[i].cls.toLowerCase()!==det.cls.toLowerCase()) continue;
+        var v=iou(tracks[i].tgt, det.box); if(v>best){best=v; bi=i;}
+      }
+      if(bi>=0){ used[bi]=true; var t=tracks[bi]; t.tgt=det.box; t.score=det.score; next.push(t); }
+      else next.push({cls:det.cls, score:det.score, cur:det.box.slice(), tgt:det.box.slice()}); // 신규=스냅
+    });
+    tracks=next;
+  }
+  function clearOverlay(){ overlay.width=overlay.clientWidth; overlay.height=overlay.clientHeight; }
+  // rAF 렌더: SERVER 모드 & 트랙 있을 때만 그림(브라우저 폴백 모드 영향 0). cur→tgt LERP 후 표시 변환
+  //   (mediaRect=contain 영역, shouldFlipDisplay=미러). 오버레이 자체 반전 없으므로 글자는 정상.
+  function renderTick(){
+    requestAnimationFrame(renderTick);
+    if(!SERVER){ if(lastDrawn){ clearOverlay(); lastDrawn=0; } if(tracks.length) tracks=[]; return; }
+    if(!tracks.length){ if(lastDrawn){ clearOverlay(); lastDrawn=0; } return; }
+    overlay.width=overlay.clientWidth; overlay.height=overlay.clientHeight;   // 표시 크기=백킹스토어(자동 클리어)
+    var r=mediaRect(overlay.width,overlay.height), s=r.w/(lastSw||1), flip=shouldFlipDisplay();
     octx.lineWidth=Math.max(2,r.w/320); octx.font='bold '+Math.max(12,Math.round(r.w/40))+'px system-ui,sans-serif';
-    (dets||[]).forEach(function(d){
-      // A안: PPE 감시 목적 → person 박스·라벨 억제(사람 위치는 스켈레톤으로 파악). PPE 전 클래스는 유지.
-      //   서버모드에서만 draw() 호출되므로 폴백(COCO-SSD)엔 영향 없음.
-      var cls=(d['class']||'').toLowerCase();
-      if(cls==='person') return;
-      var b=d.bbox||[0,0,0,0], x=b[0],y=b[1],w=b[2],h=b[3], col=colorFor(d['class']);
-      var dx=flip ? r.x+r.w-(x+w)*s : r.x+x*s;       // 미러면 x축 반전
-      var dy=r.y+y*s, dw=w*s, dh=h*s;
+    tracks.forEach(function(t){
+      for(var k=0;k<4;k++) t.cur[k]+=(t.tgt[k]-t.cur[k])*LERP;   // 목표로 수렴
+      var x=t.cur[0],y=t.cur[1],w=t.cur[2],h=t.cur[3], col=colorFor(t.cls);
+      var dx=flip ? r.x+r.w-(x+w)*s : r.x+x*s, dy=r.y+y*s, dw=w*s, dh=h*s;
       octx.strokeStyle=col; octx.strokeRect(dx,dy,dw,dh);
-      var lab=(d['class']||'')+' '+Math.round((d.score||0)*100)+'%', tw=octx.measureText(lab).width+8;
+      var lab=t.cls+' '+Math.round((t.score||0)*100)+'%', tw=octx.measureText(lab).width+8;
       octx.fillStyle=col; octx.fillRect(dx,Math.max(0,dy-19),tw,19);
       octx.fillStyle='#fff'; octx.fillText(lab,dx+4,Math.max(13,dy-5));
     });
+    lastDrawn=tracks.length;
   }
+  requestAnimationFrame(renderTick);
+  var _capCv=document.createElement('canvas'), _capCtx=_capCv.getContext('2d');  // 재사용(매프레임 생성=GC 부담 → 1개 재사용)
   function capture(){
     var vw=video.videoWidth, vh=video.videoHeight; if(!vw||!vh) return null;
     var sw=640, sh=Math.round(640*vh/vw);
-    var cv=document.createElement('canvas'); cv.width=sw; cv.height=sh;
-    cv.getContext('2d').drawImage(video,0,0,sw,sh);
-    return {data:cv.toDataURL('image/jpeg',0.7).split(',')[1], sw:sw, sh:sh};
+    if(_capCv.width!==sw) _capCv.width=sw;
+    if(_capCv.height!==sh) _capCv.height=sh;
+    _capCtx.drawImage(video,0,0,sw,sh);
+    return {data:_capCv.toDataURL('image/jpeg',0.7).split(',')[1], sw:sw, sh:sh};
   }
   // 이중 렌더 제거: 서버모드일 때 브라우저 COCO-SSD 객체 렌더(realtime_core.js drawObjects)만 억제.
   //   포즈 스켈레톤·손 인식은 별도 함수라 유지. realtime_core.js 무수정(전역함수만 래핑).
@@ -598,18 +634,30 @@
     }
   })();
 
-  // 서버 검출 루프(~1.2s) — ppe:true(person+ppe+forklift+fire), safety_only:true(잡동사니 제거)
-  setInterval(async function(){
+  // 서버 검출 루프(1.6단계 자가 스케줄) — 고정 주기 대신 '완료 후 예약'으로 서버 속도에 자동 적응.
+  //   ppe:true(person+ppe+forklift+fire), safety_only:true(잡동사니 제거). busy=중복요청 방지(유지).
+  var _rtt=[];  // 왕복시간(ms) 샘플 — 성능 근거 로그(규칙6·7)
+  function _median(a){ var s=a.slice().sort(function(p,q){return p-q;}); return s[Math.floor(s.length/2)]; }
+  async function detectOnce(){
+    if(!SERVER||busy){ setTimeout(detectOnce, TARGET_MS); return; }
+    var cap=capture(); if(!cap){ setTimeout(detectOnce, TARGET_MS); return; }
+    busy=true; var t0=performance.now();
     try{
-      if(!SERVER||busy) return;
-      var cap=capture(); if(!cap) return; busy=true;
       var r=await fetch('/detect/frame',{method:'POST',headers:{'Content-Type':'application/json'},
         body:JSON.stringify({image_base64:cap.data, ppe:true, safety_only:true})});
       var j=await r.json();
-      if(j&&j.success) draw(j.detections, cap.sw, cap.sh);
-    }catch(e){ /* 서버 일시 오류 — 다음 틱 재시도(폴백 배지는 초기 /health 판정 유지) */ }
-    finally{ busy=false; }
-  }, 1200);
+      if(j&&j.success) ingest(j.detections, cap.sw, cap.sh);
+    }catch(e){ /* 서버 일시 오류 — 다음 예약에서 재시도(폴백 배지는 초기 /health 판정 유지) */ }
+    finally{
+      busy=false;
+      var elapsed=performance.now()-t0;
+      if(_rtt.length<5){ _rtt.push(Math.round(elapsed));
+        if(_rtt.length===5) console.log('[safety-local] /detect/frame 왕복 5샘플(ms):', _rtt.join(', '),
+          '· p50≈'+_median(_rtt)+'ms · TARGET_MS='+TARGET_MS+' (p50>500ms면 TARGET_MS 상향 권장)'); }
+      setTimeout(detectOnce, Math.max(0, TARGET_MS - elapsed));   // 완료 후 잔여시간만큼 예약(느리면 즉시 재요청)
+    }
+  }
+  detectOnce();
 })();
 </script>
 
