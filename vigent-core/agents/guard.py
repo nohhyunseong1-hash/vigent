@@ -225,6 +225,7 @@ class GuardAgent(BaseAgent):
     STALE_MAX_MISSES = 1
     CONTAIN_RATIO = 0.70     # 포함비 억제 문턱(1.9d): 작은 박스가 큰 박스에 이 비율 이상 포함+conf 낮으면 제거
     PPE_PERSON_EXPAND = 0.15  # 교차게이트 문턱(Phase C): PPE 는 person 박스 이 비율 확장 영역과 결부돼야 유지
+    HYSTERESIS_FRAMES = {"ppe_missing": 3, "fire_smoke": 2}  # 신호 히스테리시스(Phase C item2): 연속 N프레임 확인 후 발화(N=1=끔)
     # 보호구 클래스별 임계(후필터) — ppe 모델을 맵 최저 conf로 추론한 뒤 클래스별 임계로 거른다.
     #   최약체(NO-Hardhat)만 낮춰 재현율↑, 나머지는 유지. tuning.yaml detect.conf.ppe_per_class 로 조정.
     #   비어 있으면(기본) 기존 동작(단일 ppe conf) 그대로 → 저하 없음.
@@ -255,12 +256,17 @@ class GuardAgent(BaseAgent):
             self.EMA = float(tuning.val("detect", "ema", self.EMA))   # 위치 평활 주입 가능(기본 0.75 불변 · 1.8b B-2 측정용)
             self.CONTAIN_RATIO = float(tuning.val("detect", "contain_ratio", self.CONTAIN_RATIO))   # 포함비 억제 문턱(1.9d)
             self.PPE_PERSON_EXPAND = float(tuning.val("detect", "ppe_person_expand", self.PPE_PERSON_EXPAND))   # 교차게이트(Phase C)
+            hf = int(tuning.val("detect", "hysteresis_frames", 0))   # >0 이면 전 신호를 이 N 으로 통일(1=끔). 0=기본(ppe3·fire2)
+            if hf > 0:
+                self.HYSTERESIS = {k: hf for k in self.HYSTERESIS}
         except Exception:  # noqa: BLE001
             pass
         self._models: dict[str, Any] = {}      # id → YOLO (지연 로드 캐시)
         self._load_errors: dict[str, str] = {}
         self._tracks_by_key: dict[str, list[dict[str, Any]]] = {}  # 서버측 추적 박스(track_key 별 격리 · 5단계)
         self._tid_seq: int = 0                    # 트랙 안정 id 시퀀스(클라 id 매칭용 · 1.8b)
+        self.HYSTERESIS = dict(self.HYSTERESIS_FRAMES)             # 신호 발화 히스테리시스(track_key 별 스트릭)
+        self._sig_streak: dict[str, dict[str, int]] = {}          # track_key → {signal: 연속 True 프레임수}
         self.device = self._pick_device()        # GPU(MPS) 있으면 사용 → 추론 4배↑
         # config.slots 에서 실제 .pt 파일로 해석된 detector 슬롯만 추린다
         self._slot_path: dict[str, str] = {}
@@ -517,10 +523,20 @@ class GuardAgent(BaseAgent):
             "person_count": person_count,
             "detections": detections,
             "signals": {
-                "ppe_missing": bool(ppe_missing_hits),
+                # 히스테리시스(Phase C item2): 연속 N프레임 확인 후에만 True → 고립된 1프레임 오검출 경보 차단.
+                #   N=1(tuning)이면 현행과 동일. conf 게이지(ppe_conf·fire_conf)는 원값 유지(Analyst 가산용).
+                "ppe_missing": self._hysteresis(track_key, "ppe_missing", bool(ppe_missing_hits)),
                 "ppe_conf": ppe_conf,
                 "forklift_present": any(d["label"].lower() == "forklift" for d in detections),
-                "fire_smoke": bool(fire_hits),
+                "fire_smoke": self._hysteresis(track_key, "fire_smoke", bool(fire_hits)),
                 "fire_conf": fire_conf,
             },
         }
+
+    def _hysteresis(self, track_key: str, name: str, raw: bool) -> bool:
+        """신호 발화 히스테리시스: raw 가 연속 N(HYSTERESIS[name])프레임 True 여야 True 반환.
+        track_key 별 스트릭 유지 → 카메라 간 독립. raw=False 면 즉시 0 리셋(하강은 즉각)."""
+        n = self.HYSTERESIS.get(name, 1)
+        st = self._sig_streak.setdefault(track_key, {})
+        st[name] = min(st.get(name, 0) + 1, n) if raw else 0
+        return st[name] >= n
