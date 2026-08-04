@@ -29,6 +29,7 @@ import runtime_config
 import tuning
 import vlog
 import zone_tile
+from camera_registry import mask_source as _mask_src  # 3.0: 로그에 RTSP 자격증명 노출 방지(마스킹)
 from web_util import zone_points
 
 _ROOT = Path(__file__).resolve().parent.parent
@@ -428,7 +429,7 @@ class _StreamCapture:
                 if read_fails >= _READ_FAIL_MAX:      # 스트림 끊김 → 지수 백오프 재연결(캡처 스레드 내부)
                     self.reconnects += 1
                     _WLOG.warning("캡처 '%s'(%s) 스트림 끊김 → 재연결 #%d (백오프 %.0fs)",
-                                  self.name, self.source, self.reconnects, rbackoff)
+                                  self.name, _mask_src(self.source), self.reconnects, rbackoff)
                     try:
                         cap.release()
                     except Exception as _we:  # noqa: BLE001
@@ -677,7 +678,7 @@ class Worker:
         except Exception as _fe:   # noqa: BLE001  프레임 처리 실패 → 로그 남기고 다음 프레임(루프 유지)
             self.state["error"] = f"frame: {type(_fe).__name__}: {_fe}"
             _WLOG.error("워커 '%s'(%s) 프레임 처리 예외 — 계속 진행\n%s",
-                        ctx.name, ctx.source, traceback.format_exc())
+                        ctx.name, _mask_src(ctx.source), traceback.format_exc())
 
     def _setup_run(self, source, name, fps, detectors, zone):
         """_loop 시작 준비 — 트래커·수집설정·zone 컨텍스트(ctx) + 소스판별 + 캡처 초기화(P2-13 분해).
@@ -708,7 +709,7 @@ class Worker:
             streamcap = _StreamCapture(source, name)
             streamcap.start()
             self._streamcap = streamcap
-            _WLOG.info("워커 '%s'(%s) 캡처 스레드 모드(최신 프레임 우선)", name, source)
+            _WLOG.info("워커 '%s'(%s) 캡처 스레드 모드(최신 프레임 우선)", name, _mask_src(source))
         elif not is_image:
             cap = cv2.VideoCapture(int(source) if source.isdigit() else source)
             if is_stream:
@@ -737,7 +738,7 @@ class Worker:
                     self.state["read_ms"] = streamcap.read_ms
                     if frame is None:                          # 아직 첫 프레임 없음(캡처 워밍업/재연결 중)
                         if not streamcap.alive():              # 캡처 스레드 사망 → 감독자 재시작 유도
-                            _WLOG.error("워커 '%s'(%s) 캡처 스레드 사망 → _loop 종료(감독자 재시작)", name, source)
+                            _WLOG.error("워커 '%s'(%s) 캡처 스레드 사망 → _loop 종료(감독자 재시작)", name, _mask_src(source))
                             break
                         time.sleep(0.05)
                         continue

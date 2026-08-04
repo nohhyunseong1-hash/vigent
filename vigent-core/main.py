@@ -50,6 +50,7 @@ from app_state import (  # noqa: E402
 )
 from app_state import DETECT_LOCK as _DETECT_LOCK  # noqa: E402
 from app_state import load_theme as _load_theme  # noqa: E402
+from routers import cameras as _cameras_router  # noqa: E402
 from routers import detect as _detect_router  # noqa: E402
 from routers import dispatch as _dispatch_router  # noqa: E402
 from routers import incident as _incident_router  # noqa: E402
@@ -90,6 +91,7 @@ app.include_router(_tbm_router.router)   # /safety/tbm/* (P1-7)
 app.include_router(_ppe_router.router)   # /safety/ppe·/ppe/* (P1-7)
 app.include_router(_recognition_router.router)   # /recognition/* (P1-7)
 app.include_router(_dispatch_router.router)   # /dispatch/relay (P1-7)
+app.include_router(_cameras_router.router)   # /cameras/* (3.0 멀티카메라 관제)
 app.include_router(_safety_core_router.router)   # safety 나머지 전부 — 맨 마지막(/{theme} 캐치올 순서 보존) (P1-7)
 
 # ── 보안(C-S0): 바인딩·토큰 인증·웹훅 화이트리스트 ─────────────────────────
@@ -254,6 +256,13 @@ def _startup() -> None:
     s = cfg.summary()
     _log.info("'%s' 로드 완료 (폴백 %s개 / 비활성 %s개)",
               cfg.display_name, s['fallback_count'], s['disabled_count'])
+    # 3.0: 등록 카메라(enabled) 워커 자동복원 — launchd 재기동 후 관제 자동 재개(조건1).
+    try:
+        _restore = _cameras_router.autostart_enabled()
+        if _restore:
+            _log.info("카메라 자동복원 → %s", _restore)
+    except Exception:  # noqa: BLE001  복원 실패해도 서버는 뜬다
+        _log.warning("카메라 자동복원 예외\n%s", traceback.format_exc())
     # 엣지/USB 설치본: VIGENT_EDGE=1 이면 site.yaml 의 카메라로 워커 자동시작(헤드리스)
     if os.environ.get("VIGENT_EDGE") == "1":
         try:
