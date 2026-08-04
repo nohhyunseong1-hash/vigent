@@ -789,6 +789,12 @@ def safety_pro():
     p = _ROOT / "themes" / "safety" / "index_rfdetr.html"
     return p.read_text(encoding="utf-8")
 
+@router.get("/safety-hub", response_class=HTMLResponse)
+def safety_hub():
+    """스마트 카메라 관제 대시보드(3.0) — 멀티카메라 그리드·KPI·이벤트 스트림."""
+    p = _ROOT / "themes" / "safety" / "index_hub.html"
+    return p.read_text(encoding="utf-8")
+
 @router.get("/theme/{theme}/raw")
 def theme_raw(theme: str):
     """테마 vision.yaml 원본 반환(프론트가 ergonomics 등 설정을 읽어 설정주도 동작)."""

@@ -1,0 +1,152 @@
+<!DOCTYPE html><html lang="ko"><head><meta charset="utf-8"><title>VIGENT HUB — 스마트 카메라 관제</title>
+<style>
+:root{ --bg:#05070a; --fg:#cfe9ff; --dim:#5b7891; --ok:#39d98a; --warn:#ffb020; --danger:#ff3b3b; --accent:#39d0ff; --card:#0a1119; --line:rgba(80,130,170,.28); }
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font-family:"SF Mono","Menlo",monospace;height:100vh;display:flex;flex-direction:column;overflow:hidden}
+.top{display:flex;align-items:center;gap:22px;padding:10px 16px;border-bottom:1px solid var(--line);background:#070c12}
+.brand{font-weight:800;color:var(--accent);letter-spacing:.14em;font-size:16px}
+.brand small{color:var(--dim);font-weight:400;letter-spacing:.2em;font-size:10px;display:block}
+.kpis{display:flex;gap:12px;flex:1;flex-wrap:wrap}
+.kpi{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:7px 14px;min-width:92px}
+.kpi .v{font-size:21px;font-weight:800}.kpi .l{font-size:10px;color:var(--dim);letter-spacing:.12em;text-transform:uppercase}
+.kpi.ok .v{color:var(--ok)} .kpi.warn .v{color:var(--warn)} .kpi.danger .v{color:var(--danger)} .kpi.off .v{color:var(--dim)}
+.tools{display:flex;align-items:center;gap:6px}
+.tools .g{color:var(--dim);font-size:11px;margin-right:2px}
+.tools button{background:#0c2236;color:var(--accent);border:1px solid var(--line);border-radius:6px;padding:5px 11px;font:inherit;cursor:pointer}
+.tools button.on{background:var(--accent);color:#04121c}
+.tools .add{background:transparent;color:var(--ok);border-color:rgba(57,217,138,.4)}
+.body{flex:1;display:flex;min-height:0}
+.grid{flex:1;display:grid;gap:10px;padding:12px;overflow:auto;align-content:start}
+.card{background:var(--card);border:1px solid var(--line);border-radius:10px;overflow:hidden;display:flex;flex-direction:column;position:relative;cursor:pointer;min-height:150px}
+.card:hover{border-color:var(--accent)}
+.card.alert{border-color:var(--danger);box-shadow:0 0 16px rgba(255,59,59,.3)}
+.feed{flex:1;background:linear-gradient(135deg,#0b1622,#060b11);display:flex;align-items:center;justify-content:center;color:var(--dim);font-size:12px;position:relative;min-height:90px}
+.badge{position:absolute;top:8px;padding:2px 8px;border-radius:6px;font-size:11px;font-weight:700}
+.b-on{left:8px;background:rgba(57,217,138,.16);color:var(--ok);border:1px solid rgba(57,217,138,.4)}
+.b-off{left:8px;background:rgba(91,120,145,.16);color:var(--dim);border:1px solid var(--line)}
+.b-rec{right:8px;color:var(--danger)}.b-rec::before{content:"●";margin-right:4px}
+.cardbar{display:flex;align-items:center;gap:7px;padding:7px 10px;border-top:1px solid var(--line);font-size:12px}
+.cardbar .nm{font-weight:700;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.chip{padding:1px 7px;border-radius:5px;font-size:11px;border:1px solid var(--line);white-space:nowrap}
+.chip.p{color:var(--accent)} .chip.warn{color:var(--warn);border-color:rgba(255,176,32,.4)} .chip.dng{color:var(--danger);border-color:rgba(255,59,59,.5);background:rgba(255,59,59,.1)}
+.ev-time{color:var(--dim);font-size:10px}
+.events{width:310px;border-left:1px solid var(--line);background:#070c12;display:flex;flex-direction:column}
+.events h3{margin:0;padding:11px 14px;font-size:11px;letter-spacing:.18em;color:var(--dim);border-bottom:1px solid var(--line)}
+.filters{display:flex;gap:6px;padding:8px 12px;border-bottom:1px solid var(--line)}
+.filters button{flex:1;background:transparent;border:1px solid var(--line);color:var(--dim);border-radius:5px;padding:4px;font:inherit;font-size:10px;cursor:pointer}
+.filters button.on{color:var(--fg);border-color:var(--accent)}
+.evlist{flex:1;overflow:auto;padding:6px 10px}
+.ev{padding:8px 10px;border-radius:7px;margin-bottom:6px;border-left:3px solid var(--dim);background:#0a1119}
+.ev.hi{border-left-color:var(--warn)} .ev.cr{border-left-color:var(--danger);background:rgba(255,59,59,.07)}
+.ev .r1{display:flex;justify-content:space-between;font-size:12px;font-weight:700}
+.ev .r1 .cam{color:var(--accent)} .ev .r2{color:var(--dim);font-size:11px;margin-top:2px}
+/* 확대 뷰 모달 */
+.modal{position:fixed;inset:0;background:rgba(2,5,9,.82);display:none;z-index:50;padding:26px}
+.modal.show{display:flex}
+.mbox{margin:auto;width:min(1100px,94vw);height:min(760px,90vh);background:var(--card);border:1px solid var(--accent);border-radius:12px;display:flex;flex-direction:column;overflow:hidden}
+.mhead{display:flex;align-items:center;gap:12px;padding:11px 15px;border-bottom:1px solid var(--line)}
+.mhead .t{font-weight:800;color:var(--accent);flex:1}
+.mhead button{background:#0c2236;color:var(--fg);border:1px solid var(--line);border-radius:6px;padding:6px 12px;font:inherit;cursor:pointer}
+.mbody{flex:1;display:flex;min-height:0}
+.mfeed{flex:1;background:linear-gradient(135deg,#0b1622,#060b11);display:flex;align-items:center;justify-content:center;color:var(--dim);position:relative}
+.zonebar{position:absolute;left:12px;bottom:12px;display:flex;gap:6px}
+.zonebar button{background:#0c2236;color:var(--accent);border:1px solid var(--line);border-radius:6px;padding:5px 10px;font:inherit;font-size:12px;cursor:pointer}
+.mside{width:250px;border-left:1px solid var(--line);padding:14px;font-size:12px}
+.mside h4{margin:0 0 8px;font-size:11px;letter-spacing:.16em;color:var(--dim)}
+.mside .row{display:flex;justify-content:space-between;margin:6px 0;padding-bottom:6px;border-bottom:1px solid rgba(80,130,170,.15)}
+.mside .row .k{color:var(--dim)}
+</style></head>
+<body>
+  <div class="top">
+    <div class="brand">VIGENT HUB<small>스마트 카메라 관제</small></div>
+    <div class="kpis" id="kpis"></div>
+    <div class="tools">
+      <span class="g">보기</span>
+      <button data-g="1">1</button><button data-g="4" class="on">4</button><button data-g="9">9</button>
+      <button class="add" id="btnAdd">+ 카메라</button>
+    </div>
+  </div>
+  <div class="body">
+    <div class="grid" id="grid"></div>
+    <div class="events">
+      <h3>통합 이벤트 스트림</h3>
+      <div class="filters"><button class="on">전체</button><button>위험</button><button>PPE</button><button>침입</button></div>
+      <div class="evlist" id="evlist"></div>
+    </div>
+  </div>
+
+  <div class="modal" id="modal">
+    <div class="mbox">
+      <div class="mhead"><span class="t" id="mtitle">CAM</span>
+        <button onclick="location.href='/safety-local'">↗ 로컬 상세</button>
+        <button id="mclose">✕ 닫기</button></div>
+      <div class="mbody">
+        <div class="mfeed"><span>◉ 라이브 + 검출 오버레이 (2b 배선)</span>
+          <div class="zonebar"><button>구역 그리기</button><button>지우기</button><button>저장</button></div></div>
+        <div class="mside"><h4>카메라 정보</h4>
+          <div class="row"><span class="k">상태</span><span style="color:var(--ok)">online</span></div>
+          <div class="row"><span class="k">인원</span><span>2</span></div>
+          <div class="row"><span class="k">PPE</span><span style="color:var(--warn)">미착용 1</span></div>
+          <div class="row"><span class="k">FPS</span><span>2.0</span></div>
+          <div class="row"><span class="k">재연결</span><span>0</span></div>
+          <div class="row"><span class="k">source</span><span style="font-size:10px">rtsp://***:***@…</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+<script>
+// ── Phase 2a: 정적 골격(더미). 2b 에서 /cameras·/workers·WebRTC 배선 ──
+var KPI=[['카메라','9',''],['온라인','7','ok'],['오프라인','2','off'],['금일 이벤트','37',''],['PPE 미착용','2','warn'],['구역 침입','1','danger']];
+document.getElementById('kpis').innerHTML=KPI.map(function(k){return '<div class="kpi '+k[2]+'"><div class="v">'+k[1]+'</div><div class="l">'+k[0]+'</div></div>';}).join('');
+var CAMS=[
+ {n:'정문 프레스',on:1,rec:1,alert:1,chips:[['침입! 머리','dng'],['👤 2','p']],t:'방금'},
+ {n:'작업장 A',on:1,chips:[['PPE 미착용','warn'],['👤 3','p']],t:'1분 전'},
+ {n:'로컬 웹캠',on:1,local:1,chips:[['👤 1','p']],t:'3분 전'},
+ {n:'창고 후문',on:0,chips:[['—','']],t:'12분 전'},
+ {n:'적재장 B',on:1,chips:[['👤 4','p']],t:'2분 전'},
+ {n:'출하 도크',on:1,chips:[['👤 1','p']],t:'5분 전'},
+ {n:'프레스 2호기',on:1,chips:[['👤 2','p']],t:'8분 전'},
+ {n:'옥외 통로',on:0,chips:[['—','']],t:'20분 전'},
+ {n:'전기실',on:1,chips:[['👤 0','p']],t:'—'}];
+var EVENTS=[
+ ['cr','🚨 방호구역 침입(머리)','정문 프레스','보조경고 · 22:41:07 · id3'],
+ ['hi','⚠ 보호구 미착용','작업장 A','NO-Hardhat · 22:39:50'],
+ ['hi','⚠ 위험구역 접근','정문 프레스','person dwell 8s · 22:38:11'],
+ ['','· 인원 감지','적재장 B','4명 · 22:35:02'],
+ ['cr','🔥 화재/연기 의심','창고 후문','smoke 0.62 · 22:30:44'],
+ ['','· 카메라 재연결','창고 후문','reconnect #3 · 22:29:10']];
+var COLS={1:1,4:2,9:3}, SHOW={1:1,4:4,9:9}, cur=4;
+function renderGrid(){
+  var g=document.getElementById('grid');
+  g.style.gridTemplateColumns='repeat('+COLS[cur]+',1fr)';
+  g.style.gridAutoRows=cur===1?'1fr':(cur===4?'minmax(0,1fr)':'minmax(150px,1fr)');
+  g.innerHTML=CAMS.slice(0,SHOW[cur]).map(function(c,i){
+    var chips=(c.chips||[]).map(function(ch){return '<span class="chip '+ch[1]+'">'+ch[0]+'</span>';}).join('');
+    var badge=c.on?'<span class="badge b-on">online</span>':'<span class="badge b-off">offline</span>';
+    var rec=c.rec?'<span class="badge b-rec">REC</span>':'';
+    var feed=c.on?(c.local?'◉ CAM-LOCAL 웹캠':'◉ 라이브 (WebRTC)'):'⚠ 연결 끊김 — 재연결 중…';
+    return '<div class="card '+(c.alert?'alert':'')+'" data-i="'+i+'"><div class="feed">'+badge+rec+'<span>'+feed+'</span></div>'+
+      '<div class="cardbar"><span class="nm">'+c.n+'</span>'+chips+'<span class="ev-time">'+c.t+'</span></div></div>';
+  }).join('');
+  [].forEach.call(g.querySelectorAll('.card'),function(el){ el.onclick=function(){ openModal(CAMS[el.dataset.i]); }; });
+}
+document.getElementById('evlist').innerHTML=EVENTS.map(function(e){
+  return '<div class="ev '+e[0]+'"><div class="r1"><span>'+e[1]+'</span><span class="cam">'+e[2]+'</span></div><div class="r2">'+e[3]+'</div></div>';}).join('');
+[].forEach.call(document.querySelectorAll('.tools button[data-g]'),function(b){ b.onclick=function(){
+  [].forEach.call(document.querySelectorAll('.tools button[data-g]'),function(x){x.classList.remove('on');});
+  b.classList.add('on'); cur=+b.dataset.g; renderGrid(); };});
+[].forEach.call(document.querySelectorAll('.filters button'),function(b){ b.onclick=function(){
+  [].forEach.call(document.querySelectorAll('.filters button'),function(x){x.classList.remove('on');}); b.classList.add('on'); };});
+function openModal(c){ document.getElementById('mtitle').textContent=c.n; document.getElementById('modal').classList.add('show'); }
+document.getElementById('mclose').onclick=function(){ document.getElementById('modal').classList.remove('show'); };
+document.getElementById('modal').onclick=function(e){ if(e.target===this) this.classList.remove('show'); };
+document.getElementById('btnAdd').onclick=function(){ alert('카메라 추가 모달 — 2b 에서 /cameras CRUD 연결'); };
+// 초기 상태(스크린샷/딥링크용): ?view=1|4|9, ?modal=1
+var _q=new URLSearchParams(location.search);
+if(_q.get('view') && COLS[+_q.get('view')]){ cur=+_q.get('view');
+  [].forEach.call(document.querySelectorAll('.tools button[data-g]'),function(x){x.classList.toggle('on',+x.dataset.g===cur);}); }
+renderGrid();
+if(_q.get('modal')) openModal(CAMS[0]);
+</script>
+</body></html>
