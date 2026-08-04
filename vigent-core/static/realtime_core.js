@@ -173,7 +173,7 @@ const BACKEND_BOOST_INTERVAL=250;     // 고정밀 백엔드 호출 최소간격
 // 검출 호출 최소간격(2026-07-12): 왕복 110ms·추론 83ms 대비 150ms가 과해 검출 fps 병목(~6.7fps)이었음 → 100ms(~9fps).
 // 외부화: window.VIGENT_DETECT_MIN_MS 로 주입 가능. ⚠️ 엣지(RK3588 등 느린 추론)에서는 CPU 포화 방지 위해 상향(150~200) 필요.
 const DETECT_MIN_INTERVAL_MS=(typeof window!=='undefined' && window.VIGENT_DETECT_MIN_MS) || 100;
-const BACKEND_LOOP_INTERVAL=150;      // 루프 타이머(throttle가 모드별 실제 빈도 제어)
+const BACKEND_LOOP_INTERVAL=(typeof window!=='undefined' && window.VIGENT_BACKEND_LOOP_MS) || 150;   // 루프 타이머. 페이지 오버라이드 가능(미설정=150 → 전 테마 불변·저하0 · 2.1)
 const BACKEND_BOOST_TTL=3000;
 const BACKEND_PRIMARY_TTL=2800;       // 이 시간 내 백엔드 결과는 '주 탐지'로 우선 사용(CPU 지연 커버 → 깜빡임 방지)
 let backendLoopTimer=null;

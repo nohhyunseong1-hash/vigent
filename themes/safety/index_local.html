@@ -349,7 +349,7 @@
   <div class="vt-log-body" id="vtLogBody"></div>
 </div>
 
-<script>window.AX_LOCK_THEME="safety";</script>
+<script>window.AX_LOCK_THEME="safety"; window.VIGENT_BACKEND_LOOP_MS=100;   /* 2.1: /safety-local 만 검출루프 100ms(서버 왕복 p50 86ms<100 여유). 미설정 페이지는 150 유지 */</script>
 <script src="/static/realtime_core.js?v=20260701-ppefix"></script>
 
 <!-- 스켈레톤 스무딩 고도화: 기존 이동평균 smoothPose 를 One-Euro 필터로 교체.
@@ -578,9 +578,9 @@
     return [t.prev[0]+(t.tgt[0]-t.prev[0])*k, t.prev[1]+(t.tgt[1]-t.prev[1])*k,
             t.prev[2]+(t.tgt[2]-t.prev[2])*k, t.prev[3]+(t.tgt[3]-t.prev[3])*k];
   }
-  function dispBox(t,now){ // 표시 위치 = 트윈 + (id 트랙 한정) 속도 외삽. 외삽량은 갱신간격 40% 로 캡.
+  function dispBox(t,now){ // 표시 위치 = 트윈 + (id 트랙 한정) 속도 외삽. 외삽량은 갱신간격 60% 로 캡(2.1: 빠른이동 정합↑).
     var c=curBox(t,now);   // 폴백(id=-1) 트랙은 오매칭 튐 방지 위해 외삽 없음(1.9 수정3b)
-    if(t.tid>=0 && t.vel){ var dt=Math.min(now-t.t0, 0.4*(t.gap||350));
+    if(t.tid>=0 && t.vel){ var dt=Math.min(now-t.t0, 0.6*(t.gap||350));
       return [c[0]+t.vel[0]*dt, c[1]+t.vel[1]*dt, c[2]+t.vel[2]*dt, c[3]+t.vel[3]*dt]; }
     return c;
   }
@@ -590,7 +590,7 @@
   function ingest(){
     var now=Date.now(), gap=prevUpdateAt?(backendBoostAt-prevUpdateAt):0;
     var cg=gap>0?Math.max(300,Math.min(1200,gap)):350;   // 클램프한 갱신간격
-    var dur=0.6*cg;                                        // 1.9 수정3a: 트윈 지속=갱신간격 0.6배(1갱신→0.6갱신 지연)
+    var dur=0.45*cg;                                      // 2.1: 트윈 지속=갱신간격 0.45배(1.9의 0.6에서 단축 → 지연↓, 측정 채택)
     if(gap>0 && _iv.length<5){ _iv.push(gap);
       if(_iv.length===5) console.log('[safety-local] backend 갱신간격 5샘플(ms):', _iv.join(', '),
         '· p50≈'+_median(_iv)+'ms (실효 갱신율 · 요청 1개로 통합)'); }
@@ -601,7 +601,13 @@
     var n=tracks.length, used=new Array(n).fill(false);
     // upd: 트윈 갱신 + (id 트랙만) 속도 추정(직전 tgt→새 tgt / 갱신간격) — 외삽용
     function upd(t,det){ var np=curBox(t,now);
-      if(t.tid>=0 && t.tgt) t.vel=[(det.box[0]-t.tgt[0])/cg,(det.box[1]-t.tgt[1])/cg,(det.box[2]-t.tgt[2])/cg,(det.box[3]-t.tgt[3])/cg];
+      if(t.tid>=0 && t.tgt){   // 2.1: 속도=최근 3갱신 델타의 최신우대 가중평균(흔들림 완화)
+        var d=[(det.box[0]-t.tgt[0])/cg,(det.box[1]-t.tgt[1])/cg,(det.box[2]-t.tgt[2])/cg,(det.box[3]-t.tgt[3])/cg];
+        t.dhist=(t.dhist||[]).concat([d]).slice(-3);
+        var hs=t.dhist, ws=0, vv=[0,0,0,0];
+        for(var m=0;m<hs.length;m++){ var wt=m+1; ws+=wt; for(var cc=0;cc<4;cc++) vv[cc]+=hs[m][cc]*wt; }
+        t.vel=[vv[0]/ws,vv[1]/ws,vv[2]/ws,vv[3]/ws];
+      }
       t.prev=np; t.tgt=det.box; t.score=det.score; t.t0=now; t.dur=dur; t.gap=cg; t.alive=true; }
     function mk(det){ return {tid:det.tid,cls:det.cls,score:det.score,prev:det.box.slice(),tgt:det.box.slice(),t0:now,dur:dur,gap:cg,alpha:0,alive:true}; }
     // 1차: id 매칭(tid>=0) — 같은 tid 트랙에 트윈
