@@ -716,6 +716,24 @@
     }
   })();
 
+  // 2.4: 백엔드 다인 포즈 수신 중엔 MediaPipe(1인) 스켈레톤 렌더 억제(이중 그리기 방지 · realtime_core 무수정).
+  //   drawSkeleton(MediaPipe) 은 매 프레임 그려지고 drawBackendPoses(다인)도 safety 에서 그려져 겹친다 →
+  //   poseFresh()(백엔드 포즈 신선)면 MediaPipe 스켈레톤만 생략. 백엔드 포즈 끊기면 자동으로 MediaPipe 복귀.
+  (function wrapSkeleton(){
+    if (typeof window.drawSkeleton === 'function') {
+      if (!window._vgSkelWrapped) {
+        var _origSkel = window.drawSkeleton;
+        window.drawSkeleton = function(){
+          try{ if (typeof poseFresh === 'function' && poseFresh()) return; }catch(e){}
+          return _origSkel.apply(this, arguments);
+        };
+        window._vgSkelWrapped = true;
+      }
+    } else {
+      setTimeout(wrapSkeleton, 300);
+    }
+  })();
+
   // 1.7단계: 자체 /detect/frame fetch 루프 제거 — realtime_core.js 가 이미 150ms로 호출해 채워둔
   //   backendBoostDets/backendBoostAt 를 renderTick 이 읽어 그린다(요청 스트림 2개→1개, 서버 대기열 단축).
 })();

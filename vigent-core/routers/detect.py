@@ -11,6 +11,43 @@ from web_util import decode_data_url, is_safety_label
 
 router = APIRouter()
 
+# 다인 포즈(2.4): yolov8n-pose(bottom-up) 1회 로드 캐시. CPU 고정(ultralytics MPS 다모델 크래시 이력).
+_POSE_MODEL = None
+_POSE_LOAD_ERR: str | None = None
+
+
+def _multi_pose(img, imgsz: int) -> list[dict]:
+    """다인 포즈 추정 → [{keypoints:[[x,y]×17], keypoint_confidence:[×17]}]. 좌표는 입력(전송) 이미지 픽셀
+    (프론트 realtime_core.js 의 poses 소비 형식과 일치). 보조 기능이라 실패해도 [] 반환(검출 무중단)."""
+    global _POSE_MODEL, _POSE_LOAD_ERR
+    if _POSE_MODEL is None:
+        if _POSE_LOAD_ERR:
+            return []
+        try:
+            from pathlib import Path
+
+            from ultralytics import YOLO
+            _POSE_MODEL = YOLO(str(Path(__file__).resolve().parent.parent / "weights" / "yolov8n-pose.pt"))
+        except Exception as ex:  # noqa: BLE001
+            _POSE_LOAD_ERR = f"{type(ex).__name__}: {ex}"
+            return []
+    try:
+        res = _POSE_MODEL.predict(img, verbose=False, device="cpu", imgsz=imgsz)[0]
+        kp = getattr(res, "keypoints", None)
+        if kp is None or kp.xy is None:
+            return []
+        xy = kp.xy.cpu().numpy()
+        cf = kp.conf.cpu().numpy() if kp.conf is not None else None
+        poses: list[dict] = []
+        for i in range(len(xy)):
+            poses.append({
+                "keypoints": [[round(float(x), 1), round(float(y), 1)] for x, y in xy[i]],
+                "keypoint_confidence": [round(float(c), 3) for c in (cf[i] if cf is not None else [])],
+            })
+        return poses
+    except Exception:  # noqa: BLE001  보조 기능 — 실패해도 검출 유지
+        return []
+
 
 @router.post("/detect/frame")
 def detect_frame(payload: dict = Body(...), theme: str = DEFAULT_THEME):
@@ -52,6 +89,8 @@ def detect_frame(payload: dict = Body(...), theme: str = DEFAULT_THEME):
             guard._tracks_by_key[track_key] = []   # 그 키만 비움(락 내부라 원자적)
         out = guard.detect(img, detectors=detectors, conf=payload.get("conf"),
                            imgsz=live_imgsz, track_key=track_key)
+        # 다인 포즈(2.4): pose=true 요청 시에만. 락 내부 실행(guard 와 직렬화). CPU 라 MPS 무영향.
+        poses = _multi_pose(img, live_imgsz) if payload.get("pose") else []
     # 정규화 bbox(0~1) → 전송 이미지 픽셀 [x,y,w,h] + 프론트 키(class/score)로 변환
     H, W = img.shape[:2]
     dets = []
@@ -75,7 +114,7 @@ def detect_frame(payload: dict = Body(...), theme: str = DEFAULT_THEME):
     prox = _prox.detect(out.get("detections", []), radius_m, aspect_hw=H / W)   # 감사 E-1: 종횡비 보정
     return {"success": True, "detections": dets, "hazards": hazards,
             "person_count": out.get("person_count", 0), "signals": out.get("signals", {}),
-            "proximity": prox}
+            "proximity": prox, "poses": poses}
 
 @router.post("/rfdetr/frame")
 def rfdetr_frame(payload: dict = Body(...)):
