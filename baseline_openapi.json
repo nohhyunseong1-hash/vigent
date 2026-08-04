@@ -3792,6 +3792,25 @@
         }
       }
     },
+    "/safety-hub": {
+      "get": {
+        "summary": "Safety Hub",
+        "description": "스마트 카메라 관제 대시보드(3.0) — 멀티카메라 그리드·KPI·이벤트 스트림.",
+        "operationId": "safety_hub_safety_hub_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "text/html": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/theme/{theme}/raw": {
       "get": {
         "summary": "Theme Raw",
