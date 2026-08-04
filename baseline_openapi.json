@@ -1,553 +1,564 @@
 {
-  "components": {
-    "schemas": {
-      "HTTPValidationError": {
-        "properties": {
-          "detail": {
-            "items": {
-              "$ref": "#/components/schemas/ValidationError"
-            },
-            "title": "Detail",
-            "type": "array"
-          }
-        },
-        "title": "HTTPValidationError",
-        "type": "object"
-      },
-      "RiskAssessmentIn": {
-        "description": "위험성평가 POST 입력(하위호환·관대):\nevents 는 반드시 list[dict](각 이벤트는 dict) — 문자열/누락/비-dict 항목이면 422.\nsite/process 는 선택. events 항목의 키(rule/count/levels/notes 등)는 자유(추가검증 없음).",
-        "properties": {
-          "events": {
-            "items": {
-              "additionalProperties": true,
-              "type": "object"
-            },
-            "title": "Events",
-            "type": "array"
-          },
-          "mode": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "default": "checklist",
-            "title": "Mode"
-          },
-          "process": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "default": "",
-            "title": "Process"
-          },
-          "site": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "default": "",
-            "title": "Site"
-          }
-        },
-        "required": [
-          "events"
-        ],
-        "title": "RiskAssessmentIn",
-        "type": "object"
-      },
-      "ValidationError": {
-        "properties": {
-          "ctx": {
-            "title": "Context",
-            "type": "object"
-          },
-          "input": {
-            "title": "Input"
-          },
-          "loc": {
-            "items": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "integer"
-                }
-              ]
-            },
-            "title": "Location",
-            "type": "array"
-          },
-          "msg": {
-            "title": "Message",
-            "type": "string"
-          },
-          "type": {
-            "title": "Error Type",
-            "type": "string"
-          }
-        },
-        "required": [
-          "loc",
-          "msg",
-          "type"
-        ],
-        "title": "ValidationError",
-        "type": "object"
-      }
-    }
-  },
+  "openapi": "3.1.0",
   "info": {
     "title": "VIGENT Core",
     "version": "0.2.0"
   },
-  "openapi": "3.1.0",
   "paths": {
-    "/": {
+    "/tapo/video-rtc.js": {
       "get": {
-        "operationId": "root__get",
+        "summary": "Tapo Videortc Js",
+        "description": "go2rtc 의 video-rtc.js(ES모듈)를 VIGENT 서버가 대신 받아 같은 출처로 제공.",
+        "operationId": "tapo_videortc_js_tapo_video_rtc_js_get",
         "responses": {
           "200": {
+            "description": "Successful Response",
             "content": {
               "application/json": {
                 "schema": {}
               }
-            },
-            "description": "Successful Response"
-          }
-        },
-        "summary": "Root"
-      }
-    },
-    "/alerts/status": {
-      "get": {
-        "operationId": "stub_alerts_status_alerts_status_get",
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {}
-              }
-            },
-            "description": "Successful Response"
-          }
-        },
-        "summary": "Stub Alerts Status"
-      }
-    },
-    "/alerts/test": {
-      "post": {
-        "description": "Dispatcher 경보 테스트. payload={level, message}. 키 없으면 폴백(로그)로 동작.",
-        "operationId": "alerts_test_alerts_test_post",
-        "parameters": [
-          {
-            "in": "query",
-            "name": "theme",
-            "required": false,
-            "schema": {
-              "default": "safety",
-              "title": "Theme",
-              "type": "string"
             }
           }
-        ],
+        }
+      }
+    },
+    "/tapo/webrtc": {
+      "post": {
+        "summary": "Tapo Webrtc",
+        "description": "브라우저 ↔ go2rtc WebRTC 핸드셰이크(SDP)를 VIGENT 서버가 중계.\n영상(미디어)은 WebRTC로 직접 흐르고, 여기선 SDP 신호만 전달 → CORS 문제 없음.",
+        "operationId": "tapo_webrtc_tapo_webrtc_post",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/vitals/rppg": {
+      "post": {
+        "summary": "Stub Vitals",
+        "operationId": "stub_vitals_vitals_rppg_post",
         "requestBody": {
           "content": {
             "application/json": {
               "schema": {
                 "additionalProperties": true,
-                "default": {},
+                "type": "object",
                 "title": "Payload",
-                "type": "object"
+                "default": {}
               }
             }
           }
         },
         "responses": {
           "200": {
+            "description": "Successful Response",
             "content": {
               "application/json": {
                 "schema": {}
               }
-            },
-            "description": "Successful Response"
+            }
           },
           "422": {
+            "description": "Validation Error",
             "content": {
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/HTTPValidationError"
                 }
               }
-            },
-            "description": "Validation Error"
+            }
           }
-        },
-        "summary": "Alerts Test"
+        }
       }
     },
-    "/dashboard": {
+    "/zone/danger": {
       "get": {
-        "description": "테마별 경영 대시보드 — 실제 이벤트 통계. style=terminal 이면 모던 터미널 스킨.",
-        "operationId": "dashboard_page_dashboard_get",
+        "summary": "Zone Danger",
+        "description": "일반 위험구역 폴리곤(정규화 좌표) 반환.",
+        "operationId": "zone_danger_zone_danger_get",
         "parameters": [
           {
-            "in": "query",
             "name": "theme",
-            "required": false,
-            "schema": {
-              "default": "safety",
-              "title": "Theme",
-              "type": "string"
-            }
-          },
-          {
             "in": "query",
-            "name": "style",
             "required": false,
             "schema": {
-              "default": "default",
-              "title": "Style",
-              "type": "string"
+              "type": "string",
+              "default": "safety",
+              "title": "Theme"
             }
           }
         ],
         "responses": {
           "200": {
+            "description": "Successful Response",
             "content": {
-              "text/html": {
-                "schema": {
-                  "type": "string"
-                }
+              "application/json": {
+                "schema": {}
               }
-            },
-            "description": "Successful Response"
+            }
           },
           "422": {
+            "description": "Validation Error",
             "content": {
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/HTTPValidationError"
                 }
               }
-            },
-            "description": "Validation Error"
-          }
-        },
-        "summary": "Dashboard Page"
-      }
-    },
-    "/detect/frame": {
-      "post": {
-        "description": "Guard 딥러닝 정밀 탐지(브라우저 백엔드 보강).\npayload={image_base64(접두사 유무 무관) | image(data URL), ppe?:bool, conf?:float, detectors?:[...]}.\n반환(프론트 계약): {success, detections:[{class,score,bbox:[x,y,w,h]px}], hazards:[...], person_count, signals}.\n모델 없으면 해당 검출기만 비활성(무중단).",
-        "operationId": "detect_frame_detect_frame_post",
-        "parameters": [
-          {
-            "in": "query",
-            "name": "theme",
-            "required": false,
-            "schema": {
-              "default": "safety",
-              "title": "Theme",
-              "type": "string"
             }
           }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "additionalProperties": true,
-                "title": "Payload",
-                "type": "object"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {}
-              }
-            },
-            "description": "Successful Response"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            },
-            "description": "Validation Error"
-          }
-        },
-        "summary": "Detect Frame"
-      }
-    },
-    "/dispatch/relay": {
-      "post": {
-        "description": "§8 보조 방호신호. guard_bypass(critical) 발생 시 프론트가 호출.\n⚠ 비전은 보조·감시 계층이며 1차 비상정지를 대체하지 않는다.",
-        "operationId": "dispatch_relay_dispatch_relay_post",
-        "parameters": [
-          {
-            "in": "query",
-            "name": "theme",
-            "required": false,
-            "schema": {
-              "default": "safety",
-              "title": "Theme",
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "additionalProperties": true,
-                "default": {},
-                "title": "Payload",
-                "type": "object"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {}
-              }
-            },
-            "description": "Successful Response"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            },
-            "description": "Validation Error"
-          }
-        },
-        "summary": "Dispatch Relay"
-      }
-    },
-    "/evidence/search": {
-      "get": {
-        "description": "Copilot 근거 검색 — 규칙 id 의 법령·가이드 인용(출처 포함)을 반환(§9).",
-        "operationId": "evidence_search_evidence_search_get",
-        "parameters": [
-          {
-            "in": "query",
-            "name": "rule",
-            "required": true,
-            "schema": {
-              "title": "Rule",
-              "type": "string"
-            }
-          },
-          {
-            "in": "query",
-            "name": "theme",
-            "required": false,
-            "schema": {
-              "default": "safety",
-              "title": "Theme",
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {}
-              }
-            },
-            "description": "Successful Response"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            },
-            "description": "Validation Error"
-          }
-        },
-        "summary": "Evidence Search"
-      }
-    },
-    "/favicon.ico": {
-      "get": {
-        "description": "브라우저 자동요청 favicon — 없어서 나던 404 콘솔 노이즈 제거(내용은 비움).",
-        "operationId": "favicon_favicon_ico_get",
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {}
-              }
-            },
-            "description": "Successful Response"
-          }
-        },
-        "summary": "Favicon"
-      }
-    },
-    "/health": {
-      "get": {
-        "description": "확장 헬스체크(C-S1): 제품 버전·모델별 버전/SHA·uptime·backend 구성.\n워치독·모니터링용(무인증 허용). SHA 는 weights_manifest.json 기준(앞 16자).",
-        "operationId": "health_health_get",
-        "parameters": [
-          {
-            "in": "query",
-            "name": "theme",
-            "required": false,
-            "schema": {
-              "default": "safety",
-              "title": "Theme",
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {}
-              }
-            },
-            "description": "Successful Response"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            },
-            "description": "Validation Error"
-          }
-        },
-        "summary": "Health"
-      }
-    },
-    "/home": {
-      "get": {
-        "description": "VIGENT 홈(허브) — 가장 좋은 기능들을 타일로 한눈에.",
-        "operationId": "hub_home_home_get",
-        "responses": {
-          "200": {
-            "content": {
-              "text/html": {
-                "schema": {
-                  "type": "string"
-                }
-              }
-            },
-            "description": "Successful Response"
-          }
-        },
-        "summary": "Hub Home"
-      }
-    },
-    "/hub": {
-      "get": {
-        "description": "VIGENT 홈(허브) — 가장 좋은 기능들을 타일로 한눈에.",
-        "operationId": "hub_home_hub_get",
-        "responses": {
-          "200": {
-            "content": {
-              "text/html": {
-                "schema": {
-                  "type": "string"
-                }
-              }
-            },
-            "description": "Successful Response"
-          }
-        },
-        "summary": "Hub Home"
-      }
-    },
-    "/notify/config": {
-      "get": {
-        "operationId": "notify_config_get_notify_config_get",
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {}
-              }
-            },
-            "description": "Successful Response"
-          }
-        },
-        "summary": "Notify Config Get"
+        }
       },
       "post": {
-        "operationId": "notify_config_post_notify_config_post",
+        "summary": "Set Zone Danger",
+        "description": "일반 위험구역 폴리곤 저장. payload={\"points\":[{\"x\":..,\"y\":..}, ...]}",
+        "operationId": "set_zone_danger_zone_danger_post",
+        "parameters": [
+          {
+            "name": "theme",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "default": "safety",
+              "title": "Theme"
+            }
+          }
+        ],
         "requestBody": {
+          "required": true,
           "content": {
             "application/json": {
               "schema": {
+                "type": "object",
                 "additionalProperties": true,
-                "title": "Payload",
-                "type": "object"
+                "title": "Payload"
               }
             }
-          },
-          "required": true
+          }
         },
         "responses": {
           "200": {
+            "description": "Successful Response",
             "content": {
               "application/json": {
                 "schema": {}
               }
-            },
-            "description": "Successful Response"
+            }
           },
           "422": {
+            "description": "Validation Error",
             "content": {
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/HTTPValidationError"
                 }
               }
-            },
-            "description": "Validation Error"
+            }
+          }
+        }
+      }
+    },
+    "/zone/machine": {
+      "get": {
+        "summary": "Zone Machine",
+        "description": "프레스/전단기 방호구역 폴리곤(정규화 좌표) 반환(§8).",
+        "operationId": "zone_machine_zone_machine_get",
+        "parameters": [
+          {
+            "name": "theme",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "default": "safety",
+              "title": "Theme"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "summary": "Set Zone Machine",
+        "description": "프레스/전단기 방호구역 폴리곤 저장(손 진입 시 guard_bypass=critical).",
+        "operationId": "set_zone_machine_zone_machine_post",
+        "parameters": [
+          {
+            "name": "theme",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "default": "safety",
+              "title": "Theme"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": true,
+                "title": "Payload"
+              }
+            }
           }
         },
-        "summary": "Notify Config Post"
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/zone/state": {
+      "get": {
+        "summary": "Stub Zone State",
+        "operationId": "stub_zone_state_zone_state_get",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": true,
+                "type": "object",
+                "title": "Payload",
+                "default": {}
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "summary": "Stub Zone State",
+        "operationId": "stub_zone_state_zone_state_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": true,
+                "type": "object",
+                "title": "Payload",
+                "default": {}
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/zone/intrusion": {
+      "post": {
+        "summary": "Zone Intrusion Alert",
+        "description": "위험구역 침입(몸통/머리/다리 등 '위험') → 휴대폰 알림(텔레그램/웹훅) + 증거 저장.\n프론트(AX 엔진)는 손/팔만이면 호출하지 않고, '위험' 부위 진입 시에만 호출한다.",
+        "operationId": "zone_intrusion_alert_zone_intrusion_post",
+        "parameters": [
+          {
+            "name": "theme",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "default": "safety",
+              "title": "Theme"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": true,
+                "default": {},
+                "title": "Payload"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/sports/asanas": {
+      "get": {
+        "summary": "Sports Asanas",
+        "description": "요가 동작 라이브러리(Yoga-82 수준). 정답각도(scored)·카테고리 포함.",
+        "operationId": "sports_asanas_sports_asanas_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/sports/templates": {
+      "get": {
+        "summary": "Sports Templates",
+        "description": "학습된 요가 동작 인식 템플릿(브라우저가 등록 없이 자동 인식). 없으면 빈값.",
+        "operationId": "sports_templates_sports_templates_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/sports/calibrate": {
+      "post": {
+        "summary": "Sports Calibrate",
+        "description": "정답 자세 보정 — 시연으로 측정한 각도(중앙값·허용오차)로 해당 동작 정답각도 갱신.\npayload={asana_id, angles:[{name, ideal, tol, n}]}. 데이터 기반 표시(user_calibrated).",
+        "operationId": "sports_calibrate_sports_calibrate_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": true,
+                "type": "object",
+                "title": "Payload",
+                "default": {}
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/sports/reference": {
+      "get": {
+        "summary": "Sports Reference",
+        "description": "보정으로 저장된 정답 자세 키포인트(목표 자세 시연용). 없으면 빈값.",
+        "operationId": "sports_reference_sports_reference_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/sports/session": {
+      "post": {
+        "summary": "Sports Session",
+        "description": "연습 1건(동작·점수·유지시간) 익명 기록. 토큰은 브라우저 로컬 랜덤값.",
+        "operationId": "sports_session_sports_session_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": true,
+                "type": "object",
+                "title": "Payload",
+                "default": {}
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/sports/progress": {
+      "get": {
+        "summary": "Sports Progress",
+        "description": "익명 토큰의 연습 진행도(추세·연속일·동작별 최고점).",
+        "operationId": "sports_progress_sports_progress_get",
+        "parameters": [
+          {
+            "name": "token",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "default": "anon",
+              "title": "Token"
+            }
+          },
+          {
+            "name": "days",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 30,
+              "title": "Days"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
       }
     },
     "/office/coach": {
       "post": {
+        "summary": "Office Coach",
         "description": "사무직 자세 코치(VLM) — office 프롬프트로 프레임 분석 + 근골격계 지침 보강.\n무거우므로 프론트가 쿨다운(기본 30초)으로 드물게 호출한다. 실패해도 죽지 않음.",
         "operationId": "office_coach_office_coach_post",
         "requestBody": {
@@ -555,38 +566,38 @@
             "application/json": {
               "schema": {
                 "additionalProperties": true,
-                "default": {},
+                "type": "object",
                 "title": "Payload",
-                "type": "object"
+                "default": {}
               }
             }
           }
         },
         "responses": {
           "200": {
+            "description": "Successful Response",
             "content": {
               "application/json": {
                 "schema": {}
               }
-            },
-            "description": "Successful Response"
+            }
           },
           "422": {
+            "description": "Validation Error",
             "content": {
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/HTTPValidationError"
                 }
               }
-            },
-            "description": "Validation Error"
+            }
           }
-        },
-        "summary": "Office Coach"
+        }
       }
     },
     "/office/log": {
       "post": {
+        "summary": "Office Log",
         "description": "익명 자세 통계 1주기 저장(데이터 영속). 토큰은 브라우저 로컬 랜덤값(개인식별 아님).",
         "operationId": "office_log_office_log_post",
         "requestBody": {
@@ -594,128 +605,87 @@
             "application/json": {
               "schema": {
                 "additionalProperties": true,
-                "default": {},
+                "type": "object",
                 "title": "Payload",
-                "type": "object"
+                "default": {}
               }
             }
           }
         },
         "responses": {
           "200": {
+            "description": "Successful Response",
             "content": {
               "application/json": {
                 "schema": {}
               }
-            },
-            "description": "Successful Response"
+            }
           },
           "422": {
+            "description": "Validation Error",
             "content": {
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/HTTPValidationError"
                 }
               }
-            },
-            "description": "Validation Error"
-          }
-        },
-        "summary": "Office Log"
-      }
-    },
-    "/office/report": {
-      "get": {
-        "description": "관리자용 팀 단위 익명 자세 복지 리포트(개인 식별 없음).",
-        "operationId": "office_report_office_report_get",
-        "parameters": [
-          {
-            "in": "query",
-            "name": "days",
-            "required": false,
-            "schema": {
-              "default": 7,
-              "title": "Days",
-              "type": "integer"
             }
           }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "text/html": {
-                "schema": {
-                  "type": "string"
-                }
-              }
-            },
-            "description": "Successful Response"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            },
-            "description": "Validation Error"
-          }
-        },
-        "summary": "Office Report"
+        }
       }
     },
     "/office/trend": {
       "get": {
+        "summary": "Office Trend",
         "description": "익명 토큰의 자세 추세(일자별 평균점수·바른자세 비율).",
         "operationId": "office_trend_office_trend_get",
         "parameters": [
           {
-            "in": "query",
             "name": "token",
+            "in": "query",
             "required": false,
             "schema": {
+              "type": "string",
               "default": "anon",
-              "title": "Token",
-              "type": "string"
+              "title": "Token"
             }
           },
           {
-            "in": "query",
             "name": "days",
+            "in": "query",
             "required": false,
             "schema": {
+              "type": "integer",
               "default": 7,
-              "title": "Days",
-              "type": "integer"
+              "title": "Days"
             }
           }
         ],
         "responses": {
           "200": {
+            "description": "Successful Response",
             "content": {
               "application/json": {
                 "schema": {}
               }
-            },
-            "description": "Successful Response"
+            }
           },
           "422": {
+            "description": "Validation Error",
             "content": {
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/HTTPValidationError"
                 }
               }
-            },
-            "description": "Validation Error"
+            }
           }
-        },
-        "summary": "Office Trend"
+        }
       }
     },
     "/office/webhook": {
       "post": {
+        "summary": "Office Webhook",
         "description": "Slack/Teams Incoming Webhook 으로 메시지 전송(서버 중계 — 브라우저 CORS 회피).\n웹훅 URL 은 .env 의 OFFICE_WEBHOOK_URL(비밀). 미설정이면 폴백(보내지 않음).",
         "operationId": "office_webhook_office_webhook_post",
         "requestBody": {
@@ -723,92 +693,906 @@
             "application/json": {
               "schema": {
                 "additionalProperties": true,
-                "default": {},
+                "type": "object",
                 "title": "Payload",
-                "type": "object"
+                "default": {}
               }
             }
           }
         },
         "responses": {
           "200": {
+            "description": "Successful Response",
             "content": {
               "application/json": {
                 "schema": {}
               }
-            },
-            "description": "Successful Response"
+            }
           },
           "422": {
+            "description": "Validation Error",
             "content": {
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/HTTPValidationError"
                 }
               }
-            },
-            "description": "Validation Error"
+            }
+          }
+        }
+      }
+    },
+    "/office/report": {
+      "get": {
+        "summary": "Office Report",
+        "description": "관리자용 팀 단위 익명 자세 복지 리포트(개인 식별 없음).",
+        "operationId": "office_report_office_report_get",
+        "parameters": [
+          {
+            "name": "days",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 7,
+              "title": "Days"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "text/html": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/health": {
+      "get": {
+        "summary": "Health",
+        "description": "확장 헬스체크(C-S1): 제품 버전·모델별 버전/SHA·uptime·backend 구성.\n워치독·모니터링용(무인증 허용). SHA 는 weights_manifest.json 기준(앞 16자).",
+        "operationId": "health_health_get",
+        "parameters": [
+          {
+            "name": "theme",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "default": "safety",
+              "title": "Theme"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/system/capabilities": {
+      "get": {
+        "summary": "Capabilities",
+        "description": "파이프라인 상태표 + 에이전트 등록 현황(절대 저하 없음 가시화).",
+        "operationId": "capabilities_system_capabilities_get",
+        "parameters": [
+          {
+            "name": "theme",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "default": "safety",
+              "title": "Theme"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/detect/frame": {
+      "post": {
+        "summary": "Detect Frame",
+        "description": "Guard 딥러닝 정밀 탐지(브라우저 백엔드 보강).\npayload={image_base64(접두사 유무 무관) | image(data URL), ppe?:bool, conf?:float, detectors?:[...]}.\n반환(프론트 계약): {success, detections:[{class,score,bbox:[x,y,w,h]px}], hazards:[...], person_count, signals}.\n모델 없으면 해당 검출기만 비활성(무중단).",
+        "operationId": "detect_frame_detect_frame_post",
+        "parameters": [
+          {
+            "name": "theme",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "default": "safety",
+              "title": "Theme"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": true,
+                "title": "Payload"
+              }
+            }
           }
         },
-        "summary": "Office Webhook"
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/rfdetr/frame": {
+      "post": {
+        "summary": "Rfdetr Frame",
+        "description": "웹캠 프레임 → rf-detr 사람탐지 + 추적 + 위험구역 침입 판정(빠름).",
+        "operationId": "rfdetr_frame_rfdetr_frame_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": true,
+                "type": "object",
+                "title": "Payload"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/rfdetr/vlm": {
+      "post": {
+        "summary": "Rfdetr Vlm",
+        "description": "이벤트 프레임 → mlx-vlm 위험요약 JSON(느림, 프론트가 침입 시 드물게 호출).",
+        "operationId": "rfdetr_vlm_rfdetr_vlm_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": true,
+                "type": "object",
+                "title": "Payload"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/segment/frame": {
+      "post": {
+        "summary": "Stub Segment",
+        "operationId": "stub_segment_segment_frame_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": true,
+                "type": "object",
+                "title": "Payload",
+                "default": {}
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/safety/incident": {
+      "get": {
+        "summary": "Safety Incident Page",
+        "description": "재해 원인분석(보조) — 사고 사진/영상 → 상황·빠진 조치·법령·유사재해·예방.",
+        "operationId": "safety_incident_page_safety_incident_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "text/html": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/safety/incident/frame": {
+      "post": {
+        "summary": "Safety Incident Frame",
+        "description": "한 프레임의 위험도 채점(빠름, VLM 없음) — 영상 타임라인 분석용.\n반환: {score, person_count, hazards:[유형], detections:[클래스]}.",
+        "operationId": "safety_incident_frame_safety_incident_frame_post",
+        "parameters": [
+          {
+            "name": "theme",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "default": "safety",
+              "title": "Theme"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": true,
+                "title": "Payload"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/safety/incident/analyze": {
+      "post": {
+        "summary": "Safety Incident Analyze",
+        "description": "재해 영상/사진 원인분석 — 탐지 + VLM + 지식. 책임 비율 판정은 하지 않음.",
+        "operationId": "safety_incident_analyze_safety_incident_analyze_post",
+        "parameters": [
+          {
+            "name": "theme",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "default": "safety",
+              "title": "Theme"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": true,
+                "title": "Payload"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/safety/tbm": {
+      "get": {
+        "summary": "Tbm List",
+        "description": "저장된 TBM 회의록 목록 + '새 회의록 작성' 버튼.",
+        "operationId": "tbm_list_safety_tbm_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "text/html": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "summary": "Tbm Create",
+        "description": "회의록 1건 저장. payload={site,process,work_desc,supervisor,hazards[],checklist[],workers[],notes}.",
+        "operationId": "tbm_create_safety_tbm_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": true,
+                "type": "object",
+                "title": "Payload"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/safety/tbm/new": {
+      "get": {
+        "summary": "Tbm New",
+        "description": "TBM 회의록 작성 화면(작성 후 저장 → 열기로 이동).",
+        "operationId": "tbm_new_safety_tbm_new_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "text/html": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/safety/tbm/suggest": {
+      "get": {
+        "summary": "Tbm Suggest",
+        "description": "작업공종 → 중점 위험요인·점검항목 추천 + 법령 근거(규칙 인용).\n매칭 실패 시 일반작업으로 폴백(빈손 방지). 근거는 기존 코퍼스에서만 인용한다(§9).",
+        "operationId": "tbm_suggest_safety_tbm_suggest_get",
+        "parameters": [
+          {
+            "name": "process",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "default": "",
+              "title": "Process"
+            }
+          },
+          {
+            "name": "theme",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "default": "safety",
+              "title": "Theme"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/safety/tbm/{tid}/risk-assessment": {
+      "post": {
+        "summary": "Tbm To Risk Assessment",
+        "description": "TBM 회의록 1건 → 위험성평가서 자동 생성(이중입력 제거).\n공종 매칭 규칙 + 작성자가 직접 적은 위험요인(키워드 매칭)을 합쳐 평가 이벤트로 변환한다.",
+        "operationId": "tbm_to_risk_assessment_safety_tbm__tid__risk_assessment_post",
+        "parameters": [
+          {
+            "name": "tid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Tid"
+            }
+          },
+          {
+            "name": "theme",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "default": "safety",
+              "title": "Theme"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/safety/tbm/{tid}": {
+      "get": {
+        "summary": "Tbm Open",
+        "description": "저장된 회의록 열기(인쇄 가능 HTML).",
+        "operationId": "tbm_open_safety_tbm__tid__get",
+        "parameters": [
+          {
+            "name": "tid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Tid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "text/html": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/safety/ppe": {
+      "get": {
+        "summary": "Safety Ppe Page",
+        "description": "현장 보호구 설정 — 현장별 필수 보호구 선택.",
+        "operationId": "safety_ppe_page_safety_ppe_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "text/html": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/safety/ppe/live": {
+      "get": {
+        "summary": "Safety Ppe Live Page",
+        "description": "실시간 보호구 감지 — 카메라 + 주기 점검(VLM).",
+        "operationId": "safety_ppe_live_page_safety_ppe_live_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "text/html": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/safety/ppe/catalog": {
+      "get": {
+        "summary": "Safety Ppe Catalog",
+        "description": "보호구 카탈로그(id·라벨·방식) — 메인 화면 메뉴에서 선택용.",
+        "operationId": "safety_ppe_catalog_safety_ppe_catalog_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/safety/ppe/rules": {
+      "get": {
+        "summary": "Safety Ppe Rules Get",
+        "operationId": "safety_ppe_rules_get_safety_ppe_rules_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "summary": "Safety Ppe Rules Set",
+        "operationId": "safety_ppe_rules_set_safety_ppe_rules_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": true,
+                "type": "object",
+                "title": "Payload"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/safety/ppe/check": {
+      "post": {
+        "summary": "Safety Ppe Check",
+        "description": "이미지 → 현장 필수 보호구 착용 점검(미착용 경고). use_vlm 권장.",
+        "operationId": "safety_ppe_check_safety_ppe_check_post",
+        "parameters": [
+          {
+            "name": "theme",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "default": "safety",
+              "title": "Theme"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": true,
+                "title": "Payload"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
       }
     },
     "/ppe/analyze-frame": {
       "post": {
+        "summary": "Stub Ppe Analyze",
         "operationId": "stub_ppe_analyze_ppe_analyze_frame_post",
         "requestBody": {
           "content": {
             "application/json": {
               "schema": {
                 "additionalProperties": true,
-                "default": {},
+                "type": "object",
                 "title": "Payload",
-                "type": "object"
+                "default": {}
               }
             }
           }
         },
         "responses": {
           "200": {
+            "description": "Successful Response",
             "content": {
               "application/json": {
                 "schema": {}
               }
-            },
-            "description": "Successful Response"
+            }
           },
           "422": {
+            "description": "Validation Error",
             "content": {
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/HTTPValidationError"
                 }
               }
-            },
-            "description": "Validation Error"
+            }
           }
-        },
-        "summary": "Stub Ppe Analyze"
+        }
       }
     },
     "/recognition/log": {
+      "post": {
+        "summary": "Recognition Log",
+        "description": "데이터엔진 — 위험 이벤트 1건 기록(+증거 프레임 저장).\npayload={rule, level, score, site, note, image(data URL, 선택)}",
+        "operationId": "recognition_log_recognition_log_post",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": true,
+                "title": "Payload"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
       "get": {
+        "summary": "Recognition Log List",
         "description": "저장된 인식 로그 목록(최신순).",
         "operationId": "recognition_log_list_recognition_log_get",
         "parameters": [
           {
-            "in": "query",
             "name": "limit",
+            "in": "query",
             "required": false,
             "schema": {
+              "type": "integer",
               "default": 100,
-              "title": "Limit",
-              "type": "integer"
+              "title": "Limit"
             }
           },
           {
-            "in": "query",
             "name": "hours",
+            "in": "query",
             "required": false,
             "schema": {
               "anyOf": [
@@ -825,1123 +1609,615 @@
         ],
         "responses": {
           "200": {
+            "description": "Successful Response",
             "content": {
               "application/json": {
                 "schema": {}
-              }
-            },
-            "description": "Successful Response"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            },
-            "description": "Validation Error"
-          }
-        },
-        "summary": "Recognition Log List"
-      },
-      "post": {
-        "description": "데이터엔진 — 위험 이벤트 1건 기록(+증거 프레임 저장).\npayload={rule, level, score, site, note, image(data URL, 선택)}",
-        "operationId": "recognition_log_recognition_log_post",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "additionalProperties": true,
-                "title": "Payload",
-                "type": "object"
               }
             }
           },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {}
-              }
-            },
-            "description": "Successful Response"
-          },
           "422": {
+            "description": "Validation Error",
             "content": {
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/HTTPValidationError"
                 }
               }
-            },
-            "description": "Validation Error"
+            }
           }
-        },
-        "summary": "Recognition Log"
+        }
       }
     },
     "/recognition/log/download": {
       "get": {
+        "summary": "Recognition Log Download",
         "description": "전체 인식 로그를 JSONL 로 다운로드.",
         "operationId": "recognition_log_download_recognition_log_download_get",
         "responses": {
           "200": {
+            "description": "Successful Response",
             "content": {
               "application/json": {
                 "schema": {}
               }
-            },
-            "description": "Successful Response"
+            }
           }
-        },
-        "summary": "Recognition Log Download"
+        }
       }
     },
     "/recognition/note": {
       "post": {
+        "summary": "Stub Recognition Note",
         "operationId": "stub_recognition_note_recognition_note_post",
         "requestBody": {
           "content": {
             "application/json": {
               "schema": {
                 "additionalProperties": true,
+                "type": "object",
+                "title": "Payload",
+                "default": {}
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/dispatch/relay": {
+      "post": {
+        "summary": "Dispatch Relay",
+        "description": "§8 보조 방호신호. guard_bypass(critical) 발생 시 프론트가 호출.\n⚠ 비전은 보조·감시 계층이며 1차 비상정지를 대체하지 않는다.",
+        "operationId": "dispatch_relay_dispatch_relay_post",
+        "parameters": [
+          {
+            "name": "theme",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "default": "safety",
+              "title": "Theme"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": true,
                 "default": {},
-                "title": "Payload",
-                "type": "object"
+                "title": "Payload"
               }
             }
           }
         },
         "responses": {
           "200": {
+            "description": "Successful Response",
             "content": {
               "application/json": {
                 "schema": {}
               }
-            },
-            "description": "Successful Response"
+            }
           },
           "422": {
+            "description": "Validation Error",
             "content": {
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/HTTPValidationError"
                 }
               }
-            },
-            "description": "Validation Error"
+            }
           }
-        },
-        "summary": "Stub Recognition Note"
+        }
       }
     },
-    "/report/safety": {
+    "/cameras": {
       "get": {
-        "description": "최근 N시간 누적 이벤트(데이터엔진 집계) 기반 위험성평가서 HTML(인쇄→PDF).\n중대성=실제 등급 분포 산출, 증거사진·정황 반영. vlm=true 면 증거 VLM 장면설명 추가.\nnarrative=true 일 때만 종합의견을 LLM 으로 생성(느림). 기본은 결정적 폴백(즉시 · rows·법령 불변).\n누적 이벤트가 없으면 데모 샘플로 렌더(빈 화면 방지).",
-        "operationId": "report_safety_report_safety_get",
+        "summary": "Cameras List",
+        "description": "등록 카메라 목록(마스킹) + 워커 라이브 상태 병합.",
+        "operationId": "cameras_list_cameras_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "summary": "Cameras Add",
+        "description": "등록/수정. payload={id, name?, source(rtsp/파일/웹캠번호), fps?, zone?, enabled?}. source 는 마스킹 저장.",
+        "operationId": "cameras_add_cameras_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": true,
+                "type": "object",
+                "title": "Payload"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/cameras/{cid}/enable": {
+      "post": {
+        "summary": "Cameras Enable",
+        "operationId": "cameras_enable_cameras__cid__enable_post",
         "parameters": [
           {
-            "in": "query",
-            "name": "theme",
-            "required": false,
-            "schema": {
-              "default": "safety",
-              "title": "Theme",
-              "type": "string"
-            }
-          },
-          {
-            "in": "query",
-            "name": "hours",
-            "required": false,
-            "schema": {
-              "default": 24,
-              "title": "Hours",
-              "type": "number"
-            }
-          },
-          {
-            "in": "query",
-            "name": "vlm",
-            "required": false,
-            "schema": {
-              "default": false,
-              "title": "Vlm",
-              "type": "boolean"
-            }
-          },
-          {
-            "in": "query",
-            "name": "narrative",
-            "required": false,
-            "schema": {
-              "default": false,
-              "title": "Narrative",
-              "type": "boolean"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "text/html": {
-                "schema": {
-                  "type": "string"
-                }
-              }
-            },
-            "description": "Successful Response"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            },
-            "description": "Validation Error"
-          }
-        },
-        "summary": "Report Safety"
-      }
-    },
-    "/rfdetr/frame": {
-      "post": {
-        "description": "웹캠 프레임 → rf-detr 사람탐지 + 추적 + 위험구역 침입 판정(빠름).",
-        "operationId": "rfdetr_frame_rfdetr_frame_post",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "additionalProperties": true,
-                "title": "Payload",
-                "type": "object"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {}
-              }
-            },
-            "description": "Successful Response"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            },
-            "description": "Validation Error"
-          }
-        },
-        "summary": "Rfdetr Frame"
-      }
-    },
-    "/rfdetr/vlm": {
-      "post": {
-        "description": "이벤트 프레임 → mlx-vlm 위험요약 JSON(느림, 프론트가 침입 시 드물게 호출).",
-        "operationId": "rfdetr_vlm_rfdetr_vlm_post",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "additionalProperties": true,
-                "title": "Payload",
-                "type": "object"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {}
-              }
-            },
-            "description": "Successful Response"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            },
-            "description": "Validation Error"
-          }
-        },
-        "summary": "Rfdetr Vlm"
-      }
-    },
-    "/safety-local": {
-      "get": {
-        "description": "로컬 번들판 — CDN 없이 /static/vendor 에서 MediaPipe·TF 로드(폐쇄망·USB). CDN판(/safety)과 비교용.",
-        "operationId": "safety_local_safety_local_get",
-        "responses": {
-          "200": {
-            "content": {
-              "text/html": {
-                "schema": {
-                  "type": "string"
-                }
-              }
-            },
-            "description": "Successful Response"
-          }
-        },
-        "summary": "Safety Local"
-      }
-    },
-    "/safety-pro": {
-      "get": {
-        "description": "rf-detr permissive 백엔드를 쓰는 VIGENT 콘솔 화면(탐지·위험구역·VLM).",
-        "operationId": "safety_pro_safety_pro_get",
-        "responses": {
-          "200": {
-            "content": {
-              "text/html": {
-                "schema": {
-                  "type": "string"
-                }
-              }
-            },
-            "description": "Successful Response"
-          }
-        },
-        "summary": "Safety Pro"
-      }
-    },
-    "/safety/auto": {
-      "get": {
-        "description": "안전 자동처리 콘솔(읽기 + 승인). 비전이 잡은 위험 → 서류·조치 자동 정리.",
-        "operationId": "safety_auto_console_safety_auto_get",
-        "responses": {
-          "200": {
-            "content": {
-              "text/html": {
-                "schema": {
-                  "type": "string"
-                }
-              }
-            },
-            "description": "Successful Response"
-          }
-        },
-        "summary": "Safety Auto Console"
-      }
-    },
-    "/safety/auto/approve": {
-      "post": {
-        "description": "안전관리자 승인 — 위험성평가 자동생성 또는 조치확인을 감사추적에 기록(사람이 최종판단).\npayload={event_ts, rule, site?, approver?, action: 'risk_assessment'|'acknowledge'}",
-        "operationId": "safety_auto_approve_safety_auto_approve_post",
-        "parameters": [
-          {
-            "in": "query",
-            "name": "theme",
-            "required": false,
-            "schema": {
-              "default": "safety",
-              "title": "Theme",
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "additionalProperties": true,
-                "title": "Payload",
-                "type": "object"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {}
-              }
-            },
-            "description": "Successful Response"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            },
-            "description": "Validation Error"
-          }
-        },
-        "summary": "Safety Auto Approve"
-      }
-    },
-    "/safety/auto/audit": {
-      "get": {
-        "description": "감사추적 — 누가·언제·무엇을 승인했는지(사람 최종판단 입증용).",
-        "operationId": "safety_auto_audit_safety_auto_audit_get",
-        "responses": {
-          "200": {
-            "content": {
-              "text/html": {
-                "schema": {
-                  "type": "string"
-                }
-              }
-            },
-            "description": "Successful Response"
-          }
-        },
-        "summary": "Safety Auto Audit"
-      }
-    },
-    "/safety/auto/feed": {
-      "get": {
-        "description": "자동처리 피드 — 최근 위험 이벤트 + 증거·법령·승인상태(콘솔이 폴링).",
-        "operationId": "safety_auto_feed_safety_auto_feed_get",
-        "parameters": [
-          {
-            "in": "query",
-            "name": "theme",
-            "required": false,
-            "schema": {
-              "default": "safety",
-              "title": "Theme",
-              "type": "string"
-            }
-          },
-          {
-            "in": "query",
-            "name": "hours",
-            "required": false,
-            "schema": {
-              "default": 24,
-              "title": "Hours",
-              "type": "number"
-            }
-          },
-          {
-            "in": "query",
-            "name": "limit",
-            "required": false,
-            "schema": {
-              "default": 50,
-              "title": "Limit",
-              "type": "integer"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {}
-              }
-            },
-            "description": "Successful Response"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            },
-            "description": "Validation Error"
-          }
-        },
-        "summary": "Safety Auto Feed"
-      }
-    },
-    "/safety/behavior/analyze": {
-      "post": {
-        "description": "VLM 행동분석 — 흡연·졸음·통화·폭력·절차위반 + 규칙행동 재확인. use_vlm 권장.",
-        "operationId": "safety_behavior_analyze_safety_behavior_analyze_post",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "additionalProperties": true,
-                "title": "Payload",
-                "type": "object"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {}
-              }
-            },
-            "description": "Successful Response"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            },
-            "description": "Validation Error"
-          }
-        },
-        "summary": "Safety Behavior Analyze"
-      }
-    },
-    "/safety/brain": {
-      "get": {
-        "description": "안전 지식 추론 엔진 UI — 작업별 필수조치/법령/조치 + VLM '없는 조치' 추론.",
-        "operationId": "safety_brain_page_safety_brain_get",
-        "responses": {
-          "200": {
-            "content": {
-              "text/html": {
-                "schema": {
-                  "type": "string"
-                }
-              }
-            },
-            "description": "Successful Response"
-          }
-        },
-        "summary": "Safety Brain Page"
-      }
-    },
-    "/safety/brain/activities": {
-      "get": {
-        "operationId": "safety_brain_activities_safety_brain_activities_get",
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {}
-              }
-            },
-            "description": "Successful Response"
-          }
-        },
-        "summary": "Safety Brain Activities"
-      }
-    },
-    "/safety/brain/assess": {
-      "post": {
-        "description": "장면 점검 — payload={activity, present?:[classes], image_base64?, use_vlm?}.\n반환: 필수조치 충족/부재(present/missing/unknown) + 위험·법령·조치.",
-        "operationId": "safety_brain_assess_safety_brain_assess_post",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "additionalProperties": true,
-                "title": "Payload",
-                "type": "object"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {}
-              }
-            },
-            "description": "Successful Response"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            },
-            "description": "Validation Error"
-          }
-        },
-        "summary": "Safety Brain Assess"
-      }
-    },
-    "/safety/brain/inspect": {
-      "post": {
-        "description": "라이브 현장 점검 — 작업+감지객체(+이미지)로 추론 후, 위험 시 기록·알림(조치 연결).\npayload={activity, present?:[], image_base64?, use_vlm?, site?, log?:bool, alert?:bool}.",
-        "operationId": "safety_brain_inspect_safety_brain_inspect_post",
-        "parameters": [
-          {
-            "in": "query",
-            "name": "theme",
-            "required": false,
-            "schema": {
-              "default": "safety",
-              "title": "Theme",
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "additionalProperties": true,
-                "title": "Payload",
-                "type": "object"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {}
-              }
-            },
-            "description": "Successful Response"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            },
-            "description": "Validation Error"
-          }
-        },
-        "summary": "Safety Brain Inspect"
-      }
-    },
-    "/safety/brain/search": {
-      "get": {
-        "description": "안전 지식 RAG 검색 — 법령·KOSHA 가이드·작업지식에서 관련 스니펫 top-k.",
-        "operationId": "safety_brain_search_safety_brain_search_get",
-        "parameters": [
-          {
-            "in": "query",
-            "name": "q",
+            "name": "cid",
+            "in": "path",
             "required": true,
             "schema": {
-              "title": "Q",
-              "type": "string"
-            }
-          },
-          {
-            "in": "query",
-            "name": "k",
-            "required": false,
-            "schema": {
-              "default": 5,
-              "title": "K",
-              "type": "integer"
+              "type": "string",
+              "title": "Cid"
             }
           }
         ],
         "responses": {
           "200": {
+            "description": "Successful Response",
             "content": {
               "application/json": {
                 "schema": {}
-              }
-            },
-            "description": "Successful Response"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            },
-            "description": "Validation Error"
-          }
-        },
-        "summary": "Safety Brain Search"
-      }
-    },
-    "/safety/confirm": {
-      "post": {
-        "description": "CNN→VLM 하이브리드 확정(오탐 최소화) 단독 호출.\npayload={rule, image|image_base64, reason?}. VLM 미가용이면 available:false 폴백.",
-        "operationId": "safety_confirm_safety_confirm_post",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "additionalProperties": true,
-                "title": "Payload",
-                "type": "object"
               }
             }
           },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {}
-              }
-            },
-            "description": "Successful Response"
-          },
           "422": {
+            "description": "Validation Error",
             "content": {
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/HTTPValidationError"
                 }
               }
-            },
-            "description": "Validation Error"
+            }
           }
-        },
-        "summary": "Safety Confirm"
+        }
       }
     },
-    "/safety/context": {
+    "/cameras/{cid}/disable": {
       "post": {
-        "description": "완전 자동 — 환경 + 작업을 스스로 인식하고 안전조치 점검 + 위험 시 기록.\npayload={present?:[], image_base64?, use_vlm?, site?, log?}. 반환: 환경·작업·점검결과.",
-        "operationId": "safety_context_safety_context_post",
+        "summary": "Cameras Disable",
+        "operationId": "cameras_disable_cameras__cid__disable_post",
         "parameters": [
           {
-            "in": "query",
-            "name": "theme",
-            "required": false,
+            "name": "cid",
+            "in": "path",
+            "required": true,
             "schema": {
-              "default": "safety",
-              "title": "Theme",
-              "type": "string"
+              "type": "string",
+              "title": "Cid"
             }
           }
         ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "additionalProperties": true,
-                "title": "Payload",
-                "type": "object"
-              }
-            }
-          },
-          "required": true
-        },
         "responses": {
           "200": {
+            "description": "Successful Response",
             "content": {
               "application/json": {
                 "schema": {}
               }
-            },
-            "description": "Successful Response"
+            }
           },
           "422": {
+            "description": "Validation Error",
             "content": {
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/HTTPValidationError"
                 }
               }
-            },
-            "description": "Validation Error"
+            }
           }
-        },
-        "summary": "Safety Context"
+        }
       }
     },
-    "/safety/demo": {
-      "get": {
-        "description": "영업용 데모 — 카메라 없이 '감지→서류·조치 자동완성' 닫힌 루프 시연.",
-        "operationId": "safety_demo_safety_demo_get",
+    "/cameras/{cid}": {
+      "delete": {
+        "summary": "Cameras Delete",
+        "operationId": "cameras_delete_cameras__cid__delete",
+        "parameters": [
+          {
+            "name": "cid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Cid"
+            }
+          }
+        ],
         "responses": {
           "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/hub": {
+      "get": {
+        "summary": "Hub Home",
+        "description": "VIGENT 홈(허브) — 가장 좋은 기능들을 타일로 한눈에.",
+        "operationId": "hub_home_hub_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
             "content": {
               "text/html": {
                 "schema": {
                   "type": "string"
                 }
               }
-            },
-            "description": "Successful Response"
+            }
           }
-        },
-        "summary": "Safety Demo"
+        }
       }
     },
-    "/safety/demo/reset": {
-      "post": {
-        "description": "데모 이벤트만 정리(실제 데이터 보존).",
-        "operationId": "safety_demo_reset_safety_demo_reset_post",
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {}
-              }
-            },
-            "description": "Successful Response"
-          }
-        },
-        "summary": "Safety Demo Reset"
-      }
-    },
-    "/safety/demo/seed": {
-      "post": {
-        "description": "데모 이벤트 주입(증거·법령·평가서가 자동처리 콘솔에 채워짐).",
-        "operationId": "safety_demo_seed_safety_demo_seed_post",
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {}
-              }
-            },
-            "description": "Successful Response"
-          }
-        },
-        "summary": "Safety Demo Seed"
-      }
-    },
-    "/safety/eval": {
+    "/home": {
       "get": {
-        "description": "정확도 측정 도구 — 위험/정상 사진으로 재현율·정밀도 자체 측정.",
-        "operationId": "safety_eval_page_safety_eval_get",
+        "summary": "Hub Home",
+        "description": "VIGENT 홈(허브) — 가장 좋은 기능들을 타일로 한눈에.",
+        "operationId": "hub_home_home_get",
         "responses": {
           "200": {
+            "description": "Successful Response",
             "content": {
               "text/html": {
                 "schema": {
                   "type": "string"
                 }
               }
-            },
-            "description": "Successful Response"
+            }
           }
-        },
-        "summary": "Safety Eval Page"
+        }
       }
     },
-    "/safety/eval/run": {
-      "post": {
-        "description": "위험/정상 사진 묶음 → 각 사진 경보여부 판정 → 재현율·정밀도 집계.",
-        "operationId": "safety_eval_run_safety_eval_run_post",
-        "parameters": [
-          {
-            "in": "query",
-            "name": "theme",
-            "required": false,
-            "schema": {
-              "default": "safety",
-              "title": "Theme",
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "additionalProperties": true,
-                "title": "Payload",
-                "type": "object"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {}
-              }
-            },
-            "description": "Successful Response"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            },
-            "description": "Validation Error"
-          }
-        },
-        "summary": "Safety Eval Run"
-      }
-    },
-    "/safety/fall": {
-      "post": {
-        "description": "낙상 확정(브라우저 stats.fall 증가) → 3단계 통합 체인:\nAnalyst 종합판단(+VLM 옵션) + Copilot 추락방지 법령 + Dispatcher 알림 + 증거 저장.\n키 없으면 Dispatcher 는 로그 폴백(기능 무중단).",
-        "operationId": "safety_fall_alert_safety_fall_post",
-        "parameters": [
-          {
-            "in": "query",
-            "name": "theme",
-            "required": false,
-            "schema": {
-              "default": "safety",
-              "title": "Theme",
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "additionalProperties": true,
-                "default": {},
-                "title": "Payload",
-                "type": "object"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {}
-              }
-            },
-            "description": "Successful Response"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            },
-            "description": "Validation Error"
-          }
-        },
-        "summary": "Safety Fall Alert"
-      }
-    },
-    "/safety/guide": {
+    "/favicon.ico": {
       "get": {
-        "description": "현장 음성 안전 안내 — 카메라 화면을 분석해 위험·작업을 음성으로.",
-        "operationId": "safety_guide_page_safety_guide_get",
+        "summary": "Favicon",
+        "description": "브라우저 자동요청 favicon — 없어서 나던 404 콘솔 노이즈 제거(내용은 비움).",
+        "operationId": "favicon_favicon_ico_get",
         "responses": {
           "200": {
-            "content": {
-              "text/html": {
-                "schema": {
-                  "type": "string"
-                }
-              }
-            },
-            "description": "Successful Response"
-          }
-        },
-        "summary": "Safety Guide Page"
-      }
-    },
-    "/safety/incident": {
-      "get": {
-        "description": "재해 원인분석(보조) — 사고 사진/영상 → 상황·빠진 조치·법령·유사재해·예방.",
-        "operationId": "safety_incident_page_safety_incident_get",
-        "responses": {
-          "200": {
-            "content": {
-              "text/html": {
-                "schema": {
-                  "type": "string"
-                }
-              }
-            },
-            "description": "Successful Response"
-          }
-        },
-        "summary": "Safety Incident Page"
-      }
-    },
-    "/safety/incident/analyze": {
-      "post": {
-        "description": "재해 영상/사진 원인분석 — 탐지 + VLM + 지식. 책임 비율 판정은 하지 않음.",
-        "operationId": "safety_incident_analyze_safety_incident_analyze_post",
-        "parameters": [
-          {
-            "in": "query",
-            "name": "theme",
-            "required": false,
-            "schema": {
-              "default": "safety",
-              "title": "Theme",
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "additionalProperties": true,
-                "title": "Payload",
-                "type": "object"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
+            "description": "Successful Response",
             "content": {
               "application/json": {
                 "schema": {}
               }
-            },
-            "description": "Successful Response"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            },
-            "description": "Validation Error"
-          }
-        },
-        "summary": "Safety Incident Analyze"
-      }
-    },
-    "/safety/incident/frame": {
-      "post": {
-        "description": "한 프레임의 위험도 채점(빠름, VLM 없음) — 영상 타임라인 분석용.\n반환: {score, person_count, hazards:[유형], detections:[클래스]}.",
-        "operationId": "safety_incident_frame_safety_incident_frame_post",
-        "parameters": [
-          {
-            "in": "query",
-            "name": "theme",
-            "required": false,
-            "schema": {
-              "default": "safety",
-              "title": "Theme",
-              "type": "string"
             }
           }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "additionalProperties": true,
-                "title": "Payload",
-                "type": "object"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {}
-              }
-            },
-            "description": "Successful Response"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            },
-            "description": "Validation Error"
-          }
-        },
-        "summary": "Safety Incident Frame"
+        }
       }
     },
     "/safety/judge": {
       "post": {
+        "summary": "Safety Judge",
         "description": "Analyst 가산식 판단. 프론트가 관측 신호(signals)와 (선택)딥러닝 신호(dl)를 보낸다.\n모델 신호가 없으면 규칙만으로 폴백 동작(절대 저하 없음).",
         "operationId": "safety_judge_safety_judge_post",
         "parameters": [
           {
-            "in": "query",
             "name": "theme",
+            "in": "query",
             "required": false,
             "schema": {
+              "type": "string",
               "default": "safety",
-              "title": "Theme",
-              "type": "string"
+              "title": "Theme"
             }
           }
         ],
         "requestBody": {
+          "required": true,
           "content": {
             "application/json": {
               "schema": {
+                "type": "object",
                 "additionalProperties": true,
-                "title": "Payload",
-                "type": "object"
+                "title": "Payload"
               }
             }
-          },
-          "required": true
+          }
         },
         "responses": {
           "200": {
+            "description": "Successful Response",
             "content": {
               "application/json": {
                 "schema": {}
               }
-            },
-            "description": "Successful Response"
+            }
           },
           "422": {
+            "description": "Validation Error",
             "content": {
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/HTTPValidationError"
                 }
               }
-            },
-            "description": "Validation Error"
+            }
+          }
+        }
+      }
+    },
+    "/safety/manager/decide": {
+      "post": {
+        "summary": "Safety Manager Decide",
+        "description": "SafetyManager 반자동 — event 로 등급 판정 → '권장 행동'만 반환(무엇도 자동 실행 안 함).",
+        "operationId": "safety_manager_decide_safety_manager_decide_post",
+        "parameters": [
+          {
+            "name": "theme",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "default": "safety",
+              "title": "Theme"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": true,
+                "title": "Payload"
+              }
+            }
           }
         },
-        "summary": "Safety Judge"
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/safety/manager/ask": {
+      "post": {
+        "summary": "Safety Manager Ask",
+        "description": "SafetyManager 질의응답 — 로컬 지식 우선, 근거 없으면 '확인 필요'.",
+        "operationId": "safety_manager_ask_safety_manager_ask_post",
+        "parameters": [
+          {
+            "name": "theme",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "default": "safety",
+              "title": "Theme"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": true,
+                "title": "Payload"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/evidence/search": {
+      "get": {
+        "summary": "Evidence Search",
+        "description": "Copilot 근거 검색 — 규칙 id 의 법령·가이드 인용(출처 포함)을 반환(§9).",
+        "operationId": "evidence_search_evidence_search_get",
+        "parameters": [
+          {
+            "name": "rule",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Rule"
+            }
+          },
+          {
+            "name": "theme",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "default": "safety",
+              "title": "Theme"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/safety/risk-assessment": {
+      "post": {
+        "summary": "Safety Risk Assessment",
+        "description": "Scribe 위험성평가서 생성. body={events:[{rule,count}], site, process}.\n근거 인용 자동 삽입 + data/risk_assessments/ 저장. 반환은 평가표 JSON(+저장경로).\n잘못된 events(문자열·누락·비-dict 항목)는 422. narrative=true 일 때만 종합의견을 LLM 으로(느림).",
+        "operationId": "safety_risk_assessment_safety_risk_assessment_post",
+        "parameters": [
+          {
+            "name": "theme",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "default": "safety",
+              "title": "Theme"
+            }
+          },
+          {
+            "name": "narrative",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "default": false,
+              "title": "Narrative"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RiskAssessmentIn"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
       }
     },
     "/safety/live/analyze": {
       "post": {
+        "summary": "Safety Live Analyze",
         "description": "온디맨드 정밀분석 — 버튼 누른 순간 프레임 1장을 OpenAI 비전으로 이해(매 프레임 아님).\nOpenAI 키 있으면 OpenAI, 실패/키없음이면 로컬 MLX 폴백(가산식). 프레임 전처리는 프론트 그대로(블러 등 미개입).",
         "operationId": "safety_live_analyze_safety_live_analyze_post",
         "requestBody": {
@@ -1949,8 +2225,8 @@
             "application/json": {
               "schema": {
                 "additionalProperties": true,
-                "title": "Payload",
-                "type": "object"
+                "type": "object",
+                "title": "Payload"
               }
             }
           },
@@ -1958,1429 +2234,429 @@
         },
         "responses": {
           "200": {
+            "description": "Successful Response",
             "content": {
               "application/json": {
                 "schema": {}
               }
-            },
-            "description": "Successful Response"
+            }
           },
           "422": {
+            "description": "Validation Error",
             "content": {
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/HTTPValidationError"
                 }
               }
-            },
-            "description": "Validation Error"
+            }
           }
-        },
-        "summary": "Safety Live Analyze"
+        }
       }
     },
-    "/safety/manager/ask": {
-      "post": {
-        "description": "SafetyManager 질의응답 — 로컬 지식 우선, 근거 없으면 '확인 필요'.",
-        "operationId": "safety_manager_ask_safety_manager_ask_post",
+    "/report/safety": {
+      "get": {
+        "summary": "Report Safety",
+        "description": "최근 N시간 누적 이벤트(데이터엔진 집계) 기반 위험성평가서 HTML(인쇄→PDF).\n중대성=실제 등급 분포 산출, 증거사진·정황 반영. vlm=true 면 증거 VLM 장면설명 추가.\nnarrative=true 일 때만 종합의견을 LLM 으로 생성(느림). 기본은 결정적 폴백(즉시 · rows·법령 불변).\n누적 이벤트가 없으면 데모 샘플로 렌더(빈 화면 방지).",
+        "operationId": "report_safety_report_safety_get",
         "parameters": [
           {
-            "in": "query",
             "name": "theme",
+            "in": "query",
             "required": false,
             "schema": {
+              "type": "string",
               "default": "safety",
-              "title": "Theme",
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "additionalProperties": true,
-                "title": "Payload",
-                "type": "object"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {}
-              }
-            },
-            "description": "Successful Response"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            },
-            "description": "Validation Error"
-          }
-        },
-        "summary": "Safety Manager Ask"
-      }
-    },
-    "/safety/manager/decide": {
-      "post": {
-        "description": "SafetyManager 반자동 — event 로 등급 판정 → '권장 행동'만 반환(무엇도 자동 실행 안 함).",
-        "operationId": "safety_manager_decide_safety_manager_decide_post",
-        "parameters": [
-          {
-            "in": "query",
-            "name": "theme",
-            "required": false,
-            "schema": {
-              "default": "safety",
-              "title": "Theme",
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "additionalProperties": true,
-                "title": "Payload",
-                "type": "object"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {}
-              }
-            },
-            "description": "Successful Response"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            },
-            "description": "Validation Error"
-          }
-        },
-        "summary": "Safety Manager Decide"
-      }
-    },
-    "/safety/posture": {
-      "post": {
-        "description": "근골격계 부담 자세 '지속' 감지 → 기록(자동처리 콘솔·위험성평가 반영).\n경보(텔레그램 푸시)는 보내지 않는다 — 근골격계는 누적 건강 이슈라 기록·평가 위주(알림 피로 방지).\npayload={image_base64?, note?, site?}.",
-        "operationId": "safety_posture_alert_safety_posture_post",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "additionalProperties": true,
-                "default": {},
-                "title": "Payload",
-                "type": "object"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {}
-              }
-            },
-            "description": "Successful Response"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            },
-            "description": "Validation Error"
-          }
-        },
-        "summary": "Safety Posture Alert"
-      }
-    },
-    "/safety/ppe": {
-      "get": {
-        "description": "현장 보호구 설정 — 현장별 필수 보호구 선택.",
-        "operationId": "safety_ppe_page_safety_ppe_get",
-        "responses": {
-          "200": {
-            "content": {
-              "text/html": {
-                "schema": {
-                  "type": "string"
-                }
-              }
-            },
-            "description": "Successful Response"
-          }
-        },
-        "summary": "Safety Ppe Page"
-      }
-    },
-    "/safety/ppe/catalog": {
-      "get": {
-        "description": "보호구 카탈로그(id·라벨·방식) — 메인 화면 메뉴에서 선택용.",
-        "operationId": "safety_ppe_catalog_safety_ppe_catalog_get",
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {}
-              }
-            },
-            "description": "Successful Response"
-          }
-        },
-        "summary": "Safety Ppe Catalog"
-      }
-    },
-    "/safety/ppe/check": {
-      "post": {
-        "description": "이미지 → 현장 필수 보호구 착용 점검(미착용 경고). use_vlm 권장.",
-        "operationId": "safety_ppe_check_safety_ppe_check_post",
-        "parameters": [
-          {
-            "in": "query",
-            "name": "theme",
-            "required": false,
-            "schema": {
-              "default": "safety",
-              "title": "Theme",
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "additionalProperties": true,
-                "title": "Payload",
-                "type": "object"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {}
-              }
-            },
-            "description": "Successful Response"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            },
-            "description": "Validation Error"
-          }
-        },
-        "summary": "Safety Ppe Check"
-      }
-    },
-    "/safety/ppe/live": {
-      "get": {
-        "description": "실시간 보호구 감지 — 카메라 + 주기 점검(VLM).",
-        "operationId": "safety_ppe_live_page_safety_ppe_live_get",
-        "responses": {
-          "200": {
-            "content": {
-              "text/html": {
-                "schema": {
-                  "type": "string"
-                }
-              }
-            },
-            "description": "Successful Response"
-          }
-        },
-        "summary": "Safety Ppe Live Page"
-      }
-    },
-    "/safety/ppe/rules": {
-      "get": {
-        "operationId": "safety_ppe_rules_get_safety_ppe_rules_get",
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {}
-              }
-            },
-            "description": "Successful Response"
-          }
-        },
-        "summary": "Safety Ppe Rules Get"
-      },
-      "post": {
-        "operationId": "safety_ppe_rules_set_safety_ppe_rules_post",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "additionalProperties": true,
-                "title": "Payload",
-                "type": "object"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {}
-              }
-            },
-            "description": "Successful Response"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            },
-            "description": "Validation Error"
-          }
-        },
-        "summary": "Safety Ppe Rules Set"
-      }
-    },
-    "/safety/quote": {
-      "get": {
-        "description": "VIGENT 견적서(1장, 인쇄/PDF) — 현장명·카메라 수 입력 시 자동 계산.",
-        "operationId": "safety_quote_safety_quote_get",
-        "responses": {
-          "200": {
-            "content": {
-              "text/html": {
-                "schema": {
-                  "type": "string"
-                }
-              }
-            },
-            "description": "Successful Response"
-          }
-        },
-        "summary": "Safety Quote"
-      }
-    },
-    "/safety/reports": {
-      "get": {
-        "description": "저장된 평가서 목록 화면 + '지금 생성' 버튼.",
-        "operationId": "safety_reports_safety_reports_get",
-        "parameters": [
-          {
-            "in": "query",
-            "name": "theme",
-            "required": false,
-            "schema": {
-              "default": "safety",
-              "title": "Theme",
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "text/html": {
-                "schema": {
-                  "type": "string"
-                }
-              }
-            },
-            "description": "Successful Response"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            },
-            "description": "Validation Error"
-          }
-        },
-        "summary": "Safety Reports"
-      }
-    },
-    "/safety/risk-assessment": {
-      "post": {
-        "description": "Scribe 위험성평가서 생성. body={events:[{rule,count}], site, process}.\n근거 인용 자동 삽입 + data/risk_assessments/ 저장. 반환은 평가표 JSON(+저장경로).\n잘못된 events(문자열·누락·비-dict 항목)는 422. narrative=true 일 때만 종합의견을 LLM 으로(느림).",
-        "operationId": "safety_risk_assessment_safety_risk_assessment_post",
-        "parameters": [
-          {
-            "in": "query",
-            "name": "theme",
-            "required": false,
-            "schema": {
-              "default": "safety",
-              "title": "Theme",
-              "type": "string"
+              "title": "Theme"
             }
           },
           {
+            "name": "hours",
             "in": "query",
-            "name": "narrative",
             "required": false,
             "schema": {
+              "type": "number",
+              "default": 24,
+              "title": "Hours"
+            }
+          },
+          {
+            "name": "vlm",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean",
               "default": false,
-              "title": "Narrative",
-              "type": "boolean"
+              "title": "Vlm"
+            }
+          },
+          {
+            "name": "narrative",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "default": false,
+              "title": "Narrative"
             }
           }
         ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/RiskAssessmentIn"
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "text/html": {
+                "schema": {
+                  "type": "string"
+                }
               }
             }
           },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {}
-              }
-            },
-            "description": "Successful Response"
-          },
           "422": {
+            "description": "Validation Error",
             "content": {
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/HTTPValidationError"
                 }
               }
-            },
-            "description": "Validation Error"
+            }
           }
-        },
-        "summary": "Safety Risk Assessment"
+        }
       }
     },
     "/safety/risk-assessment/list": {
       "get": {
+        "summary": "Risk Assessment List",
         "description": "저장된 위험성평가서 목록(최신순).",
         "operationId": "risk_assessment_list_safety_risk_assessment_list_get",
         "parameters": [
           {
-            "in": "query",
             "name": "theme",
+            "in": "query",
             "required": false,
             "schema": {
+              "type": "string",
               "default": "safety",
-              "title": "Theme",
-              "type": "string"
+              "title": "Theme"
             }
           }
         ],
         "responses": {
           "200": {
+            "description": "Successful Response",
             "content": {
               "application/json": {
                 "schema": {}
               }
-            },
-            "description": "Successful Response"
+            }
           },
           "422": {
+            "description": "Validation Error",
             "content": {
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/HTTPValidationError"
                 }
               }
-            },
-            "description": "Validation Error"
+            }
           }
-        },
-        "summary": "Risk Assessment List"
+        }
       }
     },
     "/safety/risk-assessment/{aid}": {
       "get": {
+        "summary": "Risk Assessment Open",
         "description": "저장된 위험성평가서 다시열기(HTML).",
         "operationId": "risk_assessment_open_safety_risk_assessment__aid__get",
         "parameters": [
           {
-            "in": "path",
             "name": "aid",
-            "required": true,
-            "schema": {
-              "title": "Aid",
-              "type": "string"
-            }
-          },
-          {
-            "in": "query",
-            "name": "theme",
-            "required": false,
-            "schema": {
-              "default": "safety",
-              "title": "Theme",
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "text/html": {
-                "schema": {
-                  "type": "string"
-                }
-              }
-            },
-            "description": "Successful Response"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            },
-            "description": "Validation Error"
-          }
-        },
-        "summary": "Risk Assessment Open"
-      }
-    },
-    "/safety/sensor": {
-      "post": {
-        "description": "IoT 센서 값 수신 → 임계 초과 시 위험 기록 + 알림.\n카메라로 못 보는 영역(질식·가스·온열). 외부 센서가 주기적으로 값을 POST.\npayload: {type:'o2'|'co'|'h2s'|'gas'|'temp', value:float, site?, threshold?}",
-        "operationId": "safety_sensor_safety_sensor_post",
-        "parameters": [
-          {
-            "in": "query",
-            "name": "theme",
-            "required": false,
-            "schema": {
-              "default": "safety",
-              "title": "Theme",
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "additionalProperties": true,
-                "title": "Payload",
-                "type": "object"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {}
-              }
-            },
-            "description": "Successful Response"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            },
-            "description": "Validation Error"
-          }
-        },
-        "summary": "Safety Sensor"
-      }
-    },
-    "/safety/setup": {
-      "get": {
-        "description": "현장 운영 설정 페이지 — site.yaml·notify.yaml 손편집 없이 화면에서 구성·운영.",
-        "operationId": "safety_setup_safety_setup_get",
-        "responses": {
-          "200": {
-            "content": {
-              "text/html": {
-                "schema": {
-                  "type": "string"
-                }
-              }
-            },
-            "description": "Successful Response"
-          }
-        },
-        "summary": "Safety Setup"
-      }
-    },
-    "/safety/tbm": {
-      "get": {
-        "description": "저장된 TBM 회의록 목록 + '새 회의록 작성' 버튼.",
-        "operationId": "tbm_list_safety_tbm_get",
-        "responses": {
-          "200": {
-            "content": {
-              "text/html": {
-                "schema": {
-                  "type": "string"
-                }
-              }
-            },
-            "description": "Successful Response"
-          }
-        },
-        "summary": "Tbm List"
-      },
-      "post": {
-        "description": "회의록 1건 저장. payload={site,process,work_desc,supervisor,hazards[],checklist[],workers[],notes}.",
-        "operationId": "tbm_create_safety_tbm_post",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "additionalProperties": true,
-                "title": "Payload",
-                "type": "object"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {}
-              }
-            },
-            "description": "Successful Response"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            },
-            "description": "Validation Error"
-          }
-        },
-        "summary": "Tbm Create"
-      }
-    },
-    "/safety/tbm/new": {
-      "get": {
-        "description": "TBM 회의록 작성 화면(작성 후 저장 → 열기로 이동).",
-        "operationId": "tbm_new_safety_tbm_new_get",
-        "responses": {
-          "200": {
-            "content": {
-              "text/html": {
-                "schema": {
-                  "type": "string"
-                }
-              }
-            },
-            "description": "Successful Response"
-          }
-        },
-        "summary": "Tbm New"
-      }
-    },
-    "/safety/tbm/suggest": {
-      "get": {
-        "description": "작업공종 → 중점 위험요인·점검항목 추천 + 법령 근거(규칙 인용).\n매칭 실패 시 일반작업으로 폴백(빈손 방지). 근거는 기존 코퍼스에서만 인용한다(§9).",
-        "operationId": "tbm_suggest_safety_tbm_suggest_get",
-        "parameters": [
-          {
-            "in": "query",
-            "name": "process",
-            "required": false,
-            "schema": {
-              "default": "",
-              "title": "Process",
-              "type": "string"
-            }
-          },
-          {
-            "in": "query",
-            "name": "theme",
-            "required": false,
-            "schema": {
-              "default": "safety",
-              "title": "Theme",
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {}
-              }
-            },
-            "description": "Successful Response"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            },
-            "description": "Validation Error"
-          }
-        },
-        "summary": "Tbm Suggest"
-      }
-    },
-    "/safety/tbm/{tid}": {
-      "get": {
-        "description": "저장된 회의록 열기(인쇄 가능 HTML).",
-        "operationId": "tbm_open_safety_tbm__tid__get",
-        "parameters": [
-          {
             "in": "path",
-            "name": "tid",
             "required": true,
             "schema": {
-              "title": "Tid",
-              "type": "string"
+              "type": "string",
+              "title": "Aid"
+            }
+          },
+          {
+            "name": "theme",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "default": "safety",
+              "title": "Theme"
             }
           }
         ],
         "responses": {
           "200": {
+            "description": "Successful Response",
             "content": {
               "text/html": {
                 "schema": {
                   "type": "string"
                 }
               }
-            },
-            "description": "Successful Response"
+            }
           },
           "422": {
+            "description": "Validation Error",
             "content": {
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/HTTPValidationError"
                 }
               }
-            },
-            "description": "Validation Error"
+            }
           }
-        },
-        "summary": "Tbm Open"
+        }
       }
     },
-    "/safety/tbm/{tid}/risk-assessment": {
-      "post": {
-        "description": "TBM 회의록 1건 → 위험성평가서 자동 생성(이중입력 제거).\n공종 매칭 규칙 + 작성자가 직접 적은 위험요인(키워드 매칭)을 합쳐 평가 이벤트로 변환한다.",
-        "operationId": "tbm_to_risk_assessment_safety_tbm__tid__risk_assessment_post",
+    "/safety/reports": {
+      "get": {
+        "summary": "Safety Reports",
+        "description": "저장된 평가서 목록 화면 + '지금 생성' 버튼.",
+        "operationId": "safety_reports_safety_reports_get",
         "parameters": [
           {
-            "in": "path",
-            "name": "tid",
-            "required": true,
-            "schema": {
-              "title": "Tid",
-              "type": "string"
-            }
-          },
-          {
-            "in": "query",
             "name": "theme",
+            "in": "query",
             "required": false,
             "schema": {
+              "type": "string",
               "default": "safety",
-              "title": "Theme",
-              "type": "string"
+              "title": "Theme"
             }
           }
         ],
         "responses": {
           "200": {
-            "content": {
-              "application/json": {
-                "schema": {}
-              }
-            },
-            "description": "Successful Response"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            },
-            "description": "Validation Error"
-          }
-        },
-        "summary": "Tbm To Risk Assessment"
-      }
-    },
-    "/safety/voice": {
-      "get": {
-        "description": "음성 안전 비서 — 근로자가 음성으로 묻고 스피커로 답을 듣는다.",
-        "operationId": "safety_voice_page_safety_voice_get",
-        "responses": {
-          "200": {
+            "description": "Successful Response",
             "content": {
               "text/html": {
                 "schema": {
                   "type": "string"
                 }
               }
-            },
-            "description": "Successful Response"
-          }
-        },
-        "summary": "Safety Voice Page"
-      }
-    },
-    "/safety/voice/ask": {
-      "post": {
-        "description": "음성 질문(텍스트) → 안전 지식 엔진 답변(음성 읽기용·근거 포함).",
-        "operationId": "safety_voice_ask_safety_voice_ask_post",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "additionalProperties": true,
-                "title": "Payload",
-                "type": "object"
-              }
             }
           },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {}
-              }
-            },
-            "description": "Successful Response"
-          },
           "422": {
+            "description": "Validation Error",
             "content": {
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/HTTPValidationError"
                 }
               }
-            },
-            "description": "Validation Error"
+            }
           }
-        },
-        "summary": "Safety Voice Ask"
+        }
       }
     },
-    "/safety/voice/scene": {
-      "post": {
-        "description": "실시간 프레임 → 위험·작업 인식 → 음성 안내 메시지(speak).",
-        "operationId": "safety_voice_scene_safety_voice_scene_post",
+    "/safety/auto/feed": {
+      "get": {
+        "summary": "Safety Auto Feed",
+        "description": "자동처리 피드 — 최근 위험 이벤트 + 증거·법령·승인상태(콘솔이 폴링).",
+        "operationId": "safety_auto_feed_safety_auto_feed_get",
         "parameters": [
           {
-            "in": "query",
             "name": "theme",
+            "in": "query",
             "required": false,
             "schema": {
+              "type": "string",
               "default": "safety",
-              "title": "Theme",
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "additionalProperties": true,
-                "title": "Payload",
-                "type": "object"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {}
-              }
-            },
-            "description": "Successful Response"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            },
-            "description": "Validation Error"
-          }
-        },
-        "summary": "Safety Voice Scene"
-      }
-    },
-    "/segment/frame": {
-      "post": {
-        "operationId": "stub_segment_segment_frame_post",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "additionalProperties": true,
-                "default": {},
-                "title": "Payload",
-                "type": "object"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {}
-              }
-            },
-            "description": "Successful Response"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            },
-            "description": "Validation Error"
-          }
-        },
-        "summary": "Stub Segment"
-      }
-    },
-    "/site/config": {
-      "get": {
-        "operationId": "site_config_get_site_config_get",
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {}
-              }
-            },
-            "description": "Successful Response"
-          }
-        },
-        "summary": "Site Config Get"
-      },
-      "post": {
-        "operationId": "site_config_post_site_config_post",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "additionalProperties": true,
-                "title": "Payload",
-                "type": "object"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {}
-              }
-            },
-            "description": "Successful Response"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            },
-            "description": "Validation Error"
-          }
-        },
-        "summary": "Site Config Post"
-      }
-    },
-    "/sports/asanas": {
-      "get": {
-        "description": "요가 동작 라이브러리(Yoga-82 수준). 정답각도(scored)·카테고리 포함.",
-        "operationId": "sports_asanas_sports_asanas_get",
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {}
-              }
-            },
-            "description": "Successful Response"
-          }
-        },
-        "summary": "Sports Asanas"
-      }
-    },
-    "/sports/calibrate": {
-      "post": {
-        "description": "정답 자세 보정 — 시연으로 측정한 각도(중앙값·허용오차)로 해당 동작 정답각도 갱신.\npayload={asana_id, angles:[{name, ideal, tol, n}]}. 데이터 기반 표시(user_calibrated).",
-        "operationId": "sports_calibrate_sports_calibrate_post",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "additionalProperties": true,
-                "default": {},
-                "title": "Payload",
-                "type": "object"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {}
-              }
-            },
-            "description": "Successful Response"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            },
-            "description": "Validation Error"
-          }
-        },
-        "summary": "Sports Calibrate"
-      }
-    },
-    "/sports/progress": {
-      "get": {
-        "description": "익명 토큰의 연습 진행도(추세·연속일·동작별 최고점).",
-        "operationId": "sports_progress_sports_progress_get",
-        "parameters": [
-          {
-            "in": "query",
-            "name": "token",
-            "required": false,
-            "schema": {
-              "default": "anon",
-              "title": "Token",
-              "type": "string"
+              "title": "Theme"
             }
           },
           {
+            "name": "hours",
             "in": "query",
-            "name": "days",
             "required": false,
             "schema": {
-              "default": 30,
-              "title": "Days",
-              "type": "integer"
+              "type": "number",
+              "default": 24,
+              "title": "Hours"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 50,
+              "title": "Limit"
             }
           }
         ],
         "responses": {
           "200": {
+            "description": "Successful Response",
             "content": {
               "application/json": {
                 "schema": {}
               }
-            },
-            "description": "Successful Response"
+            }
           },
           "422": {
+            "description": "Validation Error",
             "content": {
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/HTTPValidationError"
                 }
-              }
-            },
-            "description": "Validation Error"
-          }
-        },
-        "summary": "Sports Progress"
-      }
-    },
-    "/sports/reference": {
-      "get": {
-        "description": "보정으로 저장된 정답 자세 키포인트(목표 자세 시연용). 없으면 빈값.",
-        "operationId": "sports_reference_sports_reference_get",
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {}
-              }
-            },
-            "description": "Successful Response"
-          }
-        },
-        "summary": "Sports Reference"
-      }
-    },
-    "/sports/session": {
-      "post": {
-        "description": "연습 1건(동작·점수·유지시간) 익명 기록. 토큰은 브라우저 로컬 랜덤값.",
-        "operationId": "sports_session_sports_session_post",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "additionalProperties": true,
-                "default": {},
-                "title": "Payload",
-                "type": "object"
               }
             }
           }
-        },
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {}
-              }
-            },
-            "description": "Successful Response"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            },
-            "description": "Validation Error"
-          }
-        },
-        "summary": "Sports Session"
+        }
       }
     },
-    "/sports/templates": {
-      "get": {
-        "description": "학습된 요가 동작 인식 템플릿(브라우저가 등록 없이 자동 인식). 없으면 빈값.",
-        "operationId": "sports_templates_sports_templates_get",
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {}
-              }
-            },
-            "description": "Successful Response"
-          }
-        },
-        "summary": "Sports Templates"
-      }
-    },
-    "/status": {
-      "get": {
-        "description": "워커 단위 세부 상태(2단계) — 카메라별 running·last_frame_secs_ago·hang·frames·fps·restarts·reconnects·error.\n/health(프로세스 생존)와 분리. 워치독의 2차 감시(hang 판정)와 대시보드가 이 엔드포인트를 쓴다.",
-        "operationId": "worker_status_status_get",
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {}
-              }
-            },
-            "description": "Successful Response"
-          }
-        },
-        "summary": "Worker Status"
-      }
-    },
-    "/system/capabilities": {
-      "get": {
-        "description": "파이프라인 상태표 + 에이전트 등록 현황(절대 저하 없음 가시화).",
-        "operationId": "capabilities_system_capabilities_get",
+    "/safety/auto/approve": {
+      "post": {
+        "summary": "Safety Auto Approve",
+        "description": "안전관리자 승인 — 위험성평가 자동생성 또는 조치확인을 감사추적에 기록(사람이 최종판단).\npayload={event_ts, rule, site?, approver?, action: 'risk_assessment'|'acknowledge'}",
+        "operationId": "safety_auto_approve_safety_auto_approve_post",
         "parameters": [
           {
-            "in": "query",
             "name": "theme",
+            "in": "query",
             "required": false,
             "schema": {
+              "type": "string",
               "default": "safety",
-              "title": "Theme",
-              "type": "string"
+              "title": "Theme"
             }
           }
         ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {}
-              }
-            },
-            "description": "Successful Response"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            },
-            "description": "Validation Error"
-          }
-        },
-        "summary": "Capabilities"
-      }
-    },
-    "/tapo/video-rtc.js": {
-      "get": {
-        "description": "go2rtc 의 video-rtc.js(ES모듈)를 VIGENT 서버가 대신 받아 같은 출처로 제공.",
-        "operationId": "tapo_videortc_js_tapo_video_rtc_js_get",
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {}
-              }
-            },
-            "description": "Successful Response"
-          }
-        },
-        "summary": "Tapo Videortc Js"
-      }
-    },
-    "/tapo/webrtc": {
-      "post": {
-        "description": "브라우저 ↔ go2rtc WebRTC 핸드셰이크(SDP)를 VIGENT 서버가 중계.\n영상(미디어)은 WebRTC로 직접 흐르고, 여기선 SDP 신호만 전달 → CORS 문제 없음.",
-        "operationId": "tapo_webrtc_tapo_webrtc_post",
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {}
-              }
-            },
-            "description": "Successful Response"
-          }
-        },
-        "summary": "Tapo Webrtc"
-      }
-    },
-    "/theme/{theme}/raw": {
-      "get": {
-        "description": "테마 vision.yaml 원본 반환(프론트가 ergonomics 등 설정을 읽어 설정주도 동작).",
-        "operationId": "theme_raw_theme__theme__raw_get",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "theme",
-            "required": true,
-            "schema": {
-              "title": "Theme",
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {}
-              }
-            },
-            "description": "Successful Response"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            },
-            "description": "Validation Error"
-          }
-        },
-        "summary": "Theme Raw"
-      }
-    },
-    "/vitals/rppg": {
-      "post": {
-        "operationId": "stub_vitals_vitals_rppg_post",
         "requestBody": {
+          "required": true,
           "content": {
             "application/json": {
               "schema": {
+                "type": "object",
                 "additionalProperties": true,
-                "default": {},
-                "title": "Payload",
-                "type": "object"
+                "title": "Payload"
               }
             }
           }
         },
         "responses": {
           "200": {
+            "description": "Successful Response",
             "content": {
               "application/json": {
                 "schema": {}
               }
-            },
-            "description": "Successful Response"
+            }
           },
           "422": {
+            "description": "Validation Error",
             "content": {
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/HTTPValidationError"
                 }
               }
-            },
-            "description": "Validation Error"
+            }
           }
-        },
-        "summary": "Stub Vitals"
+        }
+      }
+    },
+    "/safety/auto/audit": {
+      "get": {
+        "summary": "Safety Auto Audit",
+        "description": "감사추적 — 누가·언제·무엇을 승인했는지(사람 최종판단 입증용).",
+        "operationId": "safety_auto_audit_safety_auto_audit_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "text/html": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/safety/auto": {
+      "get": {
+        "summary": "Safety Auto Console",
+        "description": "안전 자동처리 콘솔(읽기 + 승인). 비전이 잡은 위험 → 서류·조치 자동 정리.",
+        "operationId": "safety_auto_console_safety_auto_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "text/html": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
       }
     },
     "/worker/start": {
       "post": {
+        "summary": "Worker Start",
         "description": "카메라 1대 워커 시작. payload={id?, source(RTSP/비디오/이미지/웹캠번호), name?, fps?, zone?}.\n위험 감지 시 data_engine 기록 → 자동처리 콘솔 자동 노출.",
         "operationId": "worker_start_worker_start_post",
         "parameters": [
           {
-            "in": "query",
             "name": "theme",
+            "in": "query",
             "required": false,
             "schema": {
+              "type": "string",
               "default": "safety",
-              "title": "Theme",
-              "type": "string"
+              "title": "Theme"
             }
           }
         ],
         "requestBody": {
+          "required": true,
           "content": {
             "application/json": {
               "schema": {
+                "type": "object",
                 "additionalProperties": true,
-                "title": "Payload",
-                "type": "object"
+                "title": "Payload"
               }
             }
-          },
-          "required": true
+          }
         },
         "responses": {
           "200": {
+            "description": "Successful Response",
             "content": {
               "application/json": {
                 "schema": {}
               }
-            },
-            "description": "Successful Response"
+            }
           },
           "422": {
+            "description": "Validation Error",
             "content": {
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/HTTPValidationError"
                 }
               }
-            },
-            "description": "Validation Error"
+            }
           }
-        },
-        "summary": "Worker Start"
-      }
-    },
-    "/worker/status": {
-      "get": {
-        "description": "워커 단위 세부 상태(2단계) — 카메라별 running·last_frame_secs_ago·hang·frames·fps·restarts·reconnects·error.\n/health(프로세스 생존)와 분리. 워치독의 2차 감시(hang 판정)와 대시보드가 이 엔드포인트를 쓴다.",
-        "operationId": "worker_status_worker_status_get",
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {}
-              }
-            },
-            "description": "Successful Response"
-          }
-        },
-        "summary": "Worker Status"
+        }
       }
     },
     "/worker/stop": {
       "post": {
+        "summary": "Worker Stop",
         "description": "워커 중지. payload={id} 면 그 카메라만, 없으면 전체.",
         "operationId": "worker_stop_worker_stop_post",
         "requestBody": {
@@ -3388,169 +2664,237 @@
             "application/json": {
               "schema": {
                 "additionalProperties": true,
-                "default": {},
+                "type": "object",
                 "title": "Payload",
-                "type": "object"
+                "default": {}
               }
             }
           }
         },
         "responses": {
           "200": {
+            "description": "Successful Response",
             "content": {
               "application/json": {
                 "schema": {}
               }
-            },
-            "description": "Successful Response"
+            }
           },
           "422": {
+            "description": "Validation Error",
             "content": {
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/HTTPValidationError"
                 }
               }
-            },
-            "description": "Validation Error"
+            }
           }
-        },
-        "summary": "Worker Stop"
+        }
       }
     },
     "/workers": {
       "get": {
+        "summary": "Worker Status",
         "description": "워커 단위 세부 상태(2단계) — 카메라별 running·last_frame_secs_ago·hang·frames·fps·restarts·reconnects·error.\n/health(프로세스 생존)와 분리. 워치독의 2차 감시(hang 판정)와 대시보드가 이 엔드포인트를 쓴다.",
         "operationId": "worker_status_workers_get",
         "responses": {
           "200": {
+            "description": "Successful Response",
             "content": {
               "application/json": {
                 "schema": {}
               }
-            },
-            "description": "Successful Response"
+            }
           }
-        },
-        "summary": "Worker Status"
+        }
+      }
+    },
+    "/worker/status": {
+      "get": {
+        "summary": "Worker Status",
+        "description": "워커 단위 세부 상태(2단계) — 카메라별 running·last_frame_secs_ago·hang·frames·fps·restarts·reconnects·error.\n/health(프로세스 생존)와 분리. 워치독의 2차 감시(hang 판정)와 대시보드가 이 엔드포인트를 쓴다.",
+        "operationId": "worker_status_worker_status_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/status": {
+      "get": {
+        "summary": "Worker Status",
+        "description": "워커 단위 세부 상태(2단계) — 카메라별 running·last_frame_secs_ago·hang·frames·fps·restarts·reconnects·error.\n/health(프로세스 생존)와 분리. 워치독의 2차 감시(hang 판정)와 대시보드가 이 엔드포인트를 쓴다.",
+        "operationId": "worker_status_status_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
       }
     },
     "/workers/start-all": {
       "post": {
+        "summary": "Workers Start All",
         "description": "config/site.yaml 의 모든 카메라로 워커 일괄 시작(헤드리스/USB 부팅용).",
         "operationId": "workers_start_all_workers_start_all_post",
         "parameters": [
           {
-            "in": "query",
             "name": "theme",
+            "in": "query",
             "required": false,
             "schema": {
+              "type": "string",
               "default": "safety",
-              "title": "Theme",
-              "type": "string"
+              "title": "Theme"
             }
           }
         ],
         "responses": {
           "200": {
+            "description": "Successful Response",
             "content": {
               "application/json": {
                 "schema": {}
               }
-            },
-            "description": "Successful Response"
+            }
           },
           "422": {
+            "description": "Validation Error",
             "content": {
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/HTTPValidationError"
                 }
               }
-            },
-            "description": "Validation Error"
+            }
           }
-        },
-        "summary": "Workers Start All"
+        }
       }
     },
     "/workers/stop-all": {
       "post": {
+        "summary": "Workers Stop All",
         "description": "모든 워커 중지.",
         "operationId": "workers_stop_all_workers_stop_all_post",
         "responses": {
           "200": {
+            "description": "Successful Response",
             "content": {
               "application/json": {
                 "schema": {}
               }
-            },
-            "description": "Successful Response"
+            }
           }
-        },
-        "summary": "Workers Stop All"
+        }
       }
     },
-    "/zone/danger": {
+    "/safety/brain": {
       "get": {
-        "description": "일반 위험구역 폴리곤(정규화 좌표) 반환.",
-        "operationId": "zone_danger_zone_danger_get",
+        "summary": "Safety Brain Page",
+        "description": "안전 지식 추론 엔진 UI — 작업별 필수조치/법령/조치 + VLM '없는 조치' 추론.",
+        "operationId": "safety_brain_page_safety_brain_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "text/html": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/safety/brain/activities": {
+      "get": {
+        "summary": "Safety Brain Activities",
+        "operationId": "safety_brain_activities_safety_brain_activities_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/safety/brain/search": {
+      "get": {
+        "summary": "Safety Brain Search",
+        "description": "안전 지식 RAG 검색 — 법령·KOSHA 가이드·작업지식에서 관련 스니펫 top-k.",
+        "operationId": "safety_brain_search_safety_brain_search_get",
         "parameters": [
           {
+            "name": "q",
             "in": "query",
-            "name": "theme",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Q"
+            }
+          },
+          {
+            "name": "k",
+            "in": "query",
             "required": false,
             "schema": {
-              "default": "safety",
-              "title": "Theme",
-              "type": "string"
+              "type": "integer",
+              "default": 5,
+              "title": "K"
             }
           }
         ],
         "responses": {
           "200": {
+            "description": "Successful Response",
             "content": {
               "application/json": {
                 "schema": {}
               }
-            },
-            "description": "Successful Response"
+            }
           },
           "422": {
+            "description": "Validation Error",
             "content": {
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/HTTPValidationError"
                 }
               }
-            },
-            "description": "Validation Error"
-          }
-        },
-        "summary": "Zone Danger"
-      },
-      "post": {
-        "description": "일반 위험구역 폴리곤 저장. payload={\"points\":[{\"x\":..,\"y\":..}, ...]}",
-        "operationId": "set_zone_danger_zone_danger_post",
-        "parameters": [
-          {
-            "in": "query",
-            "name": "theme",
-            "required": false,
-            "schema": {
-              "default": "safety",
-              "title": "Theme",
-              "type": "string"
             }
           }
-        ],
+        }
+      }
+    },
+    "/safety/brain/assess": {
+      "post": {
+        "summary": "Safety Brain Assess",
+        "description": "장면 점검 — payload={activity, present?:[classes], image_base64?, use_vlm?}.\n반환: 필수조치 충족/부재(present/missing/unknown) + 위험·법령·조치.",
+        "operationId": "safety_brain_assess_safety_brain_assess_post",
         "requestBody": {
           "content": {
             "application/json": {
               "schema": {
                 "additionalProperties": true,
-                "title": "Payload",
-                "type": "object"
+                "type": "object",
+                "title": "Payload"
               }
             }
           },
@@ -3558,138 +2902,229 @@
         },
         "responses": {
           "200": {
+            "description": "Successful Response",
             "content": {
               "application/json": {
                 "schema": {}
               }
-            },
-            "description": "Successful Response"
+            }
           },
           "422": {
+            "description": "Validation Error",
             "content": {
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/HTTPValidationError"
                 }
               }
-            },
-            "description": "Validation Error"
-          }
-        },
-        "summary": "Set Zone Danger"
-      }
-    },
-    "/zone/intrusion": {
-      "post": {
-        "description": "위험구역 침입(몸통/머리/다리 등 '위험') → 휴대폰 알림(텔레그램/웹훅) + 증거 저장.\n프론트(AX 엔진)는 손/팔만이면 호출하지 않고, '위험' 부위 진입 시에만 호출한다.",
-        "operationId": "zone_intrusion_alert_zone_intrusion_post",
-        "parameters": [
-          {
-            "in": "query",
-            "name": "theme",
-            "required": false,
-            "schema": {
-              "default": "safety",
-              "title": "Theme",
-              "type": "string"
             }
           }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "additionalProperties": true,
-                "default": {},
-                "title": "Payload",
-                "type": "object"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {}
-              }
-            },
-            "description": "Successful Response"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            },
-            "description": "Validation Error"
-          }
-        },
-        "summary": "Zone Intrusion Alert"
+        }
       }
     },
-    "/zone/machine": {
+    "/safety/eval": {
       "get": {
-        "description": "프레스/전단기 방호구역 폴리곤(정규화 좌표) 반환(§8).",
-        "operationId": "zone_machine_zone_machine_get",
+        "summary": "Safety Eval Page",
+        "description": "정확도 측정 도구 — 위험/정상 사진으로 재현율·정밀도 자체 측정.",
+        "operationId": "safety_eval_page_safety_eval_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "text/html": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/safety/eval/run": {
+      "post": {
+        "summary": "Safety Eval Run",
+        "description": "위험/정상 사진 묶음 → 각 사진 경보여부 판정 → 재현율·정밀도 집계.",
+        "operationId": "safety_eval_run_safety_eval_run_post",
         "parameters": [
           {
-            "in": "query",
             "name": "theme",
+            "in": "query",
             "required": false,
             "schema": {
+              "type": "string",
               "default": "safety",
-              "title": "Theme",
-              "type": "string"
+              "title": "Theme"
             }
           }
         ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": true,
+                "title": "Payload"
+              }
+            }
+          }
+        },
         "responses": {
           "200": {
+            "description": "Successful Response",
             "content": {
               "application/json": {
                 "schema": {}
               }
-            },
-            "description": "Successful Response"
+            }
           },
           "422": {
+            "description": "Validation Error",
             "content": {
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/HTTPValidationError"
                 }
               }
-            },
-            "description": "Validation Error"
+            }
           }
-        },
-        "summary": "Zone Machine"
-      },
+        }
+      }
+    },
+    "/safety/guide": {
+      "get": {
+        "summary": "Safety Guide Page",
+        "description": "현장 음성 안전 안내 — 카메라 화면을 분석해 위험·작업을 음성으로.",
+        "operationId": "safety_guide_page_safety_guide_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "text/html": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/safety/voice/scene": {
       "post": {
-        "description": "프레스/전단기 방호구역 폴리곤 저장(손 진입 시 guard_bypass=critical).",
-        "operationId": "set_zone_machine_zone_machine_post",
+        "summary": "Safety Voice Scene",
+        "description": "실시간 프레임 → 위험·작업 인식 → 음성 안내 메시지(speak).",
+        "operationId": "safety_voice_scene_safety_voice_scene_post",
         "parameters": [
           {
-            "in": "query",
             "name": "theme",
+            "in": "query",
             "required": false,
             "schema": {
+              "type": "string",
               "default": "safety",
-              "title": "Theme",
-              "type": "string"
+              "title": "Theme"
             }
           }
         ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": true,
+                "title": "Payload"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/safety/sensor": {
+      "post": {
+        "summary": "Safety Sensor",
+        "description": "IoT 센서 값 수신 → 임계 초과 시 위험 기록 + 알림.\n카메라로 못 보는 영역(질식·가스·온열). 외부 센서가 주기적으로 값을 POST.\npayload: {type:'o2'|'co'|'h2s'|'gas'|'temp', value:float, site?, threshold?}",
+        "operationId": "safety_sensor_safety_sensor_post",
+        "parameters": [
+          {
+            "name": "theme",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "default": "safety",
+              "title": "Theme"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": true,
+                "title": "Payload"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/safety/behavior/analyze": {
+      "post": {
+        "summary": "Safety Behavior Analyze",
+        "description": "VLM 행동분석 — 흡연·졸음·통화·폭력·절차위반 + 규칙행동 재확인. use_vlm 권장.",
+        "operationId": "safety_behavior_analyze_safety_behavior_analyze_post",
         "requestBody": {
           "content": {
             "application/json": {
               "schema": {
                 "additionalProperties": true,
-                "title": "Payload",
-                "type": "object"
+                "type": "object",
+                "title": "Payload"
               }
             }
           },
@@ -3697,137 +3132,867 @@
         },
         "responses": {
           "200": {
+            "description": "Successful Response",
             "content": {
               "application/json": {
                 "schema": {}
               }
-            },
-            "description": "Successful Response"
+            }
           },
           "422": {
+            "description": "Validation Error",
             "content": {
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/HTTPValidationError"
                 }
               }
-            },
-            "description": "Validation Error"
+            }
           }
-        },
-        "summary": "Set Zone Machine"
+        }
       }
     },
-    "/zone/state": {
+    "/safety/voice": {
       "get": {
-        "operationId": "stub_zone_state_zone_state_get",
+        "summary": "Safety Voice Page",
+        "description": "음성 안전 비서 — 근로자가 음성으로 묻고 스피커로 답을 듣는다.",
+        "operationId": "safety_voice_page_safety_voice_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "text/html": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/safety/voice/ask": {
+      "post": {
+        "summary": "Safety Voice Ask",
+        "description": "음성 질문(텍스트) → 안전 지식 엔진 답변(음성 읽기용·근거 포함).",
+        "operationId": "safety_voice_ask_safety_voice_ask_post",
         "requestBody": {
           "content": {
             "application/json": {
               "schema": {
                 "additionalProperties": true,
-                "default": {},
-                "title": "Payload",
-                "type": "object"
+                "type": "object",
+                "title": "Payload"
               }
             }
-          }
+          },
+          "required": true
         },
         "responses": {
           "200": {
+            "description": "Successful Response",
             "content": {
               "application/json": {
                 "schema": {}
               }
-            },
-            "description": "Successful Response"
+            }
           },
           "422": {
+            "description": "Validation Error",
             "content": {
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/HTTPValidationError"
                 }
               }
-            },
-            "description": "Validation Error"
+            }
+          }
+        }
+      }
+    },
+    "/safety/context": {
+      "post": {
+        "summary": "Safety Context",
+        "description": "완전 자동 — 환경 + 작업을 스스로 인식하고 안전조치 점검 + 위험 시 기록.\npayload={present?:[], image_base64?, use_vlm?, site?, log?}. 반환: 환경·작업·점검결과.",
+        "operationId": "safety_context_safety_context_post",
+        "parameters": [
+          {
+            "name": "theme",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "default": "safety",
+              "title": "Theme"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": true,
+                "title": "Payload"
+              }
+            }
           }
         },
-        "summary": "Stub Zone State"
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/safety/brain/inspect": {
+      "post": {
+        "summary": "Safety Brain Inspect",
+        "description": "라이브 현장 점검 — 작업+감지객체(+이미지)로 추론 후, 위험 시 기록·알림(조치 연결).\npayload={activity, present?:[], image_base64?, use_vlm?, site?, log?:bool, alert?:bool}.",
+        "operationId": "safety_brain_inspect_safety_brain_inspect_post",
+        "parameters": [
+          {
+            "name": "theme",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "default": "safety",
+              "title": "Theme"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": true,
+                "title": "Payload"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/safety/quote": {
+      "get": {
+        "summary": "Safety Quote",
+        "description": "VIGENT 견적서(1장, 인쇄/PDF) — 현장명·카메라 수 입력 시 자동 계산.",
+        "operationId": "safety_quote_safety_quote_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "text/html": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/safety/demo": {
+      "get": {
+        "summary": "Safety Demo",
+        "description": "영업용 데모 — 카메라 없이 '감지→서류·조치 자동완성' 닫힌 루프 시연.",
+        "operationId": "safety_demo_safety_demo_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "text/html": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/safety/demo/seed": {
+      "post": {
+        "summary": "Safety Demo Seed",
+        "description": "데모 이벤트 주입(증거·법령·평가서가 자동처리 콘솔에 채워짐).",
+        "operationId": "safety_demo_seed_safety_demo_seed_post",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/safety/demo/reset": {
+      "post": {
+        "summary": "Safety Demo Reset",
+        "description": "데모 이벤트만 정리(실제 데이터 보존).",
+        "operationId": "safety_demo_reset_safety_demo_reset_post",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/safety-local": {
+      "get": {
+        "summary": "Safety Local",
+        "description": "로컬 번들판 — CDN 없이 /static/vendor 에서 MediaPipe·TF 로드(폐쇄망·USB). CDN판(/safety)과 비교용.",
+        "operationId": "safety_local_safety_local_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "text/html": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/dashboard": {
+      "get": {
+        "summary": "Dashboard Page",
+        "description": "테마별 경영 대시보드 — 실제 이벤트 통계. style=terminal 이면 모던 터미널 스킨.",
+        "operationId": "dashboard_page_dashboard_get",
+        "parameters": [
+          {
+            "name": "theme",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "default": "safety",
+              "title": "Theme"
+            }
+          },
+          {
+            "name": "style",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "default": "default",
+              "title": "Style"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "text/html": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/safety/setup": {
+      "get": {
+        "summary": "Safety Setup",
+        "description": "현장 운영 설정 페이지 — site.yaml·notify.yaml 손편집 없이 화면에서 구성·운영.",
+        "operationId": "safety_setup_safety_setup_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "text/html": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/site/config": {
+      "get": {
+        "summary": "Site Config Get",
+        "operationId": "site_config_get_site_config_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
       },
       "post": {
-        "operationId": "stub_zone_state_zone_state_post",
+        "summary": "Site Config Post",
+        "operationId": "site_config_post_site_config_post",
         "requestBody": {
           "content": {
             "application/json": {
               "schema": {
                 "additionalProperties": true,
-                "default": {},
-                "title": "Payload",
-                "type": "object"
+                "type": "object",
+                "title": "Payload"
               }
             }
-          }
+          },
+          "required": true
         },
         "responses": {
           "200": {
+            "description": "Successful Response",
             "content": {
               "application/json": {
                 "schema": {}
               }
-            },
-            "description": "Successful Response"
+            }
           },
           "422": {
+            "description": "Validation Error",
             "content": {
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/HTTPValidationError"
                 }
               }
-            },
-            "description": "Validation Error"
+            }
+          }
+        }
+      }
+    },
+    "/notify/config": {
+      "get": {
+        "summary": "Notify Config Get",
+        "operationId": "notify_config_get_notify_config_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "summary": "Notify Config Post",
+        "operationId": "notify_config_post_notify_config_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": true,
+                "type": "object",
+                "title": "Payload"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/alerts/test": {
+      "post": {
+        "summary": "Alerts Test",
+        "description": "Dispatcher 경보 테스트. payload={level, message}. 키 없으면 폴백(로그)로 동작.",
+        "operationId": "alerts_test_alerts_test_post",
+        "parameters": [
+          {
+            "name": "theme",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "default": "safety",
+              "title": "Theme"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": true,
+                "default": {},
+                "title": "Payload"
+              }
+            }
           }
         },
-        "summary": "Stub Zone State"
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/safety/fall": {
+      "post": {
+        "summary": "Safety Fall Alert",
+        "description": "낙상 확정(브라우저 stats.fall 증가) → 3단계 통합 체인:\nAnalyst 종합판단(+VLM 옵션) + Copilot 추락방지 법령 + Dispatcher 알림 + 증거 저장.\n키 없으면 Dispatcher 는 로그 폴백(기능 무중단).",
+        "operationId": "safety_fall_alert_safety_fall_post",
+        "parameters": [
+          {
+            "name": "theme",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "default": "safety",
+              "title": "Theme"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": true,
+                "default": {},
+                "title": "Payload"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/safety/posture": {
+      "post": {
+        "summary": "Safety Posture Alert",
+        "description": "근골격계 부담 자세 '지속' 감지 → 기록(자동처리 콘솔·위험성평가 반영).\n경보(텔레그램 푸시)는 보내지 않는다 — 근골격계는 누적 건강 이슈라 기록·평가 위주(알림 피로 방지).\npayload={image_base64?, note?, site?}.",
+        "operationId": "safety_posture_alert_safety_posture_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": true,
+                "type": "object",
+                "title": "Payload",
+                "default": {}
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/safety/confirm": {
+      "post": {
+        "summary": "Safety Confirm",
+        "description": "CNN→VLM 하이브리드 확정(오탐 최소화) 단독 호출.\npayload={rule, image|image_base64, reason?}. VLM 미가용이면 available:false 폴백.",
+        "operationId": "safety_confirm_safety_confirm_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": true,
+                "type": "object",
+                "title": "Payload"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/alerts/status": {
+      "get": {
+        "summary": "Stub Alerts Status",
+        "operationId": "stub_alerts_status_alerts_status_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/safety-pro": {
+      "get": {
+        "summary": "Safety Pro",
+        "description": "rf-detr permissive 백엔드를 쓰는 VIGENT 콘솔 화면(탐지·위험구역·VLM).",
+        "operationId": "safety_pro_safety_pro_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "text/html": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/theme/{theme}/raw": {
+      "get": {
+        "summary": "Theme Raw",
+        "description": "테마 vision.yaml 원본 반환(프론트가 ergonomics 등 설정을 읽어 설정주도 동작).",
+        "operationId": "theme_raw_theme__theme__raw_get",
+        "parameters": [
+          {
+            "name": "theme",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Theme"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
       }
     },
     "/{theme}": {
       "get": {
+        "summary": "Theme Page",
         "description": "테마 정적 페이지(index.html) 서빙. 없으면 404.",
         "operationId": "theme_page__theme__get",
         "parameters": [
           {
-            "in": "path",
             "name": "theme",
+            "in": "path",
             "required": true,
             "schema": {
-              "title": "Theme",
-              "type": "string"
+              "type": "string",
+              "title": "Theme"
             }
           }
         ],
         "responses": {
           "200": {
+            "description": "Successful Response",
             "content": {
               "application/json": {
                 "schema": {}
               }
-            },
-            "description": "Successful Response"
+            }
           },
           "422": {
+            "description": "Validation Error",
             "content": {
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/HTTPValidationError"
                 }
               }
+            }
+          }
+        }
+      }
+    },
+    "/": {
+      "get": {
+        "summary": "Root",
+        "operationId": "root__get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
             },
-            "description": "Validation Error"
+            "type": "array",
+            "title": "Detail"
           }
         },
-        "summary": "Theme Page"
+        "type": "object",
+        "title": "HTTPValidationError"
+      },
+      "RiskAssessmentIn": {
+        "properties": {
+          "events": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "type": "array",
+            "title": "Events"
+          },
+          "site": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Site",
+            "default": ""
+          },
+          "process": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Process",
+            "default": ""
+          },
+          "mode": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Mode",
+            "default": "checklist"
+          }
+        },
+        "type": "object",
+        "required": [
+          "events"
+        ],
+        "title": "RiskAssessmentIn",
+        "description": "위험성평가 POST 입력(하위호환·관대):\nevents 는 반드시 list[dict](각 이벤트는 dict) — 문자열/누락/비-dict 항목이면 422.\nsite/process 는 선택. events 항목의 키(rule/count/levels/notes 등)는 자유(추가검증 없음)."
+      },
+      "ValidationError": {
+        "properties": {
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "type": "array",
+            "title": "Location"
+          },
+          "msg": {
+            "type": "string",
+            "title": "Message"
+          },
+          "type": {
+            "type": "string",
+            "title": "Error Type"
+          },
+          "input": {
+            "title": "Input"
+          },
+          "ctx": {
+            "type": "object",
+            "title": "Context"
+          }
+        },
+        "type": "object",
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "title": "ValidationError"
       }
     }
   }
