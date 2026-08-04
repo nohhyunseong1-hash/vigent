@@ -214,6 +214,11 @@ class GuardAgent(BaseAgent):
     TRACK_TTL = 1.2          # 서버 추적 유지시간(초). 프론트 간격보다 길게 → 깜빡임 제거
     TRACK_IOU = 0.45         # 같은 객체로 볼 겹침 기준
     EMA = 0.75               # 박스 위치 스무딩(0~1, 클수록 새 위치 빨리 반영). 0.5→0.75: 움직임 추종↑(현장 반응성)
+    # 속도 적응형 EMA(2.2 ①): 중심 이동량 d 가 클수록 a→EMA_MAX(고속=raw 즉각추종), 작으면 EMA_MIN(강한 평활).
+    #   D_REF = 새 박스 대각선 × EMA_DREF. 저속·정지는 EMA_MIN(=현행 0.75)이라 저하 0.
+    EMA_MIN = 0.75
+    EMA_MAX = 1.0
+    EMA_DREF = 0.25
     MIN_HITS = 1             # 1=즉시 표시(움직이는 객체도 바로 보임). 헛것은 임계값으로 거름
     # 잔상 제거(옵션 B): 이번 프레임에 새 탐지가 없는(미매칭) 트랙이 이 프레임 수를 넘기면 즉시 폐기.
     #   1 = 1프레임 놓침은 브리지(깜빡임 방지), 2번째 연속 미매칭에 삭제 → 사람 이탈 후 옛 박스 ~2프레임 내 소멸.
@@ -254,6 +259,9 @@ class GuardAgent(BaseAgent):
             self.IMGSZ = int(tuning.val("detect", "imgsz", self.IMGSZ))
             self.STALE_MAX_MISSES = int(tuning.val("detect", "stale_max_misses", self.STALE_MAX_MISSES))
             self.EMA = float(tuning.val("detect", "ema", self.EMA))   # 위치 평활 주입 가능(기본 0.75 불변 · 1.8b B-2 측정용)
+            self.EMA_MIN = float(tuning.val("track", "ema_min", self.EMA_MIN))     # 속도 적응형 EMA(2.2)
+            self.EMA_MAX = float(tuning.val("track", "ema_max", self.EMA_MAX))
+            self.EMA_DREF = float(tuning.val("track", "ema_dref", self.EMA_DREF))
             self.CONTAIN_RATIO = float(tuning.val("detect", "contain_ratio", self.CONTAIN_RATIO))   # 포함비 억제 문턱(1.9d)
             self.PPE_PERSON_EXPAND = float(tuning.val("detect", "ppe_person_expand", self.PPE_PERSON_EXPAND))   # 교차게이트(Phase C)
             hf = int(tuning.val("detect", "hysteresis_frames", 0))   # >0 이면 전 신호를 이 N 으로 통일(1=끔). 0=기본(ppe3·fire2)
@@ -354,6 +362,19 @@ class GuardAgent(BaseAgent):
                 "load_errors": self._load_errors,
                 "rfdetr_slots": getattr(self, "_rfdetr_status", [])}   # F-8: 커스텀 가중치 실검사 결과
 
+    def _adaptive_ema(self, old: list[float], new: list[float]) -> float:
+        """속도 적응형 EMA 계수(2.2 ①): 중심 이동량 d(정규화)가 클수록 a→EMA_MAX(고속=raw 즉각추종),
+        작으면 EMA_MIN(강한 평활). D_REF = 새 박스 대각선 × EMA_DREF. 저속·정지는 EMA_MIN(현행)이라 저하 0."""
+        ocx, ocy = (old[0] + old[2]) / 2, (old[1] + old[3]) / 2
+        ncx, ncy = (new[0] + new[2]) / 2, (new[1] + new[3]) / 2
+        d = ((ocx - ncx) ** 2 + (ocy - ncy) ** 2) ** 0.5
+        diag = ((new[2] - new[0]) ** 2 + (new[3] - new[1]) ** 2) ** 0.5
+        dref = self.EMA_DREF * diag
+        if dref <= 0:
+            return self.EMA_MAX
+        a = self.EMA_MIN + (d / dref) * (self.EMA_MAX - self.EMA_MIN)
+        return max(self.EMA_MIN, min(self.EMA_MAX, a))
+
     def _track(self, fresh: list[dict[str, Any]], track_key: str = "default") -> list[dict[str, Any]]:
         """서버측 추적/스무딩: 새 탐지를 기존 트랙과 IoU 매칭해 갱신(위치 EMA 평활),
         새것은 추가, TTL 지난 트랙은 제거. 잠깐 놓친 프레임에도 박스를 유지해 깜빡임 제거.
@@ -388,7 +409,7 @@ class GuardAgent(BaseAgent):
             if best is not None:
                 used.add(id(best))
                 # 위치 EMA 평활(떨림 완화) — 새 bbox 를 일부만 반영
-                a = self.EMA
+                a = self._adaptive_ema(best["bbox"], f["bbox"])   # 속도 적응형(2.2): 고속=raw, 저속=현행 평활
                 best["bbox"] = [round(best["bbox"][k] * (1 - a) + f["bbox"][k] * a, 4)
                                 for k in range(4)]
                 best["conf"] = f["conf"]
