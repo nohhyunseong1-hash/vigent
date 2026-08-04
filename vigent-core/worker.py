@@ -500,6 +500,10 @@ class Worker:
         self._restart_req = threading.Event()                # 2단계: hang 감지 시 현 _loop 재시작 요청
         self._cap = None                                     # 현재 VideoCapture(hang 시 감시 스레드가 release로 언블록)
         self._streamcap = None                               # 프레임신선도: 스트림 캡처 스레드(thread 모드)
+        self._last_frame = None                              # 3.0: 최신 프레임(스냅샷/오버레이용, numpy 참조)
+        self._last_dets: list = []                           # 3.0: 최신 검출(정규화 bbox) — 대시보드 오버레이
+        self._last_pc = 0                                    # 최신 인원수
+        self._last_sig: dict = {}                            # 최신 파생신호(ppe_missing·fire 등)
         self.state: dict[str, Any] = {
             "running": False, "source": "", "name": "", "fps": 0,
             "frames": 0, "events": 0, "last_event": "", "error": ""}
@@ -631,6 +635,13 @@ class Worker:
             with lock:                            # 코어 추론 직렬화(브라우저와 충돌 방지)
                 # 5단계: 카메라별 추적 격리(track_key) — 다른 카메라/브라우저와 _tracks 안 섞이게.
                 out = guard.detect(frame, detectors=ctx.detectors, track_key="cam:" + str(ctx.name))
+                # 3.0: 대시보드 스냅샷·오버레이용 최신 상태 보관(정규화 bbox — 프론트가 화면크기로 복원).
+                self._last_frame = frame
+                self._last_dets = [{"class": d.get("label"), "score": round(float(d.get("conf", 0)), 3),
+                                    "bbox": [round(float(v), 4) for v in d.get("bbox", [0, 0, 0, 0])]}
+                                   for d in out.get("detections", [])]
+                self._last_pc = out.get("person_count", 0)
+                self._last_sig = out.get("signals", {})
                 # 포즈(낙상·근골격) top-down 입력 = guard.detect person 박스(RF-DETR·_nms/_track 적용, 픽셀).
                 #   worker 기본 detectors 에 person 포함 → 박스 항상 제공. person 없으면 포즈만 비활성(무중단).
                 _H, _W = frame.shape[:2]

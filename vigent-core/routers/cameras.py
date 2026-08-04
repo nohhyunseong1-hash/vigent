@@ -7,9 +7,14 @@ import camera_registry as _reg
 from app_state import DEFAULT_THEME, STATE
 from app_state import DETECT_LOCK as _DETECT_LOCK
 from app_state import load_theme as _load_theme
-from fastapi import APIRouter, Body, HTTPException
+from fastapi import APIRouter, Body, HTTPException, Response
 
 router = APIRouter()
+
+
+def _worker(cid: str):
+    import worker as _w
+    return _w.manager._workers.get(cid)
 
 
 def _guard():
@@ -76,6 +81,46 @@ def cameras_delete(cid: str):
     import worker as _w
     _w.manager.stop(cid)
     return {"ok": _reg.delete(cid)}
+
+
+@router.get("/cameras/{cid}/detections")
+def cameras_detections(cid: str):
+    """경량 오버레이용 — 워커 최신 검출(정규화 bbox)·인원·신호. 프론트가 화면크기로 복원."""
+    wk = _worker(cid)
+    if wk is None:
+        return {"online": False, "detections": [], "person_count": 0, "signals": {}}
+    return {"online": bool(wk.state.get("running")), "detections": wk._last_dets,
+            "person_count": wk._last_pc, "signals": wk._last_sig}
+
+
+@router.get("/cameras/{cid}/snapshot")
+def cameras_snapshot(cid: str):
+    """워커 최신 프레임 JPEG(파일소스 카드/미리보기 — WebRTC 미가용 시 폴링용)."""
+    import cv2
+    wk = _worker(cid)
+    fr = getattr(wk, "_last_frame", None) if wk else None
+    if fr is None:
+        raise HTTPException(status_code=404, detail="프레임 없음(오프라인/워밍업)")
+    ok, buf = cv2.imencode(".jpg", cv2.resize(fr, (640, 360)), [cv2.IMWRITE_JPEG_QUALITY, 70])
+    return Response(content=buf.tobytes(), media_type="image/jpeg")
+
+
+@router.post("/cameras/{cid}/test")
+def cameras_test(cid: str):
+    """연결 테스트 — source 에서 1프레임 잡기 성공 여부(+스냅샷 미리보기). 자격증명은 응답에 노출 안 함."""
+    import base64
+
+    import cv2
+    src = _reg.source_of(cid)
+    if not src:
+        raise HTTPException(status_code=404, detail="source 미등록")
+    cap = cv2.VideoCapture(int(src) if str(src).isdigit() else src)
+    ok, fr = cap.read()
+    cap.release()
+    if not ok or fr is None:
+        return {"ok": False, "error": "프레임을 못 잡음(연결 실패/경로 오류)"}
+    _, buf = cv2.imencode(".jpg", cv2.resize(fr, (480, 270)), [cv2.IMWRITE_JPEG_QUALITY, 65])
+    return {"ok": True, "snapshot": "data:image/jpeg;base64," + base64.b64encode(buf.tobytes()).decode()}
 
 
 def autostart_enabled() -> dict:
