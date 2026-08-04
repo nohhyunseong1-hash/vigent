@@ -194,3 +194,9 @@
 - **(a) 파인튜닝 augmentation**: person/PPE 재학습(클라우드) 시 **모션블러·고속이동 augmentation**(motion blur kernel·random resized crop·속도 시뮬) 추가 → 블러 프레임 검출 안정화. [[accuracy-baseline-measured]] 재학습과 연계.
 - **(b) Phase A 재평가**: 다인·가림 클립 확보 후 ByteTrack 2단계 재측정 — 상세는 위 **PA** 항목.
 - **완화(코드 아님)**: 웹캠 노출을 짧게(조명 밝게)하면 블러 감소 → 안내문 `docs/team/97_웹캠_블러_노출_안내.md`.
+
+---
+
+## PC. 프레스 다인 포즈 사용 시점 재결정(2026-08-04)
+- 2.7 로 /safety-local 기본을 MediaPipe(pose off)로 복원, 다인 포즈·프레스 판정(2.4~2.6)은 togPress opt-in 뒤로 보존(코드 삭제 안 함).
+- **togPress 실사용(프레스 파일럿) 시점에 재결정**: (a) pose_interleave N=3→2(발화 지연 ~660→330ms, 서버 pose +50%) (b) machine_hazard_zones 편집 UI(기존 danger_zone 도구를 /zone/machine 에 연결) — 현재 machine_zone.json 비어 판정 대상 없음.

@@ -986,7 +986,7 @@ async function analyzeObjectsWithBackend(source,W,H){
     const resp=await fetch(`${API_BASE}/detect/frame`,{
       method:'POST',
       headers:{'content-type':'application/json'},
-      body:JSON.stringify({image_base64, ppe: activeServiceMode==='safety' && (document.getElementById('togFieldMode')?.checked ?? true), safety_only: activeServiceMode==='safety', seg: wantSeg, pose: wantPose, press: !!window.VIGENT_PRESS_MODE})   // press=2.6 프레스 방호구역 판정(페이지 플래그로 켬)
+      body:JSON.stringify({image_base64, ppe: activeServiceMode==='safety' && (document.getElementById('togFieldMode')?.checked ?? true), safety_only: activeServiceMode==='safety', seg: wantSeg, pose: wantPose && (window.VIGENT_POSE_MODE!==false), press: !!window.VIGENT_PRESS_MODE})   // 2.7: pose opt-in(VIGENT_POSE_MODE===false 면 미요청→MediaPipe 폴백). 미설정=기존대로 on. press=2.6
     });
     if(!resp.ok) return;
     const data=await resp.json();

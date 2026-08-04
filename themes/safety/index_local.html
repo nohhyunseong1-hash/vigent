@@ -353,7 +353,7 @@
   <div class="vt-log-body" id="vtLogBody"></div>
 </div>
 
-<script>window.AX_LOCK_THEME="safety"; window.VIGENT_BACKEND_LOOP_MS=100;   /* 2.1: /safety-local 만 검출루프 100ms(서버 왕복 p50 86ms<100 여유). 미설정 페이지는 150 유지 */</script>
+<script>window.AX_LOCK_THEME="safety"; window.VIGENT_BACKEND_LOOP_MS=100; window.VIGENT_POSE_MODE=false;   /* 2.1 루프100ms · 2.7: 기본 pose off(→MediaPipe 1인 스켈레톤 복귀·왕복 ~85ms). 프레스 토글 ON 시에만 pose 요청 */</script>
 <script src="/static/realtime_core.js?v=20260701-ppefix"></script>
 
 <!-- 스켈레톤 스무딩 고도화: 기존 이동평균 smoothPose 를 One-Euro 필터로 교체.
@@ -849,7 +849,10 @@
   function _loadMachineZone(){ fetch('/zone/machine').then(function(r){return r.json();}).then(function(j){ _machinePoly=(j.points||[]).map(function(p){return [p.x,p.y];}); }).catch(function(){}); }
   (function _pressCtl(){
     var tg=document.getElementById('togPress'), banner=document.getElementById('pressBanner');
-    if(tg){ tg.addEventListener('change',function(){ window.VIGENT_PRESS_MODE=tg.checked; if(tg.checked)_loadMachineZone(); else if(banner)banner.style.display='none'; }); }
+    if(tg){ tg.addEventListener('change',function(){ window.VIGENT_POSE_MODE=tg.checked; window.VIGENT_PRESS_MODE=tg.checked;   // 2.7: 토글 ON 에서만 pose+press 요청(OFF=MediaPipe 복귀)
+      if(tg.checked){ _loadMachineZone(); }
+      else { if(banner)banner.style.display='none'; try{ backendPoses=[]; }catch(e){} _pTracks=[]; }   // OFF: 백엔드 포즈 즉시 비움 → poseFresh=false → MediaPipe 스켈레톤 즉시 복귀
+    }); }
     setInterval(function(){
       if(!_pressOn()) return;
       var v=window.backendPress||[];
