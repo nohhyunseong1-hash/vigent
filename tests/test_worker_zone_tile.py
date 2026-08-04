@@ -32,7 +32,7 @@ def _ctx():
 
 class _QuietGuard:
     """구역 내 person 없음 → _derive 는 zone_intrusion 을 발화하지 않는다."""
-    def detect(self, frame, detectors=None):
+    def detect(self, frame, detectors=None, track_key="default"):
         return {"detections": [], "signals": {}, "person_count": 0}
 
 
@@ -71,7 +71,7 @@ class TestWorkerZoneTile(unittest.TestCase):
         os.environ["VIGENT_ZONE_TILE"] = "1"
 
         class _ZoneGuard:
-            def detect(self, frame, detectors=None):
+            def detect(self, frame, detectors=None, track_key="default"):
                 return {"detections": [{"label": "person", "bbox": [0.4, 0.4, 0.6, 0.9], "conf": 0.9}],
                         "signals": {}, "person_count": 1}
         self.worker._process_frame(self.frame, 100.0, _ZoneGuard(), self.lock, _ctx())

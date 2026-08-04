@@ -30,12 +30,12 @@ def _ctx(detectors=None, zone=None, collect_on=False):
 
 class _FireGuard:
     """fire_smoke 신호를 항상 내는 스텁 — _derive 가 결정론적으로 발화."""
-    def detect(self, frame, detectors=None):
+    def detect(self, frame, detectors=None, track_key="default"):
         return {"signals": {"fire_smoke": True}, "detections": [], "person_count": 0}
 
 
 class _RaisingGuard:
-    def detect(self, frame, detectors=None):
+    def detect(self, frame, detectors=None, track_key="default"):
         raise RuntimeError("boom")
 
 

@@ -46,10 +46,12 @@ def detect_frame(payload: dict = Body(...), theme: str = DEFAULT_THEME):
     # reset_tracks(단발·stateless): 그 요청만 서버측 추적 상태를 비우고 검출(F-8 측정용).
     #   추적(_track)은 라이브 연속프레임 안정화 계층 → 독립 이미지(벤치/단발 분석)에 누적되면
     #   IoU 우연매칭·잔상으로 검출을 오염(측정≠배포 착시). 라이브 프론트는 이 옵션 미전송 → 추적 유지·저하0.
+    track_key = str(payload.get("track_key") or "browser")   # 5단계: 요청별 추적 격리(기본 browser)
     with _DETECT_LOCK:                       # 동시 추론 직렬화(로딩/추론 race 방지)
         if payload.get("reset_tracks"):
-            guard._tracks = []               # 락 내부라 라이브 요청과 경쟁 없이 원자적
-        out = guard.detect(img, detectors=detectors, conf=payload.get("conf"), imgsz=live_imgsz)
+            guard._tracks_by_key[track_key] = []   # 그 키만 비움(락 내부라 원자적)
+        out = guard.detect(img, detectors=detectors, conf=payload.get("conf"),
+                           imgsz=live_imgsz, track_key=track_key)
     # 정규화 bbox(0~1) → 전송 이미지 픽셀 [x,y,w,h] + 프론트 키(class/score)로 변환
     H, W = img.shape[:2]
     dets = []

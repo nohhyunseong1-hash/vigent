@@ -149,8 +149,9 @@ class GuardAgent(BaseAgent):
     #   1 = 1프레임 놓침은 브리지(깜빡임 방지), 2번째 연속 미매칭에 삭제 → 사람 이탈 후 옛 박스 ~2프레임 내 소멸.
     #   (기존엔 TRACK_TTL=1.2s 동안 미매칭 트랙을 계속 진짜 박스로 반환 → 잔상·빈 벽 PPE 오탐.
     #    이제 TTL 은 '프레임이 뜸할 때'를 위한 절대 백스톱으로만 유지.)
-    # ⚠ 참고(옵션 A 범위): self._tracks 는 STATE[theme] 에 1회 로드돼 모든 카메라/요청이 공유하는 전역 상태.
-    #    다중 카메라 동시 사용 시 서로 오염될 수 있어, 스트림별 트랙 격리는 별도 과제로 남김.
+    # ✅ 스트림별 트랙 격리(5단계): _tracks 를 track_key 별 dict(self._tracks_by_key)로 분리.
+    #    worker=카메라명(cam:<name>) · /detect/frame=요청 track_key(기본 browser) · 기타=default.
+    #    → 다중 카메라/브라우저/오프라인 분석이 서로 트랙을 오염(잔상·유령·타카메라 명의 오발화)하지 않음.
     STALE_MAX_MISSES = 1
     # 보호구 클래스별 임계(후필터) — ppe 모델을 맵 최저 conf로 추론한 뒤 클래스별 임계로 거른다.
     #   최약체(NO-Hardhat)만 낮춰 재현율↑, 나머지는 유지. tuning.yaml detect.conf.ppe_per_class 로 조정.
@@ -184,7 +185,7 @@ class GuardAgent(BaseAgent):
             pass
         self._models: dict[str, Any] = {}      # id → YOLO (지연 로드 캐시)
         self._load_errors: dict[str, str] = {}
-        self._tracks: list[dict[str, Any]] = []  # 서버측 추적 박스(깜빡임 제거)
+        self._tracks_by_key: dict[str, list[dict[str, Any]]] = {}  # 서버측 추적 박스(track_key 별 격리 · 5단계)
         self._tid_seq: int = 0                    # 트랙 안정 id 시퀀스(클라 id 매칭용 · 1.8b)
         self.device = self._pick_device()        # GPU(MPS) 있으면 사용 → 추론 4배↑
         # config.slots 에서 실제 .pt 파일로 해석된 detector 슬롯만 추린다
@@ -273,14 +274,19 @@ class GuardAgent(BaseAgent):
                 "load_errors": self._load_errors,
                 "rfdetr_slots": getattr(self, "_rfdetr_status", [])}   # F-8: 커스텀 가중치 실검사 결과
 
-    def _track(self, fresh: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    def _track(self, fresh: list[dict[str, Any]], track_key: str = "default") -> list[dict[str, Any]]:
         """서버측 추적/스무딩: 새 탐지를 기존 트랙과 IoU 매칭해 갱신(위치 EMA 평활),
-        새것은 추가, TTL 지난 트랙은 제거. 잠깐 놓친 프레임에도 박스를 유지해 깜빡임 제거."""
+        새것은 추가, TTL 지난 트랙은 제거. 잠깐 놓친 프레임에도 박스를 유지해 깜빡임 제거.
+
+        track_key(카메라 id 등)별로 트랙 상태를 분리 — 여러 카메라/브라우저/오프라인 분석이 한
+        _tracks 를 공유하면 A 카메라 박스가 B 결과에 섞이고(잔상·유령), fire/ppe 신호가 다른
+        카메라 명의로 오발화된다(F-리뷰 5단계). 키를 안 주면 'default' 로 기존 동작 유지."""
         now = time.time()
+        tracks = self._tracks_by_key.setdefault(track_key, [])   # 키별 격리 상태
         used: set[int] = set()   # 감사 E-2: 한 트랙에 복수 검출이 중복 매칭돼 인원 과소집계되던 문제 → 1:1 강제
         for f in fresh:
             best, best_iou = None, self.TRACK_IOU
-            for t in self._tracks:
+            for t in tracks:
                 if id(t) in used:
                     continue                       # 이번 프레임에 이미 매칭된 트랙은 제외
                 if t["label"].lower() == f["label"].lower():
@@ -302,19 +308,20 @@ class GuardAgent(BaseAgent):
             else:
                 f = dict(f); f["seen"] = now; f["hits"] = 1; f["misses"] = 0
                 f["tid"] = self._tid_seq; self._tid_seq += 1   # 안정 id 부여(매칭 시 EMA 갱신돼도 불변)
-                self._tracks.append(f)
+                tracks.append(f)
                 used.add(id(f))          # 새 트랙도 같은 프레임 내 재매칭 방지
         # 이번 프레임에 매칭/신규가 아닌(미매칭) 트랙은 연속 미매칭 횟수 증가
-        for t in self._tracks:
+        for t in tracks:
             if id(t) not in used:
                 t["misses"] = t.get("misses", 0) + 1
         # 잔상 제거(옵션 B): 연속 미매칭이 STALE_MAX_MISSES 초과면 즉시 폐기(사람 이탈→옛 박스 ~2프레임 내 소멸).
         #   + TRACK_TTL 은 프레임이 뜸할 때를 위한 절대 백스톱으로 병행 유지.
-        self._tracks = [t for t in self._tracks
-                        if t.get("misses", 0) <= self.STALE_MAX_MISSES and now - t["seen"] <= self.TRACK_TTL]
+        tracks = [t for t in tracks
+                  if t.get("misses", 0) <= self.STALE_MAX_MISSES and now - t["seen"] <= self.TRACK_TTL]
+        self._tracks_by_key[track_key] = tracks   # 필터 결과 반영(키별)
         # MIN_HITS 이상 '확인된' 트랙만 표시(한 프레임 헛것 제거). 내부필드(seen·hits·misses)는 빼고 반환
         return [{k: v for k, v in t.items() if k not in ("seen", "hits", "misses")}
-                for t in self._tracks if t["hits"] >= self.MIN_HITS]
+                for t in tracks if t["hits"] >= self.MIN_HITS]
 
     def _get_model(self, slot: str):
         """슬롯 검출기(어댑터)를 1회 로드해 캐시. 실패하면 None(해당 검출기만 비활성).
@@ -348,7 +355,7 @@ class GuardAgent(BaseAgent):
 
     def detect(self, image_bgr: np.ndarray, detectors: list[str] | None = None,
                conf: float | None = None, imgsz: int | None = None,
-               augment: bool = False) -> dict[str, Any]:
+               augment: bool = False, track_key: str = "default") -> dict[str, Any]:
         """프레임 추론. 반환: 정규화 라벨·confidence·정규화 bbox(0~1) 목록 + 파생 신호.
 
         image_bgr: cv2 BGR numpy 배열
@@ -397,7 +404,7 @@ class GuardAgent(BaseAgent):
         # 여러 모델/클래스 간 중복 박스 정리 → 서버측 추적으로 안정화(깜빡임 제거)
         detections = _nms(detections)
         detections = _suppress_vehicle_dupes(detections)   # 지게차↔버스 오인 중복 제거
-        detections = self._track(detections)
+        detections = self._track(detections, track_key)
         # 안 B(box-overlay): 추적 이후, 교차소스(person 슬롯↔ppe 슬롯) person 중복만 병합.
         #   _nms(0.55)↔TRACK_IOU(0.45) 임계 불일치가 남긴 IoU 0.45~0.55 person 이중박스 해소.
         #   같은 소스는 병합 안 함(진짜 두 사람 보호). 검출·nms·추적 로직은 불변.

@@ -628,7 +628,8 @@ class Worker:
                 except Exception as _we:  # noqa: BLE001
                     _WLOG.debug("worker 무시 예외 [수집 카운트 갱신]: %s", _we)
             with lock:                            # 코어 추론 직렬화(브라우저와 충돌 방지)
-                out = guard.detect(frame, detectors=ctx.detectors)
+                # 5단계: 카메라별 추적 격리(track_key) — 다른 카메라/브라우저와 _tracks 안 섞이게.
+                out = guard.detect(frame, detectors=ctx.detectors, track_key="cam:" + str(ctx.name))
                 # 포즈(낙상·근골격) top-down 입력 = guard.detect person 박스(RF-DETR·_nms/_track 적용, 픽셀).
                 #   worker 기본 detectors 에 person 포함 → 박스 항상 제공. person 없으면 포즈만 비활성(무중단).
                 _H, _W = frame.shape[:2]
