@@ -573,16 +573,32 @@
     var inter=ix*iy, uni=a[2]*a[3]+b[2]*b[3]-inter;
     return uni>0?inter/uni:0;
   }
-  function curBox(t,now){ // 트랙의 현재 표시 위치(prev→tgt 선형, k=경과/dur)
-    var k=Math.min(1,(now-t.t0)/(t.dur||350));
-    return [t.prev[0]+(t.tgt[0]-t.prev[0])*k, t.prev[1]+(t.tgt[1]-t.prev[1])*k,
-            t.prev[2]+(t.tgt[2]-t.prev[2])*k, t.prev[3]+(t.tgt[3]-t.prev[3])*k];
+  // One-Euro 필터(2.2 ② — 트윈 교체, 측정상 빠름오차 6.6→4.4px·지터·오버슈트 모두 개선):
+  //   스켈레톤과 동일 원리를 박스 4좌표에 적용. 속도↑→컷오프↑→즉각추종, 느리면 강평활(지터 억제).
+  var OE_MC=1.0, OE_BETA=3.0, OE_DC=1.0;   // fast 클립 튜닝값(스켈레톤 0.7/1.5 에서 상향)
+  function oe1(s,v,dt){
+    var al=function(c){var tau=1/(2*Math.PI*c); return 1/(1+tau/dt);};
+    if(s.x===undefined){ s.x=v; s.dx=0; return v; }
+    var dv=(v-s.x)/dt; s.dx=s.dx+al(OE_DC)*(dv-s.dx);
+    var cut=OE_MC+OE_BETA*Math.abs(s.dx); s.x=s.x+al(cut)*(v-s.x); return s.x;
   }
-  function dispBox(t,now){ // 표시 위치 = 트윈 + (id 트랙 한정) 속도 외삽. 외삽량은 갱신간격 60% 로 캡(2.1: 빠른이동 정합↑).
-    var c=curBox(t,now);   // 폴백(id=-1) 트랙은 오매칭 튐 방지 위해 외삽 없음(1.9 수정3b)
+  function oeBox(t,det,cg){   // 4좌표 One-Euro → 필터박스 반환 + (id 트랙) 속도 갱신(최근 3갱신 가중, 외삽용)
+    var dt=(cg||150)/1000; if(!t.oe) t.oe=[{},{},{},{}];
+    var nb=[oe1(t.oe[0],det.box[0],dt),oe1(t.oe[1],det.box[1],dt),oe1(t.oe[2],det.box[2],dt),oe1(t.oe[3],det.box[3],dt)];
+    if(t.tid>=0 && t.box){
+      var d=[(nb[0]-t.box[0])/cg,(nb[1]-t.box[1])/cg,(nb[2]-t.box[2])/cg,(nb[3]-t.box[3])/cg];
+      t.dhist=(t.dhist||[]).concat([d]).slice(-3);
+      var hs=t.dhist, ws=0, vv=[0,0,0,0];
+      for(var m=0;m<hs.length;m++){ var wt=m+1; ws+=wt; for(var cc=0;cc<4;cc++) vv[cc]+=hs[m][cc]*wt; }
+      t.vel=[vv[0]/ws,vv[1]/ws,vv[2]/ws,vv[3]/ws];
+    }
+    return nb;
+  }
+  function curBox(t,now){ return t.box; }   // One-Euro 필터값(업데이트 시점 갱신, 프레임 사이 유지) — 매칭용
+  function dispBox(t,now){   // 표시 = 필터박스 + (id 트랙) 속도 외삽(캡 60%). 폴백(id=-1)은 외삽 없음.
     if(t.tid>=0 && t.vel){ var dt=Math.min(now-t.t0, 0.6*(t.gap||350));
-      return [c[0]+t.vel[0]*dt, c[1]+t.vel[1]*dt, c[2]+t.vel[2]*dt, c[3]+t.vel[3]*dt]; }
-    return c;
+      return [t.box[0]+t.vel[0]*dt, t.box[1]+t.vel[1]*dt, t.box[2]+t.vel[2]*dt, t.box[3]+t.vel[3]*dt]; }
+    return t.box.slice();
   }
   // 새 backendBoostAt 수신 시(1.8b id 우선): 서버 트랙 id(tid)가 같은 것끼리 트윈. id 없음(-1)이면
   //   클래스+IoU>0.3 폴백. 사라진 id 트랙은 즉시 제거(drop), fallback 미매칭은 페이드아웃. person 제외(스켈레톤 담당).
@@ -590,7 +606,6 @@
   function ingest(){
     var now=Date.now(), gap=prevUpdateAt?(backendBoostAt-prevUpdateAt):0;
     var cg=gap>0?Math.max(300,Math.min(1200,gap)):350;   // 클램프한 갱신간격
-    var dur=0.45*cg;                                      // 2.1: 트윈 지속=갱신간격 0.45배(1.9의 0.6에서 단축 → 지연↓, 측정 채택)
     if(gap>0 && _iv.length<5){ _iv.push(gap);
       if(_iv.length===5) console.log('[safety-local] backend 갱신간격 5샘플(ms):', _iv.join(', '),
         '· p50≈'+_median(_iv)+'ms (실효 갱신율 · 요청 1개로 통합)'); }
@@ -599,17 +614,10 @@
       .filter(function(d){return String(d.class||'').toLowerCase()!=='person';})  // person 은 스켈레톤이 담당
       .map(function(d){var b=d.bbox||[0,0,0,0]; return {tid:(d.id==null?-1:d.id), cls:d.class||'', score:d.score||0, box:[b[0],b[1],b[2],b[3]]};});
     var n=tracks.length, used=new Array(n).fill(false);
-    // upd: 트윈 갱신 + (id 트랙만) 속도 추정(직전 tgt→새 tgt / 갱신간격) — 외삽용
-    function upd(t,det){ var np=curBox(t,now);
-      if(t.tid>=0 && t.tgt){   // 2.1: 속도=최근 3갱신 델타의 최신우대 가중평균(흔들림 완화)
-        var d=[(det.box[0]-t.tgt[0])/cg,(det.box[1]-t.tgt[1])/cg,(det.box[2]-t.tgt[2])/cg,(det.box[3]-t.tgt[3])/cg];
-        t.dhist=(t.dhist||[]).concat([d]).slice(-3);
-        var hs=t.dhist, ws=0, vv=[0,0,0,0];
-        for(var m=0;m<hs.length;m++){ var wt=m+1; ws+=wt; for(var cc=0;cc<4;cc++) vv[cc]+=hs[m][cc]*wt; }
-        t.vel=[vv[0]/ws,vv[1]/ws,vv[2]/ws,vv[3]/ws];
-      }
-      t.prev=np; t.tgt=det.box; t.score=det.score; t.t0=now; t.dur=dur; t.gap=cg; t.alive=true; }
-    function mk(det){ return {tid:det.tid,cls:det.cls,score:det.score,prev:det.box.slice(),tgt:det.box.slice(),t0:now,dur:dur,gap:cg,alpha:0,alive:true}; }
+    // upd: One-Euro 필터로 t.box 갱신(+id 트랙 속도). 트윈 상태(prev/tgt/dur) 불필요.
+    function upd(t,det){ t.box=oeBox(t,det,cg); t.score=det.score; t.t0=now; t.gap=cg; t.alive=true; }
+    function mk(det){ var t={tid:det.tid,cls:det.cls,score:det.score,t0:now,gap:cg,alpha:0,alive:true};
+      t.box=oeBox(t,det,cg); return t; }
     // 1차: id 매칭(tid>=0) — 같은 tid 트랙에 트윈
     incoming.forEach(function(det){
       if(det.tid<0) return;
