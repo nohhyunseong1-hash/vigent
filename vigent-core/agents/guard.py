@@ -184,6 +184,7 @@ class GuardAgent(BaseAgent):
         self._models: dict[str, Any] = {}      # id → YOLO (지연 로드 캐시)
         self._load_errors: dict[str, str] = {}
         self._tracks: list[dict[str, Any]] = []  # 서버측 추적 박스(깜빡임 제거)
+        self._tid_seq: int = 0                    # 트랙 안정 id 시퀀스(클라 id 매칭용 · 1.8b)
         self.device = self._pick_device()        # GPU(MPS) 있으면 사용 → 추론 4배↑
         # config.slots 에서 실제 .pt 파일로 해석된 detector 슬롯만 추린다
         self._slot_path: dict[str, str] = {}
@@ -299,6 +300,7 @@ class GuardAgent(BaseAgent):
                 best["misses"] = 0                        # 이번 프레임에 매칭됨 → 미매칭 카운터 리셋
             else:
                 f = dict(f); f["seen"] = now; f["hits"] = 1; f["misses"] = 0
+                f["tid"] = self._tid_seq; self._tid_seq += 1   # 안정 id 부여(매칭 시 EMA 갱신돼도 불변)
                 self._tracks.append(f)
                 used.add(id(f))          # 새 트랙도 같은 프레임 내 재매칭 방지
         # 이번 프레임에 매칭/신규가 아닌(미매칭) 트랙은 연속 미매칭 횟수 증가

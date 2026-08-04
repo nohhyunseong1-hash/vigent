@@ -56,6 +56,7 @@ def detect_frame(payload: dict = Body(...), theme: str = DEFAULT_THEME):
     for d in out.get("detections", []):
         x1, y1, x2, y2 = d.get("bbox", [0, 0, 0, 0])
         dets.append({"class": d.get("label"), "score": d.get("conf"),
+                     "id": d.get("tid", -1),   # 안정 트랙 id(클라 id 매칭용 · 1.8b). 미부여=-1
                      "bbox": [round(x1 * W, 1), round(y1 * H, 1),
                               round((x2 - x1) * W, 1), round((y2 - y1) * H, 1)]})
     # 안전 전용: 잡동사니(노트북·TV·의자 등) 서버단에서 제거 → 사람·위험물·차량·화재·보호구만
