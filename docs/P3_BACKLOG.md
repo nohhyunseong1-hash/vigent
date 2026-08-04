@@ -178,3 +178,11 @@
 - **라이브 추적 계층 검증**: 낱장 mAP로 안 잡히는 추적 고유 실패(ID 스위치·유령추적) 연속프레임 회귀 — FINDINGS F-8 백로그([RELEASES.md](../md/RELEASES.md)·[COMMERCIAL_AUDIT.md](../md/COMMERCIAL_AUDIT.md)).
 - **문서 커버리지 확장(A-SPRINT Phase 2)**: 위험성평가서 외 관리체계·TBM·아차사고 생성기 — 골든셋·감사 이후([AGENT_STATUS.md](../md/AGENT_STATUS.md)).
 - **pose 매니페스트 legacy 정리**: `yolov8n-pose.pt`(구 포즈 백엔드) 항목 잔존(런타임 무영향) — 실제 백엔드 RTMPose.
+
+---
+
+## PA. Phase A(ByteTrack 2단계 저신뢰 연계) — 보류·재평가 대기(2026-08-04)
+- **무엇**: guard._track 을 2단계 연계로(고신뢰=1단계 매칭·새트랙, 저신뢰=기존 트랙 유지만·새트랙/이벤트 금지). 구현·게이트 통과했으나 **되돌림**(미커밋).
+- **왜 보류**: 확보 클립(초근접 단일 인물·완만 보행)에선 주 person tid 교체가 이미 **0**(1.9d 포함비·수정1 2차매칭으로 트랙 안정) → 개선 대상 없음. test_walk 검출수 +7(완료기준 "변화 0" 위반), fast 검출수 +28·2+박스 31→32%. **이득 0·비용만** → 규칙6.
+- **재평가 조건**: **가림(occlusion)·원거리 다인 클립** 확보 시. ByteTrack 이득은 고신뢰 검출을 자주 놓치는 상황에서 나타남. `benchmarks/record_fast.py` 로 여러 명이 서로 가리며 이동하는 클립 녹화 후 tid 교체 전/후 재측정.
+- **비고**: Phase B(슬롯 백엔드 A/B)는 Phase C(오탐 억제) 완료 후 — 억제 스택이 깔린 동일 조건에서 백엔드 비교.
