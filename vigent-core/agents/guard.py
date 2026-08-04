@@ -79,6 +79,16 @@ def _iou(a: list[float], b: list[float]) -> float:
     return inter / ua if ua > 0 else 0.0
 
 
+def _center_near(a: list[float], b: list[float], frac: float) -> bool:
+    """두 bbox 중심 거리가 (평균 대각선 × frac) 이하인가 — 빠른 이동으로 IoU 가 낮아도 동일 객체 판정용(1.9)."""
+    acx, acy = (a[0] + a[2]) / 2, (a[1] + a[3]) / 2
+    bcx, bcy = (b[0] + b[2]) / 2, (b[1] + b[3]) / 2
+    dist = ((acx - bcx) ** 2 + (acy - bcy) ** 2) ** 0.5
+    diag = (((a[2] - a[0]) ** 2 + (a[3] - a[1]) ** 2) ** 0.5
+            + ((b[2] - b[0]) ** 2 + (b[3] - b[1]) ** 2) ** 0.5) / 2
+    return diag > 0 and dist <= frac * diag
+
+
 def _nms(dets: list[dict[str, Any]], iou_thr: float = 0.55) -> list[dict[str, Any]]:
     """같은 라벨(대소문자 무시) 끼리 IoU 중복 제거 — 멀티모델/멀티스케일 중복 박스 정리."""
     out: list[dict[str, Any]] = []
@@ -293,6 +303,18 @@ class GuardAgent(BaseAgent):
                     i = _iou(t["bbox"], f["bbox"])
                     if i >= best_iou:
                         best, best_iou = t, i
+            if best is None:
+                # 2차 완화 매칭(1.9 수정1): 1차 IoU(TRACK_IOU=0.45) 탈락 검출을, 같은 라벨 미매칭 트랙과
+                #   IoU≥0.25 또는 중심거리≤대각선40% 면 이어붙임(새 트랙 금지) → 빠른 이동 분열 원천 감소.
+                #   TRACK_IOU 자체는 안 낮춤(전 소비자 영향). used 1:1 강제 유지.
+                cand, cand_iou = None, -1.0
+                for t in tracks:
+                    if id(t) in used or t["label"].lower() != f["label"].lower():
+                        continue
+                    i2 = _iou(t["bbox"], f["bbox"])
+                    if (i2 >= 0.25 or _center_near(t["bbox"], f["bbox"], 0.40)) and i2 > cand_iou:
+                        cand, cand_iou = t, i2
+                best = cand
             if best is not None:
                 used.add(id(best))
                 # 위치 EMA 평활(떨림 완화) — 새 bbox 를 일부만 반영
