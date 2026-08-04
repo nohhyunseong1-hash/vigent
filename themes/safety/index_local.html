@@ -642,15 +642,20 @@
       if(t.alpha>1) t.alpha=1;
       vis.push({t:t, box:dispBox(t,now)});   // 표시=트윈+외삽
     });
-    // 2패스 중복 병합 안전망(1.9 수정2): 같은 클래스 표시 박스끼리 IoU≥0.40 이고 면적비≤2 면 conf 높은 쪽만 표시.
-    //   서버 트랙 분열로 생긴 중복쌍(실측 IoU 0.458~0.507)을 화면에서 1개로 축약. ※트레이드오프: 나란히 선
-    //   두 사람이 IoU≥0.40·면적비≤2 로 겹치면 1명으로 병합될 수 있음(통상 IoU<0.4 라 드묾). 서버 응답은 불변.
+    // 2패스 중복 병합 안전망(1.9 수정2 + 1.9d): 같은 클래스 표시 박스끼리 (IoU≥0.40·면적비≤2) OR (포함비≥0.70)
+    //   면 conf 높은 쪽만 표시. 서버 트랙 분열 중복쌍(IoU 0.458~0.507)+빠른이동 중첩 유령을 화면에서 1개로.
+    //   서버 응답은 불변(안전망). ※트레이드오프: 인접 2인이 겹치거나 한쪽이 다른쪽에 포함되면 1명으로 병합 가능.
     for(var ai=0;ai<vis.length;ai++){ if(vis[ai].sup) continue;
       for(var bi=ai+1;bi<vis.length;bi++){ if(vis[bi].sup) continue;
         if(String(vis[ai].t.cls).toLowerCase()!==String(vis[bi].t.cls).toLowerCase()) continue;
-        var aa=vis[ai].box[2]*vis[ai].box[3], ab=vis[bi].box[2]*vis[bi].box[3];
+        var A=vis[ai].box, B=vis[bi].box;
+        var aa=A[2]*A[3], ab=B[2]*B[3];
         var ratio=(aa>0&&ab>0)?Math.max(aa/ab,ab/aa):9;
-        if(iou(vis[ai].box,vis[bi].box)>=0.40 && ratio<=2){
+        // 포함비(1.9d): 교집합/작은박스면적 — 큰 박스 안 작은 박스(IoU 낮음)를 잡는다.
+        var ix=Math.max(0,Math.min(A[0]+A[2],B[0]+B[2])-Math.max(A[0],B[0]));
+        var iy=Math.max(0,Math.min(A[1]+A[3],B[1]+B[3])-Math.max(A[1],B[1]));
+        var contain=(ix*iy)/Math.max(1,Math.min(aa,ab));
+        if((iou(A,B)>=0.40 && ratio<=2) || contain>=0.70){   // IoU 겹침 OR 포함비 → conf 낮은 쪽 제거
           if((vis[ai].t.score||0)>=(vis[bi].t.score||0)) vis[bi].sup=true;
           else { vis[ai].sup=true; break; }       // ai 가 밀리면 이 ai 는 표시 제외
         }

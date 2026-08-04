@@ -89,6 +89,42 @@ def _center_near(a: list[float], b: list[float], frac: float) -> bool:
     return diag > 0 and dist <= frac * diag
 
 
+def _area(b: list[float]) -> float:
+    return max(0.0, b[2] - b[0]) * max(0.0, b[3] - b[1])
+
+
+def _inter(a: list[float], b: list[float]) -> float:
+    iw = max(0.0, min(a[2], b[2]) - max(a[0], b[0]))
+    ih = max(0.0, min(a[3], b[3]) - max(a[1], b[1]))
+    return iw * ih
+
+
+def _containment_suppress(dets: list[dict[str, Any]], min_ratio: float = 0.70) -> list[dict[str, Any]]:
+    """같은 라벨 박스 쌍에서 '작은 박스가 큰 박스에 min_ratio 이상 포함(교집합/작은면적)'되고
+    작은 박스 conf ≤ 큰 박스 conf 면 작은 쪽 제거 — 모션블러/근접이 만든 중첩 유령 정리(1.9d).
+    NMS 는 IoU(교집합/합집합) 기준이라 큰 박스 안에 든 작은 박스(IoU 낮음)를 못 지운다 → 포함비로 보완.
+    ※트레이드오프: 앞사람이 뒷사람 박스에 포함되는 실제 2인 겹침에서 앞(작은)사람은 통상 conf 가 높아
+      살아남지만, 뒷사람 conf 가 더 높은 드문 경우 앞사람이 지워질 수 있다. conf 조건이 유일 안전장치."""
+    n = len(dets)
+    if n < 2:
+        return dets
+    drop = [False] * n
+    for i in range(n):
+        ai = _area(dets[i]["bbox"])
+        for j in range(n):
+            if i == j or drop[i] or drop[j]:
+                continue
+            if dets[i]["label"].lower() != dets[j]["label"].lower():
+                continue
+            aj = _area(dets[j]["bbox"])
+            if not (ai < aj):            # i 가 '엄격히 더 작은' 박스일 때만(동률은 skip → 이중제거 방지)
+                continue
+            if ai <= 0 or (_inter(dets[i]["bbox"], dets[j]["bbox"]) / ai >= min_ratio
+                           and dets[i]["conf"] <= dets[j]["conf"]):
+                drop[i] = True
+    return [d for k, d in enumerate(dets) if not drop[k]]
+
+
 def _nms(dets: list[dict[str, Any]], iou_thr: float = 0.55) -> list[dict[str, Any]]:
     """같은 라벨(대소문자 무시) 끼리 IoU 중복 제거 — 멀티모델/멀티스케일 중복 박스 정리."""
     out: list[dict[str, Any]] = []
@@ -163,6 +199,7 @@ class GuardAgent(BaseAgent):
     #    worker=카메라명(cam:<name>) · /detect/frame=요청 track_key(기본 browser) · 기타=default.
     #    → 다중 카메라/브라우저/오프라인 분석이 서로 트랙을 오염(잔상·유령·타카메라 명의 오발화)하지 않음.
     STALE_MAX_MISSES = 1
+    CONTAIN_RATIO = 0.70     # 포함비 억제 문턱(1.9d): 작은 박스가 큰 박스에 이 비율 이상 포함+conf 낮으면 제거
     # 보호구 클래스별 임계(후필터) — ppe 모델을 맵 최저 conf로 추론한 뒤 클래스별 임계로 거른다.
     #   최약체(NO-Hardhat)만 낮춰 재현율↑, 나머지는 유지. tuning.yaml detect.conf.ppe_per_class 로 조정.
     #   비어 있으면(기본) 기존 동작(단일 ppe conf) 그대로 → 저하 없음.
@@ -191,6 +228,7 @@ class GuardAgent(BaseAgent):
             self.IMGSZ = int(tuning.val("detect", "imgsz", self.IMGSZ))
             self.STALE_MAX_MISSES = int(tuning.val("detect", "stale_max_misses", self.STALE_MAX_MISSES))
             self.EMA = float(tuning.val("detect", "ema", self.EMA))   # 위치 평활 주입 가능(기본 0.75 불변 · 1.8b B-2 측정용)
+            self.CONTAIN_RATIO = float(tuning.val("detect", "contain_ratio", self.CONTAIN_RATIO))   # 포함비 억제 문턱(1.9d)
         except Exception:  # noqa: BLE001
             pass
         self._models: dict[str, Any] = {}      # id → YOLO (지연 로드 캐시)
@@ -426,6 +464,9 @@ class GuardAgent(BaseAgent):
         # 여러 모델/클래스 간 중복 박스 정리 → 서버측 추적으로 안정화(깜빡임 제거)
         detections = _nms(detections)
         detections = _suppress_vehicle_dupes(detections)   # 지게차↔버스 오인 중복 제거
+        # 포함비 억제(1.9d): 추적 이전에 중첩 유령 제거(유령이 트랙·person_count 를 부풀리기 전에 차단).
+        #   IoU-NMS 가 못 잡는 '큰 박스 안 작은 박스'를 포함비+conf 조건으로 정리.
+        detections = _containment_suppress(detections, self.CONTAIN_RATIO)
         detections = self._track(detections, track_key)
         # 안 B(box-overlay): 추적 이후, 교차소스(person 슬롯↔ppe 슬롯) person 중복만 병합.
         #   _nms(0.55)↔TRACK_IOU(0.45) 임계 불일치가 남긴 IoU 0.45~0.55 person 이중박스 해소.
