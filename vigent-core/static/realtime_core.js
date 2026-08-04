@@ -1000,7 +1000,7 @@ async function analyzeObjectsWithBackend(source,W,H){
       .filter(d=> activeServiceMode==='safety' || !isPpeClass(d.class))   // 보호구는 안전 테마에서만
       .map(d=>{
         const[x,y,w,h]=d.bbox;
-        return {class:d.class, score:d.score, bbox:[x*invX,y*invY,w*invX,h*invY], source:'backend', seenAt:_seenAt};
+        return {class:d.class, score:d.score, bbox:[x*invX,y*invY,w*invX,h*invY], source:'backend', seenAt:_seenAt, id:(d.id ?? -1)};   // id 가산(1.8b · 클라 id 매칭용, 미부여=-1)
       });
     backendBoostAt=_seenAt;
     // 세그멘테이션 폴리곤(통합 응답) — 좌표 환원 후 저장. detect와 같은 프레임이라 추가 인코딩 없음.

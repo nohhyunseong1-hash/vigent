@@ -578,8 +578,9 @@
     return [t.prev[0]+(t.tgt[0]-t.prev[0])*k, t.prev[1]+(t.tgt[1]-t.prev[1])*k,
             t.prev[2]+(t.tgt[2]-t.prev[2])*k, t.prev[3]+(t.tgt[3]-t.prev[3])*k];
   }
-  // 새 backendBoostAt 수신 시: person 제외, 같은 클래스·IoU>0.3 매칭해 prev=현재위치·tgt=새박스·t0=now·
-  //   dur=직전 갱신간격(300~1200ms 클램프)로 트윈 시작. 신규는 페이드인(alpha0), 소실은 페이드아웃(alive=false).
+  // 새 backendBoostAt 수신 시(1.8b id 우선): 서버 트랙 id(tid)가 같은 것끼리 트윈. id 없음(-1)이면
+  //   클래스+IoU>0.3 폴백. 사라진 id 트랙은 즉시 제거(drop), fallback 미매칭은 페이드아웃. person 제외(스켈레톤 담당).
+  //   ※ 서버 트랙 분열로 생긴 중복은 id 가 서로 달라 여기서 병합하지 않음(중복 해소는 서버 EMA 결정에 맡김).
   function ingest(){
     var now=Date.now(), gap=prevUpdateAt?(backendBoostAt-prevUpdateAt):0;
     var dur=gap>0?Math.max(300,Math.min(1200,gap)):350;
@@ -589,19 +590,26 @@
     prevUpdateAt=backendBoostAt;
     var incoming=(backendBoostDets||[])
       .filter(function(d){return String(d.class||'').toLowerCase()!=='person';})  // person 은 스켈레톤이 담당
-      .map(function(d){var b=d.bbox||[0,0,0,0]; return {cls:d.class||'', score:d.score||0, box:[b[0],b[1],b[2],b[3]]};});
+      .map(function(d){var b=d.bbox||[0,0,0,0]; return {tid:(d.id==null?-1:d.id), cls:d.class||'', score:d.score||0, box:[b[0],b[1],b[2],b[3]]};});
     var n=tracks.length, used=new Array(n).fill(false);
+    function upd(t,det){ t.prev=curBox(t,now); t.tgt=det.box; t.score=det.score; t.t0=now; t.dur=dur; t.alive=true; }
+    function mk(det){ return {tid:det.tid,cls:det.cls,score:det.score,prev:det.box.slice(),tgt:det.box.slice(),t0:now,dur:dur,alpha:0,alive:true}; }
+    // 1차: id 매칭(tid>=0) — 같은 tid 트랙에 트윈
     incoming.forEach(function(det){
-      var bi=-1, best=0.3;
-      for(var i=0;i<n;i++){
-        if(used[i]||String(tracks[i].cls).toLowerCase()!==det.cls.toLowerCase()) continue;
-        var v=iou(curBox(tracks[i],now),det.box); if(v>best){best=v; bi=i;}
-      }
-      if(bi>=0){ used[bi]=true; var t=tracks[bi];
-        t.prev=curBox(t,now); t.tgt=det.box; t.score=det.score; t.t0=now; t.dur=dur; t.alive=true;
-      } else tracks.push({cls:det.cls,score:det.score,prev:det.box.slice(),tgt:det.box.slice(),t0:now,dur:dur,alpha:0,alive:true});
+      if(det.tid<0) return;
+      for(var i=0;i<n;i++){ if(!used[i] && tracks[i].tid===det.tid){ used[i]=true; upd(tracks[i],det); det._done=true; return; } }
+      tracks.push(mk(det)); det._done=true;
     });
-    for(var i=0;i<n;i++){ if(!used[i]) tracks[i].alive=false; }   // 이번에 사라진 트랙 → 페이드아웃
+    // 2차: id 없음(-1) → 클래스+IoU>0.3 폴백(id 트랙과는 매칭 금지)
+    incoming.forEach(function(det){
+      if(det._done) return;
+      var bi=-1, best=0.3;
+      for(var i=0;i<n;i++){ if(used[i]||tracks[i].tid>=0||String(tracks[i].cls).toLowerCase()!==det.cls.toLowerCase()) continue;
+        var v=iou(curBox(tracks[i],now),det.box); if(v>best){best=v; bi=i;} }
+      if(bi>=0){ used[bi]=true; upd(tracks[bi],det); } else tracks.push(mk(det));
+    });
+    // 미매칭 기존 트랙: id 트랙은 즉시 제거(drop), fallback(-1)은 페이드아웃
+    for(var i=0;i<n;i++){ if(!used[i]){ if(tracks[i].tid>=0) tracks[i].drop=true; else tracks[i].alive=false; } }
   }
   function clearOverlay(){ overlay.width=overlay.clientWidth; overlay.height=overlay.clientHeight; }
   // rAF 렌더: SERVER 모드에서만 그림(브라우저 폴백 영향 0). 새 갱신 감지→ingest, 매 프레임 시간기반 트윈+페이드.
@@ -617,7 +625,8 @@
     octx.lineWidth=Math.max(2,r.w/320); octx.font='bold '+Math.max(12,Math.round(r.w/40))+'px system-ui,sans-serif';
     var kept=[];
     tracks.forEach(function(t){
-      t.alpha+=t.alive?0.12:-0.08;               // 페이드 인/아웃
+      if(t.drop) return;                          // 사라진 id 트랙 → 즉시 제거(kept 미포함)
+      t.alpha+=t.alive?0.2:-0.08;                 // 페이드인 ≤100ms(0.2/frame≈5f=83ms), 아웃(fallback)
       if(t.alpha<=0) return;                     // 아웃 완료 → 제거(kept 미포함)
       if(t.alpha>1) t.alpha=1;
       kept.push(t);
