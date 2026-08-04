@@ -179,6 +179,7 @@ class GuardAgent(BaseAgent):
                                          for k, v in (conf_cfg.get("fire_smoke_per_class") or {}).items()}
             self.IMGSZ = int(tuning.val("detect", "imgsz", self.IMGSZ))
             self.STALE_MAX_MISSES = int(tuning.val("detect", "stale_max_misses", self.STALE_MAX_MISSES))
+            self.EMA = float(tuning.val("detect", "ema", self.EMA))   # 위치 평활 주입 가능(기본 0.75 불변 · 1.8b B-2 측정용)
         except Exception:  # noqa: BLE001
             pass
         self._models: dict[str, Any] = {}      # id → YOLO (지연 로드 캐시)
