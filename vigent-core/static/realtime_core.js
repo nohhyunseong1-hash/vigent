@@ -986,14 +986,14 @@ async function analyzeObjectsWithBackend(source,W,H){
     const resp=await fetch(`${API_BASE}/detect/frame`,{
       method:'POST',
       headers:{'content-type':'application/json'},
-      body:JSON.stringify({image_base64, ppe: activeServiceMode==='safety' && (document.getElementById('togFieldMode')?.checked ?? true), safety_only: activeServiceMode==='safety', seg: wantSeg, pose: wantPose})
+      body:JSON.stringify({image_base64, ppe: activeServiceMode==='safety' && (document.getElementById('togFieldMode')?.checked ?? true), safety_only: activeServiceMode==='safety', seg: wantSeg, pose: wantPose, press: !!window.VIGENT_PRESS_MODE})   // press=2.6 프레스 방호구역 판정(페이지 플래그로 켬)
     });
     if(!resp.ok) return;
     const data=await resp.json();
     try{ window._vgRtt=performance.now()-_rtt0; }catch(_){}   // 2.5②: 왕복시간(적응형 주기 controller 가 읽음)
     if(!data.success) return;
     backendHazards=Array.isArray(data.hazards)?data.hazards:[];   // 화재/연기/흡연
-    try{ window.backendSignals=data.signals||{}; window.backendHazardsLive=backendHazards; window.proximityHazards=Array.isArray(data.proximity)?data.proximity:[]; }catch(_){}  // 라이브 이벤트 기록용 전역
+    try{ window.backendSignals=data.signals||{}; window.backendHazardsLive=backendHazards; window.proximityHazards=Array.isArray(data.proximity)?data.proximity:[]; window.backendPress=Array.isArray(data.press)?data.press:[]; }catch(_){}  // 라이브 이벤트 기록용 전역(press=2.6 프레스 방호구역 위반)
     if(!Array.isArray(data.detections)) return;
     // 백엔드 박스(전송한 cw×ch 좌표) → 원본 소스(W×H) 좌표로 환원
     const invX=(W||cw)/cw, invY=(H||ch)/ch;

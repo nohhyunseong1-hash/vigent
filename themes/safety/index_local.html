@@ -145,6 +145,8 @@
       <canvas id="srvOverlay" style="position:absolute;left:0;top:0;width:100%;height:100%;pointer-events:none;z-index:33"></canvas>
       <!-- ① 검출 소스 배지(오늘 같은 혼란 재발 방지 목적 — 눈에 띄게) -->
       <div id="srvSourceBadge" style="position:absolute;top:12px;left:12px;z-index:40;padding:7px 13px;border-radius:9px;font-weight:800;font-size:13px;letter-spacing:.2px;background:#444;color:#fff;box-shadow:0 2px 10px rgba(0,0,0,.45)">● 검출 소스 확인 중…</div>
+      <!-- 2.6 프레스 방호구역 위반 배너(보조·예방 경고 — 1차 방호는 인증 HW). 기본 숨김 -->
+      <div id="pressBanner" style="display:none;position:absolute;top:52px;left:12px;right:12px;z-index:41;padding:9px 14px;border-radius:9px;font-weight:800;font-size:14px;background:rgba(220,40,40,.92);color:#fff;box-shadow:0 2px 12px rgba(0,0,0,.5)"></div>
 
       <div id="recogPanel" class="recog-panel"><h4>지금 인식 중</h4><div class="dim" style="font-size:13px;">카메라를 켜면 표시됩니다</div></div>
       <div class="zone-btns" style="position:absolute;right:14px;bottom:14px;z-index:31;display:flex;gap:6px;">
@@ -324,6 +326,8 @@
         <div class="card">
           <div class="card-title"> 감지 설정</div>
           <div class="toggle-row"><span>바운딩 박스</span><label class="toggle"><input type="checkbox" id="togBBox" checked><span class="toggle-slider"></span></label></div>
+          <div class="toggle-row"><span>스켈레톤 표시</span><label class="toggle"><input type="checkbox" id="togSkel" checked><span class="toggle-slider"></span></label></div>
+          <div class="toggle-row"><span>프레스 방호구역</span><label class="toggle"><input type="checkbox" id="togPress"><span class="toggle-slider"></span></label></div>
           <div class="toggle-row"><span>라벨 표시</span><label class="toggle"><input type="checkbox" id="togLabel" checked><span class="toggle-slider"></span></label></div>
           <div class="toggle-row"><span>멀티스케일 감지</span><label class="toggle"><input type="checkbox" id="togMultiScale" checked><span class="toggle-slider"></span></label></div>
           <div class="toggle-row"><span>정확도 안정화</span><label class="toggle"><input type="checkbox" id="togPrecision" checked><span class="toggle-slider"></span></label></div>
@@ -648,9 +652,14 @@
     requestAnimationFrame(renderTick);
     if(!SERVER){ if(lastDrawn){ clearOverlay(); lastDrawn=0; } if(tracks.length) tracks=[]; lastAt=0; prevUpdateAt=0; return; }
     if(backendBoostAt && backendBoostAt!==lastAt){ ingest(); lastAt=backendBoostAt; }
-    if(!tracks.length){ if(lastDrawn){ clearOverlay(); lastDrawn=0; } return; }
+    if(!tracks.length){   // 박스 없어도 프레스 방호구역은 상시 표시(2.6 ③)
+      if(_pressOn()){ overlay.width=overlay.clientWidth; overlay.height=overlay.clientHeight; _drawPressZone(); lastDrawn=1; }
+      else if(lastDrawn){ clearOverlay(); lastDrawn=0; }
+      return;
+    }
     var now=Date.now();
     overlay.width=overlay.clientWidth; overlay.height=overlay.clientHeight;   // 표시 크기=백킹스토어(자동 클리어)
+    _drawPressZone();   // 2.6 ③: 방호구역 폴리곤(박스 뒤에 깔림)
     var r=mediaRect(overlay.width,overlay.height), vw=video.videoWidth||r.w, s=r.w/vw, flip=shouldFlipDisplay();
     var baseLW=Math.max(0.5,r.w/BOX_LINE_W_DIV);                               // 2.2c: 소수 허용(더 얇게)
     var fpx=Math.max(LABEL_MIN,Math.round(r.w/LABEL_FONT_DIV));                // 라벨 글씨 축소·normal(bold 제거)
@@ -775,7 +784,8 @@
   }
   function _drawPosesSmooth(W,H,scX,scY){
     if(!SERVER) return; _pW=W||640;
-    if(poseAt && poseAt!==_pLastAt){ _ingestPoses(); _pLastAt=poseAt; }
+    if(poseAt && poseAt!==_pLastAt){ _ingestPoses(); _pLastAt=poseAt; }   // ingest·판정은 항상(표시와 무관)
+    var _sk=document.getElementById('togSkel'); if(_sk && !_sk.checked) return;   // ① 스켈레톤 표시 토글: 그리기만 끔
     if(!_pTracks.length) return;
     var now=Date.now(), r=mediaRect(W,H), flip=shouldFlipDisplay(), KP=0.3;
     var fadeMs=Math.max(600, _pIngP50()*2.5);   // ① 페이드아웃 임계 = max(0.6s, ingest p50×2.5) — N/주기 바뀌어도 자동 정합
@@ -823,6 +833,35 @@
         window.VIGENT_DETECT_MIN_DYN=Math.max(100, Math.round(p50*1.2));
       }
     },1000);
+  })();
+
+  // 2.6 ③ 프레스 방호구역: 폴리곤 상시표시 + 위반 배너·경보음·이벤트. window.backendPress(서버 부위별 판정) 소비.
+  //   ⚠ 보조·예방 경고 — 1차 방호는 인증 HW(안전PLC·광전자) 책임. 여기선 경고·기록만.
+  var _machinePoly=[], _pressBeepAt=0;
+  function _pressOn(){ var t=document.getElementById('togPress'); return !!(t&&t.checked); }
+  function _drawPressZone(){
+    if(!_pressOn() || _machinePoly.length<3) return;
+    var rr=mediaRect(overlay.width,overlay.height), fl=shouldFlipDisplay();
+    octx.save(); octx.beginPath();
+    for(var i=0;i<_machinePoly.length;i++){ var mx=_machinePoly[i][0]*rr.w, sx=rr.x+(fl?rr.w-mx:mx), sy=rr.y+_machinePoly[i][1]*rr.h; if(i===0)octx.moveTo(sx,sy); else octx.lineTo(sx,sy); }
+    octx.closePath(); octx.fillStyle='rgba(220,40,40,.12)'; octx.fill(); octx.lineWidth=2; octx.strokeStyle='rgba(220,40,40,.9)'; octx.stroke(); octx.restore();
+  }
+  function _loadMachineZone(){ fetch('/zone/machine').then(function(r){return r.json();}).then(function(j){ _machinePoly=(j.points||[]).map(function(p){return [p.x,p.y];}); }).catch(function(){}); }
+  (function _pressCtl(){
+    var tg=document.getElementById('togPress'), banner=document.getElementById('pressBanner');
+    if(tg){ tg.addEventListener('change',function(){ window.VIGENT_PRESS_MODE=tg.checked; if(tg.checked)_loadMachineZone(); else if(banner)banner.style.display='none'; }); }
+    setInterval(function(){
+      if(!_pressOn()) return;
+      var v=window.backendPress||[];
+      if(v.length){
+        if(banner){ banner.textContent='⚠ 프레스 방호구역 침입(보조경고) — '+v.map(function(x){return 'id'+x.id+' '+(x.parts||[]).join('·');}).join(' / '); banner.style.display='block'; }
+        var now=Date.now();
+        if(now-_pressBeepAt>2000){ _pressBeepAt=now;
+          try{ var a=new (window.AudioContext||window.webkitAudioContext)(),o=a.createOscillator(); o.frequency.value=880; o.connect(a.destination); o.start(); setTimeout(function(){o.stop();a.close();},220); }catch(e){}
+          console.log('[press_body_intrusion]', JSON.stringify(v));   // 이벤트 스트림 기록(위반 부위·id)
+        }
+      } else if(banner){ banner.style.display='none'; }
+    },250);
   })();
 
   // 1.7단계: 자체 /detect/frame fetch 루프 제거 — realtime_core.js 가 이미 150ms로 호출해 채워둔
