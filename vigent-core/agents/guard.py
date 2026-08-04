@@ -125,6 +125,30 @@ def _containment_suppress(dets: list[dict[str, Any]], min_ratio: float = 0.70) -
     return [d for k, d in enumerate(dets) if not drop[k]]
 
 
+def _cross_validate_ppe(dets: list[dict[str, Any]], expand: float = 0.15) -> list[dict[str, Any]]:
+    """교차 검증 게이트(Phase C): PPE(detector=='ppe', NO-* 포함) 박스는 사람과 결부될 때만 유지.
+    유지 조건 = person 박스와 IoU>0(겹침) 또는 PPE 중심이 person 박스를 expand(15%) 확장한 영역 안.
+    사람이 아예 없으면 PPE 전부 폐기 → 벽·의자·모니터에 뜨는 PPE 오탐 제거(라이브·워커·이벤트 공통 혜택).
+    ※미착용(NO-*) 재현율 불변: 진짜 미착용은 그 사람 몸에 겹쳐 잡히므로 person 과 결부돼 살아남는다."""
+    ppe = [d for d in dets if d.get("detector") == "ppe"]
+    if not ppe:
+        return dets
+    persons = [d for d in dets if str(d.get("label", "")).lower() == "person"]
+    non_ppe = [d for d in dets if d.get("detector") != "ppe"]
+    if not persons:
+        return non_ppe            # 사람 없음 → PPE 전부 폐기
+    kept: list[dict[str, Any]] = []
+    for d in ppe:
+        b = d["bbox"]; cx, cy = (b[0] + b[2]) / 2, (b[1] + b[3]) / 2
+        for p in persons:
+            pb = p["bbox"]; ew = (pb[2] - pb[0]) * expand; eh = (pb[3] - pb[1]) * expand
+            if (_inter(b, pb) > 0
+                    or (pb[0] - ew <= cx <= pb[2] + ew and pb[1] - eh <= cy <= pb[3] + eh)):
+                kept.append(d)
+                break
+    return non_ppe + kept
+
+
 def _nms(dets: list[dict[str, Any]], iou_thr: float = 0.55) -> list[dict[str, Any]]:
     """같은 라벨(대소문자 무시) 끼리 IoU 중복 제거 — 멀티모델/멀티스케일 중복 박스 정리."""
     out: list[dict[str, Any]] = []
@@ -200,6 +224,7 @@ class GuardAgent(BaseAgent):
     #    → 다중 카메라/브라우저/오프라인 분석이 서로 트랙을 오염(잔상·유령·타카메라 명의 오발화)하지 않음.
     STALE_MAX_MISSES = 1
     CONTAIN_RATIO = 0.70     # 포함비 억제 문턱(1.9d): 작은 박스가 큰 박스에 이 비율 이상 포함+conf 낮으면 제거
+    PPE_PERSON_EXPAND = 0.15  # 교차게이트 문턱(Phase C): PPE 는 person 박스 이 비율 확장 영역과 결부돼야 유지
     # 보호구 클래스별 임계(후필터) — ppe 모델을 맵 최저 conf로 추론한 뒤 클래스별 임계로 거른다.
     #   최약체(NO-Hardhat)만 낮춰 재현율↑, 나머지는 유지. tuning.yaml detect.conf.ppe_per_class 로 조정.
     #   비어 있으면(기본) 기존 동작(단일 ppe conf) 그대로 → 저하 없음.
@@ -229,6 +254,7 @@ class GuardAgent(BaseAgent):
             self.STALE_MAX_MISSES = int(tuning.val("detect", "stale_max_misses", self.STALE_MAX_MISSES))
             self.EMA = float(tuning.val("detect", "ema", self.EMA))   # 위치 평활 주입 가능(기본 0.75 불변 · 1.8b B-2 측정용)
             self.CONTAIN_RATIO = float(tuning.val("detect", "contain_ratio", self.CONTAIN_RATIO))   # 포함비 억제 문턱(1.9d)
+            self.PPE_PERSON_EXPAND = float(tuning.val("detect", "ppe_person_expand", self.PPE_PERSON_EXPAND))   # 교차게이트(Phase C)
         except Exception:  # noqa: BLE001
             pass
         self._models: dict[str, Any] = {}      # id → YOLO (지연 로드 캐시)
@@ -461,12 +487,16 @@ class GuardAgent(BaseAgent):
                 d["detector"] = slot
                 detections.append(d)
 
-        # 여러 모델/클래스 간 중복 박스 정리 → 서버측 추적으로 안정화(깜빡임 제거)
+        # ── 서버 검출 정리 파이프라인(Phase C 순서 확정) ──────────────────────────
+        #   검출(멀티모델) → NMS(같은라벨 IoU 중복) → 차량오인 제거 → containment(중첩 유령)
+        #     → 교차게이트(PPE↔person 결부) → 추적(_track) → 교차소스 person 병합
+        #   ※오탐/유령을 '추적 이전'에 모두 걸러 트랙·person_count·이벤트 오염을 원천 차단.
         detections = _nms(detections)
         detections = _suppress_vehicle_dupes(detections)   # 지게차↔버스 오인 중복 제거
-        # 포함비 억제(1.9d): 추적 이전에 중첩 유령 제거(유령이 트랙·person_count 를 부풀리기 전에 차단).
-        #   IoU-NMS 가 못 잡는 '큰 박스 안 작은 박스'를 포함비+conf 조건으로 정리.
+        # 포함비 억제(1.9d): IoU-NMS 가 못 잡는 '큰 박스 안 작은 박스'를 포함비+conf 조건으로 정리.
         detections = _containment_suppress(detections, self.CONTAIN_RATIO)
+        # 교차게이트(Phase C): PPE 는 사람과 결부(겹침/확장영역 내)될 때만 유지 — 사람 없는 PPE 오탐 제거.
+        detections = _cross_validate_ppe(detections, self.PPE_PERSON_EXPAND)
         detections = self._track(detections, track_key)
         # 안 B(box-overlay): 추적 이후, 교차소스(person 슬롯↔ppe 슬롯) person 중복만 병합.
         #   _nms(0.55)↔TRACK_IOU(0.45) 임계 불일치가 남긴 IoU 0.45~0.55 person 이중박스 해소.
