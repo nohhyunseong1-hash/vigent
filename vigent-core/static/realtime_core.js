@@ -1015,7 +1015,7 @@ async function analyzeObjectsWithBackend(source,W,H){
     if(wantPose && Array.isArray(data.poses) && data.poses.length){
       prevBackendPoses=backendPoses; prevPoseAt=poseAt;   // 직전 프레임 보관(예측용)
       backendPoses=data.poses
-        .map(p=>({points:(p.keypoints||[]).map(k=>[k[0]*invX, k[1]*invY]), conf:p.keypoint_confidence||[]}))
+        .map(p=>({points:(p.keypoints||[]).map(k=>[k[0]*invX, k[1]*invY]), conf:p.keypoint_confidence||[], id:(p.id ?? -1)}))   // id 가산(2.4b · 표시 매칭용, 판정 코드는 무시)
         .filter(p=>p.points.length>=5);
       poseAt=Date.now();
     }

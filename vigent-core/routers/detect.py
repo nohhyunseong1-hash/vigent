@@ -49,6 +49,38 @@ def _multi_pose(img, imgsz: int) -> list[dict]:
         return []
 
 
+def _pose_bbox(keypoints: list, conf: list) -> list | None:
+    """유효(conf≥0.3) 키포인트들의 bounding box [x,y,w,h] (전송 이미지 픽셀)."""
+    xs, ys = [], []
+    for i, kp in enumerate(keypoints):
+        if i < len(conf) and conf[i] < 0.3:
+            continue
+        xs.append(kp[0]); ys.append(kp[1])
+    if not xs:
+        return None
+    return [min(xs), min(ys), max(xs) - min(xs), max(ys) - min(ys)]
+
+
+def _assign_pose_ids(poses: list[dict], person_dets: list[dict]) -> None:
+    """각 pose 에 person 트랙 id 부여(2.4b ①) — 키포인트 bbox ↔ person 박스 IoU 매칭(미매칭 -1).
+    박스·스켈레톤·색상이 같은 id 로 묶여 클라 매칭이 자명해진다. person_dets 는 [x,y,w,h] 픽셀."""
+    persons = [(d.get("id", -1), d["bbox"]) for d in person_dets
+               if str(d.get("class") or "").lower() == "person"]
+    for p in poses:
+        pb = _pose_bbox(p.get("keypoints", []), p.get("keypoint_confidence") or [])
+        bid, best = -1, 0.1
+        if pb:
+            for pid, box in persons:
+                ix = max(0.0, min(pb[0] + pb[2], box[0] + box[2]) - max(pb[0], box[0]))
+                iy = max(0.0, min(pb[1] + pb[3], box[1] + box[3]) - max(pb[1], box[1]))
+                inter = ix * iy
+                ua = pb[2] * pb[3] + box[2] * box[3] - inter
+                v = inter / ua if ua > 0 else 0.0
+                if v > best:
+                    best, bid = v, pid
+        p["id"] = bid
+
+
 @router.post("/detect/frame")
 def detect_frame(payload: dict = Body(...), theme: str = DEFAULT_THEME):
     """Guard 딥러닝 정밀 탐지(브라우저 백엔드 보강).
@@ -100,6 +132,9 @@ def detect_frame(payload: dict = Body(...), theme: str = DEFAULT_THEME):
                      "id": d.get("tid", -1),   # 안정 트랙 id(클라 id 매칭용 · 1.8b). 미부여=-1
                      "bbox": [round(x1 * W, 1), round(y1 * H, 1),
                               round((x2 - x1) * W, 1), round((y2 - y1) * H, 1)]})
+    # 포즈에 person 트랙 id 부여(2.4b ①) — safety_only 필터 전(사람 박스 온전할 때) 매칭.
+    if poses:
+        _assign_pose_ids(poses, dets)
     # 안전 전용: 잡동사니(노트북·TV·의자 등) 서버단에서 제거 → 사람·위험물·차량·화재·보호구만
     if payload.get("safety_only"):
         dets = [d for d in dets if is_safety_label(d.get("class"))]
