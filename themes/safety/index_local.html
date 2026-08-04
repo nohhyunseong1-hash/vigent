@@ -578,12 +578,19 @@
     return [t.prev[0]+(t.tgt[0]-t.prev[0])*k, t.prev[1]+(t.tgt[1]-t.prev[1])*k,
             t.prev[2]+(t.tgt[2]-t.prev[2])*k, t.prev[3]+(t.tgt[3]-t.prev[3])*k];
   }
+  function dispBox(t,now){ // 표시 위치 = 트윈 + (id 트랙 한정) 속도 외삽. 외삽량은 갱신간격 40% 로 캡.
+    var c=curBox(t,now);   // 폴백(id=-1) 트랙은 오매칭 튐 방지 위해 외삽 없음(1.9 수정3b)
+    if(t.tid>=0 && t.vel){ var dt=Math.min(now-t.t0, 0.4*(t.gap||350));
+      return [c[0]+t.vel[0]*dt, c[1]+t.vel[1]*dt, c[2]+t.vel[2]*dt, c[3]+t.vel[3]*dt]; }
+    return c;
+  }
   // 새 backendBoostAt 수신 시(1.8b id 우선): 서버 트랙 id(tid)가 같은 것끼리 트윈. id 없음(-1)이면
   //   클래스+IoU>0.3 폴백. 사라진 id 트랙은 즉시 제거(drop), fallback 미매칭은 페이드아웃. person 제외(스켈레톤 담당).
   //   ※ 서버 트랙 분열로 생긴 중복은 id 가 서로 달라 여기서 병합하지 않음(중복 해소는 서버 EMA 결정에 맡김).
   function ingest(){
     var now=Date.now(), gap=prevUpdateAt?(backendBoostAt-prevUpdateAt):0;
-    var dur=gap>0?Math.max(300,Math.min(1200,gap)):350;
+    var cg=gap>0?Math.max(300,Math.min(1200,gap)):350;   // 클램프한 갱신간격
+    var dur=0.6*cg;                                        // 1.9 수정3a: 트윈 지속=갱신간격 0.6배(1갱신→0.6갱신 지연)
     if(gap>0 && _iv.length<5){ _iv.push(gap);
       if(_iv.length===5) console.log('[safety-local] backend 갱신간격 5샘플(ms):', _iv.join(', '),
         '· p50≈'+_median(_iv)+'ms (실효 갱신율 · 요청 1개로 통합)'); }
@@ -592,8 +599,11 @@
       .filter(function(d){return String(d.class||'').toLowerCase()!=='person';})  // person 은 스켈레톤이 담당
       .map(function(d){var b=d.bbox||[0,0,0,0]; return {tid:(d.id==null?-1:d.id), cls:d.class||'', score:d.score||0, box:[b[0],b[1],b[2],b[3]]};});
     var n=tracks.length, used=new Array(n).fill(false);
-    function upd(t,det){ t.prev=curBox(t,now); t.tgt=det.box; t.score=det.score; t.t0=now; t.dur=dur; t.alive=true; }
-    function mk(det){ return {tid:det.tid,cls:det.cls,score:det.score,prev:det.box.slice(),tgt:det.box.slice(),t0:now,dur:dur,alpha:0,alive:true}; }
+    // upd: 트윈 갱신 + (id 트랙만) 속도 추정(직전 tgt→새 tgt / 갱신간격) — 외삽용
+    function upd(t,det){ var np=curBox(t,now);
+      if(t.tid>=0 && t.tgt) t.vel=[(det.box[0]-t.tgt[0])/cg,(det.box[1]-t.tgt[1])/cg,(det.box[2]-t.tgt[2])/cg,(det.box[3]-t.tgt[3])/cg];
+      t.prev=np; t.tgt=det.box; t.score=det.score; t.t0=now; t.dur=dur; t.gap=cg; t.alive=true; }
+    function mk(det){ return {tid:det.tid,cls:det.cls,score:det.score,prev:det.box.slice(),tgt:det.box.slice(),t0:now,dur:dur,gap:cg,alpha:0,alive:true}; }
     // 1차: id 매칭(tid>=0) — 같은 tid 트랙에 트윈
     incoming.forEach(function(det){
       if(det.tid<0) return;
@@ -623,14 +633,33 @@
     overlay.width=overlay.clientWidth; overlay.height=overlay.clientHeight;   // 표시 크기=백킹스토어(자동 클리어)
     var r=mediaRect(overlay.width,overlay.height), vw=video.videoWidth||r.w, s=r.w/vw, flip=shouldFlipDisplay();
     octx.lineWidth=Math.max(2,r.w/320); octx.font='bold '+Math.max(12,Math.round(r.w/40))+'px system-ui,sans-serif';
-    var kept=[];
+    // 1패스: drop/alpha 갱신 후 표시 후보 수집
+    var vis=[];
     tracks.forEach(function(t){
       if(t.drop) return;                          // 사라진 id 트랙 → 즉시 제거(kept 미포함)
       t.alpha+=t.alive?0.2:-0.08;                 // 페이드인 ≤100ms(0.2/frame≈5f=83ms), 아웃(fallback)
       if(t.alpha<=0) return;                     // 아웃 완료 → 제거(kept 미포함)
       if(t.alpha>1) t.alpha=1;
-      kept.push(t);
-      var c=curBox(t,now), x=c[0],y=c[1],w=c[2],h=c[3], col=colorFor(t.cls);
+      vis.push({t:t, box:dispBox(t,now)});   // 표시=트윈+외삽
+    });
+    // 2패스 중복 병합 안전망(1.9 수정2): 같은 클래스 표시 박스끼리 IoU≥0.40 이고 면적비≤2 면 conf 높은 쪽만 표시.
+    //   서버 트랙 분열로 생긴 중복쌍(실측 IoU 0.458~0.507)을 화면에서 1개로 축약. ※트레이드오프: 나란히 선
+    //   두 사람이 IoU≥0.40·면적비≤2 로 겹치면 1명으로 병합될 수 있음(통상 IoU<0.4 라 드묾). 서버 응답은 불변.
+    for(var ai=0;ai<vis.length;ai++){ if(vis[ai].sup) continue;
+      for(var bi=ai+1;bi<vis.length;bi++){ if(vis[bi].sup) continue;
+        if(String(vis[ai].t.cls).toLowerCase()!==String(vis[bi].t.cls).toLowerCase()) continue;
+        var aa=vis[ai].box[2]*vis[ai].box[3], ab=vis[bi].box[2]*vis[bi].box[3];
+        var ratio=(aa>0&&ab>0)?Math.max(aa/ab,ab/aa):9;
+        if(iou(vis[ai].box,vis[bi].box)>=0.40 && ratio<=2){
+          if((vis[ai].t.score||0)>=(vis[bi].t.score||0)) vis[bi].sup=true;
+          else { vis[ai].sup=true; break; }       // ai 가 밀리면 이 ai 는 표시 제외
+        }
+      }
+    }
+    // 3패스: 억제 안 된 것만 그림(억제된 트랙도 tracks 에는 유지 → 승자 소실 시 다음 프레임 복귀)
+    var kept=[];
+    vis.forEach(function(v){ kept.push(v.t); if(v.sup) return;
+      var t=v.t, c=v.box, x=c[0],y=c[1],w=c[2],h=c[3], col=colorFor(t.cls);
       var dx=flip ? r.x+r.w-(x+w)*s : r.x+x*s, dy=r.y+y*s, dw=w*s, dh=h*s;
       octx.globalAlpha=t.alpha;
       octx.strokeStyle=col; octx.strokeRect(dx,dy,dw,dh);
@@ -639,7 +668,7 @@
       octx.fillStyle='#fff'; octx.fillText(lab,dx+4,Math.max(13,dy-5));
     });
     octx.globalAlpha=1;
-    tracks=kept; lastDrawn=tracks.length;
+    tracks=kept; lastDrawn=kept.length;
   }
   requestAnimationFrame(renderTick);
   // 이중 렌더 제거: 서버모드일 때 브라우저 COCO-SSD 객체 렌더(realtime_core.js drawObjects)만 억제.
