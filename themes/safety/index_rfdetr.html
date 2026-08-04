@@ -111,14 +111,16 @@ function boxColor(label,inZone){
   if(['bottle','cup','bowl','fork','knife','spoon','wine glass'].includes(L)) return '#ffd23a'; // 식기=노랑
   return '#9aa7ff';
 }
+// 2.2c: 박스마다 트랙 id 별 고유색(황금각 137.5°). id 미부여(-1)면 회색. 침입은 색 무관하게 선 +1.
+function colorForId(n){ if(n==null||n<0) return '#9aa7b0'; return 'hsl('+((n*137.508)%360).toFixed(0)+',80%,58%)'; }
 function drawBoxes(dets){
-  // 2.2b: 선 얇게·글씨 축소(index_local 과 스타일 통일). 크게 하려면 640/80 을 줄여라.
-  const LW=Math.max(1,Math.round(canvas.width/640)), FPX=Math.max(10,Math.round(canvas.width/80));
+  // 2.2b·2.2c: 선 얇게(640→1280·소수 허용)·글씨 축소(index_local 통일). 굵게=DIV↓.
+  const LW=Math.max(0.5,canvas.width/1280), FPX=Math.max(10,Math.round(canvas.width/80));
   ctx.save(); ctx.font=FPX+'px monospace'; ctx.lineWidth=LW; ctx.textBaseline='bottom';
   dets.forEach(d=>{ const [x1,y1,x2,y2]=d.bbox;
     const px=x1*canvas.width, py=y1*canvas.height, pw=(x2-x1)*canvas.width, ph=(y2-y1)*canvas.height;
-    const col=boxColor(d.label,d.in_zone);
-    ctx.lineWidth=LW+(d.in_zone?1:0);                 // 침입(빨강)은 +1(식별성 유지·안전 제품)
+    const col=colorForId(d.id);                       // 2.2c: 트랙 id 별 고유색
+    ctx.lineWidth=LW+(d.in_zone?1:0);                 // 침입은 색 무관하게 선 +1(식별성 유지·안전 제품)
     ctx.strokeStyle=col; ctx.strokeRect(px,py,pw,ph);
     const tag=`${d.label} ${(d.conf*100).toFixed(0)}%`; const tw=ctx.measureText(tag).width+6, bh=FPX+3;
     ctx.fillStyle=col; ctx.fillRect(px,py-bh,tw,bh); ctx.fillStyle='#05070a'; mtext(tag,px+3,py-3);

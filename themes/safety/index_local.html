@@ -543,10 +543,11 @@
   }).catch(function(){ SERVER=false; setBadge('browser'); });
 
   // 2.2b 박스 표시 스타일 상수(로직 무관 — 크게 하려면 DIV 를 줄여라):
-  var BOX_LINE_W_DIV=640;   // 선 굵기 = round(r.w/이값) (작을수록 굵음)
+  var BOX_LINE_W_DIV=1280;  // 선 굵기 = r.w/이값 (2.2c: 640→1280, 현재의 절반. 소수 허용. 굵게=DIV↓)
   var LABEL_FONT_DIV=80;    // 라벨 글씨 = round(r.w/이값) px
   var LABEL_MIN=10;         // 라벨 최소 px(가독성 하한)
-  var DANGER_COL='#e63946'; // 위험(미착용·침입) 색 — 이 색 박스만 선 +1(식별성 유지·안전 제품)
+  // 2.2c: 박스마다 트랙 id 별 고유색(황금각 색상환 137.5°). id 미부여(-1)면 회색. 위험(미착용)은 색과 무관하게 선 +1.
+  function colorForId(n){ if(n==null||n<0) return '#9aa7b0'; return 'hsl('+((n*137.508)%360).toFixed(0)+',80%,58%)'; }
   function colorFor(cls){
     var c=(cls||'').toLowerCase();
     if(c.indexOf('no-')===0) return '#e63946';                                   // 미착용류=빨강
@@ -651,7 +652,7 @@
     var now=Date.now();
     overlay.width=overlay.clientWidth; overlay.height=overlay.clientHeight;   // 표시 크기=백킹스토어(자동 클리어)
     var r=mediaRect(overlay.width,overlay.height), vw=video.videoWidth||r.w, s=r.w/vw, flip=shouldFlipDisplay();
-    var baseLW=Math.max(1,Math.round(r.w/BOX_LINE_W_DIV));                     // 2.2b: 선 굵기 절반↓(대형화면도 얇게)
+    var baseLW=Math.max(0.5,r.w/BOX_LINE_W_DIV);                               // 2.2c: 소수 허용(더 얇게)
     var fpx=Math.max(LABEL_MIN,Math.round(r.w/LABEL_FONT_DIV));                // 라벨 글씨 축소·normal(bold 제거)
     octx.font=fpx+'px system-ui,sans-serif';
     // 1패스: drop/alpha 갱신 후 표시 후보 수집
@@ -685,10 +686,11 @@
     // 3패스: 억제 안 된 것만 그림(억제된 트랙도 tracks 에는 유지 → 승자 소실 시 다음 프레임 복귀)
     var kept=[];
     vis.forEach(function(v){ kept.push(v.t); if(v.sup) return;
-      var t=v.t, c=v.box, x=c[0],y=c[1],w=c[2],h=c[3], col=colorFor(t.cls);
+      var t=v.t, c=v.box, x=c[0],y=c[1],w=c[2],h=c[3], col=colorForId(t.tid);   // 2.2c: 트랙 id 별 고유색
+      var isDanger=/^no-/i.test(String(t.cls));                                 // 미착용=위험(색 무관하게 선 +1)
       var dx=flip ? r.x+r.w-(x+w)*s : r.x+x*s, dy=r.y+y*s, dw=w*s, dh=h*s;
       octx.globalAlpha=t.alpha;
-      octx.lineWidth=baseLW+(col===DANGER_COL?1:0);                            // 위험(빨강)은 +1
+      octx.lineWidth=baseLW+(isDanger?1:0);                                     // 위험(미착용)은 +1
       octx.strokeStyle=col; octx.strokeRect(dx,dy,dw,dh);
       var lab=t.cls+' '+Math.round((t.score||0)*100)+'%', tw=octx.measureText(lab).width+6, bh=fpx+4;
       octx.fillStyle=col; octx.fillRect(dx,Math.max(0,dy-bh),tw,bh);           // 배경 바 높이=글씨 비례
