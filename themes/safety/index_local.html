@@ -804,6 +804,21 @@
     } else setTimeout(wrapBackendPoses,300);
   })();
 
+  // 2.5② 적응형 검출 주기(페이지 한정): 검출 min = max(100, 왕복 p50 × 1.2) → 서버 유휴 확보(포화 해소).
+  //   왕복시간(window._vgRtt, realtime_core 가 매 요청 기록)의 최근 p50 로 1초마다 갱신. 전역 상수 불변·타 테마 무영향.
+  (function _adaptPeriod(){
+    var rtt=[];
+    setInterval(function(){
+      if(!SERVER) return;
+      var r=window._vgRtt;
+      if(typeof r==='number' && r>0){ rtt.push(r); if(rtt.length>12) rtt.shift(); }
+      if(rtt.length>=3){
+        var s=rtt.slice().sort(function(a,b){return a-b;}), p50=s[Math.floor(s.length/2)];
+        window.VIGENT_DETECT_MIN_DYN=Math.max(100, Math.round(p50*1.2));
+      }
+    },1000);
+  })();
+
   // 1.7단계: 자체 /detect/frame fetch 루프 제거 — realtime_core.js 가 이미 150ms로 호출해 채워둔
   //   backendBoostDets/backendBoostAt 를 renderTick 이 읽어 그린다(요청 스트림 2개→1개, 서버 대기열 단축).
 })();

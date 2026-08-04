@@ -967,9 +967,10 @@ async function analyzeObjectsWithBackend(source,W,H){
   if(!W||!H) return;
   const now=Date.now();
   // 스켈레톤 실시간성 위해 모든 테마 6.6fps(150ms)
-  if(now-lastBackendBoostAt < DETECT_MIN_INTERVAL_MS) return;
+  if(now-lastBackendBoostAt < (window.VIGENT_DETECT_MIN_DYN||DETECT_MIN_INTERVAL_MS)) return;   // 2.5②: 동적 min(페이지 적응형 주기·미설정 시 기존값)
   lastBackendBoostAt=now;
   backendBoostBusy=true;
+  const _rtt0=performance.now();   // 2.5②: 왕복시간 측정(적응형 주기용)
   try{
     const maxW=640;
     const scale=Math.min(1,maxW/(W||640));
@@ -989,6 +990,7 @@ async function analyzeObjectsWithBackend(source,W,H){
     });
     if(!resp.ok) return;
     const data=await resp.json();
+    try{ window._vgRtt=performance.now()-_rtt0; }catch(_){}   // 2.5②: 왕복시간(적응형 주기 controller 가 읽음)
     if(!data.success) return;
     backendHazards=Array.isArray(data.hazards)?data.hazards:[];   // 화재/연기/흡연
     try{ window.backendSignals=data.signals||{}; window.backendHazardsLive=backendHazards; window.proximityHazards=Array.isArray(data.proximity)?data.proximity:[]; }catch(_){}  // 라이브 이벤트 기록용 전역

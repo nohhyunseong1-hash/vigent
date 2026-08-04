@@ -14,6 +14,7 @@ router = APIRouter()
 # 다인 포즈(2.4): yolov8n-pose(bottom-up) 1회 로드 캐시. CPU 고정(ultralytics MPS 다모델 크래시 이력).
 _POSE_MODEL = None
 _POSE_LOAD_ERR: str | None = None
+_POSE_TICK: dict[str, int] = {}   # 2.5 ①: track_key 별 요청 카운터(인터리브)
 
 
 def _multi_pose(img, imgsz: int) -> list[dict]:
@@ -122,7 +123,16 @@ def detect_frame(payload: dict = Body(...), theme: str = DEFAULT_THEME):
         out = guard.detect(img, detectors=detectors, conf=payload.get("conf"),
                            imgsz=live_imgsz, track_key=track_key)
         # 다인 포즈(2.4): pose=true 요청 시에만. 락 내부 실행(guard 와 직렬화). CPU 라 MPS 무영향.
-        poses = _multi_pose(img, live_imgsz) if payload.get("pose") else []
+        # 2.5 ① 인터리브: N요청당 1회만 추론(기본 3). 스킵 요청은 [] → 프론트가 직전 poses 유지 +
+        #   One-Euro·외삽(2.4b)으로 사이를 메워 ~3Hz ingest 로도 부드러움 유지. N=1 이면 매 프레임(현행).
+        poses = []
+        if payload.get("pose"):
+            import tuning as _tun
+            _n = max(1, int(_tun.val("detect", "pose_interleave", 3)))
+            _c = _POSE_TICK.get(track_key, 0)
+            _POSE_TICK[track_key] = _c + 1
+            if _c % _n == 0:
+                poses = _multi_pose(img, live_imgsz)
     # 정규화 bbox(0~1) → 전송 이미지 픽셀 [x,y,w,h] + 프론트 키(class/score)로 변환
     H, W = img.shape[:2]
     dets = []
