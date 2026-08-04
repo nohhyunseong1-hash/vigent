@@ -15,6 +15,8 @@ router = APIRouter()
 _POSE_MODEL = None
 _POSE_LOAD_ERR: str | None = None
 _POSE_TICK: dict[str, int] = {}   # 2.5 ①: track_key 별 요청 카운터(인터리브)
+_PRESS_STREAK: dict[str, dict[int, int]] = {}   # 2.6: track_key → {person id: 연속 위반 프레임}
+_PRESS_LAST: dict[str, list] = {}               # 2.6: 스킵 프레임에 직전 press 상태 유지
 
 
 def _multi_pose(img, imgsz: int) -> list[dict]:
@@ -145,6 +147,35 @@ def detect_frame(payload: dict = Body(...), theme: str = DEFAULT_THEME):
     # 포즈에 person 트랙 id 부여(2.4b ①) — safety_only 필터 전(사람 박스 온전할 때) 매칭.
     if poses:
         _assign_pose_ids(poses, dets)
+    # 프레스 방호구역 부위별 침입(2.6) — press=true 요청 시. 보조·예방 신호만(1차 방호는 인증 HW 책임).
+    #   히스테리시스: 사람 id 별 연속 confirm_frames(기본 2) 위반 시 확정. 포즈 없는(인터리브 스킵) 프레임은 직전 상태 유지.
+    press: list = []
+    if payload.get("press"):
+        import press_zone
+        import tuning as _tun
+        from web_util import zone_get
+        if poses:
+            polys = [press_zone.zone_points_to_poly((zone_get(theme, "machine_hazard_zones") or {}).get("points", []))]
+            cframes = max(1, int(_tun.val("press", "confirm_frames", 2)))
+            kpc = float(_tun.val("press", "kp_conf", 0.5))
+            viol = {v["id"]: v["parts"] for v in press_zone.evaluate(poses, polys, W, H, kpc)}
+            streak = _PRESS_STREAK.setdefault(track_key, {})
+            confirmed, seen = [], set()
+            for _p in poses:
+                pid = _p.get("id", -1)
+                seen.add(pid)
+                if pid in viol:
+                    streak[pid] = streak.get(pid, 0) + 1
+                    if streak[pid] >= cframes:
+                        confirmed.append({"id": pid, "parts": viol[pid]})
+                else:
+                    streak[pid] = 0
+            for _k in [k for k in streak if k not in seen]:
+                del streak[_k]
+            _PRESS_LAST[track_key] = confirmed
+            press = confirmed
+        else:
+            press = _PRESS_LAST.get(track_key, [])
     # 안전 전용: 잡동사니(노트북·TV·의자 등) 서버단에서 제거 → 사람·위험물·차량·화재·보호구만
     if payload.get("safety_only"):
         dets = [d for d in dets if is_safety_label(d.get("class"))]
@@ -159,7 +190,7 @@ def detect_frame(payload: dict = Body(...), theme: str = DEFAULT_THEME):
     prox = _prox.detect(out.get("detections", []), radius_m, aspect_hw=H / W)   # 감사 E-1: 종횡비 보정
     return {"success": True, "detections": dets, "hazards": hazards,
             "person_count": out.get("person_count", 0), "signals": out.get("signals", {}),
-            "proximity": prox, "poses": poses}
+            "proximity": prox, "poses": poses, "press": press}
 
 @router.post("/rfdetr/frame")
 def rfdetr_frame(payload: dict = Body(...)):
