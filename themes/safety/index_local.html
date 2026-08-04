@@ -736,14 +736,19 @@
 
   // 2.4b: 백엔드 다인 스켈레톤 표시 평활(키포인트 One-Euro + 속도외삽 + id 매칭). 박스(2.2c)와 동일 처방.
   //   ※판정용 raw backendPoses 는 절대 수정 안 함 — 여기서 별도 _pTracks(표시 상태)만 만들어 그린다(규칙6).
-  var _pTracks=[], _pLastAt=0, _pPrevAt=0, _pW=640;
+  var _pTracks=[], _pLastAt=0, _pPrevAt=0, _pW=640, _pIv=[];   // _pIv: 실측 ingest 간격(ms) 샘플
+  function _pIngP50(){ if(_pIv.length<3) return 330; var s=_pIv.slice().sort(function(a,b){return a-b;}); return s[Math.floor(s.length/2)]; }
   function _kpCent(pts,cf){ var sx=0,sy=0,n=0; for(var i=0;i<pts.length;i++){ if(!pts[i]||(cf[i]??1)<0.3)continue; sx+=pts[i][0]; sy+=pts[i][1]; n++; } return n?[sx/n,sy/n]:null; }
-  function _oeKp(s,v,dt){ var MC=1.0,BETA=1.0,DC=1.0;   // 키포인트는 노이지 → 박스(BETA 3.0)보다 낮게
+  function _oeKp(s,v,dt){ var MC=1.0,BETA=1.0,DC=1.0;   // 키포인트는 노이지 → 박스(BETA 3.0)보다 낮게. 오버슈트 제어도 여기서
     var al=function(c){var tau=1/(2*Math.PI*c); return 1/(1+tau/dt);};
     if(s.x===undefined){ s.x=v; s.dx=0; return v; }
     var dv=(v-s.x)/dt; s.dx=s.dx+al(DC)*(dv-s.dx); var cut=MC+BETA*Math.abs(s.dx); s.x=s.x+al(cut)*(v-s.x); return s.x; }
+  // ② prev→tgt 시간 tween — ingest 간격 전체에 걸쳐 연속 이동(정지 구간 없음). tgt=One-Euro 필터값이라 오버슈트 없음.
+  function _curKp(t,now){ var k=Math.min(1,(now-t.t0)/(t.gap||330));
+    return t.tgt.map(function(tp,i){ var pp=t.prev[i]; return (tp&&pp)?[pp[0]+(tp[0]-pp[0])*k, pp[1]+(tp[1]-pp[1])*k]:(tp||pp||null); }); }
   function _ingestPoses(){
-    var now=Date.now(), gap=_pPrevAt?(poseAt-_pPrevAt):0, cg=gap>0?Math.max(80,Math.min(600,gap)):112, dt=cg/1000;
+    var now=Date.now(), gap=_pPrevAt?(poseAt-_pPrevAt):0, cg=gap>0?Math.max(120,Math.min(1000,gap)):330, dt=cg/1000;
+    if(gap>0){ _pIv.push(gap); if(_pIv.length>10)_pIv.shift(); }
     _pPrevAt=poseAt;
     var used=new Array(_pTracks.length).fill(false);
     (backendPoses||[]).forEach(function(pose){
@@ -756,30 +761,31 @@
       }
       var t;
       if(ti>=0){ used[ti]=true; t=_pTracks[ti]; t.id=(id>=0?id:t.id); }
-      else { t={id:id, oe:[], kp:[], vel:[], conf:[], t0:now, gap:cg, alpha:0, alive:true, cent:cent}; _pTracks.push(t); used[_pTracks.length-1]=true; }
+      else { t={id:id, oe:[], prev:[], tgt:[], conf:[], t0:now, gap:cg, lastSeen:now, alpha:0, cent:cent}; _pTracks.push(t); used[_pTracks.length-1]=true; }
+      var cur = t.tgt.length ? _curKp(t,now) : null;   // 갱신 순간의 현재 표시 위치 → prev(트윈 연속성 보존)
       for(var k=0;k<pts.length;k++){
         if(!t.oe[k]) t.oe[k]={x:{},y:{}};
         var nv= pts[k] ? [_oeKp(t.oe[k].x,pts[k][0],dt), _oeKp(t.oe[k].y,pts[k][1],dt)] : null;
-        if(nv && t.kp[k]) t.vel[k]=[(nv[0]-t.kp[k][0])/cg,(nv[1]-t.kp[k][1])/cg]; else if(!t.vel[k]) t.vel[k]=[0,0];
-        if(nv) t.kp[k]=nv;
+        t.prev[k] = (cur&&cur[k]) ? cur[k] : (t.tgt[k]||nv||null);
+        if(nv) t.tgt[k]=nv;
       }
-      t.conf=cf.slice(); t.t0=now; t.gap=cg; t.alive=true; t.cent=cent;
+      t.conf=cf.slice(); t.t0=now; t.gap=cg; t.lastSeen=now; t.cent=cent;
     });
-    for(var j=0;j<_pTracks.length;j++){ if(!used[j]) _pTracks[j].alive=false; }
+    // 미매칭 트랙: 즉시 페이드 아님 — lastSeen 유지(홀드). 렌더가 시간 임계로 판단(단발 미검출 깜빡임 H1 방지).
   }
   function _drawPosesSmooth(W,H,scX,scY){
     if(!SERVER) return; _pW=W||640;
     if(poseAt && poseAt!==_pLastAt){ _ingestPoses(); _pLastAt=poseAt; }
     if(!_pTracks.length) return;
     var now=Date.now(), r=mediaRect(W,H), flip=shouldFlipDisplay(), KP=0.3;
+    var fadeMs=Math.max(600, _pIngP50()*2.5);   // ① 페이드아웃 임계 = max(0.6s, ingest p50×2.5) — N/주기 바뀌어도 자동 정합
     var px=function(x){ var sx=x*scX; return r.x+(flip? r.w-sx : sx); }, py=function(y){ return r.y+y*scY; };
     ctx.save(); ctx.lineCap='round';
     var kept=[];
     _pTracks.forEach(function(t){
-      t.alpha += t.alive ? 0.2 : -0.06;                 // 페이드 인 ≤100ms / 아웃 ~0.3s(잔상 방지)
+      t.alpha += ((now-t.lastSeen)>fadeMs) ? -0.08 : 0.2;   // 임계 초과 시에만 페이드아웃(단발 미검출은 홀드)
       if(t.alpha<=0) return; if(t.alpha>1) t.alpha=1; kept.push(t);
-      var ex=Math.min(now-t.t0, 0.4*(t.gap||112)), cf=t.conf;   // 속도 외삽 캡 40%(박스와 동일)
-      var dk=t.kp.map(function(p,i){ return p ? [p[0]+(t.vel[i]?t.vel[i][0]:0)*ex, p[1]+(t.vel[i]?t.vel[i][1]:0)*ex] : null; });
+      var dk=_curKp(t,now), cf=t.conf;   // ② 트윈 연속 이동(정지 구간 없음)
       ctx.globalAlpha=t.alpha; ctx.lineWidth=3;
       COCO_SKELETON.forEach(function(e){ var a=e[0],b=e[1]; if(!dk[a]||!dk[b]||(cf[a]??1)<KP||(cf[b]??1)<KP) return;
         var x1=px(dk[a][0]),y1=py(dk[a][1]),x2=px(dk[b][0]),y2=py(dk[b][1]);
