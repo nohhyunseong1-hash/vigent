@@ -164,6 +164,7 @@ vigent-core/
 | **동시 세션** | 여러 백그라운드 세션은 반드시 git worktree로 격리(공유 워킹트리 checkout 금지). 커밋 전 `git branch --show-current` 확인. | CLAUDE.md §8 |
 | **/detect/frame 신규 호출부는 반드시 고유 track_key 지정** | track_key 를 안 주면 기본 `"browser"` 추적 풀을 공유 → 서로 다른 카메라/장면의 트랙이 섞여 **유령 박스**가 생긴다(5단계 원증상의 재발). 새 검출 호출부는 `track_key:"<페이지>:<카메라id>"` 처럼 고유 키를 줄 것. 회귀 테스트: `tests/test_track_key_isolation.py`. | 5단계 · 3.6(허브 스포트라이트) |
 | **박스/스켈레톤 표시 로직은 공용 모듈만 사용** | 검증된 박스 표시 스택(추적·One-Euro·속도외삽·dedup·페이드)은 `static/vigent-box-display.js`(`VigentBoxDisplay.BoxTracker`)에 있다. **신규 화면에서 재구현 금지**(index_local·허브 확대뷰가 공유). 재구현하면 검증값·외삽이 빠져 '늦게 따라옴'이 재발한다(3.6·3.7 실제). 추출 등가성은 node 하네스로 증명(모듈=원본 0불일치). | 2.1~2.2 · 3.7 |
+| **같은 카메라에 검출 스트림을 2개 만들지 말 것** | 표시가 필요하면 워커 결과 재사용(`GET /cameras/{id}/detections` — ts·tid 포함, 추론 0·왕복 2ms)을 쓰고, 갱신율이 필요하면 `POST /cameras/{id}/focus{on:true}`(focus_fps 부스트)로 워커 fps 만 올린다. 확대뷰가 자체 `/detect/frame` 을 돌리면 워커와 `_DETECT_LOCK` 경합(3.7 실측 왕복 545ms→버벅임). "한 소스=한 검출 스트림"(1.7단계). | 1.7 · 3.8 |
 
 ---
 

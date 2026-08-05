@@ -527,6 +527,8 @@ class Worker:
         self._last_pc = 0                                    # 최신 인원수
         self._last_sig: dict = {}                            # 최신 파생신호(ppe_missing·fire 등)
         self._last_fired: list = []                          # 3.1b: 최신 발화 규칙명(zone_intrusion·fall 등) — 대시보드 뱃지·전역경보
+        self._last_det_ts = 0.0                              # 3.8: 최신 검출 갱신 시각(ms) — 확대뷰 ingest 간격 산출
+        self._interval = 0.5                                 # 3.8: 가변 루프 간격(초). set_fps 로 포커스 부스트
         self.state: dict[str, Any] = {
             "running": False, "source": "", "name": "", "fps": 0,
             "frames": 0, "events": 0, "last_event": "", "error": ""}
@@ -558,6 +560,13 @@ class Worker:
             self._thread.join(timeout=5)
         self.state["running"] = False
         return {"ok": True, "status": self.status()}
+
+    def set_fps(self, fps: float) -> dict:
+        """런타임 fps 변경(재시작 없이 루프 간격만) — 확대뷰 포커스 부스트/복원용(3.8)."""
+        fps = max(0.2, float(fps))
+        self._interval = 1.0 / fps
+        self.state["fps"] = fps
+        return {"ok": True, "fps": fps}
 
     def status(self) -> dict:
         s = dict(self.state)
@@ -661,8 +670,10 @@ class Worker:
                 # 3.0: 대시보드 스냅샷·오버레이용 최신 상태 보관(정규화 bbox — 프론트가 화면크기로 복원).
                 self._last_frame = frame
                 self._last_dets = [{"class": d.get("label"), "score": round(float(d.get("conf", 0)), 3),
-                                    "bbox": [round(float(v), 4) for v in d.get("bbox", [0, 0, 0, 0])]}
+                                    "bbox": [round(float(v), 4) for v in d.get("bbox", [0, 0, 0, 0])],
+                                    "id": d.get("tid", -1)}   # 3.8: 서버 트랙 id(확대뷰 BoxTracker id매칭)
                                    for d in out.get("detections", [])]
+                self._last_det_ts = time.time()               # 3.8: 검출 갱신 시각(확대뷰 ingest 간격)
                 self._last_pc = out.get("person_count", 0)
                 self._last_sig = out.get("signals", {})
                 # 포즈(낙상·근골격) top-down 입력 = guard.detect person 박스(RF-DETR·_nms/_track 적용, 픽셀).
@@ -764,6 +775,7 @@ class Worker:
     def _loop(self, guard, lock, source, name, fps, detectors, zone=None):
         (interval, ctx, static, is_image, is_file_video, is_stream,
          use_capture_thread, cap, streamcap) = self._setup_run(source, name, fps, detectors, zone)
+        self._interval = interval          # 3.8: 가변 간격 시드 — set_fps(포커스 부스트)가 런타임에 바꿈
         read_fails = 0
         rbackoff = 1.0
         slot_frame_ts = 0.0                          # 캡처 스레드 모드의 하트비트 기준(슬롯 갱신 시각)
@@ -838,8 +850,8 @@ class Worker:
                 self.state["last_frame_ts"] = slot_frame_ts if use_capture_thread else time.time()
                 self._process_frame(frame, t0, guard, lock, ctx)   # 수집·추론·트래커·발화·로깅(P2-13 추출)
                 dt = time.time() - t0
-                if dt < interval and not self._stop.is_set():
-                    time.sleep(interval - dt)
+                if dt < self._interval and not self._stop.is_set():   # 3.8: 가변 간격(포커스 부스트)
+                    time.sleep(self._interval - dt)
         except Exception as ex:                       # noqa: BLE001  루프 자체 예외 → supervised 가 재시작
             self.state["error"] = f"{type(ex).__name__}: {ex}"
             _WLOG.error("워커 '%s'(%s) _loop 예외 — 감독자 재시작 위임\n%s",
@@ -891,6 +903,12 @@ class WorkerManager:
         if not w:
             return {"ok": False, "error": f"{cam_id} 없음"}
         return w.stop()
+
+    def set_fps(self, cam_id: str, fps: float) -> dict:
+        w = self._workers.get(cam_id)
+        if not w:
+            return {"ok": False, "error": f"{cam_id} 없음"}
+        return w.set_fps(fps)
 
     def stop_all(self) -> dict:
         for w in list(self._workers.values()):

@@ -120,12 +120,29 @@ def cameras_detections(cid: str):
     """경량 오버레이용 — 워커 최신 검출(정규화 bbox)·인원·신호. 프론트가 화면크기로 복원."""
     wk = _worker(cid)
     if wk is None:
-        return {"online": False, "detections": [], "person_count": 0, "signals": {}, "fired": []}
+        return {"online": False, "detections": [], "person_count": 0, "signals": {}, "fired": [], "ts": 0}
     # safety_only(표시 단): 잡동사니(tv·laptop·의자 등) 제거 → 사람·보호구(NO-*)·위험물·차량·화재만.
     #   워커 이벤트/신호는 guard.detect 내부 out 으로 계산되므로 이 필터는 응답·오버레이 표시에만 영향(회귀 0).
+    #   ts(3.8): 검출 갱신 시각(ms) — 확대뷰가 새 배치일 때만 BoxTracker.ingest 하도록. id 는 트랙 매칭용.
     dets = [d for d in wk._last_dets if _is_safety(d.get("class"))]
-    return {"online": bool(wk.state.get("running")), "detections": dets,
+    return {"online": bool(wk.state.get("running")), "detections": dets, "ts": int(wk._last_det_ts * 1000),
             "person_count": wk._last_pc, "signals": wk._last_sig, "fired": wk._last_fired}
+
+
+@router.post("/cameras/{cid}/focus")
+def cameras_focus(cid: str, payload: dict = Body(default={})):
+    """확대뷰 포커스 부스트(3.8) — 선택 중 워커 fps 를 focus_fps(tuning hub.focus_fps, 기본5)로 임시 상향,
+    해제/탭이탈 시 등록 fps 복원. 확대뷰는 워커 결과 재사용(자체 추론 없음)이라 다중 시청자여도
+    워커 1개 → 부하 불변(중복 추론과의 차이). 재시작 없이 루프 간격만 바꿈."""
+    import tuning
+    import worker as _w
+    c = _reg.get(cid)
+    if not c:
+        raise HTTPException(status_code=404, detail="없는 카메라")
+    on = bool(payload.get("on"))
+    base = float(c.get("fps", 2.0))
+    focus = float(tuning.val("hub", "focus_fps", 5.0))
+    return _w.manager.set_fps(cid, focus if on else base)
 
 
 @router.get("/cameras/{cid}/snapshot")
