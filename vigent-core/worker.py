@@ -48,6 +48,9 @@ _COOLDOWN_S = float(tuning.val("detect", "cooldown_s", 15.0))
 # ②: 증거 JPEG(무거운 후속) 전용 쿨다운 — 이벤트 '기록'은 _COOLDOWN_S 주기로 유지하되,
 #   증거 저장(인코딩+디스크)만 rule별로 이 주기까지 스로틀. 어떤 오발화도 서버를 포화 못 시킴.
 _EVIDENCE_COOLDOWN_S = float(tuning.val("detect", "evidence_cooldown_s", 30.0))
+# 3.9 ①: 포즈(낙상·근골격) 추론은 검출(guard)과 주기 분리 — 고정 pose_fps 로만 실행.
+#   프레임당 포즈(CPU ~수백ms)가 focus 5fps 검출을 막던 문제(3.8). 기존 낙상·자세 캐던스(2fps)와 동일해 회귀 0.
+_POSE_MIN_INTERVAL = 1.0 / max(0.2, float(tuning.val("worker", "pose_fps", 2.0)))
 _FALL_ANGLE = float(tuning.val("fall", "angle_deg", 55))   # 쓰러짐 몸통각 임계
 
 
@@ -529,6 +532,7 @@ class Worker:
         self._last_fired: list = []                          # 3.1b: 최신 발화 규칙명(zone_intrusion·fall 등) — 대시보드 뱃지·전역경보
         self._last_det_ts = 0.0                              # 3.8: 최신 검출 갱신 시각(ms) — 확대뷰 ingest 간격 산출
         self._interval = 0.5                                 # 3.8: 가변 루프 간격(초). set_fps 로 포커스 부스트
+        self._last_pose_ts = 0.0                             # 3.9: 최신 포즈 실행 시각 — 검출/포즈 주기 분리
         self.state: dict[str, Any] = {
             "running": False, "source": "", "name": "", "fps": 0,
             "frames": 0, "events": 0, "last_event": "", "error": ""}
@@ -682,11 +686,18 @@ class Worker:
                 person_boxes = [[d["bbox"][0] * _W, d["bbox"][1] * _H,
                                  d["bbox"][2] * _W, d["bbox"][3] * _H]
                                 for d in out.get("detections", []) if d["label"] == "person"]
-                fall, freason = ctx.ftrack.update(frame, t0, person_boxes)   # 다중단서+모션 낙상
-                try:
-                    ergo_fired = ctx.etrack.update(frame, t0, person_boxes)  # 근골격계 부담자세(포즈 각도·저빈도)
-                except Exception:  # noqa: BLE001  가산 레이어 — 실패해도 낙상·탐지 무중단
-                    ergo_fired = []
+                # 3.9 ①: 포즈(낙상·ergo)는 pose_fps(기본2)로만 실행 — 검출은 워커 fps(focus 5) 유지.
+                #   비-focus(2fps)에선 프레임 간격≈pose 간격 → 매 프레임 실행(기존과 동일). focus(5fps)에선 2fps 로 스킵.
+                #   포즈 캐던스가 기존(2fps)과 같아 static_fall 5프레임·drop 타이밍 불변(낙상·자세 회귀 0).
+                if t0 - self._last_pose_ts >= _POSE_MIN_INTERVAL:
+                    self._last_pose_ts = t0
+                    fall, freason = ctx.ftrack.update(frame, t0, person_boxes)   # 다중단서+모션 낙상
+                    try:
+                        ergo_fired = ctx.etrack.update(frame, t0, person_boxes)  # 근골격계 부담자세(포즈 각도·저빈도)
+                    except Exception:  # noqa: BLE001  가산 레이어 — 실패해도 낙상·탐지 무중단
+                        ergo_fired = []
+                else:
+                    fall, freason, ergo_fired = False, "", []   # 포즈 스킵 프레임 — 새 낙상·ergo 발화 없음
             fired = _derive(out, ctx.zone, frame.shape[0] / frame.shape[1])
             # B9: 위험구역 한정 타일 재검출(가산·기본 off, VIGENT_ZONE_TILE=1). zone 내 놓친 소형 person 회수.
             #   ★확인1(스코프 한정): 타일 박스는 zone_intrusion 발화에만 쓴다 — 공유 out["detections"] 에
