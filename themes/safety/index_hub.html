@@ -1,254 +1,369 @@
-<!DOCTYPE html><html lang="ko"><head><meta charset="utf-8"><title>VIGENT HUB — 스마트 카메라 관제</title>
+<!DOCTYPE html><html lang="ko"><head><meta charset="utf-8"><title>VIGENT 산업안전 AI — VMS</title>
 <style>
-:root{ --bg:#05070a; --fg:#cfe9ff; --dim:#5b7891; --ok:#39d98a; --warn:#ffb020; --danger:#ff3b3b; --accent:#39d0ff; --card:#0a1119; --line:rgba(80,130,170,.28); }
+:root{ --bg:#0b0d10; --tile:#000; --panel:#11151a; --line:#2a3138;
+  --ok:#2fbf71; --warn:#f08a00; --alert:#e63946; --off:#6b7280; --fg:#c7d2dc; --dim:#7c8896; }
 *{box-sizing:border-box}
-body{margin:0;background:var(--bg);color:var(--fg);font-family:"SF Mono","Menlo",monospace;height:100vh;display:flex;flex-direction:column;overflow:hidden}
-.top{display:flex;align-items:center;gap:22px;padding:10px 16px;border-bottom:1px solid var(--line);background:#070c12}
-.brand{font-weight:800;color:var(--accent);letter-spacing:.14em;font-size:16px}
-.brand small{color:var(--dim);font-weight:400;letter-spacing:.2em;font-size:10px;display:block}
-.kpis{display:flex;gap:12px;flex:1;flex-wrap:wrap}
-.kpi{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:7px 14px;min-width:92px}
-.kpi .v{font-size:21px;font-weight:800}.kpi .l{font-size:10px;color:var(--dim);letter-spacing:.12em;text-transform:uppercase}
-.kpi.ok .v{color:var(--ok)} .kpi.warn .v{color:var(--warn)} .kpi.danger .v{color:var(--danger)} .kpi.off .v{color:var(--dim)}
-.tools{display:flex;align-items:center;gap:6px}
-.tools .g{color:var(--dim);font-size:11px;margin-right:2px}
-.tools button{background:#0c2236;color:var(--accent);border:1px solid var(--line);border-radius:6px;padding:5px 11px;font:inherit;cursor:pointer}
-.tools button.on{background:var(--accent);color:#04121c}
-.tools .add{background:transparent;color:var(--ok);border-color:rgba(57,217,138,.4)}
-.body{flex:1;display:flex;min-height:0}
-.grid{flex:1;display:grid;gap:10px;padding:12px;overflow:auto;align-content:start}
-.card{background:var(--card);border:1px solid var(--line);border-radius:10px;overflow:hidden;display:flex;flex-direction:column;position:relative;cursor:pointer;min-height:150px}
-.card:hover{border-color:var(--accent)}
-.card.alert{border-color:var(--danger);box-shadow:0 0 16px rgba(255,59,59,.3)}
-.feed{flex:1;background:linear-gradient(135deg,#0b1622,#060b11);display:flex;align-items:center;justify-content:center;color:var(--dim);font-size:12px;position:relative;min-height:90px;overflow:hidden}
-.feed img{width:100%;height:100%;object-fit:cover;display:none}
-.feed .ph{position:absolute}
-.badge{position:absolute;top:8px;padding:2px 8px;border-radius:6px;font-size:11px;font-weight:700;z-index:2}
-.b-on{left:8px;background:rgba(57,217,138,.16);color:var(--ok);border:1px solid rgba(57,217,138,.4)}
-.b-off{left:8px;background:rgba(91,120,145,.16);color:var(--dim);border:1px solid var(--line)}
-.cardbar{display:flex;align-items:center;gap:7px;padding:7px 10px;border-top:1px solid var(--line);font-size:12px}
-.cardbar .nm{font-weight:700;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.chip{padding:1px 7px;border-radius:5px;font-size:11px;border:1px solid var(--line);white-space:nowrap}
-.chip.p{color:var(--accent)} .chip.warn{color:var(--warn);border-color:rgba(255,176,32,.4)} .chip.dng{color:var(--danger);border-color:rgba(255,59,59,.5);background:rgba(255,59,59,.1)}
-.ev-time{color:var(--dim);font-size:10px}
-.events{width:310px;border-left:1px solid var(--line);background:#070c12;display:flex;flex-direction:column}
-.events h3{margin:0;padding:11px 14px;font-size:11px;letter-spacing:.18em;color:var(--dim);border-bottom:1px solid var(--line)}
-.filters{display:flex;gap:6px;padding:8px 12px;border-bottom:1px solid var(--line)}
-.filters button{flex:1;background:transparent;border:1px solid var(--line);color:var(--dim);border-radius:5px;padding:4px;font:inherit;font-size:10px;cursor:pointer}
-.filters button.on{color:var(--fg);border-color:var(--accent)}
-.evlist{flex:1;overflow:auto;padding:6px 10px}
-.ev{padding:8px 10px;border-radius:7px;margin-bottom:6px;border-left:3px solid var(--dim);background:#0a1119}
-.ev.hi{border-left-color:var(--warn)} .ev.cr{border-left-color:var(--danger);background:rgba(255,59,59,.07)}
-.ev .r1{display:flex;justify-content:space-between;font-size:12px;font-weight:700}
-.ev .r1 .cam{color:var(--accent)} .ev .r2{color:var(--dim);font-size:11px;margin-top:2px}
+body{margin:0;background:var(--bg);color:var(--fg);font-family:"SF Mono","Menlo",monospace;height:100vh;display:flex;flex-direction:column;overflow:hidden;font-size:12px}
+/* 상단 바 */
+.top{display:flex;align-items:center;gap:14px;padding:8px 14px;background:#0e1116;border-bottom:1px solid var(--line)}
+.logo{width:22px;height:22px;border:2px solid var(--ok);border-radius:5px;display:flex;align-items:center;justify-content:center;color:var(--ok);font-weight:800;font-size:12px}
+.title{font-weight:800;letter-spacing:.06em;font-size:14px;color:#e7eef5}
+.ver{color:var(--dim);font-size:10px}
+.gtools{display:flex;align-items:center;gap:5px;margin-left:18px}
+.gtools .lb{color:var(--dim);font-size:10px;letter-spacing:.1em;margin-right:2px}
+.gtools button{background:#161b21;color:var(--dim);border:1px solid var(--line);border-radius:5px;padding:4px 9px;font:inherit;font-size:11px;cursor:pointer}
+.gtools button.on{background:#22303c;color:#e7eef5;border-color:#3a4a57}
+.gtools .add{color:var(--ok);border-color:rgba(47,191,113,.35)}
+.alerts{margin-left:auto;display:flex;gap:10px}
+.ab{display:flex;flex-direction:column;align-items:center;gap:3px;cursor:pointer;position:relative}
+.ab .dot{width:34px;height:34px;border-radius:50%;border:2px solid var(--line);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;color:var(--dim)}
+.ab .lb{font-size:9px;color:var(--dim);letter-spacing:.1em}
+.ab .cnt{position:absolute;top:-4px;right:2px;min-width:15px;height:15px;padding:0 3px;border-radius:8px;background:#e7eef5;color:#0b0d10;font-size:9px;font-weight:800;display:none;align-items:center;justify-content:center}
+.ab.on .lb{color:#e7eef5}
+.ab.on .cnt{display:flex}
+.ab.sel .dot{outline:2px solid #39d0ff;outline-offset:2px}
+.ab.emg.on .dot{background:var(--alert);border-color:var(--alert);color:#fff;animation:pulse 1s infinite}
+.ab.intr.on .dot{background:var(--warn);border-color:var(--warn);color:#1a1206;animation:pulse 1s infinite}
+.ab.fire.on .dot{background:var(--alert);border-color:var(--alert);color:#fff;animation:pulse 1s infinite}
+.ab.ppe.on .dot{background:#e0b000;border-color:#e0b000;color:#1a1206}
+@keyframes pulse{0%,100%{box-shadow:0 0 0 0 rgba(230,57,70,.5)}50%{box-shadow:0 0 0 7px rgba(230,57,70,0)}}
+@keyframes tilepulse{0%{box-shadow:inset 0 0 0 2px var(--alert),0 0 0 0 rgba(230,57,70,.55)}100%{box-shadow:inset 0 0 0 2px var(--alert),0 0 0 9px rgba(230,57,70,0)}}
+/* 본문 */
+.main{flex:1;display:flex;min-height:0}
+.left{flex:0 0 65%;padding:8px;overflow:auto}
+.grid{display:grid;gap:2px;height:100%}
+.tile{position:relative;background:var(--tile);overflow:hidden;border:1px solid #14181d;min-height:0;cursor:pointer}
+.tile .feed{position:absolute;inset:0;background:radial-gradient(ellipse at center,#0e1620,#050708)}
+.tile .feed img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:none}
+.tile .tinfo{position:absolute;top:0;left:0;background:rgba(0,0,0,.6);color:#9fb0bf;font-size:10px;padding:2px 6px;letter-spacing:.04em;z-index:3}
+.tile .tbadge{position:absolute;top:5px;right:5px;width:20px;height:20px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:800;z-index:3;color:#04120a}
+.b-C{background:var(--ok)} .b-B{background:var(--warn);color:#1a1206} .b-A{background:var(--alert);color:#fff} .b-off{background:var(--off);color:#0b0d10}
+.tile .ppl{position:absolute;bottom:4px;right:6px;font-size:10px;color:#9fb0bf;background:rgba(0,0,0,.5);padding:1px 5px;border-radius:4px;z-index:3}
+.tile .noc{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:var(--off);font-size:11px;z-index:2}
+.tile .nm{position:absolute;bottom:4px;left:6px;font-size:10px;color:#8ea0af;background:rgba(0,0,0,.45);padding:1px 6px;border-radius:4px;z-index:3;max-width:70%;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+.tile svg{position:absolute;inset:0;width:100%;height:100%;z-index:2;pointer-events:none}
+.tile.sel{border-color:#39d0ff}
+.tile.alert{border-color:var(--alert);box-shadow:inset 0 0 0 2px var(--alert)}
+.tile.alert .feed{background:radial-gradient(ellipse at center,#2a0e12,#120507)}
+.tile.pulse{animation:tilepulse 1.2s ease-out 2}
+.tile.off .feed{background:#0a0c0f}
+.tile.off .tinfo{color:var(--off)}
+/* 우측 3단 */
+.right{flex:1;display:flex;flex-direction:column;border-left:1px solid var(--line);background:var(--panel);min-width:340px}
+.spot{aspect-ratio:4/3;background:var(--tile);position:relative;border-bottom:1px solid var(--line);flex:0 0 auto}
+.spot .feed{position:absolute;inset:0;background:radial-gradient(ellipse at center,#0e1620,#050708);display:flex;align-items:center;justify-content:center;color:var(--dim);font-size:11px}
+.spot img{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;display:none}
+.spot canvas{position:absolute;inset:0;width:100%;height:100%;z-index:2}
+.spot canvas.edit{cursor:crosshair}
+.spot .shead{position:absolute;top:0;left:0;right:0;display:flex;align-items:center;gap:8px;padding:6px 10px;background:rgba(0,0,0,.55);z-index:3;font-size:11px}
+.spot .shead .snm{font-weight:800;color:#e7eef5}
+.spot .shead .pin{margin-left:auto;color:var(--dim);cursor:pointer;user-select:none}
+.spot .shead .pin.on{color:#39d0ff}
+.evt{flex:1;display:flex;flex-direction:column;min-height:0;border-bottom:1px solid var(--line)}
+.evt h4{margin:0;padding:8px 12px;font-size:10px;letter-spacing:.16em;color:var(--dim);display:flex;align-items:center;gap:8px}
+.evt h4 .clr{margin-left:auto;color:#39d0ff;cursor:pointer;font-size:10px;display:none}
+.evt h4 .clr.on{display:inline}
+.evt .tbl{flex:1;overflow:auto}
+.evt table{width:100%;border-collapse:collapse;font-size:11px}
+.evt th{position:sticky;top:0;background:#0e1116;color:var(--dim);font-weight:600;text-align:left;padding:5px 10px;font-size:10px;letter-spacing:.08em}
+.evt td{padding:5px 10px;border-top:1px solid #171c22}
+.evt tr{cursor:pointer}.evt tr:hover td{background:rgba(57,208,255,.06)}
+.evt tr.cr td{color:#ffb9bf} .evt tr.cr{background:rgba(230,57,70,.08)}
+.evt tr.hi td:first-child::before{content:"";display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--warn);margin-right:5px}
+.evt .cam{color:#9fc7e0}
+.sev{padding:1px 6px;border-radius:4px;font-size:10px;font-weight:700}
+.sev.A{background:rgba(230,57,70,.2);color:#ff8a92} .sev.B{background:rgba(240,138,0,.2);color:var(--warn)} .sev.C{color:var(--ok)}
+.set{flex:0 0 auto;padding:11px 13px}
+.set h4{margin:0 0 8px;font-size:10px;letter-spacing:.16em;color:var(--dim)}
+.set .row{display:flex;justify-content:space-between;margin:5px 0;font-size:12px;gap:8px}
+.set .row .k{color:var(--dim)}
+.set .row .v{color:#e7eef5;text-align:right;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.set .ctrls{display:flex;gap:6px;margin-top:10px}
+.set .ctrls button{flex:1;background:#161b21;color:var(--fg);border:1px solid var(--line);border-radius:6px;padding:7px;font:inherit;font-size:11px;cursor:pointer}
+.set .ctrls button.pri{background:#16302a;color:var(--ok);border-color:rgba(47,191,113,.4)}
+.set .ctrls button.del{background:#2a1416;color:#ff8a92;border-color:rgba(230,57,70,.35)}
+.set .tog{display:flex;align-items:center;gap:6px;color:var(--dim);font-size:11px;margin-top:8px}
+.set .hint{color:var(--warn);font-size:10px;margin-top:7px;line-height:1.5}
+/* 추가 모달 */
 .modal{position:fixed;inset:0;background:rgba(2,5,9,.82);display:none;z-index:50;padding:26px}
 .modal.show{display:flex}
-.mbox{margin:auto;width:min(1100px,94vw);max-height:92vh;background:var(--card);border:1px solid var(--accent);border-radius:12px;display:flex;flex-direction:column;overflow:hidden}
+.mbox{margin:auto;width:min(460px,92vw);background:var(--panel);border:1px solid #3a4a57;border-radius:12px;overflow:hidden}
 .mhead{display:flex;align-items:center;gap:12px;padding:11px 15px;border-bottom:1px solid var(--line)}
-.mhead .t{font-weight:800;color:var(--accent);flex:1}
-.mhead button{background:#0c2236;color:var(--fg);border:1px solid var(--line);border-radius:6px;padding:6px 12px;font:inherit;cursor:pointer}
-.mhead button.del{color:var(--danger);border-color:rgba(255,59,59,.4)}
-.mbody{flex:1;display:flex;min-height:0}
-.mfeed{flex:1;background:#060b11;display:flex;align-items:center;justify-content:center;color:var(--dim);position:relative;min-height:400px}
-.mfeed img{max-width:100%;max-height:100%;object-fit:contain}
-.mfeed canvas{position:absolute;inset:0;width:100%;height:100%}
-.mside{width:250px;border-left:1px solid var(--line);padding:14px;font-size:12px}
-.mside h4{margin:0 0 8px;font-size:11px;letter-spacing:.16em;color:var(--dim)}
-.mside .row{display:flex;justify-content:space-between;margin:6px 0;padding-bottom:6px;border-bottom:1px solid rgba(80,130,170,.15)}
-.mside .row .k{color:var(--dim)}
+.mhead .t{font-weight:800;color:#e7eef5;flex:1}
+.mhead button{background:#161b21;color:var(--fg);border:1px solid var(--line);border-radius:6px;padding:6px 12px;font:inherit;cursor:pointer}
+.form{padding:16px}
 .form label{display:block;margin:9px 0 3px;font-size:11px;color:var(--dim)}
-.form input{width:100%;background:#060b11;border:1px solid var(--line);color:var(--fg);border-radius:6px;padding:7px 9px;font:inherit;font-size:13px}
+.form input{width:100%;background:#0a0e12;border:1px solid var(--line);color:var(--fg);border-radius:6px;padding:7px 9px;font:inherit;font-size:13px}
 .form .actions{display:flex;gap:8px;margin-top:14px}
-.form .actions button{flex:1;background:#0c2236;color:var(--accent);border:1px solid var(--line);border-radius:6px;padding:8px;font:inherit;cursor:pointer}
-.form .actions .save{background:var(--ok);color:#04140a;border:none}
+.form .actions button{flex:1;background:#161b21;color:var(--fg);border:1px solid var(--line);border-radius:6px;padding:8px;font:inherit;cursor:pointer}
+.form .actions .save{background:#16302a;color:var(--ok);border-color:rgba(47,191,113,.4)}
 .testprev{margin-top:10px;font-size:12px}.testprev img{max-width:100%;border-radius:6px;margin-top:6px}
 </style></head>
 <body>
   <div class="top">
-    <div class="brand">VIGENT HUB<small>스마트 카메라 관제</small></div>
-    <div class="kpis" id="kpis"></div>
-    <div class="tools"><span class="g">보기</span>
-      <button data-g="1">1</button><button data-g="4" class="on">4</button><button data-g="9">9</button>
+    <div class="logo">V</div><div class="title">VIGENT 산업안전 AI</div><div class="ver">VMS v0.3</div>
+    <div class="gtools"><span class="lb">보기</span>
+      <button data-g="4">4</button><button data-g="9">9</button><button data-g="16" class="on">16</button>
       <button class="add" id="btnAdd">+ 카메라</button></div>
-  </div>
-  <div class="body">
-    <div class="grid" id="grid"></div>
-    <div class="events">
-      <h3>통합 이벤트 스트림</h3>
-      <div class="filters" id="filters">
-        <button class="on" data-f="all">전체</button><button data-f="critical">위험</button>
-        <button data-f="ppe_missing">PPE</button><button data-f="zone_intrusion">침입</button></div>
-      <div class="evlist" id="evlist"><div class="ev"><div class="r2">불러오는 중…</div></div></div>
+    <div class="alerts" id="alerts">
+      <div class="ab emg" data-rule="emergency"><div class="dot">SOS</div><span class="cnt">0</span><div class="lb">비상</div></div>
+      <div class="ab intr" data-rule="zone_intrusion"><div class="dot">◨</div><span class="cnt">0</span><div class="lb">침입</div></div>
+      <div class="ab fire" data-rule="fire_smoke"><div class="dot">🔥</div><span class="cnt">0</span><div class="lb">화재</div></div>
+      <div class="ab ppe" data-rule="ppe_missing"><div class="dot">◔</div><span class="cnt">0</span><div class="lb">PPE</div></div>
     </div>
   </div>
-
-  <!-- 확대 뷰 -->
-  <div class="modal" id="modal"><div class="mbox">
-    <div class="mhead"><span class="t" id="mtitle">CAM</span>
-      <button id="mdel" class="del">삭제</button>
-      <button id="mclose">✕ 닫기</button></div>
-    <div class="mbody">
-      <div class="mfeed"><img id="mimg" alt=""><canvas id="mcanvas"></canvas><span class="ph" id="mph">라이브 로딩…</span></div>
-      <div class="mside"><h4>카메라 정보</h4><div id="minfo"></div>
-        <div style="margin-top:12px;color:var(--dim);font-size:11px">위험구역 편집은 스키마 확정 후(별도 단계).</div></div>
+  <div class="main">
+    <div class="left"><div class="grid" id="grid"></div></div>
+    <div class="right">
+      <div class="spot" id="spot">
+        <div class="shead"><span class="snm" id="snm">—</span><span class="sev C" id="ssev">정상</span><span class="pin" id="spin" title="스포트라이트 고정 — 켜면 경보 자동전환이 멈춥니다">📌 고정</span></div>
+        <img id="simg" alt=""><canvas id="scanvas"></canvas>
+        <div class="feed" id="sph">카메라를 선택하세요</div>
+      </div>
+      <div class="evt"><h4>이벤트 <span class="clr" id="evclr" title="필터 해제">✕ 필터해제</span></h4><div class="tbl"><table>
+        <thead><tr><th>시각</th><th>카메라</th><th>유형</th><th>심각도</th></tr></thead>
+        <tbody id="evbody"></tbody></table></div></div>
+      <div class="set" id="setpanel"><h4>카메라 설정</h4><div id="setbody" style="color:var(--dim)">카메라를 선택하세요.</div></div>
     </div>
-  </div></div>
+  </div>
 
   <!-- 카메라 추가 -->
-  <div class="modal" id="addModal"><div class="mbox" style="width:min(460px,92vw)">
+  <div class="modal" id="addModal"><div class="mbox">
     <div class="mhead"><span class="t">카메라 추가</span><button id="addClose">✕</button></div>
-    <div class="mbody" style="display:block;padding:16px"><div class="form">
+    <div class="form">
       <label>ID (영문/숫자)</label><input id="fId" placeholder="cam1">
       <label>이름</label><input id="fName" placeholder="정문">
       <label>source (RTSP 주소 / 파일 경로 / 웹캠번호)</label><input id="fSrc" placeholder="rtsp://아이디:비번@192.168.0.10:554/stream1">
       <label>FPS</label><input id="fFps" value="2">
       <div class="actions"><button id="fTest">연결 테스트</button><button id="fSave" class="save">저장·시작</button></div>
       <div class="testprev" id="fPrev"></div>
-    </div></div>
+    </div>
   </div></div>
 
 <script>
-// ── Phase 2b: 실데이터 배선. 라이브=워커 스냅샷 폴링(파일·RTSP 공통). ──
+// ── 3.1b: VMS 실데이터 배선. 라이브=워커 스냅샷 폴링(파일·RTSP 공통). ──
 var $=function(id){return document.getElementById(id);};
-var COLS={1:1,4:2,9:3}, SHOW={1:1,4:4,9:99}, cur=4, CAMS=[], EVENTS=[], evFilter='all', openId=null;
+var GS={4:[2,2],9:[3,3],16:[4,4]}, cur=16, CAMS=[], EVENTS=[], evFilter=null, openId=null;
+var spotId=null, pinned=false, showZone=true, zoneEdit=false, zonePts=[];
+var prevA={}, pulseUntil={}, newlyAlert=[];
+var LOCAL={id:'__local',name:'로컬 웹캠(CAM-LOCAL)',local:true,online:true};
 function esc(s){return String(s==null?'':s).replace(/[<>&]/g,function(c){return {'<':'&lt;','>':'&gt;','&':'&amp;'}[c];});}
 function api(m,p,body){ return fetch(p,{method:m,headers:body?{'content-type':'application/json'}:{},body:body?JSON.stringify(body):null}).then(function(r){return r.json();}); }
+function clock(){ var d=new Date(); return [d.getHours(),d.getMinutes(),d.getSeconds()].map(function(n){return ('0'+n).slice(-2);}).join(':'); }
+function reals(){ return CAMS.filter(function(c){return !c.local;}); }
+function byId(id){ return CAMS.filter(function(c){return c.id===id;})[0]; }
 
-// 로컬 웹캠(고정 카드, /safety-local 링크)
-var LOCAL={id:'__local',name:'로컬 웹캠(CAM-LOCAL)',local:true,online:true};
-
-function kpi(){
-  var real=CAMS.filter(function(c){return !c.local;});
-  var on=real.filter(function(c){return c.online;}).length;
-  var pc=real.reduce(function(a,c){return a+(c.person_count||0);},0);
-  var ppe=real.filter(function(c){return c.sig&&c.sig.ppe_missing;}).length;
-  var intr=real.filter(function(c){return c.sig&&c.sig.fire_smoke;}).length;
-  var K=[['카메라',real.length,''],['온라인',on,'ok'],['오프라인',real.length-on,'off'],
-    ['금일 이벤트',EVENTS.length,''],['현재 인원',pc,''],['PPE 미착용',ppe,ppe?'warn':''],['화재/연기',intr,intr?'danger':'']];
-  $('kpis').innerHTML=K.map(function(k){return '<div class="kpi '+k[2]+'"><div class="v">'+k[1]+'</div><div class="l">'+k[0]+'</div></div>';}).join('');
+// ── 상태 도출: 침입>화재>PPE>정상 ──
+function alertTypes(c){
+  var f=c.fired||[], s=c.sig||{};
+  return { intrusion:f.indexOf('zone_intrusion')>=0,
+    fire:f.indexOf('fire_smoke')>=0||!!s.fire_smoke,
+    ppe:f.indexOf('ppe_missing')>=0||!!s.ppe_missing,
+    emergency:['fall_suspected','immobility','guard_bypass'].some(function(r){return f.indexOf(r)>=0;}) };
 }
-function chips(c){
-  if(c.local) return '<span class="chip p">로컬 상세 ↗</span>';
-  if(!c.online) return '<span class="chip">offline</span>';
-  var out='';
-  if(c.sig&&c.sig.ppe_missing) out+='<span class="chip warn">PPE</span>';
-  if(c.sig&&c.sig.fire_smoke) out+='<span class="chip dng">화재</span>';
-  out+='<span class="chip p">👤 '+(c.person_count||0)+'</span>';
-  return out;
+function statusOf(c){ if(c.local) return 'C'; if(!c.online) return 'off';
+  var t=alertTypes(c); if(t.intrusion||t.fire||t.emergency) return 'A'; if(t.ppe) return 'B'; return 'C'; }
+function globalCounts(){
+  var g={emergency:0,zone_intrusion:0,fire_smoke:0,ppe_missing:0};
+  reals().filter(function(c){return c.online;}).forEach(function(c){ var t=alertTypes(c);
+    if(t.emergency)g.emergency++; if(t.intrusion)g.zone_intrusion++; if(t.fire)g.fire_smoke++; if(t.ppe)g.ppe_missing++; });
+  return g;
+}
+
+// ── 전역 경보 버튼 ──
+function renderAlerts(){
+  var g=globalCounts();
+  [].forEach.call($('alerts').children,function(el){
+    var r=el.dataset.rule, n=g[r]||0;
+    el.classList.toggle('on',n>0);
+    el.classList.toggle('sel',evFilter===r);
+    el.querySelector('.cnt').textContent=n;
+  });
+}
+
+// ── 카메라 타일 ──
+function tilePoly(c,st){
+  var z=c.zone||[]; if(z.length<3) return '';
+  var pts=z.map(function(p){return (p[0]*100).toFixed(1)+','+(p[1]*100).toFixed(1);}).join(' ');
+  if(st==='A') return '<svg viewBox="0 0 100 100" preserveAspectRatio="none"><polygon points="'+pts+'" fill="rgba(230,57,70,.35)" stroke="#e63946" stroke-width="0.8"/></svg>';
+  return '<svg viewBox="0 0 100 100" preserveAspectRatio="none"><polygon points="'+pts+'" fill="none" stroke="rgba(120,140,160,.35)" stroke-width="0.6"/></svg>';
 }
 function renderGrid(){
-  var g=$('grid'); g.style.gridTemplateColumns='repeat('+COLS[cur]+',1fr)';
-  g.style.gridAutoRows=cur===1?'1fr':'minmax(150px,1fr)';
-  var list=[LOCAL].concat(CAMS.filter(function(c){return !c.local;}));
-  list=list.slice(0,SHOW[cur]);
+  var g=$('grid'), gd=GS[cur];
+  g.style.gridTemplateColumns='repeat('+gd[0]+',1fr)'; g.style.gridTemplateRows='repeat('+gd[1]+',1fr)';
+  var list=[LOCAL].concat(reals()).slice(0,gd[0]*gd[1]);
+  var t=clock();
   g.innerHTML=list.map(function(c){
-    var badge=c.online?'<span class="badge b-on">online</span>':'<span class="badge b-off">offline</span>';
-    var ph=c.local?'◉ CAM-LOCAL 웹캠':(c.online?'':'⚠ 연결 끊김 — 재연결 중…');
-    return '<div class="card '+(c.intrusion?'alert':'')+'" data-id="'+esc(c.id)+'">'+
-      '<div class="feed">'+badge+'<img data-live="'+esc(c.id)+'"><span class="ph">'+ph+'</span></div>'+
-      '<div class="cardbar"><span class="nm">'+esc(c.name)+'</span>'+chips(c)+'</div></div>';
+    if(c.local) return '<div class="tile'+(spotId==='__local'?' sel':'')+'" data-id="__local"><div class="feed"></div>'+
+      '<div class="tinfo">LOCAL  '+t+'</div><div class="tbadge b-C">L</div><div class="nm">'+esc(c.name)+'</div></div>';
+    var st=statusOf(c), badge=st==='off'?'—':st, pulse=(pulseUntil[c.id]>Date.now())?' pulse':'';
+    var cls='tile b-wrap '+(st==='A'?'alert':'')+(st==='off'?' off':'')+(spotId===c.id?' sel':'')+pulse;
+    var body=(st==='off')?'<div class="noc">신호 없음 · 재연결 중</div>':(tilePoly(c,st)+'<div class="ppl">👤 '+(c.person_count||0)+'</div>');
+    return '<div class="'+cls+'" data-id="'+esc(c.id)+'"><div class="feed"><img data-live="'+esc(c.id)+'"></div>'+
+      '<div class="tinfo">#'+esc(c.id)+'  '+t+'  '+(c.fps_live||c.fps||2)+'fps</div>'+
+      '<div class="tbadge b-'+(st==='off'?'off':st)+'">'+badge+'</div>'+body+'<div class="nm">'+esc(c.name)+'</div></div>';
   }).join('');
-  [].forEach.call(g.querySelectorAll('.card'),function(el){ el.onclick=function(){ var id=el.dataset.id;
-    if(id==='__local'){ location.href='/safety-local'; return; } openModal(id); }; });
+  [].forEach.call(g.querySelectorAll('.tile'),function(el){ el.onclick=function(){
+    var id=el.dataset.id;
+    if(id==='__local'){ location.href='/safety-local'; return; }
+    selectCam(id,true); }; });
   refreshThumbs();
 }
-function refreshThumbs(){   // 워커 스냅샷 폴링(카드 미리보기)
+function refreshThumbs(){
   [].forEach.call(document.querySelectorAll('.feed img[data-live]'),function(img){
-    var id=img.dataset.live; if(id==='__local') return;
-    var c=CAMS.filter(function(x){return x.id===id;})[0];
+    var id=img.dataset.live, c=byId(id);
     if(!c||!c.online){ img.style.display='none'; return; }
     img.onload=function(){ img.style.display='block'; };
     img.onerror=function(){ img.style.display='none'; };
     img.src='/cameras/'+encodeURIComponent(id)+'/snapshot?t='+Date.now();
   });
 }
+
+// ── 이벤트 테이블 ──
+var RULE_KO={zone_intrusion:'위험구역 침입',ppe_missing:'보호구 미착용',fire_smoke:'화재/연기 의심',
+  proximity_hazard:'위험물 근접',guard_bypass:'방호구역 침입',immobility:'장시간 무동작',
+  fall_suspected:'낙상 의심',crowd_density:'인원 밀집',coord_event:'관리자 확인'};
+var EMG_RULES=['fall_suspected','immobility','guard_bypass'];
+function evMatch(e){ if(!evFilter) return true;
+  if(evFilter==='emergency') return EMG_RULES.indexOf(e.rule)>=0;
+  return e.rule===evFilter; }
 function renderEvents(){
-  var f=evFilter, list=EVENTS.filter(function(e){ return f==='all'|| (f==='critical'?e.level==='critical'||e.level==='high':e.rule===f); });
-  $('evlist').innerHTML=list.length?list.map(function(e){
-    var cls=e.level==='critical'?'cr':(e.level==='high'?'hi':'');
-    return '<div class="ev '+cls+'"><div class="r1"><span>'+esc(e.note||e.rule)+'</span><span class="cam">'+esc(e.site||'')+'</span></div>'+
-      '<div class="r2">'+esc(e.rule)+' · '+esc(e.time||e.ts||'')+'</div></div>';
-  }).join(''):'<div class="ev"><div class="r2">이벤트 없음</div></div>';
+  var list=EVENTS.filter(evMatch);
+  $('evbody').innerHTML=list.length?list.map(function(e){
+    var sev=e.level==='critical'?'A':(e.level==='high'?'A':(e.level==='mid'?'B':'C'));
+    var rc=sev==='A'?'cr':(sev==='B'?'hi':'');
+    var kind=RULE_KO[e.rule]||e.rule;
+    return '<tr class="'+rc+'" data-site="'+esc(e.site||'')+'"><td>'+esc(e.time||e.ts||'')+'</td><td class="cam">'+esc(e.site||'')+
+      '</td><td>'+esc(kind)+'</td><td><span class="sev '+sev+'">'+({A:'경보',B:'주의',C:'정상'}[sev])+'</span></td></tr>';
+  }).join(''):'<tr><td colspan="4" style="color:var(--dim);padding:14px">이벤트 없음</td></tr>';
+  [].forEach.call($('evbody').querySelectorAll('tr[data-site]'),function(tr){ tr.onclick=function(){
+    var site=tr.dataset.site, c=reals().filter(function(x){return x.name===site;})[0];
+    if(c) selectCam(c.id,true); }; });
+  $('evclr').classList.toggle('on',!!evFilter);
+}
+
+// ── 스포트라이트 + 설정 패널 ──
+function selectCam(id,userPin){ spotId=id; if(userPin){ /* 행/타일 클릭 시 핀 해제+수동전환 */ if(pinned){ pinned=false; $('spin').classList.remove('on'); } }
+  zoneEdit=false; zonePts=[]; renderGrid(); renderSpot(); renderSet(); spotTick(); }
+function renderSpot(){
+  var c=byId(spotId)||{}; var st=statusOf(c);
+  $('snm').textContent=(spotId?('#'+spotId+' '+(c.name||'')):'—');
+  var sv=$('ssev'); var lab={A:'경보',B:'주의',C:'정상',off:'오프라인'}[st]||'정상';
+  sv.className='sev '+(st==='A'?'A':(st==='B'?'B':'C')); sv.textContent=lab;
+}
+function renderSet(){
+  var c=byId(spotId);
+  if(!c){ $('setpanel').innerHTML='<h4>카메라 설정</h4><div style="color:var(--dim)">카메라를 선택하세요.</div>'; return; }
+  var st=statusOf(c), t=alertTypes(c);
+  var stTxt=st==='off'?'<span style="color:var(--off)">오프라인</span>':
+    (st==='A'?'<span style="color:var(--alert)">경보 · '+(t.intrusion?'침입':t.fire?'화재':'비상')+'</span>':
+     st==='B'?'<span style="color:var(--warn)">주의 · PPE</span>':'<span style="color:var(--ok)">정상</span>');
+  $('setpanel').innerHTML='<h4>카메라 설정 — #'+esc(spotId)+' '+esc(c.name)+'</h4>'+
+    '<div class="row"><span class="k">소스</span><span class="v" title="'+esc(c.source||'')+'">'+esc(c.source||'-')+'</span></div>'+
+    '<div class="row"><span class="k">감지 FPS</span><span class="v">'+(c.fps_live||c.fps||2)+'</span></div>'+
+    '<div class="row"><span class="k">인원</span><span class="v">'+(c.person_count||0)+'명</span></div>'+
+    '<div class="row"><span class="k">상태</span><span class="v">'+stTxt+'</span></div>'+
+    '<label class="tog"><input type="checkbox" id="zTog" '+(showZone?'checked':'')+'> 위험구역 표시</label>'+
+    (zoneEdit?'<div class="hint">영상 위를 클릭해 꼭짓점을 추가하세요(3점 이상). 저장 시 워커가 재시작되어 즉시 반영됩니다.</div>':'')+
+    '<div class="ctrls">'+
+      (zoneEdit?'<button id="zClear">점 지우기</button><button id="zCancel">취소</button><button class="pri" id="zSave">저장</button>'
+               :'<button class="del" id="cDel">삭제</button><button id="zEdit">위험구역 편집</button>')+
+    '</div>';
+  var zt=$('zTog'); if(zt) zt.onchange=function(){ showZone=zt.checked; drawSpot(); };
+  if($('cDel')) $('cDel').onclick=function(){ if(confirm('카메라 삭제?')) api('DELETE','/cameras/'+encodeURIComponent(spotId)).then(function(){ spotId=null; poll(); }); };
+  if($('zEdit')) $('zEdit').onclick=function(){ zoneEdit=true; zonePts=(byId(spotId).zone||[]).slice(); showZone=true; renderSet(); drawSpot(); };
+  if($('zCancel')) $('zCancel').onclick=function(){ zoneEdit=false; zonePts=[]; renderSet(); drawSpot(); };
+  if($('zClear')) $('zClear').onclick=function(){ zonePts=[]; drawSpot(); };
+  if($('zSave')) $('zSave').onclick=function(){
+    api('POST','/cameras/'+encodeURIComponent(spotId)+'/zone',{points:zonePts.map(function(p){return {x:p[0],y:p[1]};})})
+      .then(function(){ zoneEdit=false; poll(); }); };
+  $('scanvas').classList.toggle('edit',zoneEdit);
+}
+// 스포트라이트 스냅샷 폴링
+function spotTick(){
+  if(!spotId||spotId==='__local'){ $('simg').style.display='none'; $('sph').style.display='flex'; return; }
+  var img=$('simg');
+  img.onload=function(){ img.style.display='block'; $('sph').style.display='none'; drawSpot(); };
+  img.onerror=function(){ img.style.display='none'; $('sph').textContent='오프라인/워밍업'; $('sph').style.display='flex'; };
+  img.src='/cameras/'+encodeURIComponent(spotId)+'/snapshot?t='+Date.now();
+  api('GET','/cameras/'+encodeURIComponent(spotId)+'/detections').then(function(d){ img._dets=d.detections||[]; drawSpot(); }).catch(function(){});
+}
+function imgRect(img){ // object-fit:contain 실제 이미지 영역
+  var cw=img.clientWidth, ch=img.clientHeight, nw=img.naturalWidth||16, nh=img.naturalHeight||9;
+  var s=Math.min(cw/nw,ch/nh), w=nw*s, h=nh*s;
+  return {x:(cw-w)/2,y:(ch-h)/2,w:w,h:h};
+}
+function drawSpot(){
+  var img=$('simg'), cv=$('scanvas'); cv.width=cv.clientWidth; cv.height=cv.clientHeight;
+  var ctx=cv.getContext('2d'); ctx.clearRect(0,0,cv.width,cv.height);
+  var r=img.naturalWidth?imgRect(img):{x:0,y:0,w:cv.width,h:cv.height};
+  var c=byId(spotId)||{};
+  // 위험구역 폴리곤
+  var zone=zoneEdit?zonePts:(c.zone||[]);
+  if(showZone&&zone.length){
+    ctx.beginPath(); zone.forEach(function(p,i){ var x=r.x+p[0]*r.w, y=r.y+p[1]*r.h; if(i)ctx.lineTo(x,y);else ctx.moveTo(x,y); });
+    if(!zoneEdit) ctx.closePath();
+    ctx.strokeStyle='#e63946'; ctx.lineWidth=1.6; ctx.stroke();
+    if(zone.length>=3){ ctx.fillStyle='rgba(230,57,70,.28)'; ctx.fill(); }
+    if(zoneEdit) zone.forEach(function(p){ var x=r.x+p[0]*r.w, y=r.y+p[1]*r.h; ctx.fillStyle='#39d0ff'; ctx.beginPath(); ctx.arc(x,y,4,0,6.3); ctx.fill(); });
+  }
+  // 검출 박스
+  if(!zoneEdit)(img._dets||[]).forEach(function(d){ var b=d.bbox;
+    var x=r.x+b[0]*r.w, y=r.y+b[1]*r.h, w=(b[2]-b[0])*r.w, h=(b[3]-b[1])*r.h;
+    var col=/^no-/i.test(d.class)?'#e63946':(d.class==='person'?'#39d0ff':'#2fbf71');
+    ctx.strokeStyle=col; ctx.lineWidth=1.5; ctx.strokeRect(x,y,w,h);
+    ctx.font='11px monospace'; ctx.fillStyle=col; ctx.fillText(d.class+' '+Math.round((d.score||0)*100)+'%',x+2,y-3); });
+}
+$('scanvas').onclick=function(e){ if(!zoneEdit) return;
+  var img=$('simg'), r=img.naturalWidth?imgRect(img):{x:0,y:0,w:this.clientWidth,h:this.clientHeight};
+  var rect=this.getBoundingClientRect(), px=e.clientX-rect.left-r.x, py=e.clientY-rect.top-r.y;
+  var nx=Math.max(0,Math.min(1,px/r.w)), ny=Math.max(0,Math.min(1,py/r.h));
+  zonePts.push([+nx.toFixed(4),+ny.toFixed(4)]); drawSpot(); };
+$('spin').onclick=function(){ pinned=!pinned; this.classList.toggle('on',pinned); };
+
+// ── 폴링 ──
+function updatePulseSpot(){
+  var nowA={}; newlyAlert=[];
+  reals().forEach(function(c){ if(c.online&&statusOf(c)==='A'){ nowA[c.id]=true;
+    if(!prevA[c.id]){ pulseUntil[c.id]=Date.now()+2600; newlyAlert.push(c.id); } } });
+  prevA=nowA;
+  if(!pinned&&newlyAlert.length) spotId=newlyAlert[newlyAlert.length-1];   // 경보 자동전환
+  if(!spotId){ var f=reals().filter(function(c){return c.online;})[0]||reals()[0]; if(f) spotId=f.id; }
 }
 function poll(){
   api('GET','/cameras').then(function(j){
-    var st={}; (j.cameras||[]).forEach(function(c){ st[c.id]=c; });
-    CAMS=(j.cameras||[]);
-    // 검출/침입 상태(온라인만)
-    var proms=CAMS.filter(function(c){return c.online;}).map(function(c){
+    CAMS=j.cameras||[];
+    var proms=reals().filter(function(c){return c.online;}).map(function(c){
       return api('GET','/cameras/'+encodeURIComponent(c.id)+'/detections').then(function(d){
-        c.person_count=d.person_count; c.sig=d.signals||{}; c._dets=d.detections||[]; c.intrusion=!!(c.sig&&c.sig.fire_smoke);
+        c.person_count=d.person_count; c.sig=d.signals||{}; c._dets=d.detections||[]; c.fired=d.fired||[];
       }).catch(function(){});
     });
-    Promise.all(proms).then(function(){ kpi(); renderGrid(); });
+    Promise.all(proms).then(function(){ updatePulseSpot(); renderAlerts(); renderGrid(); renderSpot(); renderSet(); });
   }).catch(function(){});
-  api('GET','/safety/auto/feed?hours=24&limit=40').then(function(j){
-    EVENTS=j.feed||j.events||[]; renderEvents(); kpi();
-  }).catch(function(){});
+  api('GET','/safety/auto/feed?hours=24&limit=60').then(function(j){ EVENTS=j.feed||j.events||[]; renderEvents(); }).catch(function(){});
 }
 
-// 확대 뷰
-var modalTimer=null;
-function openModal(id){
-  openId=id; var c=CAMS.filter(function(x){return x.id===id;})[0]||{};
-  $('mtitle').textContent=c.name||id; $('modal').classList.add('show');
-  function tick(){
-    var img=$('mimg'), ph=$('mph');
-    img.onload=function(){ img.style.display='block'; ph.style.display='none'; drawOverlay(); };
-    img.onerror=function(){ img.style.display='none'; ph.textContent='오프라인/워밍업'; ph.style.display='block'; };
-    img.src='/cameras/'+encodeURIComponent(id)+'/snapshot?t='+Date.now();
-    api('GET','/cameras/'+encodeURIComponent(id)+'/detections').then(function(d){ $('mimg')._dets=d.detections||[];
-      var cc=CAMS.filter(function(x){return x.id===id;})[0]||{};
-      $('minfo').innerHTML=[['상태',cc.online?'<span style="color:var(--ok)">online</span>':'<span style="color:var(--dim)">offline</span>'],
-        ['인원',d.person_count||0],['PPE',(d.signals&&d.signals.ppe_missing)?'<span style="color:var(--warn)">미착용</span>':'정상'],
-        ['FPS',cc.fps_live||cc.fps||'-'],['재연결',cc.reconnects||0],['source','<span style="font-size:10px">'+esc(cc.source||'')+'</span>']]
-        .map(function(r){return '<div class="row"><span class="k">'+r[0]+'</span><span>'+r[1]+'</span></div>';}).join('');
-    }).catch(function(){});
-  }
-  tick(); modalTimer=setInterval(tick,1200);
-}
-function drawOverlay(){
-  var img=$('mimg'), cv=$('mcanvas'); if(!img.naturalWidth) return;
-  cv.width=img.clientWidth; cv.height=img.clientHeight;
-  var ctx=cv.getContext('2d'); ctx.clearRect(0,0,cv.width,cv.height);
-  var iw=img.clientWidth, ih=img.clientHeight;
-  (img._dets||[]).forEach(function(d){
-    var b=d.bbox, x=b[0]*iw, y=b[1]*ih, w=(b[2]-b[0])*iw, h=(b[3]-b[1])*ih;
-    var col=/^no-/i.test(d.class)?'#ff3b3b':(d.class==='person'?'#39d0ff':'#39d98a');
-    ctx.strokeStyle=col; ctx.lineWidth=1.5; ctx.strokeRect(x,y,w,h);
-    ctx.font='11px monospace'; ctx.fillStyle=col; ctx.fillText(d.class+' '+Math.round((d.score||0)*100)+'%',x+2,y-3);
-  });
-}
-function closeModal(){ $('modal').classList.remove('show'); if(modalTimer)clearInterval(modalTimer); modalTimer=null; openId=null; }
-$('mclose').onclick=closeModal;
-$('modal').onclick=function(e){ if(e.target===this) closeModal(); };
-$('mdel').onclick=function(){ if(openId&&confirm('카메라 삭제?')){ api('DELETE','/cameras/'+encodeURIComponent(openId)).then(function(){ closeModal(); poll(); }); } };
+// ── 전역 버튼·필터 ──
+[].forEach.call($('alerts').children,function(el){ el.onclick=function(){
+  var r=el.dataset.rule; evFilter=(evFilter===r)?null:r; renderEvents(); renderAlerts(); }; });
+$('evclr').onclick=function(){ evFilter=null; renderEvents(); renderAlerts(); };
+[].forEach.call(document.querySelectorAll('.gtools button[data-g]'),function(b){ b.onclick=function(){
+  [].forEach.call(document.querySelectorAll('.gtools button[data-g]'),function(x){x.classList.remove('on');});
+  b.classList.add('on'); cur=+b.dataset.g; renderGrid(); }; });
 
-// 추가 모달
+// ── 추가 모달 ──
 $('btnAdd').onclick=function(){ $('fPrev').innerHTML=''; $('addModal').classList.add('show'); };
 $('addClose').onclick=function(){ $('addModal').classList.remove('show'); };
 $('addModal').onclick=function(e){ if(e.target===this) this.classList.remove('show'); };
 function addPayload(en){ return {id:$('fId').value.trim(),name:$('fName').value.trim()||$('fId').value.trim(),source:$('fSrc').value.trim(),fps:parseFloat($('fFps').value)||2,enabled:en}; }
-$('fTest').onclick=function(){
-  var p=addPayload(false); if(!p.id||!p.source){ alert('ID·source 필요'); return; }
+$('fTest').onclick=function(){ var p=addPayload(false); if(!p.id||!p.source){ alert('ID·source 필요'); return; }
   $('fPrev').innerHTML='테스트 중…';
   api('POST','/cameras',p).then(function(){ return api('POST','/cameras/'+encodeURIComponent(p.id)+'/test'); }).then(function(t){
-    $('fPrev').innerHTML=t.ok?('<span style="color:var(--ok)">✔ 연결 성공</span><img src="'+t.snapshot+'">'):('<span style="color:var(--danger)">✕ 실패: '+esc(t.error)+'</span>');
-  }).catch(function(){ $('fPrev').innerHTML='<span style="color:var(--danger)">테스트 오류</span>'; });
-};
-$('fSave').onclick=function(){
-  var p=addPayload(true); if(!p.id||!p.source){ alert('ID·source 필요'); return; }
-  api('POST','/cameras',p).then(function(){ $('addModal').classList.remove('show'); poll(); });
-};
+    $('fPrev').innerHTML=t.ok?('<span style="color:var(--ok)">✔ 연결 성공</span><img src="'+t.snapshot+'">'):('<span style="color:var(--alert)">✕ 실패: '+esc(t.error)+'</span>');
+  }).catch(function(){ $('fPrev').innerHTML='<span style="color:var(--alert)">테스트 오류</span>'; }); };
+$('fSave').onclick=function(){ var p=addPayload(true); if(!p.id||!p.source){ alert('ID·source 필요'); return; }
+  api('POST','/cameras',p).then(function(){ $('addModal').classList.remove('show'); poll(); }); };
 
-// 그리드/필터 토글
-[].forEach.call(document.querySelectorAll('.tools button[data-g]'),function(b){ b.onclick=function(){
-  [].forEach.call(document.querySelectorAll('.tools button[data-g]'),function(x){x.classList.remove('on');});
-  b.classList.add('on'); cur=+b.dataset.g; renderGrid(); };});
-[].forEach.call(document.querySelectorAll('#filters button'),function(b){ b.onclick=function(){
-  [].forEach.call(document.querySelectorAll('#filters button'),function(x){x.classList.remove('on');});
-  b.classList.add('on'); evFilter=b.dataset.f; renderEvents(); };});
-
-poll(); setInterval(poll,2000); setInterval(refreshThumbs,1300);
+poll(); setInterval(poll,2000); setInterval(refreshThumbs,1300); setInterval(spotTick,1200);
 </script>
 </body></html>

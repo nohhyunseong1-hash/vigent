@@ -504,6 +504,7 @@ class Worker:
         self._last_dets: list = []                           # 3.0: 최신 검출(정규화 bbox) — 대시보드 오버레이
         self._last_pc = 0                                    # 최신 인원수
         self._last_sig: dict = {}                            # 최신 파생신호(ppe_missing·fire 등)
+        self._last_fired: list = []                          # 3.1b: 최신 발화 규칙명(zone_intrusion·fall 등) — 대시보드 뱃지·전역경보
         self.state: dict[str, Any] = {
             "running": False, "source": "", "name": "", "fps": 0,
             "frames": 0, "events": 0, "last_event": "", "error": ""}
@@ -677,6 +678,7 @@ class Worker:
                 fired.append(("fall_suspected", "critical", f"작업자 낙상 의심 — {freason}"))
             fired += ctx.mtrack.update(out.get("detections", []), t0)   # 무동작·급이동
             fired += ergo_fired                                     # 근골격계 부담자세(지속 확정분)
+            self._last_fired = [r[0] for r in fired]                # 3.1b: 이번 프레임 발화 규칙(뱃지·전역경보 근거)
             now = time.time()
             for rule, level, note in fired:
                 if now - ctx.cooldown.get(rule, 0) < _COOLDOWN_S:

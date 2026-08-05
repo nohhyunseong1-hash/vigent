@@ -88,9 +88,9 @@ def cameras_detections(cid: str):
     """경량 오버레이용 — 워커 최신 검출(정규화 bbox)·인원·신호. 프론트가 화면크기로 복원."""
     wk = _worker(cid)
     if wk is None:
-        return {"online": False, "detections": [], "person_count": 0, "signals": {}}
+        return {"online": False, "detections": [], "person_count": 0, "signals": {}, "fired": []}
     return {"online": bool(wk.state.get("running")), "detections": wk._last_dets,
-            "person_count": wk._last_pc, "signals": wk._last_sig}
+            "person_count": wk._last_pc, "signals": wk._last_sig, "fired": wk._last_fired}
 
 
 @router.get("/cameras/{cid}/snapshot")
@@ -121,6 +121,35 @@ def cameras_test(cid: str):
         return {"ok": False, "error": "프레임을 못 잡음(연결 실패/경로 오류)"}
     _, buf = cv2.imencode(".jpg", cv2.resize(fr, (480, 270)), [cv2.IMWRITE_JPEG_QUALITY, 65])
     return {"ok": True, "snapshot": "data:image/jpeg;base64," + base64.b64encode(buf.tobytes()).decode()}
+
+
+@router.get("/cameras/{cid}/zone")
+def cameras_zone_get(cid: str):
+    """카메라별 위험구역 폴리곤(정규화 좌표). 비어 있으면 워커는 전역 구역으로 폴백."""
+    c = _reg.get(cid)
+    if not c:
+        raise HTTPException(status_code=404, detail="없는 카메라")
+    pts = c.get("zone") or []
+    return {"points": [{"x": float(p[0]), "y": float(p[1])} for p in pts], "count": len(pts)}
+
+
+@router.post("/cameras/{cid}/zone")
+def cameras_zone_set(cid: str, payload: dict = Body(...)):
+    """카메라별 위험구역 저장. payload={"points":[{"x":..,"y":..}, ...]}(정규화 0~1).
+    비우면 전역 구역 폴백. 실행 중 카메라는 워커를 재시작해 즉시 반영한다."""
+    import worker as _w
+    c = _reg.get(cid)
+    if not c:
+        raise HTTPException(status_code=404, detail="없는 카메라")
+    pts = payload.get("points") or []
+    zone = [[float(p["x"]), float(p["y"])] for p in pts]
+    _reg.upsert(cid, zone=zone)
+    restarted = False
+    if _worker(cid) is not None and (_reg.get(cid) or {}).get("enabled"):
+        _w.manager.stop(cid)
+        _start(cid)
+        restarted = True
+    return {"ok": True, "count": len(zone), "restarted": restarted}
 
 
 def autostart_enabled() -> dict:
