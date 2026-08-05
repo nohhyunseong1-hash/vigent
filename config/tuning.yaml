@@ -48,8 +48,8 @@ detect:                     # 탐지 공통
       # 되돌리려면 backend.fire_smoke 를 yolo 로, 임계를 fire 0.03/smoke 0.20 으로 원복.
 
 hub:                        # 대시보드 확대뷰
-  focus_fps: 3              # 3.12 ①(임시 안정화): 확대뷰 focus 부스트 fps(기본5→3). 단일 MPS 예산상
-    # 5fps 풀세트는 safety-local 동시 사용 시 _DETECT_LOCK 경합(429ms). ②(차등 캐던스) 검증되면 5로 복원.
+  focus_fps: 5              # 3.12: 확대뷰 focus 시 루프 fps. ②(차등 캐던스)로 person 만 5fps·풀세트는
+    # fullset_fps(2) 유지 → GPU 예산 305ms/s(구 5fps 풀세트 425 대비↓)라 safety-local 동시에도 여유(S3 150ms 실측).
 
 worker:                     # 워커 루프
   pose_fps: 2               # 포즈(낙상·ergo) 추론 주기 — 검출과 분리(3.9·3.10). 기존 낙상 캐던스 유지.
