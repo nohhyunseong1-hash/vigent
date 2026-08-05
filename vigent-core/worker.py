@@ -137,10 +137,16 @@ def _person_metrics(xy: "np.ndarray", cf: "np.ndarray", H: int, min_kp: float = 
     aspect = bw / (bh + 1e-6)
     head_y = head[1] if head is not None else sc[1]
     head_below_hip = head_y > hc[1]                  # 머리가 엉덩이보다 아래(주저앉음/거꾸로)
-    pose_fallen = (angle > _FALL_ANGLE) or (aspect > 1.3) or head_below_hip
+    # ①-4(1): 하반신 키포인트(무릎13·14 또는 발목15·16, conf≥min_kp)가 없으면 aspect 단서 무효.
+    #   상반신 근접·팔벌림 착석 구도에서 가로로 넓은 박스를 낙상으로 오판하던 것을 차단.
+    #   angle·head_below_hip·급강하(drop)는 그대로 유지(진짜 낙상 단서 보존).
+    lower_valid = any(cf[j] >= min_kp for j in (13, 14, 15, 16))
+    aspect_cue = (aspect > 1.3) and lower_valid
+    pose_fallen = (angle > _FALL_ANGLE) or aspect_cue or head_below_hip
     return {"centroid": ((min(xs) + max(xs)) / 2, (min(ys) + max(ys)) / 2),
             "ref_y": sc[1] / H, "angle": angle, "aspect": aspect,
-            "head_below_hip": head_below_hip, "pose_fallen": pose_fallen}
+            "head_below_hip": head_below_hip, "pose_fallen": pose_fallen,
+            "lower_valid": lower_valid}
 
 
 class _PoseModel:
@@ -222,7 +228,7 @@ class FallTracker:
                 self._tracks.append(tr)
                 used.add(len(self._tracks) - 1)
             tr["cx"], tr["cy"] = cx, cy
-            tr["hist"].append((ts, p["ref_y"], p["pose_fallen"]))
+            tr["hist"].append((ts, p["ref_y"], p["pose_fallen"], p.get("lower_valid", False)))
             tr["hist"] = [h for h in tr["hist"] if ts - h[0] <= self.HIST_S]
         self._tracks = [tr for tr in self._tracks if tr.get("hist") and ts - tr["hist"][-1][0] < 2.0]
 
@@ -232,11 +238,13 @@ class FallTracker:
                 continue
             cur_ref, pose_fallen = hist[-1][1], hist[-1][2]
             past = [h[1] for h in hist if 0.5 <= ts - h[0] <= 2.0]
-            drop = bool(past) and (cur_ref - min(past) > self.DROP) and pose_fallen     # ② 급강하
-            recent = [h for h in hist if ts - h[0] <= 2.0]
-            allfall = len(recent) >= 3 and all(h[2] for h in recent[-3:])
-            still = len(recent) >= 3 and (max(h[1] for h in recent[-3:]) - min(h[1] for h in recent[-3:]) < 0.05)
-            static_fall = allfall and still                                            # ① 자세 지속+정지
+            drop = bool(past) and (cur_ref - min(past) > self.DROP) and pose_fallen     # ② 급강하(즉각 유지)
+            # ①-4(2): 자세지속 낙상은 하반신 유효 + 연속 5프레임(정지)로 강화 — 착석 오판 차단.
+            r5 = hist[-5:]
+            allfall = len(r5) >= 5 and all(h[2] for h in r5)
+            still = len(r5) >= 5 and (max(h[1] for h in r5) - min(h[1] for h in r5) < 0.05)
+            lower_ok = len(r5) >= 5 and all(h[3] for h in r5)
+            static_fall = allfall and still and lower_ok                               # ① 자세 지속+정지+하반신 유효
             if drop or static_fall:
                 reason = "급강하 후 쓰러짐" if drop else "쓰러진 자세 지속"
                 if self._vlm:                                                          # ③ VLM 확정(옵션)
