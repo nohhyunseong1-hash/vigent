@@ -194,6 +194,9 @@
 - **(a) 파인튜닝 augmentation**: person/PPE 재학습(클라우드) 시 **모션블러·고속이동 augmentation**(motion blur kernel·random resized crop·속도 시뮬) 추가 → 블러 프레임 검출 안정화. [[accuracy-baseline-measured]] 재학습과 연계.
 - **(b) Phase A 재평가**: 다인·가림 클립 확보 후 ByteTrack 2단계 재측정 — 상세는 위 **PA** 항목.
 - **완화(코드 아님)**: 웹캠 노출을 짧게(조명 밝게)하면 블러 감소 → 안내문 `docs/team/97_웹캠_블러_노출_안내.md`.
+- **정량 증거 추가(2026-08-06, B-2 조사)**: 이 모션블러 한계가 **낙상(FallTracker) 오발화의 실제 원인**임을
+  실측 확인 — 빠른 이동 클립(낙상 없음) 재생 시 16초 중 **30건** 낙상 오발화, 원인 진단 결과 하반신
+  키포인트는 검출됐으나(`lower_valid=True`) 모션블러로 위치 자체가 잘못 추정됨. 상세: `benchmarks/box_quality_b2_findings.md`.
 
 ---
 
