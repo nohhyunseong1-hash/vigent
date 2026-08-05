@@ -1,9 +1,15 @@
-# go2rtc — Tapo RTSP 를 브라우저용(WebRTC/MSE)으로 변환
+# go2rtc — Tapo RTSP 를 브라우저용(WebRTC/MSE)으로 변환.
+# ★이 파일은 '템플릿'(비번 없음, git 추적). 실행 시 data/go2rtc.runtime.yaml(gitignore)로 복사되어
+#   동적 스트림(카메라별 RTSP·자격증명)은 그 런타임 사본에만 기록된다 → 템플릿엔 비번이 남지 않음.
 streams:
   tapo: ${RTSP_URL}     # 실제 주소는 .env 의 RTSP_URL 에서 환경변수로 주입(파일에 비번 없음)
 api:
   listen: ":1984"
 webrtc:
-  # 로컬(같은 PC) WebRTC 연결을 확실히 성립시켜 저지연 재생(MSE 버퍼링 회피)
+  listen: ":8555"
+  # 실브라우저 ICE 성립: 127.0.0.1 + 실제 LAN IP(UDP 바인딩 주소)를 모두 광고.
+  #   127.0.0.1 후보만으론 go2rtc UDP 가 LAN IP 에만 바인딩돼 실브라우저 ICE 가 실패한다.
+  #   GO2RTC_LAN_IP 는 서버 startup(ensure_go2rtc)·런처가 자동 감지해 주입.
   candidates:
     - 127.0.0.1:8555
+    - ${GO2RTC_LAN_IP}:8555

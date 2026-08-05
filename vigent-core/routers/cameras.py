@@ -187,9 +187,24 @@ def cameras_zone_set(cid: str, payload: dict = Body(...)):
     return {"ok": True, "count": len(zone), "restarted": restarted}
 
 
+def _lan_ip() -> str:
+    """이 머신의 아웃바운드 LAN IP(패킷 전송 없이 소켓 트릭). go2rtc WebRTC 후보용 — 감지 실패 시 127.0.0.1."""
+    import socket
+    try:
+        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        s.connect(("8.8.8.8", 80))
+        ip = s.getsockname()[0]
+        s.close()
+        return ip
+    except Exception:  # noqa: BLE001
+        return "127.0.0.1"
+
+
 def ensure_go2rtc() -> bool:
     """go2rtc(WebRTC 변환기)가 안 떠 있으면 백그라운드로 기동. 바이너리 없으면 조용히 건너뜀(스냅샷 폴백).
-    서버 startup 에서 1회 호출 → 카메라 확대뷰 실시간 재생 준비. 실패해도 서버·검출은 무중단."""
+    서버 startup 에서 1회 호출 → 카메라 확대뷰 실시간 재생 준비. 실패해도 서버·검출은 무중단.
+    GO2RTC_LAN_IP 를 주입 → go2rtc.yaml 이 WebRTC 후보에 실제 UDP 바인딩 주소를 광고(127.0.0.1
+    후보만으론 실브라우저 ICE 가 UDP 바인딩 불일치로 실패)."""
     import os
     import socket
     from pathlib import Path
@@ -201,13 +216,22 @@ def ensure_go2rtc() -> bool:
     try:
         import subprocess
         root = Path(__file__).resolve().parent.parent.parent
-        binp, cfg = root / "bin" / "go2rtc", root / "config" / "go2rtc.yaml"
+        binp = root / "bin" / "go2rtc"
+        template = root / "config" / "go2rtc.yaml"
+        runtime = root / "data" / "go2rtc.runtime.yaml"   # gitignore(data/) — 동적 스트림·비번은 여기에만 기록
         if not binp.exists():
+            return False
+        try:                                              # 매 기동 템플릿으로 초기화(옛 동적 스트림·비번 잔재 제거)
+            runtime.parent.mkdir(parents=True, exist_ok=True)
+            runtime.write_text(template.read_text(encoding="utf-8"), encoding="utf-8")
+        except Exception:  # noqa: BLE001  런타임 사본 실패 → 템플릿에 비번 기록 방지 위해 go2rtc 미기동(스냅샷 폴백)
             return False
         env = dict(os.environ)
         env.setdefault("RTSP_URL", "")                    # 레거시 tapo 스트림용(없어도 무방)
-        subprocess.Popen([str(binp), "-config", str(cfg)], cwd=str(binp.parent),
-                         stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, env=env)
+        env["GO2RTC_LAN_IP"] = _lan_ip()                  # WebRTC 후보에 실제 LAN IP 광고(ICE 성립)
+        logf = open(root / "data" / "go2rtc.log", "ab")   # noqa: SIM115  Popen 수명 동안 유지(관측성 — WebRTC 진단)
+        subprocess.Popen([str(binp), "-config", str(runtime)], cwd=str(binp.parent),
+                         stdout=logf, stderr=logf, env=env)
         return True
     except Exception:  # noqa: BLE001
         return False

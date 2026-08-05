@@ -58,3 +58,8 @@ footage/
 business_assets/
 pilot_*.md
 vigent_helios_hx_deployable.html
+
+# go2rtc 가 bin/ 에서 동적 기록하는 자격증명 파일(추적 금지)
+bin/go2rtc.yaml
+data/go2rtc.runtime.yaml
+data/go2rtc.log
