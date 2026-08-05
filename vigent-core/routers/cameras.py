@@ -8,6 +8,7 @@ from app_state import DEFAULT_THEME, STATE
 from app_state import DETECT_LOCK as _DETECT_LOCK
 from app_state import load_theme as _load_theme
 from fastapi import APIRouter, Body, HTTPException, Response
+from web_util import is_safety_label as _is_safety
 
 router = APIRouter()
 
@@ -120,7 +121,10 @@ def cameras_detections(cid: str):
     wk = _worker(cid)
     if wk is None:
         return {"online": False, "detections": [], "person_count": 0, "signals": {}, "fired": []}
-    return {"online": bool(wk.state.get("running")), "detections": wk._last_dets,
+    # safety_only(표시 단): 잡동사니(tv·laptop·의자 등) 제거 → 사람·보호구(NO-*)·위험물·차량·화재만.
+    #   워커 이벤트/신호는 guard.detect 내부 out 으로 계산되므로 이 필터는 응답·오버레이 표시에만 영향(회귀 0).
+    dets = [d for d in wk._last_dets if _is_safety(d.get("class"))]
+    return {"online": bool(wk.state.get("running")), "detections": dets,
             "person_count": wk._last_pc, "signals": wk._last_sig, "fired": wk._last_fired}
 
 
