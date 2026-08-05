@@ -6,6 +6,7 @@ import asyncio
 
 from fastapi import APIRouter, HTTPException, Request, Response, WebSocket
 from fastapi.responses import PlainTextResponse
+from ws_auth import ws_token_ok
 
 router = APIRouter()
 
@@ -57,7 +58,12 @@ def tapo_videortc_js():
 
 @router.websocket("/tapo/ws")
 async def tapo_ws(ws: WebSocket):
-    """브라우저 ↔ go2rtc WebSocket 양방향 중계(같은 출처). ?src= 로 스트림 선택(기본 tapo)."""
+    """브라우저 ↔ go2rtc WebSocket 양방향 중계(같은 출처). ?src= 로 스트림 선택(기본 tapo).
+    VIGENT_API_TOKEN 설정 시 ?token= 또는 Authorization 헤더로 인증(P0 수정 — HTTP 미들웨어는
+    websocket scope 를 검사하지 않아 이 라우트만 별도로 검사해야 한다)."""
+    if not ws_token_ok(ws):
+        await ws.close(code=1008)
+        return
     try:
         src = _resolve_src(ws.query_params.get("src"))
     except HTTPException:
