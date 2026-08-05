@@ -533,6 +533,12 @@ class Worker:
         self._last_det_ts = 0.0                              # 3.8: 최신 검출 갱신 시각(ms) — 확대뷰 ingest 간격 산출
         self._interval = 0.5                                 # 3.8: 가변 루프 간격(초). set_fps 로 포커스 부스트
         self._last_pose_ts = 0.0                             # 3.9: 최신 포즈 실행 시각 — 검출/포즈 주기 분리
+        self._pose_lock = threading.Lock()                   # 3.10: 포즈 스레드↔메인 공유 보호
+        self._pose_input: tuple | None = None                # (frame, person_boxes, t0) 최신 — 포즈 스레드가 소비
+        self._pose_events: list = []                         # 포즈 스레드가 낸 발화(rule,level,note) — 메인이 드레인
+        self._pose_ftrack: Any = None                        # 현 run 의 FallTracker(포즈 스레드 전용 접근)
+        self._pose_etrack: Any = None                        # 현 run 의 ErgonomicsTracker
+        self._pose_thread: threading.Thread | None = None
         self.state: dict[str, Any] = {
             "running": False, "source": "", "name": "", "fps": 0,
             "frames": 0, "events": 0, "last_event": "", "error": ""}
@@ -654,6 +660,39 @@ class Worker:
                 slept += 0.2
         self.state["running"] = False
 
+    def _pose_loop(self):
+        """포즈(낙상·ergo) 전용 스레드 — RTMPose(ONNXRuntime CPU). guard 는 MPS(PyTorch)라 서로 다른
+        런타임·장치 → 병렬 안전(FINDINGS MPS 크래시는 PyTorch GPU 공유 문제; 이 스레드는 MPS 미접촉).
+        pose_fps 로 최신 프레임을 소비, 결과(fired)는 _pose_lock 으로 안전 공유. 검출(메인 루프)과 독립 →
+        검출 간격이 포즈에 안 밀린다(3.9→3.10)."""
+        while not self._stop.is_set():
+            time.sleep(0.03)
+            if not self.state.get("running") or self._pose_ftrack is None:
+                continue
+            now = time.time()
+            if now - self._last_pose_ts < _POSE_MIN_INTERVAL:   # 고정 pose_fps(기존 낙상·자세 캐던스 유지)
+                continue
+            with self._pose_lock:
+                inp = self._pose_input
+            if not inp:
+                continue
+            frame, person_boxes, t0 = inp
+            self._last_pose_ts = now
+            fired: list = []
+            try:
+                fall, freason = self._pose_ftrack.update(frame, t0, person_boxes)   # 다중단서+모션 낙상
+                if fall:
+                    fired.append(("fall_suspected", "critical", f"작업자 낙상 의심 — {freason}"))
+            except Exception as _pe:  # noqa: BLE001  포즈 실패해도 검출·이벤트 무중단
+                _WLOG.debug("포즈 스레드 낙상 예외: %s", _pe)
+            try:
+                fired += self._pose_etrack.update(frame, t0, person_boxes)   # 근골격계 부담자세(지속 확정분)
+            except Exception:  # noqa: BLE001  가산 레이어
+                pass
+            if fired:
+                with self._pose_lock:
+                    self._pose_events.extend(fired)
+
     def _process_frame(self, frame, t0, guard, lock, ctx: "_FrameCtx"):
         """단일 프레임 처리 — 수집·추론·트래커·발화·쿨다운·이벤트로깅(P2-13에서 _loop 에서 추출).
         프레임 단위 예외를 여기서 격리(한 프레임 실패가 루프를 죽이지 않음).
@@ -686,19 +725,14 @@ class Worker:
                 person_boxes = [[d["bbox"][0] * _W, d["bbox"][1] * _H,
                                  d["bbox"][2] * _W, d["bbox"][3] * _H]
                                 for d in out.get("detections", []) if d["label"] == "person"]
-                # 3.9 ①: 포즈(낙상·ergo)는 pose_fps(기본2)로만 실행 — 검출은 워커 fps(focus 5) 유지.
-                #   비-focus(2fps)에선 프레임 간격≈pose 간격 → 매 프레임 실행(기존과 동일). focus(5fps)에선 2fps 로 스킵.
-                #   포즈 캐던스가 기존(2fps)과 같아 static_fall 5프레임·drop 타이밍 불변(낙상·자세 회귀 0).
-                if t0 - self._last_pose_ts >= _POSE_MIN_INTERVAL:
-                    self._last_pose_ts = t0
-                    fall, freason = ctx.ftrack.update(frame, t0, person_boxes)   # 다중단서+모션 낙상
-                    try:
-                        ergo_fired = ctx.etrack.update(frame, t0, person_boxes)  # 근골격계 부담자세(포즈 각도·저빈도)
-                    except Exception:  # noqa: BLE001  가산 레이어 — 실패해도 낙상·탐지 무중단
-                        ergo_fired = []
-                else:
-                    fall, freason, ergo_fired = False, "", []   # 포즈 스킵 프레임 — 새 낙상·ergo 발화 없음
+            # 3.10 ①: 포즈(낙상·ergo)는 별도 스레드(ONNX-CPU)가 pose_fps 로 비동기 처리 → 검출(MPS) 간격 균일.
+            #   최신 프레임·person 박스를 입력 슬롯에 넣고(스레드가 소비), 스레드가 낸 발화 이벤트를 드레인.
+            with self._pose_lock:
+                self._pose_input = (frame, person_boxes, t0)
+                _pose_ev = self._pose_events
+                self._pose_events = []
             fired = _derive(out, ctx.zone, frame.shape[0] / frame.shape[1])
+            fired += _pose_ev                                       # 낙상·ergo(별도 스레드 산출) — 쿨다운은 아래 공통
             # B9: 위험구역 한정 타일 재검출(가산·기본 off, VIGENT_ZONE_TILE=1). zone 내 놓친 소형 person 회수.
             #   ★확인1(스코프 한정): 타일 박스는 zone_intrusion 발화에만 쓴다 — 공유 out["detections"] 에
             #     병합하지 않음 → proximity/crowd/motion/트래커/PPE 전부 무영향.
@@ -718,10 +752,7 @@ class Worker:
                             fired.append(("zone_intrusion", "high", "위험구역 내 작업자 감지(구역-타일 회수)"))
                     except Exception as _ze:  # noqa: BLE001  가산 레이어 — 실패해도 기존 검출 무중단
                         _WLOG.debug("worker 무시 예외 [zone-tile]: %s", _ze)
-            if fall:
-                fired.append(("fall_suspected", "critical", f"작업자 낙상 의심 — {freason}"))
-            fired += ctx.mtrack.update(out.get("detections", []), t0)   # 무동작·급이동
-            fired += ergo_fired                                     # 근골격계 부담자세(지속 확정분)
+            fired += ctx.mtrack.update(out.get("detections", []), t0)   # 무동작·급이동(포즈 무관 — 메인 유지)
             self._last_fired = [r[0] for r in fired]                # 3.1b: 이번 프레임 발화 규칙(뱃지·전역경보 근거)
             now = time.time()
             for rule, level, note in fired:
@@ -787,6 +818,11 @@ class Worker:
         (interval, ctx, static, is_image, is_file_video, is_stream,
          use_capture_thread, cap, streamcap) = self._setup_run(source, name, fps, detectors, zone)
         self._interval = interval          # 3.8: 가변 간격 시드 — set_fps(포커스 부스트)가 런타임에 바꿈
+        self._pose_ftrack = ctx.ftrack     # 3.10: 포즈 스레드가 쓸 현 run 트래커(낙상·ergo)
+        self._pose_etrack = ctx.etrack
+        if self._pose_thread is None or not self._pose_thread.is_alive():
+            self._pose_thread = threading.Thread(target=self._pose_loop, daemon=True)
+            self._pose_thread.start()
         read_fails = 0
         rbackoff = 1.0
         slot_frame_ts = 0.0                          # 캡처 스레드 모드의 하트비트 기준(슬롯 갱신 시각)
