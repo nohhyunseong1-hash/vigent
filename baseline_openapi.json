@@ -25,7 +25,7 @@
     "/tapo/webrtc": {
       "post": {
         "summary": "Tapo Webrtc",
-        "description": "브라우저 ↔ go2rtc WebRTC 핸드셰이크(SDP)를 VIGENT 서버가 중계.\n영상(미디어)은 WebRTC로 직접 흐르고, 여기선 SDP 신호만 전달 → CORS 문제 없음.",
+        "description": "브라우저 ↔ go2rtc WebRTC 핸드셰이크(SDP)를 VIGENT 서버가 중계.\n영상(미디어)은 WebRTC로 직접 흐르고, 여기선 SDP 신호만 전달 → CORS 문제 없음.\n?src= 로 스트림 선택(기본 tapo).",
         "operationId": "tapo_webrtc_tapo_webrtc_post",
         "responses": {
           "200": {
@@ -1916,6 +1916,56 @@
             }
           }
         ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/cameras/{cid}/focus": {
+      "post": {
+        "summary": "Cameras Focus",
+        "description": "확대뷰 포커스 부스트(3.8) — 선택 중 워커 fps 를 focus_fps(tuning hub.focus_fps, 기본5)로 임시 상향,\n해제/탭이탈 시 등록 fps 복원. 확대뷰는 워커 결과 재사용(자체 추론 없음)이라 다중 시청자여도\n워커 1개 → 부하 불변(중복 추론과의 차이). 재시작 없이 루프 간격만 바꿈.",
+        "operationId": "cameras_focus_cameras__cid__focus_post",
+        "parameters": [
+          {
+            "name": "cid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Cid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": true,
+                "default": {},
+                "title": "Payload"
+              }
+            }
+          }
+        },
         "responses": {
           "200": {
             "description": "Successful Response",
