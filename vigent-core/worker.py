@@ -62,6 +62,16 @@ def _point_in_poly(x: float, y: float, poly: list) -> bool:
     return inside
 
 
+def _default_detectors() -> list[str]:
+    """워커 기본 검출기 — 안전 테마 person+ppe+fire_smoke.
+    forklift 는 F-7(과소학습 오탐, conf~0.002)로 **기본 제외**. 모델 개선 후
+    tuning detect.include_forklift=1(또는 env VIGENT_INCLUDE_FORKLIFT=1)로 명시 재활성 가능."""
+    base = ["person", "ppe", "fire_smoke"]
+    if tuning.val("detect", "include_forklift", 0, env="VIGENT_INCLUDE_FORKLIFT"):
+        base.append("forklift")
+    return base
+
+
 def _load_zone() -> list[tuple[float, float]]:
     """danger_zone 의 정규화 폴리곤(없으면 빈 목록). B2: 런타임(data/) 우선 → config/ 시드 폴백."""
     p = runtime_config.read_path("config/danger_zone.json")
@@ -522,7 +532,7 @@ class Worker:
         self._thread = threading.Thread(
             target=self._run_supervised,      # 1단계: 감독자 경유(루프가 죽어도 재시작 — 무증상 실패 차단)
             args=(guard, lock, source, name, fps,
-                  detectors or ["person", "ppe", "forklift", "fire_smoke"], zone),
+                  detectors or _default_detectors(), zone),
             daemon=True)
         self._thread.start()
         self._hang_thread = threading.Thread(   # 2단계: hang 감시(last_frame_ts N초 무진전 → 재기동)
