@@ -149,6 +149,7 @@ var $=function(id){return document.getElementById(id);};
 var GS={4:[2,2],9:[3,3],16:[4,4]}, cur=16, CAMS=[], EVENTS=[], evFilter=null, openId=null;
 var spotId=null, pinned=false, showZone=true, zoneEdit=false, zonePts=[];
 var spotMode='snapshot', vsEl=null, spotDets=[], VS_READY=null, lastPMode=null, webrtcFailReason='';   // WebRTC 재생 상태·계측·폴백사유
+var spotTgt=[], spotDisp=[], spotDetTimer=null, spotRafId=null, spotCap=null;   // 스포트라이트 클라이언트 검출(safety-local식 추적)
 var prevA={}, pulseUntil={}, newlyAlert=[];
 var LOCAL={id:'__local',name:'로컬 웹캠(CAM-LOCAL)',local:true,online:true};
 function esc(s){return String(s==null?'':s).replace(/[<>&]/g,function(c){return {'<':'&lt;','>':'&gt;','&':'&amp;'}[c];});}
@@ -294,7 +295,7 @@ function ensureVideoStream(){
   return VS_READY;
 }
 function spotVideoEl(){ return vsEl?(vsEl.video||vsEl.querySelector('video')):null; }
-function stopWebRTC(){ if(vsEl){ try{ var v=spotVideoEl(); if(v&&v._vg) clearInterval(v._vg); vsEl.src=''; vsEl.remove(); }catch(e){} vsEl=null; } }
+function stopWebRTC(){ spotStopDetect(); if(vsEl){ try{ var v=spotVideoEl(); if(v&&v._vg) clearInterval(v._vg); vsEl.src=''; vsEl.remove(); }catch(e){} vsEl=null; } }
 function spotWebRTC(cid, attempt){ attempt=attempt||1;
   ensureVideoStream().then(function(){
     if(cid!==spotId) return; stopWebRTC();
@@ -306,7 +307,7 @@ function spotWebRTC(cid, attempt){ attempt=attempt||1;
     vsEl=vs; var t0=Date.now();
     (function wait(){ if(vsEl!==vs) return;                             // 그새 카메라 바뀜
       var v=vs.video||vs.querySelector('video');
-      if(v&&v.videoWidth>0){ spotMode='webrtc'; webrtcFailReason=''; $('simg').style.display='none'; $('sph').style.display='none'; liveCatchup(v); drawSpot(); return; }
+      if(v&&v.videoWidth>0){ spotMode='webrtc'; webrtcFailReason=''; $('simg').style.display='none'; $('sph').style.display='none'; liveCatchup(v); spotStartDetect(); return; }
       if(Date.now()-t0>6000){                                          // ⓪ 폴백 사유 가시화(추측 금지)
         var pc=vs.pc, ws=vs.ws;
         webrtcFailReason = !pc ? ('WS/SDP 미성립'+(ws&&ws.readyState!==1?'(WS state '+(ws?ws.readyState:'none')+')':'(go2rtc 신호 무응답)'))
@@ -327,6 +328,36 @@ function spotWebRTC(cid, attempt){ attempt=attempt||1;
 function liveCatchup(vid){ if(vid._vg) return; vid._vg=setInterval(function(){ try{   // 누적지연 제거(라이브 따라잡기)
   var b=vid.buffered; if(!b||!b.length) return; var live=b.end(b.length-1), lag=live-vid.currentTime;
   if(lag>0.6) vid.currentTime=live-0.05; vid.playbackRate=lag>0.25?1.07:1.0; }catch(e){} },800); }
+
+// ── 스포트라이트 객체추적: safety-local 과 동일 방식 — 영상 프레임을 클라이언트가 검출(~5fps) + lerp 보간 ──
+function spotStartDetect(){ spotStopDetect();
+  spotDetTimer=setInterval(spotCapturePost, 220);   // ~4.5fps 검출(워커 이벤트와 별개, 표시 전용)
+  spotRenderLoop(); }
+function spotStopDetect(){ if(spotDetTimer){ clearInterval(spotDetTimer); spotDetTimer=null; } if(spotRafId){ cancelAnimationFrame(spotRafId); spotRafId=null; } spotTgt=[]; spotDisp=[]; }
+function spotCapturePost(){
+  if(spotMode!=='webrtc') return; var v=spotVideoEl(); if(!v||!v.videoWidth) return;
+  var cw=v.videoWidth, ch=v.videoHeight;
+  if(!spotCap) spotCap=document.createElement('canvas');
+  spotCap.width=cw; spotCap.height=ch; spotCap.getContext('2d').drawImage(v,0,0,cw,ch);
+  var durl; try{ durl=spotCap.toDataURL('image/jpeg',0.55); }catch(e){ return; }   // WebRTC=같은출처 → toDataURL 허용
+  api('POST','/detect/frame',{image:durl,ppe:true,safety_only:true}).then(function(r){
+    spotTgt=(r.detections||[]).map(function(d){ var b=d.bbox||[0,0,0,0];   // /detect/frame = 픽셀 [x,y,w,h]
+      return {cls:d.class, score:d.score, x:b[0]/cw, y:b[1]/ch, w:b[2]/cw, h:b[3]/ch}; });
+  }).catch(function(){});
+}
+function _iou(a,b){ var ix=Math.max(0,Math.min(a.x+a.w,b.x+b.w)-Math.max(a.x,b.x)), iy=Math.max(0,Math.min(a.y+a.h,b.y+b.h)-Math.max(a.y,b.y));
+  var inter=ix*iy, uni=a.w*a.h+b.w*b.h-inter; return uni>0?inter/uni:0; }
+function lerpSpot(){   // 표시박스를 target 으로 lerp 수렴(부드럽게), 큰이동은 스냅, 사라진 박스 페이드
+  var L=0.5, now=Date.now(), used={};
+  spotDisp.forEach(function(d){ var bi=-1,bv=0.25;
+    spotTgt.forEach(function(t,i){ if(used[i]||t.cls!==d.cls) return; var v=_iou(d,t); if(v>bv){bv=v;bi=i;} });
+    if(bi>=0){ var t=spotTgt[bi]; used[bi]=1; d.seen=now; d.score=t.score;
+      if(_iou(d,t)<0.5){ d.x=t.x; d.y=t.y; d.w=t.w; d.h=t.h; }
+      else { d.x+=(t.x-d.x)*L; d.y+=(t.y-d.y)*L; d.w+=(t.w-d.w)*L; d.h+=(t.h-d.h)*L; } } });
+  spotTgt.forEach(function(t,i){ if(!used[i]) spotDisp.push({cls:t.cls,score:t.score,x:t.x,y:t.y,w:t.w,h:t.h,seen:now}); });
+  spotDisp=spotDisp.filter(function(d){ return now-(d.seen||now)<320; });
+}
+function spotRenderLoop(){ if(spotMode!=='webrtc'){ spotRafId=null; return; } lerpSpot(); drawSpot(); spotRafId=requestAnimationFrame(spotRenderLoop); }
 function mediaRect(nw,nh){ var cv=$('scanvas'), cw=cv.clientWidth, ch=cv.clientHeight;   // object-fit:contain 영역
   var s=Math.min(cw/nw,ch/nh), w=nw*s, h=nh*s; return {x:(cw-w)/2,y:(ch-h)/2,w:w,h:h}; }
 function activeRect(){
@@ -336,8 +367,8 @@ function activeRect(){
 }
 function spotTick(){
   if(!spotId||spotId==='__local'){ if(spotMode!=='webrtc'){ $('simg').style.display='none'; $('sph').style.display='flex'; } return; }
-  api('GET','/cameras/'+encodeURIComponent(spotId)+'/detections').then(function(d){ spotDets=d.detections||[]; drawSpot(); }).catch(function(){});   // 검출=오버레이(모드 무관)
-  if(spotMode==='webrtc') return;                                     // 영상은 WebRTC 가 그림
+  if(spotMode==='webrtc') return;                                     // WebRTC: 클라이언트 검출+렌더루프가 영상·오버레이 담당
+  api('GET','/cameras/'+encodeURIComponent(spotId)+'/detections').then(function(d){ spotDets=d.detections||[]; drawSpot(); }).catch(function(){});   // 스냅샷 모드 오버레이
   var img=$('simg');
   img.onload=function(){ img.style.display='block'; $('sph').style.display='none'; drawSpot(); };
   img.onerror=function(){ img.style.display='none'; $('sph').textContent='오프라인/워밍업'; $('sph').style.display='flex'; };
@@ -355,11 +386,16 @@ function drawSpot(){
     if(zone.length>=3){ ctx.fillStyle='rgba(230,57,70,.28)'; ctx.fill(); }
     if(zoneEdit) zone.forEach(function(p){ var x=r.x+p[0]*r.w, y=r.y+p[1]*r.h; ctx.fillStyle='#39d0ff'; ctx.beginPath(); ctx.arc(x,y,4,0,6.3); ctx.fill(); });
   }
-  if(!zoneEdit) spotDets.forEach(function(d){ var b=d.bbox;
-    var x=r.x+b[0]*r.w, y=r.y+b[1]*r.h, w=(b[2]-b[0])*r.w, h=(b[3]-b[1])*r.h;
-    var col=/^no-/i.test(d.class)?'#e63946':(d.class==='person'?'#39d0ff':'#2fbf71');
-    ctx.strokeStyle=col; ctx.lineWidth=1.5; ctx.strokeRect(x,y,w,h);
-    ctx.font='11px monospace'; ctx.fillStyle=col; ctx.fillText(d.class+' '+Math.round((d.score||0)*100)+'%',x+2,y-3); });
+  if(!zoneEdit){
+    var boxes = (spotMode==='webrtc')                                    // WebRTC=클라이언트 검출·보간(부드러운 추적), 스냅샷=워커 검출
+      ? spotDisp.map(function(d){ return {class:d.cls, score:d.score, bbox:[d.x, d.y, d.x+d.w, d.y+d.h]}; })
+      : spotDets;
+    boxes.forEach(function(d){ var b=d.bbox;
+      var x=r.x+b[0]*r.w, y=r.y+b[1]*r.h, w=(b[2]-b[0])*r.w, h=(b[3]-b[1])*r.h;
+      var col=/^no-/i.test(d.class)?'#e63946':(d.class==='person'?'#39d0ff':'#2fbf71');
+      ctx.strokeStyle=col; ctx.lineWidth=1.5; ctx.strokeRect(x,y,w,h);
+      ctx.font='11px monospace'; ctx.fillStyle=col; ctx.fillText(d.class+' '+Math.round((d.score||0)*100)+'%',x+2,y-3); });
+  }
 }
 $('scanvas').onclick=function(e){ if(!zoneEdit) return;
   var r=activeRect(), rect=this.getBoundingClientRect(), px=e.clientX-rect.left-r.x, py=e.clientY-rect.top-r.y;
