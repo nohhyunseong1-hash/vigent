@@ -357,8 +357,8 @@ function spotPollLoop(){   // 워커 결과 재사용(추론 없음). 새 ts(검
       if(_dbg){ var nm=Date.now(); if(_dbgLastIngAt) _dbgIng.push(nm-_dbgLastIngAt); _dbgLastIngAt=nm; if(_dbgIng.length>400) _dbgIng.shift(); }
     }
   }).catch(function(){});
-  spotDetTimer=setTimeout(spotPollLoop, 150);
-}
+  spotDetTimer=setTimeout(spotPollLoop, 50);   // 3.14 ②(T3): 150→50ms. ~205ms ts 신호를 충분히 오버샘플(Nyquist)해
+}                                              //   앨리어싱·양자화 지터 제거(150ms 폴링이 386ms·sd396 으로 증폭하던 문제). GET 은 추론 없어 저비용(20/s).
 function spotRenderLoop(){ if(spotMode!=='webrtc'||!_spotBt){ spotRafId=null; return; }
   spotVis=_spotBt.sample(Date.now());
   if(_dbg){ _dbgFrames++; var sig=spotVis.map(function(o){return o.box.map(function(v){return v.toFixed(3);}).join(',');}).join('|');   // 정지프레임=박스가 직전 프레임과 동일(트윈·외삽 미이동)
