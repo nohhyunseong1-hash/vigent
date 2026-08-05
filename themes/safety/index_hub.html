@@ -59,7 +59,8 @@ body{margin:0;background:var(--bg);color:var(--fg);font-family:"SF Mono","Menlo"
 .spot canvas.edit{cursor:crosshair}
 .spot .shead{position:absolute;top:0;left:0;right:0;display:flex;align-items:center;gap:8px;padding:6px 10px;background:rgba(0,0,0,.55);z-index:3;font-size:11px}
 .spot .shead .snm{font-weight:800;color:#e7eef5}
-.spot .shead .pin{margin-left:auto;color:var(--dim);cursor:pointer;user-select:none}
+.spot .shead .pmode{margin-left:auto;font-size:10px;color:var(--dim);display:none;align-items:center;gap:4px;letter-spacing:.03em;background:rgba(0,0,0,.35);padding:2px 7px;border-radius:5px}
+.spot .shead .pin{margin-left:10px;color:var(--dim);cursor:pointer;user-select:none}
 .spot .shead .pin.on{color:#39d0ff}
 .evt{flex:1;display:flex;flex-direction:column;min-height:0;border-bottom:1px solid var(--line)}
 .evt h4{margin:0;padding:8px 12px;font-size:10px;letter-spacing:.16em;color:var(--dim);display:flex;align-items:center;gap:8px}
@@ -118,7 +119,7 @@ body{margin:0;background:var(--bg);color:var(--fg);font-family:"SF Mono","Menlo"
     <div class="left"><div class="grid" id="grid"></div></div>
     <div class="right">
       <div class="spot" id="spot">
-        <div class="shead"><span class="snm" id="snm">—</span><span class="sev C" id="ssev">정상</span><span class="pin" id="spin" title="스포트라이트 고정 — 켜면 경보 자동전환이 멈춥니다">📌 고정</span></div>
+        <div class="shead"><span class="snm" id="snm">—</span><span class="sev C" id="ssev">정상</span><span class="pmode" id="pmode" title="영상 재생 방식·실측 지연(라이브 대비 버퍼 끝 차이)"></span><span class="pin" id="spin" title="스포트라이트 고정 — 켜면 경보 자동전환이 멈춥니다">📌 고정</span></div>
         <div id="svid"></div><img id="simg" alt=""><canvas id="scanvas"></canvas>
         <div class="feed" id="sph">카메라를 선택하세요</div>
       </div>
@@ -147,7 +148,7 @@ body{margin:0;background:var(--bg);color:var(--fg);font-family:"SF Mono","Menlo"
 var $=function(id){return document.getElementById(id);};
 var GS={4:[2,2],9:[3,3],16:[4,4]}, cur=16, CAMS=[], EVENTS=[], evFilter=null, openId=null;
 var spotId=null, pinned=false, showZone=true, zoneEdit=false, zonePts=[];
-var spotMode='snapshot', vsEl=null, spotDets=[], VS_READY=null;   // WebRTC 재생 상태
+var spotMode='snapshot', vsEl=null, spotDets=[], VS_READY=null, lastPMode=null;   // WebRTC 재생 상태·계측
 var prevA={}, pulseUntil={}, newlyAlert=[];
 var LOCAL={id:'__local',name:'로컬 웹캠(CAM-LOCAL)',local:true,online:true};
 function esc(s){return String(s==null?'':s).replace(/[<>&]/g,function(c){return {'<':'&lt;','>':'&gt;','&':'&amp;'}[c];});}
@@ -247,8 +248,8 @@ function renderEvents(){
 
 // ── 스포트라이트 + 설정 패널 ──
 function selectCam(id,userPin){ spotId=id; if(userPin&&pinned){ pinned=false; $('spin').classList.remove('on'); }  // 행/타일 클릭 시 핀 해제+수동전환
-  zoneEdit=false; zonePts=[]; stopWebRTC(); spotMode='snapshot'; spotDets=[];
-  renderGrid(); renderSpot(); renderSet();
+  zoneEdit=false; zonePts=[]; stopWebRTC(); spotMode='snapshot'; spotDets=[]; lastPMode=null;
+  renderGrid(); renderSpot(); renderSet(); updatePMode();
   if(id&&id!=='__local') spotWebRTC(id);   // WebRTC 시도(실패 시 내부에서 스냅샷 폴백)
   spotTick(); }
 function renderSpot(){
@@ -350,6 +351,25 @@ $('scanvas').onclick=function(e){ if(!zoneEdit) return;
   var nx=Math.max(0,Math.min(1,px/r.w)), ny=Math.max(0,Math.min(1,py/r.h));
   zonePts.push([+nx.toFixed(4),+ny.toFixed(4)]); drawSpot(); };
 window.addEventListener('resize',function(){ try{ drawSpot(); }catch(e){} });
+
+// ── 재생모드 계측 배지(비파괴): 실제 성립 모드(webrtc pc 여부)·라이브 대비 버퍼 지연 ──
+function pmodeState(){
+  if(!spotId||spotId==='__local') return null;
+  if(spotMode!=='webrtc') return {mode:'snapshot', lat:null};   // go2rtc 미가용 → 스냅샷 폴백
+  var v=spotVideoEl(), pc=vsEl&&vsEl.pc;
+  var connected=!!(pc&&(pc.connectionState==='connected'||pc.iceConnectionState==='connected'||pc.iceConnectionState==='completed'));
+  var lat=null; if(v){ try{ var b=v.buffered; if(b&&b.length) lat=Math.max(0,(b.end(b.length-1)-v.currentTime)*1000); }catch(e){} }
+  return {mode: connected?'webrtc':'mse', lat:lat};   // pc 성립=WebRTC, 아니면 video-rtc 가 MSE 폴백
+}
+function updatePMode(){
+  var el=$('pmode'); if(!el) return; var s=pmodeState();
+  if(!s){ el.style.display='none'; return; }
+  var C={webrtc:['#2fbf71','WebRTC'], mse:['#f08a00','MSE 버퍼'], snapshot:['#7c8896','스냅샷']}[s.mode];
+  el.style.display='inline-flex';
+  el.innerHTML='<span style="color:'+C[0]+'">●</span> '+C[1]+(s.lat!=null?('  '+Math.round(s.lat)+'ms'):'');
+  if(s.mode!==lastPMode){ console.log('[VIGENT] 스포트라이트 재생모드:', C[1], '· cam='+spotId+(s.lat!=null?(' · 지연 '+Math.round(s.lat)+'ms'):'')); lastPMode=s.mode; }
+}
+setInterval(updatePMode, 800);
 $('spin').onclick=function(){ pinned=!pinned; this.classList.toggle('on',pinned); };
 
 // ── 폴링 ──
