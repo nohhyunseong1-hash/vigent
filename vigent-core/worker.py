@@ -744,7 +744,9 @@ class Worker:
                                     for d in out.get("detections", []) if d["label"] == "person"]
                 # 표시 목록 = person(고속 :pf 또는 풀세트) + 비-person(ppe/fire, 풀세트 캐던스로 지속 표시)
                 self._last_dets = (disp_person if disp_person is not None else _main_person) + self._last_nonperson
-                self._last_det_ts = time.time()   # 3.8: 검출 갱신 시각(확대뷰 ingest — person 은 focus 시 5fps)
+                # 3.14 ①(T1): ts 를 '프레임 시각(t0)'으로 스탬프 — 완료시각(time.time)은 person/full 처리시간 차로
+                #   불균일(sd↑)했다. t0 는 루프 간격(≈균일)이라 확대뷰 ingest 간격이 고르게 → 앨리어싱·지터↓.
+                self._last_det_ts = t0
             if not do_full:                       # person 전용 프레임: 이벤트·포즈 없음(안전 캐던스 불변) — 표시만 갱신
                 return
             # 3.10 ①: 포즈(낙상·ergo)는 별도 스레드(ONNX-CPU)가 pose_fps 로 비동기 처리(풀세트 프레임에서만 입력 갱신).
