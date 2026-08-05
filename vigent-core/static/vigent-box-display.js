@@ -24,6 +24,7 @@
     this.OE_BETA = opts.OE_BETA != null ? opts.OE_BETA : 3.0;
     this.OE_DC = opts.OE_DC != null ? opts.OE_DC : 1.0;
     this.excludeClass = opts.excludeClass != null ? String(opts.excludeClass).toLowerCase() : null;
+    this.extrapCap = opts.extrapCap != null ? opts.extrapCap : 0.6;   // 속도외삽 상한(갱신간격 비율). 기본 0.6=safety-local 검증값.
     this.tracks = [];
     this.prevUpdateAt = 0;
   }
@@ -52,7 +53,7 @@
 
   BoxTracker.prototype._dispBox = function (t, now) {   // 표시 = 필터박스 + (id 트랙) 속도 외삽(캡 60%). 폴백(id=-1)은 외삽 없음.
     if (t.tid >= 0 && t.vel) {
-      var dt = Math.min(now - t.t0, 0.6 * (t.gap || 350));
+      var dt = Math.min(now - t.t0, this.extrapCap * (t.gap || 350));
       return [t.box[0] + t.vel[0] * dt, t.box[1] + t.vel[1] * dt, t.box[2] + t.vel[2] * dt, t.box[3] + t.vel[3] * dt];
     }
     return t.box.slice();
