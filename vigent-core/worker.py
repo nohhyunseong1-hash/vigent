@@ -78,6 +78,13 @@ def _default_detectors() -> list[str]:
     return base
 
 
+def _det_dict(d: dict) -> dict:
+    """guard 검출 → 대시보드 표시 dict(정규화 bbox + 트랙 id). 3.12: 풀세트·person고속 공통 포맷."""
+    return {"class": d.get("label"), "score": round(float(d.get("conf", 0)), 3),
+            "bbox": [round(float(v), 4) for v in d.get("bbox", [0, 0, 0, 0])],
+            "id": d.get("tid", -1)}
+
+
 def _load_zone() -> list[tuple[float, float]]:
     """danger_zone 의 정규화 폴리곤(없으면 빈 목록). B2: 런타임(data/) 우선 → config/ 시드 폴백."""
     p = runtime_config.read_path("config/danger_zone.json")
@@ -533,6 +540,9 @@ class Worker:
         self._last_det_ts = 0.0                              # 3.8: 최신 검출 갱신 시각(ms) — 확대뷰 ingest 간격 산출
         self._interval = 0.5                                 # 3.8: 가변 루프 간격(초). set_fps 로 포커스 부스트
         self._last_pose_ts = 0.0                             # 3.9: 최신 포즈 실행 시각 — 검출/포즈 주기 분리
+        self._full_interval = 0.5                            # 3.12: 풀세트(person+ppe+fire) 검출 주기(초) — 이벤트 캐던스(불변)
+        self._last_full_ts = 0.0                             # 3.12: 최신 풀세트 실행 시각
+        self._last_nonperson: list = []                      # 3.12: 최신 비-person(ppe/fire) 박스 — person 고속 프레임에 지속
         self._pose_lock = threading.Lock()                   # 3.10: 포즈 스레드↔메인 공유 보호
         self._pose_input: tuple | None = None                # (frame, person_boxes, t0) 최신 — 포즈 스레드가 소비
         self._pose_events: list = []                         # 포즈 스레드가 낸 발화(rule,level,note) — 메인이 드레인
@@ -707,26 +717,37 @@ class Worker:
                     self.state["collected"] = self.state.get("collected", 0) + 1
                 except Exception as _we:  # noqa: BLE001
                     _WLOG.debug("worker 무시 예외 [수집 카운트 갱신]: %s", _we)
+            # 3.12 ②: 차등 캐던스. focus 중엔 person 전용 고속(표시·일관 tid, :pf 풀) + 풀세트 저속(이벤트·PPE·화재·pose).
+            #   풀세트(person+ppe+fire) 캐던스는 fullset_fps(2) 불변 → 이벤트·안전 판정 저하 0(규칙6).
+            #   person 전용은 단일 슬롯(~27ms)이라 focus 5fps 라도 GPU 예산이 5fps 풀세트(425ms/s)보다 낮다
+            #   (focus 예산 ≈ 2×85[풀세트] + 5×27[person] = 305ms/s). focus 아니면 매 프레임 풀세트(기존과 동일).
+            focus_active = self._interval < self._full_interval - 1e-6
+            do_full = (not focus_active) or (t0 - self._last_full_ts >= self._full_interval - 0.06)
+            _H, _W = frame.shape[:2]
+            person_boxes: list = []
+            out: dict = {}
             with lock:                            # 코어 추론 직렬화(브라우저와 충돌 방지)
-                # 5단계: 카메라별 추적 격리(track_key) — 다른 카메라/브라우저와 _tracks 안 섞이게.
-                out = guard.detect(frame, detectors=ctx.detectors, track_key="cam:" + str(ctx.name))
-                # 3.0: 대시보드 스냅샷·오버레이용 최신 상태 보관(정규화 bbox — 프론트가 화면크기로 복원).
                 self._last_frame = frame
-                self._last_dets = [{"class": d.get("label"), "score": round(float(d.get("conf", 0)), 3),
-                                    "bbox": [round(float(v), 4) for v in d.get("bbox", [0, 0, 0, 0])],
-                                    "id": d.get("tid", -1)}   # 3.8: 서버 트랙 id(확대뷰 BoxTracker id매칭)
-                                   for d in out.get("detections", [])]
-                self._last_det_ts = time.time()               # 3.8: 검출 갱신 시각(확대뷰 ingest 간격)
-                self._last_pc = out.get("person_count", 0)
-                self._last_sig = out.get("signals", {})
-                # 포즈(낙상·근골격) top-down 입력 = guard.detect person 박스(RF-DETR·_nms/_track 적용, 픽셀).
-                #   worker 기본 detectors 에 person 포함 → 박스 항상 제공. person 없으면 포즈만 비활성(무중단).
-                _H, _W = frame.shape[:2]
-                person_boxes = [[d["bbox"][0] * _W, d["bbox"][1] * _H,
-                                 d["bbox"][2] * _W, d["bbox"][3] * _H]
-                                for d in out.get("detections", []) if d["label"] == "person"]
-            # 3.10 ①: 포즈(낙상·ergo)는 별도 스레드(ONNX-CPU)가 pose_fps 로 비동기 처리 → 검출(MPS) 간격 균일.
-            #   최신 프레임·person 박스를 입력 슬롯에 넣고(스레드가 소비), 스레드가 낸 발화 이벤트를 드레인.
+                disp_person = None
+                _main_person: list = []
+                if focus_active:                  # person 고속(표시 전용) — :pf 풀로 5fps 일관 tid
+                    pout = guard.detect(frame, detectors=["person"], track_key="cam:" + str(ctx.name) + ":pf")
+                    disp_person = [_det_dict(d) for d in pout.get("detections", [])]
+                if do_full:                       # 풀세트 — 2fps: 이벤트·PPE·화재·pose 입력(캐던스 불변)
+                    self._last_full_ts = t0
+                    out = guard.detect(frame, detectors=ctx.detectors, track_key="cam:" + str(ctx.name))
+                    self._last_nonperson = [_det_dict(d) for d in out.get("detections", []) if d.get("label") != "person"]
+                    _main_person = [_det_dict(d) for d in out.get("detections", []) if d.get("label") == "person"]
+                    self._last_pc = out.get("person_count", 0)
+                    self._last_sig = out.get("signals", {})
+                    person_boxes = [[d["bbox"][0] * _W, d["bbox"][1] * _H, d["bbox"][2] * _W, d["bbox"][3] * _H]
+                                    for d in out.get("detections", []) if d["label"] == "person"]
+                # 표시 목록 = person(고속 :pf 또는 풀세트) + 비-person(ppe/fire, 풀세트 캐던스로 지속 표시)
+                self._last_dets = (disp_person if disp_person is not None else _main_person) + self._last_nonperson
+                self._last_det_ts = time.time()   # 3.8: 검출 갱신 시각(확대뷰 ingest — person 은 focus 시 5fps)
+            if not do_full:                       # person 전용 프레임: 이벤트·포즈 없음(안전 캐던스 불변) — 표시만 갱신
+                return
+            # 3.10 ①: 포즈(낙상·ergo)는 별도 스레드(ONNX-CPU)가 pose_fps 로 비동기 처리(풀세트 프레임에서만 입력 갱신).
             with self._pose_lock:
                 self._pose_input = (frame, person_boxes, t0)
                 _pose_ev = self._pose_events
@@ -818,6 +839,9 @@ class Worker:
         (interval, ctx, static, is_image, is_file_video, is_stream,
          use_capture_thread, cap, streamcap) = self._setup_run(source, name, fps, detectors, zone)
         self._interval = interval          # 3.8: 가변 간격 시드 — set_fps(포커스 부스트)가 런타임에 바꿈
+        # 3.12: 풀세트 검출 주기 = fullset_fps(기본2) 또는 시작 fps 중 느린 쪽 → focus 로 루프가 빨라져도 불변.
+        self._full_interval = max(interval, 1.0 / max(0.2, float(tuning.val("worker", "fullset_fps", 2.0))))
+        self._last_full_ts = 0.0
         self._pose_ftrack = ctx.ftrack     # 3.10: 포즈 스레드가 쓸 현 run 트래커(낙상·ergo)
         self._pose_etrack = ctx.etrack
         if self._pose_thread is None or not self._pose_thread.is_alive():
