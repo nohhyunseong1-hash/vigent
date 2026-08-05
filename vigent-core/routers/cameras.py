@@ -22,8 +22,35 @@ def _guard():
     return bundle["agents"].get("Guard")
 
 
+def _g2_register(cid: str) -> None:
+    """go2rtc(localhost:1984)에 카메라 스트림을 동적 등록 — 대시보드 WebRTC 저지연 재생용.
+    go2rtc 미실행이면 조용히 무시(스냅샷 폴링으로 폴백 — 규칙6 무중단). 자격증명은 로그에 남기지 않음."""
+    try:
+        import urllib.parse
+        import urllib.request
+        src = _reg.source_of(cid)
+        if not src:
+            return
+        url = "http://localhost:1984/api/streams?" + urllib.parse.urlencode({"name": cid, "src": src})
+        urllib.request.urlopen(urllib.request.Request(url, method="PUT"), timeout=3)
+    except Exception:  # noqa: BLE001  go2rtc 미실행/실패 — WebRTC 없이 폴백
+        pass
+
+
+def _g2_unregister(cid: str) -> None:
+    """go2rtc 스트림 해제(카메라 중지·삭제 시). 미실행이면 무시."""
+    try:
+        import urllib.parse
+        import urllib.request
+        url = "http://localhost:1984/api/streams?" + urllib.parse.urlencode({"src": cid})
+        urllib.request.urlopen(urllib.request.Request(url, method="DELETE"), timeout=3)
+    except Exception:  # noqa: BLE001
+        pass
+
+
 def _start(cid: str):
-    """레지스트리 원본 source 로 워커 시작(자격증명은 워커 내부만, 로그는 마스킹)."""
+    """레지스트리 원본 source 로 워커 시작(자격증명은 워커 내부만, 로그는 마스킹).
+    동시에 go2rtc 에도 스트림 등록(있으면 WebRTC, 없으면 스냅샷 폴백)."""
     import worker as _w
     c = _reg.get(cid)
     if not c:
@@ -31,9 +58,11 @@ def _start(cid: str):
     src = _reg.source_of(cid)
     if not src:
         raise HTTPException(status_code=400, detail="source 미등록")
-    return _w.manager.start(_guard(), _DETECT_LOCK, cid, src,
-                            name=c.get("name") or cid, fps=float(c.get("fps", 2.0)),
-                            zone=c.get("zone"))
+    res = _w.manager.start(_guard(), _DETECT_LOCK, cid, src,
+                           name=c.get("name") or cid, fps=float(c.get("fps", 2.0)),
+                           zone=c.get("zone"))
+    _g2_register(cid)
+    return res
 
 
 @router.get("/cameras")
@@ -73,6 +102,7 @@ def cameras_disable(cid: str):
     import worker as _w
     if _reg.set_enabled(cid, False) is None:
         raise HTTPException(status_code=404, detail="없는 카메라")
+    _g2_unregister(cid)
     return {"ok": True, "worker": _w.manager.stop(cid)}
 
 
@@ -80,6 +110,7 @@ def cameras_disable(cid: str):
 def cameras_delete(cid: str):
     import worker as _w
     _w.manager.stop(cid)
+    _g2_unregister(cid)
     return {"ok": _reg.delete(cid)}
 
 
@@ -150,6 +181,32 @@ def cameras_zone_set(cid: str, payload: dict = Body(...)):
         _start(cid)
         restarted = True
     return {"ok": True, "count": len(zone), "restarted": restarted}
+
+
+def ensure_go2rtc() -> bool:
+    """go2rtc(WebRTC 변환기)가 안 떠 있으면 백그라운드로 기동. 바이너리 없으면 조용히 건너뜀(스냅샷 폴백).
+    서버 startup 에서 1회 호출 → 카메라 확대뷰 실시간 재생 준비. 실패해도 서버·검출은 무중단."""
+    import os
+    import socket
+    from pathlib import Path
+    try:
+        with socket.create_connection(("127.0.0.1", 1984), timeout=0.5):
+            return True                                   # 이미 실행 중
+    except Exception:  # noqa: BLE001
+        pass
+    try:
+        import subprocess
+        root = Path(__file__).resolve().parent.parent.parent
+        binp, cfg = root / "bin" / "go2rtc", root / "config" / "go2rtc.yaml"
+        if not binp.exists():
+            return False
+        env = dict(os.environ)
+        env.setdefault("RTSP_URL", "")                    # 레거시 tapo 스트림용(없어도 무방)
+        subprocess.Popen([str(binp), "-config", str(cfg)], cwd=str(binp.parent),
+                         stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, env=env)
+        return True
+    except Exception:  # noqa: BLE001
+        return False
 
 
 def autostart_enabled() -> dict:

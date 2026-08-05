@@ -256,6 +256,12 @@ def _startup() -> None:
     s = cfg.summary()
     _log.info("'%s' 로드 완료 (폴백 %s개 / 비활성 %s개)",
               cfg.display_name, s['fallback_count'], s['disabled_count'])
+    # 3.1c: WebRTC 변환기(go2rtc) 자동기동 — 확대뷰 실시간 재생 준비(미설치·실패 시 스냅샷 폴백).
+    try:
+        if _cameras_router.ensure_go2rtc():
+            _log.info("go2rtc 준비(확대뷰 실시간 재생 가능)")
+    except Exception:  # noqa: BLE001  go2rtc 실패해도 서버·검출 무중단
+        _log.warning("go2rtc 기동 예외(무시, 스냅샷 폴백)")
     # 3.0: 등록 카메라(enabled) 워커 자동복원 — launchd 재기동 후 관제 자동 재개(조건1).
     try:
         _restore = _cameras_router.autostart_enabled()

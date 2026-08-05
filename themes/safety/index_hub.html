@@ -53,6 +53,8 @@ body{margin:0;background:var(--bg);color:var(--fg);font-family:"SF Mono","Menlo"
 .spot{aspect-ratio:4/3;background:var(--tile);position:relative;border-bottom:1px solid var(--line);flex:0 0 auto}
 .spot .feed{position:absolute;inset:0;background:radial-gradient(ellipse at center,#0e1620,#050708);display:flex;align-items:center;justify-content:center;color:var(--dim);font-size:11px}
 .spot img{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;display:none}
+.spot #svid{position:absolute;inset:0;z-index:1}
+.spot #svid video{width:100%;height:100%;object-fit:contain;background:#000}
 .spot canvas{position:absolute;inset:0;width:100%;height:100%;z-index:2}
 .spot canvas.edit{cursor:crosshair}
 .spot .shead{position:absolute;top:0;left:0;right:0;display:flex;align-items:center;gap:8px;padding:6px 10px;background:rgba(0,0,0,.55);z-index:3;font-size:11px}
@@ -117,7 +119,7 @@ body{margin:0;background:var(--bg);color:var(--fg);font-family:"SF Mono","Menlo"
     <div class="right">
       <div class="spot" id="spot">
         <div class="shead"><span class="snm" id="snm">—</span><span class="sev C" id="ssev">정상</span><span class="pin" id="spin" title="스포트라이트 고정 — 켜면 경보 자동전환이 멈춥니다">📌 고정</span></div>
-        <img id="simg" alt=""><canvas id="scanvas"></canvas>
+        <div id="svid"></div><img id="simg" alt=""><canvas id="scanvas"></canvas>
         <div class="feed" id="sph">카메라를 선택하세요</div>
       </div>
       <div class="evt"><h4>이벤트 <span class="clr" id="evclr" title="필터 해제">✕ 필터해제</span></h4><div class="tbl"><table>
@@ -145,6 +147,7 @@ body{margin:0;background:var(--bg);color:var(--fg);font-family:"SF Mono","Menlo"
 var $=function(id){return document.getElementById(id);};
 var GS={4:[2,2],9:[3,3],16:[4,4]}, cur=16, CAMS=[], EVENTS=[], evFilter=null, openId=null;
 var spotId=null, pinned=false, showZone=true, zoneEdit=false, zonePts=[];
+var spotMode='snapshot', vsEl=null, spotDets=[], VS_READY=null;   // WebRTC 재생 상태
 var prevA={}, pulseUntil={}, newlyAlert=[];
 var LOCAL={id:'__local',name:'로컬 웹캠(CAM-LOCAL)',local:true,online:true};
 function esc(s){return String(s==null?'':s).replace(/[<>&]/g,function(c){return {'<':'&lt;','>':'&gt;','&':'&amp;'}[c];});}
@@ -243,8 +246,11 @@ function renderEvents(){
 }
 
 // ── 스포트라이트 + 설정 패널 ──
-function selectCam(id,userPin){ spotId=id; if(userPin){ /* 행/타일 클릭 시 핀 해제+수동전환 */ if(pinned){ pinned=false; $('spin').classList.remove('on'); } }
-  zoneEdit=false; zonePts=[]; renderGrid(); renderSpot(); renderSet(); spotTick(); }
+function selectCam(id,userPin){ spotId=id; if(userPin&&pinned){ pinned=false; $('spin').classList.remove('on'); }  // 행/타일 클릭 시 핀 해제+수동전환
+  zoneEdit=false; zonePts=[]; stopWebRTC(); spotMode='snapshot'; spotDets=[];
+  renderGrid(); renderSpot(); renderSet();
+  if(id&&id!=='__local') spotWebRTC(id);   // WebRTC 시도(실패 시 내부에서 스냅샷 폴백)
+  spotTick(); }
 function renderSpot(){
   var c=byId(spotId)||{}; var st=statusOf(c);
   $('snm').textContent=(spotId?('#'+spotId+' '+(c.name||'')):'—');
@@ -279,26 +285,52 @@ function renderSet(){
       .then(function(){ zoneEdit=false; poll(); }); };
   $('scanvas').classList.toggle('edit',zoneEdit);
 }
-// 스포트라이트 스냅샷 폴링
+// ── 스포트라이트: WebRTC(저지연) 우선 → 실패 시 스냅샷 폴링 폴백 ──
+function ensureVideoStream(){
+  if(VS_READY) return VS_READY;
+  VS_READY=(async function(){ if(!customElements.get('video-stream')){
+    var mod=await import('/tapo/video-rtc.js'); customElements.define('video-stream', class extends mod.VideoRTC{}); } })();
+  return VS_READY;
+}
+function spotVideoEl(){ return vsEl?(vsEl.video||vsEl.querySelector('video')):null; }
+function stopWebRTC(){ if(vsEl){ try{ var v=spotVideoEl(); if(v&&v._vg) clearInterval(v._vg); vsEl.src=''; vsEl.remove(); }catch(e){} vsEl=null; } }
+function spotWebRTC(cid){ ensureVideoStream().then(function(){
+  if(cid!==spotId) return; stopWebRTC();
+  var vs=document.createElement('video-stream'); vs.mode='webrtc,mse'; vs.background=true;
+  vs.style.cssText='position:absolute;inset:0;width:100%;height:100%';
+  $('svid').appendChild(vs);
+  var proto=location.protocol==='https:'?'wss':'ws';
+  vs.src=new URL(proto+'://'+location.host+'/tapo/ws?src='+encodeURIComponent(cid));
+  vsEl=vs; var t0=Date.now();
+  (function wait(){ if(vsEl!==vs) return;                               // 그새 카메라 바뀜
+    var v=vs.video||vs.querySelector('video');
+    if(v&&v.videoWidth>0){ spotMode='webrtc'; $('simg').style.display='none'; $('sph').style.display='none'; liveCatchup(v); drawSpot(); return; }
+    if(Date.now()-t0>7000){ if(vsEl===vs){ stopWebRTC(); spotMode='snapshot'; } return; }   // 타임아웃 → 스냅샷 폴백
+    setTimeout(wait,150); })();
+}); }
+function liveCatchup(vid){ if(vid._vg) return; vid._vg=setInterval(function(){ try{   // 누적지연 제거(라이브 따라잡기)
+  var b=vid.buffered; if(!b||!b.length) return; var live=b.end(b.length-1), lag=live-vid.currentTime;
+  if(lag>0.6) vid.currentTime=live-0.05; vid.playbackRate=lag>0.25?1.07:1.0; }catch(e){} },800); }
+function mediaRect(nw,nh){ var cv=$('scanvas'), cw=cv.clientWidth, ch=cv.clientHeight;   // object-fit:contain 영역
+  var s=Math.min(cw/nw,ch/nh), w=nw*s, h=nh*s; return {x:(cw-w)/2,y:(ch-h)/2,w:w,h:h}; }
+function activeRect(){
+  if(spotMode==='webrtc'){ var v=spotVideoEl(); if(v&&v.videoWidth) return mediaRect(v.videoWidth,v.videoHeight); }
+  var img=$('simg'); if(img.naturalWidth) return mediaRect(img.naturalWidth,img.naturalHeight);
+  var cv=$('scanvas'); return {x:0,y:0,w:cv.clientWidth,h:cv.clientHeight};
+}
 function spotTick(){
-  if(!spotId||spotId==='__local'){ $('simg').style.display='none'; $('sph').style.display='flex'; return; }
+  if(!spotId||spotId==='__local'){ if(spotMode!=='webrtc'){ $('simg').style.display='none'; $('sph').style.display='flex'; } return; }
+  api('GET','/cameras/'+encodeURIComponent(spotId)+'/detections').then(function(d){ spotDets=d.detections||[]; drawSpot(); }).catch(function(){});   // 검출=오버레이(모드 무관)
+  if(spotMode==='webrtc') return;                                     // 영상은 WebRTC 가 그림
   var img=$('simg');
   img.onload=function(){ img.style.display='block'; $('sph').style.display='none'; drawSpot(); };
   img.onerror=function(){ img.style.display='none'; $('sph').textContent='오프라인/워밍업'; $('sph').style.display='flex'; };
   img.src='/cameras/'+encodeURIComponent(spotId)+'/snapshot?t='+Date.now();
-  api('GET','/cameras/'+encodeURIComponent(spotId)+'/detections').then(function(d){ img._dets=d.detections||[]; drawSpot(); }).catch(function(){});
-}
-function imgRect(img){ // object-fit:contain 실제 이미지 영역
-  var cw=img.clientWidth, ch=img.clientHeight, nw=img.naturalWidth||16, nh=img.naturalHeight||9;
-  var s=Math.min(cw/nw,ch/nh), w=nw*s, h=nh*s;
-  return {x:(cw-w)/2,y:(ch-h)/2,w:w,h:h};
 }
 function drawSpot(){
-  var img=$('simg'), cv=$('scanvas'); cv.width=cv.clientWidth; cv.height=cv.clientHeight;
+  var cv=$('scanvas'); cv.width=cv.clientWidth; cv.height=cv.clientHeight;
   var ctx=cv.getContext('2d'); ctx.clearRect(0,0,cv.width,cv.height);
-  var r=img.naturalWidth?imgRect(img):{x:0,y:0,w:cv.width,h:cv.height};
-  var c=byId(spotId)||{};
-  // 위험구역 폴리곤
+  var r=activeRect(), c=byId(spotId)||{};
   var zone=zoneEdit?zonePts:(c.zone||[]);
   if(showZone&&zone.length){
     ctx.beginPath(); zone.forEach(function(p,i){ var x=r.x+p[0]*r.w, y=r.y+p[1]*r.h; if(i)ctx.lineTo(x,y);else ctx.moveTo(x,y); });
@@ -307,18 +339,17 @@ function drawSpot(){
     if(zone.length>=3){ ctx.fillStyle='rgba(230,57,70,.28)'; ctx.fill(); }
     if(zoneEdit) zone.forEach(function(p){ var x=r.x+p[0]*r.w, y=r.y+p[1]*r.h; ctx.fillStyle='#39d0ff'; ctx.beginPath(); ctx.arc(x,y,4,0,6.3); ctx.fill(); });
   }
-  // 검출 박스
-  if(!zoneEdit)(img._dets||[]).forEach(function(d){ var b=d.bbox;
+  if(!zoneEdit) spotDets.forEach(function(d){ var b=d.bbox;
     var x=r.x+b[0]*r.w, y=r.y+b[1]*r.h, w=(b[2]-b[0])*r.w, h=(b[3]-b[1])*r.h;
     var col=/^no-/i.test(d.class)?'#e63946':(d.class==='person'?'#39d0ff':'#2fbf71');
     ctx.strokeStyle=col; ctx.lineWidth=1.5; ctx.strokeRect(x,y,w,h);
     ctx.font='11px monospace'; ctx.fillStyle=col; ctx.fillText(d.class+' '+Math.round((d.score||0)*100)+'%',x+2,y-3); });
 }
 $('scanvas').onclick=function(e){ if(!zoneEdit) return;
-  var img=$('simg'), r=img.naturalWidth?imgRect(img):{x:0,y:0,w:this.clientWidth,h:this.clientHeight};
-  var rect=this.getBoundingClientRect(), px=e.clientX-rect.left-r.x, py=e.clientY-rect.top-r.y;
+  var r=activeRect(), rect=this.getBoundingClientRect(), px=e.clientX-rect.left-r.x, py=e.clientY-rect.top-r.y;
   var nx=Math.max(0,Math.min(1,px/r.w)), ny=Math.max(0,Math.min(1,py/r.h));
   zonePts.push([+nx.toFixed(4),+ny.toFixed(4)]); drawSpot(); };
+window.addEventListener('resize',function(){ try{ drawSpot(); }catch(e){} });
 $('spin').onclick=function(){ pinned=!pinned; this.classList.toggle('on',pinned); };
 
 // ── 폴링 ──
