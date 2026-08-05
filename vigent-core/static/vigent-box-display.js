@@ -25,9 +25,58 @@
     this.OE_DC = opts.OE_DC != null ? opts.OE_DC : 1.0;
     this.excludeClass = opts.excludeClass != null ? String(opts.excludeClass).toLowerCase() : null;
     this.extrapCap = opts.extrapCap != null ? opts.extrapCap : 0.6;   // 속도외삽 상한(갱신간격 비율). 기본 0.6=safety-local 검증값.
+    // 3.13: 모션 앵커링(옵션, 기본 off). on 이면 서버 박스를 페이지가 준 30fps 앵커(머리/몸통 랜드마크)에
+    //   태워 rAF 마다 이동 → 검출 종단지연·방향전환 외삽실패를 상쇄. 판정은 서버 데이터라 표시만 영향(규칙6).
+    this.anchor = !!opts.anchor;
+    this.anchorLatency = opts.anchorLatency != null ? opts.anchorLatency : 180;   // 검출 종단지연(ms) 추정 — 검출 프레임 시점 앵커에 오프셋을 잡아 지연 제거
+    this._anchor = null;     // 최신 앵커: {head:[x,y], torso:[x,y], scale, ok} (박스와 같은 좌표계=소스 픽셀)
+    this._aHist = [];        // 앵커 히스토리 [{t, a}] — 최근 ~700ms(검출 프레임 시점 조회용)
     this.tracks = [];
     this.prevUpdateAt = 0;
   }
+
+  // 페이지가 rAF 마다 최신 앵커(MediaPipe 랜드마크에서 산출)를 주입. null/ok:false 면 자동 폴백(트윈+외삽).
+  BoxTracker.prototype.setAnchor = function (a, nowMs) {
+    this._anchor = a;
+    if (this.anchor && a) {
+      var t = nowMs != null ? nowMs : Date.now();
+      this._aHist.push({ t: t, a: a });
+      var cut = t - 700;
+      while (this._aHist.length > 2 && this._aHist[0].t < cut) this._aHist.shift();
+    }
+  };
+
+  BoxTracker.prototype._anchorAt = function (targetT) {   // 히스토리에서 targetT 에 가장 가까운 앵커(검출 프레임 시점)
+    var h = this._aHist, best = this._anchor, bd = 1e15;
+    for (var i = 0; i < h.length; i++) { var d = Math.abs(h[i].t - targetT); if (d < bd) { bd = d; best = h[i].a; } }
+    return best;
+  };
+
+  BoxTracker.prototype._linkAnchor = function (atT) {   // 서버 갱신 시점에만: 각 박스를 '검출 프레임 시점' 앵커점에 연결+오프셋 저장(지연 제거·드리프트 리셋)
+    var A = this._anchorAt((atT != null ? atT : Date.now()) - this.anchorLatency);   // 검출은 ~latency 전 프레임 → 그때 앵커 기준
+    var ok = this.anchor && A && A.ok;
+    this.tracks.forEach(function (t) {
+      if (!ok) { t.aType = null; return; }
+      var cx = t.box[0] + t.box[2] / 2, cy = t.box[1] + t.box[3] / 2;
+      var dh = Math.hypot(cx - A.head[0], cy - A.head[1]);
+      var dtq = Math.hypot(cx - A.torso[0], cy - A.torso[1]);
+      var near = Math.min(dh, dtq) <= (A.scale * 2.5 || 1e9);   // 사람 근처 박스만 앵커(스케일=어깨폭 기준)
+      if (near) { t.aType = dh <= dtq ? 'head' : 'torso'; var ap = dh <= dtq ? A.head : A.torso; t.aOff = [cx - ap[0], cy - ap[1]]; t.aScale = A.scale; }
+      else { t.aType = null; }
+    });
+  };
+
+  BoxTracker.prototype._boxAt = function (t, now) {   // 표시 박스: 앵커 연결돼 있고 앵커 유효하면 앵커 이동, 아니면 트윈+외삽(폴백)
+    var A = this._anchor;
+    if (this.anchor && A && A.ok && t.aType && t.aScale) {
+      var ap = t.aType === 'head' ? A.head : A.torso;
+      var sr = A.scale / t.aScale;                    // 앵커 스케일 변화(멀어짐/가까워짐) → 박스 크기도 비례
+      var w = t.box[2] * sr, h = t.box[3] * sr;
+      var cx = ap[0] + t.aOff[0] * sr, cy = ap[1] + t.aOff[1] * sr;
+      return [cx - w / 2, cy - h / 2, w, h];
+    }
+    return this._dispBox(t, now);
+  };
 
   BoxTracker.prototype._oe1 = function (s, v, dt) {   // 스칼라 One-Euro(속도↑→컷오프↑→즉각추종, 느리면 강평활)
     var MC = this.OE_MC, BETA = this.OE_BETA, DC = this.OE_DC;
@@ -87,6 +136,7 @@
       if (bi >= 0) { used[bi] = true; upd(tracks[bi], det); } else tracks.push(mk(det));
     });
     for (var i = 0; i < n; i++) { if (!used[i]) { if (tracks[i].tid >= 0) tracks[i].drop = true; else tracks[i].alive = false; } }
+    if (this.anchor) this._linkAnchor(at);   // 3.13: 갱신 시점에만 박스↔앵커 재연결(검출프레임 시점 기준 → 지연 제거·드리프트 방지)
   };
 
   // 매 렌더: 페이드 갱신 + 외삽 표시박스 + 같은클래스 중복 억제(IoU≥0.40·면적비≤2 OR 포함비≥0.70). 억제된 트랙도 상태 유지(승자 소실 시 복귀).
@@ -97,7 +147,7 @@
       t.alpha += t.alive ? 0.2 : -0.08;                 // 페이드인 ≤100ms, 아웃(fallback)
       if (t.alpha <= 0) return;
       if (t.alpha > 1) t.alpha = 1;
-      vis.push({ t: t, box: this._dispBox(t, now) });   // 표시=외삽
+      vis.push({ t: t, box: this._boxAt(t, now) });   // 표시=앵커(on) 또는 외삽(폴백)
     }, this);
     for (var ai = 0; ai < vis.length; ai++) {
       if (vis[ai].sup) continue;
