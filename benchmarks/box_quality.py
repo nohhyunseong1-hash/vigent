@@ -78,6 +78,13 @@ def _args() -> argparse.Namespace:
     p.add_argument("--node-bin", default="node", help="Node 실행파일(PATH 에 없으면 절대경로 지정)")
     p.add_argument("--exclude-class", default=None, help="표시 스택에서 제외할 클래스(예: person — 스켈레톤 화면용)")
     p.add_argument("--seed", type=int, default=12345)
+    p.add_argument("--tracker-opts", default=None,
+                   help='BoxTracker 옵션 오버라이드 JSON(예: \'{"extrapCap":0.8}\') — Phase2A 후보 스윕용')
+    p.add_argument("--detections-cache", default=None,
+                   help="Part A(검출) 결과를 저장/재사용할 JSON 경로. 있으면 재실행 없이 로드(스윕 가속용)")
+    p.add_argument("--detect-cadence-ms", type=float, default=0,
+                   help="ingest 로 넘길 프레임 간 최소 간격(ms). 0=무변경(매프레임). "
+                        "실배포 DETECT_MIN_INTERVAL_MS=100(realtime_core.js:175) 재현 시 100 지정")
     return p.parse_args()
 
 
@@ -125,6 +132,32 @@ def replay_detections(video: Path, detectors: list[str], track_key: str,
     return frames, fps, time.time() - t0
 
 
+def subsample_for_ingest(frames: list[dict[str, Any]], cadence_ms: float) -> list[dict[str, Any]]:
+    """실제 배포는 DETECT_MIN_INTERVAL_MS(realtime_core.js:175, 기본 100ms) 게이트로 검출 갱신 간격이
+    최소 100ms 다 — 이 하네스는 Part A 에서 영상 원본 fps(예 24fps≈42ms)마다 매번 guard.detect() 를 돌려
+    캡처 자체는 조밀하지만, **표시(ingest)로 넘길 프레임은 이 함수로 성글게 골라** 실제 갱신 간격을 재현한다.
+    GT 보간(오차 계산)은 원본 조밀한 frames 그대로 쓰고, 이 서브샘플은 오직 '언제 서버 갱신이 도착했는가'만
+    바꾼다 — cadence_ms<=0 이면 무변경(기존 동작, 조밀한 매프레임 ingest)."""
+    if cadence_ms <= 0 or not frames:
+        return frames
+    out = [frames[0]]
+    last_t = frames[0]["t_cap_ms"]
+    for f in frames[1:]:
+        if f["t_cap_ms"] - last_t >= cadence_ms:
+            out.append(f)
+            last_t = f["t_cap_ms"]
+    return out
+
+
+def save_detections_cache(path: Path, frames: list[dict[str, Any]], fps: float) -> None:
+    path.write_text(json.dumps({"fps": fps, "frames": frames}), encoding="utf-8")
+
+
+def load_detections_cache(path: Path) -> tuple[list[dict[str, Any]], float]:
+    data = json.loads(path.read_text(encoding="utf-8"))
+    return data["frames"], data["fps"]
+
+
 def _iou_xywh(a: list[float], b: list[float]) -> float:
     ax, ay, aw, ah = a
     bx, by, bw, bh = b
@@ -158,13 +191,17 @@ def track_stability(frames: list[dict[str, Any]], cls: str = "person") -> dict[s
 
 # ── Part B: 표시 재생(Node, BoxTracker 미수정 그대로 구동) ────────────────────
 def run_display_scenario(frames: list[dict[str, Any]], scenario: dict[str, Any], node_bin: str,
-                          exclude_class: str | None, seed: int) -> list[dict[str, Any]]:
+                          exclude_class: str | None, seed: int,
+                          tracker_opts: dict[str, Any] | None = None) -> list[dict[str, Any]]:
+    """tracker_opts: BoxTracker 생성자 옵션 오버라이드(예: {"extrapCap":0.8}) — Phase2A 스윕용.
+    None/빈 dict 면 BoxTracker 기본값(현재 배포값) 그대로."""
     payload = {
         "render_fps": RENDER_FPS,
         "delay_ms": scenario["delay_ms"],
         "jitter_ms": scenario["jitter_ms"],
         "exclude_class": exclude_class,
         "seed": seed,
+        "tracker_opts": tracker_opts or {},
         "frames": [{"t_cap_ms": f["t_cap_ms"],
                     "dets": [{"cls": d["cls"], "score": d["score"], "id": d["tid"], "box": d["box"]}
                              for d in f["dets"]]}
@@ -234,6 +271,36 @@ def _percentile(xs: list[float], p: float) -> float | None:
     return xs[f] + (xs[c] - xs[f]) * (k - f)
 
 
+def _velocity(b0: list[float], b1: list[float], dt_ms: float) -> tuple[float, float]:
+    dt_s = dt_ms / 1000.0
+    if dt_s <= 0:
+        return (0.0, 0.0)
+    c0, c1 = _center(b0), _center(b1)
+    return ((c1[0] - c0[0]) / dt_s, (c1[1] - c0[1]) / dt_s)
+
+
+def _unit(v: tuple[float, float]) -> tuple[float, float]:
+    n = (v[0] ** 2 + v[1] ** 2) ** 0.5
+    return (v[0] / n, v[1] / n) if n > 1e-9 else (0.0, 0.0)
+
+
+def _reversal_windows(traj: dict[int, list[tuple[float, list[float], str]]]
+                       ) -> dict[int, list[tuple[float, float, tuple[float, float]]]]:
+    """방향전환(오버슈트) 감지: tid 별 캡처구간 속도벡터가 연속으로 역방향(내적<0)이면,
+    그 다음 구간을 '반전 윈도우'로 표시하고 직전(스테일) 속도방향을 함께 반환한다.
+    오버슈트 = 반전 윈도우 내에서 표시가 여전히 스테일 방향으로 밀려나 있는 정도."""
+    out: dict[int, list[tuple[float, float, tuple[float, float]]]] = {}
+    for tid, pts in traj.items():
+        vels = [(t0, t1, _velocity(b0, b1, t1 - t0)) for (t0, b0, _c0), (t1, b1, _c1) in zip(pts, pts[1:])]
+        windows: list[tuple[float, float, tuple[float, float]]] = []
+        for (_t0a, _t1a, va), (t0b, t1b, vb) in zip(vels, vels[1:]):
+            if va[0] * vb[0] + va[1] * vb[1] < 0:   # 내적<0 = 90도 이상 방향전환
+                windows.append((t0b, t1b, va))       # 스테일 방향 = 반전 '이전' 속도
+        if windows:
+            out[tid] = windows
+    return out
+
+
 def global_speed_thresholds(frames: list[dict[str, Any]]) -> tuple[float, float]:
     """느림/중간/빠름 33/66분위 경계값을 캡처프레임 구간 속도(px/s)에서 '한 번만' 계산한다.
     시나리오(지연)마다 따로 계산하면 렌더틱 표본 구성이 달라져 버킷 기준이 시나리오별로 어긋난다
@@ -258,8 +325,10 @@ def global_speed_thresholds(frames: list[dict[str, Any]]) -> tuple[float, float]
 def compute_metrics(frames: list[dict[str, Any]], vis_ticks: list[dict[str, Any]],
                      speed_thresholds: tuple[float, float]) -> dict[str, Any]:
     traj = _traj_by_tid(frames)
+    rev_windows = _reversal_windows(traj)
     q1, q2 = speed_thresholds
     samples: list[tuple[float, float]] = []   # (speed_px_s, error_px)
+    overshoot_samples: list[float] = []       # signed(px): +면 표시가 여전히 옛(스테일) 방향으로 밀려있음
     freeze_num, freeze_den = 0, 0
     overlap_ticks, total_ticks, other_without_person_ticks = 0, 0, 0
     prev_boxes: dict[int, list[float]] = {}
@@ -286,6 +355,11 @@ def compute_metrics(frames: list[dict[str, Any]], vis_ticks: list[dict[str, Any]
             gc, vc = _center(gt_box), _center(v["box"])
             err = ((gc[0] - vc[0]) ** 2 + (gc[1] - vc[1]) ** 2) ** 0.5
             samples.append((speed or 0.0, err))
+            for t0w, t1w, stale_v in rev_windows.get(v["tid"], []):
+                if t0w <= t <= t1w:
+                    ux, uy = _unit(stale_v)
+                    overshoot_samples.append((vc[0] - gc[0]) * ux + (vc[1] - gc[1]) * uy)
+                    break
 
         by_cls: dict[str, list[list[float]]] = {}
         for v in vis:
@@ -323,6 +397,10 @@ def compute_metrics(frames: list[dict[str, Any]], vis_ticks: list[dict[str, Any]
         "buckets": {k: {"n": len(v), "p50": _percentile(v, 0.5), "p95": _percentile(v, 0.95)}
                     for k, v in buckets.items()},
         "n_samples": len(samples),
+        # 오버슈트(방향전환 시 스테일 방향 잔류량, signed px): +p95 클수록 과잉외삽. n=0 이면 반전 구간 자체가 없었음(미측정 아님).
+        "overshoot_n": len(overshoot_samples),
+        "overshoot_p50": _percentile(overshoot_samples, 0.5),
+        "overshoot_p95": _percentile(overshoot_samples, 0.95),
     }
 
 
@@ -333,8 +411,9 @@ def _fmt(v: float | None, nd: int = 1) -> str:
 
 def _scenario_table(scenario_results: dict[str, dict[str, Any]]) -> str:
     lines = [
-        "| 시나리오 | 느림 p50/p95 | 중간 p50/p95 | 빠름 p50/p95 | 정지프레임% | 겹침%(IoU≥0.10) | person없이뜬타클래스% |",
-        "|---|---|---|---|---|---|---|",
+        "| 시나리오 | 느림 p50/p95 | 중간 p50/p95 | 빠름 p50/p95 | 정지프레임% | 겹침%(IoU≥0.10) "
+        "| person없이뜬타클래스% | 오버슈트 p50/p95(n) |",
+        "|---|---|---|---|---|---|---|---|",
     ]
     for sc in SCENARIOS:
         m = scenario_results[sc["name"]]
@@ -346,7 +425,8 @@ def _scenario_table(scenario_results: dict[str, dict[str, Any]]) -> str:
             f"| {_fmt(b['빠름']['p50'])}/{_fmt(b['빠름']['p95'])} "
             f"| {_fmt(m['freeze_pct'])} "
             f"| {_fmt(m['overlap_pct'])} "
-            f"| {_fmt(m['other_without_person_pct'])} |"
+            f"| {_fmt(m['other_without_person_pct'])} "
+            f"| {_fmt(m['overshoot_p50'])}/{_fmt(m['overshoot_p95'])}({m['overshoot_n']}) |"
         )
     return "\n".join(lines)
 
@@ -426,9 +506,19 @@ def main() -> None:
     detectors = [d.strip() for d in a.detectors.split(",") if d.strip()]
     video = Path(a.video)
     track_key = f"{a.track_key_prefix}:{a.tag}"
+    tracker_opts = json.loads(a.tracker_opts) if a.tracker_opts else {}
 
-    print(f"[A] 검출 재생: {video} (detectors={detectors})")
-    frames, fps, detect_dt = replay_detections(video, detectors, track_key, a.imgsz, a.conf, a.max_frames)
+    cache_path = Path(a.detections_cache) if a.detections_cache else None
+    if cache_path and cache_path.exists():
+        print(f"[A] 검출 캐시 로드: {cache_path}")
+        frames, fps = load_detections_cache(cache_path)
+        detect_dt = 0.0
+    else:
+        print(f"[A] 검출 재생: {video} (detectors={detectors})")
+        frames, fps, detect_dt = replay_detections(video, detectors, track_key, a.imgsz, a.conf, a.max_frames)
+        if cache_path:
+            save_detections_cache(cache_path, frames, fps)
+            print(f"    캐시 저장: {cache_path}")
     n_det = sum(len(f["dets"]) for f in frames)
     print(f"    {len(frames)}프레임 @ {fps:.1f}fps · 검출 총 {n_det}개 · {detect_dt:.1f}s")
 
@@ -439,10 +529,14 @@ def main() -> None:
     print(f"    속도구간 경계(px/s, 전 시나리오 공통): 느림≤{speed_thresholds[0]:.1f} "
           f"중간≤{speed_thresholds[1]:.1f} 빠름>{speed_thresholds[1]:.1f}")
 
+    ingest_frames = subsample_for_ingest(frames, a.detect_cadence_ms)
+    if a.detect_cadence_ms > 0:
+        print(f"    ingest 캐던스 {a.detect_cadence_ms:.0f}ms 적용: {len(frames)} → {len(ingest_frames)}개 갱신")
+
     scenario_results: dict[str, dict[str, Any]] = {}
     for sc in SCENARIOS:
         print(f"[B] 표시 재생: {sc['label']}")
-        vis_ticks = run_display_scenario(frames, sc, a.node_bin, a.exclude_class, a.seed)
+        vis_ticks = run_display_scenario(ingest_frames, sc, a.node_bin, a.exclude_class, a.seed, tracker_opts)
         print(f"[C] 지표 산출: {sc['label']} ({len(vis_ticks)}틱)")
         scenario_results[sc["name"]] = compute_metrics(frames, vis_ticks, speed_thresholds)
 
