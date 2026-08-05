@@ -85,6 +85,9 @@ def _args() -> argparse.Namespace:
     p.add_argument("--detect-cadence-ms", type=float, default=0,
                    help="ingest 로 넘길 프레임 간 최소 간격(ms). 0=무변경(매프레임). "
                         "실배포 DETECT_MIN_INTERVAL_MS=100(realtime_core.js:175) 재현 시 100 지정")
+    p.add_argument("--safety-only-filter", action="store_true",
+                   help="web_util.is_safety_label 로 검출을 필터(routers/cameras.py·detect.py 가 실제 표시 직전에 "
+                        "적용하는 것과 동일 함수). 끄면(기본) 진단용 원시 guard.detect() 출력 그대로.")
     return p.parse_args()
 
 
@@ -130,6 +133,19 @@ def replay_detections(video: Path, detectors: list[str], track_key: str,
         idx += 1
     cap.release()
     return frames, fps, time.time() - t0
+
+
+def apply_safety_only_filter(frames: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """실제 배포가 표시 직전에 적용하는 것과 동일한 필터(web_util.is_safety_label)를 그대로 재사용해
+    검출 스트림에 적용한다 — routers/cameras.py:127(`/cameras/{cid}/detections`, 허브 그리드·확대뷰 공통
+    소스)·routers/detect.py:197(safety_only=true 요청 시)가 이미 쓰는 필터와 동일 함수(재구현 아님).
+    이 필터를 안 거친 원시 guard.detect() 출력(기본 동작)은 '진단용 최악값'이고, 이 함수를 거친 값이
+    실제 사용자가 화면에서 보는 값이다."""
+    import web_util
+    out = []
+    for f in frames:
+        out.append({**f, "dets": [d for d in f["dets"] if web_util.is_safety_label(d["cls"])]})
+    return out
 
 
 def subsample_for_ingest(frames: list[dict[str, Any]], cadence_ms: float) -> list[dict[str, Any]]:
@@ -444,7 +460,8 @@ def _write_report(args: argparse.Namespace, video: Path, detectors: list[str],
         f"# 박스 품질 측정 — {args.tag} ({stamp})",
         "",
         f"> 입력 `{video}` · {len(frames)}프레임 @ {fps:.1f}fps · 검출기 `{','.join(detectors)}` "
-        f"· 검출재생 {detect_dt:.1f}s(guard.detect, imgsz={args.imgsz or '기본'} conf={args.conf or '기본'})",
+        f"· 검출재생 {detect_dt:.1f}s(guard.detect, imgsz={args.imgsz or '기본'} conf={args.conf or '기본'})"
+        + (" · **safety_only 필터 적용됨**(실사용 기준)" if args.safety_only_filter else " · 필터 미적용(진단용 원시값)"),
         "",
         "## 방법론(요약)",
         "- **Part A(검출재생)**: `guard.detect()` 를 영상 프레임순으로 그대로 호출(vision_loader+build_agents, "
@@ -521,6 +538,12 @@ def main() -> None:
             print(f"    캐시 저장: {cache_path}")
     n_det = sum(len(f["dets"]) for f in frames)
     print(f"    {len(frames)}프레임 @ {fps:.1f}fps · 검출 총 {n_det}개 · {detect_dt:.1f}s")
+
+    if a.safety_only_filter:
+        before = n_det
+        frames = apply_safety_only_filter(frames)
+        n_det = sum(len(f["dets"]) for f in frames)
+        print(f"    safety_only 필터(is_safety_label) 적용: 검출 {before} → {n_det}개")
 
     stab = track_stability(frames, cls="person")
     print(f"    person 고유tid {stab['unique_tids']}개 · tid교체 {stab['switches']}회")
