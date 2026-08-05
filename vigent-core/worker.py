@@ -45,6 +45,9 @@ _READ_FAIL_MAX = int(os.environ.get("VIGENT_READ_FAIL_MAX") or tuning.val("stabi
 #   파일 소스는 순차 처리라 이 설정을 적용하지 않는다(모든 프레임을 봐야 하므로).
 _CAP_BUFFERSIZE = int(os.environ.get("VIGENT_CAP_BUFFERSIZE") or tuning.val("stability", "cap_buffersize", 1))
 _COOLDOWN_S = float(tuning.val("detect", "cooldown_s", 15.0))
+# ②: 증거 JPEG(무거운 후속) 전용 쿨다운 — 이벤트 '기록'은 _COOLDOWN_S 주기로 유지하되,
+#   증거 저장(인코딩+디스크)만 rule별로 이 주기까지 스로틀. 어떤 오발화도 서버를 포화 못 시킴.
+_EVIDENCE_COOLDOWN_S = float(tuning.val("detect", "evidence_cooldown_s", 30.0))
 _FALL_ANGLE = float(tuning.val("fall", "angle_deg", 55))   # 쓰러짐 몸통각 임계
 
 
@@ -505,6 +508,7 @@ class _FrameCtx:
         self.name = name
         self.source = source
         self.cooldown: dict[str, float] = {}
+        self.evidence_cd: dict[str, float] = {}   # ②: rule별 증거저장(무거운 후속) 별도 쿨다운
         self.last_collect = 0.0
 
 
@@ -702,8 +706,14 @@ class Worker:
                 if now - ctx.cooldown.get(rule, 0) < _COOLDOWN_S:
                     continue
                 ctx.cooldown[rule] = now
+                # ②: 이벤트 기록은 항상 유지. 증거 JPEG(인코딩+디스크)은 rule별 별도 쿨다운으로 스로틀 —
+                #   폭주 오발화가 서버를 포화시키지 못하게. 안전 기능(발화·기록·알림)은 그대로.
+                evidence = None
+                if now - ctx.evidence_cd.get(rule, 0) >= _EVIDENCE_COOLDOWN_S:
+                    ctx.evidence_cd[rule] = now
+                    evidence = _frame_to_dataurl(frame)
                 data_engine.log_event(rule=rule, level=level, site=ctx.name, note=note,
-                                      image_data_url=_frame_to_dataurl(frame))
+                                      image_data_url=evidence)
                 self.state["events"] += 1
                 self.state["last_event"] = f"{rule}({level})"
         except Exception as _fe:   # noqa: BLE001  프레임 처리 실패 → 로그 남기고 다음 프레임(루프 유지)
