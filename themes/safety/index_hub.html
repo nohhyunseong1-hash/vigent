@@ -148,7 +148,7 @@ body{margin:0;background:var(--bg);color:var(--fg);font-family:"SF Mono","Menlo"
 var $=function(id){return document.getElementById(id);};
 var GS={4:[2,2],9:[3,3],16:[4,4]}, cur=16, CAMS=[], EVENTS=[], evFilter=null, openId=null;
 var spotId=null, pinned=false, showZone=true, zoneEdit=false, zonePts=[];
-var spotMode='snapshot', vsEl=null, spotDets=[], VS_READY=null, lastPMode=null;   // WebRTC 재생 상태·계측
+var spotMode='snapshot', vsEl=null, spotDets=[], VS_READY=null, lastPMode=null, webrtcFailReason='';   // WebRTC 재생 상태·계측·폴백사유
 var prevA={}, pulseUntil={}, newlyAlert=[];
 var LOCAL={id:'__local',name:'로컬 웹캠(CAM-LOCAL)',local:true,online:true};
 function esc(s){return String(s==null?'':s).replace(/[<>&]/g,function(c){return {'<':'&lt;','>':'&gt;','&':'&amp;'}[c];});}
@@ -248,7 +248,7 @@ function renderEvents(){
 
 // ── 스포트라이트 + 설정 패널 ──
 function selectCam(id,userPin){ spotId=id; if(userPin&&pinned){ pinned=false; $('spin').classList.remove('on'); }  // 행/타일 클릭 시 핀 해제+수동전환
-  zoneEdit=false; zonePts=[]; stopWebRTC(); spotMode='snapshot'; spotDets=[]; lastPMode=null;
+  zoneEdit=false; zonePts=[]; stopWebRTC(); spotMode='snapshot'; spotDets=[]; lastPMode=null; webrtcFailReason='';
   renderGrid(); renderSpot(); renderSet(); updatePMode();
   if(id&&id!=='__local') spotWebRTC(id);   // WebRTC 시도(실패 시 내부에서 스냅샷 폴백)
   spotTick(); }
@@ -295,20 +295,35 @@ function ensureVideoStream(){
 }
 function spotVideoEl(){ return vsEl?(vsEl.video||vsEl.querySelector('video')):null; }
 function stopWebRTC(){ if(vsEl){ try{ var v=spotVideoEl(); if(v&&v._vg) clearInterval(v._vg); vsEl.src=''; vsEl.remove(); }catch(e){} vsEl=null; } }
-function spotWebRTC(cid){ ensureVideoStream().then(function(){
-  if(cid!==spotId) return; stopWebRTC();
-  var vs=document.createElement('video-stream'); vs.mode='webrtc,mse'; vs.background=true;
-  vs.style.cssText='position:absolute;inset:0;width:100%;height:100%';
-  $('svid').appendChild(vs);
-  var proto=location.protocol==='https:'?'wss':'ws';
-  vs.src=new URL(proto+'://'+location.host+'/tapo/ws?src='+encodeURIComponent(cid));
-  vsEl=vs; var t0=Date.now();
-  (function wait(){ if(vsEl!==vs) return;                               // 그새 카메라 바뀜
-    var v=vs.video||vs.querySelector('video');
-    if(v&&v.videoWidth>0){ spotMode='webrtc'; $('simg').style.display='none'; $('sph').style.display='none'; liveCatchup(v); drawSpot(); return; }
-    if(Date.now()-t0>7000){ if(vsEl===vs){ stopWebRTC(); spotMode='snapshot'; } return; }   // 타임아웃 → 스냅샷 폴백
-    setTimeout(wait,150); })();
-}); }
+function spotWebRTC(cid, attempt){ attempt=attempt||1;
+  ensureVideoStream().then(function(){
+    if(cid!==spotId) return; stopWebRTC();
+    var vs=document.createElement('video-stream'); vs.mode='webrtc,mse'; vs.background=true;
+    vs.style.cssText='position:absolute;inset:0;width:100%;height:100%';
+    $('svid').appendChild(vs);
+    var proto=location.protocol==='https:'?'wss':'ws';
+    vs.src=new URL(proto+'://'+location.host+'/tapo/ws?src='+encodeURIComponent(cid));
+    vsEl=vs; var t0=Date.now();
+    (function wait(){ if(vsEl!==vs) return;                             // 그새 카메라 바뀜
+      var v=vs.video||vs.querySelector('video');
+      if(v&&v.videoWidth>0){ spotMode='webrtc'; webrtcFailReason=''; $('simg').style.display='none'; $('sph').style.display='none'; liveCatchup(v); drawSpot(); return; }
+      if(Date.now()-t0>6000){                                          // ⓪ 폴백 사유 가시화(추측 금지)
+        var pc=vs.pc, ws=vs.ws;
+        webrtcFailReason = !pc ? ('WS/SDP 미성립'+(ws&&ws.readyState!==1?'(WS state '+(ws?ws.readyState:'none')+')':'(go2rtc 신호 무응답)'))
+          : ('ICE '+(pc.iceConnectionState||'?')+' / conn '+(pc.connectionState||'?'));
+        console.warn('[VIGENT] WebRTC 시도#'+attempt+' 실패 → '+webrtcFailReason+' | cam='+cid,
+                     {ice:pc&&pc.iceConnectionState, conn:pc&&pc.connectionState, ws:ws&&ws.readyState});
+        if(vsEl===vs) stopWebRTC();
+        spotMode='snapshot';
+        if(cid===spotId && attempt<5) setTimeout(function(){ if(cid===spotId) spotWebRTC(cid, attempt+1); }, 3000);  // ①c 3s 재시도 x5
+        else console.warn('[VIGENT] WebRTC 최종 폴백 → 스냅샷 ('+attempt+'회 시도):', webrtcFailReason);
+        return;
+      }
+      setTimeout(wait,150); })();
+  }).catch(function(e){ webrtcFailReason='go2rtc 스크립트 로드 실패('+((e&&e.message)||e)+') — go2rtc 미기동?';
+    console.warn('[VIGENT] WebRTC 폴백:', webrtcFailReason); spotMode='snapshot';
+    if(cid===spotId && attempt<5) setTimeout(function(){ if(cid===spotId) spotWebRTC(cid, attempt+1); }, 3000); });
+}
 function liveCatchup(vid){ if(vid._vg) return; vid._vg=setInterval(function(){ try{   // 누적지연 제거(라이브 따라잡기)
   var b=vid.buffered; if(!b||!b.length) return; var live=b.end(b.length-1), lag=live-vid.currentTime;
   if(lag>0.6) vid.currentTime=live-0.05; vid.playbackRate=lag>0.25?1.07:1.0; }catch(e){} },800); }
@@ -367,7 +382,9 @@ function updatePMode(){
   var C={webrtc:['#2fbf71','WebRTC'], mse:['#f08a00','MSE 버퍼'], snapshot:['#7c8896','스냅샷']}[s.mode];
   el.style.display='inline-flex';
   el.innerHTML='<span style="color:'+C[0]+'">●</span> '+C[1]+(s.lat!=null?('  '+Math.round(s.lat)+'ms'):'');
-  if(s.mode!==lastPMode){ console.log('[VIGENT] 스포트라이트 재생모드:', C[1], '· cam='+spotId+(s.lat!=null?(' · 지연 '+Math.round(s.lat)+'ms'):'')); lastPMode=s.mode; }
+  el.title = (s.mode==='snapshot' && webrtcFailReason) ? ('WebRTC 폴백 사유: '+webrtcFailReason+' — 3초 간격 재시도 중')
+    : '영상 재생 방식·실측 지연(라이브 대비 버퍼 끝 차이)';
+  if(s.mode!==lastPMode){ console.log('[VIGENT] 스포트라이트 재생모드:', C[1], '· cam='+spotId+(s.lat!=null?(' · 지연 '+Math.round(s.lat)+'ms'):'')+(webrtcFailReason?(' · 사유:'+webrtcFailReason):'')); lastPMode=s.mode; }
 }
 setInterval(updatePMode, 800);
 $('spin').onclick=function(){ pinned=!pinned; this.classList.toggle('on',pinned); };
