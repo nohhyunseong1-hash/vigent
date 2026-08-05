@@ -162,6 +162,7 @@ vigent-core/
 | **config/ 는 읽기전용 시드** | 위험구역·PPE 규칙 등 **런타임 가변 설정은 `data/config/`(gitignore)에 저장**되고 `config/*.json\|yaml`은 커밋된 기본값(시드)일 뿐이다(B2, `runtime_config.py`). 읽기=런타임 우선→시드 폴백, 쓰기=항상 data/. **config/ 파일에 런타임 write 를 새로 추가하지 말 것**(git 오염) — `runtime_config.read_path/runtime_path` 경유. | [P3_BACKLOG.md](P3_BACKLOG.md) B2 |
 | **읽기 전용 MVP** | `~/Desktop/사업계획서/AX안전`은 원본 MVP로 **읽기 전용**. 자산은 복사만. 수정·삭제 금지(규칙 1). | CLAUDE.md |
 | **동시 세션** | 여러 백그라운드 세션은 반드시 git worktree로 격리(공유 워킹트리 checkout 금지). 커밋 전 `git branch --show-current` 확인. | CLAUDE.md §8 |
+| **/detect/frame 신규 호출부는 반드시 고유 track_key 지정** | track_key 를 안 주면 기본 `"browser"` 추적 풀을 공유 → 서로 다른 카메라/장면의 트랙이 섞여 **유령 박스**가 생긴다(5단계 원증상의 재발). 새 검출 호출부는 `track_key:"<페이지>:<카메라id>"` 처럼 고유 키를 줄 것. 회귀 테스트: `tests/test_track_key_isolation.py`. | 5단계 · 3.6(허브 스포트라이트) |
 
 ---
 

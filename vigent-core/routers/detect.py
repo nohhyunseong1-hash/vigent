@@ -3,6 +3,8 @@
 /detect/frame·/rfdetr/frame·/rfdetr/vlm·/segment/frame — 저수준 프레임 검출/세그/VLM.
 PPE·incident 전용 프레임 분석은 각 도메인 라우터에 있다.
 """
+import logging
+
 from app_state import DEFAULT_THEME, STATE
 from app_state import DETECT_LOCK as _DETECT_LOCK
 from app_state import load_theme as _load_theme
@@ -10,6 +12,9 @@ from fastapi import APIRouter, Body, HTTPException
 from web_util import decode_data_url, is_safety_label
 
 router = APIRouter()
+_log = logging.getLogger("vigent.detect")
+_LAST_WH: dict[str, tuple[int, int]] = {}   # 3.6: track_key 별 직전 프레임 크기(다중출처 공유 감지)
+_WH_FLIP: dict[str, int] = {}               # 3.6: 해상도 교대 횟수(경고 임계용)
 
 # 다인 포즈(2.4): yolov8n-pose(bottom-up) 1회 로드 캐시. CPU 고정(ultralytics MPS 다모델 크래시 이력).
 _POSE_MODEL = None
@@ -119,6 +124,17 @@ def detect_frame(payload: dict = Body(...), theme: str = DEFAULT_THEME):
     #   추적(_track)은 라이브 연속프레임 안정화 계층 → 독립 이미지(벤치/단발 분석)에 누적되면
     #   IoU 우연매칭·잔상으로 검출을 오염(측정≠배포 착시). 라이브 프론트는 이 옵션 미전송 → 추적 유지·저하0.
     track_key = str(payload.get("track_key") or "browser")   # 5단계: 요청별 추적 격리(기본 browser)
+    # 재발 방지(3.6): 같은 track_key 로 크게 다른 해상도 프레임이 번갈아 들어오면 서로 다른 출처가
+    #   한 추적 풀을 공유하는 신호(유령박스 원인) → 경고. 신규 호출부는 반드시 고유 track_key 지정.
+    _h, _w = img.shape[:2]
+    _prev = _LAST_WH.get(track_key)
+    if _prev and (abs(_prev[0] - _w) > 8 or abs(_prev[1] - _h) > 8):
+        _WH_FLIP[track_key] = _WH_FLIP.get(track_key, 0) + 1
+        if _WH_FLIP[track_key] in (3, 30):
+            _log.warning("track_key '%s' 에 다른 해상도 프레임 교대(%dx%d↔%dx%d) — 다중 출처 공유 의심."
+                         " 신규 /detect/frame 호출부는 고유 track_key 지정 필요.",
+                         track_key, _prev[1], _prev[0], _w, _h)
+    _LAST_WH[track_key] = (_w, _h)
     with _DETECT_LOCK:                       # 동시 추론 직렬화(로딩/추론 race 방지)
         if payload.get("reset_tracks"):
             guard._tracks_by_key[track_key] = []   # 그 키만 비움(락 내부라 원자적)

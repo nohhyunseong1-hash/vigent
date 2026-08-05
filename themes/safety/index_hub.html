@@ -149,7 +149,7 @@ var $=function(id){return document.getElementById(id);};
 var GS={4:[2,2],9:[3,3],16:[4,4]}, cur=16, CAMS=[], EVENTS=[], evFilter=null, openId=null;
 var spotId=null, pinned=false, showZone=true, zoneEdit=false, zonePts=[];
 var spotMode='snapshot', vsEl=null, spotDets=[], VS_READY=null, lastPMode=null, webrtcFailReason='';   // WebRTC 재생 상태·계측·폴백사유
-var spotTgt=[], spotDisp=[], spotDetTimer=null, spotRafId=null, spotCap=null;   // 스포트라이트 클라이언트 검출(safety-local식 추적)
+var spotTgt=[], spotDisp=[], spotDetTimer=null, spotRafId=null, spotCap=null, spotDetFirst=false;   // 스포트라이트 클라이언트 검출(safety-local식 추적)
 var prevA={}, pulseUntil={}, newlyAlert=[];
 var LOCAL={id:'__local',name:'로컬 웹캠(CAM-LOCAL)',local:true,online:true};
 function esc(s){return String(s==null?'':s).replace(/[<>&]/g,function(c){return {'<':'&lt;','>':'&gt;','&':'&amp;'}[c];});}
@@ -330,7 +330,7 @@ function liveCatchup(vid){ if(vid._vg) return; vid._vg=setInterval(function(){ t
   if(lag>0.6) vid.currentTime=live-0.05; vid.playbackRate=lag>0.25?1.07:1.0; }catch(e){} },800); }
 
 // ── 스포트라이트 객체추적: safety-local 과 동일 방식 — 영상 프레임을 클라이언트가 검출(~5fps) + lerp 보간 ──
-function spotStartDetect(){ spotStopDetect();
+function spotStartDetect(){ spotStopDetect(); spotDetFirst=true;   // 첫 프레임에 reset_tracks → 카메라 전환 시 이전 트랙 잔재 제거
   spotDetTimer=setInterval(spotCapturePost, 220);   // ~4.5fps 검출(워커 이벤트와 별개, 표시 전용)
   spotRenderLoop(); }
 function spotStopDetect(){ if(spotDetTimer){ clearInterval(spotDetTimer); spotDetTimer=null; } if(spotRafId){ cancelAnimationFrame(spotRafId); spotRafId=null; } spotTgt=[]; spotDisp=[]; }
@@ -340,7 +340,9 @@ function spotCapturePost(){
   if(!spotCap) spotCap=document.createElement('canvas');
   spotCap.width=cw; spotCap.height=ch; spotCap.getContext('2d').drawImage(v,0,0,cw,ch);
   var durl; try{ durl=spotCap.toDataURL('image/jpeg',0.55); }catch(e){ return; }   // WebRTC=같은출처 → toDataURL 허용
-  api('POST','/detect/frame',{image:durl,ppe:true,safety_only:true}).then(function(r){
+  var payload={image:durl, ppe:true, safety_only:true, track_key:'hub:'+spotId};   // 3.6: 카메라별 추적 격리(유령박스 차단)
+  if(spotDetFirst){ payload.reset_tracks=true; spotDetFirst=false; }
+  api('POST','/detect/frame',payload).then(function(r){
     spotTgt=(r.detections||[]).map(function(d){ var b=d.bbox||[0,0,0,0];   // /detect/frame = 픽셀 [x,y,w,h]
       return {cls:d.class, score:d.score, x:b[0]/cw, y:b[1]/ch, w:b[2]/cw, h:b[3]/ch}; });
   }).catch(function(){});
