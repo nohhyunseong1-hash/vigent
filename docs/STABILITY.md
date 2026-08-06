@@ -180,7 +180,7 @@ python3 tools/soak_test.py --duration 24h --workers 2 --guard real --inject \
 
 - **누수 판정**: 모든 소크에서 RSS 기울기가 0 이하(우상향 없음), FD·스레드 고정. real은 모델 상주로 RSS 기준선이 높지만(129~919MB 초기 스파이크 포함) 워밍업 이후 기울기 음수.
 - **tracemalloc(real 1h)**: 1시간 total +2.35MB. 증가 지점이 전부 **테스트 하네스(`soak_test.py` 샘플 누적)와 torchvision/PIL 추론 프레임워크 상주** — **앱 코드(`vigent-core`) 라인은 Top에 없음** = 앱 누수 없음.
-- **정적 점검(트래커)**: `guard._tracks`는 이중 만료(`misses>STALE_MAX_MISSES` + TTL), FallTracker/MotionTracker/ErgonomicsTracker는 hist 윈도우 만료 + 트랙 시간 만료. **무한 증가 없음 → 만료 로직 추가 불필요**. `data_engine.log_event`는 디스크 jsonl append(메모리 누수 아님).
+- **정적 점검(트래커)**: `guard._tracks`는 이중 만료(`misses>STALE_MAX_MISSES` + TTL), MotionTracker/ErgonomicsTracker는 hist 윈도우 만료 + 트랙 시간 만료(FallTracker는 2026-08 기능 제거로 더 이상 존재하지 않음, `docs/P3_BACKLOG.md` PF). **무한 증가 없음 → 만료 로직 추가 불필요**. `data_engine.log_event`는 디스크 jsonl append(메모리 누수 아님).
 
 ### RTSP 캡처 스레드 검증 (합성)
 | 항목 | 결과 |
