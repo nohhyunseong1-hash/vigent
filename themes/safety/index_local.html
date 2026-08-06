@@ -327,6 +327,12 @@
           <div class="card-title"> 감지 설정</div>
           <div class="toggle-row"><span>바운딩 박스</span><label class="toggle"><input type="checkbox" id="togBBox" checked><span class="toggle-slider"></span></label></div>
           <div class="toggle-row"><span>스켈레톤 표시</span><label class="toggle"><input type="checkbox" id="togSkel" checked><span class="toggle-slider"></span></label></div>
+          <!-- MediaPipe 스켈레톤(realtime_core.js drawSkeleton) 표시 전용 토글. 기본 off — 다인 상황에서
+               MediaPipe 1인 스켈레톤이 메인 인물로 끌려가는 표시 문제 해소. realtime_core.js 는 무수정
+               (drawSkeleton 의 기존 togSkeleton?.checked??true 로직 그대로 재사용 — 지금까지 대응 요소가
+               없어 항상 그려지던 것). 판정(낙상·부담자세·구역침입)은 이 토글과 무관하게 frame.pose 를
+               그대로 참조하므로 회귀 0(엔진 무수정 — ONBOARDING §4). -->
+          <div class="toggle-row"><span>MediaPipe 스켈레톤 표시</span><label class="toggle"><input type="checkbox" id="togSkeleton"><span class="toggle-slider"></span></label></div>
           <div class="toggle-row"><span>프레스 방호구역</span><label class="toggle"><input type="checkbox" id="togPress"><span class="toggle-slider"></span></label></div>
           <div class="toggle-row"><span>라벨 표시</span><label class="toggle"><input type="checkbox" id="togLabel" checked><span class="toggle-slider"></span></label></div>
           <div class="toggle-row"><span>멀티스케일 감지</span><label class="toggle"><input type="checkbox" id="togMultiScale" checked><span class="toggle-slider"></span></label></div>
