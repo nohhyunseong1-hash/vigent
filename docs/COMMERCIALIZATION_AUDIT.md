@@ -32,7 +32,7 @@
 |---|---|---|---|---|
 | 1 | index_vigent.html `/detect/frame` 계약 불일치 | 재현가능하나 **도달 불가(dead file)** | P3 | S |
 | 2 | `ppeKeywordScore` '착용' 미반환 | 재현가능 | P1 | S |
-| 3 | `window.stats` 미노출 → 낙상/자세 알림 dead | 재현가능(브라우저 경로 한정) | P1 | S |
+| 3 | `window.stats` 미노출 → 낙상/자세 알림 dead | **낙상 절반=해소(2026-08-06 낙상 기능 제거)**, 자세 절반=재현가능(미해소) | P1 | S |
 | 4 | 존재하지 않는 엔드포인트 호출 5종 | 재현가능 | P2 | M |
 | 5 | 스텁 응답 3종 (`/ppe/analyze-frame`·`/vitals/rppg`·`/segment/frame`) | 재현가능(의도된 스텁) | P2 | L |
 | 6 | `GET /zone/danger` 프론트 계약 불일치 | 재현가능(realtime_core.js 경로만) | P2 | S |
@@ -60,6 +60,7 @@
 - **추가 확인(이 문서 작성자)**: 이 결함은 **브라우저 라이브 페이지(webcam/MediaPipe 경로)의 알림 발화만** 죽인다. 서버사이드 RTSP 상시 감시 경로(`worker.py:175 FallTracker`, `worker.py:652` 부근 `data_engine.log_event`)는 이 브라우저 코드와 **독립적**으로 동작하며 영향받지 않는다(worker.py 전수 확인, `window.stats`/`realtime_core.js` 미참조).
 - 실패 시나리오: 사용자가 브라우저에서 웹캠 라이브뷰로 낙상을 시연해도, 서버가 낙상을 인지해도, 이 UI 경로의 원격 알림(텔레그램 등) 트리거는 발화하지 않는다. 서버 워커 기반 상시감시(주력 배포 경로로 추정)는 무관.
 - 심각도: P1(브라우저 데모/파일럿 시연 경로에서 낙상 알림이 조용히 죽어있음 — 파일럿 시연 시 발각 위험) · 작업량: S(`window.stats=stats` 한 줄 추가 또는 선언을 `var`/`window.` 프로퍼티로 변경).
+- **후속(2026-08-06, 이 문서 작성자)**: 작업자 낙상 감지 기능 자체를 제거(사유·재도입 조건은 `docs/P3_BACKLOG.md` PF 항목 참고). 이로써 이 결함의 **낙상 절반은 자동 해소** — `stats.fall`·`/safety/fall` 엔드포인트·해당 폴링 코드 전부 삭제되어 코드에 `window.stats`/`/safety/fall` 참조가 0건이다. 그러나 **`window.stats.posture`(부담자세) 절반은 그대로 남아있다** — 부담자세는 이번 제거 대상이 아니었고, `realtime_core.js`의 `stats` 선언은 여전히 `window.stats`로 노출되지 않는다. 위 표의 "작업량 S" 수정(`window.stats=stats` 한 줄)은 자세 절반에 대해 여전히 유효하다.
 
 #### 4. 존재하지 않는 엔드포인트 호출 5종
 
@@ -143,7 +144,7 @@
 |---|---|---|
 | **P0** | `/tapo/ws` WebSocket 인증 우회(HTTP 미들웨어가 WS scope 미적용) | M |
 | P1 | `ppeKeywordScore` '착용' 미반환 → 브라우저 PPE 판정 상시 오탐 | S |
-| P1 | `window.stats` 미노출 → 브라우저 낙상/자세 알림 dead(서버 워커 경로는 무관) | S |
+| P1 | `window.stats` 미노출 → 브라우저 낙상/자세 알림 dead(서버 워커 경로는 무관) — **낙상 절반 2026-08-06 해소(기능 제거), 자세 절반 미해소** | S |
 | P1 | `WorkerManager.start` TOCTOU → 중복 워커·좀비 스레드 | S |
 | P1 | `loto_serial.py` 락 부재 → 실하드웨어에서 LOTO 상태 레이스 | M |
 | P1 | `tapo.py` `asyncio.gather` 태스크/연결 누수 | S |
