@@ -27,6 +27,9 @@ from .base import BaseAgent
 #   → 반드시 이 상수 기준으로 절대경로화한다.
 _PROJECT_ROOT = _Path(__file__).resolve().parent.parent.parent
 
+# ByteTrack(Phase2) tid 네임스페이스 오프셋 — GuardAgent._track_bytetrack 참조.
+_BYTETRACK_TID_OFFSET = 10_000_000
+
 
 def _sha16(path) -> str:
     """가중치 파일 SHA256 앞 16자(로드 로그·매니페스트 대조용). 실패해도 죽지 않는다."""
@@ -240,6 +243,26 @@ class GuardAgent(BaseAgent):
     #   비어 있으면(기본) 단일 fire_smoke 임계 그대로 → 저하 없음.
     FIRE_SMOKE_PER_CLASS: dict[str, float] = {}
 
+    # ── 추적 알고리즘 선택(Phase2, 다인·가림·빠른이동 A/B) — 기본 iou(회귀 0 보장), opt-in bytetrack ──
+    #   tuning.yaml track.algo: "iou"(기본, 위 IoU+중심점 그리디매칭 그대로) | "bytetrack"(trackers 패키지의
+    #   ByteTrackTracker, Apache-2.0 — 칼만필터 모션예측 + 고신뢰/저신뢰 2단계 매칭 + 전역최적할당).
+    #   bytetrack 은 person 슬롯에만 적용(ByteTrackTracker 는 클래스 비구분이라 다른 클래스와 섞으면
+    #   오매칭 위험 — person 외 클래스는 algo 무관하게 항상 기존 _track_iou). 근거: benchmarks/
+    #   track_fragmentation_causes.md(Phase1.5) — 파편화 원인 중 매칭경합·IoU붕괴가 칼만+전역할당으로
+    #   개선될 가능성 확인.
+    TRACK_ALGO = "iou"
+    # 0.10 은 multi_scene.mp4 실측에서 노이즈 폭증(프레임당 confirmed tid 20개+, 실인원 4~6명 대비)이
+    #   확인돼 기각. 실측 conf 분포(같은 클립): 진짜 사람 0.54~0.92 vs 배경노이즈 0.29 이하로 자연스러운
+    #   갭 존재 → 0.28 채택(DETECTOR_CONF['person']=0.35 바로 아래, 노이즈 범람 없이 저신뢰 후보만 추가 확보).
+    BYTETRACK_LOW_CONF = 0.28        # bytetrack 모드에서 person 슬롯 추론 임계(저신뢰 후보 확보용, 1회 추론 그대로)
+    BYTETRACK_HIGH_CONF = 0.50       # ByteTrackTracker 고신뢰/저신뢰 분리 기준(1차매칭 대상)
+    BYTETRACK_FRAME_RATE = 10.0      # lost_track_buffer 를 실시간 초 단위로 환산하는 기준 fps(실배포 호출주기에 맞춰 재조정 필요 — 맥 백로그)
+    BYTETRACK_LOST_BUFFER = 30       # 트랙 유지 프레임 수(위 frame_rate 기준 환산됨 — 라이브러리 기본값)
+    BYTETRACK_MIN_IOU = 0.10         # ByteTrack 자체 매칭 IoU 최저선(라이브러리 기본값)
+    BYTETRACK_ACTIVATION = 0.70      # 신규 트랙 스폰에 필요한 최소 confidence(라이브러리 기본값)
+    BYTETRACK_MIN_FRAMES = 1         # 트랙 확정(tid 부여)까지 필요한 연속매칭 수. guard MIN_HITS=1 과 동일하게
+                                      # 맞춰 "확정까지 프레임 수" 자체는 회귀 없게(라이브러리 기본 2 아님).
+
     def __init__(self, config: Any):
         super().__init__(config)
         # 현장 튜닝값(config/tuning.yaml)으로 conf·해상도 덮기(없으면 클래스 기본값)
@@ -267,11 +290,20 @@ class GuardAgent(BaseAgent):
             hf = int(tuning.val("detect", "hysteresis_frames", 0))   # >0 이면 전 신호를 이 N 으로 통일(1=끔). 0=기본(ppe3·fire2)
             if hf > 0:
                 self.HYSTERESIS = {k: hf for k in self.HYSTERESIS}
+            self.TRACK_ALGO = str(tuning.val("track", "algo", self.TRACK_ALGO)).strip().lower()
+            self.BYTETRACK_LOW_CONF = float(tuning.val("track", "bytetrack_low_conf", self.BYTETRACK_LOW_CONF))
+            self.BYTETRACK_HIGH_CONF = float(tuning.val("track", "bytetrack_high_conf", self.BYTETRACK_HIGH_CONF))
+            self.BYTETRACK_FRAME_RATE = float(tuning.val("track", "bytetrack_frame_rate", self.BYTETRACK_FRAME_RATE))
+            self.BYTETRACK_LOST_BUFFER = int(tuning.val("track", "bytetrack_lost_buffer", self.BYTETRACK_LOST_BUFFER))
+            self.BYTETRACK_MIN_IOU = float(tuning.val("track", "bytetrack_min_iou", self.BYTETRACK_MIN_IOU))
+            self.BYTETRACK_ACTIVATION = float(tuning.val("track", "bytetrack_activation", self.BYTETRACK_ACTIVATION))
+            self.BYTETRACK_MIN_FRAMES = int(tuning.val("track", "bytetrack_min_frames", self.BYTETRACK_MIN_FRAMES))
         except Exception:  # noqa: BLE001
             pass
         self._models: dict[str, Any] = {}      # id → YOLO (지연 로드 캐시)
         self._load_errors: dict[str, str] = {}
         self._tracks_by_key: dict[str, list[dict[str, Any]]] = {}  # 서버측 추적 박스(track_key 별 격리 · 5단계)
+        self._bytetrack_by_key: dict[str, Any] = {}  # track_key 별 ByteTrackTracker 인스턴스(Phase2, algo=bytetrack 전용)
         self._tid_seq: int = 0                    # 트랙 안정 id 시퀀스(클라 id 매칭용 · 1.8b)
         self.HYSTERESIS = dict(self.HYSTERESIS_FRAMES)             # 신호 발화 히스테리시스(track_key 별 스트릭)
         self._sig_streak: dict[str, dict[str, int]] = {}          # track_key → {signal: 연속 True 프레임수}
@@ -376,6 +408,67 @@ class GuardAgent(BaseAgent):
         return max(self.EMA_MIN, min(self.EMA_MAX, a))
 
     def _track(self, fresh: list[dict[str, Any]], track_key: str = "default") -> list[dict[str, Any]]:
+        """추적 알고리즘 디스패처(Phase2). TRACK_ALGO='iou'(기본)면 기존 _track_iou 그대로(회귀 0).
+        'bytetrack'이면 person 만 ByteTrack, 나머지 클래스는 여전히 _track_iou(클래스 비구분 트래커에
+        섞으면 오매칭 위험 — Phase2 범위를 person 으로 한정)."""
+        if self.TRACK_ALGO == "bytetrack":
+            return self._track_bytetrack(fresh, track_key)
+        return self._track_iou(fresh, track_key)
+
+    def reset_tracks(self, track_key: str) -> None:
+        """track_key 하나의 추적 상태 초기화(IoU·ByteTrack 공통 — 오프라인 측정 reset_tracks 요청용)."""
+        self._tracks_by_key[track_key] = []
+        self._bytetrack_by_key.pop(track_key, None)
+
+    def _track_bytetrack(self, fresh: list[dict[str, Any]], track_key: str) -> list[dict[str, Any]]:
+        """ByteTrack(trackers.ByteTrackTracker, Apache-2.0)로 person 만 추적(Phase2, benchmarks/
+        track_fragmentation_causes.md 근거) — 칼만필터 모션예측 + 고신뢰/저신뢰 2단계 매칭 + 전역최적할당
+        (그리디 1:1 이 아님 → guard._track_iou 의 '매칭경합' 실패모드 완화 기대).
+        person 외 클래스는 기존 _track_iou 그대로(트랙 상태 공유 track_key 동일 — 클래스별 라벨매칭이라
+        섞여도 안전, ByteTrack 은 클래스 비구분이라 별도 처리).
+        tid<0(미확정 저신뢰 후보, BYTETRACK_MIN_FRAMES 미달)은 반환에서 제외 — 기존 MIN_HITS 필터와 동일 취지."""
+        person = [d for d in fresh if str(d.get("label", "")).lower() == "person"]
+        other = [d for d in fresh if str(d.get("label", "")).lower() != "person"]
+        tracked_other = self._track_iou(other, track_key) if other else []
+        if not person:
+            return tracked_other
+
+        import numpy as np
+        import supervision as sv
+        from trackers import ByteTrackTracker
+
+        bt = self._bytetrack_by_key.get(track_key)
+        if bt is None:
+            bt = ByteTrackTracker(
+                lost_track_buffer=self.BYTETRACK_LOST_BUFFER,
+                frame_rate=self.BYTETRACK_FRAME_RATE,
+                track_activation_threshold=self.BYTETRACK_ACTIVATION,
+                minimum_consecutive_frames=self.BYTETRACK_MIN_FRAMES,
+                minimum_iou_threshold=self.BYTETRACK_MIN_IOU,
+                high_conf_det_threshold=self.BYTETRACK_HIGH_CONF,
+            )
+            self._bytetrack_by_key[track_key] = bt
+
+        xyxy = np.array([d["bbox"] for d in person], dtype=float)
+        conf = np.array([float(d.get("conf", 0.0)) for d in person], dtype=float)
+        idx = np.arange(len(person))
+        det = sv.Detections(xyxy=xyxy, confidence=conf, class_id=idx)
+        result = bt.update(det)
+
+        # tid 네임스페이스 충돌 방지: ByteTrackTracklet.get_next_tracker_id() 는 프로세스 전역 카운터라
+        #   _track_iou 의 인스턴스별 _tid_seq(0부터 증가, other 클래스용)와 값이 겹칠 수 있다. 클라이언트
+        #   표시(BoxTracker.js)는 클래스 무관하게 tid 값만으로 매칭하므로, 겹치면 person↔차량 등 트랙이
+        #   잘못 병합될 위험이 있다 — 큰 오프셋으로 값 자체가 절대 겹치지 않게 분리(실측으로 발견·수정).
+        out: list[dict[str, Any]] = []
+        for i in range(len(result)):
+            tid = int(result.tracker_id[i])
+            if tid < 0:
+                continue
+            src = person[int(result.class_id[i])]
+            out.append({**src, "bbox": [float(v) for v in result.xyxy[i]], "tid": tid + _BYTETRACK_TID_OFFSET})
+        return out + tracked_other
+
+    def _track_iou(self, fresh: list[dict[str, Any]], track_key: str = "default") -> list[dict[str, Any]]:
         """서버측 추적/스무딩: 새 탐지를 기존 트랙과 IoU 매칭해 갱신(위치 EMA 평활),
         새것은 추가, TTL 지난 트랙은 제거. 잠깐 놓친 프레임에도 박스를 유지해 깜빡임 제거.
 
@@ -496,6 +589,12 @@ class GuardAgent(BaseAgent):
             run_conf = slot_conf
             if per_class:
                 run_conf = min([slot_conf, *per_class.values()])
+            # Phase2(bytetrack): person 슬롯만 저신뢰로 받아 ByteTrack 2단계매칭 후보 확보.
+            #   호출자가 conf 를 명시(override)했으면 그 결정을 존중(자동 하향 미적용).
+            #   RF-DETR/DETR 계열은 고정 쿼리수 1회 순전파 후 임계로 후보를 거르는 구조라
+            #   임계값을 낮춰도 추론 자체는 1회 그대로(비용 무증가) — detectors/rfdetr_adapter.py 참조.
+            if slot == "person" and self.TRACK_ALGO == "bytetrack" and conf_override is None:
+                run_conf = min(run_conf, self.BYTETRACK_LOW_CONF)
             try:
                 # 어댑터가 모델추론 + 라벨정규화 + bbox정규화까지 → 표준 박스 반환(백엔드 불가지).
                 #   해상도 ↑(imgsz) + (오프라인) TTA + 검출기별 임계(건설모델은 높게 → 오탐 컷).

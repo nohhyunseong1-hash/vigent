@@ -137,7 +137,7 @@ def detect_frame(payload: dict = Body(...), theme: str = DEFAULT_THEME):
     _LAST_WH[track_key] = (_w, _h)
     with _DETECT_LOCK:                       # 동시 추론 직렬화(로딩/추론 race 방지)
         if payload.get("reset_tracks"):
-            guard._tracks_by_key[track_key] = []   # 그 키만 비움(락 내부라 원자적)
+            guard.reset_tracks(track_key)   # 그 키만 비움(락 내부라 원자적) — IoU·ByteTrack 공통(Phase2)
         out = guard.detect(img, detectors=detectors, conf=payload.get("conf"),
                            imgsz=live_imgsz, track_key=track_key)
         # 다인 포즈(2.4): pose=true 요청 시에만. 락 내부 실행(guard 와 직렬화). CPU 라 MPS 무영향.
