@@ -83,7 +83,7 @@
 - **[높음] [main.py](../vigent-core/main.py) 2293줄 · 라우트 107개 · 함수 129개.** 한 파일이 페이지 서빙(HTML), 위험구역, 워커 오케스트레이션, 안전판정, TBM, PPE, 사고분석, office, sports, rPPG, Tapo WebRTC/WebSocket을 전부 담당. 경로가 `/safety/*`·`/office/*`·`/sports/*`·`/tapo/*`·`/vitals/*`·`/zone/*` 6개 이상 도메인에 걸침.
   - 비대의 상당 부분이 **파이썬에 인라인된 전체 HTML**: `_TBM_NEW_HTML`([main.py:777](../vigent-core/main.py#L777), 129줄), `_AUTO_HTML`([main.py:910](../vigent-core/main.py#L910), 89줄).
 - **가장 긴 함수(200줄 초과 함수는 없음 — 비대함은 파일 단위):**
-  - [worker.py:594](../vigent-core/worker.py#L594) `_loop` — **162줄** [높음]. 캡처셋업+수집모드+낙상/무동작/근골격 트래커+프레임루프 혼재.
+  - [worker.py:594](../vigent-core/worker.py#L594) `_loop` — **162줄** [높음]. 캡처셋업+수집모드+무동작/근골격 트래커+프레임루프 혼재(낙상 트래커는 2026-08 기능 제거, `docs/P3_BACKLOG.md` PF — 줄 수는 당시 기준이라 현재와 다를 수 있음).
   - [agents/scribe.py:389](../vigent-core/agents/scribe.py#L389) `render_html` — 149줄 [중간]
   - [dashboard.py:86](../vigent-core/dashboard.py#L86) `render_terminal` — 135줄 [중간]
   - [incident.py:143](../vigent-core/incident.py#L143) `analyze` — 114줄 [중간]

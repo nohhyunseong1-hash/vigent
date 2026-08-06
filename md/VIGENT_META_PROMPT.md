@@ -24,7 +24,7 @@
 
 | 테마 | 인식 대상 | 핵심 산출물 |
 |---|---|---|
-| **safety** (산업안전) | 작업자 수·PPE·위험구역 침입·낙상/추락·프레스/전단기 위험노출·화재/연기·중장비 근접 | 산안법 기반 위험성평가서, 증거 리포트, 경보·관리자 통보, (보조) 방호 신호 |
+| **safety** (산업안전) | 작업자 수·PPE·위험구역 침입·부담자세·프레스/전단기 위험노출·화재/연기·중장비 근접 | 산안법 기반 위험성평가서, 증거 리포트, 경보·관리자 통보, (보조) 방호 신호 |
 | **office** (자세교정) | 거북목·어깨 불균형·허리 굽힘·자리비움·착석시간 | 자세 점수, 교정·근무효율 피드백, 휴식 알림 |
 | **sports** (요가·필라테스) | 개인 신체구조 기반 정적 자세 정확도·ROM·좌우대칭·호흡 | 실시간 음성 코칭, 개인별 습관/교정 PDF·모바일 리포트 |
 | *(향후)* smart-city / smart-farm | 동선·이상행동 / 작물·가축·시설 상태 | 동일 5단계 루프 재사용 |
@@ -70,7 +70,7 @@ themes/
 
 **인식 파이프라인 — 4계층 융합:**
 1. **검출/추적**: YOLO11(주 탐지) + ByteTrack. *폴백: BODA의 YOLOv8s.*
-2. **시계열 행동인식**: RTMPose/Halpe 키포인트 → pyskl/mmaction2(낙상·추락·반복동작). *폴백: 몸통 각도/체류시간 규칙 + BODA TF 분류기.*
+2. **시계열 행동인식**: RTMPose/Halpe 키포인트 → pyskl/mmaction2(반복동작). *폴백: 체류시간 규칙 + BODA TF 분류기.* (낙상 감지는 미구현 상태였고 폴백이던 몸통각 규칙도 2026-08 기능 제거 — `docs/P3_BACKLOG.md` PF)
 3. **VLM 의미추론**: Qwen2.5-VL(MLX, Apple Silicon) — Set-of-Marks 프롬프팅 / crop-and-describe / 구조화 컨텍스트 주입. (선택: on-demand 정밀분석)
 4. **LLM 오케스트레이션**: 에이전트 판단·보고서·피드백 생성.
 
@@ -152,8 +152,9 @@ dispatch:                         # ── Dispatcher (피드백·연동)
 **A. 위험구역 침입 + 위험성평가 자동작성**
 딥러닝으로 안전구역 설정 → 위험구역 침입 시 경보 → Analyst가 등급 산정 → Scribe가 산안법/안전보건규칙 기반 **위험성평가서** 자동 생성(Copilot 근거 인용 포함).
 
-**B. 낙상·추락·보호구 미착용 감지**
-시계열 행동인식(mmaction2)으로 쓰러짐/추락 의심, PPE 모델로 미착용 직접 감지 → 산안법 근거 위험성평가 작성.
+**B. 보호구 미착용·부담자세 감지**
+PPE 모델로 미착용 직접 감지, 포즈 기반 근골격계 부담자세 지속 감지 → 산안법 근거 위험성평가 작성.
+(낙상·쓰러짐 자동감지는 2026-08 기능 제거 — 오탐 지속·참조 클립 부재, `docs/P3_BACKLOG.md` PF. 재도입 조건도 같은 항목 참고.)
 
 **C. 프레스·전단기 위험노출 + 방호장치 연동**
 - 광전자식 방호장치(Type 4 등)를 **우회**하여 위험구역에 신체·손을 넣는 행동을 딥러닝 비전으로 감지(`guard_bypass`, severity=critical).
@@ -196,7 +197,7 @@ dispatch:                         # ── Dispatcher (피드백·연동)
 ## 10) BODA 자산 이식 맵 (복사해서 사용 / 없으면 폴백)
 원본 루트: `~/Desktop/사업계획서/AX안전`
 - **YOLO 가중치**: `runs/detect/` — PPE `construction_ppe_v30/weights/best.pt`(25클래스, 미착용 직접 감지), 화재 `.../fire_detector/weights/best.pt`, 지게차 `forklift_boda_ax/weights/best.pt`. 없으면 yolov8s 폴백.
-- **자세/낙상 TF 분류기**: `backend/ml/artifacts/` + `posture_model.py`·`fall_model.py`·`pose_features.py`(COCO 키포인트 4만+ 학습).
+- **자세 TF 분류기**: `backend/ml/artifacts/` + `posture_model.py`·`pose_features.py`(COCO 키포인트 4만+ 학습). (`fall_model.py`는 2026-08 낙상 기능 제거로 vigent-core에서 삭제됨 — 원본 MVP 폴더엔 남아있을 수 있으나 이관 대상 아님)
 - **운동 폼 모델·학습 스크립트**: `form_model.py`, `train_*_classifier.py`, `ingest_*`, `retrain.py`.
 - **베이스 가중치**: `yolov8s.pt`, `yolov8n-pose.pt`, `yolov8s-seg.pt`.
 - **데이터셋**: `data/external/`, `data/data_engine/`, `data/scene/`, `data/openimages/`.
@@ -225,7 +226,7 @@ dispatch:                         # ── Dispatcher (피드백·연동)
 - **전신 스켈레톤**(≈1.4px + 미세 글로우, 정확한 인체 연결, 관절 점) + **손 랜드마크/손 박스**(코너 틱·라벨).
 - **검은 반투명 상태 패널(blur)**: 좌측 SYSTEM STATUS(FPS·프레임·작업자·자세·PPE·구역·종합 위험등급+신호바), 우측 DETECTIONS.
 - **콘솔 HUD 로그** 스트리밍: `frame=… person=… hands=… zone=… alert=…`.
-- **위험 강조**: 위험구역 폴리곤 / 몸통 진입=DANGER(빨강) / 손·팔 접근=WARNING(주황) / 과다 기울기=낙상 의심. 위험 시 스켈레톤·라벨·테두리·배너 색 전환.
+- **위험 강조**: 위험구역 폴리곤 / 몸통 진입=DANGER(빨강) / 손·팔 접근=WARNING(주황) / 과다 기울기=위험자세(2026-08 이전엔 낙상 의심으로 표시했으나 기능 제거 후 자세 심각도 표시로 전환, PF). 위험 시 스켈레톤·라벨·테두리·배너 색 전환.
 - CCTV 분위기: REC 점멸, 시계, CAM 태그, 코너 브래킷, 스캔라인/비네팅, NO SIGNAL 폴백.
 - 카메라는 보안 컨텍스트 필요 → `file://` 금지, localhost(서버) 또는 https.
 - 참고 구현: BODA `backend/static/themes/safety/console.html`, `index.html`.
@@ -254,10 +255,10 @@ config/  data/  runs/  tests/
 ## 14) 산출물 / 수용 기준
 1. `«theme»` 라우트 200, 콘솔 에러 0. 웹캠+스켈레톤+손+위험감지 동작.
 2. 모델 있으면 정밀 판정, 없으면 휴리스틱 폴백 — **둘 다 무중단**.
-3. `unittest` 통과. 위험구역/낙상/PPE/guard_bypass 판정이 실제 입력에 반응.
+3. `unittest` 통과. 위험구역/PPE/guard_bypass/부담자세 판정이 실제 입력에 반응.
 4. 위험성평가/피드백에 **Copilot 근거 인용** 자동 포함.
 5. 런처 더블클릭 → 서버 자동 기동/재시작 → 테마 페이지 오픈.
-6. **상용화 게이트**: KISA 지능형 CCTV 인증 기준(카테고리별 정확도 **90%+**)을 safety 핵심 이벤트(침입·낙상·PPE)에 대해 측정·기록하는 평가 파이프라인 포함.
+6. **상용화 게이트**: KISA 지능형 CCTV 인증 기준(카테고리별 정확도 **90%+**)을 safety 핵심 이벤트(침입·PPE·부담자세)에 대해 측정·기록하는 평가 파이프라인 포함.
 7. §8 경계(기능안전·근로자 감시·개인정보)가 코드/문서/UI에 명시.
 
 ---
