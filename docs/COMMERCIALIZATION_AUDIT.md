@@ -38,7 +38,7 @@
 | 6 | `GET /zone/danger` 프론트 계약 불일치 | 재현가능(realtime_core.js 경로만) | P2 | S |
 | 7 | `ppe_check.py` 라벨 부분매칭 충돌 | **해소**(해당 파일 기준). 인접 함수 별건 발견 | — | — |
 | 8 | `WorkerManager.start` TOCTOU | 재현가능 | P1 | S |
-| 9 | `loto_serial.py` 시리얼 락 부재 | 재현가능(실하드웨어 연결 시) | P1 | M |
+| 9 | `loto_serial.py` 시리얼 락 부재 | **해소(2026-08-06 LOTO 기능 제거, 커밋 `09bdd17`)** | P1 | M |
 
 #### 1. index_vigent.html — `/detect/frame` 응답 계약 불일치 → **재분류: P3(도달 불가)**
 
@@ -102,6 +102,12 @@
 - 실패 시나리오: 서로 다른 요청이 동시에 같은 `pyserial.Serial` 객체에 `write()`→`readline()`을 인터리빙 → 한 명령의 응답을 다른 명령이 가로채 반환 가능 → **LOTO(잠금장치) 상태가 실제 하드웨어와 불일치**할 수 있는 안전 관련 레이스.
 - 비고: `simulated=True`(포트 미연결) 상태에서는 즉시 문자열 반환이라 레이스가 드러나지 않음 — **실하드웨어 연결 배포에서만 재현**.
 - 심각도: P1(안전잠금장치 오상태는 사고 직결 가능성 있으나, 현재 LOTO 기능 자체가 파일럿 단계 부가기능으로 추정되어 P0까지는 아님 — 실배포 확정 시 P0 재평가 권고) · 작업량: M(`threading.Lock`을 `_send` 전체에 걸고, async 라우트에서의 블로킹 I/O 처리 방식도 함께 재검토 필요).
+- **후속(2026-08-06, 이 문서 작성자)**: LOTO 기능 자체를 제거(`09bdd17`, "Vigent Face Scanner"로 재구현 예정 —
+  `docs/P3_BACKLOG.md` PH). `loto_serial.py` 파일이 삭제되며 이 레이스 자체가 **제거로 해소**됐다. 같은 제거
+  조사 중 이 결함과는 별개로 **`/loto/remove`의 인증 우회(사진 없이 person_id만으로 타인 잠금 해제 가능 +
+  요청자/대상자 신원 미분리로 "본인 것만 해제" 검사가 API 경로에서 무력화)도 함께 신규 발견했으며, 이 역시
+  코드 삭제로 제거로 해소됐다** — 단 face scanner 재구현 시 동일 패턴이 재발하지 않도록 PH 항목의 "피할 것
+  3가지"를 반드시 참조할 것.
 
 ### 1.2 신규 코드 전수 리뷰
 
@@ -146,7 +152,7 @@
 | P1 | `ppeKeywordScore` '착용' 미반환 → 브라우저 PPE 판정 상시 오탐 | S |
 | P1 | `window.stats` 미노출 → 브라우저 낙상/자세 알림 dead(서버 워커 경로는 무관) — **낙상 절반 2026-08-06 해소(기능 제거), 자세 절반 미해소** | S |
 | P1 | `WorkerManager.start` TOCTOU → 중복 워커·좀비 스레드 | S |
-| P1 | `loto_serial.py` 락 부재 → 실하드웨어에서 LOTO 상태 레이스 | M |
+| P1 | `loto_serial.py` 락 부재 → 실하드웨어에서 LOTO 상태 레이스 — **2026-08-06 LOTO 제거로 해소** | M |
 | P1 | `tapo.py` `asyncio.gather` 태스크/연결 누수 | S |
 | P2 | 존재하지 않는 엔드포인트 5종 호출(부가기능 무동작) | M |
 | P2 | 스텁 응답 3종(`/ppe/analyze-frame`·`/vitals/rppg`·`/segment/frame`) | L |

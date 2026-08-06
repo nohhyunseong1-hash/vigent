@@ -279,3 +279,30 @@
   이 역시 사람이 변환 작업을 재수행해야 함.
 - **재도입 조건 아님(문서 정합성 항목)**: 우선순위는 낮음(내부 문서, 대외비라 계약 리스크는 낮음)이나 신규
   팀원·비전/에이전트 트랙 담당이 구 낙상 문구를 참고할 수 있어 다음 team 문서 갱신 주기에 함께 재생성 권장.
+
+## PH. Vigent Face Scanner 재구현(LOTO 제거 커밋 `09bdd17` 후속, 2026-08-06) — [높음·제품]
+- **배경**: `vigentFacialRecognition/`의 Smart LOTO(전자 잠금장치 연동) 기능을 제거했다(사유: LOTO 자체가
+  아니라 "Vigent Face Scanner"라는 더 넓은 형태로 재구현할 계획). 얼굴인식 코어(`recognizer.py`·`iris.py`·
+  `enrollment.py`·`liveness.py`·`mfa.py`·`privacy.py`·`config.py`·`api.py`)는 전부 무수정으로 남아있어
+  재구현의 기반 자산으로 그대로 재사용 가능.
+- **재구현 시 반드시 피할 것(구 LOTO 구현에서 실제 발견된 결함 3가지 — `09bdd17` 커밋 메시지·조사 기록 참고)**:
+  1. **신원 검증을 클라이언트 입력(person_id)만으로 하지 말 것** — 생체 확인(얼굴/기타 요소)을 선택이 아닌
+     필수로 강제할 것. 구 LOTO의 `_resolve_worker()`는 사진이 없거나 `live=false`면 얼굴 인증을 통째로
+     건너뛰고 클라이언트가 보낸 `person_id`를 그대로 신뢰했다(데모 UI 체크박스로도 재현 가능한 경로였음).
+  2. **"요청자(caller)"와 "작업 대상자(target)" 신원을 같은 변수로 섞지 말 것** — 구 LOTO는
+     `remove_lock(pid, by=pid, ...)`처럼 대상자 신원을 요청자 신원 자리에도 그대로 대입해, 상태머신 자체의
+     "본인 것만 해제 가능" 검사(`by != person_id`)가 API 경로에서는 구조적으로 절대 발동하지 않았다. 상태머신
+     로직 자체는 정상이었다(단위테스트로 증명됨) — 문제는 API 계층이 두 신원을 분리해서 넘기지 않은 배선.
+  3. **`live`·`supervisor` 같은 안전 관련 플래그를 클라이언트가 그냥 넘기게 두지 말 것** — 구 LOTO는
+     `live: bool`(이름과 달리 실제 라이브니스 모듈 `liveness.py`를 호출하지 않는 단순 스위치)과
+     `supervisor: bool`(권한 확인 없이 클라이언트가 `true`로 보내면 그대로 통과)을 서버측 검증 없이 신뢰했다.
+     실제 라이브니스 확인이 필요하면 `liveness.py`의 `LivenessSession`을 연결하고, 관리자 권한은 별도 인증
+     경로(예: MFA `high`/`vault` 정책)로 확인할 것.
+- **선결 필요(개인정보 — 생체정보)**: 얼굴 임베딩은 개인정보보호법상 **민감정보**(§23). 재구현 착수 전에
+  ① 별도 명시적 동의(목적·항목·보유기간을 일반 동의와 분리) ② 보관기간·자동파기 정책 ③ 특징값(임베딩)
+  저장방식(원본 얼굴 미저장·암호화)을 먼저 결정할 것. `vigentFacialRecognition/README.md`의 법적 체크리스트
+  8개 항목이 그대로 적용 가능하며, 옵트인 스위치(`VIGENT_FR_ENABLED`)·동의기록(`Consent`)·보존기간
+  (`VIGENT_FR_RETENTION_DAYS`)·삭제(`DELETE /facial/persons/{id}`)·만료일괄삭제(`purge-expired`)는 이미
+  구현돼 있어 재사용 가능 — 새로 만들 필요 없음.
+- **범위 참고**: `vigent-core`는 이 기능과 무관(LOTO도 face scanner 예정 자산도 main.py 미장착). 재구현이
+  vigent-core에 통합될지, `vigentFacialRecognition/`을 계속 별도 모듈로 둘지는 별도 결정 필요.
