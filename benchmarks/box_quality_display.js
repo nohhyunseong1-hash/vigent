@@ -6,7 +6,9 @@
 //   표시 로직은 절대 건드리지 않는다 — 이 파일은 '틱을 흘려보내는 하네스'일 뿐이다.
 //
 // 사용: node box_quality_display.js <입력JSON경로>
-//   입력: {render_fps, delay_ms, jitter_ms, exclude_class, seed, tracker_opts, frames:[{t_cap_ms, dets:[{cls,score,id,box:[x,y,w,h]}]}]}
+//   입력: {render_fps, delay_ms, jitter_ms, exclude_class, seed, tracker_opts, frames:[{t_cap_ms, dets:[{cls,score,id,box:[x,y,w,h]}]}],
+//          anchors?:[{t_ms, ok, head:[x,y], torso:[x,y], scale}]}  ← 옵션(2026-08, Phase3 pose-follow A/B):
+//            주어지면 매 렌더틱 가장 가까운 시각의 anchor를 bt.setAnchor()로 주입(anchor:true tracker_opts와 조합).
 //   출력(stdout): [{t_ms, vis:[{cls,tid,box,alpha}]}, ...]
 'use strict';
 const fs = require('fs');
@@ -42,13 +44,19 @@ function main() {
   const lastCap = frames.length ? frames[frames.length - 1].t_cap_ms : 0;
   const tEnd = lastCap + delayMs + Math.abs(jitterMs) * 3 + 500;   // 마지막 도착 이후 페이드아웃까지 여유
   const tickMs = 1000 / renderFps;
+  const anchors = cfg.anchors || null;   // Phase3 pose-follow A/B: 옵션(없으면 기존과 완전 동일 동작)
 
   const out = [];
-  let ai = 0;
+  let ai = 0, xi = 0;
   for (let t = 0; t <= tEnd; t += tickMs) {
     while (ai < arrivals.length && arrivals[ai].at <= t) {
       bt.ingest(arrivals[ai].dets, arrivals[ai].at, arrivals[ai].at);   // 실제 도착 순간을 now 로(렌더틱 격자에 안 묶음)
       ai++;
+    }
+    if (anchors) {   // 페이지의 rAF 앵커 주입(computeAnchor)을 흉내: 가장 가까운 시각의 anchor를 매 틱 주입
+      while (xi < anchors.length - 1 && anchors[xi + 1].t_ms <= t) xi++;
+      const a = anchors[xi];
+      bt.setAnchor(a && a.ok ? { head: a.head, torso: a.torso, scale: a.scale, ok: true } : null, t);
     }
     const vis = bt.sample(t);
     out.push({ t_ms: t, vis: vis.map(v => ({ cls: v.cls, tid: v.tid, box: v.box, alpha: v.alpha })) });

@@ -4,6 +4,7 @@
 //
 // 사용:
 //   var bt = new VigentBoxDisplay.BoxTracker({excludeClass:'person'});   // person 은 스켈레톤 담당(옵션)
+//   var bt2 = new VigentBoxDisplay.BoxTracker({noAnchorClass:'person', anchor:true});  // person 도 트랙+표시하되 앵커(MediaPipe 1인)는 금지(옵션)
 //   // 새 검출 배치 수신 시(1회):  dets=[{cls,score,id,box:[x,y,w,h]}]  box=소스 프레임 픽셀, id=서버 트랙id(없으면 -1)
 //   bt.ingest(dets, backendBoostAt);
 //   // 매 렌더 프레임:  vis=[{cls,score,tid,box:[x,y,w,h],alpha}]  (One-Euro+외삽+dedup+fade 적용)
@@ -24,6 +25,10 @@
     this.OE_BETA = opts.OE_BETA != null ? opts.OE_BETA : 3.0;
     this.OE_DC = opts.OE_DC != null ? opts.OE_DC : 1.0;
     this.excludeClass = opts.excludeClass != null ? String(opts.excludeClass).toLowerCase() : null;
+    // 이 클래스는 트랙에는 포함(One-Euro+id외삽 정상 적용)하되 모션 앵커에는 절대 안 태운다(옵션, 기본 off).
+    //   앵커는 MediaPipe 랜드마크(1인) 기준이라, 이 클래스를 앵커에 태우면 다인 상황에서 엉뚱한 사람 위치로
+    //   끌려가는 결함이 재발한다(2026-08, safety-local person 박스에서 실제 발생 확인).
+    this.noAnchorClass = opts.noAnchorClass != null ? String(opts.noAnchorClass).toLowerCase() : null;
     this.extrapCap = opts.extrapCap != null ? opts.extrapCap : 0.6;   // 속도외삽 상한(갱신간격 비율). 기본 0.6=safety-local 검증값.
     // 3.13: 모션 앵커링(옵션, 기본 off). on 이면 서버 박스를 페이지가 준 30fps 앵커(머리/몸통 랜드마크)에
     //   태워 rAF 마다 이동 → 검출 종단지연·방향전환 외삽실패를 상쇄. 판정은 서버 데이터라 표시만 영향(규칙6).
@@ -55,8 +60,9 @@
   BoxTracker.prototype._linkAnchor = function (atT) {   // 서버 갱신 시점에만: 각 박스를 '검출 프레임 시점' 앵커점에 연결+오프셋 저장(지연 제거·드리프트 리셋)
     var A = this._anchorAt((atT != null ? atT : Date.now()) - this.anchorLatency);   // 검출은 ~latency 전 프레임 → 그때 앵커 기준
     var ok = this.anchor && A && A.ok;
+    var noAnchor = this.noAnchorClass;
     this.tracks.forEach(function (t) {
-      if (!ok) { t.aType = null; return; }
+      if (!ok || (noAnchor && String(t.cls).toLowerCase() === noAnchor)) { t.aType = null; return; }
       var cx = t.box[0] + t.box[2] / 2, cy = t.box[1] + t.box[3] / 2;
       var dh = Math.hypot(cx - A.head[0], cy - A.head[1]);
       var dtq = Math.hypot(cx - A.torso[0], cy - A.torso[1]);

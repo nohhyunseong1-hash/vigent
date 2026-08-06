@@ -215,15 +215,15 @@ function _dropTrailingStale(list){
     return !list.some(f=> f!==o && f.class===o.class && (f.seenAt||0) > o.seenAt + 60);
   });
 }
-// 같은 사람의 '살아있는' 중복 박스 제거: 한 사람에 대해 pose-follow 박스, 지연된 백엔드 detection 박스,
+// 같은 사람의 '살아있는' 중복 박스 제거: 한 사람에 대해 지연된 백엔드 detection 박스,
 // 브라우저 COCO 박스가 서로 안 겹치며 동시에 남을 수 있다(꼬리). 가까운(=같은 사람) person 박스끼리는
-// 권위 높은 하나만 유지(pose-follow > 최신 seenAt). 멀리 떨어진 박스는 다른 사람으로 보고 유지(멀티 대응).
+// 권위 높은 하나만 유지(최신 seenAt). 멀리 떨어진 박스는 다른 사람으로 보고 유지(멀티 대응).
 function _dedupePersons(list){
   if(!Array.isArray(list)) return list;
   const idx=[];
   for(let k=0;k<list.length;k++) if(list[k] && list[k].class==='person') idx.push(k);
   if(idx.length<2) return list;
-  const auth=o=>(o._poseFollow?1e15:0)+(o.seenAt||0);      // pose-follow 최우선, 그다음 최신 관측
+  const auth=o=>(o.seenAt||0);      // 최신 관측 우선
   const drop=new Set();
   for(let a=0;a<idx.length;a++){
     for(let b=a+1;b<idx.length;b++){
@@ -277,7 +277,6 @@ function _filterOrphanPPE(list){
   if(!Array.isArray(list)) return list;
   const persons=[];
   for(const o of list) if(o && o.class==='person' && o.bbox) persons.push(o.bbox);
-  if(posePersonExtentBox && Date.now()-posePersonExtentAt<=STALE_TTL_MS) persons.push(posePersonExtentBox);
   if(poseFresh()) for(const p of backendPoses){ const e=_poseKpExtent(p); if(e) persons.push(e); }
   if(!persons.length) return list;                       // 사람 신호 없음 → 판단 불가, 그대로(오탐 억제 안 함)
   const pad=b=>[b[0]-b[2]*0.2, b[1]-b[3]*0.35, b[2]*1.4, b[3]*1.45];   // 머리 위(안전모)·주변 여유
@@ -287,49 +286,8 @@ function _filterOrphanPPE(list){
   });
 }
 
-// ── 2단계: 사람 박스를 매 프레임 MediaPipe pose extent로 따라가게 ─────────────
-// detection(YOLO/COCO)은 "이게 사람인가/클래스/ID"만 제공하고, 위치는 매 렌더 프레임
-// 신선한 MediaPipe 랜드마크의 bounding extent로 다시 계산 → 추가 지연 0.
-let posePersonExtentBox=null;   // 마지막 유효 pose extent [x,y,w,h] (소스 픽셀). 미검출 프레임엔 값 유지(hold)
-let posePersonExtentAt=0;       // 그 extent 관측 시각(Date.now)
-const _POSE_EXTENT_IDX=[0,11,12,13,14,15,16,23,24,25,26,27,28];  // 코+어깨+팔+엉덩이+무릎+발목
-function posePersonExtent(lm,VW,VH){
-  if(!lm || !lm.length) return null;
-  let minX=1e9,minY=1e9,maxX=-1e9,maxY=-1e9,n=0;
-  for(const i of _POSE_EXTENT_IDX){
-    const p=lm[i]; if(!p || (p.visibility!=null && p.visibility<0.3)) continue;
-    const x=p.x*VW, y=p.y*VH;
-    if(x<minX)minX=x; if(x>maxX)maxX=x; if(y<minY)minY=y; if(y>maxY)maxY=y; n++;
-  }
-  if(n<4) return null;                                   // 랜드마크 부족 → 무효(폴백)
-  const w=maxX-minX, h=maxY-minY;
-  if(w<10 || h<10) return null;
-  const padX=Math.max(12,w*0.12), padTop=Math.max(20,h*0.22), padBot=Math.max(8,h*0.06);  // 머리 위 여유 크게
-  const x0=Math.max(0,minX-padX), y0=Math.max(0,minY-padTop);
-  const x1=Math.min(VW,maxX+padX), y1=Math.min(VH,maxY+padBot);
-  return [x0,y0,x1-x0,y1-y0];
-}
-// 소유권 부여 + 위치 교체: pose extent에 가장 가까운 person detection을 찾아, 그 박스의 위치만
-// 신선한 pose extent로 바꾸고 seenAt을 갱신(→ 페이드/꼬리억제 대상에서 제외). 클래스/ID/score는 detection 유지.
-function _applyPoseFollow(objs){
-  if(!posePersonExtentBox || !posePersonExtentAt) return objs;
-  if(Date.now()-posePersonExtentAt > STALE_TTL_MS) return objs;   // pose 끊긴 지 오래 → 폴백(detection 박스+페이드)
-  const persons=objs.filter(o=>o.class==='person');
-  if(!persons.length) return objs;                                // 매칭할 detection 없음 → 가짜 박스 만들지 않음(안전)
-  const pcx=posePersonExtentBox[0]+posePersonExtentBox[2]/2;
-  const pcy=posePersonExtentBox[1]+posePersonExtentBox[3]/2;
-  let owner=null,bd=1e9;
-  for(const o of persons){
-    const cx=o.bbox[0]+o.bbox[2]/2, cy=o.bbox[1]+o.bbox[3]/2;
-    const diag=Math.hypot(o.bbox[2]||0,o.bbox[3]||0);
-    const d=Math.hypot(cx-pcx,cy-pcy);
-    if(d<bd && d < Math.max(250, diag*1.5)){ bd=d; owner=o; }     // 빠른 이동으로 detection이 뒤처져도 매칭 유지
-  }
-  if(!owner) return objs;
-  return objs.map(o=> o===owner
-    ? {...o, bbox:posePersonExtentBox.slice(), seenAt:posePersonExtentAt, gone:0, _poseFollow:true}  // pose가 매 프레임 위치 확정 = 살아있음
-    : o);
-}
+// (구 "2단계: 사람 박스를 MediaPipe pose extent로 따라가게" 로직은 다인 상황에서 엉뚱한 사람에게
+//  박스가 끌려가는 결함이 있어 제거됨 — person 박스는 이제 BoxTracker(ByteTrack tid 기반)가 전담.)
 
 // 외곽선(인스턴스 세그멘테이션) 모드 — 박스 대신 객체 윤곽 폴리곤 표시
 let segBusy=false, segAt=0, lastSegAt=0;
@@ -1373,7 +1331,7 @@ function drawObjects(objs,W,H,lHeld,rHeld,scX,scY,hidePerson){
   // 인원수·PPE·위험구역 판정은 탐지 데이터로 동작하므로 박스 생략과 무관하게 유지된다.
   const cmap={safe:'#10b981',caution:'#f59e0b',danger:'#ef4444'};
   for(const o of objs){
-    if(hidePerson && o.class==='person' && !o._poseFollow) continue;   // pose 따라가는 사람 박스는 표시(2단계), 나머지 사람은 기존대로 스켈레톤에 양보
+    if(hidePerson && o.class==='person') continue;   // 대체 표시(스켈레톤/포즈)에 양보
     if(!shouldDrawClass(o.class)) continue;   // 표시 필터: 무관/오탐 COCO 숨김(탐지 데이터엔 그대로 남음 — 통계·판정 불변)
     const _fa=_staleAlpha(o.seenAt);            // 잔상 페이드: 오래된 박스는 알파↓ 후 제외
     if(_fa<=0) continue;                          // STALE_TTL 초과 → 렌더 제외(옛 자리 고정 잔상 제거)
@@ -2457,13 +2415,16 @@ function renderCoreFrameOverlays(frame){
   if(segModeOn() && segFresh()){
     drawSegments(frame.W,frame.H,frame.scX,frame.scY);
   } else {
-    // 사람 대체 표시(MediaPipe 스켈레톤 or 안전 백엔드 포즈)가 실제로 있을 때만 박스 숨김
-    const personHasViz = !!frame.pose || poseFresh();
+    // 사람 대체 표시(MediaPipe 스켈레톤 or 안전 백엔드 포즈)가 실제로 있을 때만 박스 숨김.
+    // ★ 페이지가 person을 BoxTracker(ByteTrack tid 기반)에 맡긴 경우(window.VIGENT_PERSON_BOXTRACKER)는
+    //   절대 숨기지 않는다 — MediaPipe는 다인 상황에서 1인만 추적해 스켈레톤이 엉뚱한 사람으로 쏠릴 수 있고,
+    //   그 경우 나머지 사람의 박스까지 통째로 사라지는 결함이 있었다(2026-08).
+    const personHasViz = !window.VIGENT_PERSON_BOXTRACKER && (!!frame.pose || poseFresh());
     // 고정밀 백엔드를 주 탐지로 승격(가산): 백엔드 결과가 있으면 우선, 없으면 브라우저 그대로
     drawObjects(_mergedObjects(frame.latestObjects),frame.W,frame.H,frame.leftHeldObjects,frame.rightHeldObjects,frame.scX,frame.scY, personHasViz);
     // 안전: 작업자(사람)는 박스 대신 포즈 스켈레톤으로 표시(다른 객체는 박스 유지)
     // 안전=항상 백엔드 포즈, 피트니스/오피스=MediaPipe 없을 때 폴백(이중 그리기 방지)
-    if(poseFresh() && (activeServiceMode==='safety' || !frame.pose)){ try{ drawBackendPoses(frame.W,frame.H,frame.scX,frame.scY); }catch(e){} }
+    if((document.getElementById('togSkeleton')?.checked??true) && poseFresh() && (activeServiceMode==='safety' || !frame.pose)){ try{ drawBackendPoses(frame.W,frame.H,frame.scX,frame.scY); }catch(e){} }
   }
   try{ drawAXPostureBadge(frame.rawPose,frame.W,frame.H); }catch(e){}  // 추론만(표시는 패널)
   try{ drawDangerZone(frame.W,frame.H); }catch(e){}
@@ -2511,9 +2472,6 @@ async function onHolisticResults(results){
   cachedLBBox=getHandBBox(lHandLM,VW,VH);
   cachedRBBox=getHandBBox(rHandLM,VW,VH);
 
-  // 2단계: 사람 박스 위치를 매 프레임 신선한 pose extent로 갱신. 못 잡은 프레임은 마지막값 hold(아래 _applyPoseFollow가 STALE_TTL까지 유지 후 페이드).
-  const _pe=posePersonExtent(sm,VW,VH);
-  if(_pe){ posePersonExtentBox=_pe; posePersonExtentAt=Date.now(); }
 
   // ── 그리기 (TF.js 추론은 별도 루프 - 캐시된 데이터 사용) ──
   // 영상→캔버스 스케일
@@ -2564,9 +2522,8 @@ function _mergedObjects(browserObjs){
     }
   }
   out = _dedupOverlapping(out);                               // 겹침+포함 중복 제거(백엔드가 NO-Hardhat 등 한 대상에 여러 박스 반환하는 것 방지)
-  out = _applyPoseFollow(out);                                // 사람 박스 위치를 신선한 pose extent로 교체(지연 0)
   out = _dropTrailingStale(out);                              // 트래커 gone 꼬리 제거
-  out = _dedupePersons(out);                                  // 같은 사람의 '살아있는' 중복 박스(지연 백엔드+브라우저+pose)를 하나로
+  out = _dedupePersons(out);                                  // 같은 사람의 '살아있는' 중복 박스(지연 백엔드+브라우저)를 하나로
   out = _filterOrphanPPE(out);                                // 사람과 동떨어진 보호구 위반(빈 벽 오탐) 제거
   return _safetyVisible(out);                                 // 안전 모드: 안전 관련 객체만 그림(잡동사니 숨김)
 }
@@ -2595,9 +2552,9 @@ function _startFallbackRender(){
       const VW=videoEl.videoWidth||1280, VH=videoEl.videoHeight||720;
       const rect=mediaRect(W,H); const scX=rect.w/VW, scY=rect.h/VH;
       if(segModeOn() && segFresh()){ try{ drawSegments(W,H,scX,scY); }catch(e){} }
-      else { const personHasViz=poseFresh();   // 폴백 경로(MediaPipe 없음): 백엔드 포즈 있으면 박스 숨기고 스켈레톤
+      else { const personHasViz=!window.VIGENT_PERSON_BOXTRACKER && poseFresh();   // 폴백 경로(MediaPipe 없음): 백엔드 포즈 있으면 박스 숨기고 스켈레톤
              try{ drawObjects(_mergedObjects(latestObjects),W,H,leftHeldObjects,rightHeldObjects,scX,scY, personHasViz); }catch(e){}
-             if(poseFresh()){ try{ drawBackendPoses(W,H,scX,scY); }catch(e){} } }
+             if((document.getElementById('togSkeleton')?.checked??true) && poseFresh()){ try{ drawBackendPoses(W,H,scX,scY); }catch(e){} } }
       try{ drawDangerZone(W,H); }catch(e){}
       // 위험구역 침입 판정/경보 — 폴백 경로에서도 반드시 실행. (기존엔 메인 렌더에만 있어 MediaPipe 로딩 실패 시
       // 구역은 그려지지만 침입 판정이 아예 안 돌아 경고가 안 떴다. 백엔드 포즈/탐지는 MediaPipe와 무관하게 독립 동작.)

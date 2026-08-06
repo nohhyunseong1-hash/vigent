@@ -555,7 +555,10 @@
   //   backendBoostDets(비디오 픽셀 W×H 좌표)·backendBoostAt(수신 시각)에 담아둔다. 별도 fetch 루프를
   //   두면 서버 _DETECT_LOCK 대기열이 늘어 왕복↑·지터↑ → 자체 요청을 없애고 그 전역을 그대로 읽는다.
   //   backendBoostDets 는 safety 모드에서 PPE(NO-* 포함) 전부 포함(코드 확인). realtime_core 무수정.
-  var _bt = new VigentBoxDisplay.BoxTracker({excludeClass:'person', anchor:true});   // 검증 표시 스택 + 3.13 모션 앵커링(PPE 박스를 30fps 스켈레톤에 태움 · 표시 전용)
+  // 2026-08: person 을 제외 대신 포함(noAnchorClass)로 전환 — person 도 이 트래커(ByteTrack tid+One-Euro)가
+  //   전담해 다인 상황에서 안정적으로 표시하되, PPE 처럼 MediaPipe 앵커(1인)에는 절대 안 태운다(재끌림 방지).
+  var _bt = new VigentBoxDisplay.BoxTracker({noAnchorClass:'person', anchor:true});   // 검증 표시 스택 + 3.13 모션 앵커링(PPE 박스를 30fps 스켈레톤에 태움 · 표시 전용)
+  window.VIGENT_PERSON_BOXTRACKER = true;   // realtime_core.js drawObjects: 폴백(브라우저) 모드에서도 person 을 pose 사유로 숨기지 않게
   // 3.13: MediaPipe 랜드마크(window._vgPose, 정규화 33점)에서 머리·몸통 앵커(소스 픽셀) 산출 — rAF 마다 주입.
   //   좌표계: 박스(backendBoostDets)도 랜드마크×videoWidth 도 원본 video-px(미러 전) → 일치. 판정 로직 불변(표시만).
   function computeAnchor(){
