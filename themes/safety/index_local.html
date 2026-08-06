@@ -619,18 +619,22 @@
       octx.fillStyle='#fff'; octx.fillText(lab,dx+3,Math.max(fpx,dy-3));
     });
     octx.globalAlpha=1; lastDrawn=vis.length;
-    if(_dbg){   // 3.11 계측 HUD(ingest p50/p95·jitter·정지프레임 %)
+    if(_dbg){   // 3.11 계측 HUD(ingest p50/p95·jitter·정지프레임 %) + 3.14 person 박스/tid HUD(표시 전용·판정 무관)
       var iv=_dbgIng.slice().sort(function(a,b){return a-b;});
       var pq=function(q){ return iv.length?iv[Math.min(iv.length-1,Math.floor(iv.length*q))]:0; };
       var mn=iv.reduce(function(a,b){return a+b;},0)/(iv.length||1);
       var sd=Math.round(Math.sqrt(iv.reduce(function(a,b){return a+(b-mn)*(b-mn);},0)/(iv.length||1)));
       var stat=_dbgFrames?Math.round(_dbgStatic/_dbgFrames*100):0;
-      octx.font='11px monospace'; octx.fillStyle='rgba(0,0,0,.62)'; octx.fillRect(4,4,244,62);
+      var pv=vis.filter(function(o){ return o.cls==='person'; });          // 지금 실제로 화면에 그려지는 person 박스만(sample() dedup 이후)
+      var pvTxt='person n='+pv.length+' tid=['+pv.map(function(o){return o.tid;}).join(',')+']';
+      octx.font='11px monospace'; octx.fillStyle='rgba(0,0,0,.62)'; octx.fillRect(4,4,244,76);
       octx.fillStyle='#39d0ff';
       octx.fillText('DBG safety-local '+Math.round((Date.now()-_dbgT0)/1000)+'s',8,17);
       octx.fillText('ingest p50='+Math.round(pq(0.5))+' p95='+Math.round(pq(0.95))+'ms',8,31);
       octx.fillText('jitter sd='+sd+'ms · n='+iv.length,8,45);
       octx.fillText('정지프레임 '+stat+'% ('+_dbgStatic+'/'+_dbgFrames+')',8,59);
+      octx.fillStyle=pv.length>=2?'#ff5252':'#39d0ff';                     // 2개 이상 동시 표시면 강조(겹침 의심 구간)
+      octx.fillText(pvTxt,8,73);
     }
   }
   requestAnimationFrame(renderTick);
