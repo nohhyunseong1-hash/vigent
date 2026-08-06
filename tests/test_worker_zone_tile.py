@@ -23,10 +23,9 @@ ZONE = [(0.05, 0.05), (0.95, 0.05), (0.95, 0.95), (0.05, 0.95)]   # 거의 전�
 
 
 def _ctx():
-    ftrack = type("F", (), {"update": lambda s, f, t, b: (False, "")})()
     mtrack = type("M", (), {"update": lambda s, d, t: []})()
     etrack = type("E", (), {"update": lambda s, f, t, b: []})()
-    return worker._FrameCtx(["person"], ZONE, ftrack, mtrack, etrack,
+    return worker._FrameCtx(["person"], ZONE, mtrack, etrack,
                             False, 30.0, ROOT / "data" / "x", "TZ", "test://src")
 
 

@@ -1,13 +1,13 @@
 """pose_parity.py — 포즈 백엔드 패리티 하네스 (T10c Stage 0).
 
-두 포즈 백엔드(yolo=yolov8n-pose / rtmpose=rtmlib)를 같은 프레임에 돌려 3층으로 비교:
+두 포즈 백엔드(yolo=yolov8n-pose / rtmpose=rtmlib)를 같은 프레임에 돌려 2층으로 비교:
   (i)   raw 키포인트 OKS(Object Keypoint Similarity, 보조지표)
-  (ii)  _person_metrics 파생값(trunk 각도·aspect·head_below_hip·pose_fallen)   ← worker.py 원본 import
-  (iii) ergonomics 파생값(관절 등급·effective_worst)                          ← ergonomics.py 원본 import
+  (ii)  ergonomics 파생값(관절 등급·effective_worst)                          ← ergonomics.py 원본 import
 하류 판정 로직을 '재사용'한다(복붙 금지 — 로직이 갈라지면 패리티의 의미가 사라짐).
+(작업자 낙상 판정 제거 — P3_BACKLOG 참조. _person_metrics 의 낙상 파생값 비교층은 제거됨.)
 
 게이트(Stage 1, 30프레임 기준):
-  · pose_fallen 불리언 불일치 0건 · ergonomic 유효등급 불일치 ≤ 1건.
+  · ergonomic 유효등급 불일치 ≤ 1건.
   · 연속값(각도)·OKS 는 기록만(게이트 아님).
 
 실행:
@@ -28,7 +28,6 @@ _ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(_ROOT / "vigent-core"))
 
 # ── 하류 판정 로직 재사용(원본 import, 복붙 금지) ──
-from worker import _person_metrics          # noqa: E402  낙상 입력 파생값
 import ergonomics as _erg                    # noqa: E402  근골격 각도·등급
 
 _FRAMES = _ROOT / "benchmarks" / "data" / "pose_frames"
@@ -180,7 +179,6 @@ _GATE_META = {
         "매칭은 박스 IoU≥0.5(동일 인물)로 하고, OKS 는 매칭 기준이 아닌 품질 지표로만 사용."),
     "ergo_gate_hard": "IoU 매칭 쌍에서 유효등급 2단계 이상 점프(|rank|≥2, 예: good↔bad·none→bad·none→warn) 0건",
     "ergo_gate_soft_watch": "1단계 플립(|rank|=1)은 게이트 아님. 각도차 병기: ≤7°=임계분류 고유민감성, >7°=실질 포즈차이(오버레이 대상)",
-    "fall_gate": "pose_fallen 불리언 불일치 0건(기존 pose_frames 셋 기준)",
     "grade_rank": _GRADE_RANK,
 }
 
@@ -209,7 +207,7 @@ def main():
     frames = sorted(Path(args.frames).glob("*.jpg"))
 
     results = []
-    fall_mm, ergo_hard, ergo_soft = [], [], []       # 각각 상세 리스트
+    ergo_hard, ergo_soft = [], []       # 각각 상세 리스트
     oks_all = []
     tot_pairs = unmatched_a = unmatched_b = 0
 
@@ -217,7 +215,6 @@ def main():
         img = cv2.imread(str(fp))
         if img is None:
             continue
-        H = img.shape[0]
         pa, pb = fa(img), fb(img)
         pairs, um_a, um_b = _match_iou(pa, pb, thr=0.5)
         unmatched_a += len(um_a); unmatched_b += len(um_b)
@@ -230,18 +227,9 @@ def main():
             oks = _oks(xa, ca, xb, _scale(xa, ca))
             if oks == oks:
                 oks_all.append(oks)
-            ma, mb = _person_metrics(xa, ca, H), _person_metrics(xb, cb, H)
             ea, eb = _erg.assess(xa, ca, joints), _erg.assess(xb, cb, joints)
             pair = {"oks": None if oks != oks else round(oks, 4)}
-            # (ii) 낙상 입력 파생
-            if ma and mb:
-                pf_a, pf_b = bool(ma["pose_fallen"]), bool(mb["pose_fallen"])
-                pair["pose_fallen"] = [pf_a, pf_b]
-                pair["angle"] = [round(ma["angle"], 1), round(mb["angle"], 1)]
-                if pf_a != pf_b:
-                    pair["FALLEN_MISMATCH"] = True
-                    fall_mm.append({"frame": fp.name, "oks": pair["oks"], "angle": pair["angle"]})
-            # (iii) 근골격 유효등급 — hard(2단계+) / soft(1단계 플립)
+            # (ii) 근골격 유효등급 — hard(2단계+) / soft(1단계 플립)
             ga, gb = _eff_grade(ea), _eff_grade(eb)
             pair["ergo_grade"] = [ga, gb]
             rank_diff = abs(_GRADE_RANK.get(ga, 0) - _GRADE_RANK.get(gb, 0))
@@ -263,12 +251,10 @@ def main():
         "backend_a": args.backend_a, "backend_b": args.backend_b, "frame_set": Path(args.frames).name,
         "frames": len(results), "matched_pairs": tot_pairs,
         "detection_set_diff": {"unmatched_a(yolo만)": unmatched_a, "unmatched_b(rtmpose만)": unmatched_b},
-        "fall_gate_pose_fallen_mismatch": len(fall_mm),          # ← 낙상 게이트(기존셋): 0
         "ergo_gate_hard_mismatch": len(ergo_hard),               # ← ergo 게이트(ergo셋): 0
         "ergo_soft_flips_total": len(ergo_soft),
         "ergo_soft_flips_real(>7deg)": len(soft_real),           # 감시(게이트 아님)
         "mean_oks_matched": round(float(np.mean(oks_all)), 4) if oks_all else None,
-        "fall_mismatch_detail": fall_mm,
         "ergo_hard_detail": ergo_hard,
         "ergo_soft_detail": ergo_soft,
     }
@@ -281,7 +267,7 @@ def main():
 
     print(f"\n===== pose parity: {key} (frame_set={Path(args.frames).name}) =====")
     for k in ("frames", "matched_pairs", "detection_set_diff",
-              "fall_gate_pose_fallen_mismatch", "ergo_gate_hard_mismatch",
+              "ergo_gate_hard_mismatch",
               "ergo_soft_flips_total", "ergo_soft_flips_real(>7deg)", "mean_oks_matched"):
         print(f"  {k}: {summary[k]}")
     print(f"  → 저장: {_OUT.relative_to(_ROOT)}  [{key}]")

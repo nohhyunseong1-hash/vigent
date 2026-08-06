@@ -26,7 +26,6 @@ print("=" * 64)
 print("A. 위험성평가서 생성(저하 없음 확인)")
 events = [
     {"rule": "ppe_missing",      "count": 4, "levels": {"high": 2, "mid": 2}},   # 38·32 (WL내)
-    {"rule": "fall_suspected",   "count": 2, "levels": {"high": 2}},             # 38·42·43 (WL내)
     {"rule": "proximity_hazard", "count": 5, "levels": {"high": 3, "mid": 2}},   # 38·172·20 (WL내)
     {"rule": "asphyxiation",     "count": 2, "levels": {"critical": 2}},         # 39·619·620 (보류 포함)
 ]

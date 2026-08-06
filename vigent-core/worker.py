@@ -13,7 +13,6 @@ from __future__ import annotations
 
 import base64
 import json
-import math
 import os
 import threading
 import time
@@ -48,10 +47,9 @@ _COOLDOWN_S = float(tuning.val("detect", "cooldown_s", 15.0))
 # ②: 증거 JPEG(무거운 후속) 전용 쿨다운 — 이벤트 '기록'은 _COOLDOWN_S 주기로 유지하되,
 #   증거 저장(인코딩+디스크)만 rule별로 이 주기까지 스로틀. 어떤 오발화도 서버를 포화 못 시킴.
 _EVIDENCE_COOLDOWN_S = float(tuning.val("detect", "evidence_cooldown_s", 30.0))
-# 3.9 ①: 포즈(낙상·근골격) 추론은 검출(guard)과 주기 분리 — 고정 pose_fps 로만 실행.
-#   프레임당 포즈(CPU ~수백ms)가 focus 5fps 검출을 막던 문제(3.8). 기존 낙상·자세 캐던스(2fps)와 동일해 회귀 0.
+# 3.9 ①: 포즈(근골격) 추론은 검출(guard)과 주기 분리 — 고정 pose_fps 로만 실행.
+#   프레임당 포즈(CPU ~수백ms)가 focus 5fps 검출을 막던 문제(3.8). 기존 자세 캐던스(2fps)와 동일해 회귀 0.
 _POSE_MIN_INTERVAL = 1.0 / max(0.2, float(tuning.val("worker", "pose_fps", 2.0)))
-_FALL_ANGLE = float(tuning.val("fall", "angle_deg", 55))   # 쓰러짐 몸통각 임계
 
 
 def _point_in_poly(x: float, y: float, poly: list) -> bool:
@@ -132,34 +130,19 @@ def _derive(out: dict, zone: list, aspect_hw: float | None = None) -> list[tuple
     return fired
 
 
-def _person_metrics(xy: "np.ndarray", cf: "np.ndarray", H: int, min_kp: float = 0.3) -> "dict[str, Any] | None":
-    """사람 1명의 키포인트 → 자세 지표. None 이면 판단 불가(어깨·엉덩이 미검출)."""
+def _person_metrics(xy: "np.ndarray", cf: "np.ndarray", min_kp: float = 0.3) -> "dict[str, Any] | None":
+    """사람 1명의 키포인트 → 중심점. None 이면 판단 불가(어깨·엉덩이 미검출)."""
     def gp(idxs: list) -> "np.ndarray | None":
         pts = [xy[j] for j in idxs if cf[j] >= min_kp]
         return np.mean(pts, axis=0) if pts else None
     sc = gp([5, 6])          # 어깨중심
     hc = gp([11, 12])        # 엉덩이중심
-    head = gp([0, 1, 2, 3, 4])  # 머리(코·눈·귀)
     if sc is None or hc is None:
         return None
-    angle = math.degrees(math.atan2(abs(hc[0] - sc[0]), abs(hc[1] - sc[1]) + 1e-6))  # 0수직~90수평
     valid = [xy[j] for j in range(len(xy)) if cf[j] >= min_kp]
     xs = [p[0] for p in valid]
     ys = [p[1] for p in valid]
-    bw, bh = (max(xs) - min(xs)), (max(ys) - min(ys))
-    aspect = bw / (bh + 1e-6)
-    head_y = head[1] if head is not None else sc[1]
-    head_below_hip = head_y > hc[1]                  # 머리가 엉덩이보다 아래(주저앉음/거꾸로)
-    # ①-4(1): 하반신 키포인트(무릎13·14 또는 발목15·16, conf≥min_kp)가 없으면 aspect 단서 무효.
-    #   상반신 근접·팔벌림 착석 구도에서 가로로 넓은 박스를 낙상으로 오판하던 것을 차단.
-    #   angle·head_below_hip·급강하(drop)는 그대로 유지(진짜 낙상 단서 보존).
-    lower_valid = any(cf[j] >= min_kp for j in (13, 14, 15, 16))
-    aspect_cue = (aspect > 1.3) and lower_valid
-    pose_fallen = (angle > _FALL_ANGLE) or aspect_cue or head_below_hip
-    return {"centroid": ((min(xs) + max(xs)) / 2, (min(ys) + max(ys)) / 2),
-            "ref_y": sc[1] / H, "angle": angle, "aspect": aspect,
-            "head_below_hip": head_below_hip, "pose_fallen": pose_fallen,
-            "lower_valid": lower_valid}
+    return {"centroid": ((min(xs) + max(xs)) / 2, (min(ys) + max(ys)) / 2)}
 
 
 class _PoseModel:
@@ -167,7 +150,7 @@ class _PoseModel:
     실패/박스없음 시 [](무중단). YOLOX 내장 검출은 기본 off — 박스는 guard.detect(person) 가 제공한다
     (T10c: ultralytics/AGPL 제거, top-down 입력은 RF-DETR person 박스).
 
-    출력 계약은 기존과 동일(사람별 metrics dict + kp_xy/kp_cf) → FallTracker/ErgonomicsTracker 무변경."""
+    출력 계약은 기존과 동일(사람별 metrics dict + kp_xy/kp_cf) → ErgonomicsTracker 무변경."""
 
     def __init__(self) -> None:
         self._m: Any = None            # RtmPoseDetector(지연 import) → Any
@@ -181,18 +164,17 @@ class _PoseModel:
                 sys.path.insert(0, str(_ROOT / "vigent-core"))
                 from pose.rtmpose_adapter import RtmPoseDetector
                 self._m = RtmPoseDetector()
-            except Exception:  # noqa: BLE001  로드 실패 → 포즈 기능만 비활성(탐지/낙상 무중단)
+            except Exception:  # noqa: BLE001  로드 실패 → 포즈 기능만 비활성(탐지 무중단)
                 self._failed = True
         if self._m is None or not boxes:
             return []
         try:
-            H = frame.shape[0]
             ppl = self._m.persons(frame, bboxes=list(boxes))   # [(kp_xy[17,2] px, kp_cf[17])] · COCO-17
             out = []
             for xy, cf in ppl:
-                m = _person_metrics(xy, cf, H, min_kp)   # 판정 로직 재사용(무수정)
+                m = _person_metrics(xy, cf, min_kp)   # 판정 로직 재사용(무수정)
                 if m:
-                    m["kp_xy"] = xy      # 원시 키포인트 가산(근골격계 레이어용). 낙상은 미사용 — 불변.
+                    m["kp_xy"] = xy      # 원시 키포인트 가산(근골격계 레이어용).
                     m["kp_cf"] = cf
                     out.append(m)
             return out
@@ -203,84 +185,15 @@ class _PoseModel:
 _posemodel = _PoseModel()
 
 
-class FallTracker:
-    """카메라 1대용 낙상 추적(상태 유지). 낙상을 '모양'이 아니라 '사건'으로 본다:
-       ① 다중 단서(몸통각·머리위치·박스비율)로 '쓰러진 자세' 판정
-       ② 모션: 머리/어깨가 갑자기 뚝 내려가고(급강하) → 그 뒤 정지
-       ③ (선택) VLM 확정 — 애매하면 '쓰러진 거 맞나?' 재판정.
-    자세 무관(기댐·걸침·주저앉음)하게 잡으려면 ②급강하가 핵심."""
-    DROP = float(tuning.val("fall", "drop", 0.12))   # 급강하: 화면높이 비율(설정)
-    MATCH = 0.18         # 사람 프레임간 매칭 거리(대각선 정규화)
-    HIST_S = 3.0
-
-    def __init__(self, vlm=False) -> None:
-        self._tracks: list = []
-        self._vlm = vlm
-
-    def update(self, frame, ts, boxes=None) -> "tuple[bool, str]":
-        """프레임 처리 → (낙상여부, 사유). 모델/키포인트 없으면 (False,'').
-        boxes: guard.detect person 박스(픽셀) — RTMPose top-down 입력."""
-        H, W = frame.shape[:2]
-        diag = (W * W + H * H) ** 0.5
-        persons = _posemodel.persons(frame, boxes)
-        used = set()
-        for p in persons:
-            cx, cy = p["centroid"]
-            best, bd = None, 1e9
-            for k, tr in enumerate(self._tracks):
-                if k in used:
-                    continue
-                d = ((cx - tr["cx"]) ** 2 + (cy - tr["cy"]) ** 2) ** 0.5 / diag
-                if d < bd:
-                    bd, best = d, k
-            if best is not None and bd < self.MATCH:
-                tr = self._tracks[best]
-                used.add(best)
-            else:
-                tr = {"hist": []}
-                self._tracks.append(tr)
-                used.add(len(self._tracks) - 1)
-            tr["cx"], tr["cy"] = cx, cy
-            tr["hist"].append((ts, p["ref_y"], p["pose_fallen"], p.get("lower_valid", False)))
-            tr["hist"] = [h for h in tr["hist"] if ts - h[0] <= self.HIST_S]
-        self._tracks = [tr for tr in self._tracks if tr.get("hist") and ts - tr["hist"][-1][0] < 2.0]
-
-        for tr in self._tracks:
-            hist = tr["hist"]
-            if not hist:
-                continue
-            cur_ref, pose_fallen = hist[-1][1], hist[-1][2]
-            past = [h[1] for h in hist if 0.5 <= ts - h[0] <= 2.0]
-            drop = bool(past) and (cur_ref - min(past) > self.DROP) and pose_fallen     # ② 급강하(즉각 유지)
-            # ①-4(2): 자세지속 낙상은 하반신 유효 + 연속 5프레임(정지)로 강화 — 착석 오판 차단.
-            r5 = hist[-5:]
-            allfall = len(r5) >= 5 and all(h[2] for h in r5)
-            still = len(r5) >= 5 and (max(h[1] for h in r5) - min(h[1] for h in r5) < 0.05)
-            lower_ok = len(r5) >= 5 and all(h[3] for h in r5)
-            static_fall = allfall and still and lower_ok                               # ① 자세 지속+정지+하반신 유효
-            if drop or static_fall:
-                reason = "급강하 후 쓰러짐" if drop else "쓰러진 자세 지속"
-                if self._vlm:                                                          # ③ VLM 확정(옵션)
-                    try:
-                        import vlm_confirm as _vc
-                        v = _vc.confirm(frame, "fall_suspected", reason=reason)
-                        if v.get("available") and v.get("suppress"):
-                            continue
-                    except Exception as _we:  # noqa: BLE001
-                        _WLOG.debug("worker 무시 예외 [프레임 캡처/처리]: %s", _we)
-                return True, reason
-        return False, ""
-
-
 class ErgonomicsTracker:
-    """근골격계 부담 자세 '지속' 추적(카메라별 상태). 순수 가산 — 낙상·탐지와 독립·불변.
+    """근골격계 부담 자세 '지속' 추적(카메라별 상태). 순수 가산 — 탐지와 독립·불변.
 
     나쁜 자세(warn/bad)가 hold_sec(설정) 이상 '지속'될 때만 위험으로 본다(순간 자세는 무시 → 오탐 억제).
     포즈 추론 비용 억제: 최소 간격(_MIN_INTERVAL)으로만 평가한다(3초 지속 판정엔 충분). 트랙 id 가
-    없으므로 낙상과 동일한 중심점 매칭으로 사람별 상태를 잇는다(독립 트랙 — 낙상 트랙 미공유).
+    없으므로 중심점 매칭으로 사람별 상태를 잇는다(독립 트랙).
     임계값은 vision.yaml 에서 읽는다(하드코딩 금지). 키포인트 없음/에러 → [] 반환(무중단)."""
 
-    MATCH = 0.18            # 사람 프레임간 매칭 거리(대각선 정규화) — 낙상과 동일
+    MATCH = 0.18            # 사람 프레임간 매칭 거리(대각선 정규화)
     _MIN_INTERVAL = 0.5    # 평가 최소 간격(초): 저빈도 스로틀로 추가 포즈추론 비용 최소화
 
     def __init__(self, theme: str = "safety") -> None:
@@ -359,8 +272,7 @@ class ErgonomicsTracker:
 
 
 class MotionTracker:
-    """사람 움직임 추적 → ① 장시간 무동작(쓰러짐·실신 의심, SOS) ② 급격한 이동(돌진·이상행동).
-    낙상(FallTracker)과 보완: 낙상=급강하 순간, 무동작=쓰러진 뒤 오래 안 움직임."""
+    """사람 움직임 추적 → ① 장시간 무동작(쓰러짐·실신 의심, SOS) ② 급격한 이동(돌진·이상행동)."""
     MATCH = 0.32            # 사람 매칭 거리(급이동도 같은 사람으로 추적되게 넉넉히)
     IMMOBILE_S = float(tuning.val("motion", "immobile_s", 45.0))   # 무동작 시간(설정)
     IMMOBILE_SPREAD = 0.03  # 이동 범위(정규화) 이하면 정지로 간주
@@ -505,11 +417,10 @@ class _FrameCtx:
     _process_frame 가 읽고 갱신하는 설정·상태를 한 묶음으로 전달·유지한다
     (cooldown·last_collect 는 프레임 간 유지되는 가변 상태)."""
 
-    def __init__(self, detectors, zone, ftrack, mtrack, etrack,
+    def __init__(self, detectors, zone, mtrack, etrack,
                  collect_on, collect_every, dataset_dir, name, source):
         self.detectors = detectors
         self.zone = zone
-        self.ftrack = ftrack          # 낙상 추적(상태 유지)
         self.mtrack = mtrack          # 무동작·급이동 추적
         self.etrack = etrack          # 근골격계 부담자세 지속(가산)
         self.collect_on = collect_on
@@ -536,7 +447,7 @@ class Worker:
         self._last_dets: list = []                           # 3.0: 최신 검출(정규화 bbox) — 대시보드 오버레이
         self._last_pc = 0                                    # 최신 인원수
         self._last_sig: dict = {}                            # 최신 파생신호(ppe_missing·fire 등)
-        self._last_fired: list = []                          # 3.1b: 최신 발화 규칙명(zone_intrusion·fall 등) — 대시보드 뱃지·전역경보
+        self._last_fired: list = []                          # 3.1b: 최신 발화 규칙명(zone_intrusion 등) — 대시보드 뱃지·전역경보
         self._last_det_ts = 0.0                              # 3.8: 최신 검출 갱신 시각(ms) — 확대뷰 ingest 간격 산출
         self._interval = 0.5                                 # 3.8: 가변 루프 간격(초). set_fps 로 포커스 부스트
         self._last_pose_ts = 0.0                             # 3.9: 최신 포즈 실행 시각 — 검출/포즈 주기 분리
@@ -546,8 +457,7 @@ class Worker:
         self._pose_lock = threading.Lock()                   # 3.10: 포즈 스레드↔메인 공유 보호
         self._pose_input: tuple | None = None                # (frame, person_boxes, t0) 최신 — 포즈 스레드가 소비
         self._pose_events: list = []                         # 포즈 스레드가 낸 발화(rule,level,note) — 메인이 드레인
-        self._pose_ftrack: Any = None                        # 현 run 의 FallTracker(포즈 스레드 전용 접근)
-        self._pose_etrack: Any = None                        # 현 run 의 ErgonomicsTracker
+        self._pose_etrack: Any = None                        # 현 run 의 ErgonomicsTracker(포즈 스레드 전용 접근)
         self._pose_thread: threading.Thread | None = None
         self.state: dict[str, Any] = {
             "running": False, "source": "", "name": "", "fps": 0,
@@ -671,16 +581,16 @@ class Worker:
         self.state["running"] = False
 
     def _pose_loop(self):
-        """포즈(낙상·ergo) 전용 스레드 — RTMPose(ONNXRuntime CPU). guard 는 MPS(PyTorch)라 서로 다른
+        """포즈(ergo) 전용 스레드 — RTMPose(ONNXRuntime CPU). guard 는 MPS(PyTorch)라 서로 다른
         런타임·장치 → 병렬 안전(FINDINGS MPS 크래시는 PyTorch GPU 공유 문제; 이 스레드는 MPS 미접촉).
         pose_fps 로 최신 프레임을 소비, 결과(fired)는 _pose_lock 으로 안전 공유. 검출(메인 루프)과 독립 →
         검출 간격이 포즈에 안 밀린다(3.9→3.10)."""
         while not self._stop.is_set():
             time.sleep(0.03)
-            if not self.state.get("running") or self._pose_ftrack is None:
+            if not self.state.get("running") or self._pose_etrack is None:
                 continue
             now = time.time()
-            if now - self._last_pose_ts < _POSE_MIN_INTERVAL:   # 고정 pose_fps(기존 낙상·자세 캐던스 유지)
+            if now - self._last_pose_ts < _POSE_MIN_INTERVAL:   # 고정 pose_fps(기존 자세 캐던스 유지)
                 continue
             with self._pose_lock:
                 inp = self._pose_input
@@ -689,12 +599,6 @@ class Worker:
             frame, person_boxes, t0 = inp
             self._last_pose_ts = now
             fired: list = []
-            try:
-                fall, freason = self._pose_ftrack.update(frame, t0, person_boxes)   # 다중단서+모션 낙상
-                if fall:
-                    fired.append(("fall_suspected", "critical", f"작업자 낙상 의심 — {freason}"))
-            except Exception as _pe:  # noqa: BLE001  포즈 실패해도 검출·이벤트 무중단
-                _WLOG.debug("포즈 스레드 낙상 예외: %s", _pe)
             try:
                 fired += self._pose_etrack.update(frame, t0, person_boxes)   # 근골격계 부담자세(지속 확정분)
             except Exception:  # noqa: BLE001  가산 레이어
@@ -749,13 +653,13 @@ class Worker:
                 self._last_det_ts = t0
             if not do_full:                       # person 전용 프레임: 이벤트·포즈 없음(안전 캐던스 불변) — 표시만 갱신
                 return
-            # 3.10 ①: 포즈(낙상·ergo)는 별도 스레드(ONNX-CPU)가 pose_fps 로 비동기 처리(풀세트 프레임에서만 입력 갱신).
+            # 3.10 ①: 포즈(ergo)는 별도 스레드(ONNX-CPU)가 pose_fps 로 비동기 처리(풀세트 프레임에서만 입력 갱신).
             with self._pose_lock:
                 self._pose_input = (frame, person_boxes, t0)
                 _pose_ev = self._pose_events
                 self._pose_events = []
             fired = _derive(out, ctx.zone, frame.shape[0] / frame.shape[1])
-            fired += _pose_ev                                       # 낙상·ergo(별도 스레드 산출) — 쿨다운은 아래 공통
+            fired += _pose_ev                                       # ergo(별도 스레드 산출) — 쿨다운은 아래 공통
             # B9: 위험구역 한정 타일 재검출(가산·기본 off, VIGENT_ZONE_TILE=1). zone 내 놓친 소형 person 회수.
             #   ★확인1(스코프 한정): 타일 박스는 zone_intrusion 발화에만 쓴다 — 공유 out["detections"] 에
             #     병합하지 않음 → proximity/crowd/motion/트래커/PPE 전부 무영향.
@@ -807,11 +711,10 @@ class Worker:
         collect_on = os.environ.get("VIGENT_COLLECT", "0") == "1"
         collect_every = float(os.environ.get("VIGENT_COLLECT_EVERY", "30"))
         dataset_dir = _ROOT / "data" / "dataset" / "images"
-        ftrack = FallTracker(vlm=getattr(self, "_vlm_fall", False))   # 카메라별 낙상 추적(상태 유지)
         mtrack = MotionTracker()                                       # 무동작·급이동 추적
-        etrack = ErgonomicsTracker()                                   # 근골격계 부담자세 지속(가산·낙상 불변)
+        etrack = ErgonomicsTracker()                                   # 근골격계 부담자세 지속(가산)
         zone = [tuple(p) for p in zone] if zone else _load_zone()   # 카메라별 구역 or 전역
-        ctx = _FrameCtx(detectors, zone, ftrack, mtrack, etrack,
+        ctx = _FrameCtx(detectors, zone, mtrack, etrack,
                         collect_on, collect_every, dataset_dir, name, source)
         is_image = Path(source).suffix.lower() in _IMG_EXT and Path(source).exists()
         is_file_video = (not is_image) and Path(source).exists()   # 로컬 비디오 파일 → 끝나면 되감기(스트림 아님)
@@ -844,8 +747,7 @@ class Worker:
         # 3.12: 풀세트 검출 주기 = fullset_fps(기본2) 또는 시작 fps 중 느린 쪽 → focus 로 루프가 빨라져도 불변.
         self._full_interval = max(interval, 1.0 / max(0.2, float(tuning.val("worker", "fullset_fps", 2.0))))
         self._last_full_ts = 0.0
-        self._pose_ftrack = ctx.ftrack     # 3.10: 포즈 스레드가 쓸 현 run 트래커(낙상·ergo)
-        self._pose_etrack = ctx.etrack
+        self._pose_etrack = ctx.etrack     # 3.10: 포즈 스레드가 쓸 현 run 트래커(ergo)
         if self._pose_thread is None or not self._pose_thread.is_alive():
             self._pose_thread = threading.Thread(target=self._pose_loop, daemon=True)
             self._pose_thread.start()

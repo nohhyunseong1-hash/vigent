@@ -58,7 +58,7 @@ class TestReport(unittest.TestCase):
         self.assertIn("oshri.kosha.or.kr", html)
 
     def test_save_list_reopen(self):
-        out = self.scribe.generate([{"rule": "fall_suspected", "count": 2}], site="저장테스트", save=True)
+        out = self.scribe.generate([{"rule": "ppe_missing", "count": 2}], site="저장테스트", save=True)
         aid = Path(out["saved_path"]).stem
         items = self.scribe.list_saved()
         self.assertTrue(any(i["id"] == aid for i in items))    # 목록에 나타남

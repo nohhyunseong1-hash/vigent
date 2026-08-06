@@ -19,7 +19,6 @@ detection:
   forklift_model_path: "runs/detect/forklift_boda_ax/weights/best.pt"
   forklift_conf: 0.4
   use_posture_ai: true  # 학습된 자세 분류기를 위험판단에 가산(딥러닝 판단). false면 규칙만 사용
-  use_fall_ai: true     # 학습된 낙상 분류기를 위험판단에 가산. false면 규칙만 사용
   # 화재+연기 탐지 모델: 자체 파인튜닝(Roboflow fire-wrpgm CC BY 4.0, Fire 0.861·smoke 0.896).
   # 'default' 잡음 클래스는 매핑 제외(fire/smoke만 사용). 없으면 색상 휴리스틱 폴백.
   # ⚠️ AGPL-3.0(ultralytics) — 상업화 시 Ultralytics 기업 라이선스 검토 필요

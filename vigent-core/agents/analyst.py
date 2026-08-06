@@ -8,7 +8,6 @@
 이 단계(§15-3)에서 safety 의 3대 규칙을 실제로 연결한다:
   - zone_intrusion (위험구역 침입)
   - ppe_missing    (보호구 미착용)
-  - fall_suspected (낙상 의심)
   - guard_bypass   (프레스/전단기 — §8, 참고로 함께 처리)
 """
 from __future__ import annotations
@@ -62,10 +61,8 @@ class AnalystAgent(BaseAgent):
         signals: 프론트/Guard 가 보내는 관측값
           - zone_intrusion: bool        (사람 발/중심이 위험구역 폴리곤 안)
           - ppe_missing: bool           (NO-Hardhat or NO-Safety-Vest)
-          - torso_angle: float(도)      (몸통 기울기)
-          - fall_temporal: bool         (시계열 모델의 낙상 신호)
           - hand_in_machine_zone: bool  (프레스/전단기 위험구역에 손)
-        dl: 딥러닝 신호(있으면 가산). 예: {"ppe_conf":0.82, "fall_conf":0.7}
+        dl: 딥러닝 신호(있으면 가산). 예: {"ppe_conf":0.82}
             None 이면 휴리스틱 폴백(규칙 점수만).
         """
         dl = dl or {}
@@ -98,11 +95,6 @@ class AnalystAgent(BaseAgent):
         if signals.get("ppe_missing"):
             fire("ppe_missing", self._weight("ppe_missing"), dl_key="ppe_conf")
 
-        # 낙상: 시계열 모델 신호 OR 몸통각>60도(휴리스틱 폴백)
-        torso = float(signals.get("torso_angle") or 0.0)
-        if signals.get("fall_temporal") or torso > 60:
-            fire("fall_suspected", self._weight("fall_suspected"), dl_key="fall_conf")
-
         if signals.get("hand_in_machine_zone"):
             fire("guard_bypass", self._weight("guard_bypass"), dl_key="bypass_conf")
 
@@ -113,7 +105,6 @@ class AnalystAgent(BaseAgent):
             "fired": fired,
             "used_dl": used_dl,                 # 딥러닝이 실제로 가산됐는가
             "fallback": (not used_dl),          # 폴백(규칙만)으로 동작했는가
-            "torso_angle": round(torso, 1),
         }
 
     # ── 종합 통합(3단계): 규칙 + VLM + 법령을 한자리에서 ────────────────

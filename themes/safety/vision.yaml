@@ -41,17 +41,14 @@ perception:                       # ── Guard (감지)
     - {id: forklift, model: vigent-core/weights/forklift_boda_ax.pt, fallback: none}
   # [정직화] pose 슬롯은 '정보성' — vision_loader 는 detector 슬롯(person/ppe/fire_smoke/forklift)만
   #   모델로딩에 소비하고 pose 는 소비하지 않는다(guard.py). 실제 포즈 동작:
-  #     · 백엔드(낙상·근골격) = worker.py 가 weights/yolov8n-pose.pt 를 직접 로드(하드코딩)
+  #     · 백엔드(근골격) = worker.py 가 weights/yolov8n-pose.pt 를 직접 로드(하드코딩)
   #     · 브라우저 라이브뷰   = MediaPipe Holistic(CDN, index.html)
   #   rtmpose 는 미설치·미사용(향후 업그레이드 후보). 아래 값 변경은 실제 동작과 무관(참고 표기).
   pose:    {model: rtmpose, fallback: [mediapipe_holistic, vigent-core/weights/yolov8n-pose.pt]}
   # [정직화] ByteTrack 미구현·미사용. vision_loader 는 tracker 슬롯을 처리하지 않는다(no-op).
   #   실제 객체추적: 브라우저 realtime_core.js(IoU+중심점 매칭) · rfdetr_service(SORTTracker) ·
-  #   worker 낙상/근골격(중심점 매칭). ByteTrack 은 도입 후보일 뿐 현재 코드에 없음.
+  #   worker 근골격(중심점 매칭). ByteTrack 은 도입 후보일 뿐 현재 코드에 없음.
   tracker: bytetrack
-  # [정직화] mmaction2_fall 미구현. 실제 낙상은 worker.py FallTracker 의 몸통각+급강하 모션 규칙
-  #   (torso_angle_rule 계열)으로 동작한다. 로더도 이 슬롯을 fallback: torso_angle_rule 로 해석함.
-  temporal: {model: mmaction2_fall, fallback: torso_angle_rule}
 
 judgment:                         # ── Analyst (판단), 가산식
   zones:
@@ -62,15 +59,7 @@ judgment:                         # ── Analyst (판단), 가산식
   rules:
     - {id: zone_intrusion, when: "person.center in danger_zone", severity: high}
     - {id: ppe_missing,    when: "NO-Hardhat or NO-Safety-Vest",  severity: medium}
-    - {id: fall_suspected, when: "temporal.fall or torso_angle>60 for 1.5s", severity: high}
     - {id: guard_bypass,   when: "hand in machine_hazard_zone",    severity: critical}  # 프레스/전단기
-  fall:                           # 낙상 감지 파라미터(브라우저 MediaPipe 포즈 기반, 추가 모델 불필요)
-    detector: mediapipe_pose
-    fast: {trunk_deg: 55, hip_y: 0.62, hip_velocity: 0.012}   # 빠른 낙상
-    slow: {trunk_deg: 48, hip_velocity: 0.008}                # 천천히 무너짐
-    confirm_frames: 6             # N프레임 연속 확인 시 '낙상'(오탐 억제), 그 전(3) '넘어질 위험'
-    law_rule: fall_suspected      # Copilot 법령 매칭 키(추락의 방지 등)
-    alert: true                   # 낙상 확정 시 에이전트 체인(Analyst→Copilot→Dispatcher) 가동
   ergonomics:                     # ── 5.5단계: 인간공학(작업자세 위험) — 포즈 기반, 추가 모델 불필요
     framework: REBA               # safety=전신(REBA), 중량물·허리굽힘 작업자세
     joints:

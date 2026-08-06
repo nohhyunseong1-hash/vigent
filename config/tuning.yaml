@@ -11,10 +11,6 @@ proximity:                  # 협착(작업반경) 감지
     crane: 8.0
     excavator: 6.0
 
-fall:                       # 낙상 감지
-  angle_deg: 55             # 몸통 각도 임계(클수록 둔감) — 카메라 각도 맞춰 조정
-  drop: 0.12                # 급강하 임계(화면 높이 비율)
-
 motion:                     # 무동작·급이동
   immobile_s: 45            # 이 시간(초) 이상 안 움직이면 쓰러짐 의심
   rapid_dist: 0.15          # 짧은 시간 이만큼 이동하면 급이동(돌진)
@@ -52,7 +48,7 @@ hub:                        # 대시보드 확대뷰
     # fullset_fps(2) 유지 → GPU 예산 305ms/s(구 5fps 풀세트 425 대비↓)라 safety-local 동시에도 여유(S3 150ms 실측).
 
 worker:                     # 워커 루프
-  pose_fps: 2               # 포즈(낙상·ergo) 추론 주기 — 검출과 분리(3.9·3.10). 기존 낙상 캐던스 유지.
+  pose_fps: 2               # 포즈(ergo) 추론 주기 — 검출과 분리(3.9·3.10). 기존 자세 캐던스 유지.
   fullset_fps: 2            # 3.12 ②: 풀세트(person+ppe+fire) 검출 주기 — 이벤트·PPE·화재 캐던스(안전 불변).
 
 vlm:                        # VLM(보호구 점검 등) 속도·정확도

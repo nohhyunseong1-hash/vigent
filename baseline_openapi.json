@@ -3878,57 +3878,6 @@
         }
       }
     },
-    "/safety/fall": {
-      "post": {
-        "summary": "Safety Fall Alert",
-        "description": "낙상 확정(브라우저 stats.fall 증가) → 3단계 통합 체인:\nAnalyst 종합판단(+VLM 옵션) + Copilot 추락방지 법령 + Dispatcher 알림 + 증거 저장.\n키 없으면 Dispatcher 는 로그 폴백(기능 무중단).",
-        "operationId": "safety_fall_alert_safety_fall_post",
-        "parameters": [
-          {
-            "name": "theme",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "string",
-              "default": "safety",
-              "title": "Theme"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "additionalProperties": true,
-                "default": {},
-                "title": "Payload"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {}
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
     "/safety/posture": {
       "post": {
         "summary": "Safety Posture Alert",

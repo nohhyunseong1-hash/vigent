@@ -64,7 +64,6 @@
         <span class="gsub"><span class="vt-crit">위험</span> <span class="vt-dim">· 미착용 + 구역침입</span></span>
       </div>
       <div class="vt-meter"><i style="width:26%;background:var(--vt-crit)"></i></div>
-      <div class="vt-kv"><span class="k">낙상 위험</span><span class="v vt-ok">정상</span></div>
       <div class="vt-kv"><span class="k">자세 이상</span><span class="v vt-warn">주의 · 목 42°</span></div>
       <div class="vt-kv"><span class="k">위험 사물</span><span class="v vt-warn">지게차 근접 3.1m</span></div>
       <div class="vt-kv"><span class="k">현재 활동</span><span class="v">보행 · 정지</span></div>
@@ -75,7 +74,7 @@
       <div class="vt-kv"><span class="k">화재/연기</span><span class="v vt-num vt-crit" id="s_fire">0</span></div>
       <div class="vt-kv"><span class="k">보호구 미착용</span><span class="v vt-num vt-warn" id="s_ppe">0</span></div>
       <div class="vt-kv"><span class="k">구역 침입</span><span class="v vt-num vt-crit" id="s_zone">0</span></div>
-      <div class="vt-kv"><span class="k">낙상/자세</span><span class="v vt-num" id="s_fall">0</span></div>
+      <div class="vt-kv"><span class="k">자세</span><span class="v vt-num" id="s_fall">0</span></div>
       <div class="vt-kv"><span class="k">총 이벤트(7일)</span><span class="v vt-num" id="s_total">0</span></div>
     </div>
 
@@ -170,7 +169,7 @@
       if(/fire|smoke/.test(r)) stat.fire++;
       else if(/ppe/.test(r)) stat.ppe++;
       else if(/zone|intrusion/.test(r)) stat.zone++;
-      else if(/fall|ergon|pose/.test(r)) stat.fall++;
+      else if(/ergon|pose/.test(r)) stat.fall++;
       if(e.law && laws.length<4 && laws.indexOf(e.law)<0) laws.push(e.law);
     });
     (events||[]).slice(0,7).forEach(function(e){

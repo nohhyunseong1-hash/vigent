@@ -39,7 +39,6 @@ class RiskAssessmentIn(BaseModel):
 
 
 _ADVISORY = {
-    "fall_suspected": "작업자 상태 즉시 확인 · 추락방지(안전대·안전난간·작업발판) 점검 · 필요시 작업 일시중지 검토",
     "ppe_missing": "보호구 착용 지도 · 미착용자 작업 제한 검토 · 보호구 비치 상태 확인",
     "zone_intrusion": "출입통제 상태 확인 · 작업자 위험구역 이탈 안내 · 경고표지 점검",
     "guard_bypass": "위험기계 정지상태 확인(1차 책임=인증 방호장치) · 작업자 신체 이탈 · 방호장치 점검",
@@ -170,8 +169,7 @@ def report_safety(theme: str = DEFAULT_THEME, hours: float = 24, vlm: bool = Fal
     events = data_engine.aggregate(hours=hours)
     site = f"최근 {int(hours)}시간 누적"
     if not events:                              # 아직 쌓인 이벤트 없음 → 데모
-        events = [{"rule": "zone_intrusion", "count": 5}, {"rule": "ppe_missing", "count": 9},
-                  {"rule": "fall_suspected", "count": 1}]
+        events = [{"rule": "zone_intrusion", "count": 5}, {"rule": "ppe_missing", "count": 9}]
         site = "데모 현장(누적 이벤트 없음)"
     return scribe.generate(events, site=site, process="-", save=False, use_vlm=vlm,
                            use_llm=narrative)["html"]
@@ -699,60 +697,6 @@ def alerts_test(payload: dict = Body(default={}), theme: str = DEFAULT_THEME):
     dispatcher = bundle["agents"].get("Dispatcher")
     return dispatcher.dispatch(payload.get("level", "high"),
                                payload.get("message", "VIGENT 경보 테스트"))
-
-@router.post("/safety/fall")
-def safety_fall_alert(payload: dict = Body(default={}), theme: str = DEFAULT_THEME):
-    """낙상 확정(브라우저 stats.fall 증가) → 3단계 통합 체인:
-    Analyst 종합판단(+VLM 옵션) + Copilot 추락방지 법령 + Dispatcher 알림 + 증거 저장.
-    키 없으면 Dispatcher 는 로그 폴백(기능 무중단)."""
-    bundle = STATE.get(theme) or _load_theme(theme)
-    analyst = bundle["agents"].get("Analyst")
-    copilot = bundle["agents"].get("Copilot")
-    dispatcher = bundle["agents"].get("Dispatcher")
-
-    signals = {"fall_temporal": True, "torso_angle": float(payload.get("torso_angle") or 0)}
-    if analyst:
-        verdict = analyst.integrate(signals, vlm=payload.get("vlm"), copilot=copilot)
-    else:
-        verdict = {"level": "high", "fired": [], "dispatch": []}
-
-    # 증거 저장 + 인식로그 기록(데이터엔진) → 자동처리 콘솔에 노출. decoded 는 VLM 확정에 재사용.
-    img = payload.get("image_base64")
-    img_url = (img if (img or "").startswith("data:") else "data:image/jpeg;base64," + img) if img else None
-    decoded = decode_data_url(img_url) if img_url else None
-    rec = data_engine.log_event(rule="fall_suspected", level=verdict.get("level", "high"),
-                                site=payload.get("site", ""), note="낙상 감지", image_data_url=img_url)
-    saved = rec.get("evidence")
-
-    # 메시지에 법령 근거 한 줄(§9)
-    laws = []
-    for f in verdict.get("fired", []):
-        for c in (f.get("citations") or [])[:1]:
-            laws.append(f"{c['source']} {c['clause']}")
-    msg = f"[낙상] 낙상 감지 — 등급 {verdict.get('level', 'high').upper()}"
-    if laws:
-        msg += " · 근거 " + "; ".join(dict.fromkeys(laws))
-
-    # CNN→VLM 하이브리드 확정(opt-in: vlm_confirm). 고신뢰 오탐만 푸시 억제(증거·기록은 유지).
-    vlm_conf, suppressed = None, False
-    if payload.get("vlm_confirm"):
-        import vlm_confirm as _vc
-        vlm_conf = _vc.confirm(decoded, "fall_suspected",
-                               reason=f"몸통각 {signals['torso_angle']:.0f}도")
-        if vlm_conf.get("available"):
-            msg += f" · VLM 위험확률 {vlm_conf['risk']}% → {vlm_conf['verdict']}: {vlm_conf['reason']}"
-        suppressed = bool(vlm_conf.get("suppress"))
-
-    if suppressed:
-        result = {"delivered": False, "suppressed": True, "fallback": False}
-    elif dispatcher:
-        result = dispatcher.dispatch(verdict.get("level", "high"), msg)
-    else:
-        result = {"delivered": False, "fallback": True}
-    return {"ok": True, "message": msg, "verdict": verdict, "vlm_confirm": vlm_conf,
-            "suppressed": suppressed,
-            "phone_sent": bool(result.get("delivered")),
-            "fallback": result.get("fallback", True), "evidence": saved}
 
 @router.post("/safety/posture")
 def safety_posture_alert(payload: dict = Body(default={})):

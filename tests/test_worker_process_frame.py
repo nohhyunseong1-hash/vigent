@@ -21,10 +21,9 @@ import worker  # noqa: E402
 
 def _ctx(detectors=None, zone=None, collect_on=False):
     # 트래커는 발화 없음으로 고정(포즈모델 로드 회피·결정론).
-    ftrack = type("F", (), {"update": lambda self, f, t, b: (False, "")})()
     mtrack = type("M", (), {"update": lambda self, d, t: []})()
     etrack = type("E", (), {"update": lambda self, f, t, b: []})()
-    return worker._FrameCtx(detectors or ["person"], zone or [], ftrack, mtrack, etrack,
+    return worker._FrameCtx(detectors or ["person"], zone or [], mtrack, etrack,
                             collect_on, 30.0, ROOT / "data" / "dataset" / "images", "TESTCAM", "test://src")
 
 

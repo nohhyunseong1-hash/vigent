@@ -5,7 +5,7 @@ let holistic=null, cocoModel=null, mobileNetModel=null;
 let camera=null, currentStream=null;
 let cameraOn=false, paused=false, mirrored=false;
 let lastTime=performance.now(), startTime=Date.now();
-const stats={fall:0,posture:0,obj:0};
+const stats={posture:0,obj:0};
 let activeServiceMode='fitness';
 let latestServiceInsight=null;
 let latestCoreFrameState=null;
@@ -67,8 +67,8 @@ const SERVICE_META={
     metrics:['personCount','zones','dwell','ppe','dangerAction','ergoLoad'],
     panels:['personCount','zoneStatus','ppeStatus','dangerAlerts','evidenceReport'],
     overlay:'bbox+zone',
-    thresholds:{dwellWarnSec:30,fallConfirm:6,trunkWarnDeg:35,ppeFreshMs:5000},
-    alerts:['낙상','위험구역침입','보호구미착용','중량물위험자세','장시간정지'],
+    thresholds:{dwellWarnSec:30,trunkWarnDeg:35,ppeFreshMs:5000},
+    alerts:['위험구역침입','보호구미착용','중량물위험자세','장시간정지'],
     design:'safety',
     terminology:{person:'작업자',count:'인원'}
   },
@@ -398,8 +398,7 @@ function fmtConf(s){ const p=(s||0)*100; return (p>0&&p<1?p.toFixed(1):Math.roun
 // 포즈 스무딩
 const SMOOTH_N=8, ACTION_N=7;
 const poseHistory=[], actionHistory=[];
-let prevHipY=null, hipVelocity=0, fallConfirm=0;
-const FALL_CONFIRM=6;
+let prevHipY=null, hipVelocity=0;
 
 document.getElementById('confThreshold').addEventListener('input',function(){
   document.getElementById('confVal').textContent=this.value+'%';
@@ -1169,7 +1168,6 @@ function smoothPose(lm){
 function smoothAction(r){
   actionHistory.push(r);
   if(actionHistory.length>ACTION_N) actionHistory.shift();
-  if(r.danger||r.warn) return {...r,confidence:1};
   const c={};
   for(const a of actionHistory) c[a.action]=(c[a.action]||0)+1;
   let best=r,bc=0;
@@ -1201,18 +1199,13 @@ function recognizeAction(lm){
   if(!lm) return{action:'인식 대기 중',icon:'⏳'};
   const lS=lm[11],rS=lm[12],lH=lm[23],rH=lm[24],lK=lm[25],rK=lm[26],lA=lm[27],rA=lm[28],lW=lm[15],rW=lm[16];
   if(!lS||!rS||!lH||!rH) return{action:'인식 중...',icon:'🔄'};
-  const trunk=getTrunkTilt(lm), hipY=(lH.y+rH.y)/2;
+  const trunk=getTrunkTilt(lm);
   const lKA=calcAngle(lH,lK,lA), rKA=calcAngle(rH,rK,rA), avgKnee=avgVal(lKA,rKA);
   const lHA=calcAngle(lS,lH,lK), rHA=calcAngle(rS,rH,rK), avgHip=avgVal(lHA,rHA);
   const sitting=avgKnee!==null&&avgKnee<135&&avgHip!==null&&avgHip<145;
   const squatting=avgKnee!==null&&avgKnee<95&&trunk<40;
-  if(squatting){fallConfirm=0;return{action:'스쿼트/쪼그리기',icon:'🦵'};}
-  if(sitting){fallConfirm=0;return{action:'앉아 있음',icon:'🪑'};}
-  const fastFall=trunk>55&&hipY>0.62&&hipVelocity>0.012;
-  const slowFall=trunk>48&&hipVelocity>0.008;
-  fastFall||slowFall?fallConfirm++:fallConfirm=Math.max(0,fallConfirm-2);
-  if(fallConfirm>=FALL_CONFIRM&&document.getElementById('togFall').checked) return{action:'낙상 감지!',icon:'🚨',danger:true};
-  if(fallConfirm>=3) return{action:'넘어질 위험',icon:'⚠️',warn:true};
+  if(squatting){return{action:'스쿼트/쪼그리기',icon:'🦵'};}
+  if(sitting){return{action:'앉아 있음',icon:'🪑'};}
   const armsUp=(lW&&lS&&lW.y<lS.y-.06)||(rW&&rS&&rW.y<rS.y-.06);
   const ankleSpread=lA&&rA?Math.abs(lA.x-rA.x):0;
   if(hipVelocity>0.018&&avgKnee!==null&&avgKnee<155) return{action:'달리기',icon:'🏃'};
@@ -1561,13 +1554,12 @@ function drawBackendPoses(W,H,scX,scY){
   ctx.restore();
 }
 
-// AX 딥러닝 자세/낙상 분류기 (브라우저, posture-model.js) ─ MediaPipe33→COCO17 매핑 후 추론
-let axPostureModel=null, axFallModel=null, axAILoaded=false;
-let axPostureResult=null, axFallResult=null;   // 인식 요약 패널용 최신 결과
+// AX 딥러닝 자세 분류기 (브라우저, posture-model.js) ─ MediaPipe33→COCO17 매핑 후 추론
+let axPostureModel=null, axAILoaded=false;
+let axPostureResult=null;   // 인식 요약 패널용 최신 결과
 async function loadAXModels(){
   try{ axPostureModel=await AXPosture.load('/static/models/posture/posture_weights.json'); }catch(e){}
-  try{ axFallModel=await AXPosture.load('/static/models/fall/fall_weights.json'); }catch(e){}
-  axAILoaded=!!(axPostureModel||axFallModel);
+  axAILoaded=!!axPostureModel;
 }
 if(window.AXPosture) loadAXModels();
 
@@ -1583,7 +1575,7 @@ function mpToCoco(rawPose,W,H){
   return out;
 }
 let _axInferAt=0;
-// 자세/낙상 '추론'만 수행(3Hz). 결과는 좌하단 인식 패널에 표시 → 화면 겹침/혼란 방지.
+// 자세 '추론'만 수행(3Hz). 결과는 좌하단 인식 패널에 표시 → 화면 겹침/혼란 방지.
 function drawAXPostureBadge(rawPose,W,H){
   if(!axAILoaded || !rawPose) return;
   const nowMs=performance.now();
@@ -1592,9 +1584,8 @@ function drawAXPostureBadge(rawPose,W,H){
   if(!coco) return;
   _axInferAt=nowMs;
   if(axPostureModel){ const r=axPostureModel.predictFromKeypoints(coco); axPostureResult={...r, at:Date.now()}; }
-  if(axFallModel){ const f=axFallModel.predictFromKeypoints(coco); axFallResult={...f, at:Date.now()}; }
 }
-// (구 자세 뱃지 그리기는 제거됨 — 자세/낙상 정보는 좌하단 인식 패널에 표시)
+// (구 자세 뱃지 그리기는 제거됨 — 자세 정보는 좌하단 인식 패널에 표시)
 
 // 백엔드 위험요소(화재/연기/흡연) 뱃지 — 우상단. /detect/frame 응답의 hazards 표시.
 function drawHazardBadge(W,H){
@@ -1639,12 +1630,10 @@ function updateRecognitionPanel(frame){
   }
   const [helmetTxt,helmetCls]=ppe(['hardhat','helmet'],['no hardhat','no helmet']);
   const [vestTxt,vestCls]=ppe(['safety vest','vest'],['no safety vest','no vest']);
-  // 자세/낙상 (브라우저 AI, 최근 2.5초 이내)
+  // 자세 (브라우저 AI, 최근 2.5초 이내)
   const pm={safe:'정상',caution:'주의',danger:'위험'}, pcl={safe:'ok',caution:'warn',danger:'bad'};
   let postTxt='확인 중', postCls='dim';
   if(axPostureResult && Date.now()-axPostureResult.at<2500){ postTxt=pm[axPostureResult.class_name]||axPostureResult.class_name; postCls=pcl[axPostureResult.class_name]||'dim'; }
-  let showFall=false;
-  if(axFallResult && Date.now()-axFallResult.at<2500 && axFallResult.class_name==='fall') showFall=true;
   // 화재/연기(백엔드 위험요소)
   const hzFresh=backendHazards.length && (Date.now()-backendBoostAt<BACKEND_BOOST_TTL+2000);
   const hzTxt=hzFresh?backendHazards.slice(0,2).map(h=>h.label||h.type).join(', '):'없음';
@@ -1658,7 +1647,6 @@ function updateRecognitionPanel(frame){
     html+=`<div class="row"><span>안전모</span><b class="${helmetCls}">${helmetTxt}</b></div>`;
     html+=`<div class="row"><span>안전조끼</span><b class="${vestCls}">${vestTxt}</b></div>`;
     html+=`<div class="row"><span>자세</span><b class="${postCls}">${postTxt}</b></div>`;
-    if(showFall) html+=`<div class="row"><span>낙상</span><b class="bad">감지됨</b></div>`;
     html+=`<div class="row"><span>화재/연기</span><b class="${hzCls}">${hzTxt}</b></div>`;
     html+=`<div class="row"><span>위험물</span><b>${topObjs.length?topObjs.join(', '):'—'}</b></div>`;
     const _z=axState.zoneSummary, _nh=axState.nearHazard;
@@ -2240,41 +2228,34 @@ function updatePoseUI(lm,sm){
   const vf=document.getElementById('velFill'); vf.style.width=velP+'%'; vf.style.background=velP>60?'#ef4444':velP>30?'#f59e0b':'#10b981';
   document.getElementById('velVal').textContent=(hipVelocity*1000).toFixed(1);
   document.getElementById('velLabel').textContent=velP>60?'🏃 빠름':velP>30?'🚶 중간':'🧍 정지';
-  document.getElementById('fallProgress').textContent=`${fallConfirm}/${FALL_CONFIRM}`;
-  document.getElementById('fallProgFill').style.width=`${(fallConfirm/FALL_CONFIRM)*100}%`;
   setDot('dotPose','active');
   return smoothAction(recognizeAction(sm||lm));
 }
 
 function updateSafetyUI(ar,lm,objs){
   const issues=[]; let grade='safe';
-  if(ar.danger){issues.push({type:'danger',icon:'🚨',title:'낙상 감지!',desc:'6프레임 연속 확인 · 즉각 확인 필요'});grade='danger';if(document.getElementById('togFall').checked)stats.fall++;}
-  if(ar.warn){issues.push({type:'warn',icon:'⚠️',title:'낙상 위험',desc:'불안정한 자세 감지'});if(grade!=='danger')grade='warn';}
-  if(lm&&document.getElementById('togPosture').checked){const t=getTrunkTilt(lm);if(t>35&&!ar.danger&&!ar.warn){issues.push({type:'warn',icon:'🙇',title:'불안정한 자세',desc:`몸통 기울기 ${t.toFixed(0)}°`});if(grade!=='danger')grade='warn';stats.posture++;}}
-  if(document.getElementById('togObjSafe').checked){for(const o of objs){if(DANGER_OBJ.includes(o.class)){issues.push({type:'warn',icon:'🔪',title:`위험 사물: ${translateClass(o.class)}`,desc:`신뢰도 ${(o.score*100).toFixed(0)}%`});if(grade!=='danger')grade='warn';stats.obj++;}}}
+  if(lm&&document.getElementById('togPosture').checked){const t=getTrunkTilt(lm);if(t>35){issues.push({type:'warn',icon:'🙇',title:'불안정한 자세',desc:`몸통 기울기 ${t.toFixed(0)}°`});grade='warn';stats.posture++;}}
+  if(document.getElementById('togObjSafe').checked){for(const o of objs){if(DANGER_OBJ.includes(o.class)){issues.push({type:'warn',icon:'🔪',title:`위험 사물: ${translateClass(o.class)}`,desc:`신뢰도 ${(o.score*100).toFixed(0)}%`});grade='warn';stats.obj++;}}}
   const ppeIssues=getPpeIssues();
   if(document.getElementById('togPPE')?.checked&&ppeIssues.length){
     ppeIssues.forEach(i=>issues.push(i));
-    if(grade!=='danger') grade='warn';
+    grade='warn';
   }
-  const gm={safe:{text:'✅ 안전',cls:'green'},warn:{text:'⚠️ 주의',cls:'yellow'},danger:{text:'🚨 위험',cls:'red'}};
+  const gm={safe:{text:'✅ 안전',cls:'green'},warn:{text:'⚠️ 주의',cls:'yellow'}};
   const ge=document.getElementById('safetyGrade'); ge.textContent=gm[grade].text; ge.className='value '+gm[grade].cls;
-  const fe=document.getElementById('fallRisk'); fe.textContent=ar.danger?'🔴 낙상!':ar.warn?'🟡 위험 징후':'🟢 정상'; fe.className='value '+(ar.danger?'red':ar.warn?'yellow':'green');
   const trunk=lm?getTrunkTilt(lm):0;
   const pe=document.getElementById('postureRisk'); pe.textContent=trunk>40?'🔴 위험':trunk>25?'🟡 주의':'🟢 정상'; pe.className='value '+(trunk>40?'red':trunk>25?'yellow':'green');
   const hd=objs.some(o=>DANGER_OBJ.includes(o.class));
   const oe=document.getElementById('objRisk'); oe.textContent=hd?'🔴 위험 사물!':'🟢 이상 없음'; oe.className='value '+(hd?'red':'green');
   document.getElementById('activityState').textContent=`${ar.icon} ${ar.action}`;
   document.getElementById('alertList').innerHTML=issues.length===0?'<div class="no-data"><span class="icon">✅</span>이상 없음</div>':issues.map(i=>`<div class="alert-box ${i.type}"><div class="alert-icon">${i.icon}</div><div class="alert-body"><div class="alert-title">${i.title}</div><div class="alert-desc">${i.desc}</div></div></div>`).join('');
-  document.getElementById('statFall').textContent=stats.fall+'회';
   document.getElementById('statPosture').textContent=stats.posture+'회';
   document.getElementById('statObj').textContent=stats.obj+'회';
   document.getElementById('statTime').textContent=Math.round((Date.now()-startTime)/1000)+'s';
-  setDot('dotSafe',grade==='safe'?'active':grade==='warn'?'warn':'danger');
+  setDot('dotSafe',grade==='safe'?'active':'warn');
   const ab=document.getElementById('actionBadge'),wb=document.getElementById('warnBadge'),db=document.getElementById('dangerBadge');
   if((document.getElementById('togActionLabel')?.checked??true)){ab.style.display='flex';document.getElementById('actionText').textContent=ar.action;}else ab.style.display='none';
-  if(ar.danger){db.style.display='flex';wb.style.display='none';document.getElementById('dangerText').textContent='낙상 감지!';if(document.getElementById('togSound').checked)playAlert();}
-  else if(ar.warn||ppeIssues.length){wb.style.display='flex';db.style.display='none';document.getElementById('warnText').textContent=ppeIssues.length?'보호구 확인':'주의';}
+  if(ppeIssues.length){wb.style.display='flex';db.style.display='none';document.getElementById('warnText').textContent='보호구 확인';}
   else{wb.style.display='none';db.style.display='none';}
   updatePpeUI();
 }
@@ -2623,7 +2604,7 @@ function _startFallbackRender(){
       try{ handleDangerZone({W,H,scX,scY,VW,VH,rect,latestObjects,timestamp:Date.now()}); }catch(e){}
       // MediaPipe 진단은 '한 번도 안 떴고 + 12초 유예' 후에만(로딩 지연을 실패로 오인하지 않게)
       if(!lastHolisticAt && _mpStaleSince && (Date.now()-_mpStaleSince > 12000))
-        _detectDiag('카메라·객체 인식은 정상 동작 중입니다.<br>단 MediaPipe(자세/손/낙상)가 12초 넘게 로딩되지 않았습니다(네트워크·CDN 지연).<br>· 새로고침(⌘⇧R) 권장<br>· 폐쇄망이면 로컬 번들이 필요합니다.');
+        _detectDiag('카메라·객체 인식은 정상 동작 중입니다.<br>단 MediaPipe(자세/손)가 12초 넘게 로딩되지 않았습니다(네트워크·CDN 지연).<br>· 새로고침(⌘⇧R) 권장<br>· 폐쇄망이면 로컬 번들이 필요합니다.');
     }catch(e){}
   };
   _fallbackRafId=requestAnimationFrame(loop);
@@ -2850,7 +2831,7 @@ async function startWebcam(){
     }
   },7000);
   lastTime=performance.now(); // FPS 타이머 리셋 (모델 로딩 시간 제외)
-  poseHistory.length=0; actionHistory.length=0; prevHipY=null; hipVelocity=0; fallConfirm=0; objTracker={nextId:1,tracked:[]};
+  poseHistory.length=0; actionHistory.length=0; prevHipY=null; hipVelocity=0; objTracker={nextId:1,tracked:[]};
   startTFLoops(); // TF.js 독립 루프 시작
   _startFallbackRender(); // MediaPipe 펌프가 죽어도 객체 박스는 그린다 (폴백)
 }
@@ -2863,7 +2844,7 @@ async function stopCamera(){
   videoEl.srcObject=null; ctx.clearRect(0,0,canvas.width,canvas.height);
   applyCameraOrientation(false);
   cameraOn=false; setCameraUI(false);
-  poseHistory.length=0; actionHistory.length=0; prevHipY=null; hipVelocity=0; fallConfirm=0;
+  poseHistory.length=0; actionHistory.length=0; prevHipY=null; hipVelocity=0;
   leftHeldObjects=[]; rightHeldObjects=[]; leftHeldHistory=[]; rightHeldHistory=[]; leftMobileNetResult=[]; rightMobileNetResult=[]; fullFrameResults=[]; detectedPersonCount=0;
   {const _hh=document.getElementById('handHeldOverlay'); if(_hh)_hh.innerHTML='';}
 }
@@ -3377,8 +3358,6 @@ function setServiceMode(mode){
 }
 
 function setDot(id,state){document.getElementById(id).className='status-dot'+(state?' '+state:'');}
-let lastAlert=0;
-function playAlert(){const now=Date.now();if(now-lastAlert<3000)return;lastAlert=now;try{const ac=new AudioContext();const o=ac.createOscillator();const g=ac.createGain();o.connect(g);g.connect(ac.destination);o.frequency.value=880;g.gain.setValueAtTime(.3,ac.currentTime);g.gain.exponentialRampToValueAtTime(.001,ac.currentTime+.4);o.start();o.stop(ac.currentTime+.4);}catch(e){}}
 
 function scoreClass(score){
   if(score>=82) return 'good';
@@ -3602,8 +3581,6 @@ function buildSafetyInsight(ar, lm, objects){
   let score=94;
   const problems=[];
   const feedback=[];
-  if(ar.danger){score-=38;problems.push('낙상 후보가 감지됐습니다');feedback.push('관리자가 즉시 현장을 확인해야 합니다.');}
-  else if(ar.warn){score-=16;problems.push('불안정한 자세가 감지됐습니다');feedback.push('작업자 상태와 주변 장애물을 확인하세요.');}
   if(m.hasPose&&m.trunk>35){score-=15;problems.push('허리 굽힘 부담이 큽니다');feedback.push('중량물은 몸 가까이 붙이고 무릎을 함께 사용하세요.');}
   if(danger.length){score-=12;problems.push(`위험 사물 ${danger.map(o=>translateClass(o.class)).join(', ')} 감지`);feedback.push('위험 도구 사용 구역과 보호구 착용 상태를 확인하세요.');}
   if(ppeIssues.length){score-=18;problems.push(ppeIssues.map(i=>i.title).join(' · '));feedback.push('안전모와 안전조끼 착용 여부를 현장에서 다시 확인하세요.');}
@@ -4050,7 +4027,6 @@ function generateNarrative(genderInfo, ageInfo, actionResult, specialActs, lHeld
     '서 있음':'서 있습니다','걷기':'걷고 있습니다','달리기':'달리고 있습니다',
     '앉아 있음':'앉아 있습니다','스쿼트/쪼그리기':'쪼그려 앉아 있습니다',
     '팔 들기':'팔을 들고 있습니다','앞으로 숙임':'몸을 앞으로 숙이고 있습니다',
-    '낙상 감지!':'넘어졌습니다','넘어질 위험':'비틀거리고 있습니다',
   };
   let actionStr=(specialActs.length>0&&spMap[specialActs[0].text])
     ? spMap[specialActs[0].text]

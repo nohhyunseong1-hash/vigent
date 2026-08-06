@@ -47,7 +47,6 @@ SAMPLES = [
     ]),
     ("건설현장 3층", "고소 조립작업", [
         {"rule": "height_fall_risk", "count": 5, "levels": {"critical": 1, "high": 4}},
-        {"rule": "fall_suspected",   "count": 3, "levels": {"high": 3}},
         {"rule": "crowd_density",    "count": 2, "levels": {"mid": 2}},
     ]),
     ("옥외 배전작업장", "전기·옥외 작업", [

@@ -1,6 +1,6 @@
 """COCO person keypoints → 데이터 엔진 학습 표본(실제 포즈).
 
-지금까지 posture/fall 모델은 '합성 + 규칙' 데이터로 학습됐다. 이 스크립트는
+지금까지 posture 모델은 '합성 + 규칙' 데이터로 학습됐다. 이 스크립트는
 COCO의 실제 사람 포즈(키포인트)를 특징 벡터로 변환하고 규칙 선생님으로 라벨링해
 데이터 엔진에 auto 표본으로 적재한다. 그러면 retrain이 합성 대신 *실제 포즈 분포*로
 재학습하여 모델이 현실에 더 강해진다.
@@ -18,7 +18,6 @@ from pathlib import Path
 try:
     from ..data_engine import DataEngine
     from .bootstrap_labels import rule_label
-    from .fall_model import rule_label_fall
     from .pose_features import extract_features
 except ImportError:  # 단독/스크립트 실행
     import sys
@@ -27,7 +26,6 @@ except ImportError:  # 단독/스크립트 실행
     sys.path.insert(0, str(HERE.parent))
     from bootstrap_labels import rule_label
     from data_engine import DataEngine
-    from fall_model import rule_label_fall
     from pose_features import extract_features
 
 _ROOT = Path(__file__).resolve().parent.parent.parent
@@ -52,8 +50,7 @@ def ingest(ann_path: Path, cap: int = 20000) -> int:
     de = DataEngine(root=DE_ROOT)
     now = datetime.datetime.now(datetime.timezone.utc).isoformat()
     n = 0
-    with de.training_path("posture").open("a", encoding="utf-8") as pf, \
-         de.training_path("fall").open("a", encoding="utf-8") as ff:
+    with de.training_path("posture").open("a", encoding="utf-8") as pf:
         for ann in data.get("annotations", []):
             if ann.get("num_keypoints", 0) < 10:
                 continue
@@ -70,17 +67,13 @@ def ingest(ann_path: Path, cap: int = 20000) -> int:
             feats = extract_features(pts)
             rec_p = {"features": [float(x) for x in feats], "label": int(rule_label(feats)),
                      "status": "auto", "source": "coco", "ts": now}
-            rec_f = {"features": [float(x) for x in feats], "label": int(rule_label_fall(feats)),
-                     "status": "auto", "source": "coco", "ts": now}
             pf.write(json.dumps(rec_p) + "\n")
-            ff.write(json.dumps(rec_f) + "\n")
             n += 1
             if n >= cap:
                 break
     de_stats_p = de.training_stats("posture")
-    de_stats_f = de.training_stats("fall")
     print(f"ingested {n} real poses from {ann_path.name}")
-    print("posture:", de_stats_p, "| fall:", de_stats_f)
+    print("posture:", de_stats_p)
     return n
 
 

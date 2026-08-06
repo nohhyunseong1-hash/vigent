@@ -164,7 +164,7 @@ let drawMode=false;         // 그리기 모드 on/off
 let zoneTarget='danger';    // 지금 그리는 대상: 'danger' | 'machine'
 let lastRelay=0;            // 보조 방호신호 과다호출 방지
 let lastEvidence={};        // 규칙별 증거 저장 쿨다운(과다저장 방지)
-const HAZARD_RULES=['zone_intrusion','fall_suspected','ppe_missing','guard_bypass'];
+const HAZARD_RULES=['zone_intrusion','ppe_missing','guard_bypass'];
 let detBoxes=[];            // 백엔드 /detect/frame 이 준 '이번 프레임' 원시 박스
 let trackedBoxes=[];        // 스무딩용 누적 박스(각 박스에 seen 시각 기록)
 let detSignals={};          // 백엔드 파생 신호(ppe_missing, ppe_conf, forklift_present)
@@ -427,7 +427,7 @@ pose.onResults(async (res)=>{
   $('sFrame').textContent = (+$('sFrame').textContent)+1;
 
   const lm=res.poseLandmarks;
-  let signals={zone_intrusion:false, ppe_missing:false, torso_angle:0, fall_temporal:false, hand_in_machine_zone:false};
+  let signals={zone_intrusion:false, ppe_missing:false, torso_angle:0, hand_in_machine_zone:false};
   let intrusion=false, handIn=false;
 
   if(lm){

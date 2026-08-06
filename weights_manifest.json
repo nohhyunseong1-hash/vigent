@@ -54,7 +54,7 @@
     },
     {
       "file": "yolov8n-pose.pt", "slot": "pose", "backend": "yolo",
-      "purpose": "포즈(낙상·근골격) 백엔드 — worker.py 로드",
+      "purpose": "포즈(근골격) 백엔드 — worker.py 로드",
       "version": "yolov8n-pose", "sha256": "c6fa93dd1ee4a2c18c900a45c1d864a1c6f7aba75d84f91648a30b7fb641d212",
       "size_bytes": 6832633, "url": "PLACEHOLDER/yolov8n-pose.pt", "required": true
     }

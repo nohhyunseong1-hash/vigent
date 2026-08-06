@@ -181,7 +181,7 @@
     <div class="det-row"><span class="tag hand">HAND</span><span class="lab">손 추적</span><span class="val" id="dHand">0</span></div>
     <div class="det-row"><span class="tag zone">ZONE</span><span class="lab">구역 접근</span><span class="val" id="dZone">없음</span></div>
     <div class="det-row"><span class="tag risk">RISK</span><span class="lab">위험 신호</span><span class="val" id="dRisk">없음</span></div>
-    <div class="hint">위험구역 A 내 신체 진입 시 DANGER, 손/팔 접근 시 WARNING. 몸통 과다 기울기는 낙상/위험자세로 분류.</div>
+    <div class="hint">위험구역 A 내 신체 진입 시 DANGER, 손/팔 접근 시 WARNING. 몸통 과다 기울기는 위험자세로 분류.</div>
   </div>
 </div>
 
@@ -239,8 +239,8 @@ function angleVert(a,b){ // a→b 선이 수직축과 이루는 각(°)
 
 //==================== 분석 ====================
 function analyze(r){
-  const out={person:0,posture:'대기',postureBad:false,hands:0,handBoxes:[],
-    zoneBody:false,zoneHand:false,fall:false,level:'none'};
+  const out={person:0,posture:'대기',postureBad:false,postureSevere:false,hands:0,handBoxes:[],
+    zoneBody:false,zoneHand:false,level:'none'};
   const pl=r.poseLandmarks;
   if(pl && pl[11] && pl[11].visibility>.3){
     out.person=1;
@@ -250,7 +250,7 @@ function analyze(r){
       const hp=[(pl[23].x+pl[24].x)/2,(pl[23].y+pl[24].y)/2];
       const tilt=angleVert(sh,hp);
       out.tilt=tilt;
-      if(tilt>50){out.posture='위험(낙상 의심)';out.postureBad=true;out.fall=true;}
+      if(tilt>50){out.posture='위험(자세 불안정 심함)';out.postureBad=true;out.postureSevere=true;}
       else if(tilt>30){out.posture='주의(기울임)';out.postureBad=true;}
       else out.posture='정상';
     }
@@ -269,7 +269,7 @@ function analyze(r){
     out.handBoxes.push({minx,miny,maxx,maxy,inz,lm:hm});
   }
   // 종합 등급
-  if(out.zoneBody||out.fall) out.level='danger';
+  if(out.zoneBody||out.postureSevere) out.level='danger';
   else if(out.zoneHand||out.posture==='주의(기울임)') out.level='warn';
   else if(out.person) out.level='safe';
   return out;
@@ -352,13 +352,13 @@ function updateHUD(a){
   $('vFps').textContent=fps.toFixed(0);
   $('vFrame').textContent=frameN;
   setV($('vPerson'),a.person?('검출 · '+a.person+'명'):'미검출', a.person?'ok':'dim');
-  setV($('vPosture'),a.posture, a.posture==='정상'?'ok':a.postureBad?(a.fall?'bad':'warn'):'dim');
+  setV($('vPosture'),a.posture, a.posture==='정상'?'ok':a.postureBad?(a.postureSevere?'bad':'warn'):'dim');
   setV($('vZone'), a.zoneBody?'침입(몸통)':a.zoneHand?'접근(손/팔)':'CLEAR', a.zoneBody?'bad':a.zoneHand?'warn':'ok');
   $('dPose').textContent=a.person?'ACTIVE':'--';
   $('dHand').textContent=a.hands;
   $('dZone').textContent=a.zoneBody?'몸통 진입':a.zoneHand?'손/팔 접근':'없음';
   $('dZone').style.color=a.zoneBody?COLORS.danger:a.zoneHand?COLORS.warn:'';
-  $('dRisk').textContent=a.fall?'낙상 의심':a.zoneBody?'구역 침입':a.zoneHand?'구역 접근':a.postureBad?'자세 불안정':'없음';
+  $('dRisk').textContent=a.zoneBody?'구역 침입':a.postureSevere?'자세 불안정(심함)':a.zoneHand?'구역 접근':a.postureBad?'자세 불안정':'없음';
   $('dRisk').style.color=(a.level==='danger')?COLORS.danger:(a.level==='warn')?COLORS.warn:'';
 
   // 등급
@@ -374,7 +374,7 @@ function updateHUD(a){
   document.body.classList.toggle('alert-danger',a.level==='danger');
   document.body.classList.toggle('alert-warn',a.level==='warn');
   const bn=$('banner');
-  if(a.level==='danger'){bn.className='show';bn.textContent=a.fall?'⚠ 낙상/위험자세 감지':'⚠ 위험구역 침입 감지';}
+  if(a.level==='danger'){bn.className='show';bn.textContent=a.postureSevere?'⚠ 위험자세 감지':'⚠ 위험구역 침입 감지';}
   else if(a.level==='warn'){bn.className='warn show';bn.textContent='주의 · 위험구역 접근';}
   else bn.className='';
 

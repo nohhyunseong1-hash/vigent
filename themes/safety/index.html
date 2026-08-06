@@ -202,7 +202,7 @@
         <div class="co-text">카메라가 꺼져 있습니다</div>
       </div>
 
-      <!-- 안전 경보 배지(낙상/보호구/행동) — updateSafetyUI가 사용 -->
+      <!-- 안전 경보 배지(보호구/행동) — updateSafetyUI가 사용 -->
       <div class="video-overlay-labels">
         <div class="action-badge" id="actionBadge" style="display:none">🏃 <span id="actionText">—</span></div>
         <div class="action-badge warn-badge" id="warnBadge" style="display:none">⚠️ <span id="warnText">주의</span></div>
@@ -268,7 +268,6 @@
         <div class="card">
           <div class="card-title">🚨 실시간 안전 상태</div>
           <div class="row"><span class="label">종합 안전 등급</span><span class="value" id="safetyGrade">대기 중</span></div>
-          <div class="row"><span class="label">낙상 위험</span><span class="value" id="fallRisk">—</span></div>
           <div class="row"><span class="label">자세 이상</span><span class="value" id="postureRisk">—</span></div>
           <div class="row"><span class="label">위험 사물</span><span class="value" id="objRisk">—</span></div>
           <div class="row"><span class="label">현재 활동</span><span class="value" id="activityState">—</span></div>
@@ -279,7 +278,6 @@
         </div>
         <div class="card">
           <div class="card-title">📊 세션 통계</div>
-          <div class="row"><span class="label">낙상 감지</span><span class="value red" id="statFall">0회</span></div>
           <div class="row"><span class="label">위험 자세</span><span class="value yellow" id="statPosture">0회</span></div>
           <div class="row"><span class="label">위험 사물</span><span class="value orange" id="statObj">0회</span></div>
           <div class="row"><span class="label">분석 시간</span><span class="value accent" id="statTime">0s</span></div>
@@ -288,10 +286,8 @@
           <div class="card-title">⚙️ 안전 설정</div>
           <div class="toggle-row" title="☰ 메뉴 하단 '필수 보호구'에서 고른 항목을 실시간 점검합니다. 미착용 시 영상 좌하단에 표시됩니다."><span>🦺 보호구 실시간 점검</span><label class="toggle"><input type="checkbox" id="togPpeLive"><span class="toggle-slider"></span></label></div>
           <div class="toggle-row"><span>안전모/조끼 알림</span><label class="toggle"><input type="checkbox" id="togPPE" checked><span class="toggle-slider"></span></label></div>
-          <div class="toggle-row"><span>낙상 감지 (6프레임)</span><label class="toggle"><input type="checkbox" id="togFall" checked><span class="toggle-slider"></span></label></div>
           <div class="toggle-row"><span>위험 자세 감지</span><label class="toggle"><input type="checkbox" id="togPosture" checked><span class="toggle-slider"></span></label></div>
           <div class="toggle-row"><span>위험 사물 경고</span><label class="toggle"><input type="checkbox" id="togObjSafe" checked><span class="toggle-slider"></span></label></div>
-          <div class="toggle-row"><span>경보 사운드</span><label class="toggle"><input type="checkbox" id="togSound"><span class="toggle-slider"></span></label></div>
           <div class="toggle-row" title="건설현장 전용 탐지(보호구·중장비·화재). 실내·사무실에서 테스트할 땐 끄면 사람만 탐지해 오탐이 크게 줄어듭니다. 실제 현장에선 켜세요."><span>🏗 현장 모드(PPE·화재 탐지)</span><label class="toggle"><input type="checkbox" id="togFieldMode" checked onchange="try{localStorage.setItem('vigent_field_mode',this.checked?'1':'0')}catch(e){}"><span class="toggle-slider"></span></label></div>
           <div class="toggle-row" title="VLM(AI 두뇌)이 감지 이벤트를 다시 보고 명백한 오탐을 걸러냅니다. 고신뢰 오탐만 알림을 억제하고 증거·기록은 그대로 저장합니다. VLM 추론이 끼어 다소 느려질 수 있습니다."><span>🧠 VLM 오탐 필터</span><label class="toggle"><input type="checkbox" id="togVlmConfirm"><span class="toggle-slider"></span></label></div>
           <div class="toggle-row" title="작업을 고르면 실제 카메라 화면을 안전 지식 엔진이 주기적으로 점검해 '없는 안전조치'를 추론하고 위험 시 자동 기록합니다(VLM 권장).">
@@ -416,9 +412,6 @@
   window.zoneIntrusionSeverity=vgZoneSeverity;
   console.log("[VIGENT] 위험구역 판정 → 브라우저 스켈레톤 기반(손/팔=주황, 몸통=빨강)");
 
-  // ── 낙상 확정 감시 → 에이전트 체인(Analyst→Copilot 추락법령→Dispatcher 알림) ──
-  // AX 엔진의 stats.fall(낙상 확정 카운터)을 폴링만 한다(엔진 무수정 — 규칙 6).
-  let _lastFall=0, _fallCooldown=0;
   function captureEvidence(){
     try{ const c=document.createElement('canvas'); c.width=videoEl.videoWidth||1280; c.height=videoEl.videoHeight||720;
       c.getContext('2d').drawImage(videoEl,0,0,c.width,c.height); return c.toDataURL('image/jpeg',0.7);
@@ -453,22 +446,6 @@
   let _frmCache=null,_frmTs=0;
   function sharedFrame(){ const now=Date.now(); if(_frmCache && now-_frmTs<500) return _frmCache;
     _frmCache=captureEvidence(); _frmTs=now; return _frmCache; }
-  setInterval(async ()=>{
-    try{
-      const f = (window.stats&&window.stats.fall)||0;
-      if(f>_lastFall){                              // 새 낙상 확정
-        _lastFall=f;
-        if(Date.now()<_fallCooldown) return;        // 10초 쿨다운(연속 알림 방지)
-        _fallCooldown=Date.now()+10000;
-        const vlmOn = !!document.getElementById('togVlmConfirm')?.checked;
-        const r=await fetch('/safety/fall',{method:'POST',headers:{'Content-Type':'application/json'},
-          body:JSON.stringify({image_base64:sharedFrame(), vlm_confirm:vlmOn})});
-        const j=await r.json();
-        if(j.suppressed) console.info('[VIGENT] 🧠 VLM 오탐 필터 — 낙상 알림 억제(증거는 저장):',j.message);
-        else console.warn('[VIGENT] 🚨 낙상 알림:',j.message,'· 휴대폰발송='+j.phone_sent);
-      }
-    }catch(e){}
-  }, 700);
 
   // ── 근골격계 부담 자세 '지속' 감지 → 이벤트 기록(경보 아님, 콘솔·위험성평가 반영) ──
   // stats.posture(나쁜 자세 프레임 카운터)만 폴링(엔진 무수정). 3초 지속 + 60초 쿨다운 → 1회 기록.

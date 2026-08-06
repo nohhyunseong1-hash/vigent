@@ -1,17 +1,17 @@
 """pose_e2e.py — 포즈 판정층(출력층) 검증 하네스 (T10c-V, FINDINGS F-4 해소용).
 
 사용자 촬영 클립을 production 경로 그대로 순회 실행:
-    프레임 → guard.detect(person 박스) → RTMPose(top-down) → FallTracker / ErgonomicsTracker.
-판정 로직(FallTracker·ErgonomicsTracker·ergonomics.py)은 '재사용(무수정)'. 이 하네스는 관찰만 한다.
+    프레임 → guard.detect(person 박스) → RTMPose(top-down) → ErgonomicsTracker.
+판정 로직(ErgonomicsTracker·ergonomics.py)은 '재사용(무수정)'. 이 하네스는 관찰만 한다.
+(작업자 낙상 판정 제거 — P3_BACKLOG 참조. 이 하네스도 ergo 전용으로 축소.)
 
 입력:
   benchmarks/data/pose_clips/*.mp4(.mov/.avi)  +  labels.json
-  labels.json: { "<파일명>": {"tag":"fall|ergo|negative|multi",
-                              "fall_expected": true/false,
+  labels.json: { "<파일명>": {"tag":"ergo|multi",
                               "ergo_expected": "good|warn|bad|null"} }
 출력:
-  benchmarks/results/pose_e2e.json — 클립별 (fall 발생 프레임, ergo 등급 시계열·플리커, 인원수)
-  게이트: 낙상 N/N · 네거티브 오탐0 · 부담자세 기대등급 일치. 다인은 게이트 아님(관찰).
+  benchmarks/results/pose_e2e.json — 클립별 (ergo 등급 시계열·플리커, 인원수)
+  게이트: 부담자세 기대등급 일치. 다인은 게이트 아님(관찰).
 
 실행: /opt/anaconda3/bin/python3 benchmarks/pose_e2e.py [--fps 2.0]
 """
@@ -28,7 +28,7 @@ _ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(_ROOT / "vigent-core"))
 
 import ergonomics as _erg          # noqa: E402  등급 시계열용(판정 함수 재사용)
-import worker as W                  # noqa: E402  production FallTracker/ErgonomicsTracker/_posemodel
+import worker as W                  # noqa: E402  production ErgonomicsTracker/_posemodel
 
 _CLIPS = _ROOT / "benchmarks" / "data" / "pose_clips"
 _OUT = _ROOT / "benchmarks" / "results" / "pose_e2e.json"
@@ -68,12 +68,11 @@ def _frame_grade(frame, boxes, joints):
 
 
 def _run_clip(path, fps, joints):
-    ftrack = W.FallTracker()
     etrack = W.ErgonomicsTracker()
     cap = cv2.VideoCapture(str(path))
     src_fps = cap.get(cv2.CAP_PROP_FPS) or 30.0
     step = max(1, int(round(src_fps / fps)))    # 워커 fps 로 서브샘플(production 시간축 재현)
-    fall_frames, ergo_fired, grade_series, persons_series = [], [], [], []
+    ergo_fired, grade_series, persons_series = [], [], []
     fi = idx = 0
     while True:
         ok, frame = cap.read()
@@ -82,14 +81,11 @@ def _run_clip(path, fps, joints):
         if fi % step == 0:
             ts = idx / fps                       # 균등 타임스탬프(트래커 시간로직 정상 동작)
             boxes = _person_boxes(frame)
-            fall, reason = ftrack.update(frame, ts, boxes)
             try:
                 ef = etrack.update(frame, ts, boxes)
             except Exception:  # noqa: BLE001
                 ef = []
             grade, npeople = _frame_grade(frame, boxes, joints)
-            if fall:
-                fall_frames.append(idx)
             for rule, level, note in ef:
                 ergo_fired.append({"frame": idx, "level": level})
             grade_series.append(grade)
@@ -103,7 +99,6 @@ def _run_clip(path, fps, joints):
     from collections import Counter
     return {
         "sampled_frames": idx, "src_fps": round(src_fps, 1), "sample_fps": fps,
-        "fall_detected": bool(fall_frames), "fall_frames": fall_frames,
         "ergo_fired": ergo_fired,
         "ergo_grade_counts": dict(Counter(grade_series)),
         "ergo_grade_worst": max(grade_series, key=lambda g: {"none": 0, "good": 1, "warn": 2, "bad": 3}[g])
@@ -116,12 +111,6 @@ def _run_clip(path, fps, joints):
 
 def _gate(tag, exp, r):
     """클립별 게이트 판정(다인=관찰). 반환 (판정문자열, 통과여부|None)."""
-    if tag == "fall":
-        ok = r["fall_detected"] is True
-        return ("fall 발생 O" if ok else "fall 미발생 X(오버레이 검토)"), ok
-    if tag == "negative":
-        ok = r["fall_detected"] is False
-        return ("오탐 없음 O" if ok else f"fall 오탐 X({len(r['fall_frames'])}프레임)"), ok
     if tag == "ergo":
         ok = (exp is None) or (r["ergo_grade_worst"] == exp)
         return (f"등급 {r['ergo_grade_worst']} vs 기대 {exp} " + ("일치" if ok else "불일치")), ok
@@ -138,7 +127,7 @@ def main():
         if _CLIPS.exists() else []
     if not clips:
         print(f"[대기] 클립 없음 — {_CLIPS.relative_to(_ROOT)}/ 에 영상 + labels.json 등록 후 재실행.")
-        print("  labels.json 예: {\"fall_01.mp4\": {\"tag\":\"fall\",\"fall_expected\":true,\"ergo_expected\":null}}")
+        print("  labels.json 예: {\"ergo_01.mp4\": {\"tag\":\"ergo\",\"ergo_expected\":\"warn\"}}")
         return
     labels = json.loads(labels_path.read_text(encoding="utf-8")) if labels_path.exists() else {}
     joints = (_erg.load_ergonomics("safety") or {}).get("joints", {}) or {}
@@ -153,16 +142,12 @@ def main():
         r["gate"] = {"verdict": verdict, "passed": passed}
         results[p.name] = r
         gate_rows.append((p.name, tag, verdict, passed))
-        print(f"  {p.name:28} [{tag:8}] {verdict}  (fall={r['fall_detected']}, "
-              f"ergo_worst={r['ergo_grade_worst']}, flicker={r['ergo_flicker_good_warn']}, ppl~{r['persons_avg']})")
+        print(f"  {p.name:28} [{tag:8}] {verdict}  "
+              f"(ergo_worst={r['ergo_grade_worst']}, flicker={r['ergo_flicker_good_warn']}, ppl~{r['persons_avg']})")
 
     # 게이트 집계
-    fall_clips = [g for g in gate_rows if g[1] == "fall"]
-    neg_clips = [g for g in gate_rows if g[1] == "negative"]
     ergo_clips = [g for g in gate_rows if g[1] == "ergo"]
     summary = {
-        "fall_gate": f"{sum(1 for g in fall_clips if g[3])}/{len(fall_clips)} 발생",
-        "negative_gate": f"오탐 {sum(1 for g in neg_clips if not g[3])}/{len(neg_clips)}",
         "ergo_gate": f"{sum(1 for g in ergo_clips if g[3])}/{len(ergo_clips)} 등급일치",
         "multi_clips": sum(1 for g in gate_rows if g[1] == "multi"),
     }

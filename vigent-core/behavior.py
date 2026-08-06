@@ -1,6 +1,6 @@
 """behavior.py — VLM 기반 행동 분석 (신뢰도 보강 + 신규 행동)
 
-규칙 감지(낙상·무동작·협착·근골격계)는 카메라 각도·임계값에 따라 오탐이 생겨 '중간' 신뢰도였다.
+규칙 감지(무동작·협착·근골격계)는 카메라 각도·임계값에 따라 오탐이 생겨 '중간' 신뢰도였다.
 여기에 VLM(언어모델) 이중확인을 붙이면 오탐이 걸러져 실효 신뢰도가 '높음'이 된다(가산식).
 또 VLM은 open-vocabulary 라 class 목록에 없던 행동(흡연·졸음·통화·폭력·절차위반)도 질문으로 판단한다.
 
@@ -13,8 +13,6 @@ from typing import Any
 # group: confirm(기존 규칙 재확인 → 신뢰도↑) / new(VLM이라 가능해진 신규 행동)
 # kw: VLM 응답에서 이 키워드가 보이면 해당 행동으로 판정
 BEHAVIORS: list[dict[str, Any]] = [
-    {"id": "fall", "label": "쓰러짐(낙상)", "group": "confirm",
-     "kw": ["쓰러", "넘어", "낙상", "추락"]},
     {"id": "immobility", "label": "무동작/실신", "group": "confirm",
      "kw": ["무동작", "실신", "움직이지", "쓰러져 있"]},
     {"id": "proximity", "label": "차량 작업반경 침입", "group": "confirm",

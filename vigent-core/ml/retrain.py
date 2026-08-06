@@ -16,13 +16,11 @@ import numpy as np
 
 try:
     from .bootstrap_labels import CLASS_NAMES, NUM_CLASSES, make_dataset
-    from .fall_model import DEFAULT_FALL_WEIGHTS, FALL_CLASSES, NUM_FALL_CLASSES, make_fall_dataset
     from .pose_features import FEATURE_NAMES, NUM_FEATURES
     from .train_posture_classifier import ARTIFACT as POSTURE_KERAS
     from .train_posture_classifier import TFJS_DIR as POSTURE_DIR
 except ImportError:  # pragma: no cover
     from bootstrap_labels import CLASS_NAMES, NUM_CLASSES, make_dataset
-    from fall_model import DEFAULT_FALL_WEIGHTS, FALL_CLASSES, NUM_FALL_CLASSES, make_fall_dataset
     from pose_features import FEATURE_NAMES, NUM_FEATURES
     from train_posture_classifier import ARTIFACT as POSTURE_KERAS
     from train_posture_classifier import TFJS_DIR as POSTURE_DIR
@@ -77,11 +75,6 @@ def retrain(model_name: str, data_engine=None, epochs: int = 30):
         class_names, num_classes = CLASS_NAMES, NUM_CLASSES
         out_json = POSTURE_DIR / "posture_weights.json"
         hidden = [32, 16]
-    elif model_name == "fall":
-        bootstrap = make_fall_dataset()
-        class_names, num_classes = FALL_CLASSES, NUM_FALL_CLASSES
-        out_json = DEFAULT_FALL_WEIGHTS
-        hidden = [24, 12]
     else:
         raise ValueError(f"알 수 없는 모델: {model_name}")
 

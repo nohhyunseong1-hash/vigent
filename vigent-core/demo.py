@@ -23,8 +23,6 @@ DEMO_EVENTS = [
      "note": "프레스 중량물 작업구역에 작업자 진입", "img": "demo1.jpg"},
     {"rule": "ppe_missing", "level": "high", "site": "○○건설 A동 3층",
      "note": "고소작업 중 안전모 미착용 감지", "img": "demo2.jpg"},
-    {"rule": "fall_suspected", "level": "critical", "site": "○○제조 2공장",
-     "note": "적재구역에서 작업자 낙상 의심", "img": "demo3.jpg"},
     {"rule": "fire_smoke", "level": "critical", "site": "○○제조 도장공장",
      "note": "도장공장 화재·연기 의심 감지", "img": "demo4.jpg"},
     {"rule": "ergonomic_risk", "level": "low", "site": "○○제조 1공장",

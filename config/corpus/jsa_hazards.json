@@ -19,7 +19,7 @@
         "구명줄·안전대 등 구조장비 비치",
         "밀폐공간 작업허가서·출입자 명단 확인"
       ],
-      "rules": ["zone_intrusion", "fire_smoke", "ppe_missing", "fall_suspected"]
+      "rules": ["zone_intrusion", "fire_smoke", "ppe_missing"]
     },
     {
       "id": "hot_work",
@@ -49,7 +49,7 @@
         "안전모 턱끈 체결 등 보호구 착용",
         "강풍·우천 등 기상 조건 확인"
       ],
-      "rules": ["fall_suspected", "ppe_missing", "zone_intrusion"]
+      "rules": ["ppe_missing", "zone_intrusion"]
     },
     {
       "id": "excavation",
@@ -64,7 +64,7 @@
         "지반 상태·용수·배수 점검",
         "작업계획서 및 보호구 착용 확인"
       ],
-      "rules": ["zone_intrusion", "fall_suspected", "guard_bypass", "ppe_missing"]
+      "rules": ["zone_intrusion", "guard_bypass", "ppe_missing"]
     },
     {
       "id": "heavy_lifting",
@@ -94,7 +94,7 @@
         "2인 1조 작업 및 감시자 배치",
         "안전모·절연장갑 등 보호구 착용"
       ],
-      "rules": ["ppe_missing", "zone_intrusion", "fall_suspected", "guard_bypass"]
+      "rules": ["ppe_missing", "zone_intrusion", "guard_bypass"]
     },
     {
       "id": "radiation",

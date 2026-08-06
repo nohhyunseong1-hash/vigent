@@ -105,7 +105,7 @@
         <div class="co-text">카메라가 꺼져 있습니다</div>
       </div>
 
-      <!-- 안전 경보 배지(낙상/보호구/행동) — updateSafetyUI가 사용 -->
+      <!-- 안전 경보 배지(보호구/행동) — updateSafetyUI가 사용 -->
       <div class="video-overlay-labels">
         <div class="action-badge" id="actionBadge" style="display:none">🏃 <span id="actionText">—</span></div>
         <div class="action-badge warn-badge" id="warnBadge" style="display:none">⚠️ <span id="warnText">주의</span></div>
@@ -169,7 +169,6 @@
         <div class="card">
           <div class="card-title">🚨 실시간 안전 상태</div>
           <div class="row"><span class="label">종합 안전 등급</span><span class="value" id="safetyGrade">대기 중</span></div>
-          <div class="row"><span class="label">낙상 위험</span><span class="value" id="fallRisk">—</span></div>
           <div class="row"><span class="label">자세 이상</span><span class="value" id="postureRisk">—</span></div>
           <div class="row"><span class="label">위험 사물</span><span class="value" id="objRisk">—</span></div>
           <div class="row"><span class="label">현재 활동</span><span class="value" id="activityState">—</span></div>
@@ -180,7 +179,6 @@
         </div>
         <div class="card">
           <div class="card-title">📊 세션 통계</div>
-          <div class="row"><span class="label">낙상 감지</span><span class="value red" id="statFall">0회</span></div>
           <div class="row"><span class="label">위험 자세</span><span class="value yellow" id="statPosture">0회</span></div>
           <div class="row"><span class="label">위험 사물</span><span class="value orange" id="statObj">0회</span></div>
           <div class="row"><span class="label">분석 시간</span><span class="value accent" id="statTime">0s</span></div>
@@ -188,10 +186,8 @@
         <div class="card">
           <div class="card-title">⚙️ 안전 설정</div>
           <div class="toggle-row"><span>안전모/조끼 알림</span><label class="toggle"><input type="checkbox" id="togPPE" checked><span class="toggle-slider"></span></label></div>
-          <div class="toggle-row"><span>낙상 감지 (6프레임)</span><label class="toggle"><input type="checkbox" id="togFall" checked><span class="toggle-slider"></span></label></div>
           <div class="toggle-row"><span>위험 자세 감지</span><label class="toggle"><input type="checkbox" id="togPosture" checked><span class="toggle-slider"></span></label></div>
           <div class="toggle-row"><span>위험 사물 경고</span><label class="toggle"><input type="checkbox" id="togObjSafe" checked><span class="toggle-slider"></span></label></div>
-          <div class="toggle-row"><span>경보 사운드</span><label class="toggle"><input type="checkbox" id="togSound"><span class="toggle-slider"></span></label></div>
         </div>
       </div>
 

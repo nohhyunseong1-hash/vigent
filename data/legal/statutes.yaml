@@ -45,7 +45,7 @@ statutes:
     source_url: https://www.law.go.kr/법령/산업안전보건법
     text: null
     text_status: 원문 미확보 — 사용자 대조 대기
-    used_by: [zone_intrusion, ppe_missing, fall_suspected, trip_hazard, fire_smoke, falling_object, height_fall_risk, machine_entanglement, electrical_hazard, immobility, rapid_motion, crowd_density, proximity_hazard]
+    used_by: [zone_intrusion, ppe_missing, trip_hazard, fire_smoke, falling_object, height_fall_risk, machine_entanglement, electrical_hazard, immobility, rapid_motion, crowd_density, proximity_hazard]
 
   - id: osha_39
     law: 산업안전보건법
@@ -169,7 +169,7 @@ statutes:
     source_url: https://www.law.go.kr/법령/산업안전보건기준에관한규칙
     text: null
     text_status: 원문 미확보 — 사용자 대조 대기
-    used_by: [fall_suspected, height_fall_risk]
+    used_by: [height_fall_risk]
 
   - id: rule_43
     law: 산업안전보건기준에 관한 규칙
@@ -184,7 +184,7 @@ statutes:
     source_url: https://www.law.go.kr/법령/산업안전보건기준에관한규칙
     text: null
     text_status: 원문 미확보 — 사용자 대조 대기
-    used_by: [fall_suspected, height_fall_risk]
+    used_by: [height_fall_risk]
 
   - id: rule_132
     law: 산업안전보건기준에 관한 규칙

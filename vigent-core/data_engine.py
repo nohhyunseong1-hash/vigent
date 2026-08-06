@@ -1,6 +1,6 @@
 """data_engine.py — 위험 이벤트 증거·로그 자동 저장 (§15-6, 데이터엔진)
 
-위험 이벤트(zone_intrusion·fall_suspected·ppe_missing·guard_bypass)가 감지되면
+위험 이벤트(zone_intrusion·ppe_missing·guard_bypass)가 감지되면
   1) 증거 프레임 이미지(JPEG) 저장
   2) 인식 로그(JSONL) 1줄 추가
 한다. 저장된 이벤트는 위험성평가서(Scribe) 생성 시 빈도 집계로 재사용된다.
@@ -26,7 +26,7 @@ _EVIDENCE = _ROOT / "data" / "evidence"
 _RECOG = _ROOT / "data" / "recognition"
 
 # 데이터엔진이 다루는 위험 이벤트(규칙) 화이트리스트
-HAZARD_RULES = {"zone_intrusion", "fall_suspected", "ppe_missing", "guard_bypass",
+HAZARD_RULES = {"zone_intrusion", "ppe_missing", "guard_bypass",
                 "ergonomic_risk", "fire_smoke", "trip_hazard", "safety_measure_missing",
                 "proximity_hazard", "crowd_density", "lone_worker",
                 "immobility", "rapid_motion",

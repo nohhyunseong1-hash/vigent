@@ -167,7 +167,7 @@ function alertTypes(c){
   return { intrusion:f.indexOf('zone_intrusion')>=0,
     fire:f.indexOf('fire_smoke')>=0||!!s.fire_smoke,
     ppe:f.indexOf('ppe_missing')>=0||!!s.ppe_missing,
-    emergency:['fall_suspected','immobility','guard_bypass'].some(function(r){return f.indexOf(r)>=0;}) };
+    emergency:['immobility','guard_bypass'].some(function(r){return f.indexOf(r)>=0;}) };
 }
 function statusOf(c){ if(c.local) return 'C'; if(!c.online) return 'off';
   var t=alertTypes(c); if(t.intrusion||t.fire||t.emergency) return 'A'; if(t.ppe) return 'B'; return 'C'; }
@@ -230,8 +230,8 @@ function refreshThumbs(){
 // ── 이벤트 테이블 ──
 var RULE_KO={zone_intrusion:'위험구역 침입',ppe_missing:'보호구 미착용',fire_smoke:'화재/연기 의심',
   proximity_hazard:'위험물 근접',guard_bypass:'방호구역 침입',immobility:'장시간 무동작',
-  fall_suspected:'낙상 의심',crowd_density:'인원 밀집',coord_event:'관리자 확인'};
-var EMG_RULES=['fall_suspected','immobility','guard_bypass'];
+  crowd_density:'인원 밀집',coord_event:'관리자 확인'};
+var EMG_RULES=['immobility','guard_bypass'];
 function evMatch(e){ if(!evFilter) return true;
   if(evFilter==='emergency') return EMG_RULES.indexOf(e.rule)>=0;
   return e.rule===evFilter; }

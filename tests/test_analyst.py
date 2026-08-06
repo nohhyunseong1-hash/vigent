@@ -1,4 +1,4 @@
-"""Analyst 가산식 판단 테스트 (§14: 규칙·낙상·PPE 반응 + 폴백/딥러닝 가산)"""
+"""Analyst 가산식 판단 테스트 (§14: 규칙·PPE 반응 + 폴백/딥러닝 가산)"""
 import sys
 import unittest
 from pathlib import Path
@@ -29,13 +29,6 @@ class TestAnalyst(unittest.TestCase):
     def test_ppe_missing_medium(self):
         r = self.analyst.judge({"ppe_missing": True})
         self.assertEqual(r["level"], "medium")      # severity medium=30
-
-    def test_fall_by_torso_angle_heuristic(self):
-        # 딥러닝 신호 없이 몸통각만으로 낙상 의심(휴리스틱 폴백)
-        r = self.analyst.judge({"torso_angle": 75})
-        self.assertEqual(r["level"], "high")
-        self.assertTrue(r["fallback"])
-        self.assertFalse(r["used_dl"])
 
     def test_guard_bypass_critical(self):
         r = self.analyst.judge({"hand_in_machine_zone": True})

@@ -21,7 +21,7 @@ main, body.clean main, body.theme-safety main{ background:var(--vt-bg) !importan
 header, body.clean header{ display:none !important; }
 .right-panel, body.clean .right-panel{ display:flex !important; }
 .controls, body.clean .controls{ display:flex !important; }
-/* 낙상/보호구 경보 배지(영상 위)도 노출 — 실제 알림이 화면에 뜨게 */
+/* 보호구 등 경보 배지(영상 위)도 노출 — 실제 알림이 화면에 뜨게 */
 body.clean .video-overlay-labels{ display:block !important; }
 /* 주입 브랜드/HUD 숨김 — 새 커맨드바가 대체(좌상단 로고 2겹 겹침 제거) */
 #vgBrand, #vgHud{ display:none !important; }

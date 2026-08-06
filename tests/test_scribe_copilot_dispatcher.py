@@ -43,7 +43,7 @@ class TestStep4(unittest.TestCase):
         self.assertIn("산업안전보건법", a["rows"][0]["관련근거"])
 
     def test_scribe_html_renders(self):
-        out = self.agents["Scribe"].generate([{"rule": "fall_suspected", "count": 2}],
+        out = self.agents["Scribe"].generate([{"rule": "ppe_missing", "count": 2}],
                                              save=False, mode="quantitative")
         html = out["html"]
         self.assertIn("위험성평가서", html)
