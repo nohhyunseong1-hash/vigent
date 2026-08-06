@@ -32,9 +32,7 @@ from .agitation import AgitationMonitor
 from .api import router as facial_router
 from .evm import MotionMagnifier
 from .liveness import LivenessSession
-from .loto_serial import LotoController
-from .mfa import Authenticator, CardStore, DEFAULT_POLICIES, FaceFactor, PinStore
-from .smartloto import LotoStation
+from .mfa import Authenticator, CardStore, DEFAULT_POLICIES, PinStore
 
 config.ENABLED = True                 # 데모 한정(운영 금지 — demo_server 와 동일 주석)
 config.IRIS_ENABLED = True            # 데모 한정: 홍채 시뮬레이터 사용
@@ -81,83 +79,6 @@ def page_evm():
 @app.get("/demo/mfa")
 def page_mfa():
     return FileResponse(DEMO / "mfa.html")
-
-
-@app.get("/demo/loto")
-def page_loto():
-    return FileResponse(DEMO / "loto.html")
-
-
-# ── Smart LOTO (실물 서보 연동) ──────────────────────────────
-loto_controller = LotoController()                 # 포트 자동탐지(없으면 시뮬)
-loto_station = LotoStation("PRESS-01", loto_controller)
-
-
-async def _resolve_worker(person_id, name, image, live):
-    """얼굴 이미지가 오면 인증해 신원 확정, 없으면 입력 person_id 사용."""
-    if image is not None and live:
-        r = FaceFactor().check([_decode(await image.read())])
-        if r.ok:
-            return r.subject_id, (name or r.subject_id), None
-        return None, None, r.reason
-    if person_id:
-        return person_id, (name or person_id), None
-    return None, None, "신원 없음(얼굴 인증 또는 person_id 필요)"
-
-
-@app.get("/loto/status")
-def loto_status():
-    return loto_station.snapshot()
-
-
-@app.post("/loto/apply")
-async def loto_apply(person_id: str = Form(None), name: str = Form(""),
-                     image: UploadFile = File(None), live: bool = Form(True)):
-    pid, nm, err = await _resolve_worker(person_id, name, image, live)
-    if err:
-        return {"ok": False, "error": err}
-    try:
-        return {"ok": True, **loto_station.apply_lock(pid, nm)}
-    except Exception as e:
-        return {"ok": False, "error": str(e)}
-
-
-@app.post("/loto/remove")
-async def loto_remove(person_id: str = Form(None), image: UploadFile = File(None),
-                      live: bool = Form(True), supervisor: bool = Form(False)):
-    pid, _, err = await _resolve_worker(person_id, "", image, live)
-    if err:
-        return {"ok": False, "error": err}
-    try:
-        return {"ok": True, **loto_station.remove_lock(pid, by=pid, supervisor=supervisor)}
-    except Exception as e:
-        return {"ok": False, "error": str(e)}
-
-
-@app.post("/loto/arm")
-async def loto_arm(action: str = Form("TOGGLE"), person_id: str = Form(None),
-                   name: str = Form(""), image: UploadFile = File(None),
-                   live: bool = Form(True)):
-    """얼굴 인증된 작업자만 무장. 무장 후 10초 내 물리 버튼을 누르면 서보 작동."""
-    pid, nm, err = await _resolve_worker(person_id, name, image, live)
-    if err:
-        return {"ok": False, "error": err, "armed": False}
-    loto_controller.arm(action)
-    return {"ok": True, "armed": True, "by": pid, "action": action,
-            "hint": "10초 내에 기계의 물리 버튼을 누르세요"}
-
-
-@app.post("/loto/energize")
-def loto_energize(by: str = Form("operator")):
-    try:
-        return {"ok": True, **loto_station.energize(by=by)}
-    except Exception as e:
-        return {"ok": False, "error": str(e)}
-
-
-@app.post("/loto/shutdown")
-def loto_shutdown(by: str = Form("operator")):
-    return {"ok": True, **loto_station.shutdown(by=by)}
 
 
 # ── 다중 인증(MFA) 엔드포인트 ────────────────────────────────
