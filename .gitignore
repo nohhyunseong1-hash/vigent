@@ -11,7 +11,11 @@ config/notify.yaml
 *.onnx
 *.tflite
 *.h5
-vigent-core/weights/
+vigent-core/weights/*
+# 가중치 소재 추적(재발방지, [I] 2026-08) — 파일 자체는 계속 gitignore, 매니페스트만 추적
+# (주의: "vigent-core/weights/"처럼 디렉터리 자체를 통째로 제외하면 git 이 안으로 안 내려가서
+#  아래 negation 이 안 먹는다 — 반드시 "weights/*"(내용물 와일드카드)로 둬야 함, 실측 확인됨)
+!vigent-core/weights/MANIFEST.md
 
 # ── 데이터셋·산출물 ──
 data/
