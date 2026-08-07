@@ -44,6 +44,11 @@ _READ_FAIL_MAX = int(os.environ.get("VIGENT_READ_FAIL_MAX") or tuning.val("stabi
 # 프레임 신선도(지연): 스트림은 내부 버퍼를 최소화해 '최신 프레임'을 처리(과거 프레임 지연 누적 방지).
 #   파일 소스는 순차 처리라 이 설정을 적용하지 않는다(모든 프레임을 봐야 하므로).
 _CAP_BUFFERSIZE = int(os.environ.get("VIGENT_CAP_BUFFERSIZE") or tuning.val("stability", "cap_buffersize", 1))
+# RTSP 전송방식 강제 TCP: FFmpeg 기본(UDP)은 손실 많은 WiFi 에서 프레임 드랍·재연결 폭주 →
+#   워커가 프레임을 못 받아 guard.detect(RF-DETR) 자체가 안 돌아 검출 0 (2026-08 실측: Tapo UDP 재연결 7회,
+#   프레임나이 3~27s). go2rtc(TCP)는 같은 스트림 16fps·멈춤0 로 안정 → 워커도 TCP 로 맞춘다.
+#   파일·웹캠(int) 소스엔 무영향(옵션 무시). env 로 override 가능. cv2 VideoCapture(FFMPEG) 열기 전에 설정.
+os.environ.setdefault("OPENCV_FFMPEG_CAPTURE_OPTIONS", "rtsp_transport;tcp|max_delay;500000")
 _COOLDOWN_S = float(tuning.val("detect", "cooldown_s", 15.0))
 # ②: 증거 JPEG(무거운 후속) 전용 쿨다운 — 이벤트 '기록'은 _COOLDOWN_S 주기로 유지하되,
 #   증거 저장(인코딩+디스크)만 rule별로 이 주기까지 스로틀. 어떤 오발화도 서버를 포화 못 시킴.
