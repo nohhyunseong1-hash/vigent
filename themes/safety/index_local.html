@@ -562,7 +562,10 @@
   //   ppe_anchor_ab.md). person 은 이미 noAnchorClass 로 면제돼 있었으나 PPE 는 그대로 anchor 대상이었음.
   //   PPE 도 서버 tid 가 실린다(guard.py _track_iou, person 과 동일 메커니즘) → 앵커 없이도 id매칭+One-Euro+
   //   속도외삽만으로 추적 가능 → anchor 자체를 끈다(현재 person·PPE 전부 제외라 anchor 를 켜둘 대상이 없음).
-  var _bt = new VigentBoxDisplay.BoxTracker({});   // 검증 표시 스택(ByteTrack/IoU tid 기반 One-Euro+속도외삽+dedup). 모션 앵커링은 미사용(2026-08, PPE 끌림 결함으로 비활성).
+  // 2026-08(추가): extrapCap 0.6→0.85, 앵커 제거 후 보간 강화(benchmarks/local_slowdown_investigate.md 근거) —
+  //   앵커가 메우던 검출 사이 30fps 보정을 잃은 뒤 실배포 캐던스(100~150ms)+지연·지터 조건에서 정지프레임이
+  //   두드러졌다(실측 44%→hub값 0.85 적용 시 36%). index_hub.html `_spotBt`와 동일값이라 검증된 값이다.
+  var _bt = new VigentBoxDisplay.BoxTracker({extrapCap:0.85});   // 검증 표시 스택(ByteTrack/IoU tid 기반 One-Euro+속도외삽+dedup). 모션 앵커링은 미사용(2026-08, PPE 끌림 결함으로 비활성).
   window.VIGENT_PERSON_BOXTRACKER = true;   // realtime_core.js drawObjects: 폴백(브라우저) 모드에서도 person 을 pose 사유로 숨기지 않게
   // (구 3.13 "MediaPipe 랜드마크 기반 모션 앵커(computeAnchor)" 는 다인 상황에서 PPE 박스가 앵커가 고정한
   //  엉뚱한 사람 쪽으로 끌리는 결함이 있어 제거됨(2026-08) — PPE 도 person 과 동일하게 서버 tid 기반
