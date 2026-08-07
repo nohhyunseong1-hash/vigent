@@ -89,15 +89,32 @@
 개인정보보호법상 민감할 수 있어 **지양**한다. 대신 **로컬에서 완전히 도는 CVAT**을 권장한다.
 
 ### 3-1. CVAT 로컬 설치 (Docker 필요)
-1. Docker Desktop 설치·실행 확인(`docker --version`).
-2. CVAT 저장소 클론: `git clone https://github.com/cvat-ai/cvat` (별도 디렉터리 — VIGENT 저장소 밖 권장).
-3. `cd cvat && docker compose up -d` — 최초 실행 시 이미지 다운로드로 수 분 소요.
-4. 관리자 계정 생성: `docker exec -it cvat_server python3 manage.py createsuperuser` (아이디·비번 설정).
-5. 브라우저로 `http://localhost:8080` 접속 → 방금 만든 계정으로 로그인.
 
-> **버전 주의**: CVAT은 활발히 업데이트되는 오픈소스라 위 명령이 버전에 따라 조금 다를 수 있다(정직
-> 고지 — 이 문서 작성 시점 기준 일반적인 절차이며, 실행 전 CVAT 공식 저장소의 README로 최신 설치법을
-> 한 번 대조할 것을 권장).
+**★2026-08-07 이 데스크탑에서 실제로 완료됨** — 아래는 추정 절차가 아니라 실행해서 동작을 확인한
+명령이다(규칙7). `D:\cvat` 에 클론, Docker Desktop(WSL2 backend) 설치, 컨테이너 18개 `Up` 확인,
+`http://localhost:8080` 로그인 성공, 왕복 테스트 20/20 통과까지 검증됨.
+
+1. Docker Desktop(WSL2 포함) 설치 → `docker --version` + `docker run hello-world` 로 데몬 동작 확인.
+   (WSL2 미설치면 **관리자 PowerShell**에서 `wsl --install` 후 재부팅이 먼저 필요하다.)
+2. CVAT 저장소 클론: `git clone https://github.com/cvat-ai/cvat` (별도 디렉터리 — VIGENT 저장소 밖. 이 환경은 `D:\cvat`).
+3. `cd D:\cvat` → `docker compose pull` → `docker compose up -d` (이미지 약 10개, 최초 수 분 소요).
+   PowerShell 은 `&&` 를 못 쓰므로 줄을 나누거나 `;` 로 연결한다.
+4. 관리자 계정 생성: `docker exec -it cvat_server python3 ~/manage.py createsuperuser`
+   (**`~/manage.py`** — 경로에 `~/` 가 필요하다. `manage.py` 만 쓰면 실패.)
+5. 브라우저로 `http://localhost:8080` 접속 → 방금 만든 계정으로 로그인.
+6. 정지는 `docker compose stop`(데이터 보존), 컨테이너 삭제까지는 `docker compose down`(볼륨은 유지).
+
+> **버전 주의**: CVAT은 활발히 업데이트되는 오픈소스라 위 명령이 버전에 따라 달라질 수 있다.
+> 위 절차는 2026-08-07 시점 `cvat/server:dev` 기준으로 실제 동작을 확인한 것이다.
+>
+> **★태스크 생성·import·export 는 웹 UI 대신 스크립트 권장**: `benchmarks/cvat_setup_pilot.py`
+> (`setup`/`inspect`/`roundtrip`/`export`)가 REST API로 같은 일을 하되 라벨 순서 검증과 덮어쓰기 전
+> 백업까지 자동으로 한다. 절차·단축키는 `data/field_eval/pilot20/README.md` 참조.
+>
+> **★왕복 테스트를 먼저 통과시킬 것(2026-08-07 통과 확인)**: 진짜 검수 전에 "현재 정답지를 import →
+> 무수정 export → 원본과 비교"를 돌려 클래스 순서·좌표 변환이 깨지지 않는지 확인한다.
+> `python benchmarks/cvat_setup_pilot.py roundtrip` → **20/20 파일 완전 일치**여야 통과
+> (비교 로직은 `benchmarks/cvat_roundtrip_check.py`).
 >
 > **★latency 측정 주의(2026-08 신설)**: Docker Desktop이 떠 있으면 CPU 전용 torch 추론 시간 측정이
 > 오염될 수 있다 — CVAT 작업이 끝나면 `docs/benchmark_measurement_hygiene.md`대로 Docker Desktop을
@@ -243,6 +260,10 @@ tuning.yaml` ppe) 이상에서 살아남는 오탐"이 몇 개인지 확인한�
 채워둔 참고치, 나머지 열은 검수 중 기록.)
 
 ### 3-4. 검수 완료본 내보내기 → labels/ (labels_draft/는 보존)
+
+> **파일럿 20장은 스크립트로 회수한다**: `python benchmarks/cvat_setup_pilot.py export` — 내려받기·
+> 압축해제·`labels/` 반영을 한 번에 하고, **덮어쓰기 전에 `labels_backup_<날짜>_<시각>/`을 자동
+> 생성**한다(규칙2). 아래 1~3은 손으로 할 때의 절차.
 
 1. CVAT에서 검수(수정) 완료 후 **Actions → Export task dataset**, format **YOLO 1.1**.
 2. 압축 해제하면 보통 `obj_train_data/`(이미지+라벨 `.txt`)와 `obj.names`가 나온다.
