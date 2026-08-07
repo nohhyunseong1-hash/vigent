@@ -26,7 +26,7 @@ def _guard_with_fake_detect(box_by_call):
     g.TRACK_ALGO = "iou"
     calls = {"n": 0}
 
-    def _fake_detect(img, detectors=None, conf=None, imgsz=None, track_key="default"):
+    def _fake_detect(img, detectors=None, conf=None, imgsz=None, augment=False, *, track_key):
         fresh = box_by_call[calls["n"]]
         calls["n"] += 1
         tracked = g._track(list(fresh), track_key)

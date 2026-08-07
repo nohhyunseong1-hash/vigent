@@ -7,6 +7,7 @@ from app_state import DETECT_LOCK as _DETECT_LOCK
 from app_state import load_theme as _load_theme
 from fastapi import APIRouter, Body
 from fastapi.responses import HTMLResponse
+from isolated_detect import detect_isolated
 from web_util import img_from_b64, incident_boxes
 
 router = APIRouter()
@@ -32,7 +33,9 @@ def safety_incident_frame(payload: dict = Body(...), theme: str = DEFAULT_THEME)
     try:
         with _DETECT_LOCK:
             # forklift 제외(F-7) — 유령 지게차가 타임라인·협착 점수 오염. 측정은 payload.detectors 명시로 가능.
-            out = guard.detect(img, detectors=payload.get("detectors") or ["person", "ppe", "fire_smoke"])
+            # 2026-08: 서로 무관한 사진이 매 요청 들어올 수 있어(track_key 미지정 시 "default" 공유) 격리
+            #   검출로 전환(detect_isolated) — 이전 요청의 박스가 이어붙는 버그 재발 방지.
+            out = detect_isolated(guard, img, detectors=payload.get("detectors") or ["person", "ppe", "fire_smoke"])
     except Exception:  # noqa: BLE001
         return {"score": 0, "hazards": []}
     sig = out.get("signals", {}) or {}
@@ -72,8 +75,9 @@ def safety_incident_analyze(payload: dict = Body(...), theme: str = DEFAULT_THEM
             # ⚠ TTA(augment)는 약한 커스텀 모델(지게차·PPE)의 오탐을 증폭시켜 제거함(2026-07). 고해상도만 유지.
             # forklift 제외(F-7): 정탐 conf p50 0.002 ≈ 오탐 → 강재를 지게차로 오탐(협착 오염). 측정은
             #   payload.detectors 명시 지정 시 여전히 가능(payload 는 dict). T10b full 재학습 후 복원.
-            out = guard.detect(img, detectors=payload.get("detectors") or ["person", "ppe", "fire_smoke"],
-                               imgsz=1280, augment=False)
+            # 2026-08: 격리 검출로 전환(detect_isolated) — 이유는 위 /frame 과 동일.
+            out = detect_isolated(guard, img, detectors=payload.get("detectors") or ["person", "ppe", "fire_smoke"],
+                                   imgsz=1280, augment=False)
         present = [d.get("label") for d in out.get("detections", [])]
     except Exception:  # noqa: BLE001
         out, present = {"detections": []}, []

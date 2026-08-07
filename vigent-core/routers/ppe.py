@@ -8,6 +8,7 @@ from app_state import DETECT_LOCK as _DETECT_LOCK
 from app_state import load_theme as _load_theme
 from fastapi import APIRouter, Body
 from fastapi.responses import HTMLResponse
+from isolated_detect import detect_isolated
 from web_util import img_from_b64
 
 router = APIRouter()
@@ -55,7 +56,9 @@ def safety_ppe_check(payload: dict = Body(...), theme: str = DEFAULT_THEME):
     guard = bundle["agents"].get("Guard")
     try:
         with _DETECT_LOCK:
-            out = guard.detect(img, detectors=["person", "ppe"])
+            # 2026-08: 서로 무관한 사진이 매 요청 들어올 수 있어 격리 검출(detect_isolated)로 전환 —
+            #   이전 요청의 박스가 이어붙는 버그 재발 방지.
+            out = detect_isolated(guard, img, detectors=["person", "ppe"])
         dets = out.get("detections", [])
     except Exception:  # noqa: BLE001
         dets = []

@@ -66,6 +66,7 @@ def _names(set_dir):
 def evaluate(set_dir):
     import cv2
     import main
+    from isolated_detect import detect_isolated
     names = _names(set_dir)
     nt = {t: _norm(t) for t in TARGETS}
     bundle = main.STATE.get(main.DEFAULT_THEME) or main._load_theme(main.DEFAULT_THEME)
@@ -96,8 +97,9 @@ def evaluate(set_dir):
         if img is None:
             continue
         H, W = img.shape[:2]
-        guard._tracks = []
-        out = guard.detect(img, detectors=["ppe"])
+        # 2026-08: 구 `guard._tracks = []`는 존재하지 않는 속성이라 죽은 코드였다(진짜 상태는
+        #   `_tracks_by_key`) — 이미지마다 추적기가 실제로는 안 비워지고 있었다.
+        out = detect_isolated(guard, img, detectors=["ppe"])
         preds = {t: [] for t in TARGETS}
         for d in out.get("detections", []):
             nl = _norm(d.get("label", ""))

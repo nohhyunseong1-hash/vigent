@@ -45,10 +45,12 @@ def _guard():
 
 def _person_boxes(frame):
     """production 과 동일: guard.detect(person) 박스(픽셀, _nms/_track 적용)."""
+    from isolated_detect import detect_isolated
     g = _guard()
-    g._tracks = []                       # 클립 내에서도 프레임 독립 검출(추적은 트래커가 담당)
+    # 2026-08: 구 `g._tracks = []`는 존재하지 않는 속성이라 죽은 코드였다(진짜 상태는 `_tracks_by_key`)
+    #   — "클립 내에서도 프레임 독립 검출" 의도가 실제로는 적용 안 되고 있었다. detect_isolated()로 교체.
     h, w = frame.shape[:2]
-    out = g.detect(frame, detectors=["person"])
+    out = detect_isolated(g, frame, detectors=["person"])
     return [[d["bbox"][0] * w, d["bbox"][1] * h, d["bbox"][2] * w, d["bbox"][3] * h]
             for d in out.get("detections", []) if d["label"] == "person"]
 

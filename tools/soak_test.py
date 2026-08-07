@@ -217,7 +217,7 @@ def main():
             _wf = _cv2.imread(source)
             t_w = time.time()
             for _g in {id(g): g for g in guards}.values():
-                _g.detect(_wf, detectors=["person", "ppe", "forklift", "fire_smoke"])
+                _g.detect(_wf, detectors=["person", "ppe", "forklift", "fire_smoke"], track_key="soak:warmup")
             print(f"[soak] real guard 워밍업 detect 완료({time.time()-t_w:.1f}s — 첫 추론 지연 소진)")
         except Exception as e:  # noqa: BLE001
             print(f"[soak] 워밍업 detect 실패(무시): {e}")

@@ -14,6 +14,7 @@ from app_state import DETECT_LOCK as _DETECT_LOCK
 from app_state import load_theme as _load_theme
 from fastapi import APIRouter, Body, HTTPException, Response
 from fastapi.responses import FileResponse, HTMLResponse
+from isolated_detect import detect_isolated
 from pydantic import BaseModel
 from web_util import (
     _ROOT,
@@ -414,7 +415,9 @@ def safety_eval_run(payload: dict = Body(...), theme: str = DEFAULT_THEME):
         boxes, dets, hazards = [], [], []
         try:
             with _DETECT_LOCK:
-                out = guard.detect(img, detectors=["person", "ppe", "forklift", "fire_smoke"])
+                # 2026-08: 이 배치의 사진들은 서로 무관하다(같은 요청 안에서도) — 격리 검출(detect_isolated)로
+                #   전환해 앞 사진의 박스가 다음 사진에 이어붙는 버그를 막는다(recall/precision 오염 원인이었음).
+                out = detect_isolated(guard, img, detectors=["person", "ppe", "forklift", "fire_smoke"])
             dets = out.get("detections", [])
             boxes = incident_boxes(out, _prox.detect(dets))
             pred = evaluator.predict(dets, metric) if metric != "auto" else False

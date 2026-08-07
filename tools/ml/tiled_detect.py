@@ -40,6 +40,7 @@ def _merge(dets, iou_thr=0.5):
 def tiled_detect(image_bgr, guard, detectors=("person",), tile=640, overlap=0.2):
     """타일링 추론 → 합친 detections(정규화 bbox). guard 의 추적기는 끄고 타일별 호출."""
     import cv2  # noqa: F401
+    from isolated_detect import detect_isolated
     H, W = image_bgr.shape[:2]
     step = int(tile * (1 - overlap))
     xs = list(range(0, max(1, W - tile + 1), step)) or [0]
@@ -56,8 +57,9 @@ def tiled_detect(image_bgr, guard, detectors=("person",), tile=640, overlap=0.2)
             if crop.size == 0:
                 continue
             ch, cw = crop.shape[:2]
-            guard._tracks = []
-            out = guard.detect(crop, detectors=list(detectors))
+            # 2026-08: 구 `guard._tracks = []`는 존재하지 않는 속성이라 죽은 코드였다(진짜 상태는
+            #   `_tracks_by_key`) — 타일마다 추적기가 실제로는 안 비워지고 있었다.
+            out = detect_isolated(guard, crop, detectors=list(detectors))
             for d in out.get("detections", []):
                 bb = d["bbox"]   # 타일 정규화 → 원본 정규화
                 gx1 = (x0c + bb[0] * cw) / W
@@ -69,8 +71,8 @@ def tiled_detect(image_bgr, guard, detectors=("person",), tile=640, overlap=0.2)
 
 
 def _count(guard, img, detectors, cls):
-    guard._tracks = []
-    out = guard.detect(img, detectors=list(detectors))
+    from isolated_detect import detect_isolated
+    out = detect_isolated(guard, img, detectors=list(detectors))
     return sum(1 for d in out.get("detections", []) if str(d["label"]).lower() == cls)
 
 

@@ -407,7 +407,7 @@ class GuardAgent(BaseAgent):
         a = self.EMA_MIN + (d / dref) * (self.EMA_MAX - self.EMA_MIN)
         return max(self.EMA_MIN, min(self.EMA_MAX, a))
 
-    def _track(self, fresh: list[dict[str, Any]], track_key: str = "default") -> list[dict[str, Any]]:
+    def _track(self, fresh: list[dict[str, Any]], track_key: str) -> list[dict[str, Any]]:
         """추적 알고리즘 디스패처(Phase2). TRACK_ALGO='iou'(기본)면 기존 _track_iou 그대로(회귀 0).
         'bytetrack'이면 person 만 ByteTrack, 나머지 클래스는 여전히 _track_iou(클래스 비구분 트래커에
         섞으면 오매칭 위험 — Phase2 범위를 person 으로 한정)."""
@@ -468,7 +468,7 @@ class GuardAgent(BaseAgent):
             out.append({**src, "bbox": [float(v) for v in result.xyxy[i]], "tid": tid + _BYTETRACK_TID_OFFSET})
         return out + tracked_other
 
-    def _track_iou(self, fresh: list[dict[str, Any]], track_key: str = "default") -> list[dict[str, Any]]:
+    def _track_iou(self, fresh: list[dict[str, Any]], track_key: str) -> list[dict[str, Any]]:
         """서버측 추적/스무딩: 새 탐지를 기존 트랙과 IoU 매칭해 갱신(위치 EMA 평활),
         새것은 추가, TTL 지난 트랙은 제거. 잠깐 놓친 프레임에도 박스를 유지해 깜빡임 제거.
 
@@ -561,13 +561,18 @@ class GuardAgent(BaseAgent):
 
     def detect(self, image_bgr: np.ndarray, detectors: list[str] | None = None,
                conf: float | None = None, imgsz: int | None = None,
-               augment: bool = False, track_key: str = "default") -> dict[str, Any]:
+               augment: bool = False, *, track_key: str) -> dict[str, Any]:
         """프레임 추론. 반환: 정규화 라벨·confidence·정규화 bbox(0~1) 목록 + 파생 신호.
 
         image_bgr: cv2 BGR numpy 배열
         detectors: 돌릴 검출기 id 목록(기본 person·ppe·forklift; fire 는 명시 시)
         imgsz: 추론 해상도 override(None=기본 self.IMGSZ). 오프라인 정밀분석은 높게(예 1280).
         augment: TTA(다중스케일·좌우반전 추론). 오프라인에서 True → 정확도↑·느림(실시간 금지).
+        track_key: 필수(2026-08, 암묵적 기본값 폐지 — 호출자가 반드시 의도를 명시하게 강제).
+            같은 카메라의 연속 프레임이면 그 카메라 고유값을 계속 재사용(예: "cam:<name>").
+            서로 무관한 정지 이미지(배치 평가 등)면 매 호출 새 값을 쓰거나
+            isolated_detect.detect_isolated()를 쓸 것 — "default" 같은 고정 문자열을
+            정지 이미지에 재사용하면 트랙이 이어붙는 버그가 재발한다(2026-08 실측 확인).
         """
         conf_override = conf      # None 이면 검출기별 임계(DETECTOR_CONF) 사용
         # 기본은 '범용' 검출기(person=yolo11s, COCO 80종)만 — 어디서든 일상 사물 정확 인식.

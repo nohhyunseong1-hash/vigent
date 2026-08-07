@@ -46,6 +46,7 @@ def _load_gt(lbl_path):
 def evaluate(eval_dir, cls="person", iou_thr=0.5, detector_slot="person"):
     import cv2
     import main
+    from isolated_detect import detect_isolated
     bundle = main.STATE.get(main.DEFAULT_THEME) or main._load_theme(main.DEFAULT_THEME)
     guard = bundle["agents"].get("Guard")
 
@@ -60,8 +61,9 @@ def evaluate(eval_dir, cls="person", iou_thr=0.5, detector_slot="person"):
         img = cv2.imread(imgp)
         if img is None:
             continue
-        guard._tracks = []      # ★ 추적기 초기화(누적 오탐 방지)
-        out = guard.detect(img, detectors=[detector_slot])
+        # 2026-08: 구 `guard._tracks = []`는 존재하지 않는 속성이라 죽은 코드였다(진짜 상태는
+        #   `_tracks_by_key`) — "이미지마다 추적기 초기화" 의도가 실제로는 적용 안 되고 있었다.
+        out = detect_isolated(guard, img, detectors=[detector_slot])
         preds = sorted(
             [(d["bbox"], d["conf"]) for d in out.get("detections", [])
              if str(d["label"]).lower() == cls.lower()],

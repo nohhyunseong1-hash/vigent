@@ -21,12 +21,13 @@ from typing import Any
 
 
 def detect_isolated(guard: Any, img: Any, detectors: list[str],
-                     conf: float | None = None, imgsz: int | None = None) -> dict[str, Any]:
+                     conf: float | None = None, imgsz: int | None = None,
+                     augment: bool = False) -> dict[str, Any]:
     """서로 무관한 정지 이미지 1장을 격리된 트랙 상태로 검출한다(연속 영상엔 쓰지 말 것 — 그 경우는
     같은 track_key를 프레임 내내 재사용하는 게 정답이다, `benchmarks/box_quality.py`의
     `replay_detections`가 그 예시). track_key는 매번 새로 발급하므로 호출자가 신경 쓸 필요 없다."""
     track_key = f"isolated:{uuid.uuid4().hex[:12]}"
     guard.reset_tracks(track_key)   # 방어적(신규 키라 원래 비어있음) — 신규 key 발급 방침이 깨져도 안전
-    out = guard.detect(img, detectors=detectors, conf=conf, imgsz=imgsz, track_key=track_key)
+    out = guard.detect(img, detectors=detectors, conf=conf, imgsz=imgsz, augment=augment, track_key=track_key)
     guard.reset_tracks(track_key)   # 사용 후 정리 — 대량 배치에서 _tracks_by_key 무한 증식 방지
     return out
