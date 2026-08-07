@@ -410,14 +410,17 @@ def cmd_push89(api: Cvat) -> None:
     images = sorted((_REST89 / "images").glob("*.jpg"))
     fmt = _pick_format(api)
 
-    # CVAT 업로드는 기존 어노테이션에 '덧붙는다' — 중복 방지를 위해 기존 것을 먼저 비운다.
+    # ★CVAT 의 어노테이션 업로드는 기존 것을 덮어쓴다 — 2026-08-08 이 동작으로 사용자의
+    #   검수 작업(약 50분)이 소실되는 사고가 실제로 발생했다. 그래서 서버에 뭐라도 있으면
+    #   '무조건 먼저 파일로 백업'한 뒤에만 진행한다(규칙2). 확인 없이 지우지 않는다.
     cur = api.count_shapes(tid)
     if cur:
-        print(f"  ★현재 task {tid} 에 이미 박스 {cur}건이 있다.")
-        print("    그대로 올리면 중복된다. 기존 것을 전부 지우고 초안을 새로 올린다.")
-        print("    (검수 중이던 내용이 있으면 사라진다 — 있다면 지금 중단하고 export89 를 먼저 하세요.)")
-        if input("    진행하려면 'yes' 입력: ").strip().lower() != "yes":
-            raise SystemExit("중단했다 — 아무것도 바꾸지 않았다.")
+        print(f"  ★현재 task {tid} 에 이미 박스 {cur}건이 있다 — 덮어쓰기 전에 먼저 백업한다.")
+        _pull_into(api, tid, _REST89 / "labels")
+        print("    ↑ 위 백업 폴더에 현재 서버 상태가 보존됐다.")
+        print("    이 위에 초안을 새로 올리면 지금까지의 검수 내용이 서버에서는 사라진다.")
+        if input("    그래도 진행하려면 'yes' 입력: ").strip().lower() != "yes":
+            raise SystemExit("중단했다 — 서버는 그대로다(백업만 만들어졌다).")
         api.clear_annotations(tid)
         print(f"    기존 어노테이션 삭제 완료(남은 박스 {api.count_shapes(tid)}건)")
 
