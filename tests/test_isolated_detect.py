@@ -22,6 +22,8 @@ def _guard_with_fake_detect(box_by_call):
     g = guard_mod.GuardAgent.__new__(guard_mod.GuardAgent)   # __init__ 우회(모델·설정 로드 없이)
     g._tracks_by_key = {}
     g._bytetrack_by_key = {}
+    g._key_last_used = {}   # F-2: TTL 청소 상태
+    g._last_sweep_at = 0.0
     g._tid_seq = 0
     g.TRACK_ALGO = "iou"
     calls = {"n": 0}

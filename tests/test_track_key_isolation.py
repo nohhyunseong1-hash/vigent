@@ -17,6 +17,9 @@ class TrackKeyIsolation(unittest.TestCase):
     def _guard(self):
         g = guard_mod.GuardAgent.__new__(guard_mod.GuardAgent)   # __init__ 우회(모델·설정 로드 없이 _track 만)
         g._tracks_by_key = {}
+        g._bytetrack_by_key = {}
+        g._key_last_used = {}   # F-2: TTL 청소 상태(이 테스트는 스윕 트리거 안 걸리게 짧은 시퀀스만 씀)
+        g._last_sweep_at = 0.0
         g._tid_seq = 0
         return g
 

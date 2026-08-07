@@ -263,6 +263,19 @@ class GuardAgent(BaseAgent):
     BYTETRACK_MIN_FRAMES = 1         # 트랙 확정(tid 부여)까지 필요한 연속매칭 수. guard MIN_HITS=1 과 동일하게
                                       # 맞춰 "확정까지 프레임 수" 자체는 회귀 없게(라이브러리 기본 2 아님).
 
+    # ── track_key 정리(F-2, 2026-08) — 클라이언트가 주는 값이 그대로 _tracks_by_key 키가 되는 경로
+    #   (예: /safety/voice/scene 의 session_id)의 무한 증식 방지. cam:<name> 처럼 유한한 키는 이 청소의
+    #   영향을 사실상 안 받는다(계속 쓰이는 키는 매번 last_used 가 갱신돼 TTL 에 안 걸림 — 아래 _track 참고).
+    KEY_TTL_SEC = 300.0        # 유휴 5분 → 정리. TRACK_TTL(개별 트랙 만료)=1.2s 이므로 5분 유휴 키 안의
+                               #   트랙은 이미 전부 만료된 상태 — 되살아날 정보가 없다. 재생성 비용은
+                               #   _track_iou 의 setdefault 1회(≈0)라 짧게 잡아도 손해가 없다(사용자 지시,
+                               #   "왜 5분인가"는 이 주석이 답).
+    MAX_TRACKED_KEYS = 10_000   # 하드 백스톱 — TTL 정리로도 못 막는 폭증(비정상 트래픽) 대비. 정상 배포
+                               #   에서는 절대 안 닿는 값. 초과 시 가장 오래된 키부터 축출 + WARNING 로그
+                               #   (평상시엔 발동 안 하므로 "살아있는 세션 축출" 실패모드는 없음).
+    SWEEP_INTERVAL_SEC = 60.0   # 이 간격보다 자주는 스윕 안 함(매 detect() 마다 dict 전수스캔 방지 —
+                               #   호출은 O(1)이고, 실제 스캔은 이 간격 또는 키 수 초과 시에만 발동).
+
     def __init__(self, config: Any):
         super().__init__(config)
         # 현장 튜닝값(config/tuning.yaml)으로 conf·해상도 덮기(없으면 클래스 기본값)
@@ -304,6 +317,8 @@ class GuardAgent(BaseAgent):
         self._load_errors: dict[str, str] = {}
         self._tracks_by_key: dict[str, list[dict[str, Any]]] = {}  # 서버측 추적 박스(track_key 별 격리 · 5단계)
         self._bytetrack_by_key: dict[str, Any] = {}  # track_key 별 ByteTrackTracker 인스턴스(Phase2, algo=bytetrack 전용)
+        self._key_last_used: dict[str, float] = {}  # track_key 별 마지막 사용 시각(F-2 TTL 청소용)
+        self._last_sweep_at: float = 0.0          # 마지막 스윕 시각(F-2 — 이 간격보다 자주 스윕 안 함)
         self._tid_seq: int = 0                    # 트랙 안정 id 시퀀스(클라 id 매칭용 · 1.8b)
         self.HYSTERESIS = dict(self.HYSTERESIS_FRAMES)             # 신호 발화 히스테리시스(track_key 별 스트릭)
         self._sig_streak: dict[str, dict[str, int]] = {}          # track_key → {signal: 연속 True 프레임수}
@@ -410,10 +425,42 @@ class GuardAgent(BaseAgent):
     def _track(self, fresh: list[dict[str, Any]], track_key: str) -> list[dict[str, Any]]:
         """추적 알고리즘 디스패처(Phase2). TRACK_ALGO='iou'(기본)면 기존 _track_iou 그대로(회귀 0).
         'bytetrack'이면 person 만 ByteTrack, 나머지 클래스는 여전히 _track_iou(클래스 비구분 트래커에
-        섞으면 오매칭 위험 — Phase2 범위를 person 으로 한정)."""
+        섞으면 오매칭 위험 — Phase2 범위를 person 으로 한정).
+        모든 track_key 사용은 이 함수를 거친다 — F-2 TTL 청소용 last_used 갱신·스윕 트리거를 여기 한
+        곳에서만 한다(호출마다 O(1), 실제 dict 스캔은 SWEEP_INTERVAL_SEC 마다 또는 키 수 초과 시만)."""
+        now = time.time()
+        self._key_last_used[track_key] = now   # 사용 중인 키는 계속 갱신 → TTL 청소 대상에서 제외(F-2④)
+        self._maybe_sweep_stale_keys(now)
         if self.TRACK_ALGO == "bytetrack":
             return self._track_bytetrack(fresh, track_key)
         return self._track_iou(fresh, track_key)
+
+    def _maybe_sweep_stale_keys(self, now: float) -> None:
+        """F-2: KEY_TTL_SEC 넘게 안 쓰인 track_key 정리 + MAX_TRACKED_KEYS 하드 백스톱.
+        SWEEP_INTERVAL_SEC 간격(또는 키 수 초과) 조건을 먼저 본 뒤에만 dict 를 스캔 — 매 프레임 detect()
+        마다 전수스캔하지 않는다(카메라 N대×30fps 라이브 경로 지연 방지, 사용자 지시 ③)."""
+        due = now - self._last_sweep_at >= self.SWEEP_INTERVAL_SEC
+        over = len(self._tracks_by_key) > self.MAX_TRACKED_KEYS
+        if not due and not over:
+            return
+        self._last_sweep_at = now
+        stale = [k for k, t in self._key_last_used.items() if now - t > self.KEY_TTL_SEC]
+        for k in stale:
+            self._tracks_by_key.pop(k, None)
+            self._bytetrack_by_key.pop(k, None)
+            self._key_last_used.pop(k, None)
+        overflow = len(self._tracks_by_key) - self.MAX_TRACKED_KEYS
+        if overflow > 0:
+            # 백스톱 발동: TTL 정리로도 안 줄어듦 — 비정상 트래픽 의심, 반드시 로그로 남긴다(사용자 지시).
+            oldest = sorted(self._key_last_used.items(), key=lambda kv: kv[1])[:overflow]
+            for k, _t in oldest:
+                self._tracks_by_key.pop(k, None)
+                self._bytetrack_by_key.pop(k, None)
+                self._key_last_used.pop(k, None)
+            _guard_logger().warning(
+                "track_key 백스톱 발동: MAX_TRACKED_KEYS(%d) 초과 → 가장 오래된 %d개 강제축출"
+                "(TTL 정리 후에도 초과 — 비정상 트래픽 의심, 원인 확인 필요)",
+                self.MAX_TRACKED_KEYS, overflow)
 
     def reset_tracks(self, track_key: str) -> None:
         """track_key 하나의 추적 상태 초기화(IoU·ByteTrack 공통 — 오프라인 측정 reset_tracks 요청용).
@@ -423,6 +470,7 @@ class GuardAgent(BaseAgent):
         완전 삭제해도 연속영상 track_key(예: "cam:<name>")의 정상 동작에는 영향 없다."""
         self._tracks_by_key.pop(track_key, None)
         self._bytetrack_by_key.pop(track_key, None)
+        self._key_last_used.pop(track_key, None)
 
     def _track_bytetrack(self, fresh: list[dict[str, Any]], track_key: str) -> list[dict[str, Any]]:
         """ByteTrack(trackers.ByteTrackTracker, Apache-2.0)로 person 만 추적(Phase2, benchmarks/
