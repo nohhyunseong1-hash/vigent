@@ -555,25 +555,18 @@
   //   backendBoostDets(비디오 픽셀 W×H 좌표)·backendBoostAt(수신 시각)에 담아둔다. 별도 fetch 루프를
   //   두면 서버 _DETECT_LOCK 대기열이 늘어 왕복↑·지터↑ → 자체 요청을 없애고 그 전역을 그대로 읽는다.
   //   backendBoostDets 는 safety 모드에서 PPE(NO-* 포함) 전부 포함(코드 확인). realtime_core 무수정.
-  // 2026-08: person 을 제외 대신 포함(noAnchorClass)로 전환 — person 도 이 트래커(ByteTrack tid+One-Euro)가
-  //   전담해 다인 상황에서 안정적으로 표시하되, PPE 처럼 MediaPipe 앵커(1인)에는 절대 안 태운다(재끌림 방지).
-  var _bt = new VigentBoxDisplay.BoxTracker({noAnchorClass:'person', anchor:true});   // 검증 표시 스택 + 3.13 모션 앵커링(PPE 박스를 30fps 스켈레톤에 태움 · 표시 전용)
+  // 2026-08: person 을 제외 대신 포함(noAnchorClass)로 전환 — person 도 이 트래커(ByteTrack/IoU tid+One-Euro)가
+  //   전담해 다인 상황에서 안정적으로 표시한다.
+  // 2026-08(추가): PPE 도 person 과 같은 결함 확인 — anchor:true 로 MediaPipe 1인 앵커(computeAnchor)에 태우면
+  //   다인 상황에서 앵커가 고정한 사람 쪽으로 다른 사람의 PPE 박스가 쏠려 끌려간다(실측: benchmarks/
+  //   ppe_anchor_ab.md). person 은 이미 noAnchorClass 로 면제돼 있었으나 PPE 는 그대로 anchor 대상이었음.
+  //   PPE 도 서버 tid 가 실린다(guard.py _track_iou, person 과 동일 메커니즘) → 앵커 없이도 id매칭+One-Euro+
+  //   속도외삽만으로 추적 가능 → anchor 자체를 끈다(현재 person·PPE 전부 제외라 anchor 를 켜둘 대상이 없음).
+  var _bt = new VigentBoxDisplay.BoxTracker({});   // 검증 표시 스택(ByteTrack/IoU tid 기반 One-Euro+속도외삽+dedup). 모션 앵커링은 미사용(2026-08, PPE 끌림 결함으로 비활성).
   window.VIGENT_PERSON_BOXTRACKER = true;   // realtime_core.js drawObjects: 폴백(브라우저) 모드에서도 person 을 pose 사유로 숨기지 않게
-  // 3.13: MediaPipe 랜드마크(window._vgPose, 정규화 33점)에서 머리·몸통 앵커(소스 픽셀) 산출 — rAF 마다 주입.
-  //   좌표계: 박스(backendBoostDets)도 랜드마크×videoWidth 도 원본 video-px(미러 전) → 일치. 판정 로직 불변(표시만).
-  function computeAnchor(){
-    var lm=window._vgPose; var VW=video.videoWidth||0, VH=video.videoHeight||0;
-    if(!lm||!VW||!lm[11]||!lm[12]) return null;
-    function pt(i){ var p=lm[i]; return p?[p.x*VW, p.y*VH, (p.visibility==null?1:p.visibility)]:null; }
-    var sL=pt(11), sR=pt(12); if(!sL||!sR) return null;
-    var hL=pt(23), hR=pt(24), tp=[sL,sR,hL,hR].filter(Boolean);
-    var hp=[pt(0),pt(7),pt(8)].filter(Boolean);   // 코·귀
-    var sw=Math.hypot(sL[0]-sR[0], sL[1]-sR[1])||1;   // 어깨폭(스케일)
-    var head=hp.length ? [hp.reduce(function(a,p){return a+p[0];},0)/hp.length, hp.reduce(function(a,p){return a+p[1];},0)/hp.length]
-                       : [(sL[0]+sR[0])/2, (sL[1]+sR[1])/2 - 0.4*sw];
-    var torso=[tp.reduce(function(a,p){return a+p[0];},0)/tp.length, tp.reduce(function(a,p){return a+p[1];},0)/tp.length];
-    return {head:head, torso:torso, scale:sw, ok:Math.min(sL[2],sR[2])>0.3};   // ok=어깨 신뢰↓/부재 시 자동 폴백
-  }
+  // (구 3.13 "MediaPipe 랜드마크 기반 모션 앵커(computeAnchor)" 는 다인 상황에서 PPE 박스가 앵커가 고정한
+  //  엉뚱한 사람 쪽으로 끌리는 결함이 있어 제거됨(2026-08) — PPE 도 person 과 동일하게 서버 tid 기반
+  //  One-Euro+속도외삽만으로 표시.)
   var lastAt=0;           // 직전 처리한 backendBoostAt(새 갱신 감지)
   var lastDrawn=0;        // 직전 그린 트랙 수(빈 전환 시 1회 클리어)
   function clearOverlay(){ overlay.width=overlay.clientWidth; overlay.height=overlay.clientHeight; }
@@ -592,9 +585,7 @@
       if(_dbg){ var nm=Date.now(); if(_dbgLastIng)_dbgIng.push(nm-_dbgLastIng); _dbgLastIng=nm; if(_dbgIng.length>400)_dbgIng.shift(); }
     }
     var now=Date.now();
-    if(window._vgRtt) _bt.anchorLatency=Math.max(60,Math.min(400,window._vgRtt));   // 3.13: 검출 지연≈왕복시간 → 검출프레임 시점 앵커에 정합(지연 제거)
-    _bt.setAnchor(computeAnchor());   // 3.13: rAF마다 최신 앵커 주입(없으면 자동 트윈+외삽 폴백)
-    var vis=_bt.sample(now);   // [{cls,score,tid,box,alpha}] — 앵커(30fps) 또는 외삽 적용
+    var vis=_bt.sample(now);   // [{cls,score,tid,box,alpha}] — id매칭+One-Euro+속도외삽(앵커 미사용, 위 참고)
     if(_dbg&&vis.length){ _dbgFrames++; var _sg=vis.map(function(o){return o.box.map(function(v){return v.toFixed(3);}).join(',');}).join('|'); if(_sg===_dbgPrevSig)_dbgStatic++; _dbgPrevSig=_sg; }
     if(!vis.length){   // 박스 없어도 프레스 방호구역은 상시 표시(2.6 ③)
       if(_pressOn()){ overlay.width=overlay.clientWidth; overlay.height=overlay.clientHeight; _drawPressZone(); lastDrawn=1; }
