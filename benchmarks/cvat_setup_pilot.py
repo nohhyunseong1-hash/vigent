@@ -9,6 +9,8 @@
   python benchmarks/cvat_setup_pilot.py inspect    # 라벨 순서·이미지 목록 검증
   python benchmarks/cvat_setup_pilot.py roundtrip  # import→무수정 export→원본 비교
   python benchmarks/cvat_setup_pilot.py export     # 검수 완료 후 labels/ 로 회수(백업 자동)
+  python benchmarks/cvat_setup_pilot.py push89     # 89장 초안을 field_eval_89 태스크에 올림
+  python benchmarks/cvat_setup_pilot.py export89   # 89장 검수 결과를 rest89/labels/ 로 회수
   → 아이디·비밀번호는 실행 중에 물어본다(비밀번호는 화면에 안 보임).
     규칙5에 따라 명령줄 인자로 비밀번호를 받지 않는다. 자동화가 필요하면 환경변수
     CVAT_USER / CVAT_PASSWORD 를 쓴다(셸 히스토리에 남지 않게 주의).
@@ -49,6 +51,7 @@ except ImportError:
 _ROOT = Path(__file__).resolve().parent.parent
 _FE = _ROOT / "data" / "field_eval"
 _PILOT = _FE / "pilot20"
+_REST89 = _FE / "rest89"
 _TASKS_JSON = _PILOT / ".cvat_tasks.json"
 
 # CVAT 의 YOLO(darknet) 포맷 이름. 서버 버전에 따라 후보가 다를 수 있어 순서대로 시도한다.
@@ -173,6 +176,17 @@ class Cvat:
             r = self.s.post(f"{self.url}/api/tasks/{task_id}/annotations", params={"format": fmt}, timeout=600)
         if r.status_code not in (200, 201):
             raise SystemExit(f"import 마무리 실패({r.status_code}): {r.text[:300]}")
+
+    def count_shapes(self, task_id: int) -> int:
+        r = self.s.get(f"{self.url}/api/tasks/{task_id}/annotations", timeout=120)
+        r.raise_for_status()
+        j = r.json()
+        return len(j.get("shapes", [])) + len(j.get("tracks", []))
+
+    def clear_annotations(self, task_id: int) -> None:
+        r = self.s.delete(f"{self.url}/api/tasks/{task_id}/annotations", timeout=120)
+        if r.status_code not in (200, 204):
+            raise SystemExit(f"어노테이션 삭제 실패({r.status_code}): {r.text[:300]}")
 
     def export_annotations(self, task_id: int, fmt: str, out_zip: Path) -> None:
         # 신형: POST /dataset/export → rq_id → result_url
@@ -379,15 +393,84 @@ def cmd_roundtrip(api: Cvat) -> None:
         shutil.rmtree(work, ignore_errors=True)
 
 
+def cmd_push89(api: Cvat) -> None:
+    """rest89(나머지 89장)의 초안 라벨을 field_eval_89 태스크에 올린다(검수 시작 준비)."""
+    classes = _classes()
+    tasks = _load_tasks()
+    tid = tasks.get("field_eval_89") or api.find_task("field_eval_89")
+    if not tid:
+        raise SystemExit("field_eval_89 태스크가 없다 — 먼저 `setup` 을 실행하세요.")
+    tid = int(tid)
+    labels_dir = _REST89 / "labels"
+    if not labels_dir.exists():
+        raise SystemExit(
+            f"{labels_dir} 가 없다 — 먼저 초안을 생성하세요:\n"
+            "  python benchmarks/generate_pilot20_dataset.py --set rest89"
+        )
+    images = sorted((_REST89 / "images").glob("*.jpg"))
+    fmt = _pick_format(api)
+
+    # CVAT 업로드는 기존 어노테이션에 '덧붙는다' — 중복 방지를 위해 기존 것을 먼저 비운다.
+    cur = api.count_shapes(tid)
+    if cur:
+        print(f"  ★현재 task {tid} 에 이미 박스 {cur}건이 있다.")
+        print("    그대로 올리면 중복된다. 기존 것을 전부 지우고 초안을 새로 올린다.")
+        print("    (검수 중이던 내용이 있으면 사라진다 — 있다면 지금 중단하고 export89 를 먼저 하세요.)")
+        if input("    진행하려면 'yes' 입력: ").strip().lower() != "yes":
+            raise SystemExit("중단했다 — 아무것도 바꾸지 않았다.")
+        api.clear_annotations(tid)
+        print(f"    기존 어노테이션 삭제 완료(남은 박스 {api.count_shapes(tid)}건)")
+
+    work = Path(tempfile.mkdtemp(prefix="cvat_p89_"))
+    try:
+        z = work / "import.zip"
+        n = _build_yolo_zip(labels_dir, images, classes, z)
+        print(f"  import zip: {len(images)}장 / 박스 {n}건 → task {tid} ('{fmt}')")
+        api.import_annotations(tid, z, fmt)
+        got = api.count_shapes(tid)
+        print(f"  검증: 서버에 실제로 올라간 박스 {got}건 (기대 {n}건) — " + ("일치 ✔" if got == n else "★불일치"))
+        print("  import 완료 — CVAT 에서 field_eval_89 태스크를 열면 초안 박스가 보인다.")
+    finally:
+        shutil.rmtree(work, ignore_errors=True)
+
+
+def cmd_count(api: Cvat) -> None:
+    """두 태스크에 실제로 들어있는 박스 수를 서버에서 조회(중복 여부 확인용)."""
+    tasks = _load_tasks()
+    expect = {"pilot20": 93, "field_eval_89": 320}
+    for name in ("pilot20", "field_eval_89"):
+        tid = tasks.get(name) or api.find_task(name)
+        if not tid:
+            print(f"[{name}] 태스크 없음")
+            continue
+        n = api.count_shapes(int(tid))
+        exp = expect[name]
+        mark = "일치 ✔" if n == exp else ("★중복 의심(2배)" if n == exp * 2 else "★기대와 다름")
+        print(f"[{name}] id={tid} — 서버 박스 {n}건 (참고 기대치 {exp}건) {mark}")
+    print("\n※ 기대치는 '검수 전 초안' 기준이다 — 검수를 진행했다면 달라지는 게 정상이다.")
+
+
+def cmd_export89(api: Cvat) -> None:
+    """89장 검수 완료 후 결과를 rest89/labels/ 로 회수(덮어쓰기 전 자동 백업)."""
+    tasks = _load_tasks()
+    tid = tasks.get("field_eval_89") or api.find_task("field_eval_89")
+    if not tid:
+        raise SystemExit("field_eval_89 태스크가 없다.")
+    _pull_into(api, int(tid), _REST89 / "labels")
+
+
 def cmd_export(api: Cvat) -> None:
     """검수 완료 후 CVAT 의 pilot20 어노테이션을 내려받아 labels/ 로 되돌린다(덮어쓰기 전 자동 백업)."""
     tasks = _load_tasks()
     tid = tasks.get("pilot20") or api.find_task("pilot20")
     if not tid:
         raise SystemExit("pilot20 태스크가 없다.")
-    tid = int(tid)
+    _pull_into(api, int(tid), _PILOT / "labels")
+
+
+def _pull_into(api: Cvat, tid: int, labels_dir: Path) -> None:
+    """공통 회수 로직 — 태스크 어노테이션을 내려받아 labels_dir 에 반영(백업 먼저)."""
     fmt = _pick_format(api)
-    labels_dir = _PILOT / "labels"
     work = Path(tempfile.mkdtemp(prefix="cvat_ex_"))
     try:
         out_zip = work / "export.zip"
@@ -399,7 +482,7 @@ def cmd_export(api: Cvat) -> None:
 
         # 규칙2: 덮어쓰기 전 백업부터. 날짜+시각으로 매번 새 폴더.
         stamp = time.strftime("%Y%m%d_%H%M%S")
-        backup = _PILOT / f"labels_backup_{stamp}"
+        backup = labels_dir.parent / f"labels_backup_{stamp}"
         shutil.copytree(labels_dir, backup)
         print(f"  백업 생성: {backup.name}")
 
@@ -421,7 +504,8 @@ def cmd_export(api: Cvat) -> None:
 
 def main() -> None:
     ap = argparse.ArgumentParser(description="CVAT 태스크 생성 + 왕복 테스트 + 검수결과 회수")
-    ap.add_argument("command", choices=["setup", "inspect", "roundtrip", "export"])
+    ap.add_argument("command",
+                    choices=["setup", "inspect", "roundtrip", "export", "push89", "export89", "count"])
     ap.add_argument("--url", default="http://localhost:8080")
     ap.add_argument("--user", default=None, help="미지정 시 실행 중 입력받음")
     args = ap.parse_args()
@@ -437,6 +521,12 @@ def main() -> None:
         cmd_inspect(api)
     elif args.command == "export":
         cmd_export(api)
+    elif args.command == "push89":
+        cmd_push89(api)
+    elif args.command == "export89":
+        cmd_export89(api)
+    elif args.command == "count":
+        cmd_count(api)
     else:
         cmd_roundtrip(api)
 

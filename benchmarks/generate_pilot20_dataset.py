@@ -14,6 +14,7 @@ generate_prelabels_draft.py와 동일 조건(conf=0.10, imgsz=640, detectors=[pe
 """
 from __future__ import annotations
 
+import argparse
 import shutil
 import sys
 from pathlib import Path
@@ -40,7 +41,8 @@ DETECTORS = ["person", "ppe"]
 
 FRAMES_DIR = _ROOT / "data" / "field_eval" / "frames"
 CLASSES_PATH = _ROOT / "data" / "field_eval" / "classes.txt"
-OUT_DIR = _ROOT / "data" / "field_eval" / "pilot20"
+_FE = _ROOT / "data" / "field_eval"
+OUT_DIR = _FE / "pilot20"  # 하위호환(기본값). --set 으로 바꾼다.
 
 PILOT_20 = [
     "KakaoTalk_20260807_000633827_3000ms.jpg", "KakaoTalk_20260807_000552920_0ms.jpg",
@@ -78,9 +80,45 @@ def _draw_dashed_rect(img, pt1, pt2, color, thickness=2, dash=8) -> None:
         cv2.line(img, (x2, y), (x2, min(y + dash, y2)), color, thickness)
 
 
+def _guard_overwrite(labels_dir: Path, force: bool) -> None:
+    """★검수 완료본 보호(규칙2·6): 이미 라벨이 있는 폴더를 초안으로 덮어쓰지 않는다.
+
+    pilot20/labels/ 는 2026-08-07 검수 완료본(93건)이다 — 이 스크립트를 무심코 재실행해서
+    사람이 검수한 결과를 모델 초안으로 되돌리는 사고를 막는다.
+    """
+    if force or not labels_dir.exists():
+        return
+    existing = [p for p in labels_dir.glob("*.txt") if p.name != "classes.txt"]
+    n_boxes = sum(len([ln for ln in p.read_text(encoding="utf-8").splitlines() if ln.strip()]) for p in existing)
+    if existing:
+        raise SystemExit(
+            f"★중단: {labels_dir} 에 이미 라벨 {len(existing)}개 파일(박스 {n_boxes}건)이 있다.\n"
+            "  이 스크립트는 '모델 초안'을 쓰므로, 사람이 검수한 결과를 덮어쓸 수 있다.\n"
+            "  정말 초안으로 되돌리려면 --force 를 붙이되, 먼저 폴더를 백업할 것.\n"
+            "  (검수본 회수는 benchmarks/cvat_setup_pilot.py export 를 쓴다.)"
+        )
+
+
 def main() -> None:
+    ap = argparse.ArgumentParser(description="검수용 데이터셋 생성(임계 이상 labels/ + 참고용 hints/)")
+    ap.add_argument("--set", dest="which", choices=["pilot20", "rest89"], default="pilot20",
+                    help="pilot20=파일럿 20장(기본) / rest89=나머지 89장")
+    ap.add_argument("--force", action="store_true", help="기존 labels/ 를 덮어쓴다(위험 — 백업 후에만)")
+    args = ap.parse_args()
+
+    global OUT_DIR
+    if args.which == "rest89":
+        OUT_DIR = _FE / "rest89"
+        targets = sorted(p.name for p in FRAMES_DIR.glob("*.jpg") if p.name not in set(PILOT_20))
+        if len(targets) != 89:
+            print(f"  [주의] 대상이 89장이 아니라 {len(targets)}장이다(frames/ 내용 확인 필요)")
+    else:
+        targets = list(PILOT_20)
+    print(f"대상 세트: {args.which} ({len(targets)}장) → {OUT_DIR}")
+
     classes = [c.strip() for c in CLASSES_PATH.read_text(encoding="utf-8").splitlines() if c.strip()]
     class_ids = {c: i for i, c in enumerate(classes)}
+    _guard_overwrite(OUT_DIR / "labels", args.force)
 
     conf_cfg = tuning.section("detect").get("conf") or {}
     op_thresh = {"person": float(conf_cfg.get("person", 0.35)), "ppe": float(conf_cfg.get("ppe", 0.35))}
@@ -98,7 +136,7 @@ def main() -> None:
     guard = bq._build_guard()
 
     stats: list[dict[str, Any]] = []
-    for fname in PILOT_20:
+    for fname in targets:
         src = FRAMES_DIR / fname
         if not src.exists():
             raise SystemExit(f"[generate_pilot20_dataset] 프레임 없음: {src}")
@@ -142,7 +180,7 @@ def main() -> None:
 
     total_above = sum(s["above"] for s in stats)
     total_below = sum(s["below"] for s in stats)
-    print(f"\n총 {len(PILOT_20)}장 — 임계 이상(편집 대상) {total_above}건 · 0.10~임계(참고용) {total_below}건")
+    print(f"\n총 {len(targets)}장 — 임계 이상(편집 대상) {total_above}건 · 0.10~임계(참고용) {total_below}건")
     print(f"출력: {OUT_DIR}")
 
 
