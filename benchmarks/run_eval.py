@@ -169,6 +169,7 @@ def _predict_pipeline(cfg: dict, gt_names: list[str], id_map: dict):
     sys.path.insert(0, str(_ROOT / "vigent-core"))
     import cv2
     import main as M
+    from isolated_detect import detect_isolated
     bundle = M.STATE.get(M.DEFAULT_THEME) or M._load_theme(M.DEFAULT_THEME)
     guard = bundle["agents"].get("Guard")
     slot = cfg["slot"]
@@ -181,9 +182,11 @@ def _predict_pipeline(cfg: dict, gt_names: list[str], id_map: dict):
         img = cv2.imread(str(p))
         if img is None:
             continue
-        guard._tracks = []                       # 프레임간 추적 오염 방지(eval_harness 와 동일)
+        # 2026-08: 구 `guard._tracks = []`는 존재하지 않는 속성이라 죽은 코드였다(진짜 상태는
+        #   `_tracks_by_key`) — 서로 무관한 GT 이미지 사이에 트랙이 안 비워진 채 새던 버그(실측 확인).
+        #   detect_isolated()로 교체(매 호출 고유 track_key 발급+전후 reset).
         t0 = time.perf_counter()
-        out = guard.detect(img, detectors=[slot])
+        out = detect_isolated(guard, img, detectors=[slot])
         dt_ms = (time.perf_counter() - t0) * 1000.0
         if i >= WARMUP:
             latencies.append(dt_ms)

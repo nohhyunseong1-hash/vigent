@@ -30,6 +30,7 @@ sys.path.insert(0, str(_HERE))
 sys.path.insert(0, str(_ROOT / "vigent-core"))
 
 import box_quality as bq  # noqa: E402
+from isolated_detect import detect_isolated  # noqa: E402
 
 try:
     sys.stdout.reconfigure(encoding="utf-8")
@@ -75,7 +76,10 @@ def _brightness_bucket(gray) -> str:
 
 
 def _person_size_bucket(guard: Any, img, h: int) -> tuple[str, float]:
-    out = guard.detect(img, detectors=["person"], imgsz=None, conf=None, track_key="eval_extract")
+    # 2026-08: track_key="eval_extract" 고정 재사용 버그 수정 — 서로 무관한 정지 이미지(9개 비디오·
+    #   109장)에 같은 키를 재사용해 이전 이미지의 트랙이 이어붙던 문제(실측 확인, 소수점까지 conf 일치)를
+    #   detect_isolated()(매 호출 고유 track_key 발급+전후 reset)로 원천 차단.
+    out = detect_isolated(guard, img, detectors=["person"], imgsz=None, conf=None)
     best_h = 0.0
     for d in out.get("detections", []):
         if d.get("label") != "person":

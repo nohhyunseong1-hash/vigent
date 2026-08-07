@@ -71,6 +71,7 @@ def _scores_pipeline(cfg, gt_names):
     """이미지 stem → {클래스명: 최대conf}. guard.detect(배포 운용점)."""
     import cv2
     import main as M
+    from isolated_detect import detect_isolated
     b = M.STATE.get(M.DEFAULT_THEME) or M._load_theme(M.DEFAULT_THEME)
     g = b["agents"]["Guard"]
     slot = cfg["slot"]
@@ -78,8 +79,10 @@ def _scores_pipeline(cfg, gt_names):
     out = {}
     for ip in _imgs(cfg):
         img = cv2.imread(str(ip))
-        g._tracks = []
-        res = g.detect(img, detectors=[slot])
+        # 2026-08: 구 `g._tracks = []`는 실제로 존재하지 않는 속성이라 죽은 코드였다(진짜 상태는
+        #   `_tracks_by_key`) — 서로 무관한 GT 이미지 사이에 트랙이 안 비워진 채 새던 버그(실측 확인,
+        #   benchmarks/extract_eval_frames.py와 동일 유형). detect_isolated()로 교체.
+        res = detect_isolated(g, img, detectors=[slot])
         d = {}
         for det in res.get("detections", []):
             gn = norm2gt.get(_norm(det["label"]))
