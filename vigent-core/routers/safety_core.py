@@ -3,6 +3,7 @@
 홈·리포트·워커·브레인·이벤트·자동처리·음성·데모·설정·테마페이지 등 safety 핵심 라우트.
 ※ `/` 루트는 app.version(FastAPI 인스턴스)을 참조하므로 순환 방지 위해 main.py 에 잔류.
 """
+import re as _re
 import time as _time
 from pathlib import Path
 
@@ -445,10 +446,21 @@ def safety_guide_page():
     import liveguide
     return liveguide.render()
 
+_SESSION_ID_RE = _re.compile(r"^[A-Za-z0-9_-]{8,128}$")   # UUID 등 일반 세션 식별자 형태만 허용
+
+
 @router.post("/safety/voice/scene")
 def safety_voice_scene(payload: dict = Body(...), theme: str = DEFAULT_THEME):
-    """실시간 프레임 → 위험·작업 인식 → 음성 안내 메시지(speak)."""
+    """실시간 프레임 → 위험·작업 인식 → 음성 안내 메시지(speak).
+    session_id 필수(2026-08) — 연속 프레임이지만 세션(브라우저 탭)마다 격리해야 하는 엔드포인트라,
+    이게 없으면 여러 세션이 "default" 트랙 풀을 공유해 서로의 박스가 섞인다(2026-08 확정 버그와 동일
+    유형). 폴백 없음(암묵적 기본값을 다시 만들지 않는다) — 없으면 400."""
     import liveguide
+    session_id = str(payload.get("session_id") or "")
+    if not _SESSION_ID_RE.match(session_id):
+        raise HTTPException(status_code=400,
+                             detail="session_id 필수(영문·숫자·-·_ 8~128자) — 페이지 로드 시 "
+                                    "crypto.randomUUID()로 1회 생성해 세션 내내 재사용할 것")
     raw = payload.get("image_base64") or payload.get("image") or ""
     img = img_from_b64(raw)
     if img is None:
@@ -459,7 +471,10 @@ def safety_voice_scene(payload: dict = Body(...), theme: str = DEFAULT_THEME):
         with _DETECT_LOCK:
             # forklift 제외(F-7) — 유령 지게차 음성경보는 없는 위험을 소리로 알림 → 반복되면 경보 피로로
             #   진짜 경보까지 무시하게 됨(화면 오탐보다 나쁜 실패). 측정은 payload.detectors 명시로 가능.
-            out = guard.detect(img, detectors=payload.get("detectors") or ["person", "ppe", "fire_smoke"])
+            # 세션별 격리 track_key(위 session_id 검증 참고) — 연속 프레임이라 detect_isolated 는 쓰지
+            #   않는다(정상 트래킹 이득을 그대로 유지, 세션 간 교차만 차단).
+            out = guard.detect(img, detectors=payload.get("detectors") or ["person", "ppe", "fire_smoke"],
+                               track_key=f"voice:{session_id}")
         dets = out.get("detections", [])
     except Exception:  # noqa: BLE001
         dets = []

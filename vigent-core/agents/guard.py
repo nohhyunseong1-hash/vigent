@@ -416,8 +416,12 @@ class GuardAgent(BaseAgent):
         return self._track_iou(fresh, track_key)
 
     def reset_tracks(self, track_key: str) -> None:
-        """track_key 하나의 추적 상태 초기화(IoU·ByteTrack 공통 — 오프라인 측정 reset_tracks 요청용)."""
-        self._tracks_by_key[track_key] = []
+        """track_key 하나의 추적 상태 초기화(IoU·ByteTrack 공통 — 오프라인 측정 reset_tracks 요청용).
+        2026-08: `[]`로 비우기만 하면 dict 엔트리 자체는 안 지워져 매 호출 track_key 를 새로 발급하는
+        패턴(isolated_detect.detect_isolated)에서 무한 증식한다(실측 확인: 200회 호출 → 200개 잔존).
+        키 자체를 pop 한다 — `_track_iou`(setdefault)·`_track_bytetrack`이 없는 키를 자연히 재생성하므로
+        완전 삭제해도 연속영상 track_key(예: "cam:<name>")의 정상 동작에는 영향 없다."""
+        self._tracks_by_key.pop(track_key, None)
         self._bytetrack_by_key.pop(track_key, None)
 
     def _track_bytetrack(self, fresh: list[dict[str, Any]], track_key: str) -> list[dict[str, Any]]:
