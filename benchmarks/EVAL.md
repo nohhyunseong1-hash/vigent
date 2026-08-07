@@ -2,6 +2,9 @@
 
 > COCO mAP 기준선. 측정일 2026-07-04. 도구 `benchmarks/run_eval.py`(pycocotools COCOeval, 101-point).
 > 규칙7: 아래 수치는 실제 실행 결과. 모델·원본 데이터 불변(읽기만).
+> **latency 재측정 시 주의(2026-08 신설)**: 이 데스크탑에 Docker Desktop/WSL2가 설치된 뒤로는
+> `docker`/`wsl` VM이 CPU를 점유해 latency 수치가 오염될 수 있다 — 절차는
+> `docs/benchmark_measurement_hygiene.md`. 이 문서에 적힌 2026-07-04 수치는 그 설치 이전이라 무관.
 
 ## 0. 실행 환경 (중요)
 

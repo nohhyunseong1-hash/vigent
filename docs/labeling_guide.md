@@ -98,6 +98,10 @@
 > **버전 주의**: CVAT은 활발히 업데이트되는 오픈소스라 위 명령이 버전에 따라 조금 다를 수 있다(정직
 > 고지 — 이 문서 작성 시점 기준 일반적인 절차이며, 실행 전 CVAT 공식 저장소의 README로 최신 설치법을
 > 한 번 대조할 것을 권장).
+>
+> **★latency 측정 주의(2026-08 신설)**: Docker Desktop이 떠 있으면 CPU 전용 torch 추론 시간 측정이
+> 오염될 수 있다 — CVAT 작업이 끝나면 `docs/benchmark_measurement_hygiene.md`대로 Docker Desktop을
+> 끄고 지연·속도 벤치마크를 돌릴 것.
 
 ### 3-2. 프로젝트·태스크 생성 + 라벨 스키마
 1. CVAT 웹 UI → **Projects → Create new project**. 이름 예: `vigent-ppe-eval`.

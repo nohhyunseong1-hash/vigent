@@ -37,6 +37,7 @@ sys.path.insert(0, str(_HERE))
 sys.path.insert(0, str(_ROOT / "vigent-core"))
 
 import box_quality as bq  # noqa: E402
+import env_guard  # noqa: E402
 import web_util  # noqa: E402
 
 try:
@@ -142,6 +143,7 @@ def measure_interp_lag_ms() -> dict[str, Any]:
 
 
 def main() -> None:
+    env_guard.warn_if_docker_running("g2g_latency_budget")
     b64 = _build_payload_b64()
 
     print("① 검출(디코드+guard.detect, in-process) 측정 중...")

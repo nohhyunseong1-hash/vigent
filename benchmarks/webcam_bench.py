@@ -21,6 +21,8 @@ import time
 from collections import defaultdict
 from pathlib import Path
 
+import env_guard
+
 _ROOT = Path(__file__).resolve().parent.parent
 _RAW = _ROOT / "data/datasets/webcam_bench/raw"
 _LABELS = _ROOT / "data/datasets/webcam_bench/labels.json"
@@ -134,6 +136,7 @@ def _has(pres: dict, cls: str, worn) -> float:
 
 
 def main():
+    env_guard.warn_if_docker_running("webcam_bench")
     ap = argparse.ArgumentParser()
     ap.add_argument("--port", type=int, default=8011)
     ap.add_argument("--backend", default="server", choices=["server", "yolo"], help="server=RF-DETR(8011), yolo=구YOLO 직접")

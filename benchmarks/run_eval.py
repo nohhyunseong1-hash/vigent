@@ -28,6 +28,7 @@ import time
 from datetime import datetime
 from pathlib import Path
 
+import env_guard
 import numpy as np
 
 _ROOT = Path(__file__).resolve().parent.parent
@@ -290,6 +291,7 @@ def _evaluate(gt: dict, detections: list, img_ids: list, gt_names: list[str]) ->
 
 
 def main() -> None:
+    env_guard.warn_if_docker_running("run_eval")
     ap = argparse.ArgumentParser(description="VIGENT COCO mAP benchmark (person/ppe · raw/pipeline)")
     ap.add_argument("--mode", default="raw", choices=["raw", "pipeline"],
                     help="raw=원시 model.predict(표준 COCO) / pipeline=배포 guard.detect(운용점)")
