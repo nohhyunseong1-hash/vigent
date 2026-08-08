@@ -446,5 +446,77 @@
         }
       }
     }
+  },
+  "field_eval_person": {
+    "pipeline": {
+      "mode": "pipeline",
+      "backend": "yolo",
+      "measures": "배포 운용점(guard.detect 후처리·운용 임계 반영)",
+      "dataset": "field_eval_person",
+      "images_dir": "data\\field_eval\\frames",
+      "num_images": 109,
+      "gt_boxes": 201,
+      "num_detections": 128,
+      "mAP@50": 55.34,
+      "mAP@50:95": 43.23,
+      "per_class_AP50": {
+        "person": 55.34
+      },
+      "per_class_AP5095": {
+        "person": 43.23
+      },
+      "latency_ms_mean": 119.23,
+      "latency_frames_timed": 99,
+      "latency_warmup_excluded": 10,
+      "conf": 0.4,
+      "iou_nms": "guard 내부",
+      "imgsz": 960,
+      "seed": 0,
+      "eval_method": "pycocotools COCOeval bbox (101-point interpolation)",
+      "model_source": "vision.yaml 배포 설정(guard slot=person)",
+      "config_source": "config/tuning.yaml detect.{imgsz,conf} 실측 — 모듈 상수 아님",
+      "run_at": "2026-08-08 01:42"
+    }
+  },
+  "field_eval_ppe": {
+    "pipeline": {
+      "mode": "pipeline",
+      "backend": "yolo",
+      "measures": "배포 운용점(guard.detect 후처리·운용 임계 반영)",
+      "dataset": "field_eval_ppe",
+      "images_dir": "data\\field_eval\\frames",
+      "num_images": 109,
+      "gt_boxes": 324,
+      "num_detections": 225,
+      "mAP@50": 70.84,
+      "mAP@50:95": 70.84,
+      "per_class_AP50": {
+        "Hardhat": 83.38,
+        "NO-Hardhat": 34.05,
+        "Safety-Vest": 66.67,
+        "NO-Safety-Vest": 63.37,
+        "Mask": 80.2,
+        "NO-Mask": 97.38
+      },
+      "per_class_AP5095": {
+        "Hardhat": 83.38,
+        "NO-Hardhat": 34.05,
+        "Safety-Vest": 66.67,
+        "NO-Safety-Vest": 63.37,
+        "Mask": 80.2,
+        "NO-Mask": 97.38
+      },
+      "latency_ms_mean": 134.21,
+      "latency_frames_timed": 99,
+      "latency_warmup_excluded": 10,
+      "conf": 0.35,
+      "iou_nms": "guard 내부",
+      "imgsz": 960,
+      "seed": 0,
+      "eval_method": "pycocotools COCOeval bbox (101-point interpolation)",
+      "model_source": "vision.yaml 배포 설정(guard slot=ppe)",
+      "config_source": "config/tuning.yaml detect.{imgsz,conf} 실측 — 모듈 상수 아님",
+      "run_at": "2026-08-08 01:43"
+    }
   }
 }
