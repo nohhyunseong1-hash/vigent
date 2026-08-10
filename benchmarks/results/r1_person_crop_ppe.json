@@ -1,0 +1,9079 @@
+[
+  {
+    "file": "KakaoTalk_20260807_000438282_0ms.jpg",
+    "bucket": "근거리",
+    "n_crops": 4,
+    "lat_stage1": 9812.414900001386,
+    "lat_stage2": 73.39340000180528,
+    "stage1": [
+      {
+        "label": "NO-Safety-Vest",
+        "raw_label": "NO-Safety Vest",
+        "conf": 0.81,
+        "bbox": [
+          0.6515,
+          0.2424,
+          0.8985,
+          0.4245
+        ],
+        "detector": "ppe",
+        "tid": 5
+      },
+      {
+        "label": "NO-Safety-Vest",
+        "raw_label": "NO-Safety Vest",
+        "conf": 0.807,
+        "bbox": [
+          0.3232,
+          0.3103,
+          0.4914,
+          0.4214
+        ],
+        "detector": "ppe",
+        "tid": 6
+      },
+      {
+        "label": "Hardhat",
+        "raw_label": "Hardhat",
+        "conf": 0.794,
+        "bbox": [
+          0.6915,
+          0.1971,
+          0.8063,
+          0.2354
+        ],
+        "detector": "ppe",
+        "tid": 7
+      },
+      {
+        "label": "NO-Safety-Vest",
+        "raw_label": "NO-Safety Vest",
+        "conf": 0.765,
+        "bbox": [
+          0.841,
+          0.219,
+          0.9442,
+          0.2944
+        ],
+        "detector": "ppe",
+        "tid": 8
+      },
+      {
+        "label": "Hardhat",
+        "raw_label": "Hardhat",
+        "conf": 0.752,
+        "bbox": [
+          0.8587,
+          0.18,
+          0.9132,
+          0.2051
+        ],
+        "detector": "ppe",
+        "tid": 9
+      },
+      {
+        "label": "Hardhat",
+        "raw_label": "Hardhat",
+        "conf": 0.749,
+        "bbox": [
+          0.4245,
+          0.2628,
+          0.5298,
+          0.3071
+        ],
+        "detector": "ppe",
+        "tid": 10
+      },
+      {
+        "label": "Hardhat",
+        "raw_label": "Hardhat",
+        "conf": 0.558,
+        "bbox": [
+          0.8015,
+          0.1938,
+          0.8406,
+          0.2138
+        ],
+        "detector": "ppe",
+        "tid": 11
+      },
+      {
+        "label": "NO-Mask",
+        "raw_label": "NO-Mask",
+        "conf": 0.523,
+        "bbox": [
+          0.4793,
+          0.3081,
+          0.5145,
+          0.3313
+        ],
+        "detector": "ppe",
+        "tid": 12
+      }
+    ],
+    "stage2": [
+      {
+        "label": "NO-Safety-Vest",
+        "raw_label": "NO-Safety Vest",
+        "conf": 0.831,
+        "bbox": [
+          0.6400862068965517,
+          0.24822555555555553,
+          0.8964224137931034,
+          0.42590500000000003
+        ],
+        "detector": "ppe",
+        "tid": 14,
+        "source": "crop"
+      },
+      {
+        "label": "NO-Safety-Vest",
+        "raw_label": "NO-Safety Vest",
+        "conf": 0.786,
+        "bbox": [
+          0.8373706896551725,
+          0.21786111111111112,
+          0.9371982758620689,
+          0.29466180555555554
+        ],
+        "detector": "ppe",
+        "tid": 15,
+        "source": "crop"
+      },
+      {
+        "label": "Hardhat",
+        "raw_label": "Hardhat",
+        "conf": 0.779,
+        "bbox": [
+          0.6925862068965517,
+          0.1985275,
+          0.8012931034482759,
+          0.2361272222222222
+        ],
+        "detector": "ppe",
+        "tid": 16,
+        "source": "crop"
+      },
+      {
+        "label": "Hardhat",
+        "raw_label": "Hardhat",
+        "conf": 0.578,
+        "bbox": [
+          0.8598275862068965,
+          0.18002416666666668,
+          0.9143965517241379,
+          0.20344986111111113
+        ],
+        "detector": "ppe",
+        "tid": 17,
+        "source": "crop"
+      },
+      {
+        "label": "Hardhat",
+        "raw_label": "Hardhat",
+        "conf": 0.546,
+        "bbox": [
+          0.7926724137931034,
+          0.19313069444444445,
+          0.8370689655172414,
+          0.21608194444444445
+        ],
+        "detector": "ppe",
+        "tid": 18,
+        "source": "crop"
+      },
+      {
+        "label": "NO-Mask",
+        "raw_label": "NO-Mask",
+        "conf": 0.474,
+        "bbox": [
+          0.8640517241379311,
+          0.2117526388888889,
+          0.897801724137931,
+          0.22604527777777778
+        ],
+        "detector": "ppe",
+        "tid": 19,
+        "source": "crop"
+      },
+      {
+        "label": "NO-Safety-Vest",
+        "raw_label": "NO-Safety Vest",
+        "conf": 0.401,
+        "bbox": [
+          0.7913793103448277,
+          0.22367305555555556,
+          0.8573706896551724,
+          0.26548347222222224
+        ],
+        "detector": "ppe",
+        "tid": 20,
+        "source": "crop"
+      },
+      {
+        "label": "Hardhat",
+        "raw_label": "Hardhat",
+        "conf": 0.862,
+        "bbox": [
+          0.42364137931034485,
+          0.2621205555555556,
+          0.5284233990147783,
+          0.30506055555555556
+        ],
+        "detector": "ppe",
+        "tid": 23,
+        "source": "crop"
+      },
+      {
+        "label": "NO-Safety-Vest",
+        "raw_label": "NO-Safety Vest",
+        "conf": 0.856,
+        "bbox": [
+          0.31576551724137936,
+          0.3112830555555556,
+          0.4974849753694581,
+          0.4064730555555555
+        ],
+        "detector": "ppe",
+        "tid": 24,
+        "source": "crop"
+      },
+      {
+        "label": "NO-Mask",
+        "raw_label": "NO-Mask",
+        "conf": 0.668,
+        "bbox": [
+          0.4783965517241379,
+          0.31066555555555553,
+          0.5109110837438424,
+          0.33099555555555554
+        ],
+        "detector": "ppe",
+        "tid": 25,
+        "source": "crop"
+      },
+      {
+        "label": "NO-Safety-Vest",
+        "raw_label": "NO-Safety Vest",
+        "conf": 0.385,
+        "bbox": [
+          0.6314541871921183,
+          0.2533330555555556,
+          0.7019120689655174,
+          0.35165805555555557
+        ],
+        "detector": "ppe",
+        "tid": 27,
+        "source": "crop"
+      },
+      {
+        "label": "Hardhat",
+        "raw_label": "Hardhat",
+        "conf": 0.381,
+        "bbox": [
+          0.4750497536945813,
+          0.26275902777777776,
+          0.5233832512315272,
+          0.3083434722222222
+        ],
+        "detector": "ppe",
+        "tid": 28,
+        "source": "crop"
+      }
+    ],
+    "merged": [
+      {
+        "label": "Hardhat",
+        "raw_label": "Hardhat",
+        "conf": 0.862,
+        "bbox": [
+          0.42364137931034485,
+          0.2621205555555556,
+          0.5284233990147783,
+          0.30506055555555556
+        ],
+        "detector": "ppe",
+        "tid": 23,
+        "source": "crop"
+      },
+      {
+        "label": "NO-Safety-Vest",
+        "raw_label": "NO-Safety Vest",
+        "conf": 0.856,
+        "bbox": [
+          0.31576551724137936,
+          0.3112830555555556,
+          0.4974849753694581,
+          0.4064730555555555
+        ],
+        "detector": "ppe",
+        "tid": 24,
+        "source": "crop"
+      },
+      {
+        "label": "NO-Safety-Vest",
+        "raw_label": "NO-Safety Vest",
+        "conf": 0.831,
+        "bbox": [
+          0.6400862068965517,
+          0.24822555555555553,
+          0.8964224137931034,
+          0.42590500000000003
+        ],
+        "detector": "ppe",
+        "tid": 14,
+        "source": "crop"
+      },
+      {
+        "label": "Hardhat",
+        "raw_label": "Hardhat",
+        "conf": 0.794,
+        "bbox": [
+          0.6915,
+          0.1971,
+          0.8063,
+          0.2354
+        ],
+        "detector": "ppe",
+        "tid": 7
+      },
+      {
+        "label": "NO-Safety-Vest",
+        "raw_label": "NO-Safety Vest",
+        "conf": 0.786,
+        "bbox": [
+          0.8373706896551725,
+          0.21786111111111112,
+          0.9371982758620689,
+          0.29466180555555554
+        ],
+        "detector": "ppe",
+        "tid": 15,
+        "source": "crop"
+      },
+      {
+        "label": "Hardhat",
+        "raw_label": "Hardhat",
+        "conf": 0.752,
+        "bbox": [
+          0.8587,
+          0.18,
+          0.9132,
+          0.2051
+        ],
+        "detector": "ppe",
+        "tid": 9
+      },
+      {
+        "label": "NO-Mask",
+        "raw_label": "NO-Mask",
+        "conf": 0.668,
+        "bbox": [
+          0.4783965517241379,
+          0.31066555555555553,
+          0.5109110837438424,
+          0.33099555555555554
+        ],
+        "detector": "ppe",
+        "tid": 25,
+        "source": "crop"
+      },
+      {
+        "label": "Hardhat",
+        "raw_label": "Hardhat",
+        "conf": 0.558,
+        "bbox": [
+          0.8015,
+          0.1938,
+          0.8406,
+          0.2138
+        ],
+        "detector": "ppe",
+        "tid": 11
+      },
+      {
+        "label": "NO-Mask",
+        "raw_label": "NO-Mask",
+        "conf": 0.474,
+        "bbox": [
+          0.8640517241379311,
+          0.2117526388888889,
+          0.897801724137931,
+          0.22604527777777778
+        ],
+        "detector": "ppe",
+        "tid": 19,
+        "source": "crop"
+      },
+      {
+        "label": "NO-Safety-Vest",
+        "raw_label": "NO-Safety Vest",
+        "conf": 0.401,
+        "bbox": [
+          0.7913793103448277,
+          0.22367305555555556,
+          0.8573706896551724,
+          0.26548347222222224
+        ],
+        "detector": "ppe",
+        "tid": 20,
+        "source": "crop"
+      },
+      {
+        "label": "NO-Safety-Vest",
+        "raw_label": "NO-Safety Vest",
+        "conf": 0.385,
+        "bbox": [
+          0.6314541871921183,
+          0.2533330555555556,
+          0.7019120689655174,
+          0.35165805555555557
+        ],
+        "detector": "ppe",
+        "tid": 27,
+        "source": "crop"
+      },
+      {
+        "label": "Hardhat",
+        "raw_label": "Hardhat",
+        "conf": 0.381,
+        "bbox": [
+          0.4750497536945813,
+          0.26275902777777776,
+          0.5233832512315272,
+          0.3083434722222222
+        ],
+        "detector": "ppe",
+        "tid": 28,
+        "source": "crop"
+      }
+    ]
+  },
+  {
+    "file": "KakaoTalk_20260807_000438282_10000ms.jpg",
+    "bucket": "근거리",
+    "n_crops": 2,
+    "lat_stage1": 28.819699999075965,
+    "lat_stage2": 43.290800000249874,
+    "stage1": [
+      {
+        "label": "NO-Safety-Vest",
+        "raw_label": "NO-Safety Vest",
+        "conf": 0.901,
+        "bbox": [
+          0.4744,
+          0.2694,
+          0.9459,
+          0.6409
+        ],
+        "detector": "ppe",
+        "tid": 33
+      },
+      {
+        "label": "Hardhat",
+        "raw_label": "Hardhat",
+        "conf": 0.834,
+        "bbox": [
+          0.5977,
+          0.1274,
+          0.8629,
+          0.2345
+        ],
+        "detector": "ppe",
+        "tid": 34
+      },
+      {
+        "label": "NO-Hardhat",
+        "raw_label": "NO-Hardhat",
+        "conf": 0.528,
+        "bbox": [
+          0.3618,
+          0.156,
+          0.4325,
+          0.2025
+        ],
+        "detector": "ppe",
+        "tid": 35
+      }
+    ],
+    "stage2": [
+      {
+        "label": "NO-Safety-Vest",
+        "raw_label": "NO-Safety Vest",
+        "conf": 0.858,
+        "bbox": [
+          0.4736440886699507,
+          0.2677,
+          0.9443536945812808,
+          0.6442
+        ],
+        "detector": "ppe",
+        "tid": 38,
+        "source": "crop"
+      },
+      {
+        "label": "Hardhat",
+        "raw_label": "Hardhat",
+        "conf": 0.817,
+        "bbox": [
+          0.6010630541871921,
+          0.128,
+          0.8534093596059112,
+          0.23509999999999998
+        ],
+        "detector": "ppe",
+        "tid": 40,
+        "source": "crop"
+      },
+      {
+        "label": "NO-Mask",
+        "raw_label": "NO-Mask",
+        "conf": 0.461,
+        "bbox": [
+          0.794094827586207,
+          0.22759999999999997,
+          0.8485645320197044,
+          0.2737
+        ],
+        "detector": "ppe",
+        "tid": 41,
+        "source": "crop"
+      }
+    ],
+    "merged": [
+      {
+        "label": "NO-Safety-Vest",
+        "raw_label": "NO-Safety Vest",
+        "conf": 0.901,
+        "bbox": [
+          0.4744,
+          0.2694,
+          0.9459,
+          0.6409
+        ],
+        "detector": "ppe",
+        "tid": 33
+      },
+      {
+        "label": "Hardhat",
+        "raw_label": "Hardhat",
+        "conf": 0.834,
+        "bbox": [
+          0.5977,
+          0.1274,
+          0.8629,
+          0.2345
+        ],
+        "detector": "ppe",
+        "tid": 34
+      },
+      {
+        "label": "NO-Hardhat",
+        "raw_label": "NO-Hardhat",
+        "conf": 0.528,
+        "bbox": [
+          0.3618,
+          0.156,
+          0.4325,
+          0.2025
+        ],
+        "detector": "ppe",
+        "tid": 35
+      },
+      {
+        "label": "NO-Mask",
+        "raw_label": "NO-Mask",
+        "conf": 0.461,
+        "bbox": [
+          0.794094827586207,
+          0.22759999999999997,
+          0.8485645320197044,
+          0.2737
+        ],
+        "detector": "ppe",
+        "tid": 41,
+        "source": "crop"
+      }
+    ]
+  },
+  {
+    "file": "KakaoTalk_20260807_000438282_1000ms.jpg",
+    "bucket": "근거리",
+    "n_crops": 5,
+    "lat_stage1": 26.072300001033,
+    "lat_stage2": 87.51220000158355,
+    "stage1": [
+      {
+        "label": "NO-Safety-Vest",
+        "raw_label": "NO-Safety Vest",
+        "conf": 0.882,
+        "bbox": [
+          0.7307,
+          0.2292,
+          0.9985,
+          0.4461
+        ],
+        "detector": "ppe",
+        "tid": 47
+      },
+      {
+        "label": "Hardhat",
+        "raw_label": "Hardhat",
+        "conf": 0.827,
+        "bbox": [
+          0.5013,
+          0.2363,
+          0.6179,
+          0.2853
+        ],
+        "detector": "ppe",
+        "tid": 48
+      },
+      {
+        "label": "NO-Safety-Vest",
+        "raw_label": "NO-Safety Vest",
+        "conf": 0.827,
+        "bbox": [
+          0.3904,
+          0.2943,
+          0.5952,
+          0.4224
+        ],
+        "detector": "ppe",
+        "tid": 49
+      },
+      {
+        "label": "Hardhat",
+        "raw_label": "Hardhat",
+        "conf": 0.724,
+        "bbox": [
+          0.792,
+          0.1736,
+          0.9029,
+          0.2177
+        ],
+        "detector": "ppe",
+        "tid": 50
+      },
+      {
+        "label": "NO-Mask",
+        "raw_label": "NO-Mask",
+        "conf": 0.62,
+        "bbox": [
+          0.5545,
+          0.2878,
+          0.6014,
+          0.3184
+        ],
+        "detector": "ppe",
+        "tid": 51
+      },
+      {
+        "label": "Safety-Vest",
+        "raw_label": "Safety Vest",
+        "conf": 0.537,
+        "bbox": [
+          0.0271,
+          0.3465,
+          0.0617,
+          0.3771
+        ],
+        "detector": "ppe",
+        "tid": 52
+      },
+      {
+        "label": "NO-Safety-Vest",
+        "raw_label": "NO-Safety Vest",
+        "conf": 0.454,
+        "bbox": [
+          0.9361,
+          0.2002,
+          0.9947,
+          0.2581
+        ],
+        "detector": "ppe",
+        "tid": 54
+      }
+    ],
+    "stage2": [
+      {
+        "label": "NO-Safety-Vest",
+        "raw_label": "NO-Safety Vest",
+        "conf": 0.812,
+        "bbox": [
+          0.722711330049261,
+          0.24487305555555558,
+          1.001241379310345,
+          0.44997333333333334
+        ],
+        "detector": "ppe",
+        "tid": 58,
+        "source": "crop"
+      },
+      {
+        "label": "Hardhat",
+        "raw_label": "Hardhat",
+        "conf": 0.71,
+        "bbox": [
+          0.7853832512315271,
+          0.1725561111111111,
+          0.923672906403941,
+          0.22160027777777777
+        ],
+        "detector": "ppe",
+        "tid": 59,
+        "source": "crop"
+      },
+      {
+        "label": "NO-Safety-Vest",
+        "raw_label": "NO-Safety Vest",
+        "conf": 0.863,
+        "bbox": [
+          0.386128078817734,
+          0.2928247222222222,
+          0.5826009852216749,
+          0.41485513888888886
+        ],
+        "detector": "ppe",
+        "tid": 61,
+        "source": "crop"
+      },
+      {
+        "label": "Hardhat",
+        "raw_label": "Hardhat",
+        "conf": 0.844,
+        "bbox": [
+          0.5015270935960591,
+          0.23681930555555558,
+          0.6232660098522167,
+          0.2862222222222222
+        ],
+        "detector": "ppe",
+        "tid": 62,
+        "source": "crop"
+      },
+      {
+        "label": "Hardhat",
+        "raw_label": "Hardhat",
+        "conf": 0.737,
+        "bbox": [
+          0.6506108374384237,
+          0.18156680555555554,
+          0.6955024630541873,
+          0.20537055555555558
+        ],
+        "detector": "ppe",
+        "tid": 64,
+        "source": "crop"
+      },
+      {
+        "label": "NO-Mask",
+        "raw_label": "NO-Mask",
+        "conf": 0.726,
+        "bbox": [
+          0.5633251231527093,
+          0.29085555555555553,
+          0.6027733990147783,
+          0.3169180555555555
+        ],
+        "detector": "ppe",
+        "tid": 65,
+        "source": "crop"
+      },
+      {
+        "label": "NO-Safety-Vest",
+        "raw_label": "NO-Safety Vest",
+        "conf": 0.559,
+        "bbox": [
+          0.6366502463054188,
+          0.21683805555555555,
+          0.7050443349753696,
+          0.27938805555555557
+        ],
+        "detector": "ppe",
+        "tid": 66,
+        "source": "crop"
+      }
+    ],
+    "merged": [
+      {
+        "label": "NO-Safety-Vest",
+        "raw_label": "NO-Safety Vest",
+        "conf": 0.882,
+        "bbox": [
+          0.7307,
+          0.2292,
+          0.9985,
+          0.4461
+        ],
+        "detector": "ppe",
+        "tid": 47
+      },
+      {
+        "label": "NO-Safety-Vest",
+        "raw_label": "NO-Safety Vest",
+        "conf": 0.863,
+        "bbox": [
+          0.386128078817734,
+          0.2928247222222222,
+          0.5826009852216749,
+          0.41485513888888886
+        ],
+        "detector": "ppe",
+        "tid": 61,
+        "source": "crop"
+      },
+      {
+        "label": "Hardhat",
+        "raw_label": "Hardhat",
+        "conf": 0.844,
+        "bbox": [
+          0.5015270935960591,
+          0.23681930555555558,
+          0.6232660098522167,
+          0.2862222222222222
+        ],
+        "detector": "ppe",
+        "tid": 62,
+        "source": "crop"
+      },
+      {
+        "label": "Hardhat",
+        "raw_label": "Hardhat",
+        "conf": 0.737,
+        "bbox": [
+          0.6506108374384237,
+          0.18156680555555554,
+          0.6955024630541873,
+          0.20537055555555558
+        ],
+        "detector": "ppe",
+        "tid": 64,
+        "source": "crop"
+      },
+      {
+        "label": "NO-Mask",
+        "raw_label": "NO-Mask",
+        "conf": 0.726,
+        "bbox": [
+          0.5633251231527093,
+          0.29085555555555553,
+          0.6027733990147783,
+          0.3169180555555555
+        ],
+        "detector": "ppe",
+        "tid": 65,
+        "source": "crop"
+      },
+      {
+        "label": "Hardhat",
+        "raw_label": "Hardhat",
+        "conf": 0.724,
+        "bbox": [
+          0.792,
+          0.1736,
+          0.9029,
+          0.2177
+        ],
+        "detector": "ppe",
+        "tid": 50
+      },
+      {
+        "label": "NO-Safety-Vest",
+        "raw_label": "NO-Safety Vest",
+        "conf": 0.559,
+        "bbox": [
+          0.6366502463054188,
+          0.21683805555555555,
+          0.7050443349753696,
+          0.27938805555555557
+        ],
+        "detector": "ppe",
+        "tid": 66,
+        "source": "crop"
+      },
+      {
+        "label": "Safety-Vest",
+        "raw_label": "Safety Vest",
+        "conf": 0.537,
+        "bbox": [
+          0.0271,
+          0.3465,
+          0.0617,
+          0.3771
+        ],
+        "detector": "ppe",
+        "tid": 52
+      },
+      {
+        "label": "NO-Safety-Vest",
+        "raw_label": "NO-Safety Vest",
+        "conf": 0.454,
+        "bbox": [
+          0.9361,
+          0.2002,
+          0.9947,
+          0.2581
+        ],
+        "detector": "ppe",
+        "tid": 54
+      }
+    ]
+  },
+  {
+    "file": "KakaoTalk_20260807_000438282_11000ms.jpg",
+    "bucket": "근거리",
+    "n_crops": 2,
+    "lat_stage1": 27.69309999894176,
+    "lat_stage2": 41.8223000033322,
+    "stage1": [
+      {
+        "label": "NO-Safety-Vest",
+        "raw_label": "NO-Safety Vest",
+        "conf": 0.926,
+        "bbox": [
+          0.6573,
+          0.2128,
+          1.002,
+          0.6288
+        ],
+        "detector": "ppe",
+        "tid": 77
+      },
+      {
+        "label": "Hardhat",
+        "raw_label": "Hardhat",
+        "conf": 0.821,
+        "bbox": [
+          0.8271,
+          0.0811,
+          0.9981,
+          0.188
+        ],
+        "detector": "ppe",
+        "tid": 79
+      },
+      {
+        "label": "NO-Safety-Vest",
+        "raw_label": "NO-Safety Vest",
+        "conf": 0.764,
+        "bbox": [
+          0.3906,
+          0.1601,
+          0.5099,
+          0.2325
+        ],
+        "detector": "ppe",
+        "tid": 80
+      },
+      {
+        "label": "Hardhat",
+        "raw_label": "Hardhat",
+        "conf": 0.73,
+        "bbox": [
+          0.4755,
+          0.1211,
+          0.5367,
+          0.1511
+        ],
+        "detector": "ppe",
+        "tid": 81
+      },
+      {
+        "label": "NO-Safety-Vest",
+        "raw_label": "NO-Safety Vest",
+        "conf": 0.487,
+        "bbox": [
+          0.464,
+          0.1607,
+          0.569,
+          0.2252
+        ],
+        "detector": "ppe",
+        "tid": 82
+      },
+      {
+        "label": "NO-Hardhat",
+        "raw_label": "NO-Hardhat",
+        "conf": 0.373,
+        "bbox": [
+          0.5711,
+          0.1614,
+          0.6408,
+          0.2039
+        ],
+        "detector": "ppe",
+        "tid": 83
+      }
+    ],
+    "stage2": [
+      {
+        "label": "NO-Safety-Vest",
+        "raw_label": "NO-Safety Vest",
+        "conf": 0.885,
+        "bbox": [
+          0.6548810344827587,
+          0.2169,
+          1.0029061576354679,
+          0.6315
+        ],
+        "detector": "ppe",
+        "tid": 86,
+        "source": "crop"
+      },
+      {
+        "label": "Hardhat",
+        "raw_label": "Hardhat",
+        "conf": 0.845,
+        "bbox": [
+          0.82614039408867,
+          0.0796,
+          0.9996940886699508,
+          0.18900000000000003
+        ],
+        "detector": "ppe",
+        "tid": 87,
+        "source": "crop"
+      },
+      {
+        "label": "Hardhat",
+        "raw_label": "Hardhat",
+        "conf": 0.711,
+        "bbox": [
+          0.49075960591133005,
+          0.11490000000000002,
+          0.5391445812807881,
+          0.152
+        ],
+        "detector": "ppe",
+        "tid": 88,
+        "source": "crop"
+      },
+      {
+        "label": "NO-Safety-Vest",
+        "raw_label": "NO-Safety Vest",
+        "conf": 0.547,
+        "bbox": [
+          0.49096354679802956,
+          0.1594,
+          0.5531655172413793,
+          0.22149999999999997
+        ],
+        "detector": "ppe",
+        "tid": 89,
+        "source": "crop"
+      },
+      {
+        "label": "NO-Hardhat",
+        "raw_label": "NO-Hardhat",
+        "conf": 0.358,
+        "bbox": [
+          0.9704795566502463,
+          0.0422,
+          1.0014275862068964,
+          0.0893
+        ],
+        "detector": "ppe",
+        "tid": 90,
+        "source": "crop"
+      },
+      {
+        "label": "NO-Safety-Vest",
+        "raw_label": "NO-Safety Vest",
+        "conf": 0.848,
+        "bbox": [
+          0.4635618226600985,
+          0.1727023611111111,
+          0.5727522167487684,
+          0.22547555555555554
+        ],
+        "detector": "ppe",
+        "tid": 93,
+        "source": "crop"
+      },
+      {
+        "label": "Hardhat",
+        "raw_label": "Hardhat",
+        "conf": 0.845,
+        "bbox": [
+          0.4750312807881773,
+          0.12658986111111112,
+          0.5388049261083744,
+          0.153745
+        ],
+        "detector": "ppe",
+        "tid": 94,
+        "source": "crop"
+      },
+      {
+        "label": "NO-Hardhat",
+        "raw_label": "NO-Hardhat",
+        "conf": 0.703,
+        "bbox": [
+          0.4165024630541872,
+          0.1296640277777778,
+          0.47266822660098523,
+          0.15830666666666668
+        ],
+        "detector": "ppe",
+        "tid": 95,
+        "source": "crop"
+      },
+      {
+        "label": "NO-Safety-Vest",
+        "raw_label": "NO-Safety Vest",
+        "conf": 0.677,
+        "bbox": [
+          0.38532167487684726,
+          0.1760575,
+          0.48419532019704437,
+          0.23451624999999998
+        ],
+        "detector": "ppe",
+        "tid": 96,
+        "source": "crop"
+      },
+      {
+        "label": "NO-Hardhat",
+        "raw_label": "NO-Hardhat",
+        "conf": 0.493,
+        "bbox": [
+          0.5842504926108374,
+          0.16860347222222222,
+          0.6182554187192119,
+          0.19508097222222223
+        ],
+        "detector": "ppe",
+        "tid": 98,
+        "source": "crop"
+      }
+    ],
+    "merged": [
+      {
+        "label": "NO-Safety-Vest",
+        "raw_label": "NO-Safety Vest",
+        "conf": 0.926,
+        "bbox": [
+          0.6573,
+          0.2128,
+          1.002,
+          0.6288
+        ],
+        "detector": "ppe",
+        "tid": 77
+      },
+      {
+        "label": "NO-Safety-Vest",
+        "raw_label": "NO-Safety Vest",
+        "conf": 0.848,
+        "bbox": [
+          0.4635618226600985,
+          0.1727023611111111,
+          0.5727522167487684,
+          0.22547555555555554
+        ],
+        "detector": "ppe",
+        "tid": 93,
+        "source": "crop"
+      },
+      {
+        "label": "Hardhat",
+        "raw_label": "Hardhat",
+        "conf": 0.845,
+        "bbox": [
+          0.82614039408867,
+          0.0796,
+          0.9996940886699508,
+          0.18900000000000003
+        ],
+        "detector": "ppe",
+        "tid": 87,
+        "source": "crop"
+      },
+      {
+        "label": "Hardhat",
+        "raw_label": "Hardhat",
+        "conf": 0.845,
+        "bbox": [
+          0.4750312807881773,
+          0.12658986111111112,
+          0.5388049261083744,
+          0.153745
+        ],
+        "detector": "ppe",
+        "tid": 94,
+        "source": "crop"
+      },
+      {
+        "label": "NO-Safety-Vest",
+        "raw_label": "NO-Safety Vest",
+        "conf": 0.764,
+        "bbox": [
+          0.3906,
+          0.1601,
+          0.5099,
+          0.2325
+        ],
+        "detector": "ppe",
+        "tid": 80
+      },
+      {
+        "label": "NO-Hardhat",
+        "raw_label": "NO-Hardhat",
+        "conf": 0.703,
+        "bbox": [
+          0.4165024630541872,
+          0.1296640277777778,
+          0.47266822660098523,
+          0.15830666666666668
+        ],
+        "detector": "ppe",
+        "tid": 95,
+        "source": "crop"
+      },
+      {
+        "label": "NO-Safety-Vest",
+        "raw_label": "NO-Safety Vest",
+        "conf": 0.547,
+        "bbox": [
+          0.49096354679802956,
+          0.1594,
+          0.5531655172413793,
+          0.22149999999999997
+        ],
+        "detector": "ppe",
+        "tid": 89,
+        "source": "crop"
+      },
+      {
+        "label": "NO-Hardhat",
+        "raw_label": "NO-Hardhat",
+        "conf": 0.493,
+        "bbox": [
+          0.5842504926108374,
+          0.16860347222222222,
+          0.6182554187192119,
+          0.19508097222222223
+        ],
+        "detector": "ppe",
+        "tid": 98,
+        "source": "crop"
+      },
+      {
+        "label": "NO-Hardhat",
+        "raw_label": "NO-Hardhat",
+        "conf": 0.373,
+        "bbox": [
+          0.5711,
+          0.1614,
+          0.6408,
+          0.2039
+        ],
+        "detector": "ppe",
+        "tid": 83
+      },
+      {
+        "label": "NO-Hardhat",
+        "raw_label": "NO-Hardhat",
+        "conf": 0.358,
+        "bbox": [
+          0.9704795566502463,
+          0.0422,
+          1.0014275862068964,
+          0.0893
+        ],
+        "detector": "ppe",
+        "tid": 90,
+        "source": "crop"
+      }
+    ]
+  },
+  {
+    "file": "KakaoTalk_20260807_000438282_12000ms.jpg",
+    "bucket": "근거리",
+    "n_crops": 1,
+    "lat_stage1": 25.236700001187273,
+    "lat_stage2": 17.653999999311054,
+    "stage1": [
+      {
+        "label": "NO-Safety-Vest",
+        "raw_label": "NO-Safety Vest",
+        "conf": 0.724,
+        "bbox": [
+          0.5332,
+          0.0,
+          1.0022,
+          0.1351
+        ],
+        "detector": "ppe",
+        "tid": 100
+      }
+    ],
+    "stage2": [
+      {
+        "label": "NO-Safety-Vest",
+        "raw_label": "NO-Safety Vest",
+        "conf": 0.705,
+        "bbox": [
+          0.5415320197044334,
+          0.00033166666666666663,
+          1.0019285714285713,
+          0.1493052777777778
+        ],
+        "detector": "ppe",
+        "tid": 102,
+        "source": "crop"
+      }
+    ],
+    "merged": [
+      {
+        "label": "NO-Safety-Vest",
+        "raw_label": "NO-Safety Vest",
+        "conf": 0.724,
+        "bbox": [
+          0.5332,
+          0.0,
+          1.0022,
+          0.1351
+        ],
+        "detector": "ppe",
+        "tid": 100
+      }
+    ]
+  },
+  {
+    "file": "KakaoTalk_20260807_000438282_13000ms.jpg",
+    "bucket": "근거리",
+    "n_crops": 1,
+    "lat_stage1": 25.581699999747798,
+    "lat_stage2": 28.65150000070571,
+    "stage1": [
+      {
+        "label": "NO-Safety-Vest",
+        "raw_label": "NO-Safety Vest",
+        "conf": 0.672,
+        "bbox": [
+          -0.0022,
+          -0.0004,
+          0.3763,
+          0.3754
+        ],
+        "detector": "ppe",
+        "tid": 105
+      }
+    ],
+    "stage2": [
+      {
+        "label": "NO-Safety-Vest",
+        "raw_label": "NO-Safety Vest",
+        "conf": 0.584,
+        "bbox": [
+          -0.002068472906403941,
+          -0.0008000000000000001,
+          0.36564236453201976,
+          0.5185
+        ],
+        "detector": "ppe",
+        "tid": 107,
+        "source": "crop"
+      }
+    ],
+    "merged": [
+      {
+        "label": "NO-Safety-Vest",
+        "raw_label": "NO-Safety Vest",
+        "conf": 0.672,
+        "bbox": [
+          -0.0022,
+          -0.0004,
+          0.3763,
+          0.3754
+        ],
+        "detector": "ppe",
+        "tid": 105
+      }
+    ]
+  },
+  {
+    "file": "KakaoTalk_20260807_000438282_14000ms.jpg",
+    "bucket": "근거리",
+    "n_crops": 2,
+    "lat_stage1": 27.46550000119896,
+    "lat_stage2": 42.21559999859892,
+    "stage1": [
+      {
+        "label": "NO-Safety-Vest",
+        "raw_label": "NO-Safety Vest",
+        "conf": 0.666,
+        "bbox": [
+          -0.0012,
+          0.1174,
+          0.2598,
+          0.5773
+        ],
+        "detector": "ppe",
+        "tid": 109
+      },
+      {
+        "label": "Hardhat",
+        "raw_label": "Hardhat",
+        "conf": 0.505,
+        "bbox": [
+          -0.0037,
+          0.0002,
+          0.1887,
+          0.0453
+        ],
+        "detector": "ppe",
+        "tid": 110
+      }
+    ],
+    "stage2": [
+      {
+        "label": "NO-Safety-Vest",
+        "raw_label": "NO-Safety Vest",
+        "conf": 0.719,
+        "bbox": [
+          0.00016403940886699508,
+          0.10800000000000001,
+          0.2577059113300492,
+          0.5467
+        ],
+        "detector": "ppe",
+        "tid": 114,
+        "source": "crop"
+      },
+      {
+        "label": "Hardhat",
+        "raw_label": "Hardhat",
+        "conf": 0.444,
+        "bbox": [
+          -0.0022145320197044334,
+          -0.00010000000000000002,
+          0.16699211822660098,
+          0.0423
+        ],
+        "detector": "ppe",
+        "tid": 115,
+        "source": "crop"
+      }
+    ],
+    "merged": [
+      {
+        "label": "NO-Safety-Vest",
+        "raw_label": "NO-Safety Vest",
+        "conf": 0.719,
+        "bbox": [
+          0.00016403940886699508,
+          0.10800000000000001,
+          0.2577059113300492,
+          0.5467
+        ],
+        "detector": "ppe",
+        "tid": 114,
+        "source": "crop"
+      },
+      {
+        "label": "Hardhat",
+        "raw_label": "Hardhat",
+        "conf": 0.505,
+        "bbox": [
+          -0.0037,
+          0.0002,
+          0.1887,
+          0.0453
+        ],
+        "detector": "ppe",
+        "tid": 110
+      }
+    ]
+  },
+  {
+    "file": "KakaoTalk_20260807_000438282_15000ms.jpg",
+    "bucket": "근거리",
+    "n_crops": 1,
+    "lat_stage1": 25.734700000612065,
+    "lat_stage2": 25.30320000005304,
+    "stage1": [
+      {
+        "label": "NO-Safety-Vest",
+        "raw_label": "NO-Safety Vest",
+        "conf": 0.724,
+        "bbox": [
+          -0.0037,
+          0.1157,
+          0.2587,
+          0.5403
+        ],
+        "detector": "ppe",
+        "tid": 119
+      },
+      {
+        "label": "Hardhat",
+        "raw_label": "Hardhat",
+        "conf": 0.693,
+        "bbox": [
+          -0.0004,
+          0.0004,
+          0.2425,
+          0.0651
+        ],
+        "detector": "ppe",
+        "tid": 120
+      }
+    ],
+    "stage2": [
+      {
+        "label": "Hardhat",
+        "raw_label": "Hardhat",
+        "conf": 0.644,
+        "bbox": [
+          -0.0036650246305418716,
+          0.0,
+          0.2405935960591133,
+          0.0731
+        ],
+        "detector": "ppe",
+        "tid": 122,
+        "source": "crop"
+      },
+      {
+        "label": "NO-Mask",
+        "raw_label": "NO-Mask",
+        "conf": 0.568,
+        "bbox": [
+          0.09048029556650246,
+          0.05,
+          0.19249014778325121,
+          0.1259
+        ],
+        "detector": "ppe",
+        "tid": 123,
+        "source": "crop"
+      },
+      {
+        "label": "NO-Safety-Vest",
+        "raw_label": "NO-Safety Vest",
+        "conf": 0.562,
+        "bbox": [
+          -0.004504926108374384,
+          0.091,
+          0.24066995073891623,
+          0.5362
+        ],
+        "detector": "ppe",
+        "tid": 124,
+        "source": "crop"
+      }
+    ],
+    "merged": [
+      {
+        "label": "NO-Safety-Vest",
+        "raw_label": "NO-Safety Vest",
+        "conf": 0.724,
+        "bbox": [
+          -0.0037,
+          0.1157,
+          0.2587,
+          0.5403
+        ],
+        "detector": "ppe",
+        "tid": 119
+      },
+      {
+        "label": "Hardhat",
+        "raw_label": "Hardhat",
+        "conf": 0.693,
+        "bbox": [
+          -0.0004,
+          0.0004,
+          0.2425,
+          0.0651
+        ],
+        "detector": "ppe",
+        "tid": 120
+      },
+      {
+        "label": "NO-Mask",
+        "raw_label": "NO-Mask",
+        "conf": 0.568,
+        "bbox": [
+          0.09048029556650246,
+          0.05,
+          0.19249014778325121,
+          0.1259
+        ],
+        "detector": "ppe",
+        "tid": 123,
+        "source": "crop"
+      }
+    ]
+  },
+  {
+    "file": "KakaoTalk_20260807_000438282_16000ms.jpg",
+    "bucket": "근거리",
+    "n_crops": 4,
+    "lat_stage1": 24.680599999555852,
+    "lat_stage2": 73.7583000009181,
+    "stage1": [
+      {
+        "label": "Hardhat",
+        "raw_label": "Hardhat",
+        "conf": 0.884,
+        "bbox": [
+          0.0006,
+          0.2299,
+          0.4021,
+          0.4183
+        ],
+        "detector": "ppe",
+        "tid": 127
+      },
+      {
+        "label": "NO-Safety-Vest",
+        "raw_label": "NO-Safety Vest",
+        "conf": 0.845,
+        "bbox": [
+          0.7357,
+          0.0257,
+          0.9014,
+          0.1386
+        ],
+        "detector": "ppe",
+        "tid": 128
+      },
+      {
+        "label": "NO-Safety-Vest",
+        "raw_label": "NO-Safety Vest",
+        "conf": 0.8,
+        "bbox": [
+          0.3661,
+          0.0881,
+          0.4579,
+          0.1472
+        ],
+        "detector": "ppe",
+        "tid": 130
+      },
+      {
+        "label": "NO-Safety-Vest",
+        "raw_label": "NO-Safety Vest",
+        "conf": 0.743,
+        "bbox": [
+          0.5783,
+          0.0934,
+          0.6429,
+          0.136
+        ],
+        "detector": "ppe",
+        "tid": 132
+      },
+      {
+        "label": "NO-Safety-Vest",
+        "raw_label": "NO-Safety Vest",
+        "conf": 0.683,
+        "bbox": [
+          -0.0008,
+          0.4624,
+          0.3843,
+          0.8136
+        ],
+        "detector": "ppe",
+        "tid": 133
+      },
+      {
+        "label": "NO-Mask",
+        "raw_label": "NO-Mask",
+        "conf": 0.625,
+        "bbox": [
+          0.245,
+          0.4213,
+          0.3569,
+          0.501
+        ],
+        "detector": "ppe",
+        "tid": 134
+      },
+      {
+        "label": "Hardhat",
+        "raw_label": "Hardhat",
+        "conf": 0.605,
+        "bbox": [
+          0.5663,
+          0.065,
+          0.6065,
+          0.0872
+        ],
+        "detector": "ppe",
+        "tid": 135
+      },
+      {
+        "label": "NO-Hardhat",
+        "raw_label": "NO-Hardhat",
+        "conf": 0.445,
+        "bbox": [
+          0.3954,
+          0.0608,
+          0.4484,
+          0.0845
+        ],
+        "detector": "ppe",
+        "tid": 136
+      },
+      {
+        "label": "NO-Safety-Vest",
+        "raw_label": "NO-Safety Vest",
+        "conf": 0.427,
+        "bbox": [
+          0.6272,
+          0.0957,
+          0.6744,
+          0.1261
+        ],
+        "detector": "ppe",
+        "tid": 137
+      },
+      {
+        "label": "NO-Mask",
+        "raw_label": "NO-Mask",
+        "conf": 0.375,
+        "bbox": [
+          0.4226,
+          0.0825,
+          0.4497,
+          0.0953
+        ],
+        "detector": "ppe",
+        "tid": 138
+      },
+      {
+        "label": "Hardhat",
+        "raw_label": "Hardhat",
+        "conf": 0.356,
+        "bbox": [
+          0.3954,
+          0.0608,
+          0.4484,
+          0.0845
+        ],
+        "detector": "ppe",
+        "tid": 139
+      }
+    ],
+    "stage2": [
+      {
+        "label": "Hardhat",
+        "raw_label": "Hardhat",
+        "conf": 0.91,
+        "bbox": [
+          0.0009975369458128079,
+          0.2312202777777778,
+          0.4055985221674877,
+          0.42226763888888885
+        ],
+        "detector": "ppe",
+        "tid": 141,
+        "source": "crop"
+      },
+      {
+        "label": "NO-Safety-Vest",
+        "raw_label": "NO-Safety Vest",
+        "conf": 0.85,
+        "bbox": [
+          0.7327906403940887,
+          0.08166902777777778,
+          0.908057881773399,
+          0.14051638888888887
+        ],
+        "detector": "ppe",
+        "tid": 143,
+        "source": "crop"
+      },
+      {
+        "label": "NO-Safety-Vest",
+        "raw_label": "NO-Safety Vest",
+        "conf": 0.725,
+        "bbox": [
+          0.00019950738916256158,
+          0.4450354166666667,
+          0.3926305418719212,
+          0.8543045833333335
+        ],
+        "detector": "ppe",
+        "tid": 144,
+        "source": "crop"
+      },
+      {
+        "label": "NO-Mask",
+        "raw_label": "NO-Mask",
+        "conf": 0.64,
+        "bbox": [
+          0.2443965517241379,
+          0.42382833333333336,
+          0.36230541871921185,
+          0.49791541666666667
+        ],
+        "detector": "ppe",
+        "tid": 145,
+        "source": "crop"
+      },
+      {
+        "label": "NO-Safety-Vest",
+        "raw_label": "NO-Safety Vest",
+        "conf": 0.433,
+        "bbox": [
+          0.36420073891625615,
+          0.08203625,
+          0.46954064039408866,
+          0.1499723611111111
+        ],
+        "detector": "ppe",
+        "tid": 146,
+        "source": "crop"
+      },
+      {
+        "label": "NO-Safety-Vest",
+        "raw_label": "NO-Safety Vest",
+        "conf": 0.911,
+        "bbox": [
+          0.7257426108374384,
+          0.030607638888888893,
+          0.8968534482758621,
+          0.1423326388888889
+        ],
+        "detector": "ppe",
+        "tid": 148,
+        "source": "crop"
+      },
+      {
+        "label": "NO-Safety-Vest",
+        "raw_label": "NO-Safety Vest",
+        "conf": 0.572,
+        "bbox": [
+          0.6378928571428572,
+          0.0989125,
+          0.6653583743842364,
+          0.12465138888888891
+        ],
+        "detector": "ppe",
+        "tid": 150,
+        "source": "crop"
+      },
+      {
+        "label": "NO-Safety-Vest",
+        "raw_label": "NO-Safety Vest",
+        "conf": 0.552,
+        "bbox": [
+          0.6335036945812808,
+          0.09652083333333333,
+          0.6592401477832512,
+          0.1353
+        ],
+        "detector": "ppe",
+        "tid": 151,
+        "source": "crop"
+      },
+      {
+        "label": "Hardhat",
+        "raw_label": "Hardhat",
+        "conf": 0.875,
+        "bbox": [
+          0.3944009852216749,
+          0.06367888888888888,
+          0.4454187192118227,
+          0.08232222222222221
+        ],
+        "detector": "ppe",
+        "tid": 153,
+        "source": "crop"
+      },
+      {
+        "label": "NO-Safety-Vest",
+        "raw_label": "NO-Safety Vest",
+        "conf": 0.872,
+        "bbox": [
+          0.36164137931034485,
+          0.08903249999999999,
+          0.45582019704433496,
+          0.15292888888888886
+        ],
+        "detector": "ppe",
+        "tid": 154,
+        "source": "crop"
+      },
+      {
+        "label": "NO-Safety-Vest",
+        "raw_label": "NO-Safety Vest",
+        "conf": 0.82,
+        "bbox": [
+          0.5788512315270936,
+          0.09251222222222223,
+          0.6491133004926108,
+          0.1327186111111111
+        ],
+        "detector": "ppe",
+        "tid": 156,
+        "source": "crop"
+      },
+      {
+        "label": "Hardhat",
+        "raw_label": "Hardhat",
+        "conf": 0.817,
+        "bbox": [
+          0.5648768472906404,
+          0.07260777777777777,
+          0.6144256157635468,
+          0.09003888888888889
+        ],
+        "detector": "ppe",
+        "tid": 157,
+        "source": "crop"
+      }
+    ],
+    "merged": [
+      {
+        "label": "NO-Safety-Vest",
+        "raw_label": "NO-Safety Vest",
+        "conf": 0.911,
+        "bbox": [
+          0.7257426108374384,
+          0.030607638888888893,
+          0.8968534482758621,
+          0.1423326388888889
+        ],
+        "detector": "ppe",
+        "tid": 148,
+        "source": "crop"
+      },
+      {
+        "label": "Hardhat",
+        "raw_label": "Hardhat",
+        "conf": 0.91,
+        "bbox": [
+          0.0009975369458128079,
+          0.2312202777777778,
+          0.4055985221674877,
+          0.42226763888888885
+        ],
+        "detector": "ppe",
+        "tid": 141,
+        "source": "crop"
+      },
+      {
+        "label": "Hardhat",
+        "raw_label": "Hardhat",
+        "conf": 0.875,
+        "bbox": [
+          0.3944009852216749,
+          0.06367888888888888,
+          0.4454187192118227,
+          0.08232222222222221
+        ],
+        "detector": "ppe",
+        "tid": 153,
+        "source": "crop"
+      },
+      {
+        "label": "NO-Safety-Vest",
+        "raw_label": "NO-Safety Vest",
+        "conf": 0.872,
+        "bbox": [
+          0.36164137931034485,
+          0.08903249999999999,
+          0.45582019704433496,
+          0.15292888888888886
+        ],
+        "detector": "ppe",
+        "tid": 154,
+        "source": "crop"
+      },
+      {
+        "label": "NO-Safety-Vest",
+        "raw_label": "NO-Safety Vest",
+        "conf": 0.85,
+        "bbox": [
+          0.7327906403940887,
+          0.08166902777777778,
+          0.908057881773399,
+          0.14051638888888887
+        ],
+        "detector": "ppe",
+        "tid": 143,
+        "source": "crop"
+      },
+      {
+        "label": "NO-Safety-Vest",
+        "raw_label": "NO-Safety Vest",
+        "conf": 0.82,
+        "bbox": [
+          0.5788512315270936,
+          0.09251222222222223,
+          0.6491133004926108,
+          0.1327186111111111
+        ],
+        "detector": "ppe",
+        "tid": 156,
+        "source": "crop"
+      },
+      {
+        "label": "Hardhat",
+        "raw_label": "Hardhat",
+        "conf": 0.817,
+        "bbox": [
+          0.5648768472906404,
+          0.07260777777777777,
+          0.6144256157635468,
+          0.09003888888888889
+        ],
+        "detector": "ppe",
+        "tid": 157,
+        "source": "crop"
+      },
+      {
+        "label": "NO-Safety-Vest",
+        "raw_label": "NO-Safety Vest",
+        "conf": 0.725,
+        "bbox": [
+          0.00019950738916256158,
+          0.4450354166666667,
+          0.3926305418719212,
+          0.8543045833333335
+        ],
+        "detector": "ppe",
+        "tid": 144,
+        "source": "crop"
+      },
+      {
+        "label": "NO-Mask",
+        "raw_label": "NO-Mask",
+        "conf": 0.64,
+        "bbox": [
+          0.2443965517241379,
+          0.42382833333333336,
+          0.36230541871921185,
+          0.49791541666666667
+        ],
+        "detector": "ppe",
+        "tid": 145,
+        "source": "crop"
+      },
+      {
+        "label": "NO-Safety-Vest",
+        "raw_label": "NO-Safety Vest",
+        "conf": 0.572,
+        "bbox": [
+          0.6378928571428572,
+          0.0989125,
+          0.6653583743842364,
+          0.12465138888888891
+        ],
+        "detector": "ppe",
+        "tid": 150,
+        "source": "crop"
+      },
+      {
+        "label": "NO-Safety-Vest",
+        "raw_label": "NO-Safety Vest",
+        "conf": 0.552,
+        "bbox": [
+          0.6335036945812808,
+          0.09652083333333333,
+          0.6592401477832512,
+          0.1353
+        ],
+        "detector": "ppe",
+        "tid": 151,
+        "source": "crop"
+      },
+      {
+        "label": "NO-Hardhat",
+        "raw_label": "NO-Hardhat",
+        "conf": 0.445,
+        "bbox": [
+          0.3954,
+          0.0608,
+          0.4484,
+          0.0845
+        ],
+        "detector": "ppe",
+        "tid": 136
+      },
+      {
+        "label": "NO-Safety-Vest",
+        "raw_label": "NO-Safety Vest",
+        "conf": 0.427,
+        "bbox": [
+          0.6272,
+          0.0957,
+          0.6744,
+          0.1261
+        ],
+        "detector": "ppe",
+        "tid": 137
+      },
+      {
+        "label": "NO-Mask",
+        "raw_label": "NO-Mask",
+        "conf": 0.375,
+        "bbox": [
+          0.4226,
+          0.0825,
+          0.4497,
+          0.0953
+        ],
+        "detector": "ppe",
+        "tid": 138
+      }
+    ]
+  },
+  {
+    "file": "KakaoTalk_20260807_000438282_17000ms.jpg",
+    "bucket": "근거리",
+    "n_crops": 2,
+    "lat_stage1": 41.77759999947739,
+    "lat_stage2": 64.62479999936477,
+    "stage1": [
+      {
+        "label": "Hardhat",
+        "raw_label": "Hardhat",
+        "conf": 0.876,
+        "bbox": [
+          0.0256,
+          0.2254,
+          0.5329,
+          0.4317
+        ],
+        "detector": "ppe",
+        "tid": 160
+      },
+      {
+        "label": "NO-Safety-Vest",
+        "raw_label": "NO-Safety Vest",
+        "conf": 0.838,
+        "bbox": [
+          0.7151,
+          0.0196,
+          0.8609,
+          0.1316
+        ],
+        "detector": "ppe",
+        "tid": 161
+      },
+      {
+        "label": "NO-Safety-Vest",
+        "raw_label": "NO-Safety Vest",
+        "conf": 0.815,
+        "bbox": [
+          -0.0028,
+          0.4196,
+          0.447,
+          0.7764
+        ],
+        "detector": "ppe",
+        "tid": 162
+      },
+      {
+        "label": "NO-Safety-Vest",
+        "raw_label": "NO-Safety Vest",
+        "conf": 0.78,
+        "bbox": [
+          0.3144,
+          0.0312,
+          0.4349,
+          0.1321
+        ],
+        "detector": "ppe",
+        "tid": 163
+      },
+      {
+        "label": "NO-Safety-Vest",
+        "raw_label": "NO-Safety Vest",
+        "conf": 0.779,
+        "bbox": [
+          0.5658,
+          0.0843,
+          0.6382,
+          0.1335
+        ],
+        "detector": "ppe",
+        "tid": 164
+      },
+      {
+        "label": "Hardhat",
+        "raw_label": "Hardhat",
+        "conf": 0.718,
+        "bbox": [
+          0.3966,
+          -0.0004,
+          0.4561,
+          0.0389
+        ],
+        "detector": "ppe",
+        "tid": 165
+      },
+      {
+        "label": "NO-Mask",
+        "raw_label": "NO-Mask",
+        "conf": 0.554,
+        "bbox": [
+          0.292,
+          0.4398,
+          0.4703,
+          0.5179
+        ],
+        "detector": "ppe",
+        "tid": 166
+      },
+      {
+        "label": "NO-Hardhat",
+        "raw_label": "NO-Hardhat",
+        "conf": 0.48,
+        "bbox": [
+          0.7356,
+          -0.0003,
+          0.7806,
+          0.019
+        ],
+        "detector": "ppe",
+        "tid": 167
+      },
+      {
+        "label": "Hardhat",
+        "raw_label": "Hardhat",
+        "conf": 0.419,
+        "bbox": [
+          0.5495,
+          0.0546,
+          0.5951,
+          0.0795
+        ],
+        "detector": "ppe",
+        "tid": 168
+      },
+      {
+        "label": "NO-Hardhat",
+        "raw_label": "NO-Hardhat",
+        "conf": 0.363,
+        "bbox": [
+          0.5495,
+          0.0546,
+          0.5951,
+          0.0795
+        ],
+        "detector": "ppe",
+        "tid": 169
+      }
+    ],
+    "stage2": [
+      {
+        "label": "NO-Safety-Vest",
+        "raw_label": "NO-Safety Vest",
+        "conf": 0.838,
+        "bbox": [
+          0.716512315270936,
+          0.0211,
+          0.8565162561576354,
+          0.1269
+        ],
+        "detector": "ppe",
+        "tid": 174,
+        "source": "crop"
+      },
+      {
+        "label": "Hardhat",
+        "raw_label": "Hardhat",
+        "conf": 0.836,
+        "bbox": [
+          0.02684630541871921,
+          0.224,
+          0.5287714285714286,
+          0.4291
+        ],
+        "detector": "ppe",
+        "tid": 175,
+        "source": "crop"
+      },
+      {
+        "label": "NO-Safety-Vest",
+        "raw_label": "NO-Safety Vest",
+        "conf": 0.821,
+        "bbox": [
+          -9.16256157635468e-05,
+          0.408,
+          0.4472246305418719,
+          0.7625
+        ],
+        "detector": "ppe",
+        "tid": 176,
+        "source": "crop"
+      },
+      {
+        "label": "NO-Safety-Vest",
+        "raw_label": "NO-Safety Vest",
+        "conf": 0.814,
+        "bbox": [
+          0.3039221674876847,
+          0.0312,
+          0.42477635467980296,
+          0.1338
+        ],
+        "detector": "ppe",
+        "tid": 177,
+        "source": "crop"
+      },
+      {
+        "label": "Hardhat",
+        "raw_label": "Hardhat",
+        "conf": 0.784,
+        "bbox": [
+          0.38959211822660106,
+          -0.00010000000000000002,
+          0.4588610837438424,
+          0.0385
+        ],
+        "detector": "ppe",
+        "tid": 178,
+        "source": "crop"
+      },
+      {
+        "label": "NO-Safety-Vest",
+        "raw_label": "NO-Safety Vest",
+        "conf": 0.719,
+        "bbox": [
+          0.5503034482758621,
+          0.0852,
+          0.6122423645320197,
+          0.1358
+        ],
+        "detector": "ppe",
+        "tid": 179,
+        "source": "crop"
+      },
+      {
+        "label": "Hardhat",
+        "raw_label": "Hardhat",
+        "conf": 0.604,
+        "bbox": [
+          0.5496620689655173,
+          0.0591,
+          0.5910768472906405,
+          0.0812
+        ],
+        "detector": "ppe",
+        "tid": 180,
+        "source": "crop"
+      },
+      {
+        "label": "NO-Mask",
+        "raw_label": "NO-Mask",
+        "conf": 0.46,
+        "bbox": [
+          0.27652610837438424,
+          0.4334,
+          0.4740709359605911,
+          0.5181
+        ],
+        "detector": "ppe",
+        "tid": 181,
+        "source": "crop"
+      },
+      {
+        "label": "NO-Safety-Vest",
+        "raw_label": "NO-Safety Vest",
+        "conf": 0.459,
+        "bbox": [
+          0.45977733990147784,
+          0.1053,
+          0.4896472906403941,
+          0.1268
+        ],
+        "detector": "ppe",
+        "tid": 182,
+        "source": "crop"
+      },
+      {
+        "label": "NO-Hardhat",
+        "raw_label": "NO-Hardhat",
+        "conf": 0.451,
+        "bbox": [
+          0.7392354679802955,
+          -0.0004000000000000001,
+          0.8025487684729065,
+          0.0183
+        ],
+        "detector": "ppe",
+        "tid": 183,
+        "source": "crop"
+      },
+      {
+        "label": "NO-Safety-Vest",
+        "raw_label": "NO-Safety Vest",
+        "conf": 0.419,
+        "bbox": [
+          0.6142581280788177,
+          0.0881,
+          0.6564059113300493,
+          0.1193
+        ],
+        "detector": "ppe",
+        "tid": 184,
+        "source": "crop"
+      },
+      {
+        "label": "NO-Safety-Vest",
+        "raw_label": "NO-Safety Vest",
+        "conf": 0.355,
+        "bbox": [
+          0.6809615763546798,
+          0.0525,
+          0.7388689655172413,
+          0.1329
+        ],
+        "detector": "ppe",
+        "tid": 185,
+        "source": "crop"
+      },
+      {
+        "label": "NO-Safety-Vest",
+        "raw_label": "NO-Safety Vest",
+        "conf": 0.867,
+        "bbox": [
+          0.714644827586207,
+          0.015035555555555555,
+          0.8634078817733989,
+          0.12915652777777778
+        ],
+        "detector": "ppe",
+        "tid": 187,
+        "source": "crop"
+      },
+      {
+        "label": "NO-Safety-Vest",
+        "raw_label": "NO-Safety Vest",
+        "conf": 0.458,
+        "bbox": [
+          0.6264418719211823,
+          0.09162291666666668,
+          0.6499224137931034,
+          0.12664138888888887
+        ],
+        "detector": "ppe",
+        "tid": 189,
+        "source": "crop"
+      },
+      {
+        "label": "NO-Hardhat",
+        "raw_label": "NO-Hardhat",
+        "conf": 0.388,
+        "bbox": [
+          0.627204433497537,
+          0.06984347222222222,
+          0.6480477832512315,
+          0.08092666666666667
+        ],
+        "detector": "ppe",
+        "tid": 190,
+        "source": "crop"
+      }
+    ],
+    "merged": [
+      {
+        "label": "Hardhat",
+        "raw_label": "Hardhat",
+        "conf": 0.876,
+        "bbox": [
+          0.0256,
+          0.2254,
+          0.5329,
+          0.4317
+        ],
+        "detector": "ppe",
+        "tid": 160
+      },
+      {
+        "label": "NO-Safety-Vest",
+        "raw_label": "NO-Safety Vest",
+        "conf": 0.867,
+        "bbox": [
+          0.714644827586207,
+          0.015035555555555555,
+          0.8634078817733989,
+          0.12915652777777778
+        ],
+        "detector": "ppe",
+        "tid": 187,
+        "source": "crop"
+      },
+      {
+        "label": "NO-Safety-Vest",
+        "raw_label": "NO-Safety Vest",
+        "conf": 0.821,
+        "bbox": [
+          -9.16256157635468e-05,
+          0.408,
+          0.4472246305418719,
+          0.7625
+        ],
+        "detector": "ppe",
+        "tid": 176,
+        "source": "crop"
+      },
+      {
+        "label": "NO-Safety-Vest",
+        "raw_label": "NO-Safety Vest",
+        "conf": 0.814,
+        "bbox": [
+          0.3039221674876847,
+          0.0312,
+          0.42477635467980296,
+          0.1338
+        ],
+        "detector": "ppe",
+        "tid": 177,
+        "source": "crop"
+      },
+      {
+        "label": "Hardhat",
+        "raw_label": "Hardhat",
+        "conf": 0.784,
+        "bbox": [
+          0.38959211822660106,
+          -0.00010000000000000002,
+          0.4588610837438424,
+          0.0385
+        ],
+        "detector": "ppe",
+        "tid": 178,
+        "source": "crop"
+      },
+      {
+        "label": "NO-Safety-Vest",
+        "raw_label": "NO-Safety Vest",
+        "conf": 0.779,
+        "bbox": [
+          0.5658,
+          0.0843,
+          0.6382,
+          0.1335
+        ],
+        "detector": "ppe",
+        "tid": 164
+      },
+      {
+        "label": "Hardhat",
+        "raw_label": "Hardhat",
+        "conf": 0.604,
+        "bbox": [
+          0.5496620689655173,
+          0.0591,
+          0.5910768472906405,
+          0.0812
+        ],
+        "detector": "ppe",
+        "tid": 180,
+        "source": "crop"
+      },
+      {
+        "label": "NO-Mask",
+        "raw_label": "NO-Mask",
+        "conf": 0.554,
+        "bbox": [
+          0.292,
+          0.4398,
+          0.4703,
+          0.5179
+        ],
+        "detector": "ppe",
+        "tid": 166
+      },
+      {
+        "label": "NO-Hardhat",
+        "raw_label": "NO-Hardhat",
+        "conf": 0.48,
+        "bbox": [
+          0.7356,
+          -0.0003,
+          0.7806,
+          0.019
+        ],
+        "detector": "ppe",
+        "tid": 167
+      },
+      {
+        "label": "NO-Safety-Vest",
+        "raw_label": "NO-Safety Vest",
+        "conf": 0.459,
+        "bbox": [
+          0.45977733990147784,
+          0.1053,
+          0.4896472906403941,
+          0.1268
+        ],
+        "detector": "ppe",
+        "tid": 182,
+        "source": "crop"
+      },
+      {
+        "label": "NO-Safety-Vest",
+        "raw_label": "NO-Safety Vest",
+        "conf": 0.458,
+        "bbox": [
+          0.6264418719211823,
+          0.09162291666666668,
+          0.6499224137931034,
+          0.12664138888888887
+        ],
+        "detector": "ppe",
+        "tid": 189,
+        "source": "crop"
+      },
+      {
+        "label": "NO-Safety-Vest",
+        "raw_label": "NO-Safety Vest",
+        "conf": 0.419,
+        "bbox": [
+          0.6142581280788177,
+          0.0881,
+          0.6564059113300493,
+          0.1193
+        ],
+        "detector": "ppe",
+        "tid": 184,
+        "source": "crop"
+      },
+      {
+        "label": "NO-Hardhat",
+        "raw_label": "NO-Hardhat",
+        "conf": 0.388,
+        "bbox": [
+          0.627204433497537,
+          0.06984347222222222,
+          0.6480477832512315,
+          0.08092666666666667
+        ],
+        "detector": "ppe",
+        "tid": 190,
+        "source": "crop"
+      },
+      {
+        "label": "NO-Hardhat",
+        "raw_label": "NO-Hardhat",
+        "conf": 0.363,
+        "bbox": [
+          0.5495,
+          0.0546,
+          0.5951,
+          0.0795
+        ],
+        "detector": "ppe",
+        "tid": 169
+      },
+      {
+        "label": "NO-Safety-Vest",
+        "raw_label": "NO-Safety Vest",
+        "conf": 0.355,
+        "bbox": [
+          0.6809615763546798,
+          0.0525,
+          0.7388689655172413,
+          0.1329
+        ],
+        "detector": "ppe",
+        "tid": 185,
+        "source": "crop"
+      }
+    ]
+  },
+  {
+    "file": "KakaoTalk_20260807_000438282_18000ms.jpg",
+    "bucket": "근거리",
+    "n_crops": 2,
+    "lat_stage1": 25.761299999430776,
+    "lat_stage2": 41.684100000566104,
+    "stage1": [
+      {
+        "label": "NO-Safety-Vest",
+        "raw_label": "NO-Safety Vest",
+        "conf": 0.864,
+        "bbox": [
+          0.7508,
+          0.0003,
+          0.9201,
+          0.1162
+        ],
+        "detector": "ppe",
+        "tid": 193
+      },
+      {
+        "label": "Hardhat",
+        "raw_label": "Hardhat",
+        "conf": 0.837,
+        "bbox": [
+          -0.0008,
+          0.2188,
+          0.5505,
+          0.4831
+        ],
+        "detector": "ppe",
+        "tid": 194
+      },
+      {
+        "label": "NO-Safety-Vest",
+        "raw_label": "NO-Safety Vest",
+        "conf": 0.812,
+        "bbox": [
+          0.3284,
+          0.007,
+          0.4482,
+          0.1054
+        ],
+        "detector": "ppe",
+        "tid": 195
+      },
+      {
+        "label": "NO-Mask",
+        "raw_label": "NO-Mask",
+        "conf": 0.697,
+        "bbox": [
+          0.3011,
+          0.4596,
+          0.4936,
+          0.5311
+        ],
+        "detector": "ppe",
+        "tid": 196
+      },
+      {
+        "label": "NO-Safety-Vest",
+        "raw_label": "NO-Safety Vest",
+        "conf": 0.676,
+        "bbox": [
+          -0.0015,
+          0.4809,
+          0.4559,
+          0.8611
+        ],
+        "detector": "ppe",
+        "tid": 197
+      }
+    ],
+    "stage2": [
+      {
+        "label": "Hardhat",
+        "raw_label": "Hardhat",
+        "conf": 0.899,
+        "bbox": [
+          9.581280788177341e-05,
+          0.2178,
+          0.5476660098522167,
+          0.4846
+        ],
+        "detector": "ppe",
+        "tid": 200,
+        "source": "crop"
+      },
+      {
+        "label": "NO-Safety-Vest",
+        "raw_label": "NO-Safety Vest",
+        "conf": 0.827,
+        "bbox": [
+          0.32308078817733993,
+          0.0083,
+          0.4439007389162562,
+          0.10639999999999998
+        ],
+        "detector": "ppe",
+        "tid": 201,
+        "source": "crop"
+      },
+      {
+        "label": "NO-Safety-Vest",
+        "raw_label": "NO-Safety Vest",
+        "conf": 0.793,
+        "bbox": [
+          0.7604662561576355,
+          0.00020000000000000004,
+          0.9184615763546798,
+          0.1127
+        ],
+        "detector": "ppe",
+        "tid": 202,
+        "source": "crop"
+      },
+      {
+        "label": "NO-Safety-Vest",
+        "raw_label": "NO-Safety Vest",
+        "conf": 0.744,
+        "bbox": [
+          -0.00047906403940886703,
+          0.4751,
+          0.45156576354679806,
+          0.8491
+        ],
+        "detector": "ppe",
+        "tid": 203,
+        "source": "crop"
+      },
+      {
+        "label": "NO-Mask",
+        "raw_label": "NO-Mask",
+        "conf": 0.686,
+        "bbox": [
+          0.3177152709359606,
+          0.4640000000000001,
+          0.4876871921182266,
+          0.5316
+        ],
+        "detector": "ppe",
+        "tid": 204,
+        "source": "crop"
+      },
+      {
+        "label": "NO-Safety-Vest",
+        "raw_label": "NO-Safety Vest",
+        "conf": 0.37,
+        "bbox": [
+          0.6669529556650248,
+          0.0402,
+          0.7597955665024632,
+          0.1248
+        ],
+        "detector": "ppe",
+        "tid": 205,
+        "source": "crop"
+      },
+      {
+        "label": "NO-Safety-Vest",
+        "raw_label": "NO-Safety Vest",
+        "conf": 0.359,
+        "bbox": [
+          0.5414381773399015,
+          0.05800000000000001,
+          0.6361012315270936,
+          0.1181
+        ],
+        "detector": "ppe",
+        "tid": 206,
+        "source": "crop"
+      },
+      {
+        "label": "NO-Safety-Vest",
+        "raw_label": "NO-Safety Vest",
+        "conf": 0.816,
+        "bbox": [
+          0.7503881773399015,
+          7.291666666666666e-05,
+          0.9175566502463055,
+          0.12043402777777779
+        ],
+        "detector": "ppe",
+        "tid": 209,
+        "source": "crop"
+      }
+    ],
+    "merged": [
+      {
+        "label": "Hardhat",
+        "raw_label": "Hardhat",
+        "conf": 0.899,
+        "bbox": [
+          9.581280788177341e-05,
+          0.2178,
+          0.5476660098522167,
+          0.4846
+        ],
+        "detector": "ppe",
+        "tid": 200,
+        "source": "crop"
+      },
+      {
+        "label": "NO-Safety-Vest",
+        "raw_label": "NO-Safety Vest",
+        "conf": 0.864,
+        "bbox": [
+          0.7508,
+          0.0003,
+          0.9201,
+          0.1162
+        ],
+        "detector": "ppe",
+        "tid": 193
+      },
+      {
+        "label": "NO-Safety-Vest",
+        "raw_label": "NO-Safety Vest",
+        "conf": 0.827,
+        "bbox": [
+          0.32308078817733993,
+          0.0083,
+          0.4439007389162562,
+          0.10639999999999998
+        ],
+        "detector": "ppe",
+        "tid": 201,
+        "source": "crop"
+      },
+      {
+        "label": "NO-Safety-Vest",
+        "raw_label": "NO-Safety Vest",
+        "conf": 0.744,
+        "bbox": [
+          -0.00047906403940886703,
+          0.4751,
+          0.45156576354679806,
+          0.8491
+        ],
+        "detector": "ppe",
+        "tid": 203,
+        "source": "crop"
+      },
+      {
+        "label": "NO-Mask",
+        "raw_label": "NO-Mask",
+        "conf": 0.697,
+        "bbox": [
+          0.3011,
+          0.4596,
+          0.4936,
+          0.5311
+        ],
+        "detector": "ppe",
+        "tid": 196
+      },
+      {
+        "label": "NO-Safety-Vest",
+        "raw_label": "NO-Safety Vest",
+        "conf": 0.37,
+        "bbox": [
+          0.6669529556650248,
+          0.0402,
+          0.7597955665024632,
+          0.1248
+        ],
+        "detector": "ppe",
+        "tid": 205,
+        "source": "crop"
+      },
+      {
+        "label": "NO-Safety-Vest",
+        "raw_label": "NO-Safety Vest",
+        "conf": 0.359,
+        "bbox": [
+          0.5414381773399015,
+          0.05800000000000001,
+          0.6361012315270936,
+          0.1181
+        ],
+        "detector": "ppe",
+        "tid": 206,
+        "source": "crop"
+      }
+    ]
+  },
+  {
+    "file": "KakaoTalk_20260807_000438282_19000ms.jpg",
+    "bucket": "근거리",
+    "n_crops": 3,
+    "lat_stage1": 24.379399999816087,
+    "lat_stage2": 63.68599999950675,
+    "stage1": [
+      {
+        "label": "Hardhat",
+        "raw_label": "Hardhat",
+        "conf": 0.941,
+        "bbox": [
+          0.0003,
+          0.262,
+          0.629,
+          0.6406
+        ],
+        "detector": "ppe",
+        "tid": 212
+      },
+      {
+        "label": "NO-Safety-Vest",
+        "raw_label": "NO-Safety Vest",
+        "conf": 0.904,
+        "bbox": [
+          -0.0,
+          0.6149,
+          0.5277,
+          1.0001
+        ],
+        "detector": "ppe",
+        "tid": 213
+      },
+      {
+        "label": "Mask",
+        "raw_label": "Mask",
+        "conf": 0.393,
+        "bbox": [
+          0.0915,
+          0.6149,
+          0.4084,
+          0.6681
+        ],
+        "detector": "ppe",
+        "tid": 216
+      }
+    ],
+    "stage2": [
+      {
+        "label": "Hardhat",
+        "raw_label": "Hardhat",
+        "conf": 0.899,
+        "bbox": [
+          -0.00033694581280788177,
+          0.2540440277777778,
+          0.6217492610837438,
+          0.6454956944444444
+        ],
+        "detector": "ppe",
+        "tid": 218,
+        "source": "crop"
+      },
+      {
+        "label": "NO-Safety-Vest",
+        "raw_label": "NO-Safety Vest",
+        "conf": 0.779,
+        "bbox": [
+          -0.0010950738916256158,
+          0.6201430555555556,
+          0.5759246305418719,
+          1.0003461111111112
+        ],
+        "detector": "ppe",
+        "tid": 219,
+        "source": "crop"
+      },
+      {
+        "label": "NO-Safety-Vest",
+        "raw_label": "NO-Safety Vest",
+        "conf": 0.58,
+        "bbox": [
+          0.3033214285714286,
+          6.111111111111112e-05,
+          0.5209100985221675,
+          0.011550000000000001
+        ],
+        "detector": "ppe",
+        "tid": 222,
+        "source": "crop"
+      }
+    ],
+    "merged": [
+      {
+        "label": "Hardhat",
+        "raw_label": "Hardhat",
+        "conf": 0.941,
+        "bbox": [
+          0.0003,
+          0.262,
+          0.629,
+          0.6406
+        ],
+        "detector": "ppe",
+        "tid": 212
+      },
+      {
+        "label": "NO-Safety-Vest",
+        "raw_label": "NO-Safety Vest",
+        "conf": 0.904,
+        "bbox": [
+          -0.0,
+          0.6149,
+          0.5277,
+          1.0001
+        ],
+        "detector": "ppe",
+        "tid": 213
+      },
+      {
+        "label": "NO-Safety-Vest",
+        "raw_label": "NO-Safety Vest",
+        "conf": 0.58,
+        "bbox": [
+          0.3033214285714286,
+          6.111111111111112e-05,
+          0.5209100985221675,
+          0.011550000000000001
+        ],
+        "detector": "ppe",
+        "tid": 222,
+        "source": "crop"
+      },
+      {
+        "label": "Mask",
+        "raw_label": "Mask",
+        "conf": 0.393,
+        "bbox": [
+          0.0915,
+          0.6149,
+          0.4084,
+          0.6681
+        ],
+        "detector": "ppe",
+        "tid": 216
+      }
+    ]
+  },
+  {
+    "file": "KakaoTalk_20260807_000438282_20000ms.jpg",
+    "bucket": "근거리",
+    "n_crops": 1,
+    "lat_stage1": 26.029700000435696,
+    "lat_stage2": 19.618099999206606,
+    "stage1": [
+      {
+        "label": "Hardhat",
+        "raw_label": "Hardhat",
+        "conf": 0.918,
+        "bbox": [
+          0.2316,
+          0.3758,
+          1.0015,
+          0.8065
+        ],
+        "detector": "ppe",
+        "tid": 228
+      },
+      {
+        "label": "NO-Safety-Vest",
+        "raw_label": "NO-Safety Vest",
+        "conf": 0.907,
+        "bbox": [
+          0.0002,
+          0.7445,
+          0.996,
+          1.0002
+        ],
+        "detector": "ppe",
+        "tid": 229
+      },
+      {
+        "label": "Mask",
+        "raw_label": "Mask",
+        "conf": 0.394,
+        "bbox": [
+          0.3122,
+          0.7381,
+          0.8454,
+          0.8445
+        ],
+        "detector": "ppe",
+        "tid": 230
+      }
+    ],
+    "stage2": [
+      {
+        "label": "NO-Safety-Vest",
+        "raw_label": "NO-Safety Vest",
+        "conf": 0.923,
+        "bbox": [
+          0.0007,
+          0.7333472222222223,
+          0.9983,
+          0.9998538888888889
+        ],
+        "detector": "ppe",
+        "tid": 231,
+        "source": "crop"
+      },
+      {
+        "label": "Hardhat",
+        "raw_label": "Hardhat",
+        "conf": 0.9,
+        "bbox": [
+          0.2147,
+          0.3469563888888889,
+          0.9983,
+          0.8088136111111112
+        ],
+        "detector": "ppe",
+        "tid": 232,
+        "source": "crop"
+      },
+      {
+        "label": "Mask",
+        "raw_label": "Mask",
+        "conf": 0.411,
+        "bbox": [
+          0.2751,
+          0.711211388888889,
+          0.8686,
+          0.8421269444444445
+        ],
+        "detector": "ppe",
+        "tid": 234,
+        "source": "crop"
+      }
+    ],
+    "merged": [
+      {
+        "label": "NO-Safety-Vest",
+        "raw_label": "NO-Safety Vest",
+        "conf": 0.923,
+        "bbox": [
+          0.0007,
+          0.7333472222222223,
+          0.9983,
+          0.9998538888888889
+        ],
+        "detector": "ppe",
+        "tid": 231,
+        "source": "crop"
+      },
+      {
+        "label": "Hardhat",
+        "raw_label": "Hardhat",
+        "conf": 0.918,
+        "bbox": [
+          0.2316,
+          0.3758,
+          1.0015,
+          0.8065
+        ],
+        "detector": "ppe",
+        "tid": 228
+      },
+      {
+        "label": "Mask",
+        "raw_label": "Mask",
+        "conf": 0.411,
+        "bbox": [
+          0.2751,
+          0.711211388888889,
+          0.8686,
+          0.8421269444444445
+        ],
+        "detector": "ppe",
+        "tid": 234,
+        "source": "crop"
+      }
+    ]
+  },
+  {
+    "file": "KakaoTalk_20260807_000438282_2000ms.jpg",
+    "bucket": "근거리",
+    "n_crops": 3,
+    "lat_stage1": 24.251500000900705,
+    "lat_stage2": 59.215200000835466,
+    "stage1": [
+      {
+        "label": "NO-Safety-Vest",
+        "raw_label": "NO-Safety Vest",
+        "conf": 0.91,
+        "bbox": [
+          0.7264,
+          0.2316,
+          0.9997,
+          0.5122
+        ],
+        "detector": "ppe",
+        "tid": 237
+      },
+      {
+        "label": "Hardhat",
+        "raw_label": "Hardhat",
+        "conf": 0.872,
+        "bbox": [
+          0.8121,
+          0.135,
+          0.9828,
+          0.2043
+        ],
+        "detector": "ppe",
+        "tid": 239
+      },
+      {
+        "label": "NO-Safety-Vest",
+        "raw_label": "NO-Safety Vest",
+        "conf": 0.866,
+        "bbox": [
+          0.2961,
+          0.2744,
+          0.5726,
+          0.4349
+        ],
+        "detector": "ppe",
+        "tid": 240
+      },
+      {
+        "label": "Hardhat",
+        "raw_label": "Hardhat",
+        "conf": 0.864,
+        "bbox": [
+          0.4301,
+          0.196,
+          0.5854,
+          0.2556
+        ],
+        "detector": "ppe",
+        "tid": 241
+      },
+      {
+        "label": "NO-Safety-Vest",
+        "raw_label": "NO-Safety Vest",
+        "conf": 0.623,
+        "bbox": [
+          0.585,
+          0.2015,
+          0.6733,
+          0.2572
+        ],
+        "detector": "ppe",
+        "tid": 242
+      },
+      {
+        "label": "NO-Mask",
+        "raw_label": "NO-Mask",
+        "conf": 0.573,
+        "bbox": [
+          0.5148,
+          0.2568,
+          0.5655,
+          0.2903
+        ],
+        "detector": "ppe",
+        "tid": 243
+      },
+      {
+        "label": "NO-Safety-Vest",
+        "raw_label": "NO-Safety Vest",
+        "conf": 0.408,
+        "bbox": [
+          0.6297,
+          0.1877,
+          0.7054,
+          0.2655
+        ],
+        "detector": "ppe",
+        "tid": 244
+      }
+    ],
+    "stage2": [
+      {
+        "label": "NO-Safety-Vest",
+        "raw_label": "NO-Safety Vest",
+        "conf": 0.748,
+        "bbox": [
+          0.7165034482758621,
+          0.23900694444444445,
+          1.001555172413793,
+          0.5128027777777778
+        ],
+        "detector": "ppe",
+        "tid": 248,
+        "source": "crop"
+      },
+      {
+        "label": "Hardhat",
+        "raw_label": "Hardhat",
+        "conf": 0.567,
+        "bbox": [
+          0.8126965517241379,
+          0.13732777777777777,
+          0.9852827586206897,
+          0.20163194444444443
+        ],
+        "detector": "ppe",
+        "tid": 249,
+        "source": "crop"
+      },
+      {
+        "label": "NO-Safety-Vest",
+        "raw_label": "NO-Safety Vest",
+        "conf": 0.871,
+        "bbox": [
+          0.2984815270935961,
+          0.27795,
+          0.5610142857142857,
+          0.4446798611111111
+        ],
+        "detector": "ppe",
+        "tid": 252,
+        "source": "crop"
+      },
+      {
+        "label": "Hardhat",
+        "raw_label": "Hardhat",
+        "conf": 0.848,
+        "bbox": [
+          0.42874088669950744,
+          0.19407152777777775,
+          0.5947086206896552,
+          0.2590516666666667
+        ],
+        "detector": "ppe",
+        "tid": 253,
+        "source": "crop"
+      },
+      {
+        "label": "NO-Safety-Vest",
+        "raw_label": "NO-Safety Vest",
+        "conf": 0.819,
+        "bbox": [
+          0.5907349753694581,
+          0.19208583333333334,
+          0.6787539408866996,
+          0.25966791666666666
+        ],
+        "detector": "ppe",
+        "tid": 254,
+        "source": "crop"
+      },
+      {
+        "label": "NO-Mask",
+        "raw_label": "NO-Mask",
+        "conf": 0.651,
+        "bbox": [
+          0.5128406403940886,
+          0.26398166666666667,
+          0.5584559113300492,
+          0.2918498611111111
+        ],
+        "detector": "ppe",
+        "tid": 256,
+        "source": "crop"
+      }
+    ],
+    "merged": [
+      {
+        "label": "NO-Safety-Vest",
+        "raw_label": "NO-Safety Vest",
+        "conf": 0.91,
+        "bbox": [
+          0.7264,
+          0.2316,
+          0.9997,
+          0.5122
+        ],
+        "detector": "ppe",
+        "tid": 237
+      },
+      {
+        "label": "Hardhat",
+        "raw_label": "Hardhat",
+        "conf": 0.872,
+        "bbox": [
+          0.8121,
+          0.135,
+          0.9828,
+          0.2043
+        ],
+        "detector": "ppe",
+        "tid": 239
+      },
+      {
+        "label": "NO-Safety-Vest",
+        "raw_label": "NO-Safety Vest",
+        "conf": 0.871,
+        "bbox": [
+          0.2984815270935961,
+          0.27795,
+          0.5610142857142857,
+          0.4446798611111111
+        ],
+        "detector": "ppe",
+        "tid": 252,
+        "source": "crop"
+      },
+      {
+        "label": "Hardhat",
+        "raw_label": "Hardhat",
+        "conf": 0.864,
+        "bbox": [
+          0.4301,
+          0.196,
+          0.5854,
+          0.2556
+        ],
+        "detector": "ppe",
+        "tid": 241
+      },
+      {
+        "label": "NO-Safety-Vest",
+        "raw_label": "NO-Safety Vest",
+        "conf": 0.819,
+        "bbox": [
+          0.5907349753694581,
+          0.19208583333333334,
+          0.6787539408866996,
+          0.25966791666666666
+        ],
+        "detector": "ppe",
+        "tid": 254,
+        "source": "crop"
+      },
+      {
+        "label": "NO-Mask",
+        "raw_label": "NO-Mask",
+        "conf": 0.651,
+        "bbox": [
+          0.5128406403940886,
+          0.26398166666666667,
+          0.5584559113300492,
+          0.2918498611111111
+        ],
+        "detector": "ppe",
+        "tid": 256,
+        "source": "crop"
+      },
+      {
+        "label": "NO-Safety-Vest",
+        "raw_label": "NO-Safety Vest",
+        "conf": 0.408,
+        "bbox": [
+          0.6297,
+          0.1877,
+          0.7054,
+          0.2655
+        ],
+        "detector": "ppe",
+        "tid": 244
+      }
+    ]
+  },
+  {
+    "file": "KakaoTalk_20260807_000438282_3000ms.jpg",
+    "bucket": "근거리",
+    "n_crops": 2,
+    "lat_stage1": 30.19990000029793,
+    "lat_stage2": 50.02430000058666,
+    "stage1": [
+      {
+        "label": "NO-Safety-Vest",
+        "raw_label": "NO-Safety Vest",
+        "conf": 0.903,
+        "bbox": [
+          0.7065,
+          0.2156,
+          0.9977,
+          0.6173
+        ],
+        "detector": "ppe",
+        "tid": 260
+      },
+      {
+        "label": "Hardhat",
+        "raw_label": "Hardhat",
+        "conf": 0.837,
+        "bbox": [
+          0.8239,
+          0.0603,
+          0.9982,
+          0.1568
+        ],
+        "detector": "ppe",
+        "tid": 261
+      },
+      {
+        "label": "NO-Safety-Vest",
+        "raw_label": "NO-Safety Vest",
+        "conf": 0.833,
+        "bbox": [
+          0.1251,
+          0.2418,
+          0.4953,
+          0.4853
+        ],
+        "detector": "ppe",
+        "tid": 262
+      },
+      {
+        "label": "Hardhat",
+        "raw_label": "Hardhat",
+        "conf": 0.825,
+        "bbox": [
+          0.2678,
+          0.1263,
+          0.497,
+          0.2266
+        ],
+        "detector": "ppe",
+        "tid": 263
+      },
+      {
+        "label": "NO-Hardhat",
+        "raw_label": "NO-Hardhat",
+        "conf": 0.661,
+        "bbox": [
+          0.6879,
+          0.1261,
+          0.734,
+          0.1644
+        ],
+        "detector": "ppe",
+        "tid": 264
+      },
+      {
+        "label": "NO-Mask",
+        "raw_label": "NO-Mask",
+        "conf": 0.638,
+        "bbox": [
+          0.3832,
+          0.2261,
+          0.4388,
+          0.2661
+        ],
+        "detector": "ppe",
+        "tid": 265
+      }
+    ],
+    "stage2": [
+      {
+        "label": "NO-Safety-Vest",
+        "raw_label": "NO-Safety Vest",
+        "conf": 0.828,
+        "bbox": [
+          0.12736945812807882,
+          0.24276236111111113,
+          0.5079014778325123,
+          0.4902181944444445
+        ],
+        "detector": "ppe",
+        "tid": 267,
+        "source": "crop"
+      },
+      {
+        "label": "Hardhat",
+        "raw_label": "Hardhat",
+        "conf": 0.82,
+        "bbox": [
+          0.26790147783251234,
+          0.12602472222222222,
+          0.494423645320197,
+          0.2253865277777778
+        ],
+        "detector": "ppe",
+        "tid": 268,
+        "source": "crop"
+      },
+      {
+        "label": "NO-Mask",
+        "raw_label": "NO-Mask",
+        "conf": 0.648,
+        "bbox": [
+          0.3789556650246305,
+          0.2265848611111111,
+          0.4402758620689655,
+          0.26812708333333335
+        ],
+        "detector": "ppe",
+        "tid": 269,
+        "source": "crop"
+      },
+      {
+        "label": "NO-Safety-Vest",
+        "raw_label": "NO-Safety Vest",
+        "conf": 0.364,
+        "bbox": [
+          0.6526896551724137,
+          0.22568611111111112,
+          0.7866009852216749,
+          0.4487758333333334
+        ],
+        "detector": "ppe",
+        "tid": 271,
+        "source": "crop"
+      },
+      {
+        "label": "NO-Safety-Vest",
+        "raw_label": "NO-Safety Vest",
+        "conf": 0.865,
+        "bbox": [
+          0.7077748768472907,
+          0.2125,
+          0.9999573891625616,
+          0.6174
+        ],
+        "detector": "ppe",
+        "tid": 273,
+        "source": "crop"
+      },
+      {
+        "label": "Hardhat",
+        "raw_label": "Hardhat",
+        "conf": 0.801,
+        "bbox": [
+          0.8241024630541872,
+          0.0565,
+          1.0014913793103448,
+          0.1566
+        ],
+        "detector": "ppe",
+        "tid": 274,
+        "source": "crop"
+      },
+      {
+        "label": "NO-Hardhat",
+        "raw_label": "NO-Hardhat",
+        "conf": 0.635,
+        "bbox": [
+          0.6819100985221676,
+          0.1255,
+          0.7373467980295566,
+          0.1646
+        ],
+        "detector": "ppe",
+        "tid": 275,
+        "source": "crop"
+      },
+      {
+        "label": "NO-Safety-Vest",
+        "raw_label": "NO-Safety Vest",
+        "conf": 0.414,
+        "bbox": [
+          0.5727411330049261,
+          0.1651,
+          0.7457837438423646,
+          0.3783
+        ],
+        "detector": "ppe",
+        "tid": 276,
+        "source": "crop"
+      }
+    ],
+    "merged": [
+      {
+        "label": "NO-Safety-Vest",
+        "raw_label": "NO-Safety Vest",
+        "conf": 0.903,
+        "bbox": [
+          0.7065,
+          0.2156,
+          0.9977,
+          0.6173
+        ],
+        "detector": "ppe",
+        "tid": 260
+      },
+      {
+        "label": "Hardhat",
+        "raw_label": "Hardhat",
+        "conf": 0.837,
+        "bbox": [
+          0.8239,
+          0.0603,
+          0.9982,
+          0.1568
+        ],
+        "detector": "ppe",
+        "tid": 261
+      },
+      {
+        "label": "NO-Safety-Vest",
+        "raw_label": "NO-Safety Vest",
+        "conf": 0.833,
+        "bbox": [
+          0.1251,
+          0.2418,
+          0.4953,
+          0.4853
+        ],
+        "detector": "ppe",
+        "tid": 262
+      },
+      {
+        "label": "Hardhat",
+        "raw_label": "Hardhat",
+        "conf": 0.825,
+        "bbox": [
+          0.2678,
+          0.1263,
+          0.497,
+          0.2266
+        ],
+        "detector": "ppe",
+        "tid": 263
+      },
+      {
+        "label": "NO-Hardhat",
+        "raw_label": "NO-Hardhat",
+        "conf": 0.661,
+        "bbox": [
+          0.6879,
+          0.1261,
+          0.734,
+          0.1644
+        ],
+        "detector": "ppe",
+        "tid": 264
+      },
+      {
+        "label": "NO-Mask",
+        "raw_label": "NO-Mask",
+        "conf": 0.648,
+        "bbox": [
+          0.3789556650246305,
+          0.2265848611111111,
+          0.4402758620689655,
+          0.26812708333333335
+        ],
+        "detector": "ppe",
+        "tid": 269,
+        "source": "crop"
+      },
+      {
+        "label": "NO-Safety-Vest",
+        "raw_label": "NO-Safety Vest",
+        "conf": 0.414,
+        "bbox": [
+          0.5727411330049261,
+          0.1651,
+          0.7457837438423646,
+          0.3783
+        ],
+        "detector": "ppe",
+        "tid": 276,
+        "source": "crop"
+      },
+      {
+        "label": "NO-Safety-Vest",
+        "raw_label": "NO-Safety Vest",
+        "conf": 0.364,
+        "bbox": [
+          0.6526896551724137,
+          0.22568611111111112,
+          0.7866009852216749,
+          0.4487758333333334
+        ],
+        "detector": "ppe",
+        "tid": 271,
+        "source": "crop"
+      }
+    ]
+  },
+  {
+    "file": "KakaoTalk_20260807_000438282_4000ms.jpg",
+    "bucket": "근거리",
+    "n_crops": 4,
+    "lat_stage1": 25.16019999893615,
+    "lat_stage2": 102.44260000035865,
+    "stage1": [
+      {
+        "label": "NO-Safety-Vest",
+        "raw_label": "NO-Safety Vest",
+        "conf": 0.931,
+        "bbox": [
+          0.609,
+          0.2878,
+          1.0008,
+          0.6489
+        ],
+        "detector": "ppe",
+        "tid": 279
+      },
+      {
+        "label": "Hardhat",
+        "raw_label": "Hardhat",
+        "conf": 0.884,
+        "bbox": [
+          0.6769,
+          0.1525,
+          0.9183,
+          0.2515
+        ],
+        "detector": "ppe",
+        "tid": 280
+      },
+      {
+        "label": "NO-Safety-Vest",
+        "raw_label": "NO-Safety Vest",
+        "conf": 0.856,
+        "bbox": [
+          0.023,
+          0.2231,
+          0.3916,
+          0.4996
+        ],
+        "detector": "ppe",
+        "tid": 281
+      },
+      {
+        "label": "Hardhat",
+        "raw_label": "Hardhat",
+        "conf": 0.817,
+        "bbox": [
+          0.1696,
+          0.0976,
+          0.4451,
+          0.2065
+        ],
+        "detector": "ppe",
+        "tid": 282
+      },
+      {
+        "label": "NO-Mask",
+        "raw_label": "NO-Mask",
+        "conf": 0.744,
+        "bbox": [
+          0.3113,
+          0.2079,
+          0.3832,
+          0.2509
+        ],
+        "detector": "ppe",
+        "tid": 283
+      },
+      {
+        "label": "Hardhat",
+        "raw_label": "Hardhat",
+        "conf": 0.707,
+        "bbox": [
+          0.6858,
+          0.0918,
+          0.7327,
+          0.121
+        ],
+        "detector": "ppe",
+        "tid": 284
+      }
+    ],
+    "stage2": [
+      {
+        "label": "NO-Safety-Vest",
+        "raw_label": "NO-Safety Vest",
+        "conf": 0.898,
+        "bbox": [
+          0.6048645320197044,
+          0.2829,
+          1.004378078817734,
+          0.6455
+        ],
+        "detector": "ppe",
+        "tid": 288,
+        "source": "crop"
+      },
+      {
+        "label": "Hardhat",
+        "raw_label": "Hardhat",
+        "conf": 0.892,
+        "bbox": [
+          0.6777955665024631,
+          0.1518,
+          0.9156527093596059,
+          0.2535
+        ],
+        "detector": "ppe",
+        "tid": 289,
+        "source": "crop"
+      },
+      {
+        "label": "Hardhat",
+        "raw_label": "Hardhat",
+        "conf": 0.513,
+        "bbox": [
+          0.6858312807881773,
+          0.0922,
+          0.7328263546798031,
+          0.1201
+        ],
+        "detector": "ppe",
+        "tid": 291,
+        "source": "crop"
+      },
+      {
+        "label": "NO-Safety-Vest",
+        "raw_label": "NO-Safety Vest",
+        "conf": 0.476,
+        "bbox": [
+          0.9531711822660097,
+          0.1244,
+          0.9982266009852216,
+          0.1607
+        ],
+        "detector": "ppe",
+        "tid": 292,
+        "source": "crop"
+      },
+      {
+        "label": "Hardhat",
+        "raw_label": "Hardhat",
+        "conf": 0.878,
+        "bbox": [
+          0.1734911330049261,
+          0.1026,
+          0.4249830049261084,
+          0.2033
+        ],
+        "detector": "ppe",
+        "tid": 295,
+        "source": "crop"
+      },
+      {
+        "label": "NO-Safety-Vest",
+        "raw_label": "NO-Safety Vest",
+        "conf": 0.847,
+        "bbox": [
+          0.014600738916256158,
+          0.2216,
+          0.3975773399014778,
+          0.5276
+        ],
+        "detector": "ppe",
+        "tid": 296,
+        "source": "crop"
+      },
+      {
+        "label": "Hardhat",
+        "raw_label": "Hardhat",
+        "conf": 0.826,
+        "bbox": [
+          0.6765529556650246,
+          0.1442,
+          0.7792266009852217,
+          0.2568
+        ],
+        "detector": "ppe",
+        "tid": 297,
+        "source": "crop"
+      },
+      {
+        "label": "NO-Safety-Vest",
+        "raw_label": "NO-Safety Vest",
+        "conf": 0.751,
+        "bbox": [
+          0.5981618226600985,
+          0.2813,
+          0.7803977832512315,
+          0.6404
+        ],
+        "detector": "ppe",
+        "tid": 298,
+        "source": "crop"
+      },
+      {
+        "label": "NO-Mask",
+        "raw_label": "NO-Mask",
+        "conf": 0.644,
+        "bbox": [
+          0.31426724137931034,
+          0.209,
+          0.3833669950738916,
+          0.2506
+        ],
+        "detector": "ppe",
+        "tid": 299,
+        "source": "crop"
+      },
+      {
+        "label": "Hardhat",
+        "raw_label": "Hardhat",
+        "conf": 0.626,
+        "bbox": [
+          0.6849073891625617,
+          0.0736,
+          0.7306615763546798,
+          0.1097
+        ],
+        "detector": "ppe",
+        "tid": 300,
+        "source": "crop"
+      },
+      {
+        "label": "Hardhat",
+        "raw_label": "Hardhat",
+        "conf": 0.358,
+        "bbox": [
+          0.6826431034482758,
+          0.09309999999999999,
+          0.7337847290640395,
+          0.1255
+        ],
+        "detector": "ppe",
+        "tid": 302,
+        "source": "crop"
+      }
+    ],
+    "merged": [
+      {
+        "label": "NO-Safety-Vest",
+        "raw_label": "NO-Safety Vest",
+        "conf": 0.931,
+        "bbox": [
+          0.609,
+          0.2878,
+          1.0008,
+          0.6489
+        ],
+        "detector": "ppe",
+        "tid": 279
+      },
+      {
+        "label": "Hardhat",
+        "raw_label": "Hardhat",
+        "conf": 0.892,
+        "bbox": [
+          0.6777955665024631,
+          0.1518,
+          0.9156527093596059,
+          0.2535
+        ],
+        "detector": "ppe",
+        "tid": 289,
+        "source": "crop"
+      },
+      {
+        "label": "Hardhat",
+        "raw_label": "Hardhat",
+        "conf": 0.878,
+        "bbox": [
+          0.1734911330049261,
+          0.1026,
+          0.4249830049261084,
+          0.2033
+        ],
+        "detector": "ppe",
+        "tid": 295,
+        "source": "crop"
+      },
+      {
+        "label": "NO-Safety-Vest",
+        "raw_label": "NO-Safety Vest",
+        "conf": 0.856,
+        "bbox": [
+          0.023,
+          0.2231,
+          0.3916,
+          0.4996
+        ],
+        "detector": "ppe",
+        "tid": 281
+      },
+      {
+        "label": "Hardhat",
+        "raw_label": "Hardhat",
+        "conf": 0.826,
+        "bbox": [
+          0.6765529556650246,
+          0.1442,
+          0.7792266009852217,
+          0.2568
+        ],
+        "detector": "ppe",
+        "tid": 297,
+        "source": "crop"
+      },
+      {
+        "label": "NO-Safety-Vest",
+        "raw_label": "NO-Safety Vest",
+        "conf": 0.751,
+        "bbox": [
+          0.5981618226600985,
+          0.2813,
+          0.7803977832512315,
+          0.6404
+        ],
+        "detector": "ppe",
+        "tid": 298,
+        "source": "crop"
+      },
+      {
+        "label": "NO-Mask",
+        "raw_label": "NO-Mask",
+        "conf": 0.744,
+        "bbox": [
+          0.3113,
+          0.2079,
+          0.3832,
+          0.2509
+        ],
+        "detector": "ppe",
+        "tid": 283
+      },
+      {
+        "label": "Hardhat",
+        "raw_label": "Hardhat",
+        "conf": 0.707,
+        "bbox": [
+          0.6858,
+          0.0918,
+          0.7327,
+          0.121
+        ],
+        "detector": "ppe",
+        "tid": 284
+      },
+      {
+        "label": "Hardhat",
+        "raw_label": "Hardhat",
+        "conf": 0.626,
+        "bbox": [
+          0.6849073891625617,
+          0.0736,
+          0.7306615763546798,
+          0.1097
+        ],
+        "detector": "ppe",
+        "tid": 300,
+        "source": "crop"
+      },
+      {
+        "label": "NO-Safety-Vest",
+        "raw_label": "NO-Safety Vest",
+        "conf": 0.476,
+        "bbox": [
+          0.9531711822660097,
+          0.1244,
+          0.9982266009852216,
+          0.1607
+        ],
+        "detector": "ppe",
+        "tid": 292,
+        "source": "crop"
+      }
+    ]
+  },
+  {
+    "file": "KakaoTalk_20260807_000438282_5000ms.jpg",
+    "bucket": "근거리",
+    "n_crops": 2,
+    "lat_stage1": 24.592100000518258,
+    "lat_stage2": 60.454200000094716,
+    "stage1": [
+      {
+        "label": "Hardhat",
+        "raw_label": "Hardhat",
+        "conf": 0.913,
+        "bbox": [
+          0.1908,
+          0.0918,
+          0.4384,
+          0.1871
+        ],
+        "detector": "ppe",
+        "tid": 307
+      },
+      {
+        "label": "NO-Safety-Vest",
+        "raw_label": "NO-Safety Vest",
+        "conf": 0.912,
+        "bbox": [
+          0.5239,
+          0.2803,
+          1.0039,
+          0.6458
+        ],
+        "detector": "ppe",
+        "tid": 308
+      },
+      {
+        "label": "Hardhat",
+        "raw_label": "Hardhat",
+        "conf": 0.904,
+        "bbox": [
+          0.5718,
+          0.1675,
+          0.8132,
+          0.2677
+        ],
+        "detector": "ppe",
+        "tid": 309
+      },
+      {
+        "label": "NO-Safety-Vest",
+        "raw_label": "NO-Safety Vest",
+        "conf": 0.869,
+        "bbox": [
+          0.0265,
+          0.2127,
+          0.4452,
+          0.5455
+        ],
+        "detector": "ppe",
+        "tid": 310
+      },
+      {
+        "label": "NO-Mask",
+        "raw_label": "NO-Mask",
+        "conf": 0.7,
+        "bbox": [
+          0.3468,
+          0.1924,
+          0.4135,
+          0.2363
+        ],
+        "detector": "ppe",
+        "tid": 311
+      }
+    ],
+    "stage2": [
+      {
+        "label": "Hardhat",
+        "raw_label": "Hardhat",
+        "conf": 0.903,
+        "bbox": [
+          0.5788022167487684,
+          0.16680166666666668,
+          0.8109463054187191,
+          0.2654725
+        ],
+        "detector": "ppe",
+        "tid": 314,
+        "source": "crop"
+      },
+      {
+        "label": "NO-Safety-Vest",
+        "raw_label": "NO-Safety Vest",
+        "conf": 0.892,
+        "bbox": [
+          0.5134556650246306,
+          0.28431416666666665,
+          1.006985960591133,
+          0.6484541666666667
+        ],
+        "detector": "ppe",
+        "tid": 315,
+        "source": "crop"
+      },
+      {
+        "label": "Hardhat",
+        "raw_label": "Hardhat",
+        "conf": 0.594,
+        "bbox": [
+          0.38053694581280784,
+          0.0976825,
+          0.4151576354679803,
+          0.17275166666666666
+        ],
+        "detector": "ppe",
+        "tid": 316,
+        "source": "crop"
+      },
+      {
+        "label": "NO-Mask",
+        "raw_label": "NO-Mask",
+        "conf": 0.37,
+        "bbox": [
+          0.38294802955665025,
+          0.19337833333333332,
+          0.4179396551724138,
+          0.23453249999999998
+        ],
+        "detector": "ppe",
+        "tid": 317,
+        "source": "crop"
+      },
+      {
+        "label": "Hardhat",
+        "raw_label": "Hardhat",
+        "conf": 0.891,
+        "bbox": [
+          0.18683201970443353,
+          0.091,
+          0.4375995073891625,
+          0.1844
+        ],
+        "detector": "ppe",
+        "tid": 320,
+        "source": "crop"
+      },
+      {
+        "label": "NO-Safety-Vest",
+        "raw_label": "NO-Safety Vest",
+        "conf": 0.873,
+        "bbox": [
+          0.5215788177339902,
+          0.2984,
+          0.7283083743842365,
+          0.6549
+        ],
+        "detector": "ppe",
+        "tid": 321,
+        "source": "crop"
+      },
+      {
+        "label": "Hardhat",
+        "raw_label": "Hardhat",
+        "conf": 0.864,
+        "bbox": [
+          0.5772480295566503,
+          0.166,
+          0.7291862068965517,
+          0.2666
+        ],
+        "detector": "ppe",
+        "tid": 322,
+        "source": "crop"
+      },
+      {
+        "label": "NO-Safety-Vest",
+        "raw_label": "NO-Safety Vest",
+        "conf": 0.835,
+        "bbox": [
+          0.030285221674876846,
+          0.2141,
+          0.44206182266009847,
+          0.5522
+        ],
+        "detector": "ppe",
+        "tid": 323,
+        "source": "crop"
+      },
+      {
+        "label": "NO-Mask",
+        "raw_label": "NO-Mask",
+        "conf": 0.591,
+        "bbox": [
+          0.34747536945812807,
+          0.18939999999999999,
+          0.41199605911330056,
+          0.23570000000000002
+        ],
+        "detector": "ppe",
+        "tid": 324,
+        "source": "crop"
+      }
+    ],
+    "merged": [
+      {
+        "label": "Hardhat",
+        "raw_label": "Hardhat",
+        "conf": 0.913,
+        "bbox": [
+          0.1908,
+          0.0918,
+          0.4384,
+          0.1871
+        ],
+        "detector": "ppe",
+        "tid": 307
+      },
+      {
+        "label": "NO-Safety-Vest",
+        "raw_label": "NO-Safety Vest",
+        "conf": 0.912,
+        "bbox": [
+          0.5239,
+          0.2803,
+          1.0039,
+          0.6458
+        ],
+        "detector": "ppe",
+        "tid": 308
+      },
+      {
+        "label": "Hardhat",
+        "raw_label": "Hardhat",
+        "conf": 0.904,
+        "bbox": [
+          0.5718,
+          0.1675,
+          0.8132,
+          0.2677
+        ],
+        "detector": "ppe",
+        "tid": 309
+      },
+      {
+        "label": "NO-Safety-Vest",
+        "raw_label": "NO-Safety Vest",
+        "conf": 0.873,
+        "bbox": [
+          0.5215788177339902,
+          0.2984,
+          0.7283083743842365,
+          0.6549
+        ],
+        "detector": "ppe",
+        "tid": 321,
+        "source": "crop"
+      },
+      {
+        "label": "NO-Safety-Vest",
+        "raw_label": "NO-Safety Vest",
+        "conf": 0.869,
+        "bbox": [
+          0.0265,
+          0.2127,
+          0.4452,
+          0.5455
+        ],
+        "detector": "ppe",
+        "tid": 310
+      },
+      {
+        "label": "NO-Mask",
+        "raw_label": "NO-Mask",
+        "conf": 0.7,
+        "bbox": [
+          0.3468,
+          0.1924,
+          0.4135,
+          0.2363
+        ],
+        "detector": "ppe",
+        "tid": 311
+      },
+      {
+        "label": "Hardhat",
+        "raw_label": "Hardhat",
+        "conf": 0.594,
+        "bbox": [
+          0.38053694581280784,
+          0.0976825,
+          0.4151576354679803,
+          0.17275166666666666
+        ],
+        "detector": "ppe",
+        "tid": 316,
+        "source": "crop"
+      },
+      {
+        "label": "NO-Mask",
+        "raw_label": "NO-Mask",
+        "conf": 0.37,
+        "bbox": [
+          0.38294802955665025,
+          0.19337833333333332,
+          0.4179396551724138,
+          0.23453249999999998
+        ],
+        "detector": "ppe",
+        "tid": 317,
+        "source": "crop"
+      }
+    ]
+  },
+  {
+    "file": "KakaoTalk_20260807_000438282_6000ms.jpg",
+    "bucket": "근거리",
+    "n_crops": 2,
+    "lat_stage1": 25.94449999924109,
+    "lat_stage2": 67.19460000022082,
+    "stage1": [
+      {
+        "label": "NO-Safety-Vest",
+        "raw_label": "NO-Safety Vest",
+        "conf": 0.918,
+        "bbox": [
+          0.4968,
+          0.2298,
+          1.0036,
+          0.6201
+        ],
+        "detector": "ppe",
+        "tid": 327
+      },
+      {
+        "label": "Hardhat",
+        "raw_label": "Hardhat",
+        "conf": 0.904,
+        "bbox": [
+          0.5439,
+          0.0788,
+          0.8054,
+          0.1818
+        ],
+        "detector": "ppe",
+        "tid": 328
+      },
+      {
+        "label": "Hardhat",
+        "raw_label": "Hardhat",
+        "conf": 0.882,
+        "bbox": [
+          0.1868,
+          0.1119,
+          0.4223,
+          0.2167
+        ],
+        "detector": "ppe",
+        "tid": 329
+      },
+      {
+        "label": "NO-Safety-Vest",
+        "raw_label": "NO-Safety Vest",
+        "conf": 0.854,
+        "bbox": [
+          -0.0,
+          0.2243,
+          0.4022,
+          0.5699
+        ],
+        "detector": "ppe",
+        "tid": 330
+      },
+      {
+        "label": "NO-Mask",
+        "raw_label": "NO-Mask",
+        "conf": 0.667,
+        "bbox": [
+          0.3124,
+          0.215,
+          0.3761,
+          0.255
+        ],
+        "detector": "ppe",
+        "tid": 331
+      },
+      {
+        "label": "NO-Mask",
+        "raw_label": "NO-Mask",
+        "conf": 0.461,
+        "bbox": [
+          0.5646,
+          0.1908,
+          0.6237,
+          0.2326
+        ],
+        "detector": "ppe",
+        "tid": 332
+      }
+    ],
+    "stage2": [
+      {
+        "label": "NO-Safety-Vest",
+        "raw_label": "NO-Safety Vest",
+        "conf": 0.895,
+        "bbox": [
+          0.4951785714285714,
+          0.21620000000000003,
+          1.0050800492610839,
+          0.6129
+        ],
+        "detector": "ppe",
+        "tid": 334,
+        "source": "crop"
+      },
+      {
+        "label": "Hardhat",
+        "raw_label": "Hardhat",
+        "conf": 0.888,
+        "bbox": [
+          0.5366995073891626,
+          0.0778,
+          0.8025554187192118,
+          0.1806
+        ],
+        "detector": "ppe",
+        "tid": 335,
+        "source": "crop"
+      },
+      {
+        "label": "Hardhat",
+        "raw_label": "Hardhat",
+        "conf": 0.786,
+        "bbox": [
+          0.32198275862068965,
+          0.1114,
+          0.4206711822660098,
+          0.2187
+        ],
+        "detector": "ppe",
+        "tid": 337,
+        "source": "crop"
+      },
+      {
+        "label": "NO-Mask",
+        "raw_label": "NO-Mask",
+        "conf": 0.469,
+        "bbox": [
+          0.3283497536945813,
+          0.2166,
+          0.3800985221674877,
+          0.2578
+        ],
+        "detector": "ppe",
+        "tid": 338,
+        "source": "crop"
+      },
+      {
+        "label": "NO-Mask",
+        "raw_label": "NO-Mask",
+        "conf": 0.465,
+        "bbox": [
+          0.5646059113300493,
+          0.18599999999999997,
+          0.6185899014778325,
+          0.2322
+        ],
+        "detector": "ppe",
+        "tid": 339,
+        "source": "crop"
+      },
+      {
+        "label": "NO-Safety-Vest",
+        "raw_label": "NO-Safety Vest",
+        "conf": 0.383,
+        "bbox": [
+          0.3229987684729064,
+          0.24709999999999996,
+          0.39425492610837437,
+          0.5022
+        ],
+        "detector": "ppe",
+        "tid": 340,
+        "source": "crop"
+      },
+      {
+        "label": "Hardhat",
+        "raw_label": "Hardhat",
+        "conf": 0.886,
+        "bbox": [
+          0.5428817733990148,
+          0.08,
+          0.6879480295566504,
+          0.18410000000000004
+        ],
+        "detector": "ppe",
+        "tid": 343,
+        "source": "crop"
+      },
+      {
+        "label": "Hardhat",
+        "raw_label": "Hardhat",
+        "conf": 0.882,
+        "bbox": [
+          0.18801576354679803,
+          0.1135,
+          0.4237226600985222,
+          0.2146
+        ],
+        "detector": "ppe",
+        "tid": 344,
+        "source": "crop"
+      },
+      {
+        "label": "NO-Safety-Vest",
+        "raw_label": "NO-Safety Vest",
+        "conf": 0.845,
+        "bbox": [
+          0.0002061576354679803,
+          0.2195,
+          0.3938985221674877,
+          0.5711
+        ],
+        "detector": "ppe",
+        "tid": 345,
+        "source": "crop"
+      },
+      {
+        "label": "NO-Mask",
+        "raw_label": "NO-Mask",
+        "conf": 0.697,
+        "bbox": [
+          0.3187197044334975,
+          0.2141,
+          0.380292118226601,
+          0.2553
+        ],
+        "detector": "ppe",
+        "tid": 346,
+        "source": "crop"
+      },
+      {
+        "label": "NO-Safety-Vest",
+        "raw_label": "NO-Safety Vest",
+        "conf": 0.618,
+        "bbox": [
+          0.5073539408866995,
+          0.21539999999999998,
+          0.6870546798029558,
+          0.6308
+        ],
+        "detector": "ppe",
+        "tid": 347,
+        "source": "crop"
+      }
+    ],
+    "merged": [
+      {
+        "label": "NO-Safety-Vest",
+        "raw_label": "NO-Safety Vest",
+        "conf": 0.918,
+        "bbox": [
+          0.4968,
+          0.2298,
+          1.0036,
+          0.6201
+        ],
+        "detector": "ppe",
+        "tid": 327
+      },
+      {
+        "label": "Hardhat",
+        "raw_label": "Hardhat",
+        "conf": 0.904,
+        "bbox": [
+          0.5439,
+          0.0788,
+          0.8054,
+          0.1818
+        ],
+        "detector": "ppe",
+        "tid": 328
+      },
+      {
+        "label": "Hardhat",
+        "raw_label": "Hardhat",
+        "conf": 0.882,
+        "bbox": [
+          0.1868,
+          0.1119,
+          0.4223,
+          0.2167
+        ],
+        "detector": "ppe",
+        "tid": 329
+      },
+      {
+        "label": "NO-Safety-Vest",
+        "raw_label": "NO-Safety Vest",
+        "conf": 0.854,
+        "bbox": [
+          -0.0,
+          0.2243,
+          0.4022,
+          0.5699
+        ],
+        "detector": "ppe",
+        "tid": 330
+      },
+      {
+        "label": "Hardhat",
+        "raw_label": "Hardhat",
+        "conf": 0.786,
+        "bbox": [
+          0.32198275862068965,
+          0.1114,
+          0.4206711822660098,
+          0.2187
+        ],
+        "detector": "ppe",
+        "tid": 337,
+        "source": "crop"
+      },
+      {
+        "label": "NO-Mask",
+        "raw_label": "NO-Mask",
+        "conf": 0.697,
+        "bbox": [
+          0.3187197044334975,
+          0.2141,
+          0.380292118226601,
+          0.2553
+        ],
+        "detector": "ppe",
+        "tid": 346,
+        "source": "crop"
+      },
+      {
+        "label": "NO-Safety-Vest",
+        "raw_label": "NO-Safety Vest",
+        "conf": 0.618,
+        "bbox": [
+          0.5073539408866995,
+          0.21539999999999998,
+          0.6870546798029558,
+          0.6308
+        ],
+        "detector": "ppe",
+        "tid": 347,
+        "source": "crop"
+      },
+      {
+        "label": "NO-Mask",
+        "raw_label": "NO-Mask",
+        "conf": 0.465,
+        "bbox": [
+          0.5646059113300493,
+          0.18599999999999997,
+          0.6185899014778325,
+          0.2322
+        ],
+        "detector": "ppe",
+        "tid": 339,
+        "source": "crop"
+      },
+      {
+        "label": "NO-Safety-Vest",
+        "raw_label": "NO-Safety Vest",
+        "conf": 0.383,
+        "bbox": [
+          0.3229987684729064,
+          0.24709999999999996,
+          0.39425492610837437,
+          0.5022
+        ],
+        "detector": "ppe",
+        "tid": 340,
+        "source": "crop"
+      }
+    ]
+  },
+  {
+    "file": "KakaoTalk_20260807_000438282_7000ms.jpg",
+    "bucket": "근거리",
+    "n_crops": 2,
+    "lat_stage1": 25.652100001025246,
+    "lat_stage2": 49.634300001343945,
+    "stage1": [
+      {
+        "label": "NO-Safety-Vest",
+        "raw_label": "NO-Safety Vest",
+        "conf": 0.914,
+        "bbox": [
+          0.4638,
+          0.2716,
+          1.0016,
+          0.6244
+        ],
+        "detector": "ppe",
+        "tid": 350
+      },
+      {
+        "label": "NO-Safety-Vest",
+        "raw_label": "NO-Safety Vest",
+        "conf": 0.899,
+        "bbox": [
+          0.004,
+          0.251,
+          0.3852,
+          0.5688
+        ],
+        "detector": "ppe",
+        "tid": 351
+      },
+      {
+        "label": "Hardhat",
+        "raw_label": "Hardhat",
+        "conf": 0.881,
+        "bbox": [
+          0.5413,
+          0.1158,
+          0.7829,
+          0.2142
+        ],
+        "detector": "ppe",
+        "tid": 352
+      },
+      {
+        "label": "Hardhat",
+        "raw_label": "Hardhat",
+        "conf": 0.845,
+        "bbox": [
+          0.1845,
+          0.1339,
+          0.4184,
+          0.2357
+        ],
+        "detector": "ppe",
+        "tid": 353
+      },
+      {
+        "label": "NO-Mask",
+        "raw_label": "NO-Mask",
+        "conf": 0.629,
+        "bbox": [
+          0.3053,
+          0.2259,
+          0.3695,
+          0.2734
+        ],
+        "detector": "ppe",
+        "tid": 354
+      }
+    ],
+    "stage2": [
+      {
+        "label": "NO-Safety-Vest",
+        "raw_label": "NO-Safety Vest",
+        "conf": 0.906,
+        "bbox": [
+          0.45211206896551726,
+          0.2634,
+          0.9948054187192119,
+          0.6121
+        ],
+        "detector": "ppe",
+        "tid": 357,
+        "source": "crop"
+      },
+      {
+        "label": "Hardhat",
+        "raw_label": "Hardhat",
+        "conf": 0.878,
+        "bbox": [
+          0.5415431034482758,
+          0.1158,
+          0.777756157635468,
+          0.20970000000000003
+        ],
+        "detector": "ppe",
+        "tid": 358,
+        "source": "crop"
+      },
+      {
+        "label": "Hardhat",
+        "raw_label": "Hardhat",
+        "conf": 0.846,
+        "bbox": [
+          0.2957832512315271,
+          0.1363,
+          0.4085899014778325,
+          0.23200000000000004
+        ],
+        "detector": "ppe",
+        "tid": 359,
+        "source": "crop"
+      },
+      {
+        "label": "NO-Safety-Vest",
+        "raw_label": "NO-Safety Vest",
+        "conf": 0.697,
+        "bbox": [
+          0.2966256157635468,
+          0.2651,
+          0.3884433497536946,
+          0.5431
+        ],
+        "detector": "ppe",
+        "tid": 360,
+        "source": "crop"
+      },
+      {
+        "label": "Mask",
+        "raw_label": "Mask",
+        "conf": 0.533,
+        "bbox": [
+          0.606685960591133,
+          0.1903,
+          0.7449741379310346,
+          0.22779999999999997
+        ],
+        "detector": "ppe",
+        "tid": 361,
+        "source": "crop"
+      },
+      {
+        "label": "NO-Mask",
+        "raw_label": "NO-Mask",
+        "conf": 0.519,
+        "bbox": [
+          0.3100332512315271,
+          0.22739999999999996,
+          0.3683669950738916,
+          0.2689
+        ],
+        "detector": "ppe",
+        "tid": 362,
+        "source": "crop"
+      },
+      {
+        "label": "NO-Safety-Vest",
+        "raw_label": "NO-Safety Vest",
+        "conf": 0.898,
+        "bbox": [
+          0.0013293103448275862,
+          0.2449,
+          0.3936024630541872,
+          0.5675
+        ],
+        "detector": "ppe",
+        "tid": 365,
+        "source": "crop"
+      },
+      {
+        "label": "Hardhat",
+        "raw_label": "Hardhat",
+        "conf": 0.863,
+        "bbox": [
+          0.18895197044334974,
+          0.1333,
+          0.41430172413793104,
+          0.2309
+        ],
+        "detector": "ppe",
+        "tid": 366,
+        "source": "crop"
+      },
+      {
+        "label": "Hardhat",
+        "raw_label": "Hardhat",
+        "conf": 0.83,
+        "bbox": [
+          0.5433081280788178,
+          0.1187,
+          0.6322453201970443,
+          0.2173
+        ],
+        "detector": "ppe",
+        "tid": 367,
+        "source": "crop"
+      },
+      {
+        "label": "NO-Mask",
+        "raw_label": "NO-Mask",
+        "conf": 0.688,
+        "bbox": [
+          0.31099532019704434,
+          0.2315,
+          0.3722068965517241,
+          0.2761
+        ],
+        "detector": "ppe",
+        "tid": 368,
+        "source": "crop"
+      },
+      {
+        "label": "NO-Safety-Vest",
+        "raw_label": "NO-Safety Vest",
+        "conf": 0.602,
+        "bbox": [
+          0.47956453201970445,
+          0.2713,
+          0.6322453201970443,
+          0.647
+        ],
+        "detector": "ppe",
+        "tid": 369,
+        "source": "crop"
+      }
+    ],
+    "merged": [
+      {
+        "label": "NO-Safety-Vest",
+        "raw_label": "NO-Safety Vest",
+        "conf": 0.914,
+        "bbox": [
+          0.4638,
+          0.2716,
+          1.0016,
+          0.6244
+        ],
+        "detector": "ppe",
+        "tid": 350
+      },
+      {
+        "label": "NO-Safety-Vest",
+        "raw_label": "NO-Safety Vest",
+        "conf": 0.899,
+        "bbox": [
+          0.004,
+          0.251,
+          0.3852,
+          0.5688
+        ],
+        "detector": "ppe",
+        "tid": 351
+      },
+      {
+        "label": "Hardhat",
+        "raw_label": "Hardhat",
+        "conf": 0.881,
+        "bbox": [
+          0.5413,
+          0.1158,
+          0.7829,
+          0.2142
+        ],
+        "detector": "ppe",
+        "tid": 352
+      },
+      {
+        "label": "Hardhat",
+        "raw_label": "Hardhat",
+        "conf": 0.863,
+        "bbox": [
+          0.18895197044334974,
+          0.1333,
+          0.41430172413793104,
+          0.2309
+        ],
+        "detector": "ppe",
+        "tid": 366,
+        "source": "crop"
+      },
+      {
+        "label": "Hardhat",
+        "raw_label": "Hardhat",
+        "conf": 0.846,
+        "bbox": [
+          0.2957832512315271,
+          0.1363,
+          0.4085899014778325,
+          0.23200000000000004
+        ],
+        "detector": "ppe",
+        "tid": 359,
+        "source": "crop"
+      },
+      {
+        "label": "Hardhat",
+        "raw_label": "Hardhat",
+        "conf": 0.83,
+        "bbox": [
+          0.5433081280788178,
+          0.1187,
+          0.6322453201970443,
+          0.2173
+        ],
+        "detector": "ppe",
+        "tid": 367,
+        "source": "crop"
+      },
+      {
+        "label": "NO-Safety-Vest",
+        "raw_label": "NO-Safety Vest",
+        "conf": 0.697,
+        "bbox": [
+          0.2966256157635468,
+          0.2651,
+          0.3884433497536946,
+          0.5431
+        ],
+        "detector": "ppe",
+        "tid": 360,
+        "source": "crop"
+      },
+      {
+        "label": "NO-Mask",
+        "raw_label": "NO-Mask",
+        "conf": 0.688,
+        "bbox": [
+          0.31099532019704434,
+          0.2315,
+          0.3722068965517241,
+          0.2761
+        ],
+        "detector": "ppe",
+        "tid": 368,
+        "source": "crop"
+      },
+      {
+        "label": "NO-Safety-Vest",
+        "raw_label": "NO-Safety Vest",
+        "conf": 0.602,
+        "bbox": [
+          0.47956453201970445,
+          0.2713,
+          0.6322453201970443,
+          0.647
+        ],
+        "detector": "ppe",
+        "tid": 369,
+        "source": "crop"
+      },
+      {
+        "label": "Mask",
+        "raw_label": "Mask",
+        "conf": 0.533,
+        "bbox": [
+          0.606685960591133,
+          0.1903,
+          0.7449741379310346,
+          0.22779999999999997
+        ],
+        "detector": "ppe",
+        "tid": 361,
+        "source": "crop"
+      }
+    ]
+  },
+  {
+    "file": "KakaoTalk_20260807_000438282_8000ms.jpg",
+    "bucket": "근거리",
+    "n_crops": 2,
+    "lat_stage1": 26.291500000297674,
+    "lat_stage2": 51.82740000054764,
+    "stage1": [
+      {
+        "label": "NO-Safety-Vest",
+        "raw_label": "NO-Safety Vest",
+        "conf": 0.911,
+        "bbox": [
+          0.4911,
+          0.2718,
+          1.0007,
+          0.6346
+        ],
+        "detector": "ppe",
+        "tid": 372
+      },
+      {
+        "label": "NO-Safety-Vest",
+        "raw_label": "NO-Safety Vest",
+        "conf": 0.884,
+        "bbox": [
+          0.0004,
+          0.2814,
+          0.3176,
+          0.5969
+        ],
+        "detector": "ppe",
+        "tid": 373
+      },
+      {
+        "label": "Hardhat",
+        "raw_label": "Hardhat",
+        "conf": 0.872,
+        "bbox": [
+          0.0774,
+          0.1477,
+          0.3067,
+          0.2387
+        ],
+        "detector": "ppe",
+        "tid": 374
+      },
+      {
+        "label": "Hardhat",
+        "raw_label": "Hardhat",
+        "conf": 0.861,
+        "bbox": [
+          0.5998,
+          0.1157,
+          0.8457,
+          0.2155
+        ],
+        "detector": "ppe",
+        "tid": 375
+      },
+      {
+        "label": "NO-Mask",
+        "raw_label": "NO-Mask",
+        "conf": 0.653,
+        "bbox": [
+          0.2311,
+          0.2493,
+          0.2801,
+          0.2933
+        ],
+        "detector": "ppe",
+        "tid": 376
+      },
+      {
+        "label": "NO-Safety-Vest",
+        "raw_label": "NO-Safety Vest",
+        "conf": 0.429,
+        "bbox": [
+          0.9529,
+          0.1649,
+          0.9993,
+          0.2313
+        ],
+        "detector": "ppe",
+        "tid": 377
+      }
+    ],
+    "stage2": [
+      {
+        "label": "NO-Safety-Vest",
+        "raw_label": "NO-Safety Vest",
+        "conf": 0.88,
+        "bbox": [
+          0.4805724137931034,
+          0.2666,
+          1.0024034482758621,
+          0.6378
+        ],
+        "detector": "ppe",
+        "tid": 380,
+        "source": "crop"
+      },
+      {
+        "label": "Hardhat",
+        "raw_label": "Hardhat",
+        "conf": 0.809,
+        "bbox": [
+          0.6085913793103448,
+          0.1169,
+          0.8427155172413793,
+          0.211
+        ],
+        "detector": "ppe",
+        "tid": 381,
+        "source": "crop"
+      },
+      {
+        "label": "Hardhat",
+        "raw_label": "Hardhat",
+        "conf": 0.877,
+        "bbox": [
+          0.08067339901477832,
+          0.1483,
+          0.30739950738916255,
+          0.2362
+        ],
+        "detector": "ppe",
+        "tid": 387,
+        "source": "crop"
+      },
+      {
+        "label": "NO-Safety-Vest",
+        "raw_label": "NO-Safety Vest",
+        "conf": 0.871,
+        "bbox": [
+          0.0009339901477832513,
+          0.2705,
+          0.325612315270936,
+          0.6214
+        ],
+        "detector": "ppe",
+        "tid": 388,
+        "source": "crop"
+      },
+      {
+        "label": "NO-Mask",
+        "raw_label": "NO-Mask",
+        "conf": 0.702,
+        "bbox": [
+          0.24038571428571429,
+          0.24930000000000002,
+          0.2957830049261084,
+          0.2976
+        ],
+        "detector": "ppe",
+        "tid": 389,
+        "source": "crop"
+      }
+    ],
+    "merged": [
+      {
+        "label": "NO-Safety-Vest",
+        "raw_label": "NO-Safety Vest",
+        "conf": 0.911,
+        "bbox": [
+          0.4911,
+          0.2718,
+          1.0007,
+          0.6346
+        ],
+        "detector": "ppe",
+        "tid": 372
+      },
+      {
+        "label": "NO-Safety-Vest",
+        "raw_label": "NO-Safety Vest",
+        "conf": 0.884,
+        "bbox": [
+          0.0004,
+          0.2814,
+          0.3176,
+          0.5969
+        ],
+        "detector": "ppe",
+        "tid": 373
+      },
+      {
+        "label": "Hardhat",
+        "raw_label": "Hardhat",
+        "conf": 0.877,
+        "bbox": [
+          0.08067339901477832,
+          0.1483,
+          0.30739950738916255,
+          0.2362
+        ],
+        "detector": "ppe",
+        "tid": 387,
+        "source": "crop"
+      },
+      {
+        "label": "Hardhat",
+        "raw_label": "Hardhat",
+        "conf": 0.861,
+        "bbox": [
+          0.5998,
+          0.1157,
+          0.8457,
+          0.2155
+        ],
+        "detector": "ppe",
+        "tid": 375
+      },
+      {
+        "label": "NO-Mask",
+        "raw_label": "NO-Mask",
+        "conf": 0.702,
+        "bbox": [
+          0.24038571428571429,
+          0.24930000000000002,
+          0.2957830049261084,
+          0.2976
+        ],
+        "detector": "ppe",
+        "tid": 389,
+        "source": "crop"
+      },
+      {
+        "label": "NO-Safety-Vest",
+        "raw_label": "NO-Safety Vest",
+        "conf": 0.429,
+        "bbox": [
+          0.9529,
+          0.1649,
+          0.9993,
+          0.2313
+        ],
+        "detector": "ppe",
+        "tid": 377
+      }
+    ]
+  },
+  {
+    "file": "KakaoTalk_20260807_000438282_9000ms.jpg",
+    "bucket": "근거리",
+    "n_crops": 1,
+    "lat_stage1": 38.60570000142616,
+    "lat_stage2": 28.67780000087805,
+    "stage1": [
+      {
+        "label": "Hardhat",
+        "raw_label": "Hardhat",
+        "conf": 0.892,
+        "bbox": [
+          0.5333,
+          0.1235,
+          0.8023,
+          0.2327
+        ],
+        "detector": "ppe",
+        "tid": 392
+      },
+      {
+        "label": "NO-Safety-Vest",
+        "raw_label": "NO-Safety Vest",
+        "conf": 0.882,
+        "bbox": [
+          0.399,
+          0.2557,
+          0.8184,
+          0.5869
+        ],
+        "detector": "ppe",
+        "tid": 393
+      },
+      {
+        "label": "NO-Mask",
+        "raw_label": "NO-Mask",
+        "conf": 0.589,
+        "bbox": [
+          0.6867,
+          0.2383,
+          0.7583,
+          0.2812
+        ],
+        "detector": "ppe",
+        "tid": 394
+      },
+      {
+        "label": "NO-Safety-Vest",
+        "raw_label": "NO-Safety Vest",
+        "conf": 0.503,
+        "bbox": [
+          0.8897,
+          0.3396,
+          0.9924,
+          0.6266
+        ],
+        "detector": "ppe",
+        "tid": 395
+      }
+    ],
+    "stage2": [
+      {
+        "label": "NO-Safety-Vest",
+        "raw_label": "NO-Safety Vest",
+        "conf": 0.865,
+        "bbox": [
+          0.3992847290640394,
+          0.2583,
+          0.8146443349753694,
+          0.5657
+        ],
+        "detector": "ppe",
+        "tid": 398,
+        "source": "crop"
+      },
+      {
+        "label": "Hardhat",
+        "raw_label": "Hardhat",
+        "conf": 0.86,
+        "bbox": [
+          0.5429891625615764,
+          0.1232,
+          0.8096492610837438,
+          0.2334
+        ],
+        "detector": "ppe",
+        "tid": 399,
+        "source": "crop"
+      },
+      {
+        "label": "NO-Mask",
+        "raw_label": "NO-Mask",
+        "conf": 0.623,
+        "bbox": [
+          0.6874620689655172,
+          0.2421,
+          0.754088669950739,
+          0.2822
+        ],
+        "detector": "ppe",
+        "tid": 400,
+        "source": "crop"
+      },
+      {
+        "label": "NO-Safety-Vest",
+        "raw_label": "NO-Safety Vest",
+        "conf": 0.572,
+        "bbox": [
+          0.9021733990147783,
+          0.3333,
+          0.9983862068965518,
+          0.6315
+        ],
+        "detector": "ppe",
+        "tid": 401,
+        "source": "crop"
+      }
+    ],
+    "merged": [
+      {
+        "label": "Hardhat",
+        "raw_label": "Hardhat",
+        "conf": 0.892,
+        "bbox": [
+          0.5333,
+          0.1235,
+          0.8023,
+          0.2327
+        ],
+        "detector": "ppe",
+        "tid": 392
+      },
+      {
+        "label": "NO-Safety-Vest",
+        "raw_label": "NO-Safety Vest",
+        "conf": 0.882,
+        "bbox": [
+          0.399,
+          0.2557,
+          0.8184,
+          0.5869
+        ],
+        "detector": "ppe",
+        "tid": 393
+      },
+      {
+        "label": "NO-Mask",
+        "raw_label": "NO-Mask",
+        "conf": 0.623,
+        "bbox": [
+          0.6874620689655172,
+          0.2421,
+          0.754088669950739,
+          0.2822
+        ],
+        "detector": "ppe",
+        "tid": 400,
+        "source": "crop"
+      },
+      {
+        "label": "NO-Safety-Vest",
+        "raw_label": "NO-Safety Vest",
+        "conf": 0.572,
+        "bbox": [
+          0.9021733990147783,
+          0.3333,
+          0.9983862068965518,
+          0.6315
+        ],
+        "detector": "ppe",
+        "tid": 401,
+        "source": "crop"
+      }
+    ]
+  },
+  {
+    "file": "KakaoTalk_20260807_000552920_0ms.jpg",
+    "bucket": "사람없음",
+    "n_crops": 1,
+    "lat_stage1": 31.94419999999809,
+    "lat_stage2": 22.393400000510155,
+    "stage1": [
+      {
+        "label": "NO-Safety-Vest",
+        "raw_label": "NO-Safety Vest",
+        "conf": 0.397,
+        "bbox": [
+          0.1337,
+          0.2643,
+          0.1947,
+          0.3165
+        ],
+        "detector": "ppe",
+        "tid": 403
+      }
+    ],
+    "stage2": [],
+    "merged": [
+      {
+        "label": "NO-Safety-Vest",
+        "raw_label": "NO-Safety Vest",
+        "conf": 0.397,
+        "bbox": [
+          0.1337,
+          0.2643,
+          0.1947,
+          0.3165
+        ],
+        "detector": "ppe",
+        "tid": 403
+      }
+    ]
+  },
+  {
+    "file": "KakaoTalk_20260807_000552920_10000ms.jpg",
+    "bucket": "사람없음",
+    "n_crops": 0,
+    "lat_stage1": 22.945400000025984,
+    "lat_stage2": 0.0,
+    "stage1": [],
+    "stage2": [],
+    "merged": []
+  },
+  {
+    "file": "KakaoTalk_20260807_000552920_1000ms.jpg",
+    "bucket": "원거리",
+    "n_crops": 2,
+    "lat_stage1": 19.393599999602884,
+    "lat_stage2": 31.379799998831004,
+    "stage1": [
+      {
+        "label": "NO-Hardhat",
+        "raw_label": "NO-Hardhat",
+        "conf": 0.574,
+        "bbox": [
+          0.3829,
+          0.5772,
+          0.4575,
+          0.6218
+        ],
+        "detector": "ppe",
+        "tid": 406
+      },
+      {
+        "label": "NO-Safety-Vest",
+        "raw_label": "NO-Safety Vest",
+        "conf": 0.389,
+        "bbox": [
+          0.5106,
+          0.666,
+          0.6216,
+          0.7852
+        ],
+        "detector": "ppe",
+        "tid": 408
+      }
+    ],
+    "stage2": [],
+    "merged": [
+      {
+        "label": "NO-Hardhat",
+        "raw_label": "NO-Hardhat",
+        "conf": 0.574,
+        "bbox": [
+          0.3829,
+          0.5772,
+          0.4575,
+          0.6218
+        ],
+        "detector": "ppe",
+        "tid": 406
+      },
+      {
+        "label": "NO-Safety-Vest",
+        "raw_label": "NO-Safety Vest",
+        "conf": 0.389,
+        "bbox": [
+          0.5106,
+          0.666,
+          0.6216,
+          0.7852
+        ],
+        "detector": "ppe",
+        "tid": 408
+      }
+    ]
+  },
+  {
+    "file": "KakaoTalk_20260807_000552920_11000ms.jpg",
+    "bucket": "사람없음",
+    "n_crops": 0,
+    "lat_stage1": 25.74040000035893,
+    "lat_stage2": 0.0,
+    "stage1": [],
+    "stage2": [],
+    "merged": []
+  },
+  {
+    "file": "KakaoTalk_20260807_000552920_12000ms.jpg",
+    "bucket": "사람없음",
+    "n_crops": 1,
+    "lat_stage1": 19.471199999316013,
+    "lat_stage2": 16.705400001228554,
+    "stage1": [
+      {
+        "label": "NO-Safety-Vest",
+        "raw_label": "NO-Safety Vest",
+        "conf": 0.449,
+        "bbox": [
+          0.1386,
+          0.1662,
+          0.2051,
+          0.2284
+        ],
+        "detector": "ppe",
+        "tid": 411
+      }
+    ],
+    "stage2": [],
+    "merged": [
+      {
+        "label": "NO-Safety-Vest",
+        "raw_label": "NO-Safety Vest",
+        "conf": 0.449,
+        "bbox": [
+          0.1386,
+          0.1662,
+          0.2051,
+          0.2284
+        ],
+        "detector": "ppe",
+        "tid": 411
+      }
+    ]
+  },
+  {
+    "file": "KakaoTalk_20260807_000552920_13000ms.jpg",
+    "bucket": "근거리",
+    "n_crops": 2,
+    "lat_stage1": 20.16379999986384,
+    "lat_stage2": 32.89249999943422,
+    "stage1": [],
+    "stage2": [],
+    "merged": []
+  },
+  {
+    "file": "KakaoTalk_20260807_000552920_14000ms.jpg",
+    "bucket": "근거리",
+    "n_crops": 1,
+    "lat_stage1": 18.33739999892714,
+    "lat_stage2": 15.874999999141437,
+    "stage1": [],
+    "stage2": [],
+    "merged": []
+  },
+  {
+    "file": "KakaoTalk_20260807_000552920_16000ms.jpg",
+    "bucket": "원거리",
+    "n_crops": 2,
+    "lat_stage1": 18.502700000681216,
+    "lat_stage2": 34.8403000007238,
+    "stage1": [],
+    "stage2": [],
+    "merged": []
+  },
+  {
+    "file": "KakaoTalk_20260807_000552920_17000ms.jpg",
+    "bucket": "원거리",
+    "n_crops": 1,
+    "lat_stage1": 17.958399999770336,
+    "lat_stage2": 15.609000000040396,
+    "stage1": [],
+    "stage2": [],
+    "merged": []
+  },
+  {
+    "file": "KakaoTalk_20260807_000552920_19000ms.jpg",
+    "bucket": "원거리",
+    "n_crops": 1,
+    "lat_stage1": 17.20249999925727,
+    "lat_stage2": 14.909499999703257,
+    "stage1": [],
+    "stage2": [
+      {
+        "label": "NO-Safety-Vest",
+        "raw_label": "NO-Safety Vest",
+        "conf": 0.482,
+        "bbox": [
+          0.0013688888888888889,
+          0.21184,
+          0.07682888888888889,
+          0.2908
+        ],
+        "detector": "ppe",
+        "tid": 433,
+        "source": "crop"
+      },
+      {
+        "label": "NO-Hardhat",
+        "raw_label": "NO-Hardhat",
+        "conf": 0.399,
+        "bbox": [
+          0.008003333333333335,
+          0.17580666666666667,
+          0.04054555555555555,
+          0.191724
+        ],
+        "detector": "ppe",
+        "tid": 434,
+        "source": "crop"
+      }
+    ],
+    "merged": [
+      {
+        "label": "NO-Safety-Vest",
+        "raw_label": "NO-Safety Vest",
+        "conf": 0.482,
+        "bbox": [
+          0.0013688888888888889,
+          0.21184,
+          0.07682888888888889,
+          0.2908
+        ],
+        "detector": "ppe",
+        "tid": 433,
+        "source": "crop"
+      },
+      {
+        "label": "NO-Hardhat",
+        "raw_label": "NO-Hardhat",
+        "conf": 0.399,
+        "bbox": [
+          0.008003333333333335,
+          0.17580666666666667,
+          0.04054555555555555,
+          0.191724
+        ],
+        "detector": "ppe",
+        "tid": 434,
+        "source": "crop"
+      }
+    ]
+  },
+  {
+    "file": "KakaoTalk_20260807_000552920_2000ms.jpg",
+    "bucket": "사람없음",
+    "n_crops": 0,
+    "lat_stage1": 17.038600000887527,
+    "lat_stage2": 0.0,
+    "stage1": [],
+    "stage2": [],
+    "merged": []
+  },
+  {
+    "file": "KakaoTalk_20260807_000552920_3000ms.jpg",
+    "bucket": "사람없음",
+    "n_crops": 0,
+    "lat_stage1": 17.68439999978,
+    "lat_stage2": 0.0,
+    "stage1": [],
+    "stage2": [],
+    "merged": []
+  },
+  {
+    "file": "KakaoTalk_20260807_000552920_4000ms.jpg",
+    "bucket": "사람없음",
+    "n_crops": 0,
+    "lat_stage1": 17.152799999166746,
+    "lat_stage2": 0.0,
+    "stage1": [],
+    "stage2": [],
+    "merged": []
+  },
+  {
+    "file": "KakaoTalk_20260807_000552920_5000ms.jpg",
+    "bucket": "사람없음",
+    "n_crops": 1,
+    "lat_stage1": 16.74970000021858,
+    "lat_stage2": 14.84590000109165,
+    "stage1": [
+      {
+        "label": "NO-Safety-Vest",
+        "raw_label": "NO-Safety Vest",
+        "conf": 0.4,
+        "bbox": [
+          0.1383,
+          0.2266,
+          0.1976,
+          0.281
+        ],
+        "detector": "ppe",
+        "tid": 438
+      }
+    ],
+    "stage2": [],
+    "merged": [
+      {
+        "label": "NO-Safety-Vest",
+        "raw_label": "NO-Safety Vest",
+        "conf": 0.4,
+        "bbox": [
+          0.1383,
+          0.2266,
+          0.1976,
+          0.281
+        ],
+        "detector": "ppe",
+        "tid": 438
+      }
+    ]
+  },
+  {
+    "file": "KakaoTalk_20260807_000552920_6000ms.jpg",
+    "bucket": "근거리",
+    "n_crops": 3,
+    "lat_stage1": 16.909100000702892,
+    "lat_stage2": 44.22360000171466,
+    "stage1": [],
+    "stage2": [
+      {
+        "label": "NO-Safety-Vest",
+        "raw_label": "NO-Safety Vest",
+        "conf": 0.485,
+        "bbox": [
+          0.8597541666666667,
+          0.4527288888888889,
+          0.9550263888888889,
+          0.5429584444444444
+        ],
+        "detector": "ppe",
+        "tid": 446,
+        "source": "crop"
+      }
+    ],
+    "merged": [
+      {
+        "label": "NO-Safety-Vest",
+        "raw_label": "NO-Safety Vest",
+        "conf": 0.485,
+        "bbox": [
+          0.8597541666666667,
+          0.4527288888888889,
+          0.9550263888888889,
+          0.5429584444444444
+        ],
+        "detector": "ppe",
+        "tid": 446,
+        "source": "crop"
+      }
+    ]
+  },
+  {
+    "file": "KakaoTalk_20260807_000552920_7000ms.jpg",
+    "bucket": "사람없음",
+    "n_crops": 0,
+    "lat_stage1": 16.995600000882405,
+    "lat_stage2": 0.0,
+    "stage1": [],
+    "stage2": [],
+    "merged": []
+  },
+  {
+    "file": "KakaoTalk_20260807_000552920_8000ms.jpg",
+    "bucket": "원거리",
+    "n_crops": 3,
+    "lat_stage1": 16.91479999863077,
+    "lat_stage2": 53.51679999876069,
+    "stage1": [],
+    "stage2": [],
+    "merged": []
+  },
+  {
+    "file": "KakaoTalk_20260807_000552920_9000ms.jpg",
+    "bucket": "원거리",
+    "n_crops": 2,
+    "lat_stage1": 17.808300000979216,
+    "lat_stage2": 30.707199999596924,
+    "stage1": [],
+    "stage2": [],
+    "merged": []
+  },
+  {
+    "file": "KakaoTalk_20260807_000611749_0ms.jpg",
+    "bucket": "원거리",
+    "n_crops": 3,
+    "lat_stage1": 40.46740000012505,
+    "lat_stage2": 64.52620000163733,
+    "stage1": [
+      {
+        "label": "Hardhat",
+        "raw_label": "Hardhat",
+        "conf": 0.819,
+        "bbox": [
+          0.7082,
+          0.828,
+          0.7403,
+          0.856
+        ],
+        "detector": "ppe",
+        "tid": 466
+      },
+      {
+        "label": "Hardhat",
+        "raw_label": "Hardhat",
+        "conf": 0.773,
+        "bbox": [
+          0.4772,
+          0.4587,
+          0.5039,
+          0.4852
+        ],
+        "detector": "ppe",
+        "tid": 467
+      },
+      {
+        "label": "Hardhat",
+        "raw_label": "Hardhat",
+        "conf": 0.686,
+        "bbox": [
+          0.0463,
+          0.124,
+          0.0761,
+          0.1532
+        ],
+        "detector": "ppe",
+        "tid": 468
+      },
+      {
+        "label": "Safety-Vest",
+        "raw_label": "Safety Vest",
+        "conf": 0.367,
+        "bbox": [
+          0.7112,
+          0.854,
+          0.7602,
+          0.9138
+        ],
+        "detector": "ppe",
+        "tid": 471
+      }
+    ],
+    "stage2": [
+      {
+        "label": "Hardhat",
+        "raw_label": "Hardhat",
+        "conf": 0.491,
+        "bbox": [
+          0.04108861111111111,
+          0.12716666666666668,
+          0.07704333333333332,
+          0.15422666666666668
+        ],
+        "detector": "ppe",
+        "tid": 474,
+        "source": "crop"
+      },
+      {
+        "label": "Mask",
+        "raw_label": "Mask",
+        "conf": 0.662,
+        "bbox": [
+          0.6998855555555555,
+          0.8460291666666666,
+          0.7927668055555556,
+          0.9408183333333333
+        ],
+        "detector": "ppe",
+        "tid": 476,
+        "source": "crop"
+      }
+    ],
+    "merged": [
+      {
+        "label": "Hardhat",
+        "raw_label": "Hardhat",
+        "conf": 0.819,
+        "bbox": [
+          0.7082,
+          0.828,
+          0.7403,
+          0.856
+        ],
+        "detector": "ppe",
+        "tid": 466
+      },
+      {
+        "label": "Hardhat",
+        "raw_label": "Hardhat",
+        "conf": 0.773,
+        "bbox": [
+          0.4772,
+          0.4587,
+          0.5039,
+          0.4852
+        ],
+        "detector": "ppe",
+        "tid": 467
+      },
+      {
+        "label": "Hardhat",
+        "raw_label": "Hardhat",
+        "conf": 0.686,
+        "bbox": [
+          0.0463,
+          0.124,
+          0.0761,
+          0.1532
+        ],
+        "detector": "ppe",
+        "tid": 468
+      },
+      {
+        "label": "Mask",
+        "raw_label": "Mask",
+        "conf": 0.662,
+        "bbox": [
+          0.6998855555555555,
+          0.8460291666666666,
+          0.7927668055555556,
+          0.9408183333333333
+        ],
+        "detector": "ppe",
+        "tid": 476,
+        "source": "crop"
+      },
+      {
+        "label": "Safety-Vest",
+        "raw_label": "Safety Vest",
+        "conf": 0.367,
+        "bbox": [
+          0.7112,
+          0.854,
+          0.7602,
+          0.9138
+        ],
+        "detector": "ppe",
+        "tid": 471
+      }
+    ]
+  },
+  {
+    "file": "KakaoTalk_20260807_000611749_10000ms.jpg",
+    "bucket": "사람없음",
+    "n_crops": 3,
+    "lat_stage1": 24.975099999210215,
+    "lat_stage2": 47.85009999977774,
+    "stage1": [
+      {
+        "label": "Hardhat",
+        "raw_label": "Hardhat",
+        "conf": 0.623,
+        "bbox": [
+          0.1289,
+          0.2018,
+          0.1543,
+          0.2309
+        ],
+        "detector": "ppe",
+        "tid": 481
+      },
+      {
+        "label": "Hardhat",
+        "raw_label": "Hardhat",
+        "conf": 0.356,
+        "bbox": [
+          0.421,
+          0.6414,
+          0.4526,
+          0.669
+        ],
+        "detector": "ppe",
+        "tid": 483
+      }
+    ],
+    "stage2": [
+      {
+        "label": "Hardhat",
+        "raw_label": "Hardhat",
+        "conf": 0.836,
+        "bbox": [
+          0.12404805555555555,
+          0.20528444444444444,
+          0.14990722222222222,
+          0.2257288888888889
+        ],
+        "detector": "ppe",
+        "tid": 485,
+        "source": "crop"
+      },
+      {
+        "label": "NO-Safety-Vest",
+        "raw_label": "NO-Safety Vest",
+        "conf": 0.812,
+        "bbox": [
+          0.1289338888888889,
+          0.22649333333333332,
+          0.1575338888888889,
+          0.26151555555555556
+        ],
+        "detector": "ppe",
+        "tid": 486,
+        "source": "crop"
+      },
+      {
+        "label": "Hardhat",
+        "raw_label": "Hardhat",
+        "conf": 0.684,
+        "bbox": [
+          0.15573555555555557,
+          0.21966666666666665,
+          0.17697972222222222,
+          0.23426222222222223
+        ],
+        "detector": "ppe",
+        "tid": 487,
+        "source": "crop"
+      }
+    ],
+    "merged": [
+      {
+        "label": "Hardhat",
+        "raw_label": "Hardhat",
+        "conf": 0.836,
+        "bbox": [
+          0.12404805555555555,
+          0.20528444444444444,
+          0.14990722222222222,
+          0.2257288888888889
+        ],
+        "detector": "ppe",
+        "tid": 485,
+        "source": "crop"
+      },
+      {
+        "label": "NO-Safety-Vest",
+        "raw_label": "NO-Safety Vest",
+        "conf": 0.812,
+        "bbox": [
+          0.1289338888888889,
+          0.22649333333333332,
+          0.1575338888888889,
+          0.26151555555555556
+        ],
+        "detector": "ppe",
+        "tid": 486,
+        "source": "crop"
+      },
+      {
+        "label": "Hardhat",
+        "raw_label": "Hardhat",
+        "conf": 0.684,
+        "bbox": [
+          0.15573555555555557,
+          0.21966666666666665,
+          0.17697972222222222,
+          0.23426222222222223
+        ],
+        "detector": "ppe",
+        "tid": 487,
+        "source": "crop"
+      },
+      {
+        "label": "Hardhat",
+        "raw_label": "Hardhat",
+        "conf": 0.356,
+        "bbox": [
+          0.421,
+          0.6414,
+          0.4526,
+          0.669
+        ],
+        "detector": "ppe",
+        "tid": 483
+      }
+    ]
+  },
+  {
+    "file": "KakaoTalk_20260807_000611749_1000ms.jpg",
+    "bucket": "원거리",
+    "n_crops": 3,
+    "lat_stage1": 26.052299999719253,
+    "lat_stage2": 50.05259999961709,
+    "stage1": [
+      {
+        "label": "Hardhat",
+        "raw_label": "Hardhat",
+        "conf": 0.7,
+        "bbox": [
+          0.6625,
+          0.7847,
+          0.6966,
+          0.8136
+        ],
+        "detector": "ppe",
+        "tid": 495
+      },
+      {
+        "label": "Hardhat",
+        "raw_label": "Hardhat",
+        "conf": 0.673,
+        "bbox": [
+          0.46,
+          0.4459,
+          0.4979,
+          0.4795
+        ],
+        "detector": "ppe",
+        "tid": 496
+      },
+      {
+        "label": "Hardhat",
+        "raw_label": "Hardhat",
+        "conf": 0.57,
+        "bbox": [
+          0.1262,
+          0.1956,
+          0.1505,
+          0.2229
+        ],
+        "detector": "ppe",
+        "tid": 497
+      },
+      {
+        "label": "NO-Mask",
+        "raw_label": "NO-Mask",
+        "conf": 0.447,
+        "bbox": [
+          0.4741,
+          0.4754,
+          0.4944,
+          0.4937
+        ],
+        "detector": "ppe",
+        "tid": 498
+      },
+      {
+        "label": "Safety-Vest",
+        "raw_label": "Safety Vest",
+        "conf": 0.409,
+        "bbox": [
+          0.1276,
+          0.2139,
+          0.1614,
+          0.2615
+        ],
+        "detector": "ppe",
+        "tid": 499
+      },
+      {
+        "label": "NO-Safety-Vest",
+        "raw_label": "NO-Safety Vest",
+        "conf": 0.358,
+        "bbox": [
+          0.1276,
+          0.2139,
+          0.1614,
+          0.2615
+        ],
+        "detector": "ppe",
+        "tid": 500
+      }
+    ],
+    "stage2": [
+      {
+        "label": "Hardhat",
+        "raw_label": "Hardhat",
+        "conf": 0.821,
+        "bbox": [
+          0.11862666666666667,
+          0.20335999999999999,
+          0.14489666666666667,
+          0.22616791666666666
+        ],
+        "detector": "ppe",
+        "tid": 501,
+        "source": "crop"
+      },
+      {
+        "label": "NO-Safety-Vest",
+        "raw_label": "NO-Safety Vest",
+        "conf": 0.522,
+        "bbox": [
+          0.12473666666666666,
+          0.22281750000000003,
+          0.15833666666666665,
+          0.2784845833333333
+        ],
+        "detector": "ppe",
+        "tid": 504,
+        "source": "crop"
+      },
+      {
+        "label": "Hardhat",
+        "raw_label": "Hardhat",
+        "conf": 0.83,
+        "bbox": [
+          0.662715,
+          0.7863849999999999,
+          0.6960208333333333,
+          0.8081383333333333
+        ],
+        "detector": "ppe",
+        "tid": 508,
+        "source": "crop"
+      }
+    ],
+    "merged": [
+      {
+        "label": "Hardhat",
+        "raw_label": "Hardhat",
+        "conf": 0.83,
+        "bbox": [
+          0.662715,
+          0.7863849999999999,
+          0.6960208333333333,
+          0.8081383333333333
+        ],
+        "detector": "ppe",
+        "tid": 508,
+        "source": "crop"
+      },
+      {
+        "label": "Hardhat",
+        "raw_label": "Hardhat",
+        "conf": 0.821,
+        "bbox": [
+          0.11862666666666667,
+          0.20335999999999999,
+          0.14489666666666667,
+          0.22616791666666666
+        ],
+        "detector": "ppe",
+        "tid": 501,
+        "source": "crop"
+      },
+      {
+        "label": "Hardhat",
+        "raw_label": "Hardhat",
+        "conf": 0.673,
+        "bbox": [
+          0.46,
+          0.4459,
+          0.4979,
+          0.4795
+        ],
+        "detector": "ppe",
+        "tid": 496
+      },
+      {
+        "label": "Hardhat",
+        "raw_label": "Hardhat",
+        "conf": 0.57,
+        "bbox": [
+          0.1262,
+          0.1956,
+          0.1505,
+          0.2229
+        ],
+        "detector": "ppe",
+        "tid": 497
+      },
+      {
+        "label": "NO-Safety-Vest",
+        "raw_label": "NO-Safety Vest",
+        "conf": 0.522,
+        "bbox": [
+          0.12473666666666666,
+          0.22281750000000003,
+          0.15833666666666665,
+          0.2784845833333333
+        ],
+        "detector": "ppe",
+        "tid": 504,
+        "source": "crop"
+      },
+      {
+        "label": "NO-Mask",
+        "raw_label": "NO-Mask",
+        "conf": 0.447,
+        "bbox": [
+          0.4741,
+          0.4754,
+          0.4944,
+          0.4937
+        ],
+        "detector": "ppe",
+        "tid": 498
+      },
+      {
+        "label": "Safety-Vest",
+        "raw_label": "Safety Vest",
+        "conf": 0.409,
+        "bbox": [
+          0.1276,
+          0.2139,
+          0.1614,
+          0.2615
+        ],
+        "detector": "ppe",
+        "tid": 499
+      }
+    ]
+  },
+  {
+    "file": "KakaoTalk_20260807_000611749_11000ms.jpg",
+    "bucket": "원거리",
+    "n_crops": 2,
+    "lat_stage1": 32.01670000089507,
+    "lat_stage2": 31.9761999999173,
+    "stage1": [
+      {
+        "label": "Hardhat",
+        "raw_label": "Hardhat",
+        "conf": 0.805,
+        "bbox": [
+          0.6197,
+          0.0908,
+          0.6622,
+          0.1343
+        ],
+        "detector": "ppe",
+        "tid": 513
+      },
+      {
+        "label": "NO-Safety-Vest",
+        "raw_label": "NO-Safety Vest",
+        "conf": 0.788,
+        "bbox": [
+          0.2143,
+          0.6798,
+          0.27,
+          0.7557
+        ],
+        "detector": "ppe",
+        "tid": 514
+      },
+      {
+        "label": "NO-Safety-Vest",
+        "raw_label": "NO-Safety Vest",
+        "conf": 0.528,
+        "bbox": [
+          0.6355,
+          0.1465,
+          0.7039,
+          0.229
+        ],
+        "detector": "ppe",
+        "tid": 516
+      },
+      {
+        "label": "NO-Hardhat",
+        "raw_label": "NO-Hardhat",
+        "conf": 0.521,
+        "bbox": [
+          0.2179,
+          0.6326,
+          0.2544,
+          0.6655
+        ],
+        "detector": "ppe",
+        "tid": 517
+      },
+      {
+        "label": "Hardhat",
+        "raw_label": "Hardhat",
+        "conf": 0.484,
+        "bbox": [
+          0.7087,
+          0.13,
+          0.7452,
+          0.1642
+        ],
+        "detector": "ppe",
+        "tid": 518
+      }
+    ],
+    "stage2": [
+      {
+        "label": "Hardhat",
+        "raw_label": "Hardhat",
+        "conf": 0.4,
+        "bbox": [
+          0.1707877777777778,
+          0.6017127777777778,
+          0.26718333333333333,
+          0.6911061111111111
+        ],
+        "detector": "ppe",
+        "tid": 520,
+        "source": "crop"
+      }
+    ],
+    "merged": [
+      {
+        "label": "Hardhat",
+        "raw_label": "Hardhat",
+        "conf": 0.805,
+        "bbox": [
+          0.6197,
+          0.0908,
+          0.6622,
+          0.1343
+        ],
+        "detector": "ppe",
+        "tid": 513
+      },
+      {
+        "label": "NO-Safety-Vest",
+        "raw_label": "NO-Safety Vest",
+        "conf": 0.788,
+        "bbox": [
+          0.2143,
+          0.6798,
+          0.27,
+          0.7557
+        ],
+        "detector": "ppe",
+        "tid": 514
+      },
+      {
+        "label": "NO-Safety-Vest",
+        "raw_label": "NO-Safety Vest",
+        "conf": 0.528,
+        "bbox": [
+          0.6355,
+          0.1465,
+          0.7039,
+          0.229
+        ],
+        "detector": "ppe",
+        "tid": 516
+      },
+      {
+        "label": "NO-Hardhat",
+        "raw_label": "NO-Hardhat",
+        "conf": 0.521,
+        "bbox": [
+          0.2179,
+          0.6326,
+          0.2544,
+          0.6655
+        ],
+        "detector": "ppe",
+        "tid": 517
+      },
+      {
+        "label": "Hardhat",
+        "raw_label": "Hardhat",
+        "conf": 0.484,
+        "bbox": [
+          0.7087,
+          0.13,
+          0.7452,
+          0.1642
+        ],
+        "detector": "ppe",
+        "tid": 518
+      },
+      {
+        "label": "Hardhat",
+        "raw_label": "Hardhat",
+        "conf": 0.4,
+        "bbox": [
+          0.1707877777777778,
+          0.6017127777777778,
+          0.26718333333333333,
+          0.6911061111111111
+        ],
+        "detector": "ppe",
+        "tid": 520,
+        "source": "crop"
+      }
+    ]
+  },
+  {
+    "file": "KakaoTalk_20260807_000611749_12000ms.jpg",
+    "bucket": "원거리",
+    "n_crops": 2,
+    "lat_stage1": 23.528400000941474,
+    "lat_stage2": 32.17249999761407,
+    "stage1": [
+      {
+        "label": "Hardhat",
+        "raw_label": "Hardhat",
+        "conf": 0.799,
+        "bbox": [
+          0.6256,
+          0.0932,
+          0.6688,
+          0.1363
+        ],
+        "detector": "ppe",
+        "tid": 524
+      },
+      {
+        "label": "NO-Safety-Vest",
+        "raw_label": "NO-Safety Vest",
+        "conf": 0.712,
+        "bbox": [
+          0.2218,
+          0.6789,
+          0.2797,
+          0.754
+        ],
+        "detector": "ppe",
+        "tid": 525
+      },
+      {
+        "label": "NO-Hardhat",
+        "raw_label": "NO-Hardhat",
+        "conf": 0.517,
+        "bbox": [
+          0.2196,
+          0.636,
+          0.2585,
+          0.6667
+        ],
+        "detector": "ppe",
+        "tid": 527
+      }
+    ],
+    "stage2": [
+      {
+        "label": "Hardhat",
+        "raw_label": "Hardhat",
+        "conf": 0.697,
+        "bbox": [
+          0.6276897222222222,
+          0.0952438888888889,
+          0.6681666666666667,
+          0.14166083333333335
+        ],
+        "detector": "ppe",
+        "tid": 529,
+        "source": "crop"
+      }
+    ],
+    "merged": [
+      {
+        "label": "Hardhat",
+        "raw_label": "Hardhat",
+        "conf": 0.799,
+        "bbox": [
+          0.6256,
+          0.0932,
+          0.6688,
+          0.1363
+        ],
+        "detector": "ppe",
+        "tid": 524
+      },
+      {
+        "label": "NO-Safety-Vest",
+        "raw_label": "NO-Safety Vest",
+        "conf": 0.712,
+        "bbox": [
+          0.2218,
+          0.6789,
+          0.2797,
+          0.754
+        ],
+        "detector": "ppe",
+        "tid": 525
+      },
+      {
+        "label": "NO-Hardhat",
+        "raw_label": "NO-Hardhat",
+        "conf": 0.517,
+        "bbox": [
+          0.2196,
+          0.636,
+          0.2585,
+          0.6667
+        ],
+        "detector": "ppe",
+        "tid": 527
+      }
+    ]
+  },
+  {
+    "file": "KakaoTalk_20260807_000611749_13000ms.jpg",
+    "bucket": "원거리",
+    "n_crops": 3,
+    "lat_stage1": 31.042900000102236,
+    "lat_stage2": 53.00339999848802,
+    "stage1": [
+      {
+        "label": "Hardhat",
+        "raw_label": "Hardhat",
+        "conf": 0.795,
+        "bbox": [
+          0.6301,
+          0.1,
+          0.6734,
+          0.1411
+        ],
+        "detector": "ppe",
+        "tid": 533
+      },
+      {
+        "label": "NO-Safety-Vest",
+        "raw_label": "NO-Safety Vest",
+        "conf": 0.783,
+        "bbox": [
+          0.2202,
+          0.6962,
+          0.2724,
+          0.7662
+        ],
+        "detector": "ppe",
+        "tid": 534
+      },
+      {
+        "label": "Hardhat",
+        "raw_label": "Hardhat",
+        "conf": 0.465,
+        "bbox": [
+          0.1938,
+          0.6703,
+          0.2418,
+          0.7201
+        ],
+        "detector": "ppe",
+        "tid": 536
+      },
+      {
+        "label": "NO-Safety-Vest",
+        "raw_label": "NO-Safety Vest",
+        "conf": 0.418,
+        "bbox": [
+          0.6516,
+          0.1474,
+          0.7169,
+          0.2336
+        ],
+        "detector": "ppe",
+        "tid": 537
+      },
+      {
+        "label": "NO-Safety-Vest",
+        "raw_label": "NO-Safety Vest",
+        "conf": 0.355,
+        "bbox": [
+          0.62,
+          0.1416,
+          0.6717,
+          0.206
+        ],
+        "detector": "ppe",
+        "tid": 538
+      }
+    ],
+    "stage2": [
+      {
+        "label": "Hardhat",
+        "raw_label": "Hardhat",
+        "conf": 0.426,
+        "bbox": [
+          0.6694483333333333,
+          0.16052277777777776,
+          0.7158588888888889,
+          0.20319944444444446
+        ],
+        "detector": "ppe",
+        "tid": 542,
+        "source": "crop"
+      }
+    ],
+    "merged": [
+      {
+        "label": "Hardhat",
+        "raw_label": "Hardhat",
+        "conf": 0.795,
+        "bbox": [
+          0.6301,
+          0.1,
+          0.6734,
+          0.1411
+        ],
+        "detector": "ppe",
+        "tid": 533
+      },
+      {
+        "label": "NO-Safety-Vest",
+        "raw_label": "NO-Safety Vest",
+        "conf": 0.783,
+        "bbox": [
+          0.2202,
+          0.6962,
+          0.2724,
+          0.7662
+        ],
+        "detector": "ppe",
+        "tid": 534
+      },
+      {
+        "label": "Hardhat",
+        "raw_label": "Hardhat",
+        "conf": 0.465,
+        "bbox": [
+          0.1938,
+          0.6703,
+          0.2418,
+          0.7201
+        ],
+        "detector": "ppe",
+        "tid": 536
+      },
+      {
+        "label": "Hardhat",
+        "raw_label": "Hardhat",
+        "conf": 0.426,
+        "bbox": [
+          0.6694483333333333,
+          0.16052277777777776,
+          0.7158588888888889,
+          0.20319944444444446
+        ],
+        "detector": "ppe",
+        "tid": 542,
+        "source": "crop"
+      },
+      {
+        "label": "NO-Safety-Vest",
+        "raw_label": "NO-Safety Vest",
+        "conf": 0.418,
+        "bbox": [
+          0.6516,
+          0.1474,
+          0.7169,
+          0.2336
+        ],
+        "detector": "ppe",
+        "tid": 537
+      },
+      {
+        "label": "NO-Safety-Vest",
+        "raw_label": "NO-Safety Vest",
+        "conf": 0.355,
+        "bbox": [
+          0.62,
+          0.1416,
+          0.6717,
+          0.206
+        ],
+        "detector": "ppe",
+        "tid": 538
+      }
+    ]
+  },
+  {
+    "file": "KakaoTalk_20260807_000611749_14000ms.jpg",
+    "bucket": "사람없음",
+    "n_crops": 2,
+    "lat_stage1": 24.798100001135026,
+    "lat_stage2": 30.66439999929571,
+    "stage1": [
+      {
+        "label": "Hardhat",
+        "raw_label": "Hardhat",
+        "conf": 0.807,
+        "bbox": [
+          0.6389,
+          0.1001,
+          0.683,
+          0.1433
+        ],
+        "detector": "ppe",
+        "tid": 544
+      },
+      {
+        "label": "NO-Safety-Vest",
+        "raw_label": "NO-Safety Vest",
+        "conf": 0.489,
+        "bbox": [
+          0.6217,
+          0.142,
+          0.6884,
+          0.2201
+        ],
+        "detector": "ppe",
+        "tid": 546
+      },
+      {
+        "label": "NO-Safety-Vest",
+        "raw_label": "NO-Safety Vest",
+        "conf": 0.376,
+        "bbox": [
+          0.6566,
+          0.1524,
+          0.7248,
+          0.2382
+        ],
+        "detector": "ppe",
+        "tid": 548
+      }
+    ],
+    "stage2": [
+      {
+        "label": "Hardhat",
+        "raw_label": "Hardhat",
+        "conf": 0.717,
+        "bbox": [
+          0.6415322222222222,
+          0.09903611111111113,
+          0.6809143055555555,
+          0.14759166666666665
+        ],
+        "detector": "ppe",
+        "tid": 549,
+        "source": "crop"
+      }
+    ],
+    "merged": [
+      {
+        "label": "Hardhat",
+        "raw_label": "Hardhat",
+        "conf": 0.807,
+        "bbox": [
+          0.6389,
+          0.1001,
+          0.683,
+          0.1433
+        ],
+        "detector": "ppe",
+        "tid": 544
+      },
+      {
+        "label": "NO-Safety-Vest",
+        "raw_label": "NO-Safety Vest",
+        "conf": 0.489,
+        "bbox": [
+          0.6217,
+          0.142,
+          0.6884,
+          0.2201
+        ],
+        "detector": "ppe",
+        "tid": 546
+      },
+      {
+        "label": "NO-Safety-Vest",
+        "raw_label": "NO-Safety Vest",
+        "conf": 0.376,
+        "bbox": [
+          0.6566,
+          0.1524,
+          0.7248,
+          0.2382
+        ],
+        "detector": "ppe",
+        "tid": 548
+      }
+    ]
+  },
+  {
+    "file": "KakaoTalk_20260807_000611749_15000ms.jpg",
+    "bucket": "원거리",
+    "n_crops": 3,
+    "lat_stage1": 31.77280000090832,
+    "lat_stage2": 55.6680999998207,
+    "stage1": [
+      {
+        "label": "Hardhat",
+        "raw_label": "Hardhat",
+        "conf": 0.79,
+        "bbox": [
+          0.6499,
+          0.1039,
+          0.6881,
+          0.1461
+        ],
+        "detector": "ppe",
+        "tid": 555
+      },
+      {
+        "label": "NO-Safety-Vest",
+        "raw_label": "NO-Safety Vest",
+        "conf": 0.517,
+        "bbox": [
+          0.6599,
+          0.1529,
+          0.7283,
+          0.2442
+        ],
+        "detector": "ppe",
+        "tid": 557
+      },
+      {
+        "label": "Hardhat",
+        "raw_label": "Hardhat",
+        "conf": 0.362,
+        "bbox": [
+          0.6317,
+          0.8752,
+          0.6754,
+          0.937
+        ],
+        "detector": "ppe",
+        "tid": 559
+      }
+    ],
+    "stage2": [
+      {
+        "label": "Hardhat",
+        "raw_label": "Hardhat",
+        "conf": 0.546,
+        "bbox": [
+          0.6375933333333333,
+          0.21851111111111113,
+          0.6741133333333333,
+          0.2603111111111111
+        ],
+        "detector": "ppe",
+        "tid": 560,
+        "source": "crop"
+      }
+    ],
+    "merged": [
+      {
+        "label": "Hardhat",
+        "raw_label": "Hardhat",
+        "conf": 0.79,
+        "bbox": [
+          0.6499,
+          0.1039,
+          0.6881,
+          0.1461
+        ],
+        "detector": "ppe",
+        "tid": 555
+      },
+      {
+        "label": "Hardhat",
+        "raw_label": "Hardhat",
+        "conf": 0.546,
+        "bbox": [
+          0.6375933333333333,
+          0.21851111111111113,
+          0.6741133333333333,
+          0.2603111111111111
+        ],
+        "detector": "ppe",
+        "tid": 560,
+        "source": "crop"
+      },
+      {
+        "label": "NO-Safety-Vest",
+        "raw_label": "NO-Safety Vest",
+        "conf": 0.517,
+        "bbox": [
+          0.6599,
+          0.1529,
+          0.7283,
+          0.2442
+        ],
+        "detector": "ppe",
+        "tid": 557
+      },
+      {
+        "label": "Hardhat",
+        "raw_label": "Hardhat",
+        "conf": 0.362,
+        "bbox": [
+          0.6317,
+          0.8752,
+          0.6754,
+          0.937
+        ],
+        "detector": "ppe",
+        "tid": 559
+      }
+    ]
+  },
+  {
+    "file": "KakaoTalk_20260807_000611749_3000ms.jpg",
+    "bucket": "근거리",
+    "n_crops": 1,
+    "lat_stage1": 39.28970000015397,
+    "lat_stage2": 24.912399998356705,
+    "stage1": [
+      {
+        "label": "Hardhat",
+        "raw_label": "Hardhat",
+        "conf": 0.862,
+        "bbox": [
+          0.4768,
+          0.5383,
+          0.5465,
+          0.6031
+        ],
+        "detector": "ppe",
+        "tid": 568
+      },
+      {
+        "label": "NO-Safety-Vest",
+        "raw_label": "NO-Safety Vest",
+        "conf": 0.501,
+        "bbox": [
+          0.4141,
+          0.583,
+          0.5428,
+          0.775
+        ],
+        "detector": "ppe",
+        "tid": 569
+      }
+    ],
+    "stage2": [
+      {
+        "label": "Hardhat",
+        "raw_label": "Hardhat",
+        "conf": 0.779,
+        "bbox": [
+          0.47626111111111114,
+          0.5363926388888889,
+          0.5440194444444444,
+          0.6053309722222222
+        ],
+        "detector": "ppe",
+        "tid": 571,
+        "source": "crop"
+      }
+    ],
+    "merged": [
+      {
+        "label": "Hardhat",
+        "raw_label": "Hardhat",
+        "conf": 0.862,
+        "bbox": [
+          0.4768,
+          0.5383,
+          0.5465,
+          0.6031
+        ],
+        "detector": "ppe",
+        "tid": 568
+      },
+      {
+        "label": "NO-Safety-Vest",
+        "raw_label": "NO-Safety Vest",
+        "conf": 0.501,
+        "bbox": [
+          0.4141,
+          0.583,
+          0.5428,
+          0.775
+        ],
+        "detector": "ppe",
+        "tid": 569
+      }
+    ]
+  },
+  {
+    "file": "KakaoTalk_20260807_000611749_4000ms.jpg",
+    "bucket": "원거리",
+    "n_crops": 1,
+    "lat_stage1": 25.638499999331543,
+    "lat_stage2": 25.84509999906004,
+    "stage1": [
+      {
+        "label": "NO-Safety-Vest",
+        "raw_label": "NO-Safety Vest",
+        "conf": 0.645,
+        "bbox": [
+          0.3898,
+          0.5878,
+          0.501,
+          0.7385
+        ],
+        "detector": "ppe",
+        "tid": 575
+      }
+    ],
+    "stage2": [],
+    "merged": [
+      {
+        "label": "NO-Safety-Vest",
+        "raw_label": "NO-Safety Vest",
+        "conf": 0.645,
+        "bbox": [
+          0.3898,
+          0.5878,
+          0.501,
+          0.7385
+        ],
+        "detector": "ppe",
+        "tid": 575
+      }
+    ]
+  },
+  {
+    "file": "KakaoTalk_20260807_000611749_5000ms.jpg",
+    "bucket": "사람없음",
+    "n_crops": 1,
+    "lat_stage1": 29.30969999943045,
+    "lat_stage2": 19.17189999949187,
+    "stage1": [
+      {
+        "label": "Hardhat",
+        "raw_label": "Hardhat",
+        "conf": 0.58,
+        "bbox": [
+          0.1269,
+          0.1952,
+          0.1517,
+          0.2246
+        ],
+        "detector": "ppe",
+        "tid": 577
+      }
+    ],
+    "stage2": [
+      {
+        "label": "Hardhat",
+        "raw_label": "Hardhat",
+        "conf": 0.852,
+        "bbox": [
+          0.12150972222222221,
+          0.20348472222222225,
+          0.1482263888888889,
+          0.22544027777777778
+        ],
+        "detector": "ppe",
+        "tid": 578,
+        "source": "crop"
+      },
+      {
+        "label": "Hardhat",
+        "raw_label": "Hardhat",
+        "conf": 0.661,
+        "bbox": [
+          0.1560527777777778,
+          0.21661111111111112,
+          0.17465138888888887,
+          0.23909027777777775
+        ],
+        "detector": "ppe",
+        "tid": 580,
+        "source": "crop"
+      }
+    ],
+    "merged": [
+      {
+        "label": "Hardhat",
+        "raw_label": "Hardhat",
+        "conf": 0.852,
+        "bbox": [
+          0.12150972222222221,
+          0.20348472222222225,
+          0.1482263888888889,
+          0.22544027777777778
+        ],
+        "detector": "ppe",
+        "tid": 578,
+        "source": "crop"
+      },
+      {
+        "label": "Hardhat",
+        "raw_label": "Hardhat",
+        "conf": 0.661,
+        "bbox": [
+          0.1560527777777778,
+          0.21661111111111112,
+          0.17465138888888887,
+          0.23909027777777775
+        ],
+        "detector": "ppe",
+        "tid": 580,
+        "source": "crop"
+      }
+    ]
+  },
+  {
+    "file": "KakaoTalk_20260807_000611749_8000ms.jpg",
+    "bucket": "원거리",
+    "n_crops": 4,
+    "lat_stage1": 34.63310000006459,
+    "lat_stage2": 67.95339999735006,
+    "stage1": [
+      {
+        "label": "Hardhat",
+        "raw_label": "Hardhat",
+        "conf": 0.697,
+        "bbox": [
+          0.1255,
+          0.1951,
+          0.1517,
+          0.2226
+        ],
+        "detector": "ppe",
+        "tid": 583
+      },
+      {
+        "label": "Hardhat",
+        "raw_label": "Hardhat",
+        "conf": 0.692,
+        "bbox": [
+          0.6891,
+          0.7801,
+          0.7204,
+          0.817
+        ],
+        "detector": "ppe",
+        "tid": 584
+      },
+      {
+        "label": "NO-Safety-Vest",
+        "raw_label": "NO-Safety Vest",
+        "conf": 0.436,
+        "bbox": [
+          0.6814,
+          0.8016,
+          0.7395,
+          0.8645
+        ],
+        "detector": "ppe",
+        "tid": 587
+      }
+    ],
+    "stage2": [
+      {
+        "label": "NO-Safety-Vest",
+        "raw_label": "NO-Safety Vest",
+        "conf": 0.355,
+        "bbox": [
+          0.4196977777777777,
+          0.6264611111111111,
+          0.45836444444444446,
+          0.7885111111111112
+        ],
+        "detector": "ppe",
+        "tid": 589,
+        "source": "crop"
+      },
+      {
+        "label": "Hardhat",
+        "raw_label": "Hardhat",
+        "conf": 0.871,
+        "bbox": [
+          0.12266527777777778,
+          0.19988166666666668,
+          0.14777277777777778,
+          0.22142416666666667
+        ],
+        "detector": "ppe",
+        "tid": 590,
+        "source": "crop"
+      },
+      {
+        "label": "Hardhat",
+        "raw_label": "Hardhat",
+        "conf": 0.568,
+        "bbox": [
+          0.1554636111111111,
+          0.21284916666666664,
+          0.17442027777777777,
+          0.23663166666666666
+        ],
+        "detector": "ppe",
+        "tid": 592,
+        "source": "crop"
+      },
+      {
+        "label": "Hardhat",
+        "raw_label": "Hardhat",
+        "conf": 0.444,
+        "bbox": [
+          0.11932861111111112,
+          0.16650916666666668,
+          0.13378444444444443,
+          0.17240666666666668
+        ],
+        "detector": "ppe",
+        "tid": 593,
+        "source": "crop"
+      },
+      {
+        "label": "NO-Safety-Vest",
+        "raw_label": "NO-Safety Vest",
+        "conf": 0.359,
+        "bbox": [
+          0.12715694444444445,
+          0.21983166666666665,
+          0.15578444444444448,
+          0.2610616666666667
+        ],
+        "detector": "ppe",
+        "tid": 595,
+        "source": "crop"
+      },
+      {
+        "label": "Hardhat",
+        "raw_label": "Hardhat",
+        "conf": 0.792,
+        "bbox": [
+          0.6859701388888889,
+          0.7805122222222222,
+          0.7177729166666668,
+          0.8108216666666667
+        ],
+        "detector": "ppe",
+        "tid": 596,
+        "source": "crop"
+      }
+    ],
+    "merged": [
+      {
+        "label": "Hardhat",
+        "raw_label": "Hardhat",
+        "conf": 0.871,
+        "bbox": [
+          0.12266527777777778,
+          0.19988166666666668,
+          0.14777277777777778,
+          0.22142416666666667
+        ],
+        "detector": "ppe",
+        "tid": 590,
+        "source": "crop"
+      },
+      {
+        "label": "Hardhat",
+        "raw_label": "Hardhat",
+        "conf": 0.792,
+        "bbox": [
+          0.6859701388888889,
+          0.7805122222222222,
+          0.7177729166666668,
+          0.8108216666666667
+        ],
+        "detector": "ppe",
+        "tid": 596,
+        "source": "crop"
+      },
+      {
+        "label": "Hardhat",
+        "raw_label": "Hardhat",
+        "conf": 0.568,
+        "bbox": [
+          0.1554636111111111,
+          0.21284916666666664,
+          0.17442027777777777,
+          0.23663166666666666
+        ],
+        "detector": "ppe",
+        "tid": 592,
+        "source": "crop"
+      },
+      {
+        "label": "Hardhat",
+        "raw_label": "Hardhat",
+        "conf": 0.444,
+        "bbox": [
+          0.11932861111111112,
+          0.16650916666666668,
+          0.13378444444444443,
+          0.17240666666666668
+        ],
+        "detector": "ppe",
+        "tid": 593,
+        "source": "crop"
+      },
+      {
+        "label": "NO-Safety-Vest",
+        "raw_label": "NO-Safety Vest",
+        "conf": 0.436,
+        "bbox": [
+          0.6814,
+          0.8016,
+          0.7395,
+          0.8645
+        ],
+        "detector": "ppe",
+        "tid": 587
+      },
+      {
+        "label": "NO-Safety-Vest",
+        "raw_label": "NO-Safety Vest",
+        "conf": 0.359,
+        "bbox": [
+          0.12715694444444445,
+          0.21983166666666665,
+          0.15578444444444448,
+          0.2610616666666667
+        ],
+        "detector": "ppe",
+        "tid": 595,
+        "source": "crop"
+      },
+      {
+        "label": "NO-Safety-Vest",
+        "raw_label": "NO-Safety Vest",
+        "conf": 0.355,
+        "bbox": [
+          0.4196977777777777,
+          0.6264611111111111,
+          0.45836444444444446,
+          0.7885111111111112
+        ],
+        "detector": "ppe",
+        "tid": 589,
+        "source": "crop"
+      }
+    ]
+  },
+  {
+    "file": "KakaoTalk_20260807_000633827_0ms.jpg",
+    "bucket": "근거리",
+    "n_crops": 3,
+    "lat_stage1": 17.01829999910842,
+    "lat_stage2": 56.35399999846413,
+    "stage1": [
+      {
+        "label": "NO-Hardhat",
+        "raw_label": "NO-Hardhat",
+        "conf": 0.372,
+        "bbox": [
+          0.002,
+          0.0157,
+          0.523,
+          0.3717
+        ],
+        "detector": "ppe",
+        "tid": 603
+      }
+    ],
+    "stage2": [
+      {
+        "label": "NO-Hardhat",
+        "raw_label": "NO-Hardhat",
+        "conf": 0.547,
+        "bbox": [
+          0.12922666666666666,
+          0.013335555555555555,
+          0.5230816666666667,
+          0.33446750000000003
+        ],
+        "detector": "ppe",
+        "tid": 606,
+        "source": "crop"
+      }
+    ],
+    "merged": [
+      {
+        "label": "NO-Hardhat",
+        "raw_label": "NO-Hardhat",
+        "conf": 0.547,
+        "bbox": [
+          0.12922666666666666,
+          0.013335555555555555,
+          0.5230816666666667,
+          0.33446750000000003
+        ],
+        "detector": "ppe",
+        "tid": 606,
+        "source": "crop"
+      }
+    ]
+  },
+  {
+    "file": "KakaoTalk_20260807_000633827_10000ms.jpg",
+    "bucket": "사람없음",
+    "n_crops": 1,
+    "lat_stage1": 27.334399999745074,
+    "lat_stage2": 16.300999999657506,
+    "stage1": [],
+    "stage2": [],
+    "merged": []
+  },
+  {
+    "file": "KakaoTalk_20260807_000633827_1000ms.jpg",
+    "bucket": "근거리",
+    "n_crops": 1,
+    "lat_stage1": 22.010599999703118,
+    "lat_stage2": 26.381399999081623,
+    "stage1": [
+      {
+        "label": "NO-Hardhat",
+        "raw_label": "NO-Hardhat",
+        "conf": 0.802,
+        "bbox": [
+          0.6542,
+          0.2836,
+          0.7571,
+          0.3638
+        ],
+        "detector": "ppe",
+        "tid": 609
+      },
+      {
+        "label": "NO-Safety-Vest",
+        "raw_label": "NO-Safety Vest",
+        "conf": 0.775,
+        "bbox": [
+          0.6819,
+          0.3991,
+          0.8386,
+          0.623
+        ],
+        "detector": "ppe",
+        "tid": 610
+      },
+      {
+        "label": "NO-Hardhat",
+        "raw_label": "NO-Hardhat",
+        "conf": 0.474,
+        "bbox": [
+          0.5807,
+          0.2883,
+          0.6461,
+          0.3649
+        ],
+        "detector": "ppe",
+        "tid": 611
+      },
+      {
+        "label": "Mask",
+        "raw_label": "Mask",
+        "conf": 0.38,
+        "bbox": [
+          0.6771,
+          0.3758,
+          0.7441,
+          0.4362
+        ],
+        "detector": "ppe",
+        "tid": 612
+      }
+    ],
+    "stage2": [],
+    "merged": [
+      {
+        "label": "NO-Hardhat",
+        "raw_label": "NO-Hardhat",
+        "conf": 0.802,
+        "bbox": [
+          0.6542,
+          0.2836,
+          0.7571,
+          0.3638
+        ],
+        "detector": "ppe",
+        "tid": 609
+      },
+      {
+        "label": "NO-Safety-Vest",
+        "raw_label": "NO-Safety Vest",
+        "conf": 0.775,
+        "bbox": [
+          0.6819,
+          0.3991,
+          0.8386,
+          0.623
+        ],
+        "detector": "ppe",
+        "tid": 610
+      },
+      {
+        "label": "NO-Hardhat",
+        "raw_label": "NO-Hardhat",
+        "conf": 0.474,
+        "bbox": [
+          0.5807,
+          0.2883,
+          0.6461,
+          0.3649
+        ],
+        "detector": "ppe",
+        "tid": 611
+      },
+      {
+        "label": "Mask",
+        "raw_label": "Mask",
+        "conf": 0.38,
+        "bbox": [
+          0.6771,
+          0.3758,
+          0.7441,
+          0.4362
+        ],
+        "detector": "ppe",
+        "tid": 612
+      }
+    ]
+  },
+  {
+    "file": "KakaoTalk_20260807_000633827_11000ms.jpg",
+    "bucket": "근거리",
+    "n_crops": 1,
+    "lat_stage1": 33.4523999990779,
+    "lat_stage2": 21.56279999871913,
+    "stage1": [],
+    "stage2": [],
+    "merged": []
+  },
+  {
+    "file": "KakaoTalk_20260807_000633827_12000ms.jpg",
+    "bucket": "근거리",
+    "n_crops": 4,
+    "lat_stage1": 19.59509999869624,
+    "lat_stage2": 76.40519999949902,
+    "stage1": [],
+    "stage2": [],
+    "merged": []
+  },
+  {
+    "file": "KakaoTalk_20260807_000633827_13000ms.jpg",
+    "bucket": "근거리",
+    "n_crops": 1,
+    "lat_stage1": 19.071900000199093,
+    "lat_stage2": 16.180999999050982,
+    "stage1": [],
+    "stage2": [],
+    "merged": []
+  },
+  {
+    "file": "KakaoTalk_20260807_000633827_2000ms.jpg",
+    "bucket": "사람없음",
+    "n_crops": 0,
+    "lat_stage1": 16.792300000815885,
+    "lat_stage2": 0.0,
+    "stage1": [],
+    "stage2": [],
+    "merged": []
+  },
+  {
+    "file": "KakaoTalk_20260807_000633827_3000ms.jpg",
+    "bucket": "사람없음",
+    "n_crops": 1,
+    "lat_stage1": 16.947799998888513,
+    "lat_stage2": 16.671900000801543,
+    "stage1": [
+      {
+        "label": "NO-Hardhat",
+        "raw_label": "NO-Hardhat",
+        "conf": 0.766,
+        "bbox": [
+          0.8695,
+          0.0555,
+          1.0006,
+          0.4206
+        ],
+        "detector": "ppe",
+        "tid": 625
+      },
+      {
+        "label": "NO-Hardhat",
+        "raw_label": "NO-Hardhat",
+        "conf": 0.601,
+        "bbox": [
+          0.0732,
+          0.0404,
+          0.5469,
+          0.4198
+        ],
+        "detector": "ppe",
+        "tid": 626
+      },
+      {
+        "label": "NO-Mask",
+        "raw_label": "NO-Mask",
+        "conf": 0.593,
+        "bbox": [
+          0.4565,
+          0.6246,
+          0.6321,
+          0.8603
+        ],
+        "detector": "ppe",
+        "tid": 627
+      },
+      {
+        "label": "NO-Hardhat",
+        "raw_label": "NO-Hardhat",
+        "conf": 0.519,
+        "bbox": [
+          0.3342,
+          0.2789,
+          0.6804,
+          0.5963
+        ],
+        "detector": "ppe",
+        "tid": 628
+      }
+    ],
+    "stage2": [],
+    "merged": [
+      {
+        "label": "NO-Hardhat",
+        "raw_label": "NO-Hardhat",
+        "conf": 0.766,
+        "bbox": [
+          0.8695,
+          0.0555,
+          1.0006,
+          0.4206
+        ],
+        "detector": "ppe",
+        "tid": 625
+      },
+      {
+        "label": "NO-Hardhat",
+        "raw_label": "NO-Hardhat",
+        "conf": 0.601,
+        "bbox": [
+          0.0732,
+          0.0404,
+          0.5469,
+          0.4198
+        ],
+        "detector": "ppe",
+        "tid": 626
+      },
+      {
+        "label": "NO-Mask",
+        "raw_label": "NO-Mask",
+        "conf": 0.593,
+        "bbox": [
+          0.4565,
+          0.6246,
+          0.6321,
+          0.8603
+        ],
+        "detector": "ppe",
+        "tid": 627
+      },
+      {
+        "label": "NO-Hardhat",
+        "raw_label": "NO-Hardhat",
+        "conf": 0.519,
+        "bbox": [
+          0.3342,
+          0.2789,
+          0.6804,
+          0.5963
+        ],
+        "detector": "ppe",
+        "tid": 628
+      }
+    ]
+  },
+  {
+    "file": "KakaoTalk_20260807_000633827_4000ms.jpg",
+    "bucket": "사람없음",
+    "n_crops": 1,
+    "lat_stage1": 19.088299999566516,
+    "lat_stage2": 24.81640000041807,
+    "stage1": [
+      {
+        "label": "Mask",
+        "raw_label": "Mask",
+        "conf": 0.372,
+        "bbox": [
+          0.3791,
+          0.5238,
+          0.9986,
+          1.0021
+        ],
+        "detector": "ppe",
+        "tid": 631
+      },
+      {
+        "label": "Safety-Vest",
+        "raw_label": "Safety Vest",
+        "conf": 0.359,
+        "bbox": [
+          0.0016,
+          0.1638,
+          0.3772,
+          0.9975
+        ],
+        "detector": "ppe",
+        "tid": 632
+      }
+    ],
+    "stage2": [
+      {
+        "label": "Mask",
+        "raw_label": "Mask",
+        "conf": 0.372,
+        "bbox": [
+          0.3791,
+          0.5238,
+          0.9986000000000002,
+          1.0021
+        ],
+        "detector": "ppe",
+        "tid": 634,
+        "source": "crop"
+      },
+      {
+        "label": "Safety-Vest",
+        "raw_label": "Safety Vest",
+        "conf": 0.359,
+        "bbox": [
+          0.0016000000000000003,
+          0.1638,
+          0.3772,
+          0.9975
+        ],
+        "detector": "ppe",
+        "tid": 635,
+        "source": "crop"
+      }
+    ],
+    "merged": [
+      {
+        "label": "Mask",
+        "raw_label": "Mask",
+        "conf": 0.372,
+        "bbox": [
+          0.3791,
+          0.5238,
+          0.9986,
+          1.0021
+        ],
+        "detector": "ppe",
+        "tid": 631
+      },
+      {
+        "label": "Safety-Vest",
+        "raw_label": "Safety Vest",
+        "conf": 0.359,
+        "bbox": [
+          0.0016,
+          0.1638,
+          0.3772,
+          0.9975
+        ],
+        "detector": "ppe",
+        "tid": 632
+      }
+    ]
+  },
+  {
+    "file": "KakaoTalk_20260807_000633827_5000ms.jpg",
+    "bucket": "사람없음",
+    "n_crops": 1,
+    "lat_stage1": 18.526600000768667,
+    "lat_stage2": 16.502200000104494,
+    "stage1": [
+      {
+        "label": "NO-Hardhat",
+        "raw_label": "NO-Hardhat",
+        "conf": 0.517,
+        "bbox": [
+          0.1863,
+          0.0426,
+          0.8719,
+          0.3461
+        ],
+        "detector": "ppe",
+        "tid": 638
+      }
+    ],
+    "stage2": [
+      {
+        "label": "NO-Hardhat",
+        "raw_label": "NO-Hardhat",
+        "conf": 0.517,
+        "bbox": [
+          0.1863,
+          0.0426,
+          0.8719,
+          0.3461
+        ],
+        "detector": "ppe",
+        "tid": 641,
+        "source": "crop"
+      }
+    ],
+    "merged": [
+      {
+        "label": "NO-Hardhat",
+        "raw_label": "NO-Hardhat",
+        "conf": 0.517,
+        "bbox": [
+          0.1863,
+          0.0426,
+          0.8719,
+          0.3461
+        ],
+        "detector": "ppe",
+        "tid": 638
+      }
+    ]
+  },
+  {
+    "file": "KakaoTalk_20260807_000633827_6000ms.jpg",
+    "bucket": "사람없음",
+    "n_crops": 0,
+    "lat_stage1": 16.27369999914663,
+    "lat_stage2": 0.0,
+    "stage1": [],
+    "stage2": [],
+    "merged": []
+  },
+  {
+    "file": "KakaoTalk_20260807_000633827_7000ms.jpg",
+    "bucket": "사람없음",
+    "n_crops": 1,
+    "lat_stage1": 16.42369999899529,
+    "lat_stage2": 16.450999999506166,
+    "stage1": [
+      {
+        "label": "NO-Hardhat",
+        "raw_label": "NO-Hardhat",
+        "conf": 0.422,
+        "bbox": [
+          0.2367,
+          0.0028,
+          0.9649,
+          0.3289
+        ],
+        "detector": "ppe",
+        "tid": 647
+      }
+    ],
+    "stage2": [
+      {
+        "label": "NO-Hardhat",
+        "raw_label": "NO-Hardhat",
+        "conf": 0.422,
+        "bbox": [
+          0.23670000000000002,
+          0.0028,
+          0.9649,
+          0.3289
+        ],
+        "detector": "ppe",
+        "tid": 651,
+        "source": "crop"
+      }
+    ],
+    "merged": [
+      {
+        "label": "NO-Hardhat",
+        "raw_label": "NO-Hardhat",
+        "conf": 0.422,
+        "bbox": [
+          0.2367,
+          0.0028,
+          0.9649,
+          0.3289
+        ],
+        "detector": "ppe",
+        "tid": 647
+      }
+    ]
+  },
+  {
+    "file": "KakaoTalk_20260807_000633827_8000ms.jpg",
+    "bucket": "사람없음",
+    "n_crops": 1,
+    "lat_stage1": 16.367199999876902,
+    "lat_stage2": 16.01690000097733,
+    "stage1": [
+      {
+        "label": "NO-Hardhat",
+        "raw_label": "NO-Hardhat",
+        "conf": 0.467,
+        "bbox": [
+          0.0853,
+          -0.0004,
+          0.9026,
+          0.294
+        ],
+        "detector": "ppe",
+        "tid": 653
+      }
+    ],
+    "stage2": [
+      {
+        "label": "NO-Hardhat",
+        "raw_label": "NO-Hardhat",
+        "conf": 0.467,
+        "bbox": [
+          0.0853,
+          -0.0004000000000000001,
+          0.9026,
+          0.294
+        ],
+        "detector": "ppe",
+        "tid": 656,
+        "source": "crop"
+      }
+    ],
+    "merged": [
+      {
+        "label": "NO-Hardhat",
+        "raw_label": "NO-Hardhat",
+        "conf": 0.467,
+        "bbox": [
+          0.0853,
+          -0.0004,
+          0.9026,
+          0.294
+        ],
+        "detector": "ppe",
+        "tid": 653
+      }
+    ]
+  },
+  {
+    "file": "KakaoTalk_20260807_000633827_9000ms.jpg",
+    "bucket": "근거리",
+    "n_crops": 2,
+    "lat_stage1": 17.227100001036888,
+    "lat_stage2": 30.38370000103896,
+    "stage1": [
+      {
+        "label": "NO-Hardhat",
+        "raw_label": "NO-Hardhat",
+        "conf": 0.478,
+        "bbox": [
+          0.8139,
+          0.0455,
+          1.001,
+          0.4271
+        ],
+        "detector": "ppe",
+        "tid": 660
+      }
+    ],
+    "stage2": [],
+    "merged": [
+      {
+        "label": "NO-Hardhat",
+        "raw_label": "NO-Hardhat",
+        "conf": 0.478,
+        "bbox": [
+          0.8139,
+          0.0455,
+          1.001,
+          0.4271
+        ],
+        "detector": "ppe",
+        "tid": 660
+      }
+    ]
+  },
+  {
+    "file": "KakaoTalk_20260807_000658251_0ms.jpg",
+    "bucket": "근거리",
+    "n_crops": 1,
+    "lat_stage1": 19.333599999299622,
+    "lat_stage2": 18.85749999928521,
+    "stage1": [
+      {
+        "label": "NO-Safety-Vest",
+        "raw_label": "NO-Safety Vest",
+        "conf": 0.835,
+        "bbox": [
+          0.1445,
+          0.2576,
+          0.3514,
+          0.4964
+        ],
+        "detector": "ppe",
+        "tid": 663
+      },
+      {
+        "label": "NO-Hardhat",
+        "raw_label": "NO-Hardhat",
+        "conf": 0.376,
+        "bbox": [
+          0.1801,
+          0.1572,
+          0.2865,
+          0.2482
+        ],
+        "detector": "ppe",
+        "tid": 665
+      }
+    ],
+    "stage2": [
+      {
+        "label": "NO-Safety-Vest",
+        "raw_label": "NO-Safety Vest",
+        "conf": 0.83,
+        "bbox": [
+          0.14447152777777778,
+          0.25769097222222226,
+          0.35635642361111114,
+          0.4995
+        ],
+        "detector": "ppe",
+        "tid": 667,
+        "source": "crop"
+      },
+      {
+        "label": "NO-Hardhat",
+        "raw_label": "NO-Hardhat",
+        "conf": 0.359,
+        "bbox": [
+          0.18229652777777777,
+          0.15828611111111113,
+          0.2869642361111111,
+          0.24795902777777779
+        ],
+        "detector": "ppe",
+        "tid": 668,
+        "source": "crop"
+      }
+    ],
+    "merged": [
+      {
+        "label": "NO-Safety-Vest",
+        "raw_label": "NO-Safety Vest",
+        "conf": 0.835,
+        "bbox": [
+          0.1445,
+          0.2576,
+          0.3514,
+          0.4964
+        ],
+        "detector": "ppe",
+        "tid": 663
+      },
+      {
+        "label": "NO-Hardhat",
+        "raw_label": "NO-Hardhat",
+        "conf": 0.376,
+        "bbox": [
+          0.1801,
+          0.1572,
+          0.2865,
+          0.2482
+        ],
+        "detector": "ppe",
+        "tid": 665
+      }
+    ]
+  },
+  {
+    "file": "KakaoTalk_20260807_000658251_1000ms.jpg",
+    "bucket": "근거리",
+    "n_crops": 3,
+    "lat_stage1": 19.5979999989504,
+    "lat_stage2": 50.0088999979198,
+    "stage1": [
+      {
+        "label": "NO-Safety-Vest",
+        "raw_label": "NO-Safety Vest",
+        "conf": 0.851,
+        "bbox": [
+          0.3222,
+          0.1979,
+          0.4978,
+          0.3807
+        ],
+        "detector": "ppe",
+        "tid": 671
+      },
+      {
+        "label": "NO-Hardhat",
+        "raw_label": "NO-Hardhat",
+        "conf": 0.73,
+        "bbox": [
+          0.342,
+          0.1483,
+          0.4279,
+          0.1918
+        ],
+        "detector": "ppe",
+        "tid": 672
+      },
+      {
+        "label": "NO-Safety-Vest",
+        "raw_label": "NO-Safety Vest",
+        "conf": 0.362,
+        "bbox": [
+          0.9135,
+          0.0515,
+          0.9959,
+          0.1379
+        ],
+        "detector": "ppe",
+        "tid": 674
+      }
+    ],
+    "stage2": [
+      {
+        "label": "NO-Safety-Vest",
+        "raw_label": "NO-Safety Vest",
+        "conf": 0.881,
+        "bbox": [
+          0.3153465277777778,
+          0.19488020833333333,
+          0.5027434027777777,
+          0.37219184027777774
+        ],
+        "detector": "ppe",
+        "tid": 676,
+        "source": "crop"
+      },
+      {
+        "label": "NO-Hardhat",
+        "raw_label": "NO-Hardhat",
+        "conf": 0.701,
+        "bbox": [
+          0.3417559027777778,
+          0.14936805555555555,
+          0.4191699652777778,
+          0.19014322916666668
+        ],
+        "detector": "ppe",
+        "tid": 677,
+        "source": "crop"
+      }
+    ],
+    "merged": [
+      {
+        "label": "NO-Safety-Vest",
+        "raw_label": "NO-Safety Vest",
+        "conf": 0.881,
+        "bbox": [
+          0.3153465277777778,
+          0.19488020833333333,
+          0.5027434027777777,
+          0.37219184027777774
+        ],
+        "detector": "ppe",
+        "tid": 676,
+        "source": "crop"
+      },
+      {
+        "label": "NO-Hardhat",
+        "raw_label": "NO-Hardhat",
+        "conf": 0.73,
+        "bbox": [
+          0.342,
+          0.1483,
+          0.4279,
+          0.1918
+        ],
+        "detector": "ppe",
+        "tid": 672
+      },
+      {
+        "label": "NO-Safety-Vest",
+        "raw_label": "NO-Safety Vest",
+        "conf": 0.362,
+        "bbox": [
+          0.9135,
+          0.0515,
+          0.9959,
+          0.1379
+        ],
+        "detector": "ppe",
+        "tid": 674
+      }
+    ]
+  },
+  {
+    "file": "KakaoTalk_20260807_000658251_2000ms.jpg",
+    "bucket": "근거리",
+    "n_crops": 4,
+    "lat_stage1": 22.872899999129004,
+    "lat_stage2": 66.66059999952267,
+    "stage1": [
+      {
+        "label": "NO-Safety-Vest",
+        "raw_label": "NO-Safety Vest",
+        "conf": 0.869,
+        "bbox": [
+          0.2409,
+          0.2038,
+          0.4402,
+          0.3917
+        ],
+        "detector": "ppe",
+        "tid": 684
+      },
+      {
+        "label": "NO-Safety-Vest",
+        "raw_label": "NO-Safety Vest",
+        "conf": 0.795,
+        "bbox": [
+          0.544,
+          0.1989,
+          0.72,
+          0.305
+        ],
+        "detector": "ppe",
+        "tid": 686
+      },
+      {
+        "label": "NO-Hardhat",
+        "raw_label": "NO-Hardhat",
+        "conf": 0.6,
+        "bbox": [
+          0.2636,
+          0.1522,
+          0.3571,
+          0.207
+        ],
+        "detector": "ppe",
+        "tid": 687
+      }
+    ],
+    "stage2": [
+      {
+        "label": "NO-Safety-Vest",
+        "raw_label": "NO-Safety Vest",
+        "conf": 0.883,
+        "bbox": [
+          0.230375,
+          0.20427777777777778,
+          0.4506944444444445,
+          0.39493055555555556
+        ],
+        "detector": "ppe",
+        "tid": 691,
+        "source": "crop"
+      },
+      {
+        "label": "NO-Hardhat",
+        "raw_label": "NO-Hardhat",
+        "conf": 0.372,
+        "bbox": [
+          0.045380555555555556,
+          0.44140399305555555,
+          0.10991006944444442,
+          0.45328211805555557
+        ],
+        "detector": "ppe",
+        "tid": 695,
+        "source": "crop"
+      }
+    ],
+    "merged": [
+      {
+        "label": "NO-Safety-Vest",
+        "raw_label": "NO-Safety Vest",
+        "conf": 0.883,
+        "bbox": [
+          0.230375,
+          0.20427777777777778,
+          0.4506944444444445,
+          0.39493055555555556
+        ],
+        "detector": "ppe",
+        "tid": 691,
+        "source": "crop"
+      },
+      {
+        "label": "NO-Safety-Vest",
+        "raw_label": "NO-Safety Vest",
+        "conf": 0.795,
+        "bbox": [
+          0.544,
+          0.1989,
+          0.72,
+          0.305
+        ],
+        "detector": "ppe",
+        "tid": 686
+      },
+      {
+        "label": "NO-Hardhat",
+        "raw_label": "NO-Hardhat",
+        "conf": 0.6,
+        "bbox": [
+          0.2636,
+          0.1522,
+          0.3571,
+          0.207
+        ],
+        "detector": "ppe",
+        "tid": 687
+      },
+      {
+        "label": "NO-Hardhat",
+        "raw_label": "NO-Hardhat",
+        "conf": 0.372,
+        "bbox": [
+          0.045380555555555556,
+          0.44140399305555555,
+          0.10991006944444442,
+          0.45328211805555557
+        ],
+        "detector": "ppe",
+        "tid": 695,
+        "source": "crop"
+      }
+    ]
+  },
+  {
+    "file": "KakaoTalk_20260807_000658251_3000ms.jpg",
+    "bucket": "근거리",
+    "n_crops": 2,
+    "lat_stage1": 19.345099999554805,
+    "lat_stage2": 38.86430000056862,
+    "stage1": [
+      {
+        "label": "NO-Safety-Vest",
+        "raw_label": "NO-Safety Vest",
+        "conf": 0.763,
+        "bbox": [
+          0.3555,
+          0.1806,
+          0.5458,
+          0.3829
+        ],
+        "detector": "ppe",
+        "tid": 697
+      }
+    ],
+    "stage2": [
+      {
+        "label": "NO-Safety-Vest",
+        "raw_label": "NO-Safety Vest",
+        "conf": 0.797,
+        "bbox": [
+          0.35649079861111116,
+          0.18305711805555555,
+          0.5394994791666667,
+          0.3530588541666667
+        ],
+        "detector": "ppe",
+        "tid": 700,
+        "source": "crop"
+      },
+      {
+        "label": "NO-Safety-Vest",
+        "raw_label": "NO-Safety Vest",
+        "conf": 0.602,
+        "bbox": [
+          0.9179249999999999,
+          0.05888645833333333,
+          1.0007793402777778,
+          0.16460086805555557
+        ],
+        "detector": "ppe",
+        "tid": 702,
+        "source": "crop"
+      }
+    ],
+    "merged": [
+      {
+        "label": "NO-Safety-Vest",
+        "raw_label": "NO-Safety Vest",
+        "conf": 0.797,
+        "bbox": [
+          0.35649079861111116,
+          0.18305711805555555,
+          0.5394994791666667,
+          0.3530588541666667
+        ],
+        "detector": "ppe",
+        "tid": 700,
+        "source": "crop"
+      },
+      {
+        "label": "NO-Safety-Vest",
+        "raw_label": "NO-Safety Vest",
+        "conf": 0.602,
+        "bbox": [
+          0.9179249999999999,
+          0.05888645833333333,
+          1.0007793402777778,
+          0.16460086805555557
+        ],
+        "detector": "ppe",
+        "tid": 702,
+        "source": "crop"
+      }
+    ]
+  },
+  {
+    "file": "KakaoTalk_20260807_000658251_5000ms.jpg",
+    "bucket": "근거리",
+    "n_crops": 1,
+    "lat_stage1": 31.68799999912153,
+    "lat_stage2": 23.12499999970896,
+    "stage1": [
+      {
+        "label": "NO-Safety-Vest",
+        "raw_label": "NO-Safety Vest",
+        "conf": 0.415,
+        "bbox": [
+          0.5883,
+          0.373,
+          0.9583,
+          0.7006
+        ],
+        "detector": "ppe",
+        "tid": 705
+      }
+    ],
+    "stage2": [],
+    "merged": [
+      {
+        "label": "NO-Safety-Vest",
+        "raw_label": "NO-Safety Vest",
+        "conf": 0.415,
+        "bbox": [
+          0.5883,
+          0.373,
+          0.9583,
+          0.7006
+        ],
+        "detector": "ppe",
+        "tid": 705
+      }
+    ]
+  },
+  {
+    "file": "KakaoTalk_20260807_000658251_6000ms.jpg",
+    "bucket": "근거리",
+    "n_crops": 1,
+    "lat_stage1": 28.048199999830103,
+    "lat_stage2": 17.503299999589217,
+    "stage1": [
+      {
+        "label": "NO-Hardhat",
+        "raw_label": "NO-Hardhat",
+        "conf": 0.367,
+        "bbox": [
+          0.5984,
+          0.4511,
+          0.9102,
+          0.6162
+        ],
+        "detector": "ppe",
+        "tid": 708
+      }
+    ],
+    "stage2": [
+      {
+        "label": "NO-Hardhat",
+        "raw_label": "NO-Hardhat",
+        "conf": 0.597,
+        "bbox": [
+          0.5963784722222223,
+          0.4599513888888889,
+          0.909801388888889,
+          0.6362291666666666
+        ],
+        "detector": "ppe",
+        "tid": 711,
+        "source": "crop"
+      }
+    ],
+    "merged": [
+      {
+        "label": "NO-Hardhat",
+        "raw_label": "NO-Hardhat",
+        "conf": 0.597,
+        "bbox": [
+          0.5963784722222223,
+          0.4599513888888889,
+          0.909801388888889,
+          0.6362291666666666
+        ],
+        "detector": "ppe",
+        "tid": 711,
+        "source": "crop"
+      }
+    ]
+  },
+  {
+    "file": "KakaoTalk_20260807_000658251_7000ms.jpg",
+    "bucket": "근거리",
+    "n_crops": 1,
+    "lat_stage1": 20.384999999805586,
+    "lat_stage2": 18.582600001536775,
+    "stage1": [
+      {
+        "label": "NO-Safety-Vest",
+        "raw_label": "NO-Safety Vest",
+        "conf": 0.492,
+        "bbox": [
+          0.2578,
+          0.2308,
+          0.4278,
+          0.3384
+        ],
+        "detector": "ppe",
+        "tid": 713
+      }
+    ],
+    "stage2": [
+      {
+        "label": "NO-Safety-Vest",
+        "raw_label": "NO-Safety Vest",
+        "conf": 0.392,
+        "bbox": [
+          0.25936666666666663,
+          0.2325118055555556,
+          0.42793333333333333,
+          0.3393493055555556
+        ],
+        "detector": "ppe",
+        "tid": 716,
+        "source": "crop"
+      }
+    ],
+    "merged": [
+      {
+        "label": "NO-Safety-Vest",
+        "raw_label": "NO-Safety Vest",
+        "conf": 0.492,
+        "bbox": [
+          0.2578,
+          0.2308,
+          0.4278,
+          0.3384
+        ],
+        "detector": "ppe",
+        "tid": 713
+      }
+    ]
+  },
+  {
+    "file": "KakaoTalk_20260807_000658251_8000ms.jpg",
+    "bucket": "근거리",
+    "n_crops": 1,
+    "lat_stage1": 23.92130000043835,
+    "lat_stage2": 18.466200001057587,
+    "stage1": [
+      {
+        "label": "NO-Safety-Vest",
+        "raw_label": "NO-Safety Vest",
+        "conf": 0.475,
+        "bbox": [
+          0.1041,
+          0.2922,
+          0.3073,
+          0.4542
+        ],
+        "detector": "ppe",
+        "tid": 719
+      }
+    ],
+    "stage2": [
+      {
+        "label": "NO-Safety-Vest",
+        "raw_label": "NO-Safety Vest",
+        "conf": 0.529,
+        "bbox": [
+          0.10683350694444443,
+          0.29550208333333333,
+          0.31670052083333333,
+          0.46923125
+        ],
+        "detector": "ppe",
+        "tid": 721,
+        "source": "crop"
+      }
+    ],
+    "merged": [
+      {
+        "label": "NO-Safety-Vest",
+        "raw_label": "NO-Safety Vest",
+        "conf": 0.529,
+        "bbox": [
+          0.10683350694444443,
+          0.29550208333333333,
+          0.31670052083333333,
+          0.46923125
+        ],
+        "detector": "ppe",
+        "tid": 721,
+        "source": "crop"
+      }
+    ]
+  },
+  {
+    "file": "KakaoTalk_20260807_000658251_9000ms.jpg",
+    "bucket": "근거리",
+    "n_crops": 3,
+    "lat_stage1": 36.73469999921508,
+    "lat_stage2": 55.2797999989707,
+    "stage1": [
+      {
+        "label": "NO-Safety-Vest",
+        "raw_label": "NO-Safety Vest",
+        "conf": 0.832,
+        "bbox": [
+          0.0521,
+          0.4386,
+          0.2169,
+          0.6279
+        ],
+        "detector": "ppe",
+        "tid": 725
+      },
+      {
+        "label": "NO-Hardhat",
+        "raw_label": "NO-Hardhat",
+        "conf": 0.788,
+        "bbox": [
+          0.1557,
+          0.3439,
+          0.2433,
+          0.42
+        ],
+        "detector": "ppe",
+        "tid": 726
+      }
+    ],
+    "stage2": [
+      {
+        "label": "NO-Safety-Vest",
+        "raw_label": "NO-Safety Vest",
+        "conf": 0.79,
+        "bbox": [
+          0.06163645833333334,
+          0.43724444444444444,
+          0.22061319444444444,
+          0.6172204861111111
+        ],
+        "detector": "ppe",
+        "tid": 730,
+        "source": "crop"
+      },
+      {
+        "label": "NO-Hardhat",
+        "raw_label": "NO-Hardhat",
+        "conf": 0.357,
+        "bbox": [
+          0.15838229166666667,
+          0.3457262152777778,
+          0.23993263888888888,
+          0.42435538194444444
+        ],
+        "detector": "ppe",
+        "tid": 732,
+        "source": "crop"
+      }
+    ],
+    "merged": [
+      {
+        "label": "NO-Safety-Vest",
+        "raw_label": "NO-Safety Vest",
+        "conf": 0.832,
+        "bbox": [
+          0.0521,
+          0.4386,
+          0.2169,
+          0.6279
+        ],
+        "detector": "ppe",
+        "tid": 725
+      },
+      {
+        "label": "NO-Hardhat",
+        "raw_label": "NO-Hardhat",
+        "conf": 0.788,
+        "bbox": [
+          0.1557,
+          0.3439,
+          0.2433,
+          0.42
+        ],
+        "detector": "ppe",
+        "tid": 726
+      }
+    ]
+  }
+]
