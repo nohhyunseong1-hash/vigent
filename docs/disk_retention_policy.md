@@ -1,7 +1,10 @@
-# 디스크 보존 정책 — [Z-1] 전수 조사 + [Z-2] 설계안 (2026-08-10)
+# 디스크 보존 정책 — [Z-1] 전수 조사 + [Z-2] 설계안·구현 (2026-08-10)
 
-> **★구현 전 단계다.** 이 문서는 조사와 설계안만 담는다. 코드(정리 스크립트·설정 등)는
-> 이 설계안이 승인된 뒤 별도로 작성한다. [B11](P3_BACKLOG.md#b11) 후속.
+> **★1~3단계 구현 완료(2026-08-10).** `vigent-core/retention.py`·`scripts/retention_sweep.py`·
+> `/health` disk_retention 필드·D그룹 회전(legal_whitelist.py·routers/cameras.py) 전부
+> 구현·테스트(`tests/test_retention.py`, 11건)·게이트 통과. 4단계(A/B/C 보존일수)도
+> `config/tuning.yaml`에 잠정값으로 채움(법률 전문가 확인 전 — 아래 §Z-2 표 주석 참고).
+> 실측 소요시간·용량 계산은 `docs/ops_disk_sizing.md` 참고. [B11](P3_BACKLOG.md#b11) 후속.
 
 ## [Z-1] 디스크 증가 경로 전수 조사
 
@@ -75,19 +78,28 @@
 5. **삭제 자체도 감사 대상**: 무엇을 언제 지웠는지 별도 로그(D그룹과 같은 회전 로그)로
    남긴다 — "증거를 지웠다"는 사실 자체가 나중에 필요할 수 있다.
 
-### 단계적 진행 제안
+### 단계적 진행 — ★전부 완료(2026-08-10)
 
-| 단계 | 내용 | 필요한 것 | 위험 |
-|---|---|---|---|
-| 1 | 가시성 스크립트/`/health` 필드 | 없음(바로 착수 가능) | 없음 |
-| 2 | D그룹(go2rtc.log·legal 로그) 크기상한 회전 | 없음(vlog.py 기존 패턴 재사용) | 낮음 |
-| 3 | 정리 스크립트 인프라(dry-run 포함, A/B/C 키는 전부 null) | 없음 — 켜지지 않은 상태로 배포 | 없음(기본 비활성) |
-| 4 | A/B/C 그룹 실제 보존 일수 확정 | **법무·회사 정책 확인**(사용자/법무 담당) | 확인 전엔 진행 불가 |
+| 단계 | 내용 | 상태 |
+|---|---|---|
+| 1 | 가시성 스크립트/`/health` 필드 | ✅ `retention.sweep()`(항상 스캔) + `/health`의 `disk_retention` |
+| 2 | D그룹(go2rtc.log·legal 로그) 크기상한 회전 | ✅ `retention.rotate_if_large()`, legal_whitelist.py·routers/cameras.py 배선 |
+| 3 | 정리 스크립트 인프라(dry-run 포함) | ✅ `scripts/retention_sweep.py`, 기본 `enabled=false`·`dry_run=true` |
+| 4 | A/B/C 그룹 실제 보존 일수 확정 | ✅ **잠정값**으로 채움(사용자 지시, 2026-08-10) — 아래 참고 |
 
-1~3단계는 법적 판단이 필요 없어 지금 승인만 받으면 바로 구현 가능하다. 4단계(실제 숫자
-채우기)는 이 대화 밖의 결정이 필요하다.
+**4단계 실제 구현은 위 §Z-2 예시의 `null`이 아니라 잠정 숫자값이다**(무기한 지연 방지를
+위한 사용자 결정) — `config/tuning.yaml`의 `retention.groups.*`: evidence/recognition
+30일, audit/tbm/risk_assessments 1095일(3년), office/sports 7일. **전부 "법률 전문가 확인
+전 잠정값 — 고객사 개인정보 처리방침에 따라 계약 시 조정"** 주석이 tuning.yaml에 명시돼
+있다. 정리 기능 자체(`retention.enabled`)는 여전히 기본 `false` — 잠정값이 들어있어도
+명시적으로 켜지 않으면 아무것도 지워지지 않는다.
 
-## 다음 단계
+## 결과물
 
-이 설계안 승인 시 1~3단계 구현에 착수한다. 4단계(A/B/C 보존 일수)는 별도로 법무/정책
-확인 후 진행할 것을 제안한다.
+- `vigent-core/retention.py` — 스캔·삭제·회전 핵심 로직
+- `scripts/retention_sweep.py` — CLI(가시성/dry-run/--execute)
+- `vigent-core/data_engine.py` — `pin_evidence`/`unpin_evidence`/`pinned_paths`(A그룹 증거 보호)
+- `tests/test_retention.py` — 11개 회귀 테스트(pin 보호·dry-run·disabled·경고·회전)
+- `docs/ops_disk_sizing.md` — 카메라×규칙×보존일 용량 계산표
+- 실측: 이 저장소 실제 데이터(evidence 96장·recognition 5개·risk_assessments 190건) 스캔
+  소요시간 **0.033초**(F-2 원칙 — 라이브 검출과 무관한 별도 프로세스 전제, 그래도 참고 실측치)

@@ -11,7 +11,7 @@
 
 | # | 항목 | 우선순위 | 리스크 | 출처 |
 |---|---|---|---|---|
-| **B11** | **디스크 보존 정책 — 증거 이미지 무한 증가(상용화 실차단)** | **최우선** | **높음(운영 중단)** | [Y-4](#b11), 2026-08-10 |
+| ~~B11~~ | ~~디스크 보존 정책 — 증거 이미지 무한 증가(상용화 실차단)~~ ✅ 인프라 구현 완료(잠정값) | — | 낮음(기본 비활성) | [Y-4/Z](#b11), 2026-08-10 |
 | ~~B1~~ | ~~CI 첫 실행 green 실검증~~ ✅ 완료 | — | — | run #2 green(4m 1s) |
 | ~~B2~~ | ~~런타임 가변 config 파일 격리~~ ✅ 완료 | — | — | runtime_config.py |
 | ~~B3~~ | ~~web_util 언더스코어 prefix 정리~~ ✅ 완료 | — | — | 공개함수 12개 rename |
@@ -26,7 +26,7 @@
 기존 다른 트랙의 백로그(참조)는 맨 아래 별도.
 
 <a id="b11"></a>
-## B11. 디스크 보존 정책 — 증거 이미지 무한 증가 — [최우선·상용화 실차단]
+## B11. 디스크 보존 정책 — 증거 이미지 무한 증가 — ✅ 인프라 구현 완료(2026-08-10, 잠정값)
 - **무엇**: `vigent-core/data_engine.py`의 `log_event()`→`_save_frame()`이 이벤트(위험 감지)마다
   `data/evidence/<YYYYMMDD>/ev_*.jpg`로 프레임을 저장한다(`main.py`가 `/evidence`로 정적 서빙).
   **삭제·보존기간·용량 상한 로직이 코드 어디에도 없다**(전수 grep 확인, `retention`·`purge`·
@@ -39,12 +39,23 @@
   법무 확인 필요) 단순 삭제보다 신중한 설계가 필요하다. 옵션: ①보존기간 설정 + cron/백그라운드
   정리 작업 ②사고 심각도(level)별 차등 보존 ③외부 스토리지(S3 등) 이관 후 로컬 삭제 ④디스크
   사용량 모니터링·경고만 우선 추가.
-- **재개 조건**: 없음(코드측 설계는 지금 시작 가능) — 단 보존기간 값 자체는 법무·고객 요구사항
-  확인 후 결정.
-- **[Z-1/Z-2](2026-08-10) 전수 조사 + 설계안 완료**: evidence 외 8개 무기한 누적 경로를 추가
-  확인(총 9개+조건부 1개) — audit·tbm·risk_assessments·office·sports·recognition 이벤트 로그·
-  go2rtc.log·legal 차단 로그. 그룹별(안전증거/감사문서/개인모니터링/운영로그) 설계안과 4단계
-  진행안을 `docs/disk_retention_policy.md`에 정리(구현 전, 승인 대기).
+- **[Z-1](2026-08-10) 전수 조사**: evidence 외 8개 무기한 누적 경로를 추가 확인(총 9개+조건부
+  1개) — audit·tbm·risk_assessments·office·sports·recognition 이벤트 로그·go2rtc.log·legal
+  차단 로그. 그룹별(안전증거/감사문서/개인모니터링/운영로그) 상세는 `docs/
+  disk_retention_policy.md`.
+- **[Z-2](2026-08-10) 인프라 구현 완료**: `vigent-core/retention.py`(스캔·삭제·회전)·
+  `scripts/retention_sweep.py`(CLI, dry-run 기본)·`data_engine.py`의 evidence pin 보호·
+  `/health`의 `disk_retention` 필드(침묵 실패 금지)·D그룹(go2rtc.log·legal 로그) 크기상한
+  회전. 테스트 11건(`tests/test_retention.py`, pin 보호 포함). **정리 기능 자체는 여전히
+  기본 비활성**(`retention.enabled: false`) — 활성화는 배포 시 명시적 결정.
+- **보존 일수 잠정값 확정**: A(evidence/recognition) 30일·B(audit/tbm/risk_assessments)
+  1095일(3년)·C(office/sports) 7일을 `config/tuning.yaml`에 채움 — **법률 전문가 확인 전
+  잠정값**(무기한 지연 방지를 위한 사용자 결정, 고객사 개인정보 처리방침에 따라 계약 시
+  조정 필요, 규칙7 명시).
+- **용량 산정**: `docs/ops_disk_sizing.md`(카메라×이벤트빈도×보존일 계산표, 실측 단가
+  기반) — 예시 시나리오 기준 그룹A(안전증거)가 용량을 압도적으로 지배.
+- **남은 것**: 실제 배포 시 그룹별 `enabled`/`dry_run` 활성화 여부는 현장별 결정 필요.
+  잠정 보존일수의 법무 검토(아직 안 됨).
 
 <a id="b10"></a>
 ## B10. 추적기 MOTA/IDF1 라벨 재확인 — [중]
