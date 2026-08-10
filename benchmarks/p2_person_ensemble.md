@@ -1,8 +1,12 @@
 # [P-2] person 이중 신호 앙상블 — dev셋 측정 결과 (2026-08-10)
 
 > **dev 74장으로만 채점**(`data/field_eval/dev_test_split.json`, [P-0] 원칙). test는 안 건드림.
-> 측정=배포 조건과 동일(imgsz=960, 운용 임계 person 0.40/ppe 0.35, `config/tuning.yaml`).
+> 측정=배포 조건과 동일(운용 임계 person 0.40/ppe 0.35, `config/tuning.yaml`).
 > 도구: `benchmarks/p2_person_ensemble.py`.
+> ★정정(2026-08-10,[Q-4]): "imgsz=960"이라 적었던 건 부정확 — 당시 RF-DETR 어댑터 dead
+> parameter 버그로 실제로는 **384**에서 측정됐다([Q-3]에서 수정, `benchmarks/
+> p3_1_resolution_ab_BLOCKED.md`). 아래 재현율·정밀도·F1 수치 자체는 유효(해상도와 무관하게
+> 동일 조건 비교였음) — 사후 검증 결과 384가 실제로 최선의 해상도였다(`p3_1_resolution_ab_v2.md`).
 
 ## 1단계 — 겹침/차집합 (dev, GT person 157건)
 

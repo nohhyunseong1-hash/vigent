@@ -5,8 +5,11 @@ person 슬롯 검출기와 ppe 슬롯 자체의 Person 클래스, 두 신호가 
 잡고 놓치는지 먼저 재고(1단계), 이득이 있으면 OR+NMS 로 합쳐 재현율·정밀도·지연 변화를
 측정한다(2단계). dev로만 채점(docs/perf_improvement_plan.md 최상단 원칙).
 
-측정=배포 보증 조건과 동일하게 imgsz=960(config/tuning.yaml, EVAL.md §1-b), 운용 임계
-(person 0.40 / ppe 0.35, tuning.yaml) 사용 — field_eval_results.md 와 같은 조건.
+해상도는 명시 override 없이 guard 기본값(config/tuning.yaml detect.imgsz)을 그대로 쓴다 — 예전엔
+imgsz=960을 하드코딩했으나, RF-DETR 어댑터의 dead parameter 버그로 그 값이 실제로 적용된 적이
+없었다([Q-3]에서 수정, benchmarks/p3_1_resolution_ab_BLOCKED.md). [Q-3] 수정 후 하드코딩을
+유지하면 재실행 시 결과가 이 문서 최초 측정과 달라진다 — 그래서 override 를 없애 항상 "현재
+운용 해상도"를 자동으로 따라가게 했다. 운용 임계(person 0.40 / ppe 0.35, tuning.yaml)는 그대로.
 """
 from __future__ import annotations
 
@@ -32,7 +35,6 @@ import env_guard  # noqa: E402
 import tuning  # noqa: E402
 from isolated_detect import detect_isolated  # noqa: E402
 
-IMGSZ = 960          # field_eval_results.md 와 동일(측정=배포 보증 조건, EVAL.md §1-b)
 IOU_MATCH = 0.50      # COCO 표준
 FRAMES_DIR = _ROOT / "data" / "field_eval" / "frames"
 LABELS_DIR = _ROOT / "data" / "field_eval" / "labels"
@@ -101,10 +103,9 @@ def main() -> None:
 
     conf_cfg = tuning.section("detect").get("conf") or {}
     op = {"person": float(conf_cfg.get("person", 0.35)), "ppe": float(conf_cfg.get("ppe", 0.35))}
-    print(f"운용 임계: person={op['person']} ppe={op['ppe']}  imgsz={IMGSZ}")
-    print(f"dev 프레임: {SPLIT['n_dev']}장 (test는 안 건드림)")
-
     guard = bq._build_guard()
+    print(f"운용 임계: person={op['person']} ppe={op['ppe']}  imgsz={guard.IMGSZ}(guard 기본값)")
+    print(f"dev 프레임: {SPLIT['n_dev']}장 (test는 안 건드림)")
 
     both = only_a = only_b = neither = 0
     gt_total = 0
@@ -124,13 +125,13 @@ def main() -> None:
             continue
 
         t0 = time.perf_counter()
-        out_a = detect_isolated(guard, img, detectors=["person"], imgsz=IMGSZ)
+        out_a = detect_isolated(guard, img, detectors=["person"])
         lat_a.append((time.perf_counter() - t0) * 1000)
         preds_a = [d for d in out_a.get("detections", [])
                    if d.get("label") == "person" and float(d.get("conf", 0.0)) >= op["person"]]
 
         t0 = time.perf_counter()
-        out_b = detect_isolated(guard, img, detectors=["ppe"], imgsz=IMGSZ)
+        out_b = detect_isolated(guard, img, detectors=["ppe"])
         lat_b.append((time.perf_counter() - t0) * 1000)
         preds_b = [d for d in out_b.get("detections", [])
                    if d.get("label") == "person" and float(d.get("conf", 0.0)) >= op["ppe"]]

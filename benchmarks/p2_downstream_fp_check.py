@@ -10,6 +10,11 @@
   - cross_validate_ppe 가 참조했을 근처 person 박스(겹침 또는 15% 확장 내) 중에
     GT person 과 매칭되는 "진짜 사람"이 하나라도 있는지, 아니면 전부 가짜(FP) person 뿐인지
 "완전 유령"(미착용 박스 자체도 FP 이고, 근처 person 도 전부 FP) 건수가 핵심 지표다.
+
+해상도는 guard 기본값(config/tuning.yaml detect.imgsz)을 그대로 쓴다(명시 override 없음) —
+예전엔 imgsz=960을 하드코딩했으나 RF-DETR 어댑터 dead parameter 버그로 실제 미적용이었다
+([Q-3]에서 수정, benchmarks/p3_1_resolution_ab_BLOCKED.md). 재실행 시 이 문서 최초 측정과
+어긋나지 않도록 override 를 제거했다.
 """
 from __future__ import annotations
 
@@ -117,7 +122,7 @@ def main() -> None:
         img = cv2.imread(str(FRAMES_DIR / fname))
         if img is None:
             continue
-        out = detect_isolated(guard, img, detectors=["person", "ppe"], imgsz=960)
+        out = detect_isolated(guard, img, detectors=["person", "ppe"])
         dets = out.get("detections", [])
 
         persons = [d for d in dets if str(d.get("label", "")).lower() == "person"]

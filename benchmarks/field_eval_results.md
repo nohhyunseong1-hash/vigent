@@ -1,5 +1,16 @@
 # 현장 평가셋(109장) 측정 결과 — 2026-08-08
 
+> **★2026-08-10 정정 2건([Q-1][Q-4], 규칙7) — 이 문서를 인용할 때 반드시 함께 볼 것**:
+> 1. **person 재현율 56.7%/정밀도 89.1%는 "person 슬롯 단독" 값이지 운영 경로가 아니다.**
+>    운영 경로(`detectors=["person","ppe"]`, person 이중 신호 앙상블 포함)로 dev 74장을 다시
+>    잰 새 기준선은 **재현율 68.2% / 정밀도 81.7%**(`benchmarks/p2_person_ensemble.md`,
+>    `run_eval.py --split dev` 재현 가능) — 109장 전체 기준은 재측정 안 함(test 오염 방지 원칙,
+>    `docs/perf_improvement_plan.md`).
+> 2. **아래 "148.5ms/148.8ms" 지연은 실제로 imgsz=960이 아니라 384에서 측정됐다** — RF-DETR
+>    어댑터의 imgsz dead parameter 버그 때문(`benchmarks/p3_1_resolution_ab_BLOCKED.md`,
+>    [Q-3]에서 수정). 정밀도·재현율 수치 자체는 해상도와 무관하게 유효하다(384가 실제 운용값이자
+>    사후 검증 결과 최선의 값으로 확인됨, `benchmarks/p3_1_resolution_ab_v2.md`).
+
 정답지: `data/field_eval/labels/` 109장 525건 (`benchmarks/field_eval_gt_summary.md`).
 측정: `run_eval.py --mode pipeline`(배포 운용점) + `field_eval_blindspot.py`(순환 제거 지표).
 모델: `themes/safety/vision.yaml` 배포 설정 — person=RF-DETR COCO 사전학습, ppe=`ppe_rfdetr_v1.pth`.
@@ -61,9 +72,16 @@
   사람의 37.8%는 대략치로 보고, PPE 의 20.1%가 상대적으로 신뢰도가 높다.
 - **정답지 자체의 오차는 측정되지 않았다.** 1인 1회 검수이고 교차검증을 하지 않았다.
   위 수치의 상한은 정답지 품질이 정한다.
-- **정답지 생성과 측정의 추론 설정이 다르다.** 초안은 `imgsz=640 · conf=0.10`,
-  측정은 `imgsz=960`(`config/tuning.yaml`) · 운용 임계. 이 차이가 사람 쪽 출처 판정
-  불일치(68%)의 원인일 가능성이 있으나 **확인하지 않았다(모른다).**
+- **★정정(2026-08-10, [Q-4], 규칙7)**: 아래 원문은 "초안 imgsz=640 vs 측정 imgsz=960 차이가
+  원인일 수 있다"고 적었으나 **실제로는 둘 다 384였다** — RF-DETR 어댑터가 `imgsz`를 받고 실제
+  모델 호출에 안 쓰던 dead parameter 버그 때문에([Q-3]에서 수정, `benchmarks/
+  p3_1_resolution_ab_BLOCKED.md`) 이 문서의 148ms 측정을 포함해 이 저장소의 모든 RF-DETR
+  추론이 그동안 384로 돌았다. **즉 이 문단이 지목한 원인(해상도 차이)은 존재하지 않았다** — 사람
+  쪽 출처 판정 불일치(68%)의 진짜 원인은 여전히 불명(모른다, 원인이 하나 배제됐을 뿐).
+
+  (원문, 이제 부정확함): ~~정답지 생성과 측정의 추론 설정이 다르다. 초안은 imgsz=640·conf=0.10,
+  측정은 imgsz=960(config/tuning.yaml)·운용 임계. 이 차이가 사람 쪽 출처 판정 불일치(68%)의
+  원인일 가능성이 있으나 확인하지 않았다(모른다).~~
 - **지연 148ms 는 CPU 전용 환경 값**이다. Docker/WSL2 종료 여부에 따라 오염될 수 있어,
   이 값은 `docs/benchmark_measurement_hygiene.md` 절차 준수 시에만 유효하다.
 - `Safety-Vest`(2건)·`Mask`(10건)·`NO-Mask`(19건)는 표본이 적어 백분율의 흔들림이 크다.

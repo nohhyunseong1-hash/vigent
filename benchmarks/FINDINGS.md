@@ -210,7 +210,7 @@ main 은 T10b+A-4 10커밋을 **cherry-pick**으로 받음(격리 워크트리, 
 - B. **silent 폴백 차단**: 커스텀 경로 지정 + 파일 부재 → `FileNotFoundError`(기동 거부). `VIGENT_ALLOW_FALLBACK=1` opt-in 시에만 COCO 폴백(저하 경고). 경로 미지정(person)=COCO 정상 통과(저하0).
 - C. **로드 가시화**: 슬롯별 `slot/backend/weights/SHA/LOADED|MISSING` 로그 + `/health.rfdetr_slots`(실파일 검사·SHA)로 매니페스트 대조 가능.
 - 검증: cwd=vigent-core 서버조건에서 PPE 정상 복원(Hardhat/Vest/Mask). 가중치 삭제 시 기동거부 실증.
-**측정=배포 보증(핵심)**: 서버 `/detect/frame` 을 **stateless(reset_tracks) 모드**로 4클래스 재측정 → 인프로세스 EVAL 과 **전부 Δ0.00 일치**(person 92.94·ppe 71.46·fire_smoke 69.64·forklift 8.5, imgsz 960). 이로써 **"서버 배포 검출기 = 측정 검출기"가 처음으로 보증**됨. (도구: `benchmarks` 함수 재사용 HTTP 미러.)
+**측정=배포 보증(핵심)**: 서버 `/detect/frame` 을 **stateless(reset_tracks) 모드**로 4클래스 재측정 → 인프로세스 EVAL 과 **전부 Δ0.00 일치**(person 92.94·ppe 71.46·fire_smoke 69.64·forklift 8.5, imgsz 960). 이로써 **"서버 배포 검출기 = 측정 검출기"가 처음으로 보증**됨. (도구: `benchmarks` 함수 재사용 HTTP 미러.) ★정정(2026-08-10,[Q-4]): "imgsz 960"은 RF-DETR 어댑터 dead parameter 버그로 실제 미적용 — 이 측정도 384에서 이뤄졌다([Q-3], `benchmarks/p3_1_resolution_ab_BLOCKED.md`). 서버·인프로세스가 동일하게 384였으므로 Δ0.00 일치 결론은 유효, 해상도 표기만 정정.
 
 ### ⚠️ 백로그 — 라이브 추적 계층(_track) 미검증 (F-8 과 같은 급 '측정≠배포' 리스크, 2026-07-07)
 F-8 진단 중, 서버 detect_frame 이 **연속 프레임 추적**(`guard._track`: IoU매칭·EMA위치평활·잔상제거)을 유지함을 확인. 이는 **라이브 비디오 안정화 전용 계층**으로, 독립 낱장 벤치마크로는 **검출 능력과 분리 측정 불가**(그래서 측정 시 `reset_tracks` 로 끔). 따라서 **추적 고유의 실패 모드가 미검증**:

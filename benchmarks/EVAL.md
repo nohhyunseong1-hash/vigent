@@ -36,7 +36,7 @@ pipeline 트랙은 **인프로세스** `guard.detect`(cwd=루트)로 측정한�
 | fire_smoke (box) | 69.64 (smoke 70.76·fire 68.52) | 69.64 | +0.00 |
 | forklift | 8.5 | 8.5 | +0.00 |
 
-> **4클래스 전부 Δ0.00** → 이 시점부터 **"서버 배포 검출기 = 측정 검출기"가 보증**된다(imgsz 960, css_safety/D-Fire/LOCO in-domain).
+> **4클래스 전부 Δ0.00** → 이 시점부터 **"서버 배포 검출기 = 측정 검출기"가 보증**된다(css_safety/D-Fire/LOCO in-domain). ★정정(2026-08-10,[Q-4]): "imgsz 960"이라고 적혀 있었으나 RF-DETR 어댑터의 imgsz dead parameter 버그로 실제로는 **384**에서 측정됐다([Q-3]에서 수정, `benchmarks/p3_1_resolution_ab_BLOCKED.md`) — 서버·인프로세스 둘 다 동일하게 384였으므로 Δ0.00 일치(측정=배포 보증) 결론 자체는 안 바뀐다, 괄호 안 해상도 표기만 부정확했다.
 > ⚠ **추적 계층 제외**: 서버 라이브는 연속프레임 추적(`_track`)을 유지하나, 낱장 벤치는 `reset_tracks` 로 이를 끈다(독립이미지에 추적 누적 시 mAP 오염). 추적 고유 실패는 별도 시퀀스 회귀 필요(FINDINGS 백로그).
 
 ## 2. 평가셋 구성
