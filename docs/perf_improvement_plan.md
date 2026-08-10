@@ -91,14 +91,26 @@ P-2(이중 신호 앙상블)·P-3(해상도·2단계·데이터)에서 찾는다
 
 </details>
 
-### [P-1] GPU 확인 — 대기 (2분)
+### [P-1] GPU 확인 — **완료(2026-08-10). GPU 있었음 + CUDA 전환 완료**
 
-현재 **148ms/프레임(CPU 전용)**. P-3의 해상도 상향은 더 느려진다.
-이 PC의 PATH에 NVIDIA 관련 경로가 보이므로 GPU가 있을 가능성이 있으나 **확인하지 않았다.**
+**실측**: `nvidia-smi` → NVIDIA GeForce **RTX 5070 Ti**(VRAM 16GB) 확인. 그런데 설치돼 있던 torch는
+`2.12.0+cpu`(CPU 전용 빌드)라 `torch.cuda.is_available()=False` — **GPU가 없던 게 아니라 소프트웨어가
+못 쓰고 있었다.** 148ms/프레임 CPU 측정치 전부가 이 상태에서 나온 값이었다.
 
-**할 일**: `nvidia-smi`로 GPU 유무·VRAM 확인, torch가 실제로 CUDA를 잡는지 확인 →
-있으면 CUDA 빌드 torch 전환 검토. 없으면 이후 실험(해상도 상향·2단계 크롭)이 CPU로도 실시간
-요구사항(현재 148ms/프레임)을 만족하는지 함께 판단.
+**전환(사용자 승인 후 진행)**: cu126 빌드로 1차 설치했으나 RTX 5070 Ti가 최신 Blackwell(compute
+capability sm_120)이라 커널 없음 에러(`no kernel image is available for execution on the device`) —
+cu130 빌드(`torch==2.12.0+cu130` · `torchvision==0.27.0+cu130`, 드라이버의 CUDA 13.3과 일치)로
+재설치해 해결. `torch.cuda.is_available()=True` + 실제 GPU 행렬곱 실행 확인.
+
+**즉시 효과 확인**: 이 프로젝트의 장치 선택(`vigent-core/device.py` `pick_device()`)은 이미
+"CUDA 최우선" 순서였다 — **코드 수정 없이** 자동으로 GPU를 쓴다. `guard.detect(person, imgsz=960)`
+10회 실측 median **14ms**(Docker/WSL2 떠 있는 채로 측정, 참고치) — 이전 CPU 148ms 대비 **약 10배**.
+테스트 스위트 108개 전부 통과(회귀 없음).
+
+**판단**: GPU 여유가 커서 P-3의 해상도 상향(960→1280·1536)·2단계 크롭 둘 다 지연 걱정 없이
+시도 가능하다. **정확한 공식 latency 재측정은 `docs/benchmark_measurement_hygiene.md` 절차
+(Docker Desktop 종료 + `wsl --shutdown`) 준수 후 별도로 한다** — 위 14ms는 오염 가능 상태에서 잰
+참고치일 뿐 확정치 아님.
 
 ### ★[P-2] person 이중 신호 앙상블 — 대기 (신규, 2순위로 격상)
 
@@ -166,7 +178,7 @@ mAP@50:95 사용 금지 명시(순환 오염, `field_eval_results.md` §2) · �
 |---|---|---|---|---|
 | P-0 | dev/test 분할 | 낮음 | — | **완료**(dev74/test35, 영상단위) |
 | (이력) | person 임계 스윕 | 낮음 | — | **완료 · 기각**(오탐 1.6~2.9배 대가, F1 +0.8%p) |
-| P-1 | GPU 확인(`nvidia-smi`) | 낮음(명령 1회) | 확인 필요 | 대기 |
+| P-1 | GPU 확인(`nvidia-smi`) | 낮음(명령 1회) | 확인 필요 | **완료**(GPU 있었음, CUDA 전환·10배 속도 확인) |
 | P-2 | person 이중 신호 앙상블 | 낮음(학습 불필요) | 확인 필요(겹침 측정 먼저) | 대기 |
 | P-3-1 | PPE 해상도 상향 A/B | 중간 | 중간(크기별 격차 실측) | 대기 |
 | P-3-2 | 사람 크롭 2단계 PPE | 높음(구조 변경) | 중간 | 대기 |
