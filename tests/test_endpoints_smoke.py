@@ -1,9 +1,12 @@
 """엔드포인트 스모크 (P2-14) — P1-7 라우터 분할 회귀 잠금.
 
 routers/ 로 분할된 뒤에도 핵심 경로가 그대로 응답하는지, 특히
-`/{theme}` 캐치올이 `/health` 같은 리터럴 경로를 가리지 않는지와
-theme_gate(기본 safety 테마에서 /office/* 차단)를 확인한다.
+`/{theme}` 캐치올이 `/health` 같은 리터럴 경로를 가리지 않는지 확인한다.
 동작 변경 감시용 — 새 라우트 추가가 아니라 기존 동작 고정이 목적.
+
+[Z-3, 2026-08-10] office/sports 기능 영구 삭제(제품 방향 확정 — 산업안전 CCTV 전용) —
+`_theme_gate` 미들웨어는 office/sports 차단 용도로만 존재해 함께 제거됨. `/office/*` 는
+이제 게이트가 아니라 라우트 자체가 없어서 404다(아래 테스트로 확인).
 """
 import sys
 import unittest
@@ -57,8 +60,8 @@ class TestEndpointsSmoke(unittest.TestCase):
         r = self.client.get("/safety")
         self.assertEqual(r.status_code, 200)
 
-    def test_theme_gate_blocks_office_by_default(self):
-        # 기본 테마(safety)에서 /office/* 는 theme_gate 로 404.
+    def test_removed_office_route_is_gone(self):
+        # [Z-3] office 라우트 자체가 삭제됐으므로 404(게이트가 아니라 라우트 부재).
         self.assertEqual(self.client.get("/office/trend").status_code, 404)
 
 

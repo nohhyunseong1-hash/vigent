@@ -9,7 +9,6 @@ from typing import Any
 
 from .analyst import AnalystAgent
 from .base import BaseAgent
-from .coach import CoachAgent
 from .copilot import CopilotAgent
 from .dispatcher import DispatcherAgent
 from .guard import GuardAgent
@@ -23,8 +22,8 @@ AGENT_CLASSES = [
     ScribeAgent,       # 보고서
     CopilotAgent,      # 논문/근거 써치
     DispatcherAgent,   # 피드백·연동
-    CoachAgent,        # 코칭(office/sports)
     SafetyManagerAgent,  # 반자동 오케스트레이터(권장만, 사람 최종승인) — 가산식, 코어 미수정
+    # Coach(코칭 특화, office/sports 전용)는 [Z-3, 2026-08-10] office/sports 삭제로 함께 제거됨
 ]
 
 
@@ -39,6 +38,6 @@ def build_agents(config: Any) -> dict[str, BaseAgent]:
 
 __all__ = [
     "BaseAgent", "GuardAgent", "AnalystAgent", "ScribeAgent",
-    "CopilotAgent", "DispatcherAgent", "CoachAgent", "SafetyManagerAgent",
+    "CopilotAgent", "DispatcherAgent", "SafetyManagerAgent",
     "AGENT_CLASSES", "build_agents",
 ]

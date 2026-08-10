@@ -3,10 +3,11 @@
 기본 비활성(`config/tuning.yaml`의 `retention.enabled: false`) + dry_run 기본(true) — 값을
 바꾸지 않으면 이 모듈이 있어도 아무 파일도 지우지 않는다(규칙6, 절대 저하 없음).
 
-그룹(A/B/C/D)은 `docs/disk_retention_policy.md` 설계와 1:1 대응한다:
+그룹(A/B/D)은 `docs/disk_retention_policy.md` 설계와 1:1 대응한다(★C그룹(office/sports 개인
+모니터링)은 [Z-3, 2026-08-10] office/sports 기능 자체가 영구 삭제되며 함께 제거됨 — 아래
+GROUP_DIRS에 더는 없다):
   A(안전 증거) evidence·recognition — pin 예외 있음(증거는 pin 되면 어떤 경로로도 삭제 불가)
   B(감사·문서) audit·tbm·risk_assessments
-  C(개인 모니터링) office·sports
   D(운영 로그) — 삭제 대상이 아니라 `rotate_if_large()`로 별도 처리(go2rtc.log·legal 차단로그)
 
 라이브 검출과 완전히 분리된 별도 프로세스(cron/작업 스케줄러)로 실행하는 것을 전제로 설계했다
@@ -28,22 +29,19 @@ import tuning
 KST = timezone(timedelta(hours=9))
 _ROOT = Path(__file__).resolve().parent.parent
 
-# 그룹별 데이터 루트 — data_engine.py·audit_store.py·tbm_store.py·office_data.py·
-# sports_data.py·agents/scribe.py 가 실제로 쓰는 경로와 동일해야 한다(중복 정의, 이유:
-# retention.py가 이 모듈들을 전부 import하면 불필요한 결합이 생긴다 — 경로 상수만 복제).
+# 그룹별 데이터 루트 — data_engine.py·audit_store.py·tbm_store.py·agents/scribe.py 가 실제로
+# 쓰는 경로와 동일해야 한다(중복 정의, 이유: retention.py가 이 모듈들을 전부 import하면
+# 불필요한 결합이 생긴다 — 경로 상수만 복제).
 GROUP_DIRS: dict[str, Path] = {
     "evidence": _ROOT / "data" / "evidence",
     "recognition": _ROOT / "data" / "recognition",
     "audit": _ROOT / "data" / "audit",
     "tbm": _ROOT / "data" / "tbm",
     "risk_assessments": _ROOT / "data" / "risk_assessments",
-    "office": _ROOT / "data" / "office",
-    "sports": _ROOT / "data" / "sports",
 }
 GROUP_LABEL: dict[str, str] = {
     "evidence": "A(안전 증거)", "recognition": "A(안전 증거)",
     "audit": "B(감사·문서)", "tbm": "B(감사·문서)", "risk_assessments": "B(감사·문서)",
-    "office": "C(개인 모니터링)", "sports": "C(개인 모니터링)",
 }
 PINNABLE_GROUPS = {"evidence"}   # pin 예외가 적용되는 그룹(A의 증거 이미지만)
 

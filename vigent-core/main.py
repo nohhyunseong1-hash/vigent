@@ -54,11 +54,9 @@ from routers import cameras as _cameras_router  # noqa: E402
 from routers import detect as _detect_router  # noqa: E402
 from routers import dispatch as _dispatch_router  # noqa: E402
 from routers import incident as _incident_router  # noqa: E402
-from routers import office as _office_router  # noqa: E402
 from routers import ppe as _ppe_router  # noqa: E402
 from routers import recognition as _recognition_router  # noqa: E402
 from routers import safety_core as _safety_core_router  # noqa: E402
-from routers import sports as _sports_router  # noqa: E402
 from routers import system as _system_router  # noqa: E402
 from routers import tapo as _tapo_router  # noqa: E402
 from routers import tbm as _tbm_router  # noqa: E402
@@ -82,8 +80,6 @@ app = FastAPI(title="VIGENT Core", version=product_version())
 app.include_router(_tapo_router.router)   # /tapo/* (P1-7)
 app.include_router(_vitals_router.router)   # /vitals/* (P1-7)
 app.include_router(_zone_router.router)   # /zone/* (P1-7)
-app.include_router(_sports_router.router)   # /sports/* (P1-7)
-app.include_router(_office_router.router)   # /office/* (P1-7)
 app.include_router(_system_router.router)   # /health·/system/* (P1-7)
 app.include_router(_detect_router.router)   # /detect·/rfdetr·/segment (P1-7)
 app.include_router(_incident_router.router)   # /safety/incident/* (P1-7)
@@ -148,11 +144,6 @@ def _host_only(raw: str) -> str:
         return h[:h.index("]") + 1] if "]" in h else h
     return h.split(":")[0]
 
-# ── 제품 분리(C-S3): VIGENT_THEMES 로 타 제품(office/sports) 라우트 게이트 ──
-#   기본 'safety' → safety 배포에는 office/sports 라우트가 404(타 제품 미노출). 다중 제품이면 콤마로: "safety,office,sports"
-_THEMES = {t.strip() for t in os.environ.get("VIGENT_THEMES", "safety").split(",") if t.strip()} or {"safety"}
-_GATED_PREFIXES = {"/office": "office", "/sports": "sports"}  # safety 는 코어(항상 활성)
-
 
 @app.middleware("http")
 async def _auth_guard(request, call_next):
@@ -168,16 +159,6 @@ async def _auth_guard(request, call_next):
             # 상수시간 비교(P0-3/P1-8): 타이밍 사이드채널로 토큰 추측 방지. compare_digest 는 길이 불일치도 안전.
             if not hmac.compare_digest(request.headers.get("Authorization", ""), f"Bearer {_API_TOKEN}"):
                 return JSONResponse({"detail": "unauthorized"}, status_code=401)
-    return await call_next(request)
-
-
-@app.middleware("http")
-async def _theme_gate(request, call_next):
-    """VIGENT_THEMES 에 없는 제품(office/sports)의 라우트는 404(safety 배포에 타 제품 미노출, C-S3)."""
-    path = request.url.path
-    for prefix, theme in _GATED_PREFIXES.items():
-        if (path == prefix or path.startswith(prefix + "/")) and theme not in _THEMES:
-            return JSONResponse({"detail": "not found"}, status_code=404)
     return await call_next(request)
 
 

@@ -10,7 +10,7 @@
 **VIGENT = Vision + AI Agent 산업안전 플랫폼.** 스마트 카메라 영상에서 위험을 탐지(위험구역 침입·보호구 미착용·프레스 부위별 경보·화재/연기·부담자세·협착 근접)하고, AI 에이전트가 그 결과로 **위험성평가서·안전보고서·TBM(작업 전 안전미팅) 회의록** 등 안전 서류 작업을 자동화한다.
 
 **핵심 설계 2가지 (반드시 이해하고 시작):**
-1. **테마 = 코드가 아니라 설정.** 신규 테마는 `themes/<name>/vision.yaml` + 프론트 1개로 추가하고 코어 로직은 건드리지 않는다. 1차 완성 테마는 **safety**(office/sports는 스캐폴드).
+1. **테마 = 코드가 아니라 설정.** 신규 테마는 `themes/<name>/vision.yaml` + 프론트 1개로 추가하고 코어 로직은 건드리지 않는다. 현재 완성·유일 테마는 **safety**([Z-3, 2026-08-10] office/sports 스캐폴드는 제품 방향을 산업안전 CCTV로 확정하며 영구 삭제 — git 히스토리로 복구 가능).
 2. **절대 저하 없음 = 가산식 + 폴백.** 딥러닝 신호는 규칙 점수에 가산만 하고, 모델이 없거나 실패하면 휴리스틱으로 자동 폴백한다. 그래서 코드 전반에 `except Exception: # noqa: BLE001` → 폴백 패턴이 많다(버그가 아니라 의도).
 
 **기술 스택(실측):** Python(문서상 3.11, 실제 검증 3.13) · FastAPI 0.137 · RF-DETR(객체탐지) · rtmlib/onnxruntime(포즈) · Qwen2.5-VL 로컬 VLM(mlx-vlm) · OpenAI/Anthropic LLM · sentence-transformers(한국어 법령 RAG) · OpenCV(headless). 프론트는 순수 HTML/JS + CDN(MediaPipe·TF.js).
@@ -127,17 +127,19 @@ guard.detect person 박스 → RTMPose/yolov8n-pose → COCO-17 키포인트
 
 ```
 vigent-core/
-  main.py            (302줄) 앱 인프라만: app 생성 · include_router 13개 · 미들웨어 3개
-                     (_auth_guard·_theme_gate·_no_cache_dynamic) · 예외핸들러 · startup/shutdown
-                     · static/evidence 마운트 · `/` 루트 1개
+  main.py            앱 인프라만: app 생성 · include_router · 미들웨어(_auth_guard·_no_cache_dynamic)
+                     · 예외핸들러 · startup/shutdown · static/evidence 마운트 · `/` 루트 1개
   app_state.py       공유 런타임 상태: STATE · DETECT_LOCK · DEFAULT_THEME · load_theme · _START_TS
   web_util.py        공유 웹 헬퍼: 이미지 디코드·박스·zone·안전라벨·웹훅 화이트리스트·_tpl·
                      _env_or_dotenv·_evidence_url·_product_version·_TBM_CSS
   routers/
-    tapo.py(3) vitals.py(1) zone.py(7) sports.py(6) office.py(5) system.py(2) detect.py(4)
+    tapo.py(3) vitals.py(1) zone.py(7) system.py(2) detect.py(4) cameras.py(11)
     incident.py(3) tbm.py(6) ppe.py(7) recognition.py(4) dispatch.py(1) safety_core.py(57)
 ```
-파일 옆 숫자 = 라우트 데코레이터 수. **routers 합계 106** + main의 `/` 루트 1 = OpenAPI 107개 라우트 (그중 `/tapo/ws`는 WebSocket이라 OpenAPI 경로집계 106에는 빠지고 별도 추적).
+파일 옆 숫자 = 라우트 데코레이터 수. 정확한 현재 총합은 `python scripts/check_openapi_diff.py`
+(baseline과 대조) 또는 `main.app.openapi()`로 실측할 것 — 위 목록은 참고용이며 숫자를 수동으로
+합산해 인용하지 않는다(규칙7). **[Z-3, 2026-08-10] sports.py·office.py·`_theme_gate` 미들웨어는
+office/sports 기능 영구 삭제로 함께 제거됨.**
 
 **핵심 규칙(구조 유지 시 반드시):**
 - **라우터는 `main`을 import하지 않는다(순환 금지).** 공유가 필요하면 런타임 상태는 `app_state`, 웹 헬퍼는 `web_util`에 둔다 — 둘 다 main을 import하지 않는다. 여러 도메인이 쓰는 헬퍼를 새로 발견하면 `web_util`로 올린다(예: `_TBM_CSS`는 tbm·safety_core 두 도메인이 공유해서 web_util에 상주).

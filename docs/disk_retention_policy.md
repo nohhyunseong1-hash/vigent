@@ -5,6 +5,11 @@
 > 구현·테스트(`tests/test_retention.py`, 11건)·게이트 통과. 4단계(A/B/C 보존일수)도
 > `config/tuning.yaml`에 잠정값으로 채움(법률 전문가 확인 전 — 아래 §Z-2 표 주석 참고).
 > 실측 소요시간·용량 계산은 `docs/ops_disk_sizing.md` 참고. [B11](P3_BACKLOG.md#b11) 후속.
+>
+> **★[Z-3, 2026-08-10] 갱신**: office/sports 기능이 영구 삭제되며 그룹 C(개인 모니터링,
+> `data/office`·`data/sports`)가 통째로 없어졌다. 아래 [Z-1] 표·[Z-2] 그룹 정의는 **작성
+> 시점(office/sports가 아직 존재하던 때)의 정확한 기록**이라 고치지 않고 남겨둔다 — 대신
+> 각 항목 옆에 제거 사실을 표시한다. 현재 유효한 그룹은 A/B/D 셋뿐이다.
 
 ## [Z-1] 디스크 증가 경로 전수 조사
 
@@ -19,8 +24,8 @@
 | `data/audit/audit_<YYYYMMDD>.jsonl` | 위험성평가 승인/조치확인마다 | **없음** | 승인 1건당 1줄, 무기한 | `audit_store.py:21-40` |
 | `data/tbm/tbm_<YYYYMMDD_HHMMSS>.json` | TBM(작업전 안전점검회의) 저장마다 | **없음** | 회의록 1건당 파일 1개, 무기한 | `tbm_store.py:122-158` |
 | `data/risk_assessments/ra_<stamp>.{html,json}` | 위험성평가서 생성마다 | **없음**(목록 limit만) | 평가서 1건당 파일 2개. **실측 186개/812KB(현재)** | `agents/scribe.py:762-802` |
-| `data/office/posture_<YYYYMMDD>.jsonl` | 자세 모니터링 주기(예 60초)마다 | **없음** | 사용자당 60초 1줄, 무기한 | `office_data.py:22-39` |
-| `data/sports/sessions_<YYYYMMDD>.jsonl` | 운동 세션 종료마다 | **없음** | 세션당 1줄, 무기한 | `sports_data.py:19-30` |
+| ~~`data/office/posture_<YYYYMMDD>.jsonl`~~ | ~~자세 모니터링 주기(예 60초)마다~~ | — | — | **★[Z-3] office 기능 삭제로 경로 자체가 없어짐(2026-08-10)** |
+| ~~`data/sports/sessions_<YYYYMMDD>.jsonl`~~ | ~~운동 세션 종료마다~~ | — | — | **★[Z-3] sports 기능 삭제로 경로 자체가 없어짐(2026-08-10)** |
 | `data/go2rtc.log` | 서버 재시작 시 go2rtc 기동마다 | **없음**(append-binary) | 재시작마다 프로세스 종료까지 무기한 append | `routers/cameras.py:249-251` |
 | `data/legal/blocked_citations.log` | 법령 인용이 화이트리스트를 벗어나 차단될 때마다 | **없음**(append) | 차단 이벤트당 1줄, 무기한 | `legal_whitelist.py:98-104`(★이번 조사에서 직접 확인 추가) |
 | `data/dataset/images/*.jpg`(조건부) | `VIGENT_COLLECT=1`일 때만, 카메라별 주기(기본 30초)마다 | **없음** | **기본 비활성**(opt-in). 활성화 시 다른 항목보다 빠르게 누적 | `worker.py:710-712` |
@@ -41,7 +46,7 @@
 |---|---|---|---|
 | **A. 안전 증거** | evidence, recognition 이벤트 로그 | 위험 감지 시점의 시각·행위 증거 — 사고 조사·법적 분쟁 시 증빙으로 쓰일 수 있음 | 짧게 지우면 안 될 수 있다(★산업안전보건법상 기록 보관 의무 여부 미확인 — 법무 확인 필요, 임의로 짧은 기본값을 넣지 않는다) |
 | **B. 감사·문서 산출물** | audit, tbm, risk_assessments | 위험성평가·회의록·조치확인 — 컴플라이언스 문서 | 통상 수년 단위 보관이 관행(추정, 미확인) — A와 마찬가지로 임의 기본값 지양 |
-| **C. 개인 모니터링 로그** | office posture, sports sessions | 개인 행동·자세 데이터 — 개인정보보호법 대상(CLAUDE.md 원칙: "근로자 영상감시는 동의·고지 대상, 기본은 익명 집계") | **A/B보다 짧은 보존이 원칙에 더 부합**(목적 달성 후 최소 보관) — 그래도 정확한 일수는 사용자 결정 |
+| ~~**C. 개인 모니터링 로그**~~ | ~~office posture, sports sessions~~ | — | **★[Z-3, 2026-08-10] office/sports 기능 영구 삭제로 그룹 C 자체가 없어짐.** 아래 메커니즘·구현 설명 중 C 관련 서술은 작성 당시 기록일 뿐 현재 무효 |
 | **D. 순수 운영 로그** | go2rtc.log, legal/blocked_citations.log | 디버깅·관측용, 법적/개인정보 요구 없음 | 가장 공격적으로 정리 가능(예: 크기 상한 회전 — `vlog.py`의 기존 RotatingFileHandler 패턴을 그대로 재사용) |
 
 **★핵심 판단(규칙7)**: A·B·C 그룹의 정확한 보존 일수는 이 조사만으로 정할 수 없다 — 법적
@@ -66,8 +71,7 @@
      audit_days: null         # B
      tbm_days: null           # B
      risk_assessment_days: null  # B
-     office_posture_days: null   # C — 사용자 결정
-     sports_session_days: null   # C
+     # office_posture_days/sports_session_days(C)는 [Z-3] office/sports 삭제로 대상 자체가 없어짐
      ops_log_max_mb: 50       # D — 크기 상한 회전(법적 쟁점 없어 즉시 기본값 제안 가능)
    ```
    `null`(미설정)이면 **정리 안 함**(현재와 동일 동작, 저하 없음 — 규칙6). 값을 넣은 그룹만
@@ -85,14 +89,15 @@
 | 1 | 가시성 스크립트/`/health` 필드 | ✅ `retention.sweep()`(항상 스캔) + `/health`의 `disk_retention` |
 | 2 | D그룹(go2rtc.log·legal 로그) 크기상한 회전 | ✅ `retention.rotate_if_large()`, legal_whitelist.py·routers/cameras.py 배선 |
 | 3 | 정리 스크립트 인프라(dry-run 포함) | ✅ `scripts/retention_sweep.py`, 기본 `enabled=false`·`dry_run=true` |
-| 4 | A/B/C 그룹 실제 보존 일수 확정 | ✅ **잠정값**으로 채움(사용자 지시, 2026-08-10) — 아래 참고 |
+| 4 | A/B 그룹 실제 보존 일수 확정(원래 A/B/C였으나 [Z-3]로 C 소멸) | ✅ **잠정값**으로 채움(사용자 지시, 2026-08-10) — 아래 참고 |
 
 **4단계 실제 구현은 위 §Z-2 예시의 `null`이 아니라 잠정 숫자값이다**(무기한 지연 방지를
 위한 사용자 결정) — `config/tuning.yaml`의 `retention.groups.*`: evidence/recognition
-30일, audit/tbm/risk_assessments 1095일(3년), office/sports 7일. **전부 "법률 전문가 확인
-전 잠정값 — 고객사 개인정보 처리방침에 따라 계약 시 조정"** 주석이 tuning.yaml에 명시돼
-있다. 정리 기능 자체(`retention.enabled`)는 여전히 기본 `false` — 잠정값이 들어있어도
-명시적으로 켜지 않으면 아무것도 지워지지 않는다.
+30일, audit/tbm/risk_assessments 1095일(3년). **전부 "법률 전문가 확인 전 잠정값 —
+고객사 개인정보 처리방침에 따라 계약 시 조정"** 주석이 tuning.yaml에 명시돼 있다. 정리
+기능 자체(`retention.enabled`)는 여전히 기본 `false` — 잠정값이 들어있어도 명시적으로
+켜지 않으면 아무것도 지워지지 않는다. (office/sports 7일 값은 [Z-3]에서 대상 그룹째
+삭제됨.)
 
 ## 결과물
 

@@ -49,11 +49,14 @@
   회전. 테스트 11건(`tests/test_retention.py`, pin 보호 포함). **정리 기능 자체는 여전히
   기본 비활성**(`retention.enabled: false`) — 활성화는 배포 시 명시적 결정.
 - **보존 일수 잠정값 확정**: A(evidence/recognition) 30일·B(audit/tbm/risk_assessments)
-  1095일(3년)·C(office/sports) 7일을 `config/tuning.yaml`에 채움 — **법률 전문가 확인 전
+  1095일(3년)·~~C(office/sports) 7일~~을 `config/tuning.yaml`에 채움 — **법률 전문가 확인 전
   잠정값**(무기한 지연 방지를 위한 사용자 결정, 고객사 개인정보 처리방침에 따라 계약 시
   조정 필요, 규칙7 명시).
 - **용량 산정**: `docs/ops_disk_sizing.md`(카메라×이벤트빈도×보존일 계산표, 실측 단가
   기반) — 예시 시나리오 기준 그룹A(안전증거)가 용량을 압도적으로 지배.
+- **[Z-3](2026-08-10) 갱신**: office/sports 기능이 영구 삭제되며 그룹 C(위 [Z-1]의 office·
+  sports 경로, 위 잠정값의 C 7일)가 통째로 없어졌다 — 현재 유효 그룹은 A/B/D뿐(상세는
+  `docs/disk_retention_policy.md` 상단 갱신 공지).
 - **남은 것**: 실제 배포 시 그룹별 `enabled`/`dry_run` 활성화 여부는 현장별 결정 필요.
   잠정 보존일수의 법무 검토(아직 안 됨).
 

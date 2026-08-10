@@ -3,9 +3,12 @@
 > 이 파일은 Claude Code가 매 대화마다 자동으로 읽는다. 상세 설계는 `md/VIGENT_META_PROMPT.md`를 따른다.
 
 ## 프로젝트
-- **VIGENT**: Vision + AI Agent 산업특화 플랫폼. 공유 코어 1개 + 테마(safety/office/sports)별 `vision.yaml` 분기.
-- 1차 완성 테마: **safety**.
+- **VIGENT**: Vision + AI Agent 산업안전 CCTV 플랫폼. 공유 코어 1개 + 테마별 `vision.yaml` 분기(현재 테마: **safety** 단일).
 - 언어: 모든 설명·주석·문서는 **한국어**로.
+- ★[Z-3, 2026-08-10] office(근로자 자세교정)·sports(요가) 테마는 **영구 삭제**됐다(제품 방향을
+  산업안전 CCTV로 확정 — 낙상·LOTO 기능 제거와 동일한 판단, git 히스토리로 복구 가능). 이전에
+  이 문서·`md/VIGENT_META_PROMPT.md`·`docs/ONBOARDING.md`가 3테마 체제를 전제로 서술했던 부분은
+  이 변경으로 무효화됐다.
 
 ## 작업자(나)에 대해
 - 바이브코딩 입문자다. 한 번에 하나씩, 쉽게 설명하며 진행한다.
@@ -32,7 +35,7 @@
 
 ## 안전·법규 경계 (코드·문서·UI에 명시할 것)
 - **기능안전**: 비전 ML은 확률적이므로 인증 안전기능을 대체할 수 없다. 프레스·전단기 비상정지의 1차 책임은 인증 하드웨어(Type 4 광전자식 방호장치, 안전 PLC)에 있다. VIGENT는 **보조·감시 계층으로 신호만 제공**한다.
-- **근로자 영상감시(office)**: 개인정보보호법·근로기준법상 동의·고지·노사협의 대상. 기본은 **익명 집계**, 얼굴 블러 기본 on.
+- (office 테마의 "근로자 영상감시" 항목은 [Z-3, 2026-08-10] office 기능 삭제로 함께 제거됨 — safety 테마 자체의 CCTV 촬영에도 동일한 개인정보 원칙(익명화·동의·고지)이 적용될 수 있으니 배포 시 별도 확인할 것.)
 
 ## 폴더 구조 (목표)
 ```
@@ -43,9 +46,9 @@
     main.py            앱 인프라만(302줄): app 생성 · include_router · 미들웨어 · startup · `/` 루트
     app_state.py       공유 런타임 상태(STATE·DETECT_LOCK·load_theme 등) — main 미import
     web_util.py        공유 웹 헬퍼(이미지·zone·_tpl·_TBM_CSS 등) — main 미import
-    routers/           도메인별 APIRouter(P1-7 분할): tapo·vitals·zone·sports·office·system·
-                       detect·incident·tbm·ppe·recognition·dispatch·safety_core
-  themes/{safety,office,sports}/   config/  data/  runs/  tests/
+    routers/           도메인별 APIRouter(P1-7 분할): tapo·vitals·zone·system·
+                       detect·incident·tbm·ppe·recognition·dispatch·safety_core·cameras
+  themes/safety/       config/  data/  runs/  tests/  (office/sports는 [Z-3] 삭제됨)
 ~/Desktop/사업계획서/AX안전/        ← 기존 MVP (읽기 전용 참고)
 ```
 > **라우터 규칙(P1-7):** 라우터는 `main`을 import하지 않는다(순환 금지). 공유는 `app_state`(상태)·`web_util`(헬퍼)로. 라우트 변경 시 `scripts/check_openapi_diff.py`로 회귀 확인. 상세는 [docs/ONBOARDING.md](docs/ONBOARDING.md) §3.5.
