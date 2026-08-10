@@ -29,6 +29,7 @@ except Exception:  # noqa: BLE001
 import box_quality as bq  # noqa: E402
 import cv2  # noqa: E402
 from isolated_detect import detect_isolated  # noqa: E402
+from scipy.stats import beta  # noqa: E402
 
 FRAMES_DIR = _ROOT / "data" / "field_eval" / "frames"
 LABELS_DIR = _ROOT / "data" / "field_eval" / "labels"
@@ -125,11 +126,17 @@ def main() -> None:
     recall_lower = total_tp / total_gt if total_gt else 0.0
     denom_upper = total_gt - ambiguous_matched
     recall_upper = total_tp / denom_upper if denom_upper else 0.0
+    # Clopper-Pearson exact 95% CI(전부 성공인 경우 점추정=100%가 무정보이므로 병기 — 규칙7)
+    alpha = 0.05
+    ci_lower = beta.ppf(alpha / 2, denom_upper, 1) if denom_upper else float("nan")
+    ci_upper = 1.0
 
     print("\n=== [X-1] NO-Hardhat 재현율 구간 ===")
     print(f"하한(전체 GT 기준, ambiguous 포함): {recall_lower*100:.1f}% ({total_tp}/{total_gt})")
-    print(f"상한(ambiguous {ambiguous_matched}건 채점 제외): {recall_upper*100:.1f}% ({total_tp}/{denom_upper})")
-    print(f"참값은 [{recall_lower*100:.1f}%, {recall_upper*100:.1f}%] 사이로 추정(★두 값 다 실측, 사이의 특정 지점은 미검증)")
+    print(f"상한(구분 가능 GT {denom_upper}건 기준): {recall_upper*100:.1f}% ({total_tp}/{denom_upper}), "
+          f"95% CI(Clopper-Pearson, n={denom_upper}) [{ci_lower*100:.1f}%, {ci_upper*100:.1f}%]")
+    print(f"참값은 하한 {recall_lower*100:.1f}%와 상한 \"구분 가능 GT {denom_upper}건 기준 "
+          f"{recall_upper*100:.0f}%(95% CI [{ci_lower*100:.1f}%, {ci_upper*100:.1f}%])\" 사이로 추정")
 
     AMBIGUOUS_OUT.write_text(json.dumps({
         "created": "2026-08-10",

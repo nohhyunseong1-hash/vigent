@@ -245,7 +245,28 @@ P-3-4 추가 라벨링 시에나 관련) 정도 — 낮은 우선순위로 유�
   **결론(사용자 지시 반영): 고각도/자세다양성 전용 공개셋은 확인 범위 내에서 없음 → 필요하면
   직접 수집(자체 CCTV 각도로 촬영/라벨링)이 유일한 경로로 보인다.**
 
-**아직 미실행**: 학습 실행 자체(승인 대기), [V-0] 판정 시트 사용자 응답 대기.
+**3-7. [X] 판정 반영 + 학습 1라운드 착수 — 완료(2026-08-10), 전체 학습은 승인 대기**
+
+[V-0] 판정 시트에 대한 사용자 응답 완료: person 놓침은 명확히 사람으로 보임(가림·자세 문제
+재확인) / NO-Hardhat 놓침 40건은 대부분 크롭만으로 구분 불가(`benchmarks/s1_miss_montage.md`
+§[X-0]).
+
+- **[X-1]** NO-Hardhat 재현율을 단일 수치가 아닌 구간으로 재정의: 하한 **25.9%**(14/54,
+  전체 GT), 상한 **"구분 가능 GT 14건 기준 100%, 95% CI(Clopper-Pearson) [76.8%, 100.0%]"**
+  (`benchmarks/x1_no_hardhat_interval.md`). ambiguous 40건은 `data/field_eval/
+  ambiguous_no_hardhat.json`에 플래그(GT 라벨 미수정). **이후 모든 리포트는 이 구간으로 인용.**
+- **[X-2]** `docs/camera_requirements.md` 신설 — 직하방·고각 설치 시 안전모 판별이 AI뿐 아니라
+  사람도 불가능함을 실측 근거로 명시, 수평~중간 경사각 설치 의무화.
+- **[X-3]** css v27을 COCO 포맷으로 재확보(`data/datasets/css_safety_coco`)하고 승인된 3종
+  증강(person random erasing + copy-paste 가림 + NO-Hardhat/Hardhat 축소, 블러 없음)을 적용한
+  학습셋 생성(`data/datasets/css_safety_aug`, train 2603→4408장). `pip install "rfdetr[train]"`을
+  torch/torchvision/numpy 버전 고정(constraints) 절차로 안전하게 설치(설치 전후 버전 불변
+  확인) — 부수적으로 opencv-python-headless가 opencv-python의 cv2 네임스페이스를 덮어쓰는
+  문제를 발견해 복구(`requirements.txt`에 재발 방지 메모). 1 epoch 스모크 실행: 166.5초/epoch,
+  피크 VRAM 3.16GB(여유 충분), 체크포인트 3종 정상 저장(`benchmarks/x3b_train_smoke.md`).
+  **전체 학습(epochs 수 미정)은 이 보고 후 별도 승인 대기.**
+
+**아직 미실행**: 전체 학습 실행(epochs 수·early_stopping 여부 결정 + 승인 대기).
 
 ---
 

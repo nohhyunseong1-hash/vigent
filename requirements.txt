@@ -34,6 +34,17 @@ Pillow==12.3.0               # P0-2a 보안 업그레이드(PYSEC-2026-2249~2874
 torch==2.12.0                # ★ 보류(P0-2b): CVE-2025-3000 조사 중, MPS 크래시(F-14) 이력으로 별도 합의 후 업그레이드
 torchvision==0.27.0
 rfdetr==1.8.0
+# ⚠️ [X-3b, 2026-08-10] 재학습(.train()) 하려면 추가로 `pip install "rfdetr[train]"` 필요
+#    (pytorch_lightning·peft·torchmetrics[detection]·faster-coco-eval·pycocotools·scipy·
+#    albumentations·roboflow·rf100vl — 추론 전용 서버엔 불필요, 학습 워크스테이션에만).
+#    ★torch/torchvision 보호 필수: 제약 없이 설치하면 albumentations 등이 다른 torch 버전을
+#    끌어올 수 있다 — 반드시 `-c constraints.txt`(torch==2.12.0+cu130, torchvision==0.27.0+cu130,
+#    numpy==2.4.6 고정)로 설치하고 설치 전후 `torch.__version__`·`torch.cuda.is_available()`이
+#    그대로인지 확인할 것(실측: 이 절차로 torch/torchvision/numpy 전부 불변 확인, 2026-08-10).
+#    ★부작용 실측: albumentations가 opencv-python-headless 를 함께 설치해 기존
+#    opencv-python(비-headless)의 cv2 네임스페이스를 덮어쓴다(같은 cv2 패키지 이름 충돌,
+#    Python 생태계 공지 이슈) — 설치 후 `pip install --force-reinstall --no-deps
+#    opencv-python==<기존 버전>`으로 복원 필요(2026-08-10 실측·조치).
 supervision==0.29.0.post0
 trackers==2.4.0
 # ultralytics(AGPL): 배포 제거 완료(A-4, T10b — person/ppe/fire_smoke/forklift 전부 RF-DETR 이관).
