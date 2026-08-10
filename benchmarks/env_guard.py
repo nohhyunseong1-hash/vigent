@@ -1,8 +1,11 @@
-"""benchmarks/env_guard.py — 지연·속도 측정 스크립트용 환경 오염 경고(2026-08, Docker/WSL2 설치 후 신설).
+"""benchmarks/env_guard.py — 지연·속도 측정 스크립트용 환경 오염 경고
+(2026-08-07 Docker/WSL2 설치 후 신설, 2026-08-10 GPU(cu130) 전환 후에도 유효 — 아래 참고).
 
-이 데스크탑은 CPU 전용 torch 환경이다. Docker Desktop(WSL2 백엔드)이 떠 있으면 백그라운드에
-vmmem(WSL2 VM) 프로세스가 CPU 코어를 점유해 추론 시간(guard.detect/model.predict 등) 측정값이
-실제보다 느리게 나올 수 있다 — **측정을 막지는 않는다**(사용자 지시), 결과에 경고만 표기한다.
+Docker Desktop(WSL2 백엔드)이 떠 있으면 백그라운드에 vmmem(WSL2 VM) 프로세스가 CPU 코어를
+점유해 추론 시간(guard.detect/model.predict 등) 측정값이 실제보다 느리게 나올 수 있다 —
+GPU 전환(2026-08-10) 후에도 전처리·후처리·디코드 등 CPU 구간은 남아있어 이 오염 경로가
+유효하다(`docs/benchmark_measurement_hygiene.md`). **측정을 막지는 않는다**(사용자 지시),
+결과에 경고만 표기한다.
 
 윈도우 전용(이 프로젝트 개발 환경 기준) — 다른 OS에서는 아무것도 하지 않고 조용히 통과한다.
 psutil 등 신규 의존성을 추가하지 않기 위해 표준 라이브러리(subprocess)로만 구현했다.
@@ -67,7 +70,7 @@ def warn_if_docker_running(script_name: str = "") -> bool:
     label = f"[{script_name}] " if script_name else ""
     print(
         f"⚠️  {label}Docker/WSL2 VM 실행 중 감지({'; '.join(found)}) — "
-        "CPU 전용 torch 추론 시간 측정값이 오염됐을 수 있습니다(vmmem 이 CPU 점유). "
+        "추론 시간 측정값이 오염됐을 수 있습니다(vmmem 이 CPU 점유 — GPU 추론이어도 전처리/후처리 CPU 구간 영향). "
         "정확한 측정이 필요하면 Docker Desktop 종료 + `wsl --shutdown` 후 재실행하세요 "
         "(절차: docs/benchmark_measurement_hygiene.md).",
         file=sys.stderr,

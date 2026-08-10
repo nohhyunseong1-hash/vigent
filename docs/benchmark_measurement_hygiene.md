@@ -1,16 +1,39 @@
-# 벤치마크 측정 위생 — Docker/WSL2 설치 후 주의사항 (2026-08-07 신설)
+# 벤치마크 측정 위생 — Docker/WSL2·GPU 전환 후 주의사항 (2026-08-07 신설, 2026-08-10 GPU 갱신)
 
-## 배경
+## ★2026-08-10 갱신 — 이 데스크탑은 더 이상 CPU 전용이 아니다
 
-이 개발 데스크탑은 **CPU 전용 torch 환경**이다(GPU 없음 — `guard.detect`/`model.predict` 등 추론은
-전부 CPU에서 돈다). 2026-08-07 이 데스크탑에 **Docker Desktop(WSL2 백엔드)**을 설치했다(CVAT 로컬
-실행용, `docs/labeling_guide.md` §3-1). Docker Desktop이 켜져 있으면 `vmmem`(WSL2 VM) 프로세스가
+**2026-08-10부로 이 데스크탑에 GPU(NVIDIA RTX 5070 Ti)가 실제로 쓰이기 시작했다**([P-1],
+`docs/perf_improvement_plan.md`). torch가 CPU 전용 빌드(`2.12.0+cpu`)였다가 CUDA 빌드
+(`torch==2.12.0+cu130` · `torchvision==0.27.0+cu130`, Blackwell/sm_120이라 cu126 이하는 커널 없음
+에러 — **반드시 cu130**, `requirements.txt` 주석 참고)로 전환됐다. `guard.detect` 실측
+median 148ms(CPU) → 14ms(GPU), 약 10배.
+
+**★이후 모든 latency 측정치는 "RTX 5070 Ti + torch cu130" 기준이다.** 이 문서의 §"과거 측정치는
+영향 없음"에 나열된 **2026-08-10 이전 수치(CPU 측정)와 이후 수치(GPU 측정)를 직접 비교하지
+말 것** — 같은 ms 단위라도 서로 다른 하드웨어를 잰 값이라 "느려졌다/빨라졌다"를 논할 수 없다.
+표·보고서에 latency를 적을 땐 **CPU/GPU 구분을 반드시 함께 표기**한다(예: "148ms(CPU, 2026-08-08
+이전)" vs "14ms(GPU cu130, 2026-08-10 이후)"). **현장 배포 장비엔 GPU가 없을 수 있다** — CPU
+폴백은 정상 동작 확인됨(`VIGENT_DETECT_DEVICE=cpu` 강제 스모크 테스트, 2026-08-10) — 하지만
+현장 장비의 실제 latency 예산을 판단할 땐 이 데스크탑의 GPU 수치를 그대로 쓰면 안 되고, 그 장비
+자체에서(또는 최소한 CPU 강제 모드로) 별도로 재야 한다.
+
+## 배경(Docker/WSL2, 2026-08-07 원문 유지)
+
+2026-08-07 이 데스크탑에 **Docker Desktop(WSL2 백엔드)**을 설치했다(CVAT 로컬 실행용,
+`docs/labeling_guide.md` §3-1). Docker Desktop이 켜져 있으면 `vmmem`(WSL2 VM) 프로세스가
 백그라운드에서 CPU 코어를 점유한다 — 실측 확인: Docker Desktop을 설치·기동한 상태에서 `vmmem`
 프로세스가 상시 실행 중임을 확인했다(이 저장소 작업 중 `tasklist`로 직접 확인).
 
 **결과적으로 CPU 추론 시간(지연·속도) 측정값이 실제보다 느리게 나올 수 있다** — 검출 정확도(mAP·
 recall 등)에는 영향 없다(같은 모델이 같은 출력을 냄, 느려질 뿐 결과가 바뀌진 않음). **영향받는 건
-"몇 ms 걸리는가"를 재는 측정뿐**이다.
+"몇 ms 걸리는가"를 재는 측정뿐**이다. GPU 전환 후에도 이 오염 경로 자체는 유효하다(vmmem은 CPU를
+쓰지 GPU를 쓰지 않지만, torch 추론의 CPU 쪽 전처리·후처리·디코드 구간은 여전히 CPU를 쓴다).
+
+**★추가 확인(2026-08-10)**: `Get-Process "Docker Desktop" | Stop-Process -Force` + `wsl --shutdown`
+을 두 번 실행해도 **`vmmem` 프로세스가 안 사라지는 경우를 실측했다**(docker-desktop 배포는
+"Stopped"로 뜨는데도 vmmem은 그대로 남음). 아래 §측정 전 절차의 "확인" 단계가 비어있지 않다면
+(vmmem이 여전히 보이면) 완전한 오염 제거를 보장 못 한다는 뜻 — 이럴 땐 측정 결과에 "vmmem 잔존,
+완전한 클린 측정 아님"이라고 명시할 것(그래도 GPU 추론이면 CPU 오염의 상대적 영향은 작다).
 
 ## 원칙 — 막지 않는다, 표시만 한다(사용자 지시)
 
