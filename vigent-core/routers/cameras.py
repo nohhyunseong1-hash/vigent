@@ -246,7 +246,15 @@ def ensure_go2rtc() -> bool:
         env = dict(os.environ)
         env.setdefault("RTSP_URL", "")                    # 레거시 tapo 스트림용(없어도 무방)
         env["GO2RTC_LAN_IP"] = _lan_ip()                  # WebRTC 후보에 실제 LAN IP 광고(ICE 성립)
-        logf = open(root / "data" / "go2rtc.log", "ab")   # noqa: SIM115  Popen 수명 동안 유지(관측성 — WebRTC 진단)
+        go2rtc_log = root / "data" / "go2rtc.log"
+        # [Z-2] D그룹 회전 — 기동 시점에만 가능(파일이 Popen 수명 동안 열려 있어 세션 중 회전 불가)
+        try:
+            import tuning
+            from retention import rotate_if_large
+            rotate_if_large(go2rtc_log, tuning.val("retention", "ops_log_max_mb", 50))
+        except Exception:  # noqa: BLE001  회전 실패해도 go2rtc 기동은 막지 않는다
+            pass
+        logf = open(go2rtc_log, "ab")   # noqa: SIM115  Popen 수명 동안 유지(관측성 — WebRTC 진단)
         subprocess.Popen([str(binp), "-config", str(runtime)], cwd=str(binp.parent),
                          stdout=logf, stderr=logf, env=env)
         return True

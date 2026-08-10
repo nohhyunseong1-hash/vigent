@@ -98,6 +98,10 @@ def is_whitelisted(law_key: str | None, art_num: int | None) -> bool:
 def _log_blocked(rec: dict[str, Any]) -> None:
     try:
         _BLOCKED_LOG.parent.mkdir(parents=True, exist_ok=True)
+        # [Z-2] D그룹(운영 로그) 회전 — 법적 보관 요구가 없는 로그라 크기상한만 넘으면 회전
+        import tuning
+        from retention import rotate_if_large
+        rotate_if_large(_BLOCKED_LOG, tuning.val("retention", "ops_log_max_mb", 50))
         rec = {"ts": datetime.now().isoformat(timespec="seconds"), **rec}
         with open(_BLOCKED_LOG, "a", encoding="utf-8") as f:
             f.write(json.dumps(rec, ensure_ascii=False) + "\n")

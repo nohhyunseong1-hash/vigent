@@ -54,6 +54,23 @@ detect:                     # 탐지 공통
       # ⚠️ 조건부: pipeline 재측정 smoke FAR>18%면 0.60(R77.9/FAR9.2)로 후퇴. in-domain(D-Fire) 기준 — 현장 재검증 대기.
       # 되돌리려면 backend.fire_smoke 를 yolo 로, 임계를 fire 0.03/smoke 0.20 으로 원복.
 
+retention:                   # [Z-2] 디스크 보존 정책(scripts/retention_sweep.py) — 기본 비활성
+  enabled: false             # 전체 스위치. false면 groups/days 값이 뭐든 삭제 안 함(절대 저하 없음)
+  dry_run: true              # true=삭제 없이 보고만. enabled=true여도 이게 true면 안 지운다
+    # 실제 활성화(enabled:true + dry_run:false)는 배포 시 현장별로 명시 결정할 것.
+  ops_log_max_mb: 50         # D그룹(go2rtc.log·legal 차단로그) 회전 크기 상한
+  groups:                    # A/B/C — 그룹별 보존 일수. ★잠정값(2026-08-10) — 법률 전문가
+    # 확인 전이며, 고객사 개인정보 처리방침에 따라 계약 시 조정한다(규칙7, docs/
+    # disk_retention_policy.md 참고). evidence는 pin(data_engine.pin_evidence)된 파일에
+    # 한해 이 일수와 무관하게 삭제되지 않는다.
+    evidence: {days: 30}          # A(안전 증거) — 근거(잠정): 국내 CCTV 개인영상정보 보관 관행
+    recognition: {days: 30}       # A(안전 증거) — evidence와 동일 근거
+    audit: {days: 1095}           # B(감사·문서) — 근거(잠정): 산업안전보건법령상 위험성평가 기록 보존 의무(3년)
+    tbm: {days: 1095}             # B(감사·문서) — audit과 동일 근거
+    risk_assessments: {days: 1095} # B(감사·문서) — audit과 동일 근거
+    office: {days: 7}             # C(개인 모니터링) — 근거: 개인정보 최소보관 원칙(가장 짧게)
+    sports: {days: 7}             # C(개인 모니터링) — office와 동일 근거
+
 hub:                        # 대시보드 확대뷰
   focus_fps: 5              # 3.12: 확대뷰 focus 시 루프 fps. ②(차등 캐던스)로 person 만 5fps·풀세트는
     # fullset_fps(2) 유지 → GPU 예산 305ms/s(구 5fps 풀세트 425 대비↓)라 safety-local 동시에도 여유(S3 150ms 실측).

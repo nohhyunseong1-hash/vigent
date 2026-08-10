@@ -47,6 +47,22 @@ def health(theme: str = DEFAULT_THEME):
         llm = _llm.status()
     except Exception:  # noqa: BLE001  provider 상태 조회 실패해도 헬스체크는 죽지 않는다
         llm = {"provider": "unknown", "available": False}
+    # [Z-2] 디스크 보존 정책 상태 — 캐시된 status.json만 읽는다(라이브 경로에서 디렉터리
+    #   재스캔 없음). 침묵 실패 금지(Q-3 원칙과 동일): 활성화됐는데 실행 기록이 없거나
+    #   경고가 쌓여 있으면 여기서 드러난다.
+    disk_retention: dict = {"enabled": False, "last_run": None, "warnings": []}
+    try:
+        import tuning as _tuning
+        from retention import read_status as _read_status
+        disk_retention["enabled"] = bool(_tuning.section("retention").get("enabled", False))
+        status = _read_status()
+        if status:
+            disk_retention["last_run"] = status.get("last_run")
+            disk_retention["warnings"] = status.get("warnings", [])
+        elif disk_retention["enabled"]:
+            disk_retention["warnings"] = ["보존 정책이 활성화됐으나 스위퍼가 아직 실행된 기록이 없음"]
+    except Exception:  # noqa: BLE001  조회 실패해도 헬스체크는 죽지 않는다
+        pass
     return {
         "status": "ok",
         "version": product_version(),
@@ -57,6 +73,7 @@ def health(theme: str = DEFAULT_THEME):
         "models": models,
         "rfdetr_slots": rfdetr_slots,
         "llm": llm,                   # {provider, available, model, note} — UI·운영이 실제 설정을 보게 함
+        "disk_retention": disk_retention,   # [Z-2] {enabled, last_run, warnings}
         # F-8 로드 가시화 원칙과 일관: 모델은 LOADED 이나 소비 경로에서 명시적으로 끈 슬롯을 노출(은폐형 off 방지).
         "disabled_detectors": {
             "forklift": "F-7 과소학습(정탐 conf p50 0.002 ≈ 오탐 수준, 2026-07-11 실측). "
