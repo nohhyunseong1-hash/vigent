@@ -54,8 +54,8 @@ detect:                     # 탐지 공통
       # ⚠️ 조건부: pipeline 재측정 smoke FAR>18%면 0.60(R77.9/FAR9.2)로 후퇴. in-domain(D-Fire) 기준 — 현장 재검증 대기.
       # 되돌리려면 backend.fire_smoke 를 yolo 로, 임계를 fire 0.03/smoke 0.20 으로 원복.
 
-retention:                   # [Z-2] 디스크 보존 정책(scripts/retention_sweep.py) — 기본 비활성
-  enabled: false             # 전체 스위치. false면 groups/days 값이 뭐든 삭제 안 함(절대 저하 없음)
+retention:                   # [Z-2] 디스크 보존 정책(scripts/retention_sweep.py)
+  enabled: true              # [S3] 엣지박스 리허설용으로 활성화 — 여전히 dry_run 이라 삭제 없음
   dry_run: true              # true=삭제 없이 보고만. enabled=true여도 이게 true면 안 지운다
     # 실제 활성화(enabled:true + dry_run:false)는 배포 시 현장별로 명시 결정할 것.
   ops_log_max_mb: 50         # D그룹(go2rtc.log·legal 차단로그) 회전 크기 상한

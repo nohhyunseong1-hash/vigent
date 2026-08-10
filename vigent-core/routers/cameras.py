@@ -233,7 +233,11 @@ def ensure_go2rtc() -> bool:
     try:
         import subprocess
         root = Path(__file__).resolve().parent.parent.parent
-        binp = root / "bin" / "go2rtc"
+        # [S3] Windows 배포는 bin/go2rtc.exe(확장자 필수 — 무확장자 파일은 CreateProcess가 실행
+        #   파일로 인식 못 함). 확장자 없는 bin/go2rtc(맥/리눅스)도 계속 지원 — 존재하는 쪽을 쓴다.
+        binp = root / "bin" / "go2rtc.exe"
+        if not binp.exists():
+            binp = root / "bin" / "go2rtc"
         template = root / "config" / "go2rtc.yaml"
         runtime = root / "data" / "go2rtc.runtime.yaml"   # gitignore(data/) — 동적 스트림·비번은 여기에만 기록
         if not binp.exists():
