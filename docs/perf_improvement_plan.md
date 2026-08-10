@@ -112,7 +112,7 @@ cu130 빌드(`torch==2.12.0+cu130` · `torchvision==0.27.0+cu130`, 드라이버�
 (Docker Desktop 종료 + `wsl --shutdown`) 준수 후 별도로 한다** — 위 14ms는 오염 가능 상태에서 잰
 참고치일 뿐 확정치 아님.
 
-### ★[P-2] person 이중 신호 앙상블 — **측정 완료(2026-08-10), 채택 권고. 구현은 미착수**
+### ★[P-2] person 이중 신호 앙상블 — **채택·구현 완료(2026-08-10)**
 
 **근거**: `benchmarks/pilot_conf_threshold_report.md`([L] 조사)에서 PPE 모델 자체의 `Person` 클래스가
 person 검출기가 놓친 사람을 잡는 사례를 "사람없음" 17장 중 6장에서 확인했다 — 두 신호(person 슬롯 ·
@@ -130,8 +130,23 @@ ppe 슬롯의 Person 클래스)는 현재 합쳐지지 않는다. person 재현�
    person+ppe를 함께 돌리고 있어 앙상블 추가 비용이 사실상 0**. person 전용 고속 표시 경로
    (`focus_active`, 5fps)는 의도적으로 저비용 설계라 건드리지 않는 게 맞음(표시용, 판정과 무관).
 
-**남은 일**: guard.py/worker.py에 실제 병합 로직 구현은 아직 안 함(측정 전용 스크립트만 작성) —
-구현 여부·위치는 별도 승인 필요. test 35장 채점은 P-0 원칙대로 전 실험 종료 후 1회만.
+**구현**(`benchmarks/p2_person_ensemble.md` 후반부 상세): guard.py를 확인해보니 교차소스 병합
+로직(`_nms`·`_merge_cross_source_person`)이 **이미 존재**했다 — `detectors=["person","ppe"]`를
+같이 부르면(운영 경로 `do_full`·`routers/ppe.py`·`routers/safety_core.py`가 이미 그렇게 부름)
+ppe 슬롯 Person도 원래 섞여 들어왔다. `field_eval_results.md`의 56.7%가 낮았던 건 `run_eval.py`가
+`field_eval_person` 평가에서 `detectors=["person"]` 단일 호출만 했기 때문(방법론 선택, 버그
+아님). 그래서 "구현"은 새 알고리즘이 아니라 **기존 동작에 `PERSON_ENSEMBLE` 플래그(기본 `true`,
+`config/tuning.yaml` `detect.person_ensemble`)로 이름을 붙이고 끌 수 있게** 한 것 —
+`_drop_ppe_origin_person()` 신규 함수, `_cross_validate_ppe` 이후·`_track` 이전에 적용.
+
+**확인1(하류 오탐)**: dev 미착용 검출 116건 중 오탐 12건, "완전 유령"(가짜 person+가짜 미착용)
+8건 — **전부 이미 알려진 오탐 영상(`000633827`) 1개에 집중**, 전체 대비 6.9%로 낮아 추가 변형
+(conf 가중 등) 없이 채택. `000633827`은 P-3-3(정답지 교차검증)에서 재검토 예정.
+
+**확인2(회귀)**: `tests/test_person_ensemble.py` 신규 4개(앙상블 on/off 정상 동작, 추적 안정성,
+mixed-detector containment) + 기존 108개 전부 통과(112개 회귀 없음).
+
+**남은 일**: test 35장 채점은 P-0 원칙대로 전 실험 종료 후 1회만.
 
 ### [P-3] 이후 순서 — 전부 dev로만 진행
 
@@ -183,7 +198,7 @@ mAP@50:95 사용 금지 명시(순환 오염, `field_eval_results.md` §2) · �
 | P-0 | dev/test 분할 | 낮음 | — | **완료**(dev74/test35, 영상단위) |
 | (이력) | person 임계 스윕 | 낮음 | — | **완료 · 기각**(오탐 1.6~2.9배 대가, F1 +0.8%p) |
 | P-1 | GPU 확인(`nvidia-smi`) | 낮음(명령 1회) | 확인 필요 | **완료**(GPU 있었음, CUDA 전환·10배 속도 확인) |
-| P-2 | person 이중 신호 앙상블 | 낮음(학습 불필요) | **강함**(dev 실측 F1 +6.5%p) | **측정 완료·채택 권고**(구현 대기) |
+| P-2 | person 이중 신호 앙상블 | 낮음(학습 불필요) | **강함**(dev 실측 F1 +6.5%p) | **채택·구현 완료**(테스트 4개, 회귀 없음) |
 | P-3-1 | PPE 해상도 상향 A/B | 중간 | 중간(크기별 격차 실측) | 대기 |
 | P-3-2 | 사람 크롭 2단계 PPE | 높음(구조 변경) | 중간 | 대기 |
 | P-3-3 | 정답지 교차검증 | 중간 | **강함**(모든 수치의 상한) | 대기 |

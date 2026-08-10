@@ -204,6 +204,15 @@ def _merge_cross_source_person(dets: list[dict[str, Any]]) -> list[dict[str, Any
     return others + keep
 
 
+def _drop_ppe_origin_person(dets: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """[P-2] person 이중 신호 앙상블 off(PERSON_ENSEMBLE=False) 전용 필터. ppe 슬롯 유래
+    person 라벨 후보(detector=='ppe' and label=='person')를 제거해 person 슬롯 자체 검출만
+    남긴다. cross_validate_ppe 이후·_track 이전에 호출(다른 PPE 항목 결부 판정엔 영향 없고,
+    추적 상태가 ppe 유래 박스로 오염되기 전에 걸러냄)."""
+    return [d for d in dets
+            if not (str(d.get("label", "")).lower() == "person" and d.get("detector") == "ppe")]
+
+
 class GuardAgent(BaseAgent):
     name = "Guard"
     role = "감지: 실시간 탐지·추적·이벤트 스트림 생성"
@@ -233,6 +242,14 @@ class GuardAgent(BaseAgent):
     STALE_MAX_MISSES = 1
     CONTAIN_RATIO = 0.70     # 포함비 억제 문턱(1.9d): 작은 박스가 큰 박스에 이 비율 이상 포함+conf 낮으면 제거
     PPE_PERSON_EXPAND = 0.15  # 교차게이트 문턱(Phase C): PPE 는 person 박스 이 비율 확장 영역과 결부돼야 유지
+    # [P-2, 2026-08] person 이중 신호 앙상블: ppe 슬롯 자체의 Person 클래스를 person 검출에 포함할지.
+    #   True(기본) = 오늘까지의 실제 동작 그대로(person+ppe 슬롯을 함께 부르면 ppe 의 Person 검출도
+    #   이미 무조건 섞여 들어왔다 — 이 플래그는 새 동작을 추가하는 게 아니라 그 기존 동작에
+    #   이름을 붙이고 끌 수 있게 한 것). dev 74장 실측(benchmarks/p2_person_ensemble.md):
+    #   재현율 55.4%→70.7%(+15.3%p) 정밀도 89.7%→79.9%(-9.8%p) F1 68.5%→75.0%(+6.5%p) → 채택 권고.
+    #   False = person 슬롯 자체 검출만 person 으로 인정(교차검증/실험용 — 예: run_eval.py 로 "person
+    #   모델 단독 성능"을 다시 재고 싶을 때). config/tuning.yaml detect.person_ensemble 로 조정.
+    PERSON_ENSEMBLE = True
     HYSTERESIS_FRAMES = {"ppe_missing": 3, "fire_smoke": 2}  # 신호 히스테리시스(Phase C item2): 연속 N프레임 확인 후 발화(N=1=끔)
     # 보호구 클래스별 임계(후필터) — ppe 모델을 맵 최저 conf로 추론한 뒤 클래스별 임계로 거른다.
     #   최약체(NO-Hardhat)만 낮춰 재현율↑, 나머지는 유지. tuning.yaml detect.conf.ppe_per_class 로 조정.
@@ -300,6 +317,7 @@ class GuardAgent(BaseAgent):
             self.EMA_DREF = float(tuning.val("track", "ema_dref", self.EMA_DREF))
             self.CONTAIN_RATIO = float(tuning.val("detect", "contain_ratio", self.CONTAIN_RATIO))   # 포함비 억제 문턱(1.9d)
             self.PPE_PERSON_EXPAND = float(tuning.val("detect", "ppe_person_expand", self.PPE_PERSON_EXPAND))   # 교차게이트(Phase C)
+            self.PERSON_ENSEMBLE = bool(tuning.val("detect", "person_ensemble", self.PERSON_ENSEMBLE))   # [P-2] 이중신호 앙상블 on/off
             hf = int(tuning.val("detect", "hysteresis_frames", 0))   # >0 이면 전 신호를 이 N 으로 통일(1=끔). 0=기본(ppe3·fire2)
             if hf > 0:
                 self.HYSTERESIS = {k: hf for k in self.HYSTERESIS}
@@ -679,7 +697,11 @@ class GuardAgent(BaseAgent):
         # 포함비 억제(1.9d): IoU-NMS 가 못 잡는 '큰 박스 안 작은 박스'를 포함비+conf 조건으로 정리.
         detections = _containment_suppress(detections, self.CONTAIN_RATIO)
         # 교차게이트(Phase C): PPE 는 사람과 결부(겹침/확장영역 내)될 때만 유지 — 사람 없는 PPE 오탐 제거.
+        #   ※person_ensemble 플래그와 무관하게 항상 전체 person(person 슬롯+ppe 슬롯 Person 클래스)을
+        #   근거로 판단한다 — "이 PPE 항목 근처에 누군가 있는가"는 person 재현율 실험과 별개 관심사.
         detections = _cross_validate_ppe(detections, self.PPE_PERSON_EXPAND)
+        if not self.PERSON_ENSEMBLE:
+            detections = _drop_ppe_origin_person(detections)
         detections = self._track(detections, track_key)
         # 안 B(box-overlay): 추적 이후, 교차소스(person 슬롯↔ppe 슬롯) person 중복만 병합.
         #   _nms(0.55)↔TRACK_IOU(0.45) 임계 불일치가 남긴 IoU 0.45~0.55 person 이중박스 해소.

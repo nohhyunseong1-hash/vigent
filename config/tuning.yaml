@@ -22,6 +22,10 @@ detect:                     # 탐지 공통
   cooldown_s: 15            # 같은 위험 재기록 최소 간격(초)
   imgsz: 960                # 추론 해상도(클수록 작은 객체↑·느림)
   stale_max_misses: 1       # 잔상 제거: 미매칭 트랙이 이 프레임 수 넘으면 폐기(작을수록 잔상↓·깜빡임↑)
+  person_ensemble: true     # [P-2] person+ppe 슬롯을 함께 부를 때 ppe 슬롯 Person 클래스도 person으로
+    # 인정할지. true=기존 동작 그대로(재발명 아님 — 원래도 person+ppe 를 같이 부르면 섞여 들어왔음).
+    # dev 74장 실측(benchmarks/p2_person_ensemble.md): 재현율+15.3%p·정밀도-9.8%p·F1+6.5%p → 채택.
+    # false 는 person 슬롯 단독 성능을 재고 싶을 때만(예: run_eval.py 교차실험) 끈다.
   conf:                     # 검출기별 신뢰도 임계(낮을수록 많이 잡음=오탐↑)
     person: 0.40            # 0.35→0.40: 약한 사람 오탐↓(진짜 사람은 0.8+)
     ppe: 0.35               # T10b RF-DETR 이관: conf 스케일 재튜닝(구 YOLO 0.62). raw 스윕 전 클래스 recall 80~100%.
