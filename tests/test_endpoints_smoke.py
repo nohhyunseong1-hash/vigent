@@ -64,6 +64,14 @@ class TestEndpointsSmoke(unittest.TestCase):
         # [Z-3] office 라우트 자체가 삭제됐으므로 404(게이트가 아니라 라우트 부재).
         self.assertEqual(self.client.get("/office/trend").status_code, 404)
 
+    def test_theme_whitelist_rejects_invalid_names(self):
+        # [S2-수정] {theme} 화이트리스트(^[a-z0-9_-]+$) — 대문자·특수문자 등은 404
+        # (".." 자체는 HTTP 클라이언트가 요청 전에 경로를 정규화해버려 여기서 직접 검증하기
+        #  어렵다 — 그 경로는 tests/test_vision_loader_theme.py 에서 함수 단위로 확인한다).
+        for bad in ("SAFETY", "safety;drop", "safety.."):
+            with self.subTest(theme=bad):
+                self.assertEqual(self.client.get(f"/{bad}").status_code, 404)
+
 
 if __name__ == "__main__":
     unittest.main()

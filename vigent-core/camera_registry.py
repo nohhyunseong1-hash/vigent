@@ -18,13 +18,22 @@ _PUB = _DATA / "cameras.json"          # 공개(마스킹) 레지스트리 — d
 _SEC = _DATA / "camera_secrets.json"   # 원본 source(자격증명 포함) — data/ 라 gitignore
 _LOCK = threading.RLock()
 
-_CRED_RE = re.compile(r"^(\w+://)([^/@]+)@(.+)$")   # scheme://user:pass@rest
+_CRED_RE = re.compile(r"^(\w+://)([^/@]+)@(.+)$")   # scheme://user:pass@rest 전체매칭(source 필드용)
+_CRED_ANYWHERE_RE = re.compile(r"(\w+://)([^\s/@]+)@")   # 긴 문자열 어디든 등장하는 자격증명(예외 메시지용)
 
 
 def mask_source(src: str) -> str:
     """rtsp://user:pass@host/... → rtsp://***:***@host/... (자격증명 없으면 원본 그대로)."""
     m = _CRED_RE.match(src or "")
     return f"{m.group(1)}***:***@{m.group(3)}" if m else (src or "")
+
+
+def scrub_credentials(text: str) -> str:
+    """[S2-수정] 임의 텍스트(예외 메시지·트레이스백) 안에 섞인 scheme://user:pass@ 패턴을
+    전부 마스킹한다. mask_source 는 문자열 전체가 source 하나일 때만 매칭하므로,
+    "OpenCV: rtsp://admin:secret@1.2.3.4/... 열기 실패" 처럼 긴 메시지 중간에 자격증명이
+    끼어 있는 경우는 못 잡는다 — 이 함수는 문자열 어디든 등장하는 패턴을 찾아 마스킹한다."""
+    return _CRED_ANYWHERE_RE.sub(r"\1***:***@", text or "")
 
 
 def _load(path: Path) -> dict:

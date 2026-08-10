@@ -766,9 +766,14 @@ def theme_raw(theme: str):
     except FileNotFoundError:
         raise HTTPException(status_code=404, detail=f"테마 없음: {theme}")
 
+_THEME_RE = _re.compile(r"^[a-z0-9_-]+$")   # [S2-수정] path traversal 방어(예: theme="..")
+
+
 @router.get("/{theme}")
 def theme_page(theme: str):
     """테마 정적 페이지(index.html) 서빙. 없으면 404."""
+    if not _THEME_RE.match(theme):
+        raise HTTPException(status_code=404, detail=f"테마 페이지 없음: {theme}")
     index = _ROOT / "themes" / theme / "index.html"
     if not index.exists():
         raise HTTPException(status_code=404, detail=f"테마 페이지 없음: {theme}")

@@ -29,6 +29,7 @@ import tuning
 import vlog
 import zone_tile
 from camera_registry import mask_source as _mask_src  # 3.0: 로그에 RTSP 자격증명 노출 방지(마스킹)
+from camera_registry import scrub_credentials as _scrub  # [S2-수정] state["error"](→/worker/status) 노출 방지
 from web_util import zone_points
 
 _ROOT = Path(__file__).resolve().parent.parent
@@ -469,7 +470,10 @@ class Worker:
             return {"ok": False, "error": "이미 실행 중 — 먼저 중지하세요."}
         self._stop.clear()
         self._restart_req.clear()
-        self.state.update({"running": True, "source": source, "name": name, "fps": fps,
+        # [S2-수정] state["source"]는 status()/⟶ /worker/status·/workers API로 그대로 노출된다 —
+        #   스모크 테스트로 실제 응답에 원본 RTSP 자격증명이 그대로 찍히는 걸 발견(기존엔 마스킹
+        #   안 됨). 워커 스레드(연결용)에는 원본 source를 그대로 넘기고, state에는 마스킹만 저장.
+        self.state.update({"running": True, "source": _mask_src(source), "name": name, "fps": fps,
                            "frames": 0, "events": 0, "last_event": "", "error": "",
                            "last_frame_ts": 0.0, "restarts": 0,
                            "reconnects": 0, "hangs": 0})   # 1단계 하트비트·재시작 + 2단계 재연결·hang 카운터
@@ -557,9 +561,12 @@ class Worker:
                 self.state["last_frame_ts"] = time.time()
                 self._loop(guard, lock, source, name, fps, detectors, zone)
             except Exception:  # noqa: BLE001  _loop 밖으로 샌 예외(카메라 초기화 등)
-                _WLOG.error("워커 '%s'(%s) _loop 예외 — 재시작 대상\n%s",
-                            name, source, traceback.format_exc())
-                self.state["error"] = f"_loop crashed: {traceback.format_exc().splitlines()[-1]}"
+                # [S2-수정] source 인자는 이미 마스킹돼 있었으나, traceback.format_exc()는
+                #   원본 문자열이라 예외 메시지 자체에 자격증명이 섞여 나올 수 있어(cv2/FFmpeg가
+                #   URL을 에러 메시지에 그대로 넣는 경우가 흔함) 별도로 scrub 한다.
+                tb = _scrub(traceback.format_exc())
+                _WLOG.error("워커 '%s'(%s) _loop 예외 — 재시작 대상\n%s", name, _mask_src(source), tb)
+                self.state["error"] = f"_loop crashed: {tb.splitlines()[-1]}"
             if self._stop.is_set():
                 break
             # hang 재시작인지(감시 스레드가 요청) crash/종료인지 구분 → 신호 해제
@@ -697,9 +704,10 @@ class Worker:
                 self.state["events"] += 1
                 self.state["last_event"] = f"{rule}({level})"
         except Exception as _fe:   # noqa: BLE001  프레임 처리 실패 → 로그 남기고 다음 프레임(루프 유지)
-            self.state["error"] = f"frame: {type(_fe).__name__}: {_fe}"
+            # [S2-수정] str(_fe)에 자격증명이 섞여 나올 수 있어 scrub — state["error"]는 /worker/status로 그대로 노출됨
+            self.state["error"] = _scrub(f"frame: {type(_fe).__name__}: {_fe}")
             _WLOG.error("워커 '%s'(%s) 프레임 처리 예외 — 계속 진행\n%s",
-                        ctx.name, _mask_src(ctx.source), traceback.format_exc())
+                        ctx.name, _mask_src(ctx.source), _scrub(traceback.format_exc()))
 
     def _setup_run(self, source, name, fps, detectors, zone):
         """_loop 시작 준비 — 트래커·수집설정·zone 컨텍스트(ctx) + 소스판별 + 캡처 초기화(P2-13 분해).
@@ -791,7 +799,7 @@ class Worker:
                             if read_fails >= _READ_FAIL_MAX:
                                 self.state["reconnects"] = self.state.get("reconnects", 0) + 1
                                 _WLOG.warning("워커 '%s'(%s) 스트림 끊김 → 재연결 #%d (백오프 %.0fs)",
-                                              name, source, self.state["reconnects"], rbackoff)
+                                              name, _mask_src(source), self.state["reconnects"], rbackoff)
                                 try:
                                     cap.release()
                                 except Exception as _we:  # noqa: BLE001
@@ -828,9 +836,10 @@ class Worker:
                 if dt < self._interval and not self._stop.is_set():   # 3.8: 가변 간격(포커스 부스트)
                     time.sleep(self._interval - dt)
         except Exception as ex:                       # noqa: BLE001  루프 자체 예외 → supervised 가 재시작
-            self.state["error"] = f"{type(ex).__name__}: {ex}"
+            # [S2-수정] str(ex)·source·traceback 전부 자격증명이 섞여 나올 수 있어 scrub
+            self.state["error"] = _scrub(f"{type(ex).__name__}: {ex}")
             _WLOG.error("워커 '%s'(%s) _loop 예외 — 감독자 재시작 위임\n%s",
-                        name, source, traceback.format_exc())
+                        name, _mask_src(source), _scrub(traceback.format_exc()))
         finally:
             if cap is not None:
                 cap.release()

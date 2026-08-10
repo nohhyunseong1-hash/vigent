@@ -12,11 +12,14 @@ vision_loader.py — vision.yaml 파서 + 폴백 로더
 """
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
 import yaml
+
+_THEME_RE = re.compile(r"^[a-z0-9_-]+$")   # [S2-수정] 테마명 화이트리스트 — path traversal 방어
 
 # 프로젝트 루트 = 이 파일(vigent-core/vision_loader.py)의 두 단계 위
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
@@ -132,6 +135,8 @@ def _resolve_one(slot: str, model: Any, fallback: Any) -> SlotStatus:
 # 공개 API
 # ─────────────────────────────────────────────────────────────
 def theme_yaml_path(theme: str) -> Path:
+    if not _THEME_RE.match(theme or ""):   # [S2-수정] path traversal 방어(예: "..")
+        raise FileNotFoundError(f"유효하지 않은 테마명: {theme!r}")
     return PROJECT_ROOT / "themes" / theme / "vision.yaml"
 
 

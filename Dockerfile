@@ -5,6 +5,10 @@
 #            -v $PWD/.env:/app/.env:ro \
 #            -e VIGENT_HOST=0.0.0.0 -e VIGENT_API_TOKEN=<비밀> vigent:0.2.0
 #   ⚠️ 0.0.0.0 노출 시 VIGENT_API_TOKEN 필수(미설정이면 기동 거부).
+#   ★[S2-수정, 2026-08-10] 이 이미지는 VIGENT_REQUIRE_TOKEN=1 기본값 — 127.0.0.1 로컬
+#     바인딩이어도 VIGENT_API_TOKEN 을 안 주면 기동 자체가 거부된다(엣지박스 배포 프로파일,
+#     md/DEPLOYMENT.md §VIGENT_API_TOKEN 참고). 순수 로컬 테스트가 필요하면
+#     `-e VIGENT_REQUIRE_TOKEN=0`으로 이 기본값을 덮어쓸 것(용도를 알고 쓸 것 — 운영 배포엔 권장 안 함).
 # 멀티아치: linux/amd64·linux/arm64 모두 slim 베이스 존재. torch 는 아치별 휠이 자동 선택되나,
 #   CUDA/Jetson 은 기기용 torch 를 별도 설치해야 함(아래 requirements 의 torch 를 기기 휠로 교체).
 FROM python:3.11-slim
@@ -34,9 +38,12 @@ COPY bin/ ./bin/
 COPY VERSION weights_manifest.json fetch_weights.py ./
 
 # 기본: 로컬 바인딩(외부 노출은 -e VIGENT_HOST=0.0.0.0 + 토큰). 엣지 자동감시 on.
+# [S2-수정] VIGENT_REQUIRE_TOKEN=1 — 엣지박스 배포 프로파일은 로컬 바인딩이어도 토큰 상시
+#   요구(개발 환경은 uvicorn 직접 실행 시 이 변수가 없어 기존 동작 그대로 — 훼손 없음).
 ENV VIGENT_HOST=127.0.0.1 \
     VIGENT_PORT=8010 \
     VIGENT_EDGE=1 \
+    VIGENT_REQUIRE_TOKEN=1 \
     VIGENT_LOG_LEVEL=INFO \
     PYTHONUNBUFFERED=1
 

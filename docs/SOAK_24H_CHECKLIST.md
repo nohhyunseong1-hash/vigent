@@ -27,6 +27,11 @@ VIGENT_HOST=0.0.0.0 VIGENT_API_TOKEN=<비밀> \
 ```
 - [ ] `curl -s http://127.0.0.1:8010/health` → `"loaded":true` 이고 `rfdetr_slots` 전부 `LOADED`.
 - [ ] 서버 **PID 확인**: `SRVPID=$(pgrep -f 'uvicorn main:app.*8010' | head -1); echo $SRVPID`
+- [ ] **[S2-수정, 2026-08-10] go2rtc 자격증명 로그 유출 확인**: go2rtc가 처음 기동돼
+      카메라 스트림이 최소 1회 등록된 뒤 `cat data/go2rtc.log | grep -i rtsp`로 RTSP
+      URL이 **평문 자격증명 포함**으로 찍히는지 확인. 찍히면 로그 레벨 조정 또는 해당
+      파일 권한을 600으로 제한(코드 수정 아님 — go2rtc는 외부 프로젝트라 동작을 직접
+      통제 불가, `docs/edge_network_hardening.md` §6 참고).
 
 ## 2. 카메라 워커 시작
 

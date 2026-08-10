@@ -70,6 +70,9 @@ retention:                   # [Z-2] 디스크 보존 정책(scripts/retention_s
     tbm: {days: 1095}             # B(감사·문서) — audit과 동일 근거
     risk_assessments: {days: 1095} # B(감사·문서) — audit과 동일 근거
 
+upload:                      # [S2-수정] 이미지 업로드(data URL) 상한 — 대량 페이로드 메모리고갈 방지
+  max_image_mb: 10            # 정상 프레임(수백KB~수MB)엔 영향 없음. 초과 시 413.
+
 hub:                        # 대시보드 확대뷰
   focus_fps: 5              # 3.12: 확대뷰 focus 시 루프 fps. ②(차등 캐던스)로 person 만 5fps·풀세트는
     # fullset_fps(2) 유지 → GPU 예산 305ms/s(구 5fps 풀세트 425 대비↓)라 safety-local 동시에도 여유(S3 150ms 실측).

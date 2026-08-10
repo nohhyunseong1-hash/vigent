@@ -29,8 +29,18 @@ _SAFETY_KEEP = {"person", "knife", "scissors", "car", "truck", "bus", "motorcycl
                 "bicycle", "forklift", "train", "boat", "fire", "smoke", "cigarette"}
 
 
+def _max_image_mb() -> float:
+    import tuning
+    return float(tuning.val("upload", "max_image_mb", 10))
+
+
 def decode_data_url(image: str) -> "np.ndarray | None":
-    """data:image/...;base64,... → cv2 BGR numpy. 실패하면 None."""
+    """data:image/...;base64,... → cv2 BGR numpy. 실패하면 None.
+
+    [S2-수정] 상한 초과 시 413(HTTPException) — `tuning.yaml`의 `upload.max_image_mb`
+    (기본 10MB). base64 디코딩 전에 원문 길이로 먼저 거른다 — 디코딩 자체가 메모리를
+    할당하는 연산이라, 디코딩 후 검사하면 이미 대량 메모리를 할당한 뒤라 방어 의미가 줄어든다.
+    """
     import base64
     import re
 
@@ -39,8 +49,13 @@ def decode_data_url(image: str) -> "np.ndarray | None":
     m = re.match(r"^data:image/\w+;base64,(.+)$", image or "", re.S)
     if not m:
         return None
+    b64 = m.group(1)
+    max_mb = _max_image_mb()
+    max_b64_chars = int(max_mb * 1024 * 1024 * 4 / 3) + 4   # base64 팽창(~4/3) + 패딩 여유
+    if len(b64) > max_b64_chars:
+        raise HTTPException(status_code=413, detail=f"이미지가 너무 큽니다(최대 {max_mb:g}MB)")
     try:
-        buf = np.frombuffer(base64.b64decode(m.group(1)), dtype=np.uint8)
+        buf = np.frombuffer(base64.b64decode(b64), dtype=np.uint8)
         return cv2.imdecode(buf, cv2.IMREAD_COLOR)
     except Exception:  # noqa: BLE001
         return None

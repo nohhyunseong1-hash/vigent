@@ -106,10 +106,27 @@ lsof -nP -iTCP:8010 -sTCP:LISTEN   # 아무것도 안 나와야 정상
 
 | 변수 | 기본 | 의미 |
 |---|---|---|
-| `VIGENT_API_TOKEN` | (없음) | 설정 시 **전 라우트 Bearer 인증**(`/health`·favicon 제외). ★ **파일럿·공유 네트워크 환경에서는 상시 설정 필수.** 미설정 + 로컬 바인딩은 개발 편의로 허용되나 기동 시 경고 1줄 출력(P0-3). **외부 바인딩(`VIGENT_HOST`≠127.0.0.1) + 무토큰은 기동 거부.** 토큰 비교는 상수시간(`hmac.compare_digest`). |
+| `VIGENT_API_TOKEN` | (없음) | 설정 시 **전 라우트 Bearer 인증**(`/health`·favicon 제외). ★ **파일럿·공유 네트워크 환경에서는 상시 설정 필수.** 미설정 + 로컬 바인딩은 개발 편의로 허용되나 기동 시 경고 1줄 출력(P0-3). **외부 바인딩(`VIGENT_HOST`≠127.0.0.1) + 무토큰은 기동 거부.** 토큰 비교는 상수시간(`hmac.compare_digest`). 생성·설정 절차는 아래 §5.1. |
+| `VIGENT_REQUIRE_TOKEN` | (없음) | **1**이면 로컬 바인딩이어도 무토큰 기동을 거부(엣지박스 배포 프로파일 기본값, `Dockerfile`이 `1`로 설정 — [S2-수정, 2026-08-10]). 순수 로컬 개발(`uvicorn main:app` 직접 실행)은 이 변수를 안 건드리면 기존 동작 그대로. |
 | `VIGENT_LLM_PROVIDER` | `openai` | 텍스트 LLM 프로바이더 — `openai`(기본) / `anthropic`. **2026-07-14: ollama(로컬) 제거 → OpenAI 단일화.** ⚠️ **키가 없거나 API 장애여도 기능은 죽지 않는다** — 규칙 기반 폴백(위험성평가서의 점검항목·법령·위계는 애초에 규칙 기반이라 영향 0). 단 **폐쇄망에서는 LLM 종합의견 불가**(규칙 폴백만). 실제 설정은 `/health`의 `llm` 필드로 확인. |
 | `VIGENT_CLOUD_VLM` | off | **1** 일 때만 클라우드 VLM(OpenAI 비전)에 프레임 전송. **영상 불유출 원칙 — 상용 배포 미포함**(F-12). 키만 있어도 off면 전송 안 함. **위 LLM provider 정리와 무관하게 그대로 유지됨.** |
 | `VIGENT_ALLOW_FALLBACK` | off | **1** 이면 커스텀 가중치 부재 시 COCO 폴백 허용(**검출 저하**). 기본은 기동 거부(F-8). |
 | `VIGENT_DETECT_DEVICE` | 자동 | `mps` 강제 시 속도↑·크래시 위험(YOLO 경로). |
+
+### 5.1 VIGENT_API_TOKEN 생성·설정 절차
+
+1. **생성**: 충분히 무작위한 문자열을 만든다(예: `openssl rand -hex 32` 또는
+   `python -c "import secrets; print(secrets.token_hex(32))"`). 짧거나 예측 가능한 값(제품명·
+   날짜 등)은 쓰지 않는다.
+2. **설정**: `.env`에 `VIGENT_API_TOKEN=<생성한 값>`을 추가하거나(로컬/Docker 볼륨 마운트),
+   `docker run -e VIGENT_API_TOKEN=<값>`처럼 컨테이너 환경변수로 직접 준다. **`.env` 파일은
+   git에 커밋하지 않는다**(CLAUDE.md 규칙5, `.gitignore` 대상 이미 확인됨).
+3. **클라이언트 쪽**: 모든 API 호출에 `Authorization: Bearer <토큰>` 헤더를 붙인다. WebSocket
+   (`/tapo/ws`)은 헤더 대신 `?token=<토큰>` 쿼리 파라미터도 허용(`ws_auth.py`).
+4. **로테이션**: 토큰을 바꾸려면 `.env`/컨테이너 환경변수를 갱신하고 재기동 — 별도 무효화
+   메커니즘은 없다(단일 정적 토큰이므로 갱신 즉시 이전 값은 그냥 안 먹는다).
+5. **엣지박스 배포는 이 토큰을 반드시 설정해야 기동한다**(`VIGENT_REQUIRE_TOKEN=1`이
+   `Dockerfile` 기본값 — 위 §5 표 참고). 토큰 없이 컨테이너를 띄우면 즉시 종료된다(로그에
+   원인 안내 출력).
 
 > ⚠️ 이 스위치들은 **위험한 기본동작을 명시 opt-in 뒤로 숨긴 것**이다. 켤 때는 이유를 알고 켠다.
