@@ -1,0 +1,86 @@
+{
+  "현행(ppe_rfdetr_v1)": {
+    "person_recall_all": 0.6815286624203821,
+    "person_gt_total": 157,
+    "person_recall_occlusion": 0.0,
+    "occlusion_n": 50,
+    "nh_lower": 0.25925925925925924,
+    "nh_gt_total": 54,
+    "nh_upper": 1.0,
+    "nh_clear_n": 14,
+    "nh_tp_clear": 14,
+    "nh_ci": [
+      0.7683642383498834,
+      1.0
+    ],
+    "ppe_precision": 0.935672514619883,
+    "ppe_recall": 0.6477732793522267,
+    "ppe_f1": 0.7655502392344498,
+    "ppe_tp": 160,
+    "ppe_fp": 11,
+    "ppe_gt": 247
+  },
+  "신규 best_ema": {
+    "person_recall_all": 0.6369426751592356,
+    "person_gt_total": 157,
+    "person_recall_occlusion": 0.04,
+    "occlusion_n": 50,
+    "nh_lower": 0.14814814814814814,
+    "nh_gt_total": 54,
+    "nh_upper": 0.5714285714285714,
+    "nh_clear_n": 14,
+    "nh_tp_clear": 8,
+    "nh_ci": [
+      0.28860940003830743,
+      0.8233889100178821
+    ],
+    "ppe_precision": 0.8424242424242424,
+    "ppe_recall": 0.562753036437247,
+    "ppe_f1": 0.674757281553398,
+    "ppe_tp": 139,
+    "ppe_fp": 26,
+    "ppe_gt": 247
+  },
+  "신규 best_regular": {
+    "person_recall_all": 0.6114649681528662,
+    "person_gt_total": 157,
+    "person_recall_occlusion": 0.0,
+    "occlusion_n": 50,
+    "nh_lower": 0.1111111111111111,
+    "nh_gt_total": 54,
+    "nh_upper": 0.42857142857142855,
+    "nh_clear_n": 14,
+    "nh_tp_clear": 6,
+    "nh_ci": [
+      0.17661108998211794,
+      0.7113905999616925
+    ],
+    "ppe_precision": 0.8533333333333334,
+    "ppe_recall": 0.5182186234817814,
+    "ppe_f1": 0.6448362720403022,
+    "ppe_tp": 128,
+    "ppe_fp": 22,
+    "ppe_gt": 247
+  },
+  "신규 best_total": {
+    "person_recall_all": 0.6369426751592356,
+    "person_gt_total": 157,
+    "person_recall_occlusion": 0.04,
+    "occlusion_n": 50,
+    "nh_lower": 0.14814814814814814,
+    "nh_gt_total": 54,
+    "nh_upper": 0.5714285714285714,
+    "nh_clear_n": 14,
+    "nh_tp_clear": 8,
+    "nh_ci": [
+      0.28860940003830743,
+      0.8233889100178821
+    ],
+    "ppe_precision": 0.8424242424242424,
+    "ppe_recall": 0.562753036437247,
+    "ppe_f1": 0.674757281553398,
+    "ppe_tp": 139,
+    "ppe_fp": 26,
+    "ppe_gt": 247
+  }
+}
