@@ -242,6 +242,11 @@ class GuardAgent(BaseAgent):
     STALE_MAX_MISSES = 1
     CONTAIN_RATIO = 0.70     # 포함비 억제 문턱(1.9d): 작은 박스가 큰 박스에 이 비율 이상 포함+conf 낮으면 제거
     PPE_PERSON_EXPAND = 0.15  # 교차게이트 문턱(Phase C): PPE 는 person 박스 이 비율 확장 영역과 결부돼야 유지
+    # [Q-3, 2026-08-10] 검출 실패(백엔드 예외) 침묵 방지: 슬롯이 연속 이 횟수 이상 실패하면
+    #   DEGRADED로 표시(/health 노출). "멀쩡해 보이는데 아무것도 안 보는" 상태가 안전 제품에서
+    #   최악의 고장 모드라 — 1회 일시적 예외로 과민반응하지 않게 N=3(연속 3프레임)으로 잡았다.
+    PREDICT_FAIL_DEGRADE_THRESHOLD = 3
+
     # [P-2, 2026-08] person 이중 신호 앙상블: ppe 슬롯 자체의 Person 클래스를 person 검출에 포함할지.
     #   True(기본) = 오늘까지의 실제 동작 그대로(person+ppe 슬롯을 함께 부르면 ppe 의 Person 검출도
     #   이미 무조건 섞여 들어왔다 — 이 플래그는 새 동작을 추가하는 게 아니라 그 기존 동작에
@@ -333,6 +338,8 @@ class GuardAgent(BaseAgent):
             pass
         self._models: dict[str, Any] = {}      # id → YOLO (지연 로드 캐시)
         self._load_errors: dict[str, str] = {}
+        self._predict_fail_streak: dict[str, int] = {}   # [Q-3] 슬롯별 연속 추론 실패 횟수
+        self._slot_degraded: dict[str, bool] = {}        # [Q-3] PREDICT_FAIL_DEGRADE_THRESHOLD 도달 시 True
         self._tracks_by_key: dict[str, list[dict[str, Any]]] = {}  # 서버측 추적 박스(track_key 별 격리 · 5단계)
         self._bytetrack_by_key: dict[str, Any] = {}  # track_key 별 ByteTrackTracker 인스턴스(Phase2, algo=bytetrack 전용)
         self._key_last_used: dict[str, float] = {}  # track_key 별 마지막 사용 시각(F-2 TTL 청소용)
@@ -425,7 +432,11 @@ class GuardAgent(BaseAgent):
                 "detectors_available": list(self._slot_path.keys()),
                 "loaded": list(self._models.keys()),
                 "load_errors": self._load_errors,
-                "rfdetr_slots": getattr(self, "_rfdetr_status", [])}   # F-8: 커스텀 가중치 실검사 결과
+                "rfdetr_slots": getattr(self, "_rfdetr_status", []),   # F-8: 커스텀 가중치 실검사 결과
+                # [Q-3, 2026-08-10] 런타임 추론 실패 가시화 — 로드는 됐지만 매 프레임 예외로 실질
+                #   무응답인 슬롯을 여기서 잡는다(로드 성공 여부만 보는 rfdetr_slots 로는 못 잡음).
+                "slot_degraded": {k: v for k, v in self._slot_degraded.items() if v},
+                "predict_fail_streak": {k: v for k, v in self._predict_fail_streak.items() if v}}
 
     def _adaptive_ema(self, old: list[float], new: list[float]) -> float:
         """속도 적응형 EMA 계수(2.2 ①): 중심 이동량 d(정규화)가 클수록 a→EMA_MAX(고속=raw 즉각추종),
@@ -618,7 +629,12 @@ class GuardAgent(BaseAgent):
                 # person 등 COCO 클래스는 사전학습(rf_w="")으로 충분. forklift 등 T10b 파인튜닝은
                 #   perception.rfdetr_weights 의 커스텀 .pth 를 주입(자체 클래스 공간 → 어댑터가 class_names 로 매핑).
                 rf_w = self._rfdetr_weights.get(slot, "")
-                self._models[slot] = RfdetrDetector(rf_w, LABEL_NORMALIZE, JUNK_LABELS)
+                # [Q-3] 해상도는 RF-DETR 이 로드 시점에 컴파일 고정(optimize_for_inference() 제약,
+                #   detectors/rfdetr_adapter.py 클래스 docstring 참고) — self.IMGSZ(tuning.yaml
+                #   detect.imgsz)를 여기서 넘겨야 실제로 적용된다. 예전엔 이 인자가 없어 항상
+                #   라이브러리 기본값(384)으로 돌았다(dead parameter, benchmarks/
+                #   p3_1_resolution_ab_BLOCKED.md).
+                self._models[slot] = RfdetrDetector(rf_w, LABEL_NORMALIZE, JUNK_LABELS, resolution=self.IMGSZ)
             else:
                 from detectors.yolo_adapter import YoloDetector
                 self._models[slot] = YoloDetector(path, self.device, self.IMGSZ,
@@ -675,9 +691,29 @@ class GuardAgent(BaseAgent):
                 #   해상도 ↑(imgsz) + (오프라인) TTA + 검출기별 임계(건설모델은 높게 → 오탐 컷).
                 boxes = model.detect(image_bgr, conf=run_conf,
                                      imgsz=imgsz or self.IMGSZ, augment=augment)
-            except Exception as ex:  # noqa: BLE001  추론 실패해도 나머지 진행
+            except Exception as ex:  # noqa: BLE001  추론 실패해도 나머지 슬롯은 계속(저하 없음 원칙)
+                # [Q-3, 2026-08-10] 예전엔 이 예외가 _load_errors 에만 조용히 쌓이고 조용히 continue
+                #   해서, 겉으로는 정상 응답(200)인데 검출이 계속 0건인 "멀쩡해 보이는데 아무것도
+                #   안 보는" 상태가 됐다 — 안전 제품에서 가장 위험한 고장 모드. 이제 ERROR 로그를
+                #   반드시 남기고, 연속 실패가 임계 이상이면 DEGRADED로 표시해 /health 에 노출한다.
+                streak = self._predict_fail_streak.get(slot, 0) + 1
+                self._predict_fail_streak[slot] = streak
                 self._load_errors[slot] = f"predict: {type(ex).__name__}: {ex}"
+                _guard_logger().error(
+                    "검출 실패(slot=%s, 연속 %d회): %s: %s — 이 프레임은 해당 슬롯 결과 없이 진행",
+                    slot, streak, type(ex).__name__, ex)
+                if streak >= self.PREDICT_FAIL_DEGRADE_THRESHOLD and not self._slot_degraded.get(slot):
+                    self._slot_degraded[slot] = True
+                    _guard_logger().error(
+                        "★검출 슬롯 DEGRADED: slot=%s 연속 %d회 실패(임계 %d) — /health 에서 확인할 것",
+                        slot, streak, self.PREDICT_FAIL_DEGRADE_THRESHOLD)
                 continue
+            if self._predict_fail_streak.get(slot):     # 실패 스트릭 있었으면 복구 로그
+                if self._slot_degraded.get(slot):
+                    _guard_logger().info("검출 슬롯 복구: slot=%s (연속 %d회 실패 후 정상 복귀)",
+                                          slot, self._predict_fail_streak[slot])
+                self._predict_fail_streak[slot] = 0
+                self._slot_degraded[slot] = False
             used.append(slot)
             for d in boxes:
                 # 클래스별 임계 후필터(ppe·fire_smoke): 맵에 있으면 그 임계, 없으면 slot_conf 로 거른다.

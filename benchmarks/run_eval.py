@@ -130,8 +130,14 @@ def _gt_names(cfg: dict) -> list[str]:
     return list(names)
 
 
+_SPLIT_FILES: set[str] | None = None   # [P-0/Q-1] --split dev|test 시 main()이 채움. all=None(무필터)
+
+
 def _imgs(cfg: dict) -> list[Path]:
-    return sorted(p for p in cfg["images"].iterdir() if p.suffix.lower() in _IMG_EXT)
+    files = sorted(p for p in cfg["images"].iterdir() if p.suffix.lower() in _IMG_EXT)
+    if _SPLIT_FILES is not None:
+        files = [p for p in files if p.name in _SPLIT_FILES]
+    return files
 
 
 def _load_gt(cfg: dict, gt_names: list[str]):
@@ -221,7 +227,15 @@ def _predict_raw(weights: str, cfg: dict, gt_names: list[str], id_map: dict):
 
 
 def _predict_pipeline(cfg: dict, gt_names: list[str], id_map: dict):
-    """pipeline: 배포 guard.detect 경유 → COCO detections + latency. 모델은 vision.yaml 설정본."""
+    """pipeline: 배포 guard.detect 경유 → COCO detections + latency. 모델은 vision.yaml 설정본.
+
+    [Q-1, 2026-08-10] slot=="person" 평가는 운영 경로와 동일하게 detectors=["person","ppe"]로
+    함께 부른다(guard.PERSON_ENSEMBLE 기본 True — ppe 슬롯의 Person 클래스도 섞여 person
+    재현율에 반영됨). 실제 운영 경로(do_full/routers/ppe.py/routers/safety_core.py)가 이미
+    이렇게 두 슬롯을 같이 부르므로, person 슬롯만 단독 호출하던 예전 방식은 "모델 단독 성능"이지
+    "배포 시 실제로 나오는 값"이 아니었다(field_eval_results.md 56.7% 등 — 규칙7, 문서 정정은
+    benchmarks/field_eval_results_correction.md 참고). ppe/fire_smoke/forklift 슬롯 평가는
+    앙상블과 무관해 기존대로 단독 호출한다."""
     import sys
     sys.path.insert(0, str(_ROOT / "vigent-core"))
     import cv2
@@ -230,6 +244,7 @@ def _predict_pipeline(cfg: dict, gt_names: list[str], id_map: dict):
     bundle = M.STATE.get(M.DEFAULT_THEME) or M._load_theme(M.DEFAULT_THEME)
     guard = bundle["agents"].get("Guard")
     slot = cfg["slot"]
+    call_detectors = ["person", "ppe"] if slot == "person" else [slot]
     gt_cat = {_norm(n): i + 1 for i, n in enumerate(gt_names)}
     detections, latencies = [], []
     for i, p in enumerate(_imgs(cfg)):
@@ -243,7 +258,7 @@ def _predict_pipeline(cfg: dict, gt_names: list[str], id_map: dict):
         #   `_tracks_by_key`) — 서로 무관한 GT 이미지 사이에 트랙이 안 비워진 채 새던 버그(실측 확인).
         #   detect_isolated()로 교체(매 호출 고유 track_key 발급+전후 reset).
         t0 = time.perf_counter()
-        out = detect_isolated(guard, img, detectors=[slot])
+        out = detect_isolated(guard, img, detectors=call_detectors)
         dt_ms = (time.perf_counter() - t0) * 1000.0
         if i >= WARMUP:
             latencies.append(dt_ms)
@@ -274,6 +289,8 @@ def _predict_pipeline(cfg: dict, gt_names: list[str], id_map: dict):
         conf_used = {"base": conf_used, "per_class": dict(per_class)}
     return detections, latencies, {
         "model_source": f"vision.yaml 배포 설정(guard slot={slot})",
+        "detectors_called": call_detectors,   # [Q-1] person 평가는 운영과 동일하게 ["person","ppe"]
+        "person_ensemble": bool(getattr(guard, "PERSON_ENSEMBLE", True)) if slot == "person" else None,
         "imgsz": int(tuning.val("detect", "imgsz", IMGSZ)),
         "conf": conf_used if conf_used is not None else "guard 내부 기본값(tuning.yaml 미지정)",
         "config_source": "config/tuning.yaml detect.{imgsz,conf} 실측 — 모듈 상수 아님",
@@ -375,9 +392,24 @@ def main() -> None:
                     help="yolo raw 필수(.pt). rfdetr 는 선택(.pth, 없으면 COCO 사전학습). pipeline 은 vision.yaml")
     ap.add_argument("--dump-preds", default="",
                     help="예측(COCO detections)과 GT 를 이 경로(.json)에 저장 — 사후 분석용(측정 로직 불변)")
+    ap.add_argument("--split", default="all", choices=["all", "dev", "test"],
+                    help="[P-0/Q-1] field_eval_* 전용: dev/test 고정 분할로 필터. 그 외 데이터셋은 무시"
+                         "(경고 출력). test는 전 실험 종료 후 1회만 — 임의로 쓰지 말 것(원칙 위반).")
     args = ap.parse_args()
     if args.mode == "raw" and args.backend == "yolo" and not args.weights:
         ap.error("--mode raw --backend yolo 에는 --weights 가 필요합니다")
+
+    global _SPLIT_FILES
+    if args.split != "all":
+        if not args.dataset.startswith("field_eval"):
+            print(f"[경고] --split은 field_eval_* 데이터셋 전용이라 --dataset={args.dataset}엔 무시됨")
+        else:
+            split_path = _ROOT / "data" / "field_eval" / "dev_test_split.json"
+            split_data = json.loads(split_path.read_text(encoding="utf-8"))
+            _SPLIT_FILES = set(split_data[args.split])
+            print(f"[split={args.split}] {len(_SPLIT_FILES)}장으로 필터(dev_test_split.json)")
+            if args.split == "test":
+                print("★test 채점 — [P-0] 원칙: 전 실험 종료 후 단 1회만이어야 한다. 의도한 게 맞는지 확인할 것.")
 
     _set_seed()
     cfg = _DATASETS[args.dataset]
@@ -411,6 +443,7 @@ def main() -> None:
         "measures": ("표준 COCO baseline(원시 모델 능력)" if args.mode == "raw"
                      else "배포 운용점(guard.detect 후처리·운용 임계 반영)"),
         "dataset": args.dataset,
+        "split": args.split,   # [P-0/Q-1] all|dev|test — field_eval_* 아니면 항상 all
         "images_dir": str(cfg["images"].relative_to(_ROOT)),
         "num_images": len(gt["images"]),
         "gt_boxes": n_gt,

@@ -31,6 +31,8 @@ def _guard(person_boxes, ppe_boxes, person_ensemble: bool) -> guard_mod.GuardAge
     g = guard_mod.GuardAgent.__new__(guard_mod.GuardAgent)   # __init__ 우회 — 클래스 기본값(DETECTOR_CONF 등)은 그대로 유효
     g._models = {"person": _FakeModel(person_boxes), "ppe": _FakeModel(ppe_boxes)}
     g._load_errors = {}
+    g._predict_fail_streak = {}
+    g._slot_degraded = {}
     g._tracks_by_key = {}
     g._bytetrack_by_key = {}
     g._key_last_used = {}

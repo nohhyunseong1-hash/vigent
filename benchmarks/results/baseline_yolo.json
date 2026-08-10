@@ -453,20 +453,21 @@
       "backend": "yolo",
       "measures": "배포 운용점(guard.detect 후처리·운용 임계 반영)",
       "dataset": "field_eval_person",
+      "split": "dev",
       "images_dir": "data\\field_eval\\frames",
-      "num_images": 109,
-      "gt_boxes": 201,
-      "num_detections": 128,
-      "mAP@50": 55.34,
-      "mAP@50:95": 43.23,
+      "num_images": 74,
+      "gt_boxes": 157,
+      "num_detections": 131,
+      "mAP@50": 66.1,
+      "mAP@50:95": 62.02,
       "per_class_AP50": {
-        "person": 55.34
+        "person": 66.1
       },
       "per_class_AP5095": {
-        "person": 43.23
+        "person": 62.02
       },
-      "latency_ms_mean": 119.23,
-      "latency_frames_timed": 99,
+      "latency_ms_mean": 22.94,
+      "latency_frames_timed": 64,
       "latency_warmup_excluded": 10,
       "conf": 0.4,
       "iou_nms": "guard 내부",
@@ -474,8 +475,13 @@
       "seed": 0,
       "eval_method": "pycocotools COCOeval bbox (101-point interpolation)",
       "model_source": "vision.yaml 배포 설정(guard slot=person)",
+      "detectors_called": [
+        "person",
+        "ppe"
+      ],
+      "person_ensemble": true,
       "config_source": "config/tuning.yaml detect.{imgsz,conf} 실측 — 모듈 상수 아님",
-      "run_at": "2026-08-08 01:42"
+      "run_at": "2026-08-10 11:14"
     }
   },
   "field_eval_ppe": {
