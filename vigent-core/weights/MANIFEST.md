@@ -24,6 +24,24 @@
 | 클래스(10개, 체크포인트 `args.class_names` 실측) | `Hardhat, Mask, NO-Hardhat, NO-Mask, NO-Safety Vest, Person, Safety Cone, Safety Vest, machinery, vehicle` — VIGENT 7종 스킴(`person·Hardhat·NO-Hardhat·Safety-Vest·NO-Safety-Vest·Mask·NO-Mask`)과 정확히 매칭(대소문자·공백만 `guard.py LABEL_NORMALIZE`가 정규화), `Safety Cone`/`machinery`/`vehicle` 3개는 우리 스킴 밖(무시됨) |
 | 로드 검증 | `/health`의 `rfdetr_slots` → `ppe: state=LOADED`(2026-08-07 확인, `MISSING_FALLBACK` 아님) |
 
+### [W-1] 학습 데이터셋(css v27) 재확보 — 검증 결과 (2026-08-10)
+
+`data/datasets/css_safety`가 이 데스크탑에 없어(확인됨) 위 §학습 데이터셋의 v27이 로컬에
+부재했다. Roboflow REST API로 원본을 재확보하고 위 표의 기록과 대조 검증했다:
+
+| 항목 | MANIFEST 기록 | 재확보본 실측 | 일치 |
+|---|---|---|---|
+| 클래스(10개) | `Hardhat, Mask, NO-Hardhat, NO-Mask, NO-Safety Vest, Person, Safety Cone, Safety Vest, machinery, vehicle` | `data.yaml`의 `names` 필드가 순서·표기까지 동일 | ✅ |
+| 라이선스 | CC BY 4.0 | `data.yaml`의 `roboflow.license` = CC BY 4.0 | ✅ |
+| 출처 | v27 | `data.yaml`의 `roboflow.version`=27, `url`=`https://universe.roboflow.com/roboflow-universe-projects/construction-site-safety/dataset/27` | ✅ |
+| test 분할 수 | 82(기존 `vision.yaml` 주석 "test 82 box mAP@50 75.62%"와 일치) | 82장 실측(`test/images` 파일 수) | ✅ |
+| valid 분할 수 | (미기록) | 114장 | 참고 |
+| train 분할 수 | (미기록) | 2603장(API 메타데이터 상 증강 후 2605 — 2장 차이, 원인 미확인이나 나머지 전 항목이 정확히 일치해 동일 데이터셋으로 판단) | 대체로 일치 |
+
+**다운로드 경로**: Roboflow REST API(`api.roboflow.com/roboflow-universe-projects/construction-site-safety/27/yolov8?api_key=...`)로 export 링크를 얻어 zip(157.2MB) 다운로드 → `data/datasets/css_safety`에 압축 해제(YOLOv8 포맷, `train/valid/test` 각 `images/labels`). API 키는 기존 `.env`의 `ROBOFLOW_API_KEY`(이미 설정돼 있었음 — 새 발급 없음). `data/`는 `.gitignore` 대상이라 이 데이터셋 자체는 git에 안 들어간다.
+
+**참고(v27 자체 내장 증강, `data.yaml`이 아니라 API 메타데이터 `augmentation` 필드 실측)**: 이 v27 export는 Roboflow 플랫폼에서 이미 `versions:5`(원본 521장→train 2605장), `cutout`(2%, 6회), `blur`(0.5px), `rotate`(12˚) 등을 적용한 증강본이다 — [V-1]에서 만들 별도 person 가림/축소 증강과는 무관한, 데이터셋 자체의 기존 증강이니 혼동 주의.
+
 ### 정정(규칙7): "best_ema"가 아니라 "best_total"
 `themes/safety/vision.yaml`의 기존 주석은 이 가중치를 "Colab best_ema" 산출물로 적어뒀으나,
 실측 결과 **이 파일은 `checkpoint_best_total.pth`(120,910,843B)와 바이트 크기가 정확히 일치**한다

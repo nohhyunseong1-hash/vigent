@@ -219,6 +219,34 @@ r1_person_crop_ppe.md`. **운영 반영 없음**(채택 대상이 아니므로 �
 P-3-4 추가 라벨링 시에나 관련) 정도 — 낮은 우선순위로 유지. `field_eval_*` mAP@50:95 사용 금지
 명시(순환 오염, `field_eval_results.md` §2) · 회귀 추적 표 누적은 그대로 유효.
 
+**3-6. [V/W] 재학습 1라운드 증강 재설계 — 블러 폐기, 가림·축소로 전환. 완료(2026-08-10)**
+
+[U-0/S-1]의 "가설과 다르다"는 결론(위 3-4 인용문)을 받아 증강 처방을 다시 설계했다:
+
+- **[V-0]** 놓친 NO-Hardhat 40건 번호 판정 시트(`data/field_eval/s1_miss_montage/
+  no_hardhat_judge_sheet.jpg`) — 안전모/맨머리 구분 가능 여부를 사용자가 번호로 판정 중(결과
+  대기, [S-1]의 "정수리 각도" 육안 소견을 사용자 판정으로 확정하는 절차).
+- **[V-1]** 블러/JPEG/대비저하 증강 전면 폐기. 대신 NO-Hardhat 축소 증강(유지, 목표 폭
+  14~52px, [S-1] 실측 분포 기준) + person random erasing 가림 증강(신규, 차폐비율 20~55%는
+  [S-1] 몽타주 육안 관찰 기반 **추정치** — 정밀 측정 아님, 규칙7). kornia/albumentations
+  둘 다 미설치 확인 → 순수 OpenCV/NumPy 구현. 미리보기 30장:
+  `data/field_eval/v1_augmentation_preview/scale_*.jpg`, `erase_*.jpg`(`benchmarks/
+  v1_augmentation_preview.py`).
+- **[W-1]** css v27(`data/datasets/css_safety`) 재확보 — Roboflow REST API로 export를 받아
+  MANIFEST.md 기록과 대조(클래스 10종 순서까지 정확히 일치, 라이선스 CC BY 4.0 일치, test
+  분할 82장 일치 — 상세: `vigent-core/weights/MANIFEST.md` §[W-1]). 이를 이용해 copy-paste
+  가림 증강(machinery/vehicle/Safety Cone 오브젝트를 person 위에 오려붙임)을 구현, 미리보기
+  30장 추가: `v1_augmentation_preview/copypaste_*.jpg`(`benchmarks/v1b_copypaste_occlusion.py`).
+- **[V-2/W-2]** Roboflow Universe에서 고각도/탑다운 CCTV 시점, 작업자세 다양성(쪼그림·숙임)
+  전용 공개셋을 검색 → 이름이 맞는 후보는 못 찾음(전부 일반 PPE 데이터셋). 대표 프로젝트 4개의
+  공개 미리보기 썸네일을 각 1장씩 열람(다운로드 없이 열람만, WebFetch가 Roboflow 봇 차단으로
+  막혀 페이지 갤러리 직접 열람은 불가) — **4개 전부 눈높이/지상 촬영, 탑다운·크라우칭 구도
+  없음**(★표본 1장/프로젝트라 통계적 "%" 비율은 낼 수 없다 — 규칙7, 정성적 방향만 일관됨).
+  **결론(사용자 지시 반영): 고각도/자세다양성 전용 공개셋은 확인 범위 내에서 없음 → 필요하면
+  직접 수집(자체 CCTV 각도로 촬영/라벨링)이 유일한 경로로 보인다.**
+
+**아직 미실행**: 학습 실행 자체(승인 대기), [V-0] 판정 시트 사용자 응답 대기.
+
 ---
 
 ## 2. 하지 말아야 할 것 (근거 있는 반대)
