@@ -12,6 +12,15 @@ mismatch`가 난다(실측 확인, `benchmarks/p3_1_resolution_ab_BLOCKED.md`). 
 `resolution` 을 받아 로드 시점에 적용하고(호출자는 `config/tuning.yaml` `detect.imgsz`), 매 호출의
 `detect(..., imgsz=)` 는 **참고용 검증만** 한다 — 로드된 해상도와 다르면 조용히 무시하지 않고
 경고를 낸다(예전엔 매개변수를 받고 그냥 버렸다 — dead parameter, 재발 방지).
+
+[C-3, 2026-08-12] 저가 CPU 박스 배포용 ONNX 백엔드 — `config/tuning.yaml` `detect.backend:
+onnx-cpu` + 슬롯 가중치와 같은 이름의 `.onnx` 파일(`vigent-core/weights/<이름>.onnx`)이
+있으면 `_OnnxRfdetrModel`(onnxruntime CPU)을 쓴다. `RFDETRNano.predict()`와 같은 인터페이스
+(`.predict(pil, threshold)` → `.xyxy/.confidence/.class_id`, `.class_names`)로 감싸서
+`detect()` 본문(letterbox·finalize_box·클래스 매핑)은 백엔드 무관하게 1글자도 안 바뀐다 —
+실측(`benchmarks/onnx_cpu_bench.md`)으로 torch 대비 CPU 1.85배·정확도 손실 0 확인된 조합만
+그대로 서빙 경로에 옮긴 것. `.onnx` 파일이 없거나 로드 실패하면 자동으로 torch 로 폴백한다
+(규칙6 — onnx-cpu 설정해도 슬롯별로 부분 적용이 안전하게 동작).
 """
 from __future__ import annotations
 
@@ -21,6 +30,81 @@ from typing import Any
 from .base import BaseDetector, finalize_box
 
 _LOG = logging.getLogger("vigent.rfdetr_adapter")
+
+# [C-3] ONNX 전처리 상수 — rfdetr/detr.py predict() 내부 값과 동일(F.to_tensor→F.resize
+#   [bilinear+antialias 기본값]→F.normalize 순서, benchmarks/onnx_cpu_bench.md 에서 검증:
+#   이 순서·값이 아니면(예: PIL 기본 보간 BICUBIC) torch 대비 정확도가 떨어진다 — 절대 임의로
+#   바꾸지 말 것, 바꾸려면 [C-3] 회귀 테스트(tests/test_rfdetr_onnx_parity.py)로 재검증).
+_ONNX_MEAN = [0.485, 0.456, 0.406]
+_ONNX_STD = [0.229, 0.224, 0.225]
+_ONNX_NUM_SELECT = 300
+
+
+class _OnnxDet:
+    """RFDETRNano.predict() 반환값(supervision.Detections)과 부분 호환 — .xyxy/.confidence/
+    .class_id 만 필요(rfdetr_adapter.detect() 가 쓰는 필드 전부)."""
+
+    def __init__(self, xyxy: Any, confidence: Any, class_id: Any) -> None:
+        self.xyxy = xyxy
+        self.confidence = confidence
+        self.class_id = class_id
+
+    def __len__(self) -> int:
+        return len(self.xyxy)
+
+
+class _OnnxRfdetrModel:
+    """RFDETRNano 와 같은 `.predict(pil, threshold)`·`.class_names` 인터페이스를 제공하는
+    onnxruntime CPU 래퍼([C-3]). 클래스 이름은 export 시 ONNX 메타데이터에 심어둔
+    `rfdetr_notes`(JSON)에서 읽는다(torch 모델을 아예 안 띄워도 되게 — 저가 박스에서 torch
+    GPU 빌드 없이도 동작). 후처리는 rfdetr 공식 `PostProcess`를 그대로 재사용(재구현 안 함 —
+    회귀 위험 최소화)."""
+
+    def __init__(self, onnx_path: Any, requested_resolution: int) -> None:
+        import json
+
+        import onnx
+        import onnxruntime as ort
+        from rfdetr.models.postprocess import PostProcess
+
+        self._session = ort.InferenceSession(str(onnx_path), providers=["CPUExecutionProvider"])
+        self._input_name = self._session.get_inputs()[0].name
+        self._postprocess = PostProcess(num_select=_ONNX_NUM_SELECT)
+
+        notes: dict[str, Any] = {}
+        m = onnx.load(str(onnx_path))
+        for p in m.metadata_props:
+            if p.key == "rfdetr_notes":
+                notes = json.loads(p.value)
+                break
+        self.class_names: list[str] = list(notes.get("class_names") or [])
+        if not self.class_names:
+            raise ValueError(f"ONNX 메타데이터에 class_names 없음(재변환 필요): {onnx_path}")
+        meta_res = int(notes.get("resolution") or requested_resolution)
+        if meta_res != requested_resolution:
+            _LOG.warning(
+                "ONNX(%s) 는 해상도 %d로 export됐는데 요청 해상도는 %d — ONNX 그래프는 고정 입력"
+                "shape라 요청값을 무시하고 %d를 쓴다(config/tuning.yaml detect.imgsz 를 바꾸려면 "
+                "이 .onnx도 그 해상도로 재변환해야 함).", onnx_path, meta_res, requested_resolution, meta_res)
+        self.resolution = meta_res
+
+    def predict(self, pil_image: Any, threshold: float = 0.5, **_kwargs: Any) -> _OnnxDet:
+        import numpy as np
+        import torch
+        import torchvision.transforms.functional as TF
+
+        w, h = pil_image.size
+        img_tensor = TF.to_tensor(pil_image)                              # PIL → [0,1] float CHW
+        img_tensor = TF.resize(img_tensor, [self.resolution, self.resolution])  # bilinear+antialias(rfdetr 기본)
+        img_tensor = TF.normalize(img_tensor, _ONNX_MEAN, _ONNX_STD)
+        arr = img_tensor.unsqueeze(0).numpy().astype(np.float32)
+        dets, labels = self._session.run(None, {self._input_name: arr})
+        outputs = {"pred_logits": torch.from_numpy(labels), "pred_boxes": torch.from_numpy(dets)}
+        target_sizes = torch.tensor([[h, w]])
+        result = self._postprocess(outputs, target_sizes)[0]
+        scores, lbls, boxes = result["scores"], result["labels"], result["boxes"]
+        mask = scores >= threshold
+        return _OnnxDet(boxes[mask].numpy(), scores[mask].numpy(), lbls[mask].numpy())
 
 # 세로형 입력에서만 정사각 패딩(coord-letterbox). H/W(세로/가로 비)가 이 값을 넘으면 패딩한다.
 #   근거(실측 scratchpad/coord_onset.py): 가로형(H/W<1)·정사각(1.0)은 좌표오차 ≤2px 로 정상이나,
@@ -52,24 +136,43 @@ class RfdetrDetector(BaseDetector):
     def __init__(self, weights: str, label_normalize: dict, junk: set, resolution: int | None = None):
         import sys
         from pathlib import Path
-        sys.path.insert(0, str(Path(__file__).resolve().parent.parent))  # device 모듈 경로
+        sys.path.insert(0, str(Path(__file__).resolve().parent.parent))  # device·tuning 모듈 경로
         import device as _device
-        from rfdetr import RFDETRNano  # lazy import
-        dev = _device.pick_device(prefer_mps=True)   # RF-DETR 은 MPS 안전
-        kwargs: dict[str, Any] = {"device": dev}
-        if weights:
-            kwargs["pretrain_weights"] = weights   # 커스텀 파인튜닝(있으면), 없으면 COCO 사전학습
-        if resolution:
-            kwargs["resolution"] = _round_resolution(int(resolution))   # [Q-3] 로드 시점 해상도(없으면 기본 384)
-        self.model = RFDETRNano(**kwargs)
-        # [Q-3] 실제로 적용된 해상도를 모델 설정에서 그대로 읽는다(요청값이 block_size 배수가 아니면
-        #   라이브러리가 조정할 수 있어, "요청값"이 아니라 "실제 로드값"을 신뢰한다).
-        self.resolution = int(getattr(self.model.model_config, "resolution", resolution or 384))
-        try:
-            self.model.optimize_for_inference()
-        except Exception:  # noqa: BLE001  최적화 실패해도 추론은 가능
-            pass
-        self.device = dev
+        import tuning
+        res_req = _round_resolution(int(resolution)) if resolution else None
+
+        # [C-3] onnx-cpu 배선 — 슬롯 가중치와 이름이 같은 .onnx 가 있을 때만 적용, 없거나 로드
+        #   실패하면 조용히 torch 로 폴백(규칙6 — onnx-cpu 설정해도 슬롯별 부분 적용이 안전).
+        infer_backend = str(tuning.val("detect", "backend", "torch", env="VIGENT_DETECT_BACKEND")).strip().lower()
+        onnx_path = Path(weights).with_suffix(".onnx") if weights else None
+        use_onnx = infer_backend == "onnx-cpu" and onnx_path is not None and onnx_path.exists()
+        if use_onnx:
+            try:
+                self.model = _OnnxRfdetrModel(onnx_path, res_req or 384)
+                self.resolution = self.model.resolution
+                self.device = "cpu"
+                _LOG.info("RF-DETR ONNX 백엔드 사용(저가 CPU 배포): %s", onnx_path.name)
+            except Exception:  # noqa: BLE001  ONNX 로드 실패 → torch 로 폴백(무중단)
+                _LOG.warning("ONNX 백엔드 로드 실패(%s) — torch 로 폴백", onnx_path, exc_info=True)
+                use_onnx = False
+
+        if not use_onnx:
+            from rfdetr import RFDETRNano  # lazy import
+            dev = _device.pick_device(prefer_mps=True)   # RF-DETR 은 MPS 안전
+            kwargs: dict[str, Any] = {"device": dev}
+            if weights:
+                kwargs["pretrain_weights"] = weights   # 커스텀 파인튜닝(있으면), 없으면 COCO 사전학습
+            if res_req:
+                kwargs["resolution"] = res_req   # [Q-3] 로드 시점 해상도(없으면 기본 384)
+            self.model = RFDETRNano(**kwargs)
+            # [Q-3] 실제로 적용된 해상도를 모델 설정에서 그대로 읽는다(요청값이 block_size 배수가 아니면
+            #   라이브러리가 조정할 수 있어, "요청값"이 아니라 "실제 로드값"을 신뢰한다).
+            self.resolution = int(getattr(self.model.model_config, "resolution", resolution or 384))
+            try:
+                self.model.optimize_for_inference()
+            except Exception:  # noqa: BLE001  최적화 실패해도 추론은 가능
+                pass
+            self.device = dev
         self._ln = label_normalize
         self._junk = junk
         self._imgsz_warned: set[int] = set()   # [Q-3] 같은 불일치값으로 매 프레임 로그 스팸 방지(1회만)

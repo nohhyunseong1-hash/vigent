@@ -47,13 +47,17 @@ rfdetr==1.8.0
 #    opencv-python==<기존 버전>`으로 복원 필요(2026-08-10 실측·조치).
 supervision==0.29.0.post0
 trackers==2.4.0
-# ⚠️ [C-2, 2026-08-11] ONNX 내보내기(.export())·양자화하려면 추가로 `pip install "rfdetr[onnx]"
-#    onnxsim==0.4.36`(0.5.0+는 cmake 빌드 필요·prebuilt wheel 없음 — 반드시 0.4.36 핀) 필요
-#    (onnx·onnxsim·onnx_graphsurgeon·polygraphy — 추론 서버엔 불필요, 변환 작업 시에만).
-#    실측 결과(benchmarks/onnx_cpu_bench.md): ONNX Runtime fp32가 torch fp32 대비 CPU 추론
-#    1.85배 빠르고 정확도 손실 0(dev 74장 person/PPE/NO-Hardhat 전부 동일) — 단 아직 실제
-#    서빙 경로(detectors/rfdetr_adapter.py)에는 배선하지 않았다(이번 스코프는 측정까지).
-#    torch/torchvision/numpy 보호 절차 동일 적용, 실측 불변 확인(2026-08-11).
+onnx==1.22.0                 # [C-3, 2026-08-12] detect.backend=onnx-cpu 서빙 경로가 런타임에도
+#    씀(_OnnxRfdetrModel 이 ONNX 메타데이터의 class_names 를 읽음, detectors/rfdetr_adapter.py).
+#    기본값(detect.backend=torch)에서는 import 만 되고 실사용 안 함 — 있어도 무해.
+# ⚠️ [C-2, 2026-08-11] ONNX 변환(.export())·양자화 자체를 하려면(서빙이 아니라 .onnx 파일을
+#    새로 만드는 1회성 작업) 추가로 `pip install "rfdetr[onnx]" onnxsim==0.4.36`(0.5.0+는
+#    cmake 빌드 필요·prebuilt wheel 없음 — 반드시 0.4.36 핀) 필요(onnxsim·onnx_graphsurgeon·
+#    polygraphy — 변환 작업자 머신에만, 배포 서버엔 불필요). 실측 결과(benchmarks/
+#    onnx_cpu_bench.md): ONNX Runtime fp32가 torch fp32 대비 CPU 추론 1.85배 빠르고 정확도
+#    손실 0(dev 74장 person/PPE/NO-Hardhat 전부 동일) — [C-3]에서 실제 서빙 경로에 배선
+#    완료(config/tuning.yaml detect.backend, md/DEPLOYMENT.md §5.2). torch/torchvision/numpy
+#    보호 절차 동일 적용, 실측 불변 확인(2026-08-11).
 # ultralytics(AGPL): 배포 제거 완료(A-4, T10b — person/ppe/fire_smoke/forklift 전부 RF-DETR 이관).
 #   YOLO baseline 측정용으로만 requirements-eval.txt 에 잔존. 라이브 경로 ultralytics 0건(런타임 실증).
 

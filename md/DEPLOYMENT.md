@@ -142,3 +142,31 @@ lsof -nP -iTCP:8010 -sTCP:LISTEN   # 아무것도 안 나와야 정상
    원인 안내 출력).
 
 > ⚠️ 이 스위치들은 **위험한 기본동작을 명시 opt-in 뒤로 숨긴 것**이다. 켤 때는 이유를 알고 켠다.
+
+### 5.2 저가 CPU 박스 배포 — `detect.backend: onnx-cpu`
+
+GPU 없는 저가 미니PC(N100급·중고 사무용 PC 등)에 배포할 때 켜는 설정. `config/tuning.yaml`
+`detect.backend`를 `onnx-cpu`로 바꾸면(기본값은 `torch`) PPE 검출(현재 `ppe_rfdetr_v1`
+슬롯)이 ONNX Runtime CPU로 돈다 — 실측(`benchmarks/onnx_cpu_bench.md`, [C-2]) 근거:
+torch CPU 대비 **1.85배 빠르고 dev 74장 person/PPE/NO-Hardhat 정확도 손실 0**.
+
+1. **전제**: `vigent-core/weights/ppe_rfdetr_v1.onnx`가 있어야 한다(gitignore 대상이라
+   git에는 안 들어있음 — `vigent-core/weights/MANIFEST.md`의 변환 커맨드로 직접 생성하거나
+   기존 파일을 박스에 복사). 이 파일이 없으면 `detect.backend: onnx-cpu`를 켜도 **자동으로
+   torch로 폴백**한다(규칙6 — 설정만 켜고 파일을 깜빡해도 서버가 죽거나 조용히 검출이
+   빠지지 않음, 로그에 "ONNX 백엔드 로드 실패 — torch로 폴백" 경고만 남는다).
+2. **적용 범위**: 슬롯별 `.onnx` 파일이 있는 슬롯만 ONNX로 바뀐다 — 지금은 `ppe`만 해당
+   (`person`은 커스텀 파인튜닝이 없어 애초에 COCO 사전학습 torch 경로, `forklift`/
+   `fire_smoke`는 이 desktop에 가중치 자체가 없음). 나머지 슬롯은 그대로 torch(또는
+   COCO 폴백)로 동작 — 부분 적용이 정상 동작이다.
+3. **설정 방법**: `config/tuning.yaml`의 `detect: backend: onnx-cpu`로 수정 후 재기동.
+   즉시 확인 없이 스모크만 해보고 싶으면 재기동 전 `VIGENT_DETECT_BACKEND=onnx-cpu`
+   환경변수로 임시 override 가능(tuning.yaml보다 우선, 파일을 안 건드리고 1회성 확인용).
+4. **회귀 확인**: `tests/test_rfdetr_onnx_parity.py`가 torch/ONNX 두 백엔드의 검출 결과가
+   같은 이미지에서 사실상 일치하는지 잠근다(이 desktop처럼 `.onnx`/`.pth` 둘 다 있는
+   환경에서만 실행, 없으면 스킵).
+5. **스모크(2026-08-12 실측)**: 파일 카메라 2대·`detect.backend`를 onnx-cpu로 설정한 실서버에서
+   확인 — 검출 정상(`ppe_missing` 등 이벤트 정상 발생), `/detect/frame`(person+ppe+fire_smoke
+   전체 파이프라인, 카메라 2대 동시 부하 상태) p50 **184.3ms**·p95 366.7ms. 최초 기동 직후
+   두 워커가 동시에 모델을 지연 로드하며 각 2회씩 hang이 발생했으나(콜드스타트 경합,
+   15초 초과) 이후 안정화돼 재발하지 않았다 — 워밍업 여유를 두고 배포할 것.

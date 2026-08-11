@@ -19,6 +19,13 @@ crowd:
   threshold: 6              # 인원 이 수 이상 몰리면 군집 위험
 
 detect:                     # 탐지 공통
+  backend: torch             # [C-3] RF-DETR 추론 백엔드: torch(기본, 개발기 GPU 포함 현행 그대로) |
+    # onnx-cpu(저가 CPU 박스 배포용 — ONNX Runtime fp32, benchmarks/onnx_cpu_bench.md 실측
+    # 근거: torch CPU 대비 1.85배 빠르고 dev 74장 정확도 손실 0). onnx-cpu 는 슬롯별 .onnx
+    # 파일(vigent-core/weights/<이름>.onnx)이 있어야 적용되고, 없는 슬롯은 자동으로 torch로
+    # 폴백한다(규칙6 — 부분 적용도 안전). 이 desktop 기본값은 torch — onnx-cpu 로 바꿔도
+    # 아무것도 안 바뀌는 게 기본 동작(opt-in). VIGENT_DETECT_BACKEND 환경변수로도 override
+    # 가능(이 값이 최우선 — 스모크·테스트용, tuning.yaml 재기동 없이 확인할 때).
   cooldown_s: 15            # 같은 위험 재기록 최소 간격(초)
   imgsz: 384                # [Q-2/Q-3, 2026-08-10 정정] RF-DETR 은 이 값을 로드 시점에 컴파일
     # 고정한다(rfdetr_adapter.py). ★기존 960은 [Q-3] 이전엔 죽은 매개변수라 실제 적용된 적이

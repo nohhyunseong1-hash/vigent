@@ -56,6 +56,29 @@ EMA 전용 키가 없다(EMA 사본이었다면 보통 구분되는 키가 있�
 (측정 자체가 Colab에서 이뤄져 로컬 아티팩트가 없음). **이 파일(best_total)에 대해 로컬로 새로
 측정된 mAP는 아직 없다** — 76.62%를 이 파일의 실측치로 그대로 인용하지 말 것(모른다 — 규칙7).
 
+## ppe_rfdetr_v1.onnx ([C-3] 저가 CPU 박스 배포용 ONNX fp32, 2026-08-12)
+
+`ppe_rfdetr_v1.pth`를 ONNX로 변환한 것 — `config/tuning.yaml`의 `detect.backend:
+onnx-cpu` 설정 시 이 파일을 로드한다(`detect.backend: torch`가 기본값이면 이 파일은
+쓰이지 않는다). 근거: `benchmarks/onnx_cpu_bench.md`([C-2]) — torch fp32 대비 CPU
+추론 1.85배 빠르고 dev 74장 person/PPE/NO-Hardhat 재현율 전부 동일(정확도 손실 0 확인).
+
+| 항목 | 값 |
+|---|---|
+| 파일명 | `ppe_rfdetr_v1.onnx` |
+| SHA256 | `beb80941a2c920e87113af89d7e9265852c8f7abc47c4f9607847667f6da8a2a` |
+| 바이트 크기 | `115033243` |
+| 배치 경로 | `vigent-core/weights/ppe_rfdetr_v1.onnx`(gitignore 대상, 이 표만 커밋) |
+| 원본 pth SHA256 | `3380fa7d4bb1be878698535d575050e13a52330ffab0d37a16dd0a16c50bf570`(위 `ppe_rfdetr_v1.pth`와 동일 — 같은 가중치에서 변환) |
+| 변환일 | 2026-08-12(이 데스크탑) |
+| 변환 커맨드 | ```python\nfrom rfdetr import RFDETRNano\nm = RFDETRNano(device="cpu", pretrain_weights="vigent-core/weights/ppe_rfdetr_v1.pth", resolution=384)\nm.export(output_dir="vigent-core/weights", format="onnx", opset_version=17, notes=json.dumps({...}))\n``` (전체는 `benchmarks/onnx_cpu_bench.md` §재현 방법) — 출력 파일명이 `rfdetr-nano.onnx` 고정이라 수동으로 `ppe_rfdetr_v1.onnx`로 rename 필요 |
+| opset | 17 |
+| 변환 시 패키지 버전 | rfdetr 1.8.0 · onnx 1.22.0 · onnxruntime 1.27.0 · torch 2.12.0+cu130(export 자체는 CPU로 실행, GPU 무관) |
+| 클래스 이름 | ONNX 메타데이터 `rfdetr_notes`(JSON)에 `class_names` 포함 — 위 pth와 동일 10종. 런타임이 이 메타데이터를 읽어 클래스 매핑(torch 경로처럼 `model.class_names`에 의존하지 않음, ONNX 단독 로드 가능) |
+| 입출력 shape | `input`(1,3,384,384) → `dets`(1,300,4, 정규화 cxcywh) · `labels`(1,300,11, raw logits — sigmoid+topk 후처리 필요, `rfdetr.models.postprocess.PostProcess` 재사용) |
+| 정확도 검증 | `benchmarks/results/c2_onnx_cpu_bench.json`(dev 74장, torch와 완전 동일 결과) |
+| 재변환 시 검증 | `benchmarks/c2_onnx_cpu_bench.py --backend onnx_fp32 --onnx-path vigent-core/weights/ppe_rfdetr_v1.onnx`로 dev 74장 재채점해 위 수치와 같은지 확인할 것 |
+
 ## 그 외 vision.yaml 참조 가중치 (이 데스크탑엔 없음 — 확인되는 대로 채울 것)
 
 | 파일명 | 슬롯 | 상태 |
