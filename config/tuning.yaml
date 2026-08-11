@@ -73,6 +73,12 @@ retention:                   # [Z-2] 디스크 보존 정책(scripts/retention_s
 upload:                      # [S2-수정] 이미지 업로드(data URL) 상한 — 대량 페이로드 메모리고갈 방지
   max_image_mb: 10            # 정상 프레임(수백KB~수MB)엔 영향 없음. 초과 시 413.
 
+auth:                         # [S3-후속1] 브라우저 세션(/login 쿠키) — auth_session.py
+  session_ttl_hours: 12       # 세션 만료(재기동 시에도 전부 무효화됨 — 별도)
+  lockout_threshold: 5        # 이 횟수 로그인 실패 시 잠금
+  lockout_window_min: 15      # 이 시간 내 실패만 집계(창 밖 실패는 자동 만료)
+  lockout_duration_min: 15    # 잠금 유지 시간
+
 hub:                        # 대시보드 확대뷰
   focus_fps: 5              # 3.12: 확대뷰 focus 시 루프 fps. ②(차등 캐던스)로 person 만 5fps·풀세트는
     # fullset_fps(2) 유지 → GPU 예산 305ms/s(구 5fps 풀세트 425 대비↓)라 safety-local 동시에도 여유(S3 150ms 실측).

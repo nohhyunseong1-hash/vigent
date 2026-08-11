@@ -40,6 +40,7 @@ files = [
     "vigent-core/zone_tile.py",
     "vigent-core/zone_geom.py",
     "vigent-core/ws_auth.py",
+    "vigent-core/auth_session.py",
     "vigent-core/routers/vitals.py",
     "vigent-core/routers/dispatch.py",
     "vigent-core/routers/system.py",
@@ -64,6 +65,7 @@ module = [
     "zone_tile",
     "zone_geom",
     "ws_auth",
+    "auth_session",
 ]
 disallow_untyped_defs = true
 disallow_incomplete_defs = true

@@ -17,14 +17,16 @@ from __future__ import annotations
 
 import asyncio
 import hmac
+import html
 import os
 import sys
 import threading
 import traceback
 from pathlib import Path
+from urllib.parse import quote
 
 from fastapi import FastAPI, Request
-from fastapi.responses import JSONResponse
+from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 
 # .env 의 비밀키(텔레그램·웹훅 등)를 환경변수로 로드(있으면). 없어도 무해.
@@ -41,6 +43,7 @@ if str(_HERE) not in sys.path:
     sys.path.insert(0, str(_HERE))
 
 
+import auth_session  # noqa: E402  [S3-후속1] 브라우저 세션(로그인 쿠키)
 import vlog  # noqa: E402  로깅 인프라(C-S1)
 
 # 공유 런타임 상태는 app_state.py 로 분리(P1-7) — 라우터들이 main 을 import 하지 않고 공유.
@@ -77,6 +80,71 @@ _log = vlog.get("vigent")               # print 대체 — 콘솔+파일 로테�
 # DEFAULT_THEME 는 app_state.py 로 분리(P1-7) — 위 import 에서 가져온다.
 
 app = FastAPI(title="VIGENT Core", version=product_version())
+
+
+# ── [S3-후속1] 브라우저 로그인(세션 쿠키) — routers/safety_core.py 의 '/{theme}' catch-all
+#   보다 반드시 먼저 등록해야 한다(라우트는 등록 순서로 매칭 — 뒤에 두면 '/login'이 theme=
+#   "login" 으로 오인돼 404 난다. 실제로 처음 구현 때 이 문제로 걸림돌이 됐음). ──
+def _safe_next(raw: str) -> str:
+    """오픈 리다이렉트 방지: 우리 서버 내부의 절대경로만 허용(예: '//evil.com' 등 프로토콜
+    상대 경로·외부 URL 차단)."""
+    if raw.startswith("/") and not raw.startswith("//") and "\\" not in raw:
+        return raw
+    return "/"
+
+
+def _login_page_html(next_path: str, error: str = "") -> str:
+    nxt = html.escape(next_path, quote=True)
+    err_html = f'<p style="color:#c00">{html.escape(error)}</p>' if error else ""
+    return f"""<!doctype html><html lang="ko"><head><meta charset="utf-8">
+<title>VIGENT 로그인</title>
+<meta name="viewport" content="width=device-width, initial-scale=1"></head>
+<body style="font-family:sans-serif;max-width:360px;margin:80px auto;padding:0 16px">
+<h2>VIGENT 로그인</h2>
+{err_html}
+<form method="post" action="/login">
+<input type="hidden" name="next" value="{nxt}">
+<label>API 토큰<br><input type="password" name="token" autofocus
+  style="width:100%;padding:8px;box-sizing:border-box"></label><br><br>
+<button type="submit" style="padding:8px 16px">로그인</button>
+</form>
+</body></html>"""
+
+
+@app.get("/login", response_class=HTMLResponse)
+def login_page(next: str = "/"):
+    return _login_page_html(_safe_next(next))
+
+
+@app.post("/login")
+async def login_submit(request: Request):
+    form = await request.form()
+    next_path = _safe_next(str(form.get("next", "/")))
+    token = str(form.get("token", ""))
+    ip = request.client.host if request.client else "unknown"
+    if auth_session.is_locked(ip):
+        return HTMLResponse(
+            _login_page_html(next_path, "로그인 시도가 너무 많습니다 — 잠시 후 다시 시도하세요."),
+            status_code=429)
+    if not _API_TOKEN or not auth_session.check_token(token, _API_TOKEN):
+        auth_session.record_failure(ip)
+        return HTMLResponse(_login_page_html(next_path, "토큰이 올바르지 않습니다."), status_code=401)
+    auth_session.clear_failures(ip)
+    sid = auth_session.create_session()
+    resp = RedirectResponse(next_path, status_code=303)
+    resp.set_cookie(auth_session.SESSION_COOKIE, sid, httponly=True, samesite="lax",
+                     max_age=int(auth_session.SESSION_TTL_S))
+    return resp
+
+
+@app.post("/logout")
+def logout(request: Request):
+    auth_session.revoke_session(request.cookies.get(auth_session.SESSION_COOKIE))
+    resp = RedirectResponse("/login", status_code=303)
+    resp.delete_cookie(auth_session.SESSION_COOKIE)
+    return resp
+
+
 app.include_router(_tapo_router.router)   # /tapo/* (P1-7)
 app.include_router(_vitals_router.router)   # /vitals/* (P1-7)
 app.include_router(_zone_router.router)   # /zone/* (P1-7)
@@ -116,8 +184,10 @@ if _IS_LOOPBACK and not _API_TOKEN:
     sys.stderr.write(
         "[VIGENT 경고] VIGENT_API_TOKEN 미설정(로컬 무인증 모드). "
         "공유 네트워크·파일럿 환경에서는 VIGENT_API_TOKEN 설정이 필수입니다.\n")
-# 토큰 미설정(로컬)이면 인증 생략. 설정 시 아래 경로만 예외(모니터링·파비콘).
-_AUTH_EXEMPT = {"/health", "/favicon.ico"}
+# 토큰 미설정(로컬)이면 인증 생략. 설정 시 아래 경로만 예외(모니터링·파비콘·로그인 폼 자체).
+#   [S3-후속1] /login·/logout 은 로그인 발급 절차 자체라 인증 없이도 도달 가능해야 한다
+#   (요청 본문에 담긴 토큰은 여기서가 아니라 login_submit() 내부에서 hmac 상수시간 비교로 검증).
+_AUTH_EXEMPT = {"/health", "/favicon.ico", "/login", "/logout"}
 
 # ── DNS-rebinding 방어(item3, CODE_REVIEW §3.3): Host 헤더 허용목록 ──
 #   로컬 무토큰 모드는 전 라우트 무인증 → 악성 웹페이지가 DNS rebinding 으로 피해자 브라우저를 통해
@@ -147,8 +217,9 @@ def _host_only(raw: str) -> str:
 
 @app.middleware("http")
 async def _auth_guard(request, call_next):
-    """보안 게이트: ① Host 허용목록(DNS-rebinding 방어) ② VIGENT_API_TOKEN Bearer 검증.
-    토큰 미설정=로컬 개발 무인증이지만 Host 검증은 유지(무토큰 모드가 rebinding 에 가장 취약)."""
+    """보안 게이트: ① Host 허용목록(DNS-rebinding 방어) ② VIGENT_API_TOKEN Bearer 검증(+
+    [S3-후속1] 세션 쿠키 폴백). 토큰 미설정=로컬 개발 무인증이지만 Host 검증은 유지(무토큰
+    모드가 rebinding 에 가장 취약)."""
     if _ALLOWED_HOSTS is not None and request.method != "OPTIONS":
         host = _host_only(request.headers.get("host", ""))
         if host and host not in _ALLOWED_HOSTS:
@@ -157,7 +228,18 @@ async def _auth_guard(request, call_next):
         path = request.url.path
         if path not in _AUTH_EXEMPT:
             # 상수시간 비교(P0-3/P1-8): 타이밍 사이드채널로 토큰 추측 방지. compare_digest 는 길이 불일치도 안전.
-            if not hmac.compare_digest(request.headers.get("Authorization", ""), f"Bearer {_API_TOKEN}"):
+            ok = hmac.compare_digest(request.headers.get("Authorization", ""), f"Bearer {_API_TOKEN}")
+            if not ok:
+                # [S3-후속1] 브라우저는 Authorization 헤더를 실을 방법이 없다 — 로그인으로
+                # 발급된 세션 쿠키를 두 번째 인증 수단으로 인정한다(API/스크립트 클라이언트는
+                # 계속 Bearer 헤더만 쓰면 됨, 동작 불변).
+                ok = auth_session.validate_session(request.cookies.get(auth_session.SESSION_COOKIE))
+            if not ok:
+                # 브라우저의 평범한 페이지 이동(GET + Accept: text/html)만 로그인 페이지로
+                # 안내한다. API/AJAX 호출은 기존과 동일하게 401 JSON을 그대로 받는다(회귀 방지).
+                if request.method == "GET" and "text/html" in request.headers.get("accept", ""):
+                    nxt = quote(path, safe="")
+                    return RedirectResponse(f"/login?next={nxt}", status_code=303)
                 return JSONResponse({"detail": "unauthorized"}, status_code=401)
     return await call_next(request)
 

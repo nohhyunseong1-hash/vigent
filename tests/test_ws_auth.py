@@ -22,6 +22,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "vigent-core"))
 
+import auth_session  # noqa: E402
 import main  # noqa: E402
 from fastapi.testclient import TestClient  # noqa: E402
 from starlette.testclient import WebSocketDisconnect  # noqa: E402
@@ -66,6 +67,22 @@ class TestWsAuth(unittest.TestCase):
         os.environ.pop("VIGENT_API_TOKEN", None)
         with self.client.websocket_connect("/tapo/ws"):
             pass  # 토큰 미설정 = 기존 동작(무인증 통과) 불변
+
+    def test_ws_accepts_session_cookie(self):
+        """[S3-후속1] 브라우저 JS는 헤더를 못 실으므로, 로그인으로 발급된 세션 쿠키만으로도
+        WS 핸드셰이크가 통과해야 한다(같은 오리진 WS는 Cookie 헤더를 자동으로 실어 보냄)."""
+        os.environ["VIGENT_API_TOKEN"] = "secret-xyz"
+        prev_tok = main._API_TOKEN
+        main._API_TOKEN = "secret-xyz"
+        auth_session._sessions.clear()
+        try:
+            self.client.post("/login", data={"token": "secret-xyz", "next": "/"}, follow_redirects=False)
+            self.assertIn(auth_session.SESSION_COOKIE, self.client.cookies)
+            with self.client.websocket_connect("/tapo/ws"):   # 쿼리·헤더 토큰 없이 쿠키만
+                pass
+        finally:
+            main._API_TOKEN = prev_tok
+            auth_session._sessions.clear()
 
 
 if __name__ == "__main__":

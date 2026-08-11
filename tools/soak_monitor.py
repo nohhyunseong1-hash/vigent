@@ -84,13 +84,19 @@ def _args():
                    help="running<등록 허용 샘플비율. 기본 0.05")
     p.add_argument("--report-dir", default=str(_ROOT / "audit"), help="리포트 출력 디렉토리")
     p.add_argument("--tag", default="", help="리포트 파일명 접미(예: prod24h)")
+    p.add_argument("--token", default="", help="VIGENT_API_TOKEN(토큰 모드 서버 관측용). "
+                   "[S3] 미지원이었던 게 발견돼 추가 — 없으면 /workers·/recognition/log 가 "
+                   "전부 401나서 워커·경보 통계가 무효화된다(에러율 100%로 오판정).")
     return p.parse_args()
 
 
-def _get_json(url: str, path: str, timeout: float = 8.0):
+def _get_json(url: str, path: str, token: str = "", timeout: float = 8.0):
     """(ok, 본문dict|None). 실패해도 예외 대신 (False, None)."""
     try:
-        with urllib.request.urlopen(url.rstrip("/") + path, timeout=timeout) as r:
+        req = urllib.request.Request(url.rstrip("/") + path)
+        if token:
+            req.add_header("Authorization", f"Bearer {token}")
+        with urllib.request.urlopen(req, timeout=timeout) as r:
             body = r.read()
             if r.status != 200:
                 return False, None
@@ -202,7 +208,7 @@ def main():
     duration = _parse_duration(a.duration)
     proc = _proc_pick(a.pid)
 
-    ok0, _ = _get_json(a.url, "/health")
+    ok0, _ = _get_json(a.url, "/health", a.token)
     if not ok0:
         print(f"[soak] ❌ 사전 /health 실패 — 서버({a.url}) 미기동. 먼저 띄워라.")
         return 2
@@ -242,8 +248,8 @@ def main():
             next_sample += a.interval
 
             alive = _proc_alive(proc, a.pid)
-            h_ok, _hd = _get_json(a.url, "/health")
-            w_ok, wd = _get_json(a.url, "/workers")
+            h_ok, _hd = _get_json(a.url, "/health", a.token)
+            w_ok, wd = _get_json(a.url, "/workers", a.token)
             ps = _proc_sample(proc)
             sm = _sys_mem()
 
@@ -269,7 +275,7 @@ def main():
             error_events += new_errors
 
             # 경보 누적(events)
-            e_ok, ed = _get_json(a.url, "/recognition/log?limit=100000")
+            e_ok, ed = _get_json(a.url, "/recognition/log?limit=100000", a.token)
             alarms = len((ed or {}).get("events", [])) if e_ok else None
 
             fps_est = None
@@ -344,7 +350,7 @@ def main():
         if load_f is not None:
             load_f.close()
 
-    final_h_ok, _ = _get_json(a.url, "/health")
+    final_h_ok, _ = _get_json(a.url, "/health", a.token)
     return _report(a, duration, samples, server_died, died_at, final_h_ok,
                    workers_total, recovered_ok, recovered_fail, hang_recovered, hang_fail)
 
