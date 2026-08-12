@@ -63,7 +63,6 @@ from routers import safety_core as _safety_core_router  # noqa: E402
 from routers import system as _system_router  # noqa: E402
 from routers import tapo as _tapo_router  # noqa: E402
 from routers import tbm as _tbm_router  # noqa: E402
-from routers import vitals as _vitals_router  # noqa: E402
 from routers import zone as _zone_router  # noqa: E402
 
 # 공유 웹 헬퍼는 web_util.py 로 분리(P1-7) — 동일 이름 re-import(사용부 무변경)
@@ -146,7 +145,6 @@ def logout(request: Request):
 
 
 app.include_router(_tapo_router.router)   # /tapo/* (P1-7)
-app.include_router(_vitals_router.router)   # /vitals/* (P1-7)
 app.include_router(_zone_router.router)   # /zone/* (P1-7)
 app.include_router(_system_router.router)   # /health·/system/* (P1-7)
 app.include_router(_detect_router.router)   # /detect·/rfdetr·/segment (P1-7)
@@ -400,7 +398,7 @@ def root():
 # 아래는 '없으면 404 콘솔에러'만 막는 안전 스텁(빈 결과). 점진적으로 실제 구현 가능.
 
 
-# ── /vitals/* 는 routers/vitals.py 로 분리(P1-7) ──
+# ── /vitals/* rPPG 스텁은 [곁다리 정리, 2026-08-12] 미사용 확인돼 제거됨(routers/vitals.py) ──
 
 
 # 공유 정적 자원(realtime_core.js 등)

@@ -133,7 +133,7 @@ vigent-core/
   web_util.py        공유 웹 헬퍼: 이미지 디코드·박스·zone·안전라벨·웹훅 화이트리스트·_tpl·
                      _env_or_dotenv·_evidence_url·_product_version·_TBM_CSS
   routers/
-    tapo.py(3) vitals.py(1) zone.py(7) system.py(2) detect.py(4) cameras.py(11)
+    tapo.py(3) zone.py(7) system.py(2) detect.py(4) cameras.py(11)
     incident.py(3) tbm.py(6) ppe.py(7) recognition.py(4) dispatch.py(1) safety_core.py(57)
 ```
 파일 옆 숫자 = 라우트 데코레이터 수. 정확한 현재 총합은 `python scripts/check_openapi_diff.py`

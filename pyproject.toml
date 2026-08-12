@@ -41,7 +41,6 @@ files = [
     "vigent-core/zone_geom.py",
     "vigent-core/ws_auth.py",
     "vigent-core/auth_session.py",
-    "vigent-core/routers/vitals.py",
     "vigent-core/routers/dispatch.py",
     "vigent-core/routers/system.py",
     "vigent-core/routers/tapo.py",

@@ -109,44 +109,6 @@
         }
       }
     },
-    "/vitals/rppg": {
-      "post": {
-        "summary": "Stub Vitals",
-        "operationId": "stub_vitals_vitals_rppg_post",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "additionalProperties": true,
-                "type": "object",
-                "title": "Payload",
-                "default": {}
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {}
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
     "/zone/danger": {
       "get": {
         "summary": "Zone Danger",

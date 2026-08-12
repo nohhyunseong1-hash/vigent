@@ -46,7 +46,7 @@
     main.py            앱 인프라만(302줄): app 생성 · include_router · 미들웨어 · startup · `/` 루트
     app_state.py       공유 런타임 상태(STATE·DETECT_LOCK·load_theme 등) — main 미import
     web_util.py        공유 웹 헬퍼(이미지·zone·_tpl·_TBM_CSS 등) — main 미import
-    routers/           도메인별 APIRouter(P1-7 분할): tapo·vitals·zone·system·
+    routers/           도메인별 APIRouter(P1-7 분할): tapo·zone·system·
                        detect·incident·tbm·ppe·recognition·dispatch·safety_core·cameras
   themes/safety/       config/  data/  runs/  tests/  (office/sports는 [Z-3] 삭제됨)
 ~/Desktop/사업계획서/AX안전/        ← 기존 MVP (읽기 전용 참고)

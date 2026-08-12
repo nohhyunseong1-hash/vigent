@@ -1,4 +1,8 @@
-"""routers/recognition.py — 얼굴/출입 인식 로그 (P1-7 분할). main 미import.
+"""routers/recognition.py — 안전 이벤트 증거 로거(P1-7 분할). main 미import.
+
+★[곁다리 정리, 2026-08-12] 이름과 달리 얼굴인식이 아니다 — ppe_missing·zone_intrusion 등
+안전 판정 이벤트를 기록·조회하는 로그다(data_engine 기록소 배선, guard 판정 결과 저장).
+"recognition"은 "(위험) 인식" 의미로 붙은 이름이며 사람 신원 식별과 무관하다.
 
 /recognition/log(기록·조회)·/recognition/log/download(CSV)·/recognition/note(스텁).
 """
