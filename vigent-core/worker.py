@@ -480,6 +480,7 @@ class Worker:
         self._full_interval = 0.5                            # 3.12: 풀세트(person+ppe+fire) 검출 주기(초) — 이벤트 캐던스(불변)
         self._last_full_ts = 0.0                             # 3.12: 최신 풀세트 실행 시각
         self._last_nonperson: list = []                      # 3.12: 최신 비-person(ppe/fire) 박스 — person 고속 프레임에 지속
+        self._last_nonperson_noppe: list = []                # [T-E2E 후속] PPE 제외 비-person — focus 중 표시용(PPE 는 :pf 고속 담당)
         self._pose_lock = threading.Lock()                   # 3.10: 포즈 스레드↔메인 공유 보호
         self._pose_input: tuple | None = None                # (frame, person_boxes, t0) 최신 — 포즈 스레드가 소비
         self._pose_events: list = []                         # 포즈 스레드가 낸 발화(rule,level,note) — 메인이 드레인
@@ -665,21 +666,36 @@ class Worker:
             with lock:                            # 코어 추론 직렬화(브라우저와 충돌 방지)
                 self._last_frame = frame
                 disp_person = None
+                disp_ppe = None
                 _main_person: list = []
-                if focus_active:                  # person 고속(표시 전용) — :pf 풀로 5fps 일관 tid
-                    pout = guard.detect(frame, detectors=["person"], track_key="cam:" + str(ctx.name) + ":pf")
-                    disp_person = [_det_dict(d) for d in pout.get("detections", [])]
+                if focus_active:                  # person+PPE 고속(표시 전용) — :pf 풀로 focus fps 일관 tid
+                    # [T-E2E 후속] PPE 도 고속 경로에 포함 — "PPE 박스 무리만 반 박자 늦게 따라오는"
+                    #   체감(풀세트 2fps 캐던스, 최대 +500ms)을 해소. 표시 전용 상향이다:
+                    #   ① 이 호출의 signals 는 버린다(아래에서 detections 만 사용)
+                    #   ② 히스테리시스·트랙 상태는 track_key(:pf)별 격리(guard.py _hysteresis, line 793)
+                    #   ③ 이벤트·판정 입력은 여전히 아래 do_full(풀세트 2fps) 결과만 → 판정 캐던스 불변(규칙6)
+                    pout = guard.detect(frame, detectors=["person", "ppe"], track_key="cam:" + str(ctx.name) + ":pf")
+                    _pd = pout.get("detections", [])
+                    disp_person = [_det_dict(d) for d in _pd if d.get("label") == "person"]
+                    disp_ppe = [_det_dict(d) for d in _pd if d.get("label") != "person"]
                 if do_full:                       # 풀세트 — 2fps: 이벤트·PPE·화재·pose 입력(캐던스 불변)
                     self._last_full_ts = t0
                     out = guard.detect(frame, detectors=ctx.detectors, track_key="cam:" + str(ctx.name))
                     self._last_nonperson = [_det_dict(d) for d in out.get("detections", []) if d.get("label") != "person"]
+                    # [T-E2E 후속] PPE 제외 비-person(fire·forklift 등) — focus 중 표시용(PPE 는 고속 경로가 담당)
+                    self._last_nonperson_noppe = [_det_dict(d) for d in out.get("detections", [])
+                                                  if d.get("label") != "person" and d.get("detector") != "ppe"]
                     _main_person = [_det_dict(d) for d in out.get("detections", []) if d.get("label") == "person"]
                     self._last_pc = out.get("person_count", 0)
                     self._last_sig = out.get("signals", {})
                     person_boxes = [[d["bbox"][0] * _W, d["bbox"][1] * _H, d["bbox"][2] * _W, d["bbox"][3] * _H]
                                     for d in out.get("detections", []) if d["label"] == "person"]
-                # 표시 목록 = person(고속 :pf 또는 풀세트) + 비-person(ppe/fire, 풀세트 캐던스로 지속 표시)
-                self._last_dets = (disp_person if disp_person is not None else _main_person) + self._last_nonperson
+                # 표시 목록: focus 중 = person+PPE(고속 :pf, focus fps) + 나머지(fire 등, 풀세트 2fps)
+                #           평시 = 풀세트 그대로(기존 동작 불변)
+                if disp_person is not None:
+                    self._last_dets = disp_person + (disp_ppe or []) + getattr(self, "_last_nonperson_noppe", [])
+                else:
+                    self._last_dets = _main_person + self._last_nonperson
                 # 3.14 ①(T1): ts 를 '프레임 시각(t0)'으로 스탬프 — 완료시각(time.time)은 person/full 처리시간 차로
                 #   불균일(sd↑)했다. t0 는 루프 간격(≈균일)이라 확대뷰 ingest 간격이 고르게 → 앨리어싱·지터↓.
                 self._last_det_ts = t0

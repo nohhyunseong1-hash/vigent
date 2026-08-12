@@ -154,6 +154,7 @@ var spotMode='snapshot', vsEl=null, spotDets=[], VS_READY=null, lastPMode=null, 
 var _spotBt=null, spotVis=[], spotDetTimer=null, spotRafId=null, spotLastTs=0, _focusCam=null;   // 스포트라이트: 워커결과 재사용(3.8)+BoxTracker+포커스
 var _dbg=false, _dbgIng=[], _dbgLastIngAt=0, _dbgFrames=0, _dbgStatic=0, _dbgPrevSig='', _dbgT0=0;   // 3.9 ⓪: 끊김 계측 오버레이(토글 'd', 기본 off)
 var spotRawDets=[];   // [잔여지연 진단] 최신 원시 검출(정규화 bbox, 스무딩 전) — 'd' 오버레이 점선용
+var _spotAges=[], spotAutoLead=0;   // [잔여지연 자동보정] 최근 검출 나이(수신-ts) 중앙값 → 외삽 자동 선행(ms)
 var prevA={}, pulseUntil={}, newlyAlert=[];
 var LOCAL={id:'__local',name:'로컬 웹캠(CAM-LOCAL)',local:true,online:true};
 function esc(s){return String(s==null?'':s).replace(/[<>&]/g,function(c){return {'<':'&lt;','>':'&gt;','&':'&amp;'}[c];});}
@@ -254,6 +255,7 @@ function renderEvents(){
 // ── 스포트라이트 + 설정 패널 ──
 function selectCam(id,userPin){ spotId=id; if(userPin&&pinned){ pinned=false; $('spin').classList.remove('on'); }  // 행/타일 클릭 시 핀 해제+수동전환
   zoneEdit=false; zonePts=[]; stopWebRTC(); spotMode='snapshot'; spotDets=[]; lastPMode=null; webrtcFailReason='';
+  _spotAges=[]; spotAutoLead=0;   // [잔여지연 자동보정] 카메라별 검출 나이 통계 리셋
   renderGrid(); renderSpot(); renderSet(); updatePMode();
   if(id&&id!=='__local') spotWebRTC(id);   // WebRTC 시도(실패 시 내부에서 스냅샷 폴백)
   spotTick(); }
@@ -379,6 +381,14 @@ function spotPollLoop(){   // 워커 결과 재사용(추론 없음). 새 ts(검
                 box:[b[0]*_vw, b[1]*_vh, (b[2]-b[0])*_vw, (b[3]-b[1])*_vh]}; }) : [];
       _spotBt.ingest(dets, r.ts); spotLastTs=r.ts;   // ingest 간격 = 워커 갱신 간격(ts 차) → 임계 자동 정합
       spotRawDets=r.detections||[];                  // [잔여지연 진단] 원시 검출(스무딩 전) — 'd' 오버레이가 점선으로 그림
+      // [잔여지연 자동보정] 검출 나이 = 수신시각 - ts(워커 프레임 시각, 같은 호스트라 시계 동일).
+      //   실측 p50 ~130-160ms(추론+폴링). 이 나이의 중앙값만큼 sample 시각을 미래로 선행시키면
+      //   속도외삽이 그만큼 앞을 그려 이동 중 박스가 영상에 붙는다(정지 시 속도≈0 → 무영향).
+      //   원격 관제 PC(시계 다름) 대비: 0~350ms 클램프 밖이면 무시. 방향 전환 시 ~150ms 과외삽은
+      //   트레이드오프(외삽 상한 extrapCap 이 추가로 제한).
+      var _age=Date.now()-r.ts;
+      if(_age>=0&&_age<=1000){ _spotAges.push(_age); if(_spotAges.length>21) _spotAges.shift();
+        var _s=_spotAges.slice().sort(function(a,b){return a-b;}); spotAutoLead=Math.max(0,Math.min(350,_s[Math.floor(_s.length/2)])); }
       if(_dbg){ var nm=Date.now(); if(_dbgLastIngAt) _dbgIng.push(nm-_dbgLastIngAt); _dbgLastIngAt=nm; if(_dbgIng.length>400) _dbgIng.shift(); }
     }
   }).catch(function(){});
@@ -391,7 +401,8 @@ function spotPollLoop(){   // 워커 결과 재사용(추론 없음). 새 ts(검
 function dispOff(cid){ var v=+(localStorage.getItem('vigent.dispoff.'+cid)||0); return isFinite(v)?v:0; }
 function setDispOff(cid,ms){ localStorage.setItem('vigent.dispoff.'+cid, String(Math.max(-1000,Math.min(2000,ms)))); renderSet(); }
 function spotRenderLoop(){ if(spotMode!=='webrtc'||!_spotBt){ spotRafId=null; return; }
-  spotVis=_spotBt.sample(Date.now()-dispOff(spotId));
+  // sample 시각 = 지금 + 자동선행(검출 나이 중앙값, 이동 중 외삽으로 지연 상쇄) − 수동 오프셋(사용자 미세조정)
+  spotVis=_spotBt.sample(Date.now()+spotAutoLead-dispOff(spotId));
   if(_dbg){ _dbgFrames++; var sig=spotVis.map(function(o){return o.box.map(function(v){return v.toFixed(3);}).join(',');}).join('|');   // 정지프레임=박스가 직전 프레임과 동일(트윈·외삽 미이동)
     if(spotVis.length && sig===_dbgPrevSig) _dbgStatic++; _dbgPrevSig=sig; }
   drawSpot(); spotRafId=requestAnimationFrame(spotRenderLoop); }
