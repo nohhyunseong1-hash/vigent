@@ -150,9 +150,10 @@ body{margin:0;background:var(--bg);color:var(--fg);font-family:"SF Mono","Menlo"
 var $=function(id){return document.getElementById(id);};
 var GS={4:[2,2],9:[3,3],16:[4,4]}, cur=16, CAMS=[], EVENTS=[], evFilter=null, openId=null;
 var spotId=null, pinned=false, showZone=true, zoneEdit=false, zonePts=[];
-var spotMode='snapshot', vsEl=null, spotDets=[], VS_READY=null, lastPMode=null, webrtcFailReason='';   // WebRTC 재생 상태·계측·폴백사유
+var spotMode='snapshot', vsEl=null, spotDets=[], VS_READY=null, lastPMode=null, webrtcFailReason='', spotGen=0;   // WebRTC 재생 상태·계측·폴백사유·체인 세대
 var _spotBt=null, spotVis=[], spotDetTimer=null, spotRafId=null, spotLastTs=0, _focusCam=null;   // 스포트라이트: 워커결과 재사용(3.8)+BoxTracker+포커스
 var _dbg=false, _dbgIng=[], _dbgLastIngAt=0, _dbgFrames=0, _dbgStatic=0, _dbgPrevSig='', _dbgT0=0;   // 3.9 ⓪: 끊김 계측 오버레이(토글 'd', 기본 off)
+var spotRawDets=[];   // [잔여지연 진단] 최신 원시 검출(정규화 bbox, 스무딩 전) — 'd' 오버레이 점선용
 var prevA={}, pulseUntil={}, newlyAlert=[];
 var LOCAL={id:'__local',name:'로컬 웹캠(CAM-LOCAL)',local:true,online:true};
 function esc(s){return String(s==null?'':s).replace(/[<>&]/g,function(c){return {'<':'&lt;','>':'&gt;','&':'&amp;'}[c];});}
@@ -274,6 +275,9 @@ function renderSet(){
     '<div class="row"><span class="k">감지 FPS</span><span class="v">'+(c.fps_live||c.fps||2)+'</span></div>'+
     '<div class="row"><span class="k">인원</span><span class="v">'+(c.person_count||0)+'명</span></div>'+
     '<div class="row"><span class="k">상태</span><span class="v">'+stTxt+'</span></div>'+
+    '<div class="row"><span class="k" title="영상이 검출보다 늦게 표시될 때 박스를 과거 시점으로 정렬(표시 전용, 판정 무영향)">표시 오프셋</span>'+
+      '<span class="v"><button id="dOffM" style="padding:0 6px">−50</button> '+dispOff(spotId)+'ms '+
+      '<button id="dOffP" style="padding:0 6px">+50</button> <button id="dOffZ" style="padding:0 6px">0</button></span></div>'+
     '<label class="tog"><input type="checkbox" id="zTog" '+(showZone?'checked':'')+'> 위험구역 표시</label>'+
     (zoneEdit?'<div class="hint">영상 위를 클릭해 꼭짓점을 추가하세요(3점 이상). 저장 시 워커가 재시작되어 즉시 반영됩니다.</div>':'')+
     '<div class="ctrls">'+
@@ -281,6 +285,9 @@ function renderSet(){
                :'<button class="del" id="cDel">삭제</button><button id="zEdit">위험구역 편집</button>')+
     '</div>';
   var zt=$('zTog'); if(zt) zt.onchange=function(){ showZone=zt.checked; drawSpot(); };
+  if($('dOffM')) $('dOffM').onclick=function(){ setDispOff(spotId, dispOff(spotId)-50); };   // [B안②] 보행 테스트 중 실시간 조정
+  if($('dOffP')) $('dOffP').onclick=function(){ setDispOff(spotId, dispOff(spotId)+50); };
+  if($('dOffZ')) $('dOffZ').onclick=function(){ setDispOff(spotId, 0); };
   if($('cDel')) $('cDel').onclick=function(){ if(confirm('카메라 삭제?')) api('DELETE','/cameras/'+encodeURIComponent(spotId)).then(function(){ spotId=null; poll(); }); };
   if($('zEdit')) $('zEdit').onclick=function(){ zoneEdit=true; zonePts=(byId(spotId).zone||[]).slice(); showZone=true; renderSet(); drawSpot(); };
   if($('zCancel')) $('zCancel').onclick=function(){ zoneEdit=false; zonePts=[]; renderSet(); drawSpot(); };
@@ -299,9 +306,14 @@ function ensureVideoStream(){
 }
 function spotVideoEl(){ return vsEl?(vsEl.video||vsEl.querySelector('video')):null; }
 function stopWebRTC(){ spotStopDetect(); if(vsEl){ try{ var v=spotVideoEl(); if(v&&v._vg) clearInterval(v._vg); vsEl.src=''; vsEl.remove(); }catch(e){} vsEl=null; } }
-function spotWebRTC(cid, attempt){ attempt=attempt||1;
+function spotWebRTC(cid, attempt, gen){ attempt=attempt||1;
+  // [B안①] 체인 세대 토큰: 같은 카메라를 다시 선택하면 새 체인이 시작되는데, 이전 체인의
+  //   3초 재시도 타이머는 cid===spotId 검사(같은 카메라라 통과)만으로 살아남아 정상 재생 중인
+  //   요소를 stopWebRTC()로 파괴했다(순간 검은 화면·모드 반복 전환의 원인). 최신 세대만
+  //   재시도·파괴 권한을 갖는다.
+  if(gen===undefined){ gen=++spotGen; }
   ensureVideoStream().then(function(){
-    if(cid!==spotId) return; stopWebRTC();
+    if(cid!==spotId||gen!==spotGen) return; stopWebRTC();
     var vs=document.createElement('video-stream'); vs.mode='webrtc,mse'; vs.background=true;
     vs.style.cssText='position:absolute;inset:0;width:100%;height:100%';
     $('svid').appendChild(vs);
@@ -319,14 +331,14 @@ function spotWebRTC(cid, attempt){ attempt=attempt||1;
                      {ice:pc&&pc.iceConnectionState, conn:pc&&pc.connectionState, ws:ws&&ws.readyState});
         if(vsEl===vs) stopWebRTC();
         spotMode='snapshot';
-        if(cid===spotId && attempt<5) setTimeout(function(){ if(cid===spotId) spotWebRTC(cid, attempt+1); }, 3000);  // ①c 3s 재시도 x5
-        else console.warn('[VIGENT] WebRTC 최종 폴백 → 스냅샷 ('+attempt+'회 시도):', webrtcFailReason);
+        if(cid===spotId && gen===spotGen && attempt<5) setTimeout(function(){ if(cid===spotId&&gen===spotGen) spotWebRTC(cid, attempt+1, gen); }, 3000);  // ①c 3s 재시도 x5(최신 세대만)
+        else if(attempt>=5) console.warn('[VIGENT] WebRTC 최종 폴백 → 스냅샷 ('+attempt+'회 시도):', webrtcFailReason);
         return;
       }
       setTimeout(wait,150); })();
   }).catch(function(e){ webrtcFailReason='go2rtc 스크립트 로드 실패('+((e&&e.message)||e)+') — go2rtc 미기동?';
     console.warn('[VIGENT] WebRTC 폴백:', webrtcFailReason); spotMode='snapshot';
-    if(cid===spotId && attempt<5) setTimeout(function(){ if(cid===spotId) spotWebRTC(cid, attempt+1); }, 3000); });
+    if(cid===spotId && gen===spotGen && attempt<5) setTimeout(function(){ if(cid===spotId&&gen===spotGen) spotWebRTC(cid, attempt+1, gen); }, 3000); });
 }
 function liveCatchup(vid){ if(vid._vg) return; vid._vg=setInterval(function(){ try{   // 누적지연 제거(라이브 따라잡기)
   var b=vid.buffered; if(!b||!b.length) return; var live=b.end(b.length-1), lag=live-vid.currentTime;
@@ -351,16 +363,35 @@ function spotPollLoop(){   // 워커 결과 재사용(추론 없음). 새 ts(검
   api('GET','/cameras/'+encodeURIComponent(spotId)+'/detections').then(function(r){
     if(!_spotBt) return;
     if(r && r.ts && r.ts!==spotLastTs){
-      var dets=(r.detections||[]).map(function(d){ var b=d.bbox||[0,0,0,0];   // 워커=정규화 [x1,y1,x2,y2]+tid
-        return {cls:d.class, score:d.score, id:(d.id==null?-1:d.id), box:[b[0],b[1],b[2]-b[0],b[3]-b[1]]}; });
+      // [T-E2E 박스] 버그 수정: VigentBoxDisplay.BoxTracker 는 "소스 프레임 픽셀" 좌표를 기대한다
+      //   (vigent-box-display.js 헤더 주석, index_local.html 의 backendBoostDets 도 "비디오 픽셀
+      //   W×H 좌표"로 명시). 그런데 이 API(/cameras/{id}/detections)는 정규화(0~1) bbox를 준다
+      //   (routers/cameras.py 문서: "프론트가 화면크기로 복원") — 여태 정규화 값을 그대로
+      //   ingest 해왔다. One-Euro 필터·속도외삽은 프레임간 델타 크기(px 단위 가정, OE_BETA=3.0
+      //   등 index_local.html 픽셀 기준으로 검증된 상수)로 반응성을 계산하는데, 정규화 값은
+      //   그 델타가 픽셀 대비 수백~수천분의 1로 작아 "거의 안 움직이는 물체"로 오인 → 필터가
+      //   항상 최대 평활(느린 추종)로 동작해 실제로는 빠르게 움직이는 사람도 박스가 못 따라간다
+      //   (정지 위치 자체는 우연히 맞아 보일 수 있어 정지 테스트만으론 안 드러남). 비디오 실제
+      //   픽셀 크기(v.videoWidth/Height)로 곱해 픽셀 좌표로 변환한 뒤 ingest한다.
+      var _v = spotVideoEl(), _vw = (_v && _v.videoWidth) || 0, _vh = (_v && _v.videoHeight) || 0;
+      var dets=(_vw && _vh) ? (r.detections||[]).map(function(d){ var b=d.bbox||[0,0,0,0];   // 워커=정규화 [x1,y1,x2,y2]+tid → 픽셀로 변환
+        return {cls:d.class, score:d.score, id:(d.id==null?-1:d.id),
+                box:[b[0]*_vw, b[1]*_vh, (b[2]-b[0])*_vw, (b[3]-b[1])*_vh]}; }) : [];
       _spotBt.ingest(dets, r.ts); spotLastTs=r.ts;   // ingest 간격 = 워커 갱신 간격(ts 차) → 임계 자동 정합
+      spotRawDets=r.detections||[];                  // [잔여지연 진단] 원시 검출(스무딩 전) — 'd' 오버레이가 점선으로 그림
       if(_dbg){ var nm=Date.now(); if(_dbgLastIngAt) _dbgIng.push(nm-_dbgLastIngAt); _dbgLastIngAt=nm; if(_dbgIng.length>400) _dbgIng.shift(); }
     }
   }).catch(function(){});
   spotDetTimer=setTimeout(spotPollLoop, 50);   // 3.14 ②(T3): 150→50ms. ~205ms ts 신호를 충분히 오버샘플(Nyquist)해
 }                                              //   앨리어싱·양자화 지터 제거(150ms 폴링이 386ms·sd396 으로 증폭하던 문제). GET 은 추론 없어 저비용(20/s).
+// [B안②] 카메라별 표시 지연 오프셋(ms, localStorage — 표시 전용, 판정 무영향).
+//   영상 경로(WebRTC/MSE)가 검출 경로보다 느리면 화면 속 사람은 과거인데 박스는 최신이라
+//   어긋난다(손 테스트로 확정된 시간차 증상). sample 시각에서 오프셋을 빼면 속도외삽 항이
+//   그만큼 과거 위치를 그려 박스가 지연 영상에 정렬된다. 기본 0 = 기존 동작 그대로.
+function dispOff(cid){ var v=+(localStorage.getItem('vigent.dispoff.'+cid)||0); return isFinite(v)?v:0; }
+function setDispOff(cid,ms){ localStorage.setItem('vigent.dispoff.'+cid, String(Math.max(-1000,Math.min(2000,ms)))); renderSet(); }
 function spotRenderLoop(){ if(spotMode!=='webrtc'||!_spotBt){ spotRafId=null; return; }
-  spotVis=_spotBt.sample(Date.now());
+  spotVis=_spotBt.sample(Date.now()-dispOff(spotId));
   if(_dbg){ _dbgFrames++; var sig=spotVis.map(function(o){return o.box.map(function(v){return v.toFixed(3);}).join(',');}).join('|');   // 정지프레임=박스가 직전 프레임과 동일(트윈·외삽 미이동)
     if(spotVis.length && sig===_dbgPrevSig) _dbgStatic++; _dbgPrevSig=sig; }
   drawSpot(); spotRafId=requestAnimationFrame(spotRenderLoop); }
@@ -394,7 +425,13 @@ function drawSpot(){
   }
   if(!zoneEdit){
     var boxes = (spotMode==='webrtc')                                    // WebRTC=모듈(One-Euro+외삽+dedup+페이드), 스냅샷=워커 검출
-      ? spotVis.map(function(o){ var b=o.box; return {class:o.cls, score:o.score, alpha:o.alpha, bbox:[b[0], b[1], b[0]+b[2], b[1]+b[3]]}; })   // 워커=정규화 [x,y,w,h]→[x1,y1,x2,y2]
+      ? (function(){   // [T-E2E 박스] 모듈은 이제 비디오 픽셀 좌표로 ingest됨(spotPollLoop 수정 참고) →
+                        // 아래 공용 그리기(줄 412)는 정규화(0~1) 기준이라 여기서 video px ÷ nw,nh 로 되돌린다.
+          var _v=spotVideoEl(), _nw=(_v&&_v.videoWidth)||1, _nh=(_v&&_v.videoHeight)||1;
+          return spotVis.map(function(o){ var b=o.box;
+            return {class:o.cls, score:o.score, alpha:o.alpha,
+                    bbox:[b[0]/_nw, b[1]/_nh, (b[0]+b[2])/_nw, (b[1]+b[3])/_nh]}; });
+        })()
       : spotDets;
     boxes.forEach(function(d){ var b=d.bbox;
       var x=r.x+b[0]*r.w, y=r.y+b[1]*r.h, w=(b[2]-b[0])*r.w, h=(b[3]-b[1])*r.h;
@@ -403,6 +440,12 @@ function drawSpot(){
       ctx.strokeStyle=col; ctx.lineWidth=1.5; ctx.strokeRect(x,y,w,h);
       ctx.font='11px monospace'; ctx.fillStyle=col; ctx.fillText(d.class+' '+Math.round((d.score||0)*100)+'%',x+2,y-3); });
     ctx.globalAlpha=1;
+  }
+  if(_dbg && spotMode==='webrtc'){   // [잔여지연 진단] 원시 검출(스무딩 전) 점선 — 실선(트래커)과의 간격이 곧 프론트 스무딩 지연
+    ctx.save(); ctx.setLineDash([6,4]); ctx.strokeStyle='#ffd23e'; ctx.lineWidth=1.5;
+    spotRawDets.forEach(function(d){ var b=d.bbox||[0,0,0,0];
+      ctx.strokeRect(r.x+b[0]*r.w, r.y+b[1]*r.h, (b[2]-b[0])*r.w, (b[3]-b[1])*r.h); });
+    ctx.restore();
   }
   if(_dbg && spotMode==='webrtc'){   // 3.9 ⓪: 계측 HUD(ingest p50/p95·jitter·정지프레임 비율)
     var iv=_dbgIng.slice().sort(function(a,b){return a-b;});
