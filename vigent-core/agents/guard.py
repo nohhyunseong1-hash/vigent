@@ -13,6 +13,7 @@ vision.yaml 의 detector 슬롯(person/ppe/forklift/fire_smoke)에서 실제 .pt
 """
 from __future__ import annotations
 
+import os
 import time
 from pathlib import Path as _Path
 from typing import Any
@@ -558,6 +559,14 @@ class GuardAgent(BaseAgent):
         카메라 명의로 오발화된다(F-리뷰 5단계). 키를 안 주면 'default' 로 기존 동작 유지."""
         now = time.time()
         tracks = self._tracks_by_key.setdefault(track_key, [])   # 키별 격리 상태
+        # [T-E2E 유령박스 계측] VIGENT_TRACK_DEBUG=1 일 때만: 매 프레임 fresh(트래커 입력)와
+        #   트랙 상태(tid·misses·seen 경과)를 JSONL 로 기록 — 유령(동결 트랙)의 misses 리셋 경로
+        #   확정용. 기본 꺼짐 = 비용·동작 변화 0. 자격증명·프레임 데이터는 기록하지 않는다.
+        _dbg = os.environ.get("VIGENT_TRACK_DEBUG") == "1"
+        if _dbg:
+            self._dbg_fresh_snapshot = [
+                {"label": f.get("label"), "conf": round(f.get("conf", 0), 3),
+                 "bbox": [round(v, 4) for v in f.get("bbox", [])]} for f in fresh]
         used: set[int] = set()   # 감사 E-2: 한 트랙에 복수 검출이 중복 매칭돼 인원 과소집계되던 문제 → 1:1 강제
         for f in fresh:
             best, best_iou = None, self.TRACK_IOU
@@ -606,8 +615,29 @@ class GuardAgent(BaseAgent):
         tracks = [t for t in tracks
                   if t.get("misses", 0) <= self.STALE_MAX_MISSES and now - t["seen"] <= self.TRACK_TTL]
         self._tracks_by_key[track_key] = tracks   # 필터 결과 반영(키별)
-        # MIN_HITS 이상 '확인된' 트랙만 표시(한 프레임 헛것 제거). 내부필드(seen·hits·misses)는 빼고 반환
-        return [{k: v for k, v in t.items() if k not in ("seen", "hits", "misses")}
+        if _dbg:
+            try:
+                import json as _json
+                from pathlib import Path as _P
+                rec = {"t": round(now * 1000), "key": track_key,
+                       "fresh": self._dbg_fresh_snapshot,
+                       "tracks": [{"tid": t.get("tid"), "label": t.get("label"),
+                                   "bbox": [round(v, 4) for v in t.get("bbox", [])],
+                                   "hits": t.get("hits"), "misses": t.get("misses"),
+                                   "age_ms": round((now - t["seen"]) * 1000)} for t in tracks]}
+                with open(_P(__file__).resolve().parent.parent.parent / "data" / "track_debug.jsonl",
+                          "a", encoding="utf-8") as _f:
+                    _f.write(_json.dumps(rec, ensure_ascii=False) + "\n")
+            except Exception:  # noqa: BLE001  계측 실패가 검출을 막으면 안 됨
+                pass
+        # MIN_HITS 이상 '확인된' 트랙만 표시(한 프레임 헛것 제거). 내부필드(seen·hits·misses)는 빼고 반환.
+        # [T-E2E 유령박스] stale=이번 프레임 미매칭(코스팅 중) 플래그를 가산 — 계측(2026-08-12,
+        #   data/track_debug.jsonl)으로 확정한 유령 기전: 작은 PPE 박스는 보행 속도에서 프레임당
+        #   이동량이 박스 크기를 초과해 매칭이 끊기고(20초에 신규 트랙 221개), 미매칭 트랙이
+        #   TTL(1.2s)까지 마지막 위치에 동결된 채 응답에 실렸다. 트랙 집합 자체는 불변(신호·판정
+        #   입력 무영향) — 표시 경계(/cameras/{cid}/detections)가 이 플래그로 숨긴다.
+        return [{**{k: v for k, v in t.items() if k not in ("seen", "hits", "misses")},
+                 "stale": t.get("misses", 0) > 0}
                 for t in tracks if t["hits"] >= self.MIN_HITS]
 
     def _get_model(self, slot: str):

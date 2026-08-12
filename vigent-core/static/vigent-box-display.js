@@ -118,14 +118,19 @@
   BoxTracker.prototype.ingest = function (dets, at, nowMs) {
     var now = (nowMs != null ? nowMs : Date.now());
     var gap = this.prevUpdateAt ? (at - this.prevUpdateAt) : 0;
-    var cg = gap > 0 ? Math.max(300, Math.min(1200, gap)) : 350;   // 클램프한 갱신간격
+    // [T-E2E 잔여지연] 클램프 하한 300→80ms. 300 은 2fps(간격 500ms) 시절 값이라 5~8fps 의
+    //   실간격 137~200ms 를 300 으로 강제 상향 → vel=이동량/cg 가 1.5~2.2배 과소평가되고
+    //   One-Euro dt 도 왜곡돼 이동 시작 관성이 커졌다. 실보행 캡처 재생 시뮬(sim_boxtracker):
+    //   이동시작 반응 p50 283ms→0ms, p95 885→467ms. 2fps 경로는 클램프에 안 걸려 변화 0.
+    //   80 은 실운용 최소 캐던스(8fps=125ms)보다 낮되 지터 스케일보다는 높게.
+    var cg = gap > 0 ? Math.max(80, Math.min(1200, gap)) : 350;   // 클램프한 갱신간격
     this.prevUpdateAt = at;
     var self = this, ex = this.excludeClass;
     var incoming = (dets || [])
       .filter(function (d) { return !(ex && String(d.cls || '').toLowerCase() === ex); })
       .map(function (d) { return { tid: (d.id == null ? -1 : d.id), cls: d.cls || '', score: d.score || 0, box: [d.box[0], d.box[1], d.box[2], d.box[3]] }; });
     var tracks = this.tracks, n = tracks.length, used = new Array(n).fill(false);
-    function upd(t, det) { t.box = self._oeBox(t, det, cg); t.score = det.score; t.t0 = now; t.gap = cg; t.alive = true; }
+    function upd(t, det) { t.box = self._oeBox(t, det, cg); t.score = det.score; t.t0 = now; t.gap = cg; t.alive = true; t.fastFade = false; }   // 재매칭 → 페이드 해제([T-E2E 유령박스])
     function mk(det) { var t = { tid: det.tid, cls: det.cls, score: det.score, t0: now, gap: cg, alpha: 0, alive: true }; t.box = self._oeBox(t, det, cg); return t; }
     incoming.forEach(function (det) {   // 1차: id 매칭(tid>=0)
       if (det.tid < 0) return;
@@ -141,7 +146,13 @@
       }
       if (bi >= 0) { used[bi] = true; upd(tracks[bi], det); } else tracks.push(mk(det));
     });
-    for (var i = 0; i < n; i++) { if (!used[i]) { if (tracks[i].tid >= 0) tracks[i].drop = true; else tracks[i].alive = false; } }
+    // [T-E2E 유령박스] id 트랙 미매칭: 즉시 삭제(drop) → 빠른 페이드로 완화. 서버가 stale(코스팅)
+    //   트랙을 표시 응답에서 제외하게 되면서, 1프레임 검출 공백에도 tid 가 사라졌다 나타난다 —
+    //   즉시 삭제는 그때마다 깜빡임(제거→재생성)을 만든다. fastFade(≈240ms, sample 참조)는
+    //   공백을 부드럽게 메우고, tid 가 돌아오면 매칭돼 되살아난다(upd 에서 fastFade 해제).
+    //   유령(영구 소실 트랙)의 화면 잔류도 페이드 상한 ≈240ms 로 제한된다(기존 drop=0ms 대비
+    //   +240ms, 기존 서버 TTL 코스팅 ~1.2s 대비 대폭 감소).
+    for (var i = 0; i < n; i++) { if (!used[i]) { tracks[i].alive = false; if (tracks[i].tid >= 0) tracks[i].fastFade = true; } }
     if (this.anchor) this._linkAnchor(at);   // 3.13: 갱신 시점에만 박스↔앵커 재연결(검출프레임 시점 기준 → 지연 제거·드리프트 방지)
   };
 
@@ -149,8 +160,9 @@
   BoxTracker.prototype.sample = function (now) {
     var vis = [];
     this.tracks.forEach(function (t) {
-      if (t.drop) return;
-      t.alpha += t.alive ? 0.2 : -0.08;                 // 페이드인 ≤100ms, 아웃(fallback)
+      // 페이드인 ≤100ms · 아웃: id 트랙(fastFade)≈240ms([T-E2E 유령박스] — 유령 잔류 상한이자
+      //   1프레임 검출 공백 깜빡임 브리지) / fallback(-1) 트랙 기존 -0.08(≈750ms) 유지.
+      t.alpha += t.alive ? 0.2 : (t.fastFade ? -0.07 : -0.08);
       if (t.alpha <= 0) return;
       if (t.alpha > 1) t.alpha = 1;
       vis.push({ t: t, box: this._boxAt(t, now) });   // 표시=앵커(on) 또는 외삽(폴백)

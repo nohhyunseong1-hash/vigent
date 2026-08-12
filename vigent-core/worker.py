@@ -78,10 +78,11 @@ def _default_detectors() -> list[str]:
 
 
 def _det_dict(d: dict) -> dict:
-    """guard 검출 → 대시보드 표시 dict(정규화 bbox + 트랙 id). 3.12: 풀세트·person고속 공통 포맷."""
+    """guard 검출 → 대시보드 표시 dict(정규화 bbox + 트랙 id). 3.12: 풀세트·person고속 공통 포맷.
+    stale([T-E2E 유령박스]): 미매칭 코스팅 트랙 표식 — 표시 경로가 숨긴다(판정 경로 무영향)."""
     return {"class": d.get("label"), "score": round(float(d.get("conf", 0)), 3),
             "bbox": [round(float(v), 4) for v in d.get("bbox", [0, 0, 0, 0])],
-            "id": d.get("tid", -1)}
+            "id": d.get("tid", -1), "stale": bool(d.get("stale", False))}
 
 
 def _load_zone() -> list[tuple[float, float]]:
@@ -353,6 +354,11 @@ class _StreamCapture:
         self._thread.start()
 
     def _open(self):
+        # [T-E2E 잔여지연] FFmpeg RTSP 저지연 옵션 — 기본값은 리오더/지터 버퍼로 0.5~1s 고정
+        #   지연을 만든다(시계 촬영 실측: grab-드레인 후에도 상수 ~1.35s 잔존의 유력 성분).
+        #   nobuffer+low_delay+max_delay 0.5s 상한. setdefault 라 운영자가 환경변수로 덮어쓰기 가능.
+        os.environ.setdefault("OPENCV_FFMPEG_CAPTURE_OPTIONS",
+                              "rtsp_transport;tcp|fflags;nobuffer|flags;low_delay|max_delay;500000")
         cap = cv2.VideoCapture(int(self.source) if self.source.isdigit() else self.source)
         try:
             cap.set(cv2.CAP_PROP_BUFFERSIZE, _CAP_BUFFERSIZE)   # 보조(웹캠/V4L2 등 일부만 존중; FFmpeg/RTSP 는 무시될 수 있음)
@@ -366,7 +372,26 @@ class _StreamCapture:
         read_fails = 0
         while not self._stop.is_set():
             _rt = time.time()
-            ok, frame = cap.read()
+            # [T-E2E 잔여지연] read() → grab-드레인 + retrieve. 시계 촬영 실측(2026-08-12)으로
+            #   read() 단독은 고해상 H264 디코드(2304×1296)가 CPU 추론과 경합해 프레임 간격(15fps=66ms)을
+            #   못 따라갔고, FFmpeg 큐가 자라며 프레임 나이가 1.17→1.64s 로 초당 ~0.09s 씩 증가했다.
+            #   grab() 은 디코드 없이 큐에서 프레임을 꺼내므로(수 ms), 5ms 내에 연속 성공하는 동안
+            #   = 버퍼 잔량 소진 중으로 보고 계속 비운 뒤 마지막 프레임만 retrieve(디코드 1회).
+            #   → 디코드가 느려도 지연 누적 불가 + 디코드 횟수 감소(CPU↓). 라이브 프레임 대기 grab 은
+            #   ~66ms 걸려 루프가 자연히 스트림 속도에 페이싱된다.
+            ok = cap.grab()
+            _drained = 0
+            while ok and _drained < 60 and not self._stop.is_set():   # 상한 60(≈4s 분량) — 무한 드레인 방지
+                _gt = time.time()
+                more = cap.grab()
+                if not more or (time.time() - _gt) > 0.020:   # 20ms 초과 = 큐 비었고 라이브 대기였음(5ms 는 TCP 지터에 과민 — 잔량 미소진)
+                    ok = more or ok
+                    break
+                _drained += 1
+            if ok:
+                ok, frame = cap.retrieve()
+            else:
+                frame = None
             self.read_ms = round((time.time() - _rt) * 1000, 1)
             if not ok:
                 read_fails += 1

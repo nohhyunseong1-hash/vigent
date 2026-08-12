@@ -124,7 +124,10 @@ def cameras_detections(cid: str):
     # safety_only(표시 단): 잡동사니(tv·laptop·의자 등) 제거 → 사람·보호구(NO-*)·위험물·차량·화재만.
     #   워커 이벤트/신호는 guard.detect 내부 out 으로 계산되므로 이 필터는 응답·오버레이 표시에만 영향(회귀 0).
     #   ts(3.8): 검출 갱신 시각(ms) — 확대뷰가 새 배치일 때만 BoxTracker.ingest 하도록. id 는 트랙 매칭용.
-    dets = [d for d in wk._last_dets if _is_safety(d.get("class"))]
+    # [T-E2E 유령박스] stale(미매칭 코스팅 트랙) 제외 — 표시는 실검출만. 이동 시 옛 위치에
+    #   동결 박스가 TTL(1.2s)까지 잔류하던 유령의 서버측 차단(계측 근거: track_debug.jsonl).
+    #   신호·판정은 워커 내부 out 기준이라 불변(이 경로는 오버레이 전용).
+    dets = [d for d in wk._last_dets if _is_safety(d.get("class")) and not d.get("stale")]
     return {"online": bool(wk.state.get("running")), "detections": dets, "ts": int(wk._last_det_ts * 1000),
             "person_count": wk._last_pc, "signals": wk._last_sig, "fired": wk._last_fired}
 
@@ -141,7 +144,10 @@ def cameras_focus(cid: str, payload: dict = Body(default={})):
         raise HTTPException(status_code=404, detail="없는 카메라")
     on = bool(payload.get("on"))
     base = float(c.get("fps", 2.0))
-    focus = float(tuning.val("hub", "focus_fps", 5.0))
+    # [B안③] payload.fps 로 부스트 값 임시 지정 가능(없으면 tuning 값) — fps 5↔8 A/B 실측용.
+    #   dict Body 라 OpenAPI 스키마 불변. 남용 방지로 0.5~15 클램프(set_fps 자체엔 상한 없음).
+    focus = float(payload.get("fps") or tuning.val("hub", "focus_fps", 5.0))
+    focus = max(0.5, min(15.0, focus))
     return _w.manager.set_fps(cid, focus if on else base)
 
 
