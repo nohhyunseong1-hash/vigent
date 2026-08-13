@@ -324,6 +324,7 @@ function spotWebRTC(cid, attempt, gen){ attempt=attempt||1;
     vsEl=vs; var t0=Date.now();
     (function wait(){ if(vsEl!==vs) return;                             // 그새 카메라 바뀜
       var v=vs.video||vs.querySelector('video');
+      if(v){ try{ v.muted=true; v.setAttribute('playsinline',''); v.autoplay=true; if(v.paused) v.play().catch(function(){}); }catch(e){} }  // 오디오(PCMA) 트랙 → 음소거 자동재생(검정 0:00·일시정지 방지)
       if(v&&v.videoWidth>0){ spotMode='webrtc'; webrtcFailReason=''; $('simg').style.display='none'; $('sph').style.display='none'; liveCatchup(v); spotStartDetect(); return; }
       if(Date.now()-t0>6000){                                          // ⓪ 폴백 사유 가시화(추측 금지)
         var pc=vs.pc, ws=vs.ws;
