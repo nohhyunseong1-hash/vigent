@@ -97,3 +97,13 @@ worker:                     # 워커 루프
 vlm:                        # VLM(보호구 점검 등) 속도·정확도
   ppe_max_tokens: 128       # 답변 토큰(작을수록 빠름·길면 정확)
   ppe_max_side: 768         # 입력 이미지 최대 변(작을수록 빠름·크면 정확)
+
+track:                      # 추적 알고리즘 ([PA] 2026-08-13 채택 — benchmarks/track_ab_bytetrack.md,
+                            #   pa_person_count_{verify,cause}.py, pa_residual_verify.py)
+  algo: bytetrack           # "iou"(구 기본) | "bytetrack": person 슬롯만 칼만+2단계매칭+전역최적할당.
+    # 채택 근거: 파편화 -60%(고유 tid 42→17)·swap 회귀 0. 초기에 관측된 인원수 -10.3%는 분해 결과
+    # 절반이 활성화 임계 불일치(라이브러리 기본 0.70 vs person 운용 0.40)로 인한 **실제 사람 손실**이었고
+    # guard._activation_threshold() 연동으로 수리(-5.0%까지 회복). 잔여 -5%는 iou 쪽 코스팅 과대카운트로
+    # 판단 — iou 는 전 구간에서 출력>입력(예: S5 검출 2.52 → 인원 2.80)인 반면 bt 는 검출 수와 정확히
+    # 일치(2.09=2.09). 한계: 파일 클립 1개·GT 라벨 없음(백로그 B10)·실카메라 미검증.
+    # bytetrack_activation 은 지정하지 않는다 — 미지정 시 person 운용 임계에 자동 연동(회귀 재발 방지).

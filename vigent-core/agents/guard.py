@@ -282,7 +282,16 @@ class GuardAgent(BaseAgent):
     BYTETRACK_FRAME_RATE = 10.0      # lost_track_buffer 를 실시간 초 단위로 환산하는 기준 fps(실배포 호출주기에 맞춰 재조정 필요 — 맥 백로그)
     BYTETRACK_LOST_BUFFER = 30       # 트랙 유지 프레임 수(위 frame_rate 기준 환산됨 — 라이브러리 기본값)
     BYTETRACK_MIN_IOU = 0.10         # ByteTrack 자체 매칭 IoU 최저선(라이브러리 기본값)
-    BYTETRACK_ACTIVATION = 0.70      # 신규 트랙 스폰에 필요한 최소 confidence(라이브러리 기본값)
+    # 신규 트랙 스폰에 필요한 최소 confidence. **None = person 운용 임계(DETECTOR_CONF['person'])에 자동 연동**
+    #   (tuning track.bytetrack_activation 로 명시하면 그 값이 우선).
+    #   ★[PA, 2026-08-13] 하드코딩 0.70(라이브러리 기본값)이었을 때 실제 회귀가 발생했다: person 운용
+    #   임계는 0.40인데 스폰 자격만 0.70이라, conf 0.40~0.70 구간의 **실제 작업자**가 트랙을 못 얻어
+    #   person_count 가 2.20→1.97(-10.3%)로 떨어졌다(검출 단계는 conf≥0.40 497/497 프레임 완전 동일 —
+    #   순수 트래커 정책 손실). 육안 확인: benchmarks/results/pa_verify/zoom_tid27_f89.jpg(배후 작업자),
+    #   zoom_tid44_f321.jpg(철근 아래 다리). 분석: benchmarks/pa_person_count_{verify,cause}.py.
+    #   두 임계가 따로 노는 것이 원인이었으므로 값을 바꾸는 대신 **참조를 연결**한다 — 이후 운용 임계를
+    #   튜닝하면 스폰 자격이 자동으로 따라온다.
+    BYTETRACK_ACTIVATION: float | None = None
     BYTETRACK_MIN_FRAMES = 1         # 트랙 확정(tid 부여)까지 필요한 연속매칭 수. guard MIN_HITS=1 과 동일하게
                                       # 맞춰 "확정까지 프레임 수" 자체는 회귀 없게(라이브러리 기본 2 아님).
 
@@ -333,7 +342,8 @@ class GuardAgent(BaseAgent):
             self.BYTETRACK_FRAME_RATE = float(tuning.val("track", "bytetrack_frame_rate", self.BYTETRACK_FRAME_RATE))
             self.BYTETRACK_LOST_BUFFER = int(tuning.val("track", "bytetrack_lost_buffer", self.BYTETRACK_LOST_BUFFER))
             self.BYTETRACK_MIN_IOU = float(tuning.val("track", "bytetrack_min_iou", self.BYTETRACK_MIN_IOU))
-            self.BYTETRACK_ACTIVATION = float(tuning.val("track", "bytetrack_activation", self.BYTETRACK_ACTIVATION))
+            _act = tuning.val("track", "bytetrack_activation", None)   # None = person 임계 자동 연동(위 주석)
+            self.BYTETRACK_ACTIVATION = float(_act) if _act is not None else None
             self.BYTETRACK_MIN_FRAMES = int(tuning.val("track", "bytetrack_min_frames", self.BYTETRACK_MIN_FRAMES))
         except Exception:  # noqa: BLE001
             pass
@@ -502,6 +512,16 @@ class GuardAgent(BaseAgent):
         self._bytetrack_by_key.pop(track_key, None)
         self._key_last_used.pop(track_key, None)
 
+    def _activation_threshold(self) -> float:
+        """ByteTrack 신규 트랙 스폰 임계 — 명시 설정이 없으면 **person 운용 임계에 자동 연동**.
+
+        ★[PA, 2026-08-13] 이 연동이 없던 시절(하드코딩 0.70) conf 0.40~0.70 구간의 실제 작업자가
+        트랙을 못 얻어 person_count 가 -10.3% 회귀했다(BYTETRACK_ACTIVATION 주석 참조). 스폰 자격은
+        "이 검출을 사람으로 인정하는가"의 문제라 검출 채택 임계와 같은 값이어야 일관된다."""
+        if self.BYTETRACK_ACTIVATION is not None:
+            return float(self.BYTETRACK_ACTIVATION)
+        return float(self.DETECTOR_CONF.get("person", self.DEFAULT_CONF))
+
     def _track_bytetrack(self, fresh: list[dict[str, Any]], track_key: str) -> list[dict[str, Any]]:
         """ByteTrack(trackers.ByteTrackTracker, Apache-2.0)로 person 만 추적(Phase2, benchmarks/
         track_fragmentation_causes.md 근거) — 칼만필터 모션예측 + 고신뢰/저신뢰 2단계 매칭 + 전역최적할당
@@ -524,7 +544,7 @@ class GuardAgent(BaseAgent):
             bt = ByteTrackTracker(
                 lost_track_buffer=self.BYTETRACK_LOST_BUFFER,
                 frame_rate=self.BYTETRACK_FRAME_RATE,
-                track_activation_threshold=self.BYTETRACK_ACTIVATION,
+                track_activation_threshold=self._activation_threshold(),
                 minimum_consecutive_frames=self.BYTETRACK_MIN_FRAMES,
                 minimum_iou_threshold=self.BYTETRACK_MIN_IOU,
                 high_conf_det_threshold=self.BYTETRACK_HIGH_CONF,
