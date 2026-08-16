@@ -27,6 +27,7 @@ import proximity
 import runtime_config
 import tuning
 import vlog
+import zone_debounce
 import zone_tile
 from camera_registry import mask_source as _mask_src  # 3.0: 로그에 RTSP 자격증명 노출 방지(마스킹)
 from camera_registry import scrub_credentials as _scrub  # [S2-수정] state["error"](→/worker/status) 노출 방지
@@ -118,18 +119,35 @@ def _frame_to_dataurl(frame: "np.ndarray") -> str | None:
     return ("data:image/jpeg;base64," + base64.b64encode(buf.tobytes()).decode()) if ok else None
 
 
-def _derive(out: dict, zone: list, aspect_hw: float | None = None) -> list[tuple[str, str, str]]:
-    """guard.detect 출력 → 발화한 위험 [(rule, level, note)]."""
+def _derive(out: dict, zone: list, aspect_hw: float | None = None,
+            cid: str | None = None, debouncer: "zone_debounce.ZoneDebouncer | None" = None,
+            ) -> list[tuple[str, str, str]]:
+    """guard.detect 출력 → 발화한 위험 [(rule, level, note)].
+
+    [B6] 위험구역 침입은 **시간 디바운스**를 거친다(zone_debounce). PPE(3프레임)·화재(2프레임)엔
+    히스테리시스가 있는데 침입만 없어서 단일 프레임 오검출이 곧 경보였다 — 파일럿의 유일한
+    판매 기능이 이것이라 가장 먼저 막아야 한다. debouncer 가 None 이면 기존 즉시 발화(하위호환).
+    """
     fired: list[tuple[str, str, str]] = []
     sig = out.get("signals", {}) or {}
-    if zone and len(zone) >= 3:                       # 위험구역 침입(사람 발 위치)
+    if zone and len(zone) >= 3:                       # 위험구역 침입
+        raw_inside = False
         for d in out.get("detections", []):
             if str(d.get("label", "")).lower() != "person":
                 continue
-            x1, y1, x2, y2 = d.get("bbox", [0, 0, 0, 0])
-            if _point_in_poly((x1 + x2) / 2, y2, zone):
-                fired.append(("zone_intrusion", "high", "위험구역 내 작업자 감지"))
+            # 판정 기준점: 기본 foot(박스 하단 중앙 = 지면 접점). config zone.reference 로 center 선택 가능
+            #   — 직하방 카메라는 박스 하단이 발이 아닐 수 있다(docs/camera_requirements.md).
+            px, py = zone_debounce.ref_point(d.get("bbox", [0, 0, 0, 0]))
+            if _point_in_poly(px, py, zone):
+                raw_inside = True
                 break
+        if debouncer is not None and cid is not None:
+            was = debouncer.state(cid)["confirmed"]
+            now_in = debouncer.update(cid, raw_inside)
+            if now_in and not was:                    # 확정 진입 전이에서만 발화(체류 중 재발화는 쿨다운이 담당)
+                fired.append(("zone_intrusion", "high", "위험구역 내 작업자 감지(체류 확정)"))
+        elif raw_inside:                              # 디바운서 미주입 경로(하위호환)
+            fired.append(("zone_intrusion", "high", "위험구역 내 작업자 감지"))
     if sig.get("ppe_missing"):
         fired.append(("ppe_missing", "high", "보호구 미착용 감지"))
     if sig.get("fire_smoke"):
@@ -507,6 +525,8 @@ class Worker:
         self._pose_events: list = []                         # 포즈 스레드가 낸 발화(rule,level,note) — 메인이 드레인
         self._pose_etrack: Any = None                        # 현 run 의 ErgonomicsTracker(포즈 스레드 전용 접근)
         self._pose_thread: threading.Thread | None = None
+        # [B6] 위험구역 침입 시간 디바운스(카메라별 상태) — 단일 프레임 오검출 경보 차단
+        self._zone_debouncer = zone_debounce.ZoneDebouncer()
         self.state: dict[str, Any] = {
             "running": False, "source": "", "name": "", "fps": 0,
             "frames": 0, "events": 0, "last_event": "", "error": ""}
@@ -760,7 +780,8 @@ class Worker:
                 self._pose_input = (frame, person_boxes, t0)
                 _pose_ev = self._pose_events
                 self._pose_events = []
-            fired = _derive(out, ctx.zone, frame.shape[0] / frame.shape[1])
+            fired = _derive(out, ctx.zone, frame.shape[0] / frame.shape[1],
+                            cid=str(ctx.name), debouncer=self._zone_debouncer)   # [B6] 침입 시간 디바운스
             fired += _pose_ev                                       # ergo(별도 스레드 산출) — 쿨다운은 아래 공통
             # B9: 위험구역 한정 타일 재검출(가산·기본 off, VIGENT_ZONE_TILE=1). zone 내 놓친 소형 person 회수.
             #   ★확인1(스코프 한정): 타일 박스는 zone_intrusion 발화에만 쓴다 — 공유 out["detections"] 에
