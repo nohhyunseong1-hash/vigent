@@ -112,3 +112,15 @@ health:                     # [B2] 검출 생존 판정 임계(초) — /health 
   detect_stale_s: 30        # 추론 완료가 이 시간 넘게 없으면 검출 정지로 판정
   frame_stale_s: 30         # 프레임 자체가 이 시간 넘게 없으면 입력 끊김으로 판정
   startup_grace_s: 90       # 기동·재연결 직후 첫 검출을 기다려주는 유예(B4 예열과 같은 취지)
+
+stability:                  # [B3] 안정성·기아 방어 (STABILITY.md 의 2차 워치독 설정 — 이제 실제 소비처 있음)
+  hang_timeout_s: 15        # 워커 무진전 판정(예열 후에만 적용 — B4 startup grace 참조)
+  reconnect_max_s: 5        # 재연결 백오프 상한. 30→5: 카메라 슬롯 경쟁에서 워커가 영구히 밀리던
+    # 구조를 깬다(audit/b3_root_cause_2026-08-16.md — 동시 세션 한도 2 실측, 여유 0)
+  read_fail_max: 5          # 연속 읽기 실패 이 횟수면 스트림 끊김으로 판정
+  starve_grab_s: 60         # [B3 1단계] stale_detect 이만큼 지속 → go2rtc 스트림 해제로 슬롯 회수
+    # (확대뷰는 끊긴다 — 안전 검출 > 라이브 영상 우선순위를 명시적으로 적용)
+  starve_restart_s: 120     # [B3 2단계] 그래도 지속 → 해당 카메라 워커만 재시작
+  starve_max_fails: 3       # [B3 3단계] 이 횟수 실패 → restart_cmd 로 프로세스 재기동
+  restart_cmd: ""           # 프로세스 재기동 명령(Windows 서비스: "sc stop VIGENT & sc start VIGENT").
+    # 미설정이면 3단계에서 경고만 남긴다. deploy/windows/install_service.ps1 이 설정해 준다.

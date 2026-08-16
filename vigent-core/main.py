@@ -347,6 +347,9 @@ def _startup() -> None:
         import readiness
         readiness.start_background(bundle["agents"].get("Guard"),
                                    on_ready=_start_workers_after_warmup)
+        # [B3] 검출 기아 2차 방어 — stale_detect 지속 시 go2rtc 슬롯 회수 → 워커 재시작 → 승격
+        import starvation_guard
+        starvation_guard.start()
     except Exception:  # noqa: BLE001  예열 배선 실패 시에도 워커는 기동(기존 동작으로 폴백)
         _log.warning("예열 기동 실패 — 워커를 즉시 시작(구 동작)\n%s", traceback.format_exc())
         _start_workers_after_warmup()

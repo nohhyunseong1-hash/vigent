@@ -44,7 +44,12 @@ _HANG_TIMEOUT = float(os.environ.get("VIGENT_HANG_TIMEOUT") or tuning.val("stabi
 #   "예열이 끝난 뒤에 판정 시작"이다(readiness.py 참조). 값은 config/tuning.yaml `health:` 공유.
 _STARTUP_GRACE = float(os.environ.get("VIGENT_STARTUP_GRACE")
                        or tuning.val("health", "startup_grace_s", 90.0))
-_RECONNECT_MAX = float(os.environ.get("VIGENT_RECONNECT_MAX") or tuning.val("stability", "reconnect_max_s", 30.0))
+# [B3] 재연결 백오프 상한. 30→5초로 낮춘다(2026-08-16 원인분석 audit/b3_root_cause_2026-08-16.md).
+#   카메라 동시 세션 한도가 2(실측)인데 워커 1 + go2rtc 1 로 여유가 0이라, 슬롯이 열리는 순간을
+#   누가 먼저 잡느냐의 경쟁이 된다. 워커가 30초씩 쉬면 그동안 슬롯이 열려도 못 잡고, 다음 시도엔
+#   이미 없어 백오프가 더 길어진다 — **한 번 밀리면 영구히 밀리는** 구조(실측 7분 검출 사망).
+#   상한을 5초로 낮춰 그 구조를 깬다. 카메라 부하는 재시도 간격 5초라 무시할 수준.
+_RECONNECT_MAX = float(os.environ.get("VIGENT_RECONNECT_MAX") or tuning.val("stability", "reconnect_max_s", 5.0))
 _READ_FAIL_MAX = int(os.environ.get("VIGENT_READ_FAIL_MAX") or tuning.val("stability", "read_fail_max", 5))
 # 프레임 신선도(지연): 스트림은 내부 버퍼를 최소화해 '최신 프레임'을 처리(과거 프레임 지연 누적 방지).
 #   파일 소스는 순차 처리라 이 설정을 적용하지 않는다(모든 프레임을 봐야 하므로).

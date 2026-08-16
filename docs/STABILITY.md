@@ -98,9 +98,14 @@ Worker.start() ──► _run_supervised (감독자, daemon 스레드)
 | read 실패 임계 | `VIGENT_READ_FAIL_MAX` | `stability.read_fail_max` | **5** | 연속 read 실패 이 횟수 → 재연결 시도 |
 | 캡처 버퍼 크기 | `VIGENT_CAP_BUFFERSIZE` | `stability.cap_buffersize` | **1** | 스트림 `CAP_PROP_BUFFERSIZE`(FFmpeg는 무시 가능) |
 | 캡처 방식 | `VIGENT_CAPTURE_MODE` | — | **sync** | `thread`=캡처 스레드(최신 프레임) / `sync`=동기(롤백) |
-| 워치독 2차 재기동 임계 | `VIGENT_HANG_RESTART_S` | — | **45s** | `/status` hang 지속 이 시간 초과 → 프로세스 재기동(2차) |
-| /health 연속 실패 임계 | `VIGENT_HEALTH_FAILS` | — | **3** | 워치독 재기동 트리거 |
-| 재기동 명령 | `VIGENT_RESTART_CMD` | — | (systemd) | 워치독 재기동 커맨드(미설정 시 경고만) |
+| 기아 1단계(슬롯 회수) | `VIGENT_STARVE_GRAB_S` | `stability.starve_grab_s` | **60s** | `stale_detect` 지속 시 go2rtc 스트림 해제 → 카메라 슬롯 회수 |
+| 기아 2단계(워커 재시작) | `VIGENT_HANG_RESTART_S` | `stability.starve_restart_s` | **120s** | 그래도 지속 → 해당 카메라 워커만 재시작 |
+| 기아 3단계 승격 임계 | `VIGENT_HEALTH_FAILS` | `stability.starve_max_fails` | **3** | 이 횟수 실패 → 프로세스 재기동 승격 |
+| 재기동 명령 | `VIGENT_RESTART_CMD` | `stability.restart_cmd` | (없음) | 3단계 재기동 커맨드. 미설정 시 경고만(Windows 서비스는 `deploy/windows/install_service.ps1` 이 설정) |
+
+> ★[B3, 2026-08-16] 위 3종은 이전까지 **이 문서에만 있고 코드에 소비처가 없었다**(감사
+> `audit/site_readiness_2026-08-16.md` §7 문서-실물 불일치). 이제 `vigent-core/starvation_guard.py`
+> 가 실제로 읽어 단계별 승격을 수행한다. 근거·기전은 `audit/b3_root_cause_2026-08-16.md`.
 
 > 소크 하네스 전용(운영 무관): `VIGENT_HANG_TIMEOUT`을 소크에서 짧게 주입해 hang을 빠르게 테스트.
 
