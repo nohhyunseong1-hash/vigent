@@ -68,3 +68,6 @@ vigent_helios_hx_deployable.html
 bin/go2rtc.yaml
 data/go2rtc.runtime.yaml
 data/go2rtc.log
+
+# [B1] NSSM 바이너리 — 배포 스크립트가 winget/다운로드로 조달(저장소에 커밋하지 않음)
+deploy/windows/nssm.exe
