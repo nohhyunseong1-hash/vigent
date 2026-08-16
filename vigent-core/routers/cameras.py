@@ -159,6 +159,12 @@ def cameras_snapshot(cid: str):
     fr = getattr(wk, "_last_frame", None) if wk else None
     if fr is None:
         raise HTTPException(status_code=404, detail="프레임 없음(오프라인/워밍업)")
+    # [P1a] 스냅샷은 화면·외부로 나가는 이미지 → 얼굴 비식별화. 워커의 최신 person 박스를 넘겨
+    #   머리 영역을 확실히 가린다(원본 _last_frame 은 수정되지 않는다 — 검출 무영향).
+    import privacy
+    _pb = [d.get("bbox") for d in (getattr(wk, "_last_dets", None) or [])
+           if d.get("class") == "person"]
+    fr = privacy.anonymize_faces(fr, _pb)
     ok, buf = cv2.imencode(".jpg", cv2.resize(fr, (640, 360)), [cv2.IMWRITE_JPEG_QUALITY, 70])
     return Response(content=buf.tobytes(), media_type="image/jpeg")
 
@@ -177,6 +183,9 @@ def cameras_test(cid: str):
     cap.release()
     if not ok or fr is None:
         return {"ok": False, "error": "프레임을 못 잡음(연결 실패/경로 오류)"}
+    # [P1a] 연결테스트 미리보기도 응답으로 나가는 이미지다(person 박스 없음 → haar 만)
+    import privacy
+    fr = privacy.anonymize_faces(fr)
     _, buf = cv2.imencode(".jpg", cv2.resize(fr, (480, 270)), [cv2.IMWRITE_JPEG_QUALITY, 65])
     return {"ok": True, "snapshot": "data:image/jpeg;base64," + base64.b64encode(buf.tobytes()).decode()}
 

@@ -107,6 +107,19 @@
    "size_bytes": 6832633,
    "url": "release:weights-v1",
    "required": false
+  },
+  {
+   "file": "face_detection_yunet.onnx",
+   "slot": "privacy",
+   "backend": "opencv",
+   "purpose": "[P1a] 얼굴 비식별화용 YuNet 검출기(cv2.FaceDetectorYN). person 박스가 없는 경로(연결테스트·클라우드 VLM) 대비 보조 검출.",
+   "version": "yunet_2023mar",
+   "sha256": "8f2383e4dd3cfbb4553ea8718107fc0423210dc964f9f4280604804ed2552fa4",
+   "size_bytes": 232589,
+   "url": "release:weights-v1",
+   "required": false,
+   "verified_at": "2026-08-17",
+   "note": "없어도 기동은 되지만 person 박스 밖 얼굴이 비식별화되지 않는다. 출처: opencv_zoo(Apache-2.0)."
   }
  ],
  "release_tag": "weights-v1",

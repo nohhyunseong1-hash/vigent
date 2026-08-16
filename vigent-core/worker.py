@@ -23,6 +23,7 @@ from typing import Any
 import cv2
 import data_engine
 import numpy as np
+import privacy
 import proximity
 import runtime_config
 import tuning
@@ -113,9 +114,14 @@ def _load_zone() -> list[tuple[float, float]]:
         return []
 
 
-def _frame_to_dataurl(frame: "np.ndarray") -> str | None:
-    """BGR 프레임 → JPEG data URL(증거 저장용)."""
-    ok, buf = cv2.imencode(".jpg", frame, [cv2.IMWRITE_JPEG_QUALITY, 75])
+def _frame_to_dataurl(frame: "np.ndarray", person_boxes: list | None = None) -> str | None:
+    """BGR 프레임 → JPEG data URL(증거 저장용).
+
+    [P1a] 저장 직전에 얼굴을 비식별화한다 — 이 경로가 디스크에 남는 증거 이미지다.
+    원본 frame 은 수정되지 않는다(privacy.anonymize_faces 가 사본을 만든다) → 검출 무영향.
+    """
+    safe = privacy.anonymize_faces(frame, person_boxes)
+    ok, buf = cv2.imencode(".jpg", safe, [cv2.IMWRITE_JPEG_QUALITY, 75])
     return ("data:image/jpeg;base64," + base64.b64encode(buf.tobytes()).decode()) if ok else None
 
 
@@ -814,7 +820,8 @@ class Worker:
                 evidence = None
                 if now - ctx.evidence_cd.get(rule, 0) >= _EVIDENCE_COOLDOWN_S:
                     ctx.evidence_cd[rule] = now
-                    evidence = _frame_to_dataurl(frame)
+                    evidence = _frame_to_dataurl(frame, [d.get('bbox') for d in self._last_dets
+                                                      if d.get('class') == 'person'])
                 data_engine.log_event(rule=rule, level=level, site=ctx.name, note=note,
                                       image_data_url=evidence)
                 self.state["events"] += 1

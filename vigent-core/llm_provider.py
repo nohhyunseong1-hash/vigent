@@ -119,7 +119,12 @@ def reason_vision(image_bgr, prompt: str, system: str | None = None) -> tuple[st
         import base64
 
         import cv2
-        ok, buf = cv2.imencode(".jpg", image_bgr)
+
+        # [P1a] ★클라우드 전송 — 영상이 외부 사업자로 나가는 가장 민감한 경로다.
+        #   person 박스를 여기서는 알 수 없으므로 haarcascade 만 적용된다(측면·후면 얼굴은
+        #   놓칠 수 있다 — privacy.py 주석 참고). 클라우드 VLM 자체가 opt-in(F-12)이다.
+        import privacy
+        ok, buf = cv2.imencode(".jpg", privacy.anonymize_faces(image_bgr))
         if not ok:
             return None, None
         b64 = base64.b64encode(buf.tobytes()).decode("ascii")
