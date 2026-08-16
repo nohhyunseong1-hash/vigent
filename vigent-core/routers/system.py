@@ -59,6 +59,14 @@ def health(theme: str = DEFAULT_THEME):
         if status:
             disk_retention["last_run"] = status.get("last_run")
             disk_retention["warnings"] = status.get("warnings", [])
+            # [P1b] 실제로 무엇을 지웠는지 노출 — "정책은 켰는데 아무것도 안 지워지고 있다"를 드러낸다
+            disk_retention["dry_run"] = status.get("dry_run")
+            disk_retention["deleted_count"] = status.get("deleted_count")
+            disk_retention["deleted_bytes"] = status.get("deleted_bytes")
+            disk_retention["pending_count"] = status.get("pending_count")
+            if status.get("first_run_notice"):
+                disk_retention["warnings"] = list(disk_retention["warnings"]) + [
+                    "첫 주기 — 삭제 예정 목록만 기록했고 실제 삭제는 다음 주기부터"]
         elif disk_retention["enabled"]:
             disk_retention["warnings"] = ["보존 정책이 활성화됐으나 스위퍼가 아직 실행된 기록이 없음"]
     except Exception:  # noqa: BLE001  조회 실패해도 헬스체크는 죽지 않는다

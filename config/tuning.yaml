@@ -62,9 +62,15 @@ detect:                     # 탐지 공통
       # 되돌리려면 backend.fire_smoke 를 yolo 로, 임계를 fire 0.03/smoke 0.20 으로 원복.
 
 retention:                   # [Z-2] 디스크 보존 정책(scripts/retention_sweep.py)
-  enabled: true              # [S3] 엣지박스 리허설용으로 활성화 — 여전히 dry_run 이라 삭제 없음
-  dry_run: true              # true=삭제 없이 보고만. enabled=true여도 이게 true면 안 지운다
-    # 실제 활성화(enabled:true + dry_run:false)는 배포 시 현장별로 명시 결정할 것.
+  enabled: true              # 보존 정책 전체 스위치
+  dry_run: false             # [P1b, 2026-08-17] false=실제 삭제. 개인영상정보를 기한 없이
+    # 보관하지 않으려면 실제 파기가 동작해야 한다(감사 🟠C2 — 정책만 있고 아무것도 안 지우고 있었다).
+    # ★안전장치: dry_run 을 false 로 바꿔도 **첫 주기는 지우지 않는다**. 삭제 예정 목록만
+    # 로그(vigent.retention WARNING)로 남기고, 운영자가 확인한 뒤 다음 주기부터 실제 삭제가
+    # 시작된다(retention.first_run_pending). 중단하려면 이 값을 true 로 되돌린다.
+  allowed_roots:             # [P1b] 삭제 허용 경로 화이트리스트 — **이 목록 밖은 어떤 경우에도
+    - data                   #   지우지 않는다.** 설정·코드 실수로 엉뚱한 경로가 들어와도 막는
+                             #   마지막 방어선(되돌릴 수 없는 작업이므로).
   ops_log_max_mb: 50         # D그룹(go2rtc.log·legal 차단로그) 회전 크기 상한
   groups:                    # A/B — 그룹별 보존 일수. ★잠정값(2026-08-10) — 법률 전문가
     # 확인 전이며, 고객사 개인정보 처리방침에 따라 계약 시 조정한다(규칙7, docs/

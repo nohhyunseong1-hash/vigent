@@ -85,6 +85,44 @@ def group_days(name: str) -> int | None:
     return None
 
 
+def allowed_roots() -> list[Path]:
+    """[P1b] 삭제 허용 경로 화이트리스트 — **이 목록 밖은 어떤 경우에도 지우지 않는다.**
+
+    GROUP_DIRS 는 코드 상수지만, 설정·코드 실수로 엉뚱한 경로가 들어오면 되돌릴 수 없는
+    삭제가 일어난다. 실제 unlink 직전에 이 목록 하위인지 한 번 더 검사하는 방어선이다.
+    기본값은 data/ 하위로 제한한다(config retention.allowed_roots 로 조정 가능).
+    """
+    cfg = _retention_config().get("allowed_roots")
+    if isinstance(cfg, list) and cfg:
+        return [(_ROOT / str(p)).resolve() for p in cfg]
+    return [(_ROOT / "data").resolve()]
+
+
+def is_path_allowed(p: Path) -> bool:
+    """p 가 화이트리스트 하위인가(심링크·상위탈출 방어를 위해 resolve 후 비교)."""
+    try:
+        rp = p.resolve()
+    except OSError:
+        return False
+    for root in allowed_roots():
+        try:
+            rp.relative_to(root)
+            return True
+        except ValueError:
+            continue
+    return False
+
+
+def first_run_pending() -> bool:
+    """[P1b] 첫 실행 안전장치 — 실삭제가 처음 켜진 주기에는 **목록만 남기고 지우지 않는다**.
+
+    dry_run 을 false 로 바꾸는 순간 대량 삭제가 즉시 일어나는 것을 막는다. 운영자가 첫 주기
+    로그에서 '무엇이 지워질 예정인지'를 눈으로 확인한 뒤, 다음 주기부터 실제 삭제가 시작된다.
+    """
+    st = read_status()
+    return not (st or {}).get("delete_armed", False)
+
+
 def is_enabled() -> bool:
     return bool(_retention_config().get("enabled", False))
 
@@ -154,7 +192,11 @@ def sweep(execute: bool | None = None, only_group: str | None = None) -> dict[st
     t0 = time.time()
     enabled = is_enabled()
     dry_run = is_dry_run() if execute is None else (not execute)
-    will_delete = enabled and not dry_run
+    # [P1b] 첫 실행 안전장치 — 실삭제가 처음 켜진 주기에는 목록만 남기고 지우지 않는다.
+    #   운영자가 '무엇이 지워질 예정인지' 확인한 뒤 다음 주기부터 실제 삭제가 시작된다.
+    armed = not first_run_pending()
+    will_delete = enabled and not dry_run and armed
+    first_run_notice = enabled and not dry_run and not armed
 
     warnings: list[str] = []
     try:
@@ -180,6 +222,10 @@ def sweep(execute: bool | None = None, only_group: str | None = None) -> dict[st
         if will_delete and days is not None:
             for cand in info["candidates"]:
                 fp = _ROOT / cand["path"]
+                # [P1b] 화이트리스트 밖은 어떤 경우에도 삭제하지 않는다(되돌릴 수 없는 작업의 마지막 방어선)
+                if not is_path_allowed(fp):
+                    warnings.append(f"{name}: 화이트리스트 밖이라 삭제 거부 {cand['path']}")
+                    continue
                 try:
                     fp.unlink()
                     deleted.append(cand["path"])
@@ -196,10 +242,42 @@ def sweep(execute: bool | None = None, only_group: str | None = None) -> dict[st
 
     _write_deletion_audit(deletion_entries)
 
+    # [P1b] 첫 주기: 실제로 지우지 않고 '지워질 예정' 목록을 로그로 남긴다.
+    if first_run_notice:
+        pend = [(n, len(g.get("candidates") or []),
+                 sum(c["bytes"] for c in (g.get("candidates") or [])))
+                for n, g in groups_out.items() if isinstance(g, dict)]
+        total_n = sum(n for _, n, _ in pend)
+        total_b = sum(b for _, _, b in pend)
+        try:
+            import vlog
+            lg = vlog.get("vigent.retention")
+            lg.warning("★[첫 주기·삭제 보류] 실삭제가 처음 활성화됐습니다. 이번 주기는 목록만 "
+                       "남기고 **아무것도 지우지 않습니다**. 다음 주기부터 실제 삭제가 시작됩니다.")
+            lg.warning("  삭제 예정 총 %d건 / %.1f MB", total_n, total_b / 1048576)
+            for n, cnt, b in pend:
+                if cnt:
+                    lg.warning("   - %s: %d건 %.1f MB (보존 %s일 초과)",
+                               n, cnt, b / 1048576, group_days(n))
+            lg.warning("  목록을 확인한 뒤 문제가 없으면 다음 주기를 기다리면 됩니다. "
+                       "중단하려면 config/tuning.yaml 의 retention.dry_run 을 true 로 되돌리세요.")
+        except Exception:  # noqa: BLE001
+            pass
+
     elapsed = time.time() - t0
     status = {
         "last_run": datetime.now(KST).isoformat(timespec="seconds"),
         "enabled": enabled, "dry_run": dry_run, "executed_delete": will_delete,
+        # [P1b] 다음 주기부터 실삭제 허용(첫 주기는 목록만) — read 는 first_run_pending()
+        "delete_armed": bool(armed or first_run_notice),
+        "first_run_notice": first_run_notice,
+        "allowed_roots": [str(r) for r in allowed_roots()],
+        "deleted_count": sum(len(g.get("deleted") or []) for g in groups_out.values()
+                             if isinstance(g, dict)),
+        "deleted_bytes": sum(c.get("bytes", 0) for c in
+                             [e for e in deletion_entries]),
+        "pending_count": sum(len(g.get("candidates") or []) for g in groups_out.values()
+                             if isinstance(g, dict)),
         "elapsed_sec": round(elapsed, 3),
         "disk_free_bytes": free,
         "warnings": warnings,
