@@ -64,8 +64,19 @@ def main() -> int:
     unrecovered = 1 if cur else 0          # 끝까지 회복 못 한 구간
     longest_stale_min = (max(stale_runs) * iv / 60) if stale_runs else 0
 
-    rss = [r["rss_mb"] for r in rows if r.get("rss_mb")]
-    growth = ((rss[-1] - rss[0]) / dur_h) if (rss and dur_h > 0.1) else 0.0
+    # RSS 증가율: 끝점 두 개로 나누면 짧은 구간에서 노이즈가 그대로 시간당으로 증폭된다
+    #   (실제로 8분 구간에서 +14MB 가 +115MB/h 로 나와 오판정했다). 최소 구간을 두고,
+    #   최소소자승 회귀 기울기를 쓴다 — 일시적 스파이크에 덜 흔들린다.
+    MIN_HOURS_FOR_GROWTH = 2.0
+    rss_pts = [(r["t"] / 3600.0, r["rss_mb"]) for r in rows if r.get("rss_mb")]
+    rss = [v for _, v in rss_pts]
+    growth: float | None = None
+    if len(rss_pts) >= 10 and dur_h >= MIN_HOURS_FOR_GROWTH:
+        n = len(rss_pts)
+        mx = sum(x for x, _ in rss_pts) / n
+        my = sum(y for _, y in rss_pts) / n
+        den = sum((x - mx) ** 2 for x, _ in rss_pts)
+        growth = (sum((x - mx) * (y - my) for x, y in rss_pts) / den) if den else 0.0
     gpu = [r["gpu_mb"] for r in rows if r.get("gpu_mb")]
     pend_end = (rows[-1].get("alerts") or {}).get("pending", 0)
     rc_end = max([c.get("rc") or 0 for r in rows for c in (r.get("cams") or {}).values()] or [0])
@@ -81,7 +92,9 @@ def main() -> int:
         (f"degraded 누적 ≤{max_deg:.0f}분", degraded_min <= max_deg, f"{degraded_min:.1f}분"),
         ("자동복구 실패 0", unrecovered == 0,
          f"미회복 {unrecovered} (최장 stale {longest_stale_min:.1f}분)"),
-        (f"RSS 증가 ≤{max_growth:.0f}MB/h", abs(growth) <= max_growth, f"{growth:+.1f}MB/h"),
+        (f"RSS 증가 ≤{max_growth:.0f}MB/h",
+         True if growth is None else abs(growth) <= max_growth,
+         "판정보류(구간 <2h)" if growth is None else f"{growth:+.1f}MB/h"),
         ("미전송 경보 0건", int(pend_end or 0) == 0, f"{pend_end}건"),
     ]
     print(f"{'기준':<28} {'결과':<24} 판정")
