@@ -90,3 +90,14 @@ onnx-cpu` 설정 시 이 파일을 로드한다(`detect.backend: torch`가 기�
 | `fire_smoke_boda.pt` | fire_smoke(yolo 폴백) | 미확인 |
 | `yolo11m.pt` / `yolo11s.pt` | person(fallback) | 이 환경에 있음(`/health` 확인됨, SHA256 미기록 — 필요시 추가) |
 | `yolov8n-pose.pt` | pose(레거시 이름, 실제 백엔드 RTMPose) | 미확인 |
+
+## Release 전달 자산 (Mac→데스크탑 이관, git 미추적 → GitHub Releases)
+
+자체학습 RF-DETR 가중치는 git에 올리지 않고 **Release `weights-v1`** 자산으로 전달한다.
+데스크탑에서 `gh release download weights-v1 --pattern <파일> --dir weights/`(또는 브라우저 다운로드)로 받고,
+SHA256이 아래와 일치하는지 확인할 것.
+
+| 파일명 | 용도 | 바이트 크기 | SHA256 | 전달 |
+|---|---|---|---|---|
+| forklift_rfdetr_v1.pth | 지게차 검출 (RF-DETR 자체학습) | 120,781,691 | cd76eb56487bf1aa308a2da428e0348c8f6fbff0187007db77ec577d693373ac | Release weights-v1 |
+| fire_smoke_rfdetr_v1_e17.pth | 화재/연기 검출 (RF-DETR 자체학습) | 120,807,675 | b7425ce450f12cad25cd821f616cd8e3f64d544de51d45bc6e0e6c833be6b4fb | Release weights-v1 |
