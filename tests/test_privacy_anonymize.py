@@ -84,11 +84,14 @@ class TestAnonymize(unittest.TestCase):
         self.assertIs(out, f)
 
     def test_failure_returns_original_not_crash(self):
-        """비식별화가 실패해도 저장 자체를 막으면 안 된다(원본 반환 + 로그)."""
+        """비식별화가 실패해도 저장 자체를 막으면 안 된다(원본 반환 + 로그).
+
+        ※실패 시 원본이 나가므로 privacy.py 가 반드시 exception 로그를 남긴다."""
         f = _textured_frame()
         with mock.patch.object(privacy, "_mosaic_region", side_effect=RuntimeError("boom")):
             out = privacy.anonymize_faces(f, [[0.2, 0.1, 0.6, 0.9]])
         self.assertIsNotNone(out)
+        self.assertTrue(np.array_equal(out, f))     # 원본 그대로 반환
 
     def test_status_shape(self):
         s = privacy.status()
@@ -113,6 +116,57 @@ class TestEvidencePathWired(unittest.TestCase):
         self.assertTrue(called.get("yes"), "증거 저장 경로가 비식별화를 거치지 않는다")
         self.assertTrue(url.startswith("data:image/jpeg;base64,"))
         base64.b64decode(url.split(",", 1)[1])       # 유효한 JPEG base64
+
+
+class TestStorageEncryptionCheck(unittest.TestCase):
+    """[P1c] 저장 폴더 암호화 검사 — 사실을 사실대로 보고하는가."""
+
+    def setUp(self):
+        privacy._storage_cache = {}
+        privacy._storage_ts = 0.0
+
+    def test_all_encrypted_reports_true(self):
+        with mock.patch.object(privacy, "_efs_encrypted", return_value=True), \
+             mock.patch.object(privacy, "_bitlocker_status", return_value="unknown"), \
+             mock.patch.object(privacy, "_protected_dirs",
+                               return_value=[Path("D:/x/data/evidence")]), \
+             mock.patch.object(Path, "exists", return_value=True):
+            r = privacy.storage_status(force=True)
+        self.assertIs(r["storage_encrypted"], True)
+
+    def test_unencrypted_reports_false_not_unknown(self):
+        """★미암호화를 'unknown' 으로 얼버무리지 않는다 — 보호되지 않는 상태는 false 로 드러낸다."""
+        with mock.patch.object(privacy, "_efs_encrypted", return_value=False), \
+             mock.patch.object(privacy, "_bitlocker_status", return_value="unknown"), \
+             mock.patch.object(privacy, "_protected_dirs",
+                               return_value=[Path("D:/x/data/evidence")]), \
+             mock.patch.object(Path, "exists", return_value=True):
+            r = privacy.storage_status(force=True)
+        self.assertIs(r["storage_encrypted"], False)
+
+    def test_bitlocker_on_overrides_efs(self):
+        """볼륨이 BitLocker 로 보호되면 폴더 EFS 가 없어도 보호된 것으로 본다."""
+        with mock.patch.object(privacy, "_efs_encrypted", return_value=False), \
+             mock.patch.object(privacy, "_bitlocker_status", return_value="on"), \
+             mock.patch.object(privacy, "_protected_dirs",
+                               return_value=[Path("D:/x/data/evidence")]), \
+             mock.patch.object(Path, "exists", return_value=True):
+            r = privacy.storage_status(force=True)
+        self.assertIs(r["storage_encrypted"], True)
+
+    def test_no_dirs_is_unknown(self):
+        """검사할 폴더가 아직 없으면 판정 불가(false 로 단정하지 않는다)."""
+        with mock.patch.object(privacy, "_protected_dirs", return_value=[]), \
+             mock.patch.object(privacy, "_bitlocker_status", return_value="unknown"):
+            r = privacy.storage_status(force=True)
+        self.assertEqual(r["storage_encrypted"], "unknown")
+
+    def test_result_has_no_secrets(self):
+        with mock.patch.object(privacy, "_protected_dirs", return_value=[]), \
+             mock.patch.object(privacy, "_bitlocker_status", return_value="unknown"):
+            r = privacy.storage_status(force=True)
+        self.assertEqual(set(r) , {"storage_encrypted", "bitlocker", "efs_by_dir",
+                                   "checked_dirs", "note"})
 
 
 if __name__ == "__main__":

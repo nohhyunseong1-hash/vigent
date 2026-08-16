@@ -80,6 +80,14 @@ def health(theme: str = DEFAULT_THEME):
     phase = "ready"
     warm: dict = {}
     alerts: dict = {}
+    # [P1a/P1c] 개인정보 기술통제 상태 — 비식별화 설정과 저장 폴더 암호화 여부를 사실대로 노출.
+    #   법적 충분성 판단은 하지 않는다(사람이 검토). "설정만 있고 실제로는 꺼져 있다"를 드러내는 것이 목적.
+    privacy_status: dict = {}
+    try:
+        import privacy as _pv
+        privacy_status = {**_pv.status(), **_pv.storage_status()}
+    except Exception:  # noqa: BLE001
+        privacy_status = {"error": "privacy 상태 조회 실패"}
     try:
         import health_status
         import readiness
@@ -110,6 +118,7 @@ def health(theme: str = DEFAULT_THEME):
         "phase": phase,               # [B4] starting|ready|failed — 예열 완료 여부
         "warmup": warm,               # [B4] {phase, warmup_s, elapsed_s, error} — 예열 실측
         "alerts": alerts,             # [B5] {pending, sent, dead} — 미전송 경보(pending≥1 이면 degraded)
+        "privacy": privacy_status,    # [P1a/P1c] 비식별화 설정 + 저장 폴더 암호화 검사 결과
         "cameras": cameras,           # [B2] 카메라별 검출 생존
         "version": product_version(),
         "uptime_s": round(_time.time() - _START_TS, 1),

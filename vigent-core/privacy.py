@@ -145,3 +145,108 @@ def status() -> dict[str, Any]:
                     else "person_box_head(얼굴검출기 모델 없음 — 사람 박스 밖 얼굴은 미처리)",
         "mosaic_blocks": _blocks(),
     }
+
+
+# ── [P1c] 저장 암호화 검사 ────────────────────────────────────────────────────
+#   결정된 사항: 앱 레벨 파일 암호화(Fernet 등)를 새로 만들지 않는다. 저장 폴더를 Windows
+#   BitLocker 또는 EFS 로 보호하는 것을 기본으로 하고, 앱은 **암호화돼 있는지 검사해
+#   /health 에 노출**만 한다(파일럿 이후 앱 레벨 암호화 재검토).
+#   ※ 이 함수는 사실만 보고한다 — 법적 충분성 판단은 하지 않는다(사람이 검토).
+
+_storage_cache: dict[str, Any] = {}
+_storage_ts = 0.0
+
+
+def _protected_dirs() -> list[Any]:
+    """개인영상정보가 저장되는 폴더 목록(암호화 검사 대상)."""
+    from pathlib import Path
+    root = Path(__file__).resolve().parent.parent / "data"
+    return [root / n for n in ("evidence", "recognition", "audit", "tbm", "risk_assessments")]
+
+
+def _efs_encrypted(path: Any) -> bool | None:
+    """`cipher /c` 로 EFS 암호화 여부 판정. True/False/None(판정불가).
+
+    관리자 권한 없이 동작한다(BitLocker 조회와 달리). 출력의 파일별 접두 'E'=암호화,
+    'U'=미암호화를 센다.
+    """
+    import subprocess
+    try:
+        out = subprocess.run(["cipher", "/c", str(path)], capture_output=True,
+                             timeout=20, text=True, errors="replace")
+    except Exception:  # noqa: BLE001
+        return None
+    txt = (out.stdout or "") + (out.stderr or "")
+    if not txt.strip():
+        return None
+    if "will not be encrypted" in txt:
+        return False
+    if "will be encrypted" in txt:
+        return True
+    marks = [ln.strip()[:1] for ln in txt.splitlines()
+             if ln.strip()[:1] in ("E", "U") and len(ln.strip()) > 2]
+    if not marks:
+        return None
+    return all(m == "E" for m in marks)
+
+
+def _bitlocker_status(drive: str) -> str:
+    """볼륨 BitLocker 상태. 관리자 권한이 없으면 'unknown'(액세스 거부)."""
+    import subprocess
+    try:
+        r = subprocess.run(
+            ["powershell", "-NoProfile", "-Command",
+             f"(Get-BitLockerVolume -MountPoint '{drive}').ProtectionStatus"],
+            capture_output=True, timeout=25, text=True, errors="replace")
+        s = (r.stdout or "").strip()
+        if s in ("On", "1"):
+            return "on"
+        if s in ("Off", "0"):
+            return "off"
+    except Exception:  # noqa: BLE001
+        pass
+    return "unknown"
+
+
+def storage_status(force: bool = False) -> dict[str, Any]:
+    """저장 폴더 암호화 검사 결과(기동 시 1회 + TTL 캐시).
+
+    storage_encrypted: true(전부 보호) | false(하나라도 미보호) | unknown(판정 불가)
+    """
+    global _storage_cache, _storage_ts
+    import time as _t
+    with _lock:
+        if not force and _storage_cache and (_t.time() - _storage_ts) < 3600:
+            return _storage_cache
+
+    dirs = [d for d in _protected_dirs() if d.exists()]
+    per: dict[str, Any] = {}
+    for d in dirs:
+        per[d.name] = _efs_encrypted(d)
+    _all = _protected_dirs()
+    drive = str(_all[0].drive or "") if _all else ""
+    bl = _bitlocker_status(drive) if drive else "unknown"
+
+    if bl == "on":
+        overall: Any = True
+    elif per and all(v is True for v in per.values()):
+        overall = True
+    elif per and any(v is False for v in per.values()) and bl == "off":
+        overall = False
+    elif per and any(v is False for v in per.values()):
+        overall = False        # EFS 미적용이 확인됐고 BitLocker 는 미확인 → 보호 미확인으로 본다
+    else:
+        overall = "unknown"
+
+    res = {
+        "storage_encrypted": overall,
+        "bitlocker": bl,             # on|off|unknown(관리자 권한 필요)
+        "efs_by_dir": per,           # 폴더별 True/False/None
+        "checked_dirs": [str(d) for d in dirs],
+        "note": ("BitLocker 조회는 관리자 권한이 필요하다. 미적용 시 조치는 "
+                 "deploy/SITE_CHECKLIST.md N-2 참고."),
+    }
+    with _lock:
+        _storage_cache = res
+        _storage_ts = _t.time()
+    return res

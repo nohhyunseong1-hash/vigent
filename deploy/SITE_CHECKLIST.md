@@ -41,3 +41,42 @@ Test-NetConnection <카메라IP> -Port 554
 - 네트워크 보안·방화벽(8555 등): [docs/edge_network_hardening.md](../docs/edge_network_hardening.md)
 - Windows 서비스 등록(재부팅 자동 기동): [deploy/windows/README.md](windows/README.md)
 - 24시간 소크 절차: [docs/SOAK_24H_CHECKLIST.md](../docs/SOAK_24H_CHECKLIST.md)
+
+---
+
+## N-2. 저장 폴더 암호화(BitLocker 또는 EFS) **필수**
+
+- [ ] 개인영상정보 저장 폴더를 **BitLocker**(볼륨 단위, 권장) 또는 **EFS**(폴더 단위)로 보호
+- [ ] 적용 후 `/health` 의 `privacy.storage_encrypted` 가 `true` 인지 확인
+
+**대상 폴더**(개인영상정보가 저장되는 곳)
+```
+data\evidence          증거 프레임(얼굴 비식별화 적용됨, 그래도 원본 장면이 담긴다)
+data\recognition       출입 인식 기록
+data\audit             감사 기록
+data\tbm               TBM 회의록
+data\risk_assessments  위험성평가서
+```
+
+**적용 방법 — 둘 중 하나**
+
+*A. BitLocker(볼륨 전체, 권장)* — 관리자 PowerShell:
+```powershell
+Enable-BitLocker -MountPoint "D:" -EncryptionMethod XtsAes256 -UsedSpaceOnly -PasswordProtector
+Get-BitLockerVolume -MountPoint "D:"     # ProtectionStatus = On 확인
+```
+
+*B. EFS(폴더 단위)* — 일반 PowerShell로도 가능:
+```powershell
+cipher /e /s:D:\vigent_original\data\evidence
+cipher /c D:\vigent_original\data\evidence   # 각 파일 앞 'E' 표시 확인
+```
+> EFS 는 **복구 인증서를 반드시 백업**할 것(`certmgr.msc` → 개인 → 인증서 → 내보내기).
+> 인증서를 잃으면 암호화된 파일을 영구히 열 수 없다.
+
+**현재 상태(2026-08-17 실측)**: 이 개발 PC 는 **미적용**이다
+(`storage_encrypted: false`, EFS 미적용, BitLocker 는 관리자 권한이 없어 `unknown`).
+현장 배포 전 반드시 적용할 것.
+
+> ※ 앱 레벨 파일 암호화(Fernet 등)는 만들지 않았다 — 폴더/볼륨 암호화로 처리하고, 앱은
+> **검사해서 드러내는 역할만** 한다. 법적 충분성 판단은 이 문서가 하지 않는다(법무 검토 대상).
