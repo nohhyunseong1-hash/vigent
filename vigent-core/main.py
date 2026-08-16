@@ -350,6 +350,13 @@ def _startup() -> None:
         # [B3] 검출 기아 2차 방어 — stale_detect 지속 시 go2rtc 슬롯 회수 → 워커 재시작 → 승격
         import starvation_guard
         starvation_guard.start()
+        # [B5] 경보 재시도 스레드 — 미전송 경보를 지수 백오프로 재전송(프로세스 재시작 후에도 이월)
+        import alert_queue
+        _dispatcher = bundle["agents"].get("Dispatcher")
+        if _dispatcher is not None:
+            alert_queue.set_sender(
+                lambda lvl, msg, meta: _dispatcher._dispatch_now(lvl, msg, meta))
+        alert_queue.start()
     except Exception:  # noqa: BLE001  예열 배선 실패 시에도 워커는 기동(기존 동작으로 폴백)
         _log.warning("예열 기동 실패 — 워커를 즉시 시작(구 동작)\n%s", traceback.format_exc())
         _start_workers_after_warmup()

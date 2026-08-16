@@ -71,6 +71,7 @@ def health(theme: str = DEFAULT_THEME):
     cameras: dict = {}
     phase = "ready"
     warm: dict = {}
+    alerts: dict = {}
     try:
         import health_status
         import readiness
@@ -78,7 +79,14 @@ def health(theme: str = DEFAULT_THEME):
         phase = readiness.phase()
         warm = readiness.snapshot()
         model_loaded = bool(bundle) and bool(rfdetr_slots)
-        overall, cameras = health_status.build(_w.manager.status(), model_loaded)
+        # [B5] 미전송 경보가 남아 있으면 degraded — "경보가 안 나갔는데 정상"은 있을 수 없다.
+        try:
+            import alert_queue
+            alerts = alert_queue.counts()
+        except Exception:  # noqa: BLE001
+            alerts = {}
+        overall, cameras = health_status.build(_w.manager.status(), model_loaded,
+                                               alert_backlog=int(alerts.get("pending", 0)))
         # [B4] 예열 중에는 워커가 아직 없는 게 정상 — 카메라 판정으로 unhealthy 를 내지 않는다.
         #   대신 phase 로 "아직 준비 중"임을 알리고 503 을 준다(로드밸런서·워치독이 대기하도록).
         if phase == readiness.STARTING:
@@ -93,6 +101,7 @@ def health(theme: str = DEFAULT_THEME):
         "status": overall,
         "phase": phase,               # [B4] starting|ready|failed — 예열 완료 여부
         "warmup": warm,               # [B4] {phase, warmup_s, elapsed_s, error} — 예열 실측
+        "alerts": alerts,             # [B5] {pending, sent, dead} — 미전송 경보(pending≥1 이면 degraded)
         "cameras": cameras,           # [B2] 카메라별 검출 생존
         "version": product_version(),
         "uptime_s": round(_time.time() - _START_TS, 1),

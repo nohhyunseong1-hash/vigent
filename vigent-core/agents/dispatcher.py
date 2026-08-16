@@ -121,7 +121,38 @@ class DispatcherAgent(BaseAgent):
             return {"channel": "webhook", "sent": False, "fallback": True, "reason": str(ex)}
 
     def dispatch(self, level: str, message: str, meta: dict[str, Any] | None = None) -> dict[str, Any]:
-        """severity 등급에 맞는 채널로 경보. 항상 결과 반환(예외로 죽지 않음)."""
+        """severity 등급에 맞는 채널로 경보. 항상 결과 반환(예외로 죽지 않음).
+
+        [B5] **선기록 후전송**: 보내기 전에 alert_queue 에 pending 으로 남긴다. 전송 직전에
+        프로세스가 죽어도 경보가 사라지지 않고, 실패하면 재시도 스레드가 지수 백오프로 이어받는다.
+        (이전에는 1회 시도 후 실패하면 그대로 소실됐다 — 순단 중 위험 경보가 영구 유실.)
+        """
+        row_id = None
+        if self._queue_enabled(level):
+            try:
+                import alert_queue
+                row_id = alert_queue.enqueue(level, message, meta)
+            except Exception:  # noqa: BLE001  큐 실패가 전송 자체를 막으면 안 된다
+                row_id = None
+        res = self._dispatch_now(level, message, meta)
+        if row_id is not None:
+            try:
+                import alert_queue
+                if res.get("delivered"):
+                    alert_queue.mark_sent(row_id)
+                else:
+                    alert_queue.mark_failed(row_id, str(res.get("results"))[:300])
+            except Exception:  # noqa: BLE001
+                pass
+        return res
+
+    @staticmethod
+    def _queue_enabled(level: str) -> bool:
+        """원격 채널을 실제로 쓰는 등급만 큐에 남긴다(log 전용 등급은 재전송 대상이 아니다)."""
+        return level in ("critical", "high", "mid")
+
+    def _dispatch_now(self, level: str, message: str, meta: dict[str, Any] | None = None) -> dict[str, Any]:
+        """실제 채널 전송(재시도 없음). 큐가 이 함수를 재시도 때 다시 부른다."""
         actions = self.on_severity.get(level, ["log"])
         results: list[dict[str, Any]] = []
         text = f"[VIGENT-SAFETY] {level.upper()} · {message}"

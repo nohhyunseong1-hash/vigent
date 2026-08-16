@@ -189,6 +189,20 @@ function globalCounts(){
 }
 
 // ── 전역 경보 버튼 ──
+// [B5] 미전송 경보 배지 — 경보가 안 나갔는데 화면만 정상인 상태를 드러낸다.
+function renderAlertBacklog(){
+  var a=(HEALTH&&HEALTH.alerts)||{}, pend=a.pending||0, dead=a.dead||0;
+  var el=document.getElementById('alertBacklog');
+  if(!el){ el=document.createElement('div'); el.id='alertBacklog';
+    el.style.cssText='font-size:10px;letter-spacing:.06em;padding:3px 8px;border-radius:5px;margin-left:10px;align-self:center';
+    var bar=document.getElementById('alerts'); if(bar) bar.parentNode.insertBefore(el, bar); }
+  if(!pend && !dead){ el.style.display='none'; return; }
+  el.style.display='block';
+  el.style.background = dead? 'rgba(230,57,70,.2)' : 'rgba(240,138,0,.2)';
+  el.style.color = dead? '#ff8a92' : '#f08a00';
+  el.textContent = '경보 미전송 ' + pend + (dead? (' · 실패 '+dead) : '');
+  el.title = '전송 실패한 경보가 큐에 남아 재시도 중입니다. 실패(dead)는 재시도 한도를 넘긴 건입니다.';
+}
 function renderAlerts(){
   var g=globalCounts();
   [].forEach.call($('alerts').children,function(el){
@@ -541,7 +555,7 @@ function poll(){
   // [B2] 검출 생존 — /health 의 카메라별 판정을 타일 배지에 반영한다.
   //   stale_detect(영상은 오는데 추론만 멈춤)는 화면상 영상이 정상이라 눈으로 못 잡는 고장이라,
   //   배지로 드러내지 않으면 운영자가 영영 모른다(P0).
-  api('GET','/health').then(function(h){ HEALTH=h||{}; renderGrid(); })
+  api('GET','/health').then(function(h){ HEALTH=h||{}; renderGrid(); renderAlertBacklog(); })
     .catch(function(){ HEALTH={status:'unknown',cameras:{}}; renderGrid(); });
   api('GET','/safety/auto/feed?hours=24&limit=60').then(function(j){ EVENTS=j.feed||j.events||[]; renderEvents(); }).catch(function(){});
 }
