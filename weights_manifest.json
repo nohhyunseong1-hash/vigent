@@ -81,8 +81,9 @@
    "sha256": "cd76eb56487bf1aa308a2da428e0348c8f6fbff0187007db77ec577d693373ac",
    "size_bytes": 120781691,
    "url": "release:weights-v1",
-   "required": false,
-   "verified_at": "2026-08-17"
+   "required": true,
+   "verified_at": "2026-08-17",
+   "note": "★required=true — 검출기 목록에선 제외(F-7 과소학습)지만 vision.yaml rfdetr_weights 에 슬롯이 선언돼 있어 **파일이 없으면 guard 가 기동을 거부**한다(F-8 silent 폴백 차단). 2026-08-17 B7 검증에서 깨끗한 클론이 기동 실패해 발견 — 매니페스트가 앱 요구와 어긋나 있었다."
   },
   {
    "file": "fire_smoke_rfdetr_v1_e17.pth",

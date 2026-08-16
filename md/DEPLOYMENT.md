@@ -1,172 +1,359 @@
-# VIGENT 운영·배포 절차 (표준)
+# VIGENT 설치·운영 절차 (Windows)
 
-> 서버 기동·확인·종료·재기동의 **단일 표준**. 2026-07-13 작성 —
-> "코드를 고쳤는데 화면에 반영이 안 된다", "서버가 여러 개 떠 있다" 로 헤맨 절차를 문서화한다.
-
----
-
-## 0. 대전제 — ★ `--reload` 가 없다
-
-표준 기동은 **`--reload` 없이** 뜬다. 즉 **파이썬 코드(`.py`)·설정(`tuning.yaml` 등)을 고쳐도
-이미 떠 있는 서버에는 반영되지 않는다.** 반드시 **종료 후 재기동**해야 한다.
-
-| 무엇을 고쳤나 | 재기동 필요? |
-|---|---|
-| `vigent-core/**/*.py` (main·guard·incident·rig_monitor 등) | **필요** |
-| `config/*.yaml`(tuning 등), `themes/*/vision.yaml` | **필요** (tuning `_CACHE` 는 프로세스당 1회 로드 — F-6 실제 사고) |
-| `vigent-core/static/*.js`, 프론트 HTML | 브라우저 **강력 새로고침**(⇧⌘R)이면 됨 |
-| `config/danger_zone.json` (화면서 그린 구역) | 불필요(매 프레임 읽음) |
-
-> 과거 사고: T14-F 임계를 고쳤으나 **서버 미재시작으로 ~9시간 라이브 미적용**(FINDINGS F-6).
+> **대상 독자**: 이 프로젝트를 처음 보는 사람. 새 Windows PC에 **30분 안에** 설치하는 것이 목표다.
+> **[B7, 2026-08-17 전면 재작성]** 이전 문서는 맥 기준(`~/Desktop`, `python3`, `.command`,
+> `lsof`, `pkill`)이라 Windows에서 한 줄도 실행되지 않았다. 맥 관련 내용은 전부 삭제했다.
+>
+> 설치 **전에** 반드시 읽을 것: [deploy/SITE_CHECKLIST.md](../deploy/SITE_CHECKLIST.md)
+> — 미충족 시 기능이 무효가 되는 현장 필수 조건(고정 IP 등)이 있다.
 
 ---
 
-## 1. 표준 기동
+## 0. 사전 요구사항
 
-**방법 A (권장·더블클릭)**
-```
-~/Desktop/VIGENT/VIGENT 안전엔진.command
-```
-- 이미 8010이 살아있으면 **새로 띄우지 않고 페이지만 연다**(좀비 방지 내장).
-
-**방법 B (터미널·수동)**
-```bash
-cd ~/Desktop/VIGENT/vigent-core
-python3 -m uvicorn main:app --host 127.0.0.1 --port 8010
-```
-- `cd vigent-core` **필수**. 다른 경로에서 띄우면 가중치 상대경로가 깨진다(F-8 사고 원인).
-- 백그라운드로 띄울 때만 `&` + 로그 리다이렉트: `... --port 8010 > /tmp/vigent.log 2>&1 &`
-
----
-
-## 2. 기동 확인 (이 3가지를 반드시 본다)
-
-```bash
-curl -s http://127.0.0.1:8010/health | python3 -m json.tool
-```
-
-**① `status: "ok"` · `loaded: true`**
-
-**② `rfdetr_slots` — 커스텀 가중치 3슬롯이 전부 `LOADED`** (person 은 COCO 사전학습이라 목록에 없음)
-```
-forklift    rfdetr  LOADED
-fire_smoke  rfdetr  LOADED
-ppe         rfdetr  LOADED
-```
-- 하나라도 `MISSING` / `MISSING_FALLBACK` 이면 **가중치 미탑재 상태로 조용히 COCO 폴백** = 검출 무력화(F-8).
-  기본은 **기동 자체를 거부**하도록 되어 있다. `VIGENT_ALLOW_FALLBACK=1` 로 강제한 게 아닌지 확인할 것.
-- `sha16` 이 `weights_manifest.json` 과 어긋나면 배포 실체가 선언과 다르다는 신호.
-
-**③ `disabled_detectors`** — 의도적으로 끈 슬롯이 사유와 함께 노출된다(은폐형 off 방지).
-현재: `forklift` (F-7 과소학습 — 라이브·재해분석·음성 경로 제외).
-
-> 코드를 고치고 재기동했다면, **바뀐 내용이 실제로 서빙되는지**도 확인한다.
-> 예) `curl -s .../health | grep 음성안내` — 문구가 갱신됐으면 새 코드가 뜬 것.
-
----
-
-## 3. 종료 / 재기동 (좀비 방지)
-
-**현재 8010 점유 확인**
-```bash
-lsof -nP -iTCP:8010 -sTCP:LISTEN
-```
-
-**종료**
-```bash
-pkill -f "uvicorn main:app.*8010"
-sleep 2
-lsof -nP -iTCP:8010 -sTCP:LISTEN   # 아무것도 안 나와야 정상
-```
-
-**재기동** = 종료 확인 후 §1 로.
-
-### ★ 좀비 서버 방지 원칙
-1. **띄우기 전에 항상 점유 확인.** 8010에 이미 떠 있으면 **새로 띄우지 않는다**(포트 충돌 또는 유령 프로세스).
-2. **코드를 고쳤으면 "종료 → 점유 없음 확인 → 재기동"** 순서를 지킨다. 종료 없이 또 띄우면
-   옛 코드를 문 서버가 계속 살아 **고친 게 반영 안 된 것처럼 보인다**(오늘 헤맨 원인).
-3. 재기동 후 **§2의 `/health` 3항목**을 눈으로 확인하기 전엔 "됐다"고 판단하지 않는다.
-4. 백그라운드로 띄웠으면 **로그 파일 경로를 기억**한다. 로그 없이 띄우면 죽어도 이유를 못 본다.
-5. VS Code / 터미널을 닫아도 백그라운드 서버는 **살아남을 수 있다** — 재시작 후엔 §3 점유 확인부터.
-
----
-
-## 4. 주요 화면 (기동 후)
-
-| 화면 | URL |
-|---|---|
-| 안전 엔진 | `http://127.0.0.1:8010/safety/brain` |
-| 라이브(Safety) | `http://127.0.0.1:8010/safety-local` |
-| 재해 원인분석 | `http://127.0.0.1:8010/safety/incident` |
-| 헬스체크 | `http://127.0.0.1:8010/health` |
-
----
-
-## 5. 환경변수 (opt-in 스위치 — 기본 off)
-
-| 변수 | 기본 | 의미 |
+| 항목 | 요구 | 이 문서 작성 시점의 검증 환경 |
 |---|---|---|
-| `VIGENT_API_TOKEN` | (없음) | 설정 시 **전 라우트 Bearer 인증**(`/health`·favicon 제외). ★ **파일럿·공유 네트워크 환경에서는 상시 설정 필수.** 미설정 + 로컬 바인딩은 개발 편의로 허용되나 기동 시 경고 1줄 출력(P0-3). **외부 바인딩(`VIGENT_HOST`≠127.0.0.1) + 무토큰은 기동 거부.** 토큰 비교는 상수시간(`hmac.compare_digest`). 생성·설정 절차는 아래 §5.1. |
-| `VIGENT_REQUIRE_TOKEN` | (없음) | **1**이면 로컬 바인딩이어도 무토큰 기동을 거부(엣지박스 배포 프로파일 기본값, `Dockerfile`이 `1`로 설정 — [S2-수정, 2026-08-10]). 순수 로컬 개발(`uvicorn main:app` 직접 실행)은 이 변수를 안 건드리면 기존 동작 그대로. |
-| `VIGENT_LLM_PROVIDER` | `openai` | 텍스트 LLM 프로바이더 — `openai`(기본) / `anthropic`. **2026-07-14: ollama(로컬) 제거 → OpenAI 단일화.** ⚠️ **키가 없거나 API 장애여도 기능은 죽지 않는다** — 규칙 기반 폴백(위험성평가서의 점검항목·법령·위계는 애초에 규칙 기반이라 영향 0). 단 **폐쇄망에서는 LLM 종합의견 불가**(규칙 폴백만). 실제 설정은 `/health`의 `llm` 필드로 확인. |
-| `VIGENT_CLOUD_VLM` | off | **1** 일 때만 클라우드 VLM(OpenAI 비전)에 프레임 전송. **영상 불유출 원칙 — 상용 배포 미포함**(F-12). 키만 있어도 off면 전송 안 함. **위 LLM provider 정리와 무관하게 그대로 유지됨.** |
-| `VIGENT_ALLOW_FALLBACK` | off | **1** 이면 커스텀 가중치 부재 시 COCO 폴백 허용(**검출 저하**). 기본은 기동 거부(F-8). |
-| `VIGENT_DETECT_DEVICE` | 자동 | `mps` 강제 시 속도↑·크래시 위험(YOLO 경로). |
+| OS | Windows 10/11 (64bit) | Windows 11 Home 10.0.26200 |
+| Python | **3.11.x** | 3.11.9 |
+| GPU | NVIDIA(선택이나 강력 권장) | RTX 5070 Ti, 드라이버 610.74 |
+| CUDA | torch 휠과 맞는 버전 | cu130 (torch 2.12.0+cu130) |
+| git | 최신 | 2.55.0 |
+| NSSM | 서비스 등록용 | winget으로 설치 |
 
-### 5.1 VIGENT_API_TOKEN 생성·설정 절차
+**GPU 없이도 동작한다**(CPU 폴백). 다만 카메라 여러 대는 GPU가 사실상 필수다 —
+수용량은 아직 미측정이다([docs/INFRA_REQUIREMENTS.md](../docs/INFRA_REQUIREMENTS.md)).
 
-1. **생성**: 충분히 무작위한 문자열을 만든다(예: `openssl rand -hex 32` 또는
-   `python -c "import secrets; print(secrets.token_hex(32))"`). 짧거나 예측 가능한 값(제품명·
-   날짜 등)은 쓰지 않는다.
-2. **설정**: `.env`에 `VIGENT_API_TOKEN=<생성한 값>`을 추가하거나(로컬/Docker 볼륨 마운트),
-   `docker run -e VIGENT_API_TOKEN=<값>`처럼 컨테이너 환경변수로 직접 준다. **`.env` 파일은
-   git에 커밋하지 않는다**(CLAUDE.md 규칙5, `.gitignore` 대상 이미 확인됨).
-3. **클라이언트 쪽**: 모든 API 호출에 `Authorization: Bearer <토큰>` 헤더를 붙인다. WebSocket
-   (`/tapo/ws`)은 헤더 대신 `?token=<토큰>` 쿼리 파라미터도 허용(`ws_auth.py`).
-4. **브라우저(대시보드) 쪽 — [S3-후속1, 2026-08-11]**: 평범한 브라우저 페이지 이동은
-   Authorization 헤더를 실을 방법이 없다(S3 엣지박스 리허설에서 발견 — 토큰 모드 켜면
-   대시보드 전체가 401). 이 경우 브라우저를 `http://<엣지박스>:8010/login`으로 열어 API
-   토큰을 로그인 폼에 입력한다 — 성공하면 세션 쿠키(`vigent_session`, httponly, 12시간
-   유효, `config/tuning.yaml`의 `auth.session_ttl_hours`로 조정 가능)가 발급되고, 이후
-   같은 브라우저의 페이지 이동·AJAX·WebSocket(`/tapo/ws` 포함) 전부 별도 조치 없이 통과한다.
-   로그인 실패가 15분 내 5회(설정 가능, `auth.lockout_*`) 누적되면 15분간 잠긴다.
-   로그아웃은 `POST /logout`. 세션은 서버 프로세스 메모리에만 있어 **재기동 시 전부
-   무효화**된다(재로그인 필요 — 단일 운영자 엣지박스 전제의 트레이드오프, 다중 사용자
-   시점엔 RBAC([[B12]], 백로그) 재검토).
-5. **로테이션**: 토큰을 바꾸려면 `.env`/컨테이너 환경변수를 갱신하고 재기동 — 별도 무효화
-   메커니즘은 없다(단일 정적 토큰이므로 갱신 즉시 이전 값은 그냥 안 먹는다). 기존 브라우저
-   세션 쿠키는 토큰과 무관하게 자체 만료 시각까지는 유지된다(원치 않으면 재기동해 전
-   세션을 함께 무효화할 것).
-6. **엣지박스 배포는 이 토큰을 반드시 설정해야 기동한다**(`VIGENT_REQUIRE_TOKEN=1`이
-   `Dockerfile` 기본값 — 위 §5 표 참고). 토큰 없이 컨테이너를 띄우면 즉시 종료된다(로그에
-   원인 안내 출력).
+> ⚠️ **CUDA 버전 주의**: RTX 50 시리즈(sm_120)는 **cu126 이하에서 런타임 에러**가 난다.
+> 반드시 cu130 휠을 쓸 것(아래 3단계).
 
-> ⚠️ 이 스위치들은 **위험한 기본동작을 명시 opt-in 뒤로 숨긴 것**이다. 켤 때는 이유를 알고 켠다.
+---
 
-### 5.2 저가 CPU 박스 배포 — `detect.backend: onnx-cpu`
+## 1. 저장소 받기
 
-GPU 없는 저가 미니PC(N100급·중고 사무용 PC 등)에 배포할 때 켜는 설정. `config/tuning.yaml`
-`detect.backend`를 `onnx-cpu`로 바꾸면(기본값은 `torch`) PPE 검출(현재 `ppe_rfdetr_v1`
-슬롯)이 ONNX Runtime CPU로 돈다 — 실측(`benchmarks/onnx_cpu_bench.md`, [C-2]) 근거:
-torch CPU 대비 **1.85배 빠르고 dev 74장 person/PPE/NO-Hardhat 정확도 손실 0**.
+```powershell
+cd D:\
+git clone https://github.com/nohhyunseong1-hash/vigent.git vigent_original
+cd D:\vigent_original
+```
 
-1. **전제**: `vigent-core/weights/ppe_rfdetr_v1.onnx`가 있어야 한다(gitignore 대상이라
-   git에는 안 들어있음 — `vigent-core/weights/MANIFEST.md`의 변환 커맨드로 직접 생성하거나
-   기존 파일을 박스에 복사). 이 파일이 없으면 `detect.backend: onnx-cpu`를 켜도 **자동으로
-   torch로 폴백**한다(규칙6 — 설정만 켜고 파일을 깜빡해도 서버가 죽거나 조용히 검출이
-   빠지지 않음, 로그에 "ONNX 백엔드 로드 실패 — torch로 폴백" 경고만 남는다).
-2. **적용 범위**: 슬롯별 `.onnx` 파일이 있는 슬롯만 ONNX로 바뀐다 — 지금은 `ppe`만 해당
-   (`person`은 커스텀 파인튜닝이 없어 애초에 COCO 사전학습 torch 경로, `forklift`/
-   `fire_smoke`는 이 desktop에 가중치 자체가 없음). 나머지 슬롯은 그대로 torch(또는
-   COCO 폴백)로 동작 — 부분 적용이 정상 동작이다.
-3. **설정 방법**: `config/tuning.yaml`의 `detect: backend: onnx-cpu`로 수정 후 재기동.
-   즉시 확인 없이 스모크만 해보고 싶으면 재기동 전 `VIGENT_DETECT_BACKEND=onnx-cpu`
-   환경변수로 임시 override 가능(tuning.yaml보다 우선, 파일을 안 건드리고 1회성 확인용).
-4. **회귀 확인**: `tests/test_rfdetr_onnx_parity.py`가 torch/ONNX 두 백엔드의 검출 결과가
-   같은 이미지에서 사실상 일치하는지 잠근다(이 desktop처럼 `.onnx`/`.pth` 둘 다 있는
-   환경에서만 실행, 없으면 스킵).
-5. **스모크(2026-08-12 실측)**: 파일 카메라 2대·`detect.backend`를 onnx-cpu로 설정한 실서버에서
-   확인 — 검출 정상(`ppe_missing` 등 이벤트 정상 발생), `/detect/frame`(person+ppe+fire_smoke
-   전체 파이프라인, 카메라 2대 동시 부하 상태) p50 **184.3ms**·p95 366.7ms. 최초 기동 직후
-   두 워커가 동시에 모델을 지연 로드하며 각 2회씩 hang이 발생했으나(콜드스타트 경합,
-   15초 초과) 이후 안정화돼 재발하지 않았다 — 워밍업 여유를 두고 배포할 것.
+**성공하면 이렇게 보인다**
+```
+Cloning into 'vigent_original'...
+Resolving deltas: 100% (...), done.
+```
+
+---
+
+## 2. 가상환경
+
+```powershell
+python -m venv .venv
+.\.venv\Scripts\Activate.ps1
+```
+
+**실행정책 오류가 나면**(자주 발생):
+```
+.\.venv\Scripts\Activate.ps1 : ... 이 시스템에서 스크립트를 실행할 수 없으므로 ...
+```
+→ 현재 세션에만 우회한다(시스템 설정을 바꾸지 않는다):
+```powershell
+Set-ExecutionPolicy -Scope Process Bypass
+```
+
+**성공하면** 프롬프트 앞에 `(.venv)` 가 붙는다.
+
+---
+
+## 3. 의존성 설치
+
+```powershell
+python -m pip install --upgrade pip
+python -m pip install -r requirements.txt
+```
+
+**GPU를 쓸 경우 torch를 CUDA 휠로 교체**(위 CUDA 주의 참고):
+```powershell
+python -m pip install --index-url https://download.pytorch.org/whl/cu130 `
+  torch==2.12.0+cu130 torchvision==0.27.0+cu130
+```
+
+**성공 확인**
+```powershell
+python -c "import torch; print(torch.__version__, torch.cuda.is_available())"
+```
+```
+2.12.0+cu130 True        ← GPU 사용 가능
+2.12.0+cpu False         ← CPU 폴백(동작은 하지만 느리다)
+```
+
+---
+
+## 4. 가중치 조달
+
+모델 파일은 git에 없다(용량·라이선스). 스크립트로 받는다:
+
+```powershell
+python scripts\fetch_weights.py
+```
+
+**성공하면 이렇게 보인다**
+```
+가중치 디렉터리: D:\vigent_original\vigent-core\weights
+대상 3개 (required 만)
+
+  [OK]   ppe_rfdetr_v1.pth  (필수) — 검증됨
+  [OK]   forklift_rfdetr_v1.pth  (필수) — 검증됨
+  [OK]   fire_smoke_rfdetr_v1_e17.pth  (필수) — 검증됨
+
+필수 가중치 전부 확인됨.
+```
+
+> **왜 forklift도 필수인가**: 지게차 검출기는 과소학습(F-7)이라 검출기 목록에서 제외돼 있지만,
+> `vision.yaml`의 `rfdetr_weights`에 슬롯이 선언돼 있어 **파일이 없으면 서버가 기동을 거부**한다
+> (조용한 COCO 폴백 차단 — F-8). 쓰지 않아도 파일은 있어야 한다.
+
+- 처음이면 `[없음]` → 다운로드 진행 → `[OK]` 순으로 나온다(파일당 약 115MB).
+- **실패하면 종료 코드 1**과 함께 어느 파일이 왜 실패했는지 나온다. 저장소가 비공개면
+  접근 권한이 필요하다.
+- 선택 가중치(YOLO 폴백)까지 받으려면 `--all`. 없어도 기동에는 지장 없다.
+- 검증만: `--check`
+
+> 필수 가중치가 없으면 **서버가 예열 단계에서 명시적으로 실패**한다(`/health` `phase=failed`).
+> 조용히 COCO로 폴백해 "정상처럼 보이는데 아무것도 못 잡는" 상태가 되지 않도록 막아둔 것이다.
+
+---
+
+## 5. 설정 파일
+
+### 5-1. `.env` (비밀값)
+
+```powershell
+Copy-Item .env.example .env
+notepad .env
+```
+
+최소한 이것만 채우면 된다:
+
+| 키 | 용도 | 필수 |
+|---|---|---|
+| `VIGENT_API_TOKEN` | 대시보드 로그인·API 인증 | **필수**(외부 바인딩 시) |
+| `TELEGRAM_BOT_TOKEN` / `TELEGRAM_CHAT_ID` | 텔레그램 경보 | 선택 |
+| `WEBHOOK_URL` | 웹훅 경보 | 선택 |
+
+토큰은 아무 긴 문자열이면 된다:
+```powershell
+python -c "import secrets; print(secrets.token_urlsafe(32))"
+```
+
+> `.env`는 `.gitignore` 대상이다. **채팅·문서에 값을 붙여넣지 말 것.**
+
+### 5-2. 카메라 등록
+
+서버를 먼저 띄운 뒤(6단계) 대시보드에서 추가하거나, API로 등록한다:
+
+```powershell
+$t = "<VIGENT_API_TOKEN 값>"
+$body = @{ id="cam1"; name="1번 카메라"; source="rtsp://아이디:비번@192.168.0.4:554/stream1"; fps=2 } | ConvertTo-Json
+Invoke-RestMethod -Method Post -Uri http://127.0.0.1:8010/cameras `
+  -Headers @{Authorization="Bearer $t"} -ContentType "application/json" -Body $body
+```
+
+자격증명은 `data\camera_secrets.json`에만 저장되고 API 응답·로그에는 마스킹된다.
+
+> 카메라 IP는 **반드시 공유기에서 고정(DHCP 예약)** 할 것 —
+> [deploy/SITE_CHECKLIST.md](../deploy/SITE_CHECKLIST.md) N-1. IP가 바뀌면 자동복구가 성립하지 않는다.
+
+### 5-3. 위험구역 좌표 지정
+
+1. 대시보드(`http://127.0.0.1:8010/safety-hub`)에서 카메라 타일 클릭 → 확대뷰
+2. 설정 패널의 **구역 편집** 켜기
+3. 영상 위를 클릭해 다각형 꼭짓점을 3개 이상 찍는다 → 저장
+4. 저장 위치는 `data\danger_zone.json`(정규화 좌표 0~1). **매 프레임 읽으므로 재기동 불필요**
+
+침입 판정 기준점은 **사람 박스의 하단 중앙(발끝)** 이다. 카메라가 거의 수직으로 내려다보는
+설치라면 `config\tuning.yaml`의 `zone.reference: center`로 바꿀 수 있다.
+
+---
+
+## 6. 수동 기동(설치 확인용)
+
+```powershell
+cd D:\vigent_original\vigent-core
+$env:VIGENT_REQUIRE_TOKEN = "1"
+$env:VIGENT_CAPTURE_MODE = "thread"
+python -m uvicorn main:app --host 127.0.0.1 --port 8010
+```
+
+**성공하면 이렇게 보인다**
+```
+INFO:     Uvicorn running on http://127.0.0.1:8010 (Press CTRL+C to quit)
+[INFO] vigent.readiness: 예열 slot=person 9.2s
+[INFO] vigent.readiness: 예열 slot=ppe 2.3s
+[INFO] vigent.readiness: 예열 slot=fire_smoke 2.6s
+[INFO] vigent.readiness: ★예열 완료 14.13s — 이제 워커 기동, 워치독 정상 적용
+```
+
+> **기동 후 약 15초는 예열 구간**이다. 그동안 `/health`는 `phase=starting` + **HTTP 503**을
+> 반환한다 — 정상이다. 예열이 끝나야 카메라 워커가 붙는다.
+
+확인:
+```powershell
+curl.exe -s http://127.0.0.1:8010/health | python -m json.tool
+```
+```json
+{
+    "status": "healthy",
+    "phase": "ready",
+    "alerts": { "pending": 0, "sent": 0, "dead": 0 },
+    "cameras": { "cam1": { "status": "ok", "last_frame_age_s": 0.4, "last_detect_age_s": 0.3 } }
+}
+```
+
+`Ctrl+C`로 종료한다.
+
+---
+
+## 7. 서비스 등록 (재부팅 자동 기동)
+
+> ⚠️ **여기부터는 관리자 권한 PowerShell이 필요하다.**
+> 시작 메뉴 → PowerShell → 우클릭 → **관리자 권한으로 실행**
+
+```powershell
+Set-ExecutionPolicy -Scope Process Bypass      # 실행정책 우회(현재 세션만)
+cd D:\vigent_original\deploy\windows
+.\install_service.ps1
+```
+
+NSSM이 없으면 스크립트가 설치 방법을 안내하고 멈춘다:
+```powershell
+winget install NSSM.NSSM
+```
+
+**성공하면 이렇게 보인다**
+```
+루트 : D:\vigent_original
+파이썬: D:\vigent_original\.venv\Scripts\python.exe
+NSSM : ...\nssm.exe
+
+서비스 시작...
+서비스 'VIGENT' 상태: Running
+로그 : D:\vigent_original\logs\vigent.out.log
+```
+
+### 방화벽 (다른 기기에서 접속할 경우만)
+
+```powershell
+New-NetFirewallRule -DisplayName "VIGENT 8010" -Direction Inbound -Protocol TCP `
+  -LocalPort 8010 -Action Allow -Profile Private
+```
+
+### 상태 확인
+
+```powershell
+.\service_status.ps1
+```
+```
+서비스=Running | HTTP 200 | status=healthy phase=ready | cam1=ok(f0.4/d0.3)
+```
+
+예열 중이면:
+```
+서비스=Running | HTTP 503 | status=starting phase=starting | ...  ← 예열 중(약 15초), 정상
+```
+
+상세: [deploy/windows/README.md](../deploy/windows/README.md)
+
+---
+
+## 8. 운영
+
+### 서비스 제어 (관리자 PowerShell)
+```powershell
+Restart-Service VIGENT      # 코드·설정 변경 후 반드시 재시작
+Stop-Service VIGENT
+Start-Service VIGENT
+```
+
+> **`--reload`가 없다.** `.py`·`config\*.yaml`을 고쳐도 떠 있는 서버엔 반영되지 않는다.
+> 반드시 재시작할 것. (프론트 HTML/JS는 브라우저 강력 새로고침 `Ctrl+Shift+R`이면 된다.
+> `data\danger_zone.json`은 매 프레임 읽으므로 재시작 불필요.)
+
+### 로그 위치
+
+| 로그 | 경로 |
+|---|---|
+| 서버 stdout | `logs\vigent.out.log` |
+| 서버 stderr | `logs\vigent.err.log` |
+| go2rtc | `data\go2rtc.log` |
+
+256MB마다 자동 로테이션(약 2GB 상한).
+
+### 상태 감시
+
+`/health`만 보면 된다. **HTTP 코드로 판단 가능**하다:
+
+| status | HTTP | 뜻 |
+|---|---|---|
+| `healthy` | 200 | 정상 |
+| `degraded` | 200 | 일부 카메라 검출 정지, 또는 **미전송 경보 있음** |
+| `starting` | 503 | 예열 중(약 15초) |
+| `unhealthy` | 503 | 전 카메라 검출 정지 또는 모델 미로드 |
+
+카메라별 상태에서 **`stale_detect`** 는 특히 중요하다 — **영상은 들어오는데 검출만 멈춘**
+상태로, 화면만 보면 정상으로 보인다.
+
+---
+
+## 9. 문제 해결 (자주 나는 오류 5가지)
+
+### ① `Activate.ps1 : 이 시스템에서 스크립트를 실행할 수 없으므로`
+실행정책 문제. 현재 세션만 우회:
+```powershell
+Set-ExecutionPolicy -Scope Process Bypass
+```
+
+### ② `/health`가 계속 `phase=starting` (15초 넘게)
+모델 예열이 안 끝난 것이다. `logs\vigent.err.log`를 본다.
+- `필수 가중치 없음: ...` → `python scripts\fetch_weights.py` 실행
+- CUDA 관련 오류 → torch 휠이 GPU와 안 맞는다(0단계 CUDA 주의 참고)
+- **GPU 없이 CPU로 돌리면 예열이 20~25초까지 걸린다**(실측: GPU 14초 / CPU 23초). 정상이다.
+
+### ②-1 기동 즉시 종료 + `[기동거부·F-8] rfdetr 커스텀 가중치 부재`
+가중치가 빠졌다. 4단계를 실행한다:
+```powershell
+python scripts\fetch_weights.py
+```
+> 이 오류는 **의도된 안전장치**다. 커스텀 가중치 없이 COCO로 조용히 폴백하면 "정상처럼
+> 보이는데 아무것도 못 잡는" 상태가 되기 때문에 아예 기동을 막는다.
+> 폴백을 감수하고 띄우려면 `VIGENT_ALLOW_FALLBACK=1`을 명시해야 한다(검출 저하를 받아들인다는 뜻).
+
+### ③ 카메라가 `stale_frame` — 프레임이 안 들어옴
+```powershell
+Test-NetConnection <카메라IP> -Port 554     # 도달 확인
+```
+- 실패 → 카메라 전원·네트워크. **IP가 바뀌었을 가능성이 가장 크다**(고정 IP 필수)
+- 성공인데 여전히 안 되면 자격증명 확인(카메라 리셋 시 계정이 초기화된다)
+
+### ④ 확대뷰가 검은 화면 / 스냅샷으로만 나옴
+go2rtc(WebRTC 변환기) 문제다.
+- `data\go2rtc.log` 확인
+- 카메라 **동시 RTSP 세션 한도가 2**라 워커 1 + go2rtc 1로 꽉 찬다. 다른 프로그램이
+  같은 카메라를 보고 있으면 자리가 없다
+
+### ⑤ 서비스는 Running인데 검출이 안 됨
+`/health`의 `cameras`를 본다. `stale_detect`면 검출만 죽은 것이다.
+```powershell
+Restart-Service VIGENT
+```
+반복되면 `logs\vigent.err.log`에서 `HANG` 또는 `기아` 로그를 확인한다.
+
+---
+
+## 10. 참고 문서
+
+- **현장 필수 조건**: [deploy/SITE_CHECKLIST.md](../deploy/SITE_CHECKLIST.md)
+- 서비스 스크립트: [deploy/windows/README.md](../deploy/windows/README.md)
+- 카메라 설치 규격(각도·지연): [docs/camera_requirements.md](../docs/camera_requirements.md)
+- 네트워크 보안: [docs/edge_network_hardening.md](../docs/edge_network_hardening.md)
+- 안정성 설정값: [docs/STABILITY.md](../docs/STABILITY.md)
+- 24시간 소크 절차: [docs/SOAK_24H_CHECKLIST.md](../docs/SOAK_24H_CHECKLIST.md)
