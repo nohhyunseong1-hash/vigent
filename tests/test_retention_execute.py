@@ -68,14 +68,24 @@ class _RetentionTest(unittest.TestCase):
 
 class TestFirstRunSafety(_RetentionTest):
     def test_first_cycle_deletes_nothing(self):
-        """★dry_run 을 false 로 바꾼 첫 주기에는 아무것도 지우지 않는다."""
+        """★dry_run 을 false 로 바꾼 첫 주기에는 아무것도 지우지 않는다(설정 경로)."""
         old = _touch_old(self.ev / "old.jpg", 100)
         with self._cfg():
-            st = retention.sweep()
+            st = retention.sweep()          # execute=None → 설정을 따르는 자동 주기
         self.assertTrue(old.exists(), "첫 주기인데 파일이 삭제됐다")
         self.assertTrue(st["first_run_notice"])
         self.assertEqual(st["deleted_count"], 0)
         self.assertGreaterEqual(st["pending_count"], 1)   # 예정 목록은 잡혀 있다
+
+    def test_explicit_execute_bypasses_hold(self):
+        """운영자가 --execute 로 명시 실행하면 첫 주기 보류를 적용하지 않는다.
+
+        안전장치는 '설정 한 줄 바꿨더니 대량 삭제'를 막는 것이지, 명시적 지시를 막는 게 아니다."""
+        old = _touch_old(self.ev / "old.jpg", 100)
+        with self._cfg():
+            st = retention.sweep(execute=True)
+        self.assertFalse(old.exists())
+        self.assertEqual(st["deleted_count"], 1)
 
     def test_second_cycle_deletes(self):
         """첫 주기 이후에는 실제로 삭제된다."""
@@ -147,10 +157,11 @@ class TestPathWhitelist(_RetentionTest):
         self.assertEqual(st["deleted_count"], 0)
         self.assertTrue(any("화이트리스트" in w for w in st["warnings"]))
 
-    def test_default_whitelist_is_data_dir(self):
+    def test_default_whitelist_is_group_dirs(self):
+        """기본 화이트리스트는 선언된 그룹 디렉터리 자체 — data/ 하위 전부보다 좁아 더 안전하다."""
         with mock.patch.object(retention, "_retention_config", return_value={}):
             roots = retention.allowed_roots()
-        self.assertEqual([r.name for r in roots], ["data"])
+        self.assertEqual([r.name for r in roots], ["evidence"])
 
 
 if __name__ == "__main__":

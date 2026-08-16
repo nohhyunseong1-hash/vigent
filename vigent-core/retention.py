@@ -95,7 +95,15 @@ def allowed_roots() -> list[Path]:
     cfg = _retention_config().get("allowed_roots")
     if isinstance(cfg, list) and cfg:
         return [(_ROOT / str(p)).resolve() for p in cfg]
-    return [(_ROOT / "data").resolve()]
+    # 기본값 = **선언된 그룹 디렉터리 자체**. "data/ 하위 전부"보다 좁아서 더 안전하고,
+    #   실제로 쓸어야 할 곳과 정확히 일치한다(그룹 정의가 곧 삭제 허용 범위).
+    out: list[Path] = []
+    for d in GROUP_DIRS.values():
+        try:
+            out.append(d.resolve())
+        except OSError:
+            continue
+    return out
 
 
 def is_path_allowed(p: Path) -> bool:
@@ -192,9 +200,13 @@ def sweep(execute: bool | None = None, only_group: str | None = None) -> dict[st
     t0 = time.time()
     enabled = is_enabled()
     dry_run = is_dry_run() if execute is None else (not execute)
-    # [P1b] 첫 실행 안전장치 — 실삭제가 처음 켜진 주기에는 목록만 남기고 지우지 않는다.
-    #   운영자가 '무엇이 지워질 예정인지' 확인한 뒤 다음 주기부터 실제 삭제가 시작된다.
-    armed = not first_run_pending()
+    # [P1b] 첫 실행 안전장치 — 설정(dry_run: false)으로 실삭제가 **처음 켜진 주기**에는
+    #   목록만 남기고 지우지 않는다. 운영자가 '무엇이 지워질 예정인지' 확인한 뒤 다음 주기부터
+    #   실제 삭제가 시작된다.
+    #   ★단 CLI 로 `--execute` 를 명시한 경우(execute is not None)는 보류하지 않는다 —
+    #     운영자가 지금 지우겠다고 직접 지시한 것이라 의도가 분명하다. 안전장치는 "설정 한 줄
+    #     바꿨더니 대량 삭제가 일어났다"를 막기 위한 것이지 명시 실행을 막는 게 아니다.
+    armed = (execute is not None) or (not first_run_pending())
     will_delete = enabled and not dry_run and armed
     first_run_notice = enabled and not dry_run and not armed
 
