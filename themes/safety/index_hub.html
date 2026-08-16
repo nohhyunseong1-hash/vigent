@@ -38,6 +38,9 @@ body{margin:0;background:var(--bg);color:var(--fg);font-family:"SF Mono","Menlo"
 .tile .tinfo{position:absolute;top:0;left:0;background:rgba(0,0,0,.6);color:#9fb0bf;font-size:10px;padding:2px 6px;letter-spacing:.04em;z-index:3}
 .tile .tbadge{position:absolute;top:5px;right:5px;width:20px;height:20px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:800;z-index:3;color:#04120a}
 .b-C{background:var(--ok)} .b-B{background:var(--warn);color:#1a1206} .b-A{background:var(--alert);color:#fff} .b-off{background:var(--off);color:#0b0d10}
+/* [B2] D = 검출 정지(영상은 정상으로 보여도 안전 기능이 죽은 상태) — 경보색과 구분되게 보라 */
+.b-D{background:#8b5cf6;color:#fff}
+.tile.detdead{border-color:#8b5cf6;box-shadow:inset 0 0 0 2px #8b5cf6}
 .tile .ppl{position:absolute;bottom:4px;right:6px;font-size:10px;color:#9fb0bf;background:rgba(0,0,0,.5);padding:1px 5px;border-radius:4px;z-index:3}
 .tile .noc{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:var(--off);font-size:11px;z-index:2}
 .tile .nm{position:absolute;bottom:4px;left:6px;font-size:10px;color:#8ea0af;background:rgba(0,0,0,.45);padding:1px 6px;border-radius:4px;z-index:3;max-width:70%;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
@@ -171,7 +174,12 @@ function alertTypes(c){
     ppe:f.indexOf('ppe_missing')>=0||!!s.ppe_missing,
     emergency:['immobility','guard_bypass'].some(function(r){return f.indexOf(r)>=0;}) };
 }
+var HEALTH={status:'unknown',cameras:{}};   // [B2] /health 의 카메라별 검출 생존 판정
+function detectHealthOf(c){                  // 'ok'|'stale_detect'|'stale_frame'|'stopped'|'starting'|null
+  var h=(HEALTH.cameras||{})[c.id]; return h?h.status:null; }
 function statusOf(c){ if(c.local) return 'C'; if(!c.online) return 'off';
+  // [B2] 검출이 죽은 카메라는 경보 유무와 무관하게 'D'(검출 정지) — 영상만 보고 정상이라 착각하는 걸 막는다.
+  var dh=detectHealthOf(c); if(dh==='stale_detect'||dh==='stale_frame') return 'D';
   var t=alertTypes(c); if(t.intrusion||t.fire||t.emergency) return 'A'; if(t.ppe) return 'B'; return 'C'; }
 function globalCounts(){
   var g={emergency:0,zone_intrusion:0,fire_smoke:0,ppe_missing:0};
@@ -207,8 +215,12 @@ function renderGrid(){
     if(c.local) return '<div class="tile'+(spotId==='__local'?' sel':'')+'" data-id="__local"><div class="feed"></div>'+
       '<div class="tinfo">LOCAL  '+t+'</div><div class="tbadge b-C">L</div><div class="nm">'+esc(c.name)+'</div></div>';
     var st=statusOf(c), badge=st==='off'?'—':st, pulse=(pulseUntil[c.id]>Date.now())?' pulse':'';
-    var cls='tile b-wrap '+(st==='A'?'alert':'')+(st==='off'?' off':'')+(spotId===c.id?' sel':'')+pulse;
-    var body=(st==='off')?'<div class="noc">신호 없음 · 재연결 중</div>':(tilePoly(c,st)+'<div class="ppl">👤 '+(c.person_count||0)+'</div>');
+    var cls='tile b-wrap '+(st==='A'?'alert':'')+(st==='D'?' detdead':'')+(st==='off'?' off':'')+(spotId===c.id?' sel':'')+pulse;
+    // [B2] 검출 정지(D)는 영상이 정상으로 보여도 안전 기능이 죽은 상태 — 타일에 명시한다.
+    var dh=detectHealthOf(c);
+    var body=(st==='off')?'<div class="noc">신호 없음 · 재연결 중</div>'
+      :(st==='D')?'<div class="noc" style="color:#ff8a92">⚠ 검출 정지'+(dh==='stale_detect'?'(영상만 수신)':'(입력 끊김)')+'</div>'
+      :(tilePoly(c,st)+'<div class="ppl">👤 '+(c.person_count||0)+'</div>');
     return '<div class="'+cls+'" data-id="'+esc(c.id)+'"><div class="feed"><img data-live="'+esc(c.id)+'"></div>'+
       '<div class="tinfo">#'+esc(c.id)+'  '+t+'  '+(c.fps_live||c.fps||2)+'fps</div>'+
       '<div class="tbadge b-'+(st==='off'?'off':st)+'">'+badge+'</div>'+body+'<div class="nm">'+esc(c.name)+'</div></div>';
@@ -526,6 +538,11 @@ function poll(){
     });
     Promise.all(proms).then(function(){ updatePulseSpot(); renderAlerts(); renderGrid(); renderSpot(); renderSet(); });
   }).catch(function(){});
+  // [B2] 검출 생존 — /health 의 카메라별 판정을 타일 배지에 반영한다.
+  //   stale_detect(영상은 오는데 추론만 멈춤)는 화면상 영상이 정상이라 눈으로 못 잡는 고장이라,
+  //   배지로 드러내지 않으면 운영자가 영영 모른다(P0).
+  api('GET','/health').then(function(h){ HEALTH=h||{}; renderGrid(); })
+    .catch(function(){ HEALTH={status:'unknown',cameras:{}}; renderGrid(); });
   api('GET','/safety/auto/feed?hours=24&limit=60').then(function(j){ EVENTS=j.feed||j.events||[]; renderEvents(); }).catch(function(){});
 }
 

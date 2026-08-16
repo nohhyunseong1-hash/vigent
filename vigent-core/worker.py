@@ -351,6 +351,10 @@ class _StreamCapture:
         self._ts = 0.0                 # 슬롯 마지막 갱신 시각(신선도 기준)
         self.reconnects = 0
         self.read_ms = 0.0
+        # [B2/B3] 세션 세대 — 캡처를 (재)오픈할 때마다 +1. 검출 루프가 '어느 세션의 프레임인지'
+        #   구분하는 기준이자, /health 가 재연결 빈도를 보는 지표.
+        self.generation = 1
+        self.dropped = 0               # 읽기 실패 누적(드롭) — /health 지표
         self._thread: threading.Thread | None = None
 
     def start(self):
@@ -400,6 +404,7 @@ class _StreamCapture:
             self.read_ms = round((time.time() - _rt) * 1000, 1)
             if not ok:
                 read_fails += 1
+                self.dropped += 1                     # [B2] 드롭 누적 — /health 지표
                 if read_fails >= _READ_FAIL_MAX:      # 스트림 끊김 → 지수 백오프 재연결(캡처 스레드 내부)
                     self.reconnects += 1
                     _WLOG.warning("캡처 '%s'(%s) 스트림 끊김 → 재연결 #%d (백오프 %.0fs)",
@@ -413,6 +418,7 @@ class _StreamCapture:
                         time.sleep(0.2)
                         slept += 0.2
                     cap = self._open()
+                    self.generation += 1              # [B3] 새 세션 — 이전 세대 프레임과 구분
                     rbackoff = min(rbackoff * 2, _RECONNECT_MAX)
                     read_fails = 0
                 else:
@@ -507,7 +513,13 @@ class Worker:
         self.state.update({"running": True, "source": _mask_src(source), "name": name, "fps": fps,
                            "frames": 0, "events": 0, "last_event": "", "error": "",
                            "last_frame_ts": 0.0, "restarts": 0,
-                           "reconnects": 0, "hangs": 0})   # 1단계 하트비트·재시작 + 2단계 재연결·hang 카운터
+                           "reconnects": 0, "hangs": 0,   # 1단계 하트비트·재시작 + 2단계 재연결·hang 카운터
+                           # [B2] 검출 생존 하트비트 — /health 3단계 판정 입력
+                           "started_at": time.time(),     # [B2] 워커 기동 시각 — startup grace 기준
+                           "last_detect_ts": 0.0,         # 추론 완료 벽시계(프레임 수신과 별개)
+                           "last_detect_ms": None,        # 최근 추론 지연(ms)
+                           "session_generation": 0,       # 캡처 세션 세대 — 재연결마다 +1
+                           "dropped_frames": 0})          # 읽기 실패 누적
         self._thread = threading.Thread(
             target=self._run_supervised,      # 1단계: 감독자 경유(루프가 죽어도 재시작 — 무증상 실패 차단)
             args=(guard, lock, source, name, fps,
@@ -550,6 +562,14 @@ class Worker:
             _, slot_ts = sc.read_latest()
             s["slot_age_s"] = round(time.time() - slot_ts, 2) if slot_ts else None   # 슬롯 나이=현재-슬롯시각(작을수록 신선)
             s["capture_alive"] = sc.alive()
+            s["session_generation"] = sc.generation      # [B2/B3]
+            s["dropped_frames"] = sc.dropped             # [B2]
+        # [B2] 검출 생존 — 프레임 수신(last_frame)과 추론 완료(last_detect)를 **따로** 노출한다.
+        #   둘의 나이가 벌어지는 것이 P0(영상 생존·검출 사망)의 지문이다.
+        ldt = s.get("last_detect_ts", 0.0)
+        s["last_detect_secs_ago"] = round(time.time() - ldt, 1) if ldt else None
+        sat = s.get("started_at", 0.0)
+        s["uptime_s"] = round(time.time() - sat, 1) if sat else None   # [B2] grace 판정 기준
         return s
 
     def _hang_watch(self, name):
@@ -645,7 +665,13 @@ class Worker:
                 with self._pose_lock:
                     self._pose_events.extend(fired)
 
+    # [B2] 테스트 전용 결함 주입 — 검출만 멈추고 프레임 수신은 유지해 P0(stale_detect)를 재현한다.
+    #   기본 False. 운영 기본값이 아니라 **명시 환경변수로만** 켜진다(scripts/test_health_fault_injection.py).
+    fault_stop_detect = bool(os.environ.get("VIGENT_FAULT_STOP_DETECT"))
+
     def _process_frame(self, frame, t0, guard, lock, ctx: "_FrameCtx"):
+        if self.fault_stop_detect:      # [B2] 주입된 결함: 추론을 건너뛴다 → last_detect_ts 가 늙는다
+            return
         """단일 프레임 처리 — 수집·추론·트래커·발화·쿨다운·이벤트로깅(P2-13에서 _loop 에서 추출).
         프레임 단위 예외를 여기서 격리(한 프레임 실패가 루프를 죽이지 않음).
         ctx.cooldown/last_collect 와 self.state 를 갱신한다. 동작은 추출 전과 동일."""
@@ -704,6 +730,12 @@ class Worker:
                 # 3.14 ①(T1): ts 를 '프레임 시각(t0)'으로 스탬프 — 완료시각(time.time)은 person/full 처리시간 차로
                 #   불균일(sd↑)했다. t0 는 루프 간격(≈균일)이라 확대뷰 ingest 간격이 고르게 → 앨리어싱·지터↓.
                 self._last_det_ts = t0
+                # [B2] 검출 생존 하트비트 — '프레임 수신'과 별개로 '추론이 실제로 끝난' 시각을 벽시계로 남긴다.
+                #   P0(영상은 살고 검출만 죽음)의 지문이 last_frame 은 신선한데 last_detect 만 늙는 것이라,
+                #   두 시각을 따로 기록해야 /health 가 그 상태를 stale_detect 로 구분할 수 있다.
+                _now = time.time()
+                self.state["last_detect_ts"] = _now
+                self.state["last_detect_ms"] = round((_now - t0) * 1000.0, 1)
             if not do_full:                       # person 전용 프레임: 이벤트·포즈 없음(안전 캐던스 불변) — 표시만 갱신
                 return
             # 3.10 ①: 포즈(ergo)는 별도 스레드(ONNX-CPU)가 pose_fps 로 비동기 처리(풀세트 프레임에서만 입력 갱신).

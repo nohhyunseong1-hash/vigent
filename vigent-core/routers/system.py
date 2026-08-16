@@ -63,8 +63,26 @@ def health(theme: str = DEFAULT_THEME):
             disk_retention["warnings"] = ["보존 정책이 활성화됐으나 스위퍼가 아직 실행된 기록이 없음"]
     except Exception:  # noqa: BLE001  조회 실패해도 헬스체크는 죽지 않는다
         pass
-    return {
-        "status": "ok",
+    # [B2] 검출 생존 판정 — 워커 하트비트를 읽어 healthy/degraded/unhealthy 로 종합한다.
+    #   기존 /health 는 워커를 전혀 보지 않아, P0(영상 생존·검출 사망)에서도 계속 200 OK 였다.
+    #   ★status 는 이제 "ok" 고정이 아니라 실제 판정값이다. unhealthy 면 HTTP 503 으로 나간다
+    #   (외부 워치독·모니터링이 코드만 보고도 장애를 잡을 수 있게).
+    overall = "healthy"
+    cameras: dict = {}
+    phase = "ready"
+    try:
+        import health_status
+        import worker as _w
+        model_loaded = bool(bundle) and bool(rfdetr_slots)
+        overall, cameras = health_status.build(_w.manager.status(), model_loaded)
+    except Exception:  # noqa: BLE001  판정 실패가 헬스체크 자체를 죽이면 안 된다
+        overall = "degraded"
+        cameras = {}
+
+    body = {
+        "status": overall,
+        "phase": phase,               # [B4] starting|ready — 예열 완료 여부
+        "cameras": cameras,           # [B2] 카메라별 검출 생존
         "version": product_version(),
         "uptime_s": round(_time.time() - _START_TS, 1),
         "theme": theme,
@@ -81,6 +99,10 @@ def health(theme: str = DEFAULT_THEME):
                         "T10b full 재학습 후 복원 예정. 측정은 detectors 명시 지정 시 가능.",
         },
     }
+    # [B2] unhealthy 는 HTTP 503 — 외부 워치독이 본문 파싱 없이 상태코드만으로 장애를 잡게 한다.
+    #   degraded 는 200(운영은 계속되지만 일부 카메라 정지) + 본문으로 구분.
+    return JSONResponse(body, status_code=503 if overall == "unhealthy" else 200)
+
 
 @router.get("/system/capabilities")
 def capabilities(theme: str = DEFAULT_THEME):
