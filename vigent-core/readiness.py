@@ -18,11 +18,13 @@ from __future__ import annotations
 
 import threading
 import time
+from pathlib import Path
 from typing import Any
 
 import vlog
 
 _LOG = vlog.get("vigent.readiness")
+_ROOT = Path(__file__).resolve().parent.parent
 
 STARTING = "starting"
 READY = "ready"
@@ -66,6 +68,24 @@ def _mark(ph: str, err: str = "") -> None:
             _state["warmup_s"] = round(now - _state["started_at"], 2)
 
 
+def required_weights_missing() -> list[str]:
+    """[B8] weights_manifest.json 의 required 가중치 중 없는 파일 목록.
+
+    조용한 폴백 금지: 필수 커스텀 가중치가 없으면 RF-DETR 이 COCO 로 폴백해 **검출이 무력화된
+    상태로 정상처럼 동작**한다(F-8 사고). 기동 시 이걸 잡아 명시적으로 멈춘다.
+    """
+    import json
+
+    man_path = _ROOT / "weights_manifest.json"
+    wdir = _ROOT / "vigent-core" / "weights"
+    try:
+        man = json.loads(man_path.read_text(encoding="utf-8"))
+    except Exception:  # noqa: BLE001  매니페스트가 없으면 검사 자체를 건너뛴다(구배포 호환)
+        return []
+    return [w["file"] for w in man.get("weights", [])
+            if w.get("required") and not (wdir / w["file"]).exists()]
+
+
 def warmup(guard: Any, detectors: list[str] | None = None) -> dict[str, Any]:
     """모델 로드 + 더미 추론 1회. 완료되면 phase=ready.
 
@@ -74,6 +94,16 @@ def warmup(guard: Any, detectors: list[str] | None = None) -> dict[str, Any]:
     워커의 첫 검출이 정상 속도로 끝난다.
     """
     import numpy as np
+
+    # [B8] 필수 가중치 없으면 예열 자체를 실패로 확정한다 — COCO 로 조용히 폴백해
+    #   "정상처럼 보이는데 아무것도 못 잡는" 상태(F-8)로 운영되는 것을 막는다.
+    missing = required_weights_missing()
+    if missing:
+        msg = ("필수 가중치 없음: " + ", ".join(missing)
+               + " — `python scripts/fetch_weights.py` 를 실행해 조달하세요")
+        _mark(FAILED, msg)
+        _LOG.error("★기동 중단 수준 오류 — %s", msg)
+        return {"ok": False, "error": msg, "slots": []}
 
     t0 = time.time()
     dets = detectors or ["person", "ppe", "fire_smoke"]

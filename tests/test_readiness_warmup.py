@@ -11,6 +11,7 @@ import threading
 import time
 import unittest
 from pathlib import Path
+from unittest import mock
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "vigent-core"))
 
@@ -99,6 +100,34 @@ class TestWatchdogGrace(unittest.TestCase):
         self.assertEqual(worker._HANG_TIMEOUT, 15.0)
         # 유예는 콜드 로드(실측 12.5초)보다 넉넉해야 의미가 있다
         self.assertGreaterEqual(worker._STARTUP_GRACE, 30.0)
+
+
+class TestRequiredWeightsGuard(unittest.TestCase):
+    """[B8] 필수 가중치가 없으면 조용히 폴백하지 않고 명시적으로 실패해야 한다."""
+
+    def setUp(self):
+        readiness._mark(readiness.STARTING)
+
+    def test_missing_required_weight_fails_warmup(self):
+        with mock.patch.object(readiness, "required_weights_missing",
+                               return_value=["ppe_rfdetr_v1.pth"]):
+            g = _FakeGuard()
+            r = readiness.warmup(g, ["person"])
+        self.assertFalse(r["ok"])
+        self.assertEqual(readiness.phase(), readiness.FAILED)
+        self.assertIn("fetch_weights.py", r["error"])      # 조치 방법이 메시지에 있어야 한다
+        self.assertEqual(g.calls, [])                      # 추론 시도조차 하지 않는다
+
+    def test_present_weights_allow_warmup(self):
+        with mock.patch.object(readiness, "required_weights_missing", return_value=[]):
+            r = readiness.warmup(_FakeGuard(), ["person"])
+        self.assertTrue(r["ok"])
+
+    def test_missing_list_reads_manifest_required_only(self):
+        """선택(required=false) 파일이 없다고 기동을 막으면 안 된다."""
+        missing = readiness.required_weights_missing()
+        self.assertNotIn("yolo11m.pt", missing)            # 폴백용 — 없어도 정상
+        self.assertNotIn("yolov8n-pose.pt", missing)       # RTMPose 가 주력
 
 
 if __name__ == "__main__":
