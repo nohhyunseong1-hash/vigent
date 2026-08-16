@@ -323,21 +323,33 @@ def _startup() -> None:
             _log.info("go2rtc 준비(확대뷰 실시간 재생 가능)")
     except Exception:  # noqa: BLE001  go2rtc 실패해도 서버·검출 무중단
         _log.warning("go2rtc 기동 예외(무시, 스냅샷 폴백)")
-    # 3.0: 등록 카메라(enabled) 워커 자동복원 — launchd 재기동 후 관제 자동 재개(조건1).
-    try:
-        _restore = _cameras_router.autostart_enabled()
-        if _restore:
-            _log.info("카메라 자동복원 → %s", _restore)
-    except Exception:  # noqa: BLE001  복원 실패해도 서버는 뜬다
-        _log.warning("카메라 자동복원 예외\n%s", traceback.format_exc())
-    # 엣지/USB 설치본: VIGENT_EDGE=1 이면 site.yaml 의 카메라로 워커 자동시작(헤드리스)
-    if os.environ.get("VIGENT_EDGE") == "1":
+    # [B4] 워커 기동은 **모델 예열이 끝난 뒤**로 미룬다.
+    #   예열 전에 붙이면 워커의 첫 검출이 콜드 로드(실측 12.5s)를 떠안아 hang 워치독(15s)을
+    #   넘기고, 죽이면 로드를 처음부터 다시 해 무한 재시작에 빠진다(2026-08-13 실측 45회).
+    #   예열은 백그라운드라 서버는 즉시 응답하고 /health 는 그동안 phase=starting(503)이다.
+    def _start_workers_after_warmup() -> None:
         try:
-            import worker as _w
-            res = _w.manager.autostart(bundle["agents"].get("Guard"), _DETECT_LOCK)
-            _log.info("[EDGE] 현장 워커 자동시작 → %s", res)
-        except Exception as ex:  # noqa: BLE001  자동시작 실패해도 서버는 뜬다
-            _log.error("[EDGE] 자동시작 실패: %s: %s", type(ex).__name__, ex)
+            _restore = _cameras_router.autostart_enabled()
+            if _restore:
+                _log.info("카메라 자동복원 → %s", _restore)
+        except Exception:  # noqa: BLE001  복원 실패해도 서버는 뜬다
+            _log.warning("카메라 자동복원 예외\n%s", traceback.format_exc())
+        # 엣지/USB 설치본: VIGENT_EDGE=1 이면 site.yaml 의 카메라로 워커 자동시작(헤드리스)
+        if os.environ.get("VIGENT_EDGE") == "1":
+            try:
+                import worker as _w
+                res = _w.manager.autostart(bundle["agents"].get("Guard"), _DETECT_LOCK)
+                _log.info("[EDGE] 현장 워커 자동시작 → %s", res)
+            except Exception as ex:  # noqa: BLE001  자동시작 실패해도 서버는 뜬다
+                _log.error("[EDGE] 자동시작 실패: %s: %s", type(ex).__name__, ex)
+
+    try:
+        import readiness
+        readiness.start_background(bundle["agents"].get("Guard"),
+                                   on_ready=_start_workers_after_warmup)
+    except Exception:  # noqa: BLE001  예열 배선 실패 시에도 워커는 기동(기존 동작으로 폴백)
+        _log.warning("예열 기동 실패 — 워커를 즉시 시작(구 동작)\n%s", traceback.format_exc())
+        _start_workers_after_warmup()
 
 
 # ─────────────────────────────────────────────────────────────

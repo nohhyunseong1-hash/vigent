@@ -39,6 +39,11 @@ _IMG_EXT = {".jpg", ".jpeg", ".png", ".bmp", ".webp"}
 # 2단계 안정성 설정(하드코딩 금지 — env 우선, 없으면 tuning.yaml, 없으면 기본값)
 #   hang: 정상 fps 2.0=0.5s 간격 → 15s 기본은 오탐 없이 진짜 멈춤만 잡는 여유값.
 _HANG_TIMEOUT = float(os.environ.get("VIGENT_HANG_TIMEOUT") or tuning.val("stability", "hang_timeout_s", 15.0))
+# [B4] 워커 기동 직후 유예 — 이 시간 안에는 hang 판정을 하지 않는다. 콜드 로드(실측 12.5s)가
+#   15s 워치독을 넘겨 무한 재시작에 빠지던 문제의 근본 해법은 "임계를 늘리기"가 아니라
+#   "예열이 끝난 뒤에 판정 시작"이다(readiness.py 참조). 값은 config/tuning.yaml `health:` 공유.
+_STARTUP_GRACE = float(os.environ.get("VIGENT_STARTUP_GRACE")
+                       or tuning.val("health", "startup_grace_s", 90.0))
 _RECONNECT_MAX = float(os.environ.get("VIGENT_RECONNECT_MAX") or tuning.val("stability", "reconnect_max_s", 30.0))
 _READ_FAIL_MAX = int(os.environ.get("VIGENT_READ_FAIL_MAX") or tuning.val("stability", "read_fail_max", 5))
 # 프레임 신선도(지연): 스트림은 내부 버퍼를 최소화해 '최신 프레임'을 처리(과거 프레임 지연 누적 방지).
@@ -583,6 +588,13 @@ class Worker:
                 continue
             lft = self.state.get("last_frame_ts", 0.0)
             if lft <= 0:                              # 첫 프레임 전(초기화·재연결 중) → 판정 보류
+                continue
+            # [B4] startup grace — 워커 기동 직후 이 시간 안에는 hang 판정을 하지 않는다.
+            #   모델 예열은 main 이 워커보다 먼저 끝내지만(readiness), 재연결·재시작 경로로
+            #   들어온 워커는 여전히 초기화 비용을 떠안을 수 있어 유예를 둔다. 유예가 지나면
+            #   _HANG_TIMEOUT(기본 15s)이 그대로 적용된다 — 임계를 느슨하게 바꾸지 않는다.
+            sat = self.state.get("started_at", 0.0)
+            if sat and (time.time() - sat) < _STARTUP_GRACE:
                 continue
             idle = time.time() - lft
             if idle > _HANG_TIMEOUT and not self._restart_req.is_set():

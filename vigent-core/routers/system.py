@@ -70,18 +70,29 @@ def health(theme: str = DEFAULT_THEME):
     overall = "healthy"
     cameras: dict = {}
     phase = "ready"
+    warm: dict = {}
     try:
         import health_status
+        import readiness
         import worker as _w
+        phase = readiness.phase()
+        warm = readiness.snapshot()
         model_loaded = bool(bundle) and bool(rfdetr_slots)
         overall, cameras = health_status.build(_w.manager.status(), model_loaded)
+        # [B4] 예열 중에는 워커가 아직 없는 게 정상 — 카메라 판정으로 unhealthy 를 내지 않는다.
+        #   대신 phase 로 "아직 준비 중"임을 알리고 503 을 준다(로드밸런서·워치독이 대기하도록).
+        if phase == readiness.STARTING:
+            overall = "starting"
+        elif phase == readiness.FAILED:
+            overall = "unhealthy"
     except Exception:  # noqa: BLE001  판정 실패가 헬스체크 자체를 죽이면 안 된다
         overall = "degraded"
         cameras = {}
 
     body = {
         "status": overall,
-        "phase": phase,               # [B4] starting|ready — 예열 완료 여부
+        "phase": phase,               # [B4] starting|ready|failed — 예열 완료 여부
+        "warmup": warm,               # [B4] {phase, warmup_s, elapsed_s, error} — 예열 실측
         "cameras": cameras,           # [B2] 카메라별 검출 생존
         "version": product_version(),
         "uptime_s": round(_time.time() - _START_TS, 1),
@@ -101,7 +112,8 @@ def health(theme: str = DEFAULT_THEME):
     }
     # [B2] unhealthy 는 HTTP 503 — 외부 워치독이 본문 파싱 없이 상태코드만으로 장애를 잡게 한다.
     #   degraded 는 200(운영은 계속되지만 일부 카메라 정지) + 본문으로 구분.
-    return JSONResponse(body, status_code=503 if overall == "unhealthy" else 200)
+    # [B4] starting 도 503 — 예열 전에는 아직 감시가 성립하지 않으므로 "준비됨"이라고 답하지 않는다.
+    return JSONResponse(body, status_code=503 if overall in ("unhealthy", "starting") else 200)
 
 
 @router.get("/system/capabilities")

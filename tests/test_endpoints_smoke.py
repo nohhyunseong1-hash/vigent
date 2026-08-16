@@ -30,12 +30,14 @@ class TestEndpointsSmoke(unittest.TestCase):
         cls.client.__exit__(None, None, None)
 
     def test_health_ok(self):
-        # [B2] status 계약 변경: "ok" 고정 → healthy|degraded|unhealthy 3단계 실판정.
-        #   워커가 없으면(테스트 환경) 감시 대상이 없으므로 healthy.
+        # [B2] status 계약: "ok" 고정 → 실판정(healthy|degraded|unhealthy).
+        # [B4] 예열 중에는 starting + HTTP 503 — "아직 준비 안 됨"을 정직하게 알린다.
+        #   테스트 환경은 예열이 진행 중일 수 있으므로 두 경우를 모두 허용한다.
         r = self.client.get("/health")
-        self.assertEqual(r.status_code, 200)
-        self.assertIn(r.json().get("status"), ("healthy", "degraded", "unhealthy"))
+        self.assertIn(r.status_code, (200, 503))
+        self.assertIn(r.json().get("status"), ("healthy", "degraded", "unhealthy", "starting"))
         self.assertIn("cameras", r.json())      # 검출 생존 필드가 반드시 실린다
+        self.assertIn("phase", r.json())        # 예열 단계가 반드시 실린다
 
     def test_capabilities_ok(self):
         r = self.client.get("/system/capabilities")
@@ -56,7 +58,8 @@ class TestEndpointsSmoke(unittest.TestCase):
         # /{theme} 캐치올이 /health 를 삼키면 테마 HTML 이 오고 JSON status 가 없다.
         r = self.client.get("/health")
         self.assertEqual(r.headers.get("content-type", "").split(";")[0], "application/json")
-        self.assertIn(r.json().get("status"), ("healthy", "degraded", "unhealthy"))   # [B2] 3단계
+        self.assertIn(r.json().get("status"),
+                      ("healthy", "degraded", "unhealthy", "starting"))   # [B2]3단계 + [B4]starting
 
     def test_theme_page_via_catchall(self):
         # GET /safety → /{theme} 캐치올로 safety 테마 페이지(HTML) 200.

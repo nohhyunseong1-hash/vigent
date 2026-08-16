@@ -1,0 +1,105 @@
+"""[B4] 콜드 스타트 예열 ↔ 워치독 분리 테스트.
+
+검증 대상:
+  1. 예열 전 phase=starting, 완료 후 ready, 실패 시 failed
+  2. 예열이 더미 추론까지 실제로 호출하는가(로드만으로는 첫 프레임 지연이 안 사라짐)
+  3. 예열 성공 시에만 on_ready 콜백(=워커 기동)이 불린다 — 차가운 모델에 워커를 붙이지 않는다
+  4. 워커 hang 워치독의 startup grace 가 config 에서 오고 기본 15초 임계는 유지된다
+"""
+import sys
+import threading
+import time
+import unittest
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "vigent-core"))
+
+import readiness  # noqa: E402
+
+
+class _FakeGuard:
+    """detect 호출을 기록하는 최소 가드."""
+
+    def __init__(self, fail=False, delay=0.0):
+        self.calls = []
+        self.fail = fail
+        self.delay = delay
+
+    def detect(self, img, detectors=None, track_key=None):
+        if self.delay:
+            time.sleep(self.delay)
+        if self.fail:
+            raise RuntimeError("warmup boom")
+        self.calls.append(tuple(detectors or []))
+        return {"detections": []}
+
+
+class TestWarmup(unittest.TestCase):
+    def setUp(self):
+        readiness._mark(readiness.STARTING)
+        with readiness._lock:
+            readiness._state["started_at"] = time.time()
+            readiness._state["warmup_s"] = None
+
+    def test_starts_in_starting_phase(self):
+        self.assertEqual(readiness.phase(), readiness.STARTING)
+        self.assertFalse(readiness.is_ready())
+
+    def test_warmup_marks_ready_and_records_time(self):
+        g = _FakeGuard()
+        r = readiness.warmup(g, ["person"])
+        self.assertTrue(r["ok"])
+        self.assertEqual(readiness.phase(), readiness.READY)
+        self.assertTrue(readiness.is_ready())
+        self.assertIsNotNone(readiness.snapshot()["warmup_s"])
+
+    def test_warmup_runs_dummy_inference_per_slot(self):
+        """로드만이 아니라 슬롯마다 **실제 추론 1회**를 돌려야 커널이 예열된다."""
+        g = _FakeGuard()
+        readiness.warmup(g, ["person", "ppe", "fire_smoke"])
+        self.assertEqual(g.calls, [("person",), ("ppe",), ("fire_smoke",)])
+
+    def test_warmup_failure_marks_failed_not_ready(self):
+        g = _FakeGuard(fail=True)
+        r = readiness.warmup(g, ["person"])
+        self.assertFalse(r["ok"])
+        self.assertEqual(readiness.phase(), readiness.FAILED)
+        self.assertFalse(readiness.is_ready())
+        self.assertIn("boom", readiness.snapshot()["error"])
+
+    def test_on_ready_called_only_after_success(self):
+        """★워커는 예열이 끝난 뒤에만 붙어야 한다 — 차가운 모델에 붙으면 첫 검출이
+        콜드 로드를 떠안아 워치독을 넘긴다(B4 의 근본 원인)."""
+        done = threading.Event()
+        g = _FakeGuard()
+        readiness.start_background(g, on_ready=done.set, detectors=["person"]).join(timeout=5)
+        self.assertTrue(done.wait(timeout=5))
+        self.assertEqual(readiness.phase(), readiness.READY)
+
+    def test_on_ready_not_called_when_warmup_fails(self):
+        called = threading.Event()
+        g = _FakeGuard(fail=True)
+        readiness.start_background(g, on_ready=called.set, detectors=["person"]).join(timeout=5)
+        time.sleep(0.2)
+        self.assertFalse(called.is_set())
+        self.assertEqual(readiness.phase(), readiness.FAILED)
+
+    def test_snapshot_has_no_secrets(self):
+        keys = set(readiness.snapshot().keys())
+        self.assertEqual(keys, {"phase", "warmup_s", "elapsed_s", "error"})
+
+
+class TestWatchdogGrace(unittest.TestCase):
+    def test_grace_and_timeout_are_config_driven(self):
+        """회피용 환경변수(VIGENT_HANG_TIMEOUT=60)에 의존하지 않고 config 기본값으로 동작해야 한다.
+
+        재부팅하면 사라지는 환경변수는 '존재하지 않는 설정'이다(B4 배경)."""
+        import worker
+        # 기본 워치독 임계는 느슨해지지 않았다 — 15초 유지
+        self.assertEqual(worker._HANG_TIMEOUT, 15.0)
+        # 유예는 콜드 로드(실측 12.5초)보다 넉넉해야 의미가 있다
+        self.assertGreaterEqual(worker._STARTUP_GRACE, 30.0)
+
+
+if __name__ == "__main__":
+    unittest.main()
