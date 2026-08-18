@@ -1,0 +1,72 @@
+{
+ "generated_at": "2026-08-18 09:38:09",
+ "match_iou": 0.5,
+ "videos": {
+  "multi_cross.mp4": {
+   "iou": {
+    "frames": 176,
+    "unique_tids": 7,
+    "avg_persons": 1.97,
+    "max_persons": 3,
+    "id_switches": 0,
+    "fragmented": 0,
+    "reid_ok": 0,
+    "reid_rate": null
+   },
+   "bytetrack": {
+    "frames": 176,
+    "unique_tids": 5,
+    "avg_persons": 1.95,
+    "max_persons": 3,
+    "id_switches": 0,
+    "fragmented": 0,
+    "reid_ok": 4,
+    "reid_rate": 100.0
+   }
+  },
+  "occlusion.mp4": {
+   "iou": {
+    "frames": 164,
+    "unique_tids": 5,
+    "avg_persons": 1.99,
+    "max_persons": 3,
+    "id_switches": 0,
+    "fragmented": 0,
+    "reid_ok": 0,
+    "reid_rate": null
+   },
+   "bytetrack": {
+    "frames": 164,
+    "unique_tids": 5,
+    "avg_persons": 1.93,
+    "max_persons": 3,
+    "id_switches": 0,
+    "fragmented": 0,
+    "reid_ok": 1,
+    "reid_rate": 100.0
+   }
+  },
+  "multi_scene.mp4": {
+   "iou": {
+    "frames": 497,
+    "unique_tids": 42,
+    "avg_persons": 2.2,
+    "max_persons": 6,
+    "id_switches": 0,
+    "fragmented": 0,
+    "reid_ok": 0,
+    "reid_rate": null
+   },
+   "bytetrack": {
+    "frames": 497,
+    "unique_tids": 17,
+    "avg_persons": 2.09,
+    "max_persons": 5,
+    "id_switches": 1,
+    "fragmented": 1,
+    "reid_ok": 20,
+    "reid_rate": 95.2
+   }
+  }
+ }
+}
