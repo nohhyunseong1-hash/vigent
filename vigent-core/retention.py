@@ -122,13 +122,21 @@ def is_path_allowed(p: Path) -> bool:
 
 
 def first_run_pending() -> bool:
-    """[P1b] 첫 실행 안전장치 — 실삭제가 처음 켜진 주기에는 **목록만 남기고 지우지 않는다**.
+    """[P1b/R2-fix] 보류 상태인가 — **삭제 후보를 실제로 보여준 적이 있어야** 해제된다.
 
-    dry_run 을 false 로 바꾸는 순간 대량 삭제가 즉시 일어나는 것을 막는다. 운영자가 첫 주기
+    dry_run 을 false 로 바꾸는 순간 대량 삭제가 일어나는 것을 막는 장치다. 운영자가 첫 주기
     로그에서 '무엇이 지워질 예정인지'를 눈으로 확인한 뒤, 다음 주기부터 실제 삭제가 시작된다.
+
+    ★[R2-fix, 2026-08-18] 이전에는 '한 번 돌면' 해제됐다. 그런데 2026-08-18 실측에서 후보가
+    0건인 상태로 첫 주기가 돌아 **빈 목록으로 안전장치가 소진**됐다 — 실제 삭제 대상이 생기는
+    약 17일 뒤에는 운영자가 목록을 보지 못한 채 삭제가 시작될 상황이었다. 그래서 해제 조건을
+    "삭제 후보가 1건 이상 있는 주기를 보여줬을 때"로 바꾼다. 후보 0건 주기는 몇 번을 돌아도
+    보류를 유지한다.
+    ★마이그레이션: 구 형식 status.json 은 `armed_with_candidates` 키가 없다 → 보류 상태로
+    되돌린다(빈 목록으로 소진된 것이므로 되돌리는 게 맞다).
     """
-    st = read_status()
-    return not (st or {}).get("delete_armed", False)
+    st = read_status() or {}
+    return not (st.get("delete_armed", False) and st.get("armed_with_candidates", False))
 
 
 def is_enabled() -> bool:
@@ -206,9 +214,8 @@ def sweep(execute: bool | None = None, only_group: str | None = None) -> dict[st
     #   ★단 CLI 로 `--execute` 를 명시한 경우(execute is not None)는 보류하지 않는다 —
     #     운영자가 지금 지우겠다고 직접 지시한 것이라 의도가 분명하다. 안전장치는 "설정 한 줄
     #     바꿨더니 대량 삭제가 일어났다"를 막기 위한 것이지 명시 실행을 막는 게 아니다.
-    armed = (execute is not None) or (not first_run_pending())
-    will_delete = enabled and not dry_run and armed
-    first_run_notice = enabled and not dry_run and not armed
+    explicit = execute is not None       # CLI --execute: 운영자의 명시 지시 → 보류 우회
+    armed_stored = not first_run_pending()
 
     warnings: list[str] = []
     try:
@@ -221,16 +228,30 @@ def sweep(execute: bool | None = None, only_group: str | None = None) -> dict[st
 
     groups_out: dict[str, Any] = {}
     deletion_entries: list[dict[str, Any]] = []
+    unused_groups: list[str] = []
+    scanned: list[tuple[str, dict[str, Any], int | None]] = []
     for name, root in GROUP_DIRS.items():
         if only_group and name != only_group:
             continue
         if not root.exists():
             groups_out[name] = {"dir": str(root.relative_to(_ROOT)), "exists": False}
-            warnings.append(f"{name}: 디렉터리 없음({root})")
+            # [R2-fix] 미사용 그룹(디렉터리 자체가 없음)은 경고가 아니라 정보다 —
+            #   매 스위프마다 같은 경고가 쌓이면 진짜 경고가 묻힌다.
+            unused_groups.append(name)
             continue
         days = group_days(name)
         info = scan_group(name, days)
-        deleted = []
+        scanned.append((name, info, days))
+        groups_out[name] = info
+
+    # [R2-fix] 후보를 다 센 뒤에 삭제 여부를 정한다 — 보류 해제는 "후보가 1건 이상"일 때만.
+    total_candidates = sum(len(i.get("candidates") or []) for _, i, _ in scanned)
+    will_delete = enabled and not dry_run and (explicit or armed_stored)
+    first_run_notice = (enabled and not dry_run and not explicit
+                        and not armed_stored and total_candidates > 0)
+
+    for name, info, days in scanned:
+        deleted: list[str] = []
         if will_delete and days is not None:
             for cand in info["candidates"]:
                 fp = _ROOT / cand["path"]
@@ -250,7 +271,6 @@ def sweep(execute: bool | None = None, only_group: str | None = None) -> dict[st
                 except OSError as ex:
                     warnings.append(f"{name}: 삭제 실패 {cand['path']} ({ex})")
         info["deleted"] = deleted
-        groups_out[name] = info
 
     _write_deletion_audit(deletion_entries)
 
@@ -280,9 +300,13 @@ def sweep(execute: bool | None = None, only_group: str | None = None) -> dict[st
     status = {
         "last_run": datetime.now(KST).isoformat(timespec="seconds"),
         "enabled": enabled, "dry_run": dry_run, "executed_delete": will_delete,
-        # [P1b] 다음 주기부터 실삭제 허용(첫 주기는 목록만) — read 는 first_run_pending()
-        "delete_armed": bool(armed or first_run_notice),
+        # [P1b/R2-fix] 보류 해제 상태. **후보를 실제로 보여준 주기**에만 해제된다 —
+        #   armed_with_candidates 가 True 여야 first_run_pending() 이 False 가 된다.
+        #   후보 0건 주기는 몇 번을 돌아도 보류 유지(빈 목록으로 소진되지 않게).
+        "delete_armed": bool(armed_stored or first_run_notice),
+        "armed_with_candidates": bool(armed_stored or first_run_notice),
         "first_run_notice": first_run_notice,
+        "unused_groups": unused_groups,
         "allowed_roots": [str(r) for r in allowed_roots()],
         "deleted_count": sum(len(g.get("deleted") or []) for g in groups_out.values()
                              if isinstance(g, dict)),

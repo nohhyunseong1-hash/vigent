@@ -61,9 +61,12 @@ class _RetentionTest(unittest.TestCase):
         return mock.patch.object(retention, "_retention_config", return_value=base)
 
     def _arm(self):
-        """첫 주기 안전장치를 통과시킨다(이미 한 번 돌았다고 표시)."""
+        """첫 주기 안전장치를 통과시킨다(후보를 보여준 주기가 이미 있었다고 표시).
+
+        [R2-fix] delete_armed 만으로는 부족하고 armed_with_candidates 도 True 여야 해제된다."""
         retention.STATUS_PATH.parent.mkdir(parents=True, exist_ok=True)
-        retention.STATUS_PATH.write_text('{"delete_armed": true}', encoding="utf-8")
+        retention.STATUS_PATH.write_text(
+            '{"delete_armed": true, "armed_with_candidates": true}', encoding="utf-8")
 
 
 class TestFirstRunSafety(_RetentionTest):
@@ -162,6 +165,70 @@ class TestPathWhitelist(_RetentionTest):
         with mock.patch.object(retention, "_retention_config", return_value={}):
             roots = retention.allowed_roots()
         self.assertEqual([r.name for r in roots], ["evidence"])
+
+
+class TestArmingRequiresCandidates(_RetentionTest):
+    """[R2-fix] 보류는 '후보를 실제로 보여준 주기'에만 해제된다.
+
+    2026-08-18 실측에서 후보 0건인 첫 주기가 돌아 **빈 목록으로 안전장치가 소진**됐다.
+    실제 삭제 대상이 생기는 시점(약 17일 뒤)에는 운영자가 목록을 보지 못한 채 삭제가
+    시작될 상황이었다."""
+
+    def test_zero_candidate_cycles_keep_hold(self):
+        """★후보 0건 주기를 여러 번 돌려도 보류가 유지된다."""
+        fresh = _touch_old(self.ev / "fresh.jpg", 5)      # 보존기간(30일) 내 → 후보 아님
+        with self._cfg():
+            for _ in range(3):
+                st = retention.sweep()
+        self.assertTrue(fresh.exists())
+        self.assertEqual(st["deleted_count"], 0)
+        self.assertFalse(st["armed_with_candidates"], "후보 0건인데 보류가 해제됐다")
+        self.assertFalse(st["first_run_notice"])          # 보여줄 게 없으니 안내도 없다
+
+    def test_hold_consumed_only_when_candidates_appear(self):
+        """후보가 처음 생긴 주기: 목록만·미삭제 → 그 다음 주기부터 삭제."""
+        _touch_old(self.ev / "fresh.jpg", 5)
+        with self._cfg():
+            retention.sweep()                              # 후보 0건 — 보류 유지
+            expired = _touch_old(self.ev / "expired.jpg", 45)
+            st1 = retention.sweep()                        # 후보 발생 첫 주기 — 목록만
+            self.assertTrue(expired.exists(), "후보 발생 첫 주기인데 삭제됐다")
+            self.assertTrue(st1["first_run_notice"])
+            self.assertTrue(st1["armed_with_candidates"])
+            st2 = retention.sweep()                        # 다음 주기 — 실삭제
+        self.assertFalse(expired.exists(), "두 번째 주기인데 삭제되지 않았다")
+        self.assertEqual(st2["deleted_count"], 1)
+
+    def test_legacy_status_migrates_back_to_hold(self):
+        """★구 형식(delete_armed 만 있고 armed_with_candidates 없음)은 보류로 되돌린다.
+
+        빈 목록으로 소진된 상태이므로 되돌리는 것이 맞다."""
+        retention.STATUS_PATH.parent.mkdir(parents=True, exist_ok=True)
+        retention.STATUS_PATH.write_text('{"delete_armed": true}', encoding="utf-8")
+        with self._cfg():
+            self.assertTrue(retention.first_run_pending(), "구 형식이 보류로 되돌아가지 않았다")
+            expired = _touch_old(self.ev / "expired.jpg", 45)
+            st = retention.sweep()
+        self.assertTrue(expired.exists(), "마이그레이션 후에도 곧바로 삭제됐다")
+        self.assertTrue(st["first_run_notice"])
+
+    def test_explicit_execute_still_bypasses(self):
+        """--execute 명시 실행은 후보 유무와 무관하게 즉시 삭제한다."""
+        expired = _touch_old(self.ev / "expired.jpg", 45)
+        with self._cfg():
+            st = retention.sweep(execute=True)
+        self.assertFalse(expired.exists())
+        self.assertEqual(st["deleted_count"], 1)
+
+    def test_missing_dir_is_info_not_warning(self):
+        """[R2-fix] 미사용 그룹(디렉터리 없음)은 경고가 아니라 unused_groups 로 분류된다."""
+        with self._cfg(), mock.patch.object(
+                retention, "GROUP_DIRS",
+                {"evidence": self.ev, "tbm": self.root / "data" / "tbm"}):
+            st = retention.sweep()
+        self.assertIn("tbm", st["unused_groups"])
+        self.assertFalse(any("디렉터리 없음" in w for w in st["warnings"]),
+                         "미사용 그룹이 여전히 경고로 쌓인다")
 
 
 if __name__ == "__main__":

@@ -110,11 +110,17 @@ class TestRetentionSweep(unittest.TestCase):
         self.assertFalse(old.exists())
         self.assertEqual(len(result["groups"]["evidence"]["deleted"]), 1)
 
-    def test_missing_group_dir_warns_not_crashes(self):
+    def test_missing_group_dir_is_unused_not_crashes(self):
+        """[R2-fix, 2026-08-18] 미사용 그룹(디렉터리 없음)은 **경고가 아니라 unused_groups**.
+
+        계약 변경: 이전에는 warnings 에 쌓였는데, 매 스위프마다 같은 문구가 반복돼 진짜 경고가
+        묻혔다(실측: audit·tbm 이 미사용이라 매번 2건씩 누적). 크래시하지 않는다는 보장은 유지."""
         with mock.patch.object(retention, "_retention_config",
                                 return_value=self._config(True, True, {"evidence": 30})):
             result = retention.sweep()
-        self.assertTrue(any("디렉터리 없음" in w for w in result["warnings"]))
+        self.assertFalse(any("디렉터리 없음" in w for w in result["warnings"]))
+        self.assertTrue(result["unused_groups"])          # 미사용 그룹으로 분류됐다
+        self.assertIn("groups", result)                   # 스위프 자체는 정상 완료
 
     def test_status_written_and_readable(self):
         with mock.patch.object(retention, "_retention_config",
