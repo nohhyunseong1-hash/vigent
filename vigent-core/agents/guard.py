@@ -279,7 +279,22 @@ class GuardAgent(BaseAgent):
     #   갭 존재 → 0.28 채택(DETECTOR_CONF['person']=0.35 바로 아래, 노이즈 범람 없이 저신뢰 후보만 추가 확보).
     BYTETRACK_LOW_CONF = 0.28        # bytetrack 모드에서 person 슬롯 추론 임계(저신뢰 후보 확보용, 1회 추론 그대로)
     BYTETRACK_HIGH_CONF = 0.50       # ByteTrackTracker 고신뢰/저신뢰 분리 기준(1차매칭 대상)
-    BYTETRACK_FRAME_RATE = 10.0      # lost_track_buffer 를 실시간 초 단위로 환산하는 기준 fps(실배포 호출주기에 맞춰 재조정 필요 — 맥 백로그)
+    # ★[P2a, 2026-08-18] 환산식 확정(라이브러리 소스 직접 확인 —
+    #   trackers/core/bytetrack/tracker.py:88):
+    #       maximum_frames_without_update = int(frame_rate / 30.0 * lost_track_buffer)
+    #   현재 값(frame_rate=10, buffer=30) → **10프레임** 유지. 실측 캐던스 2.3fps 에서 약 4.3초.
+    #
+    #   ★그런데 실카메라 시험(2026-08-13)에서 11.55초 부재 후에도 같은 id 가 복원됐다 — 모순이다.
+    #   원인을 코드로 확인했다: `_track_bytetrack` 은 person 검출이 0건이면 **bt.update() 를
+    #   호출하지 않고 early return** 한다. 즉 사람이 화면에 없는 동안 **트래커의 시간이 멈춘다**.
+    #   버퍼가 만료되지 않으므로 부재 시간이 아무리 길어도 id 가 유지된다(실증:
+    #   update(empty) 20회 → 새 id / update 미호출 → 동일 id).
+    #
+    #   ⇒ 따라서 이 값은 "부재 후 id 유지 시간"을 좌우하지 못한다. 실제로 유지 시간을 정하는 것은
+    #     '사람이 보이는 동안의 순간적 미검출'에만 적용되는 프레임 수다. 값 자체는 바꾸지 않는다
+    #     (바꿔도 부재 시나리오 동작이 달라지지 않고, 순간 미검출 허용치만 흔들려 회귀 위험).
+    #     구조적 개선(빈 프레임에도 update 호출)은 백로그 PQ 로 분리 — 동작이 바뀌므로 별도 검증 필요.
+    BYTETRACK_FRAME_RATE = 10.0
     BYTETRACK_LOST_BUFFER = 30       # 트랙 유지 프레임 수(위 frame_rate 기준 환산됨 — 라이브러리 기본값)
     BYTETRACK_MIN_IOU = 0.10         # ByteTrack 자체 매칭 IoU 최저선(라이브러리 기본값)
     # 신규 트랙 스폰에 필요한 최소 confidence. **None = person 운용 임계(DETECTOR_CONF['person'])에 자동 연동**
