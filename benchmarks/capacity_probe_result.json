@@ -1,0 +1,189 @@
+{
+ "generated_at": "2026-08-18 10:58:04",
+ "pass_criteria": {
+  "detect_p95_max_ratio": 2.0,
+  "gpu_mem_max_pct": 90.0,
+  "dropped_frames_growth": "지속 증가 시 불합격",
+  "degraded_not_allowed": true,
+  "recommend_ratio": 0.75
+ },
+ "base_cycle_s": 0.4,
+ "baseline": {
+  "samples": 6,
+  "lat_p50": 93.5,
+  "lat_p95": 104.6,
+  "lat_max": 104.6,
+  "age_p50": 0.4,
+  "age_p95": 0.4,
+  "age_max": 0.4,
+  "gpu_mem_max": 2757,
+  "gpu_total": 16303,
+  "gpu_mem_pct": 16.9,
+  "gpu_util_p95": 42.0,
+  "drop_growth": 0,
+  "degraded_samples": 0,
+  "real_lat_p95": 104.6,
+  "real_age_p95": 0.4,
+  "real_bad_samples": 0
+ },
+ "steps": {
+  "2": {
+   "metrics": {
+    "samples": 18,
+    "lat_p50": 66.3,
+    "lat_p95": 95.1,
+    "lat_max": 108.9,
+    "age_p50": 0.2,
+    "age_p95": 0.5,
+    "age_max": 0.5,
+    "gpu_mem_max": 2810,
+    "gpu_total": 16303,
+    "gpu_mem_pct": 17.2,
+    "gpu_util_p95": 40.0,
+    "drop_growth": 0,
+    "degraded_samples": 0,
+    "real_lat_p95": 108.9,
+    "real_age_p95": 0.4,
+    "real_bad_samples": 0
+   },
+   "pass": true,
+   "violations": []
+  },
+  "3": {
+   "metrics": {
+    "samples": 18,
+    "lat_p50": 55.8,
+    "lat_p95": 124.6,
+    "lat_max": 130.6,
+    "age_p50": 0.2,
+    "age_p95": 0.5,
+    "age_max": 0.6,
+    "gpu_mem_max": 2850,
+    "gpu_total": 16303,
+    "gpu_mem_pct": 17.5,
+    "gpu_util_p95": 35.0,
+    "drop_growth": 0,
+    "degraded_samples": 0,
+    "real_lat_p95": 125.8,
+    "real_age_p95": 0.5,
+    "real_bad_samples": 0
+   },
+   "pass": true,
+   "violations": []
+  },
+  "4": {
+   "metrics": {
+    "samples": 18,
+    "lat_p50": 44.7,
+    "lat_p95": 94.7,
+    "lat_max": 104.5,
+    "age_p50": 0.2,
+    "age_p95": 0.5,
+    "age_max": 0.5,
+    "gpu_mem_max": 2894,
+    "gpu_total": 16303,
+    "gpu_mem_pct": 17.8,
+    "gpu_util_p95": 33.0,
+    "drop_growth": 0,
+    "degraded_samples": 0,
+    "real_lat_p95": 104.5,
+    "real_age_p95": 0.5,
+    "real_bad_samples": 0
+   },
+   "pass": true,
+   "violations": []
+  },
+  "5": {
+   "metrics": {
+    "samples": 18,
+    "lat_p50": 43.4,
+    "lat_p95": 82.4,
+    "lat_max": 96.5,
+    "age_p50": 0.3,
+    "age_p95": 0.5,
+    "age_max": 0.5,
+    "gpu_mem_max": 2934,
+    "gpu_total": 16303,
+    "gpu_mem_pct": 18.0,
+    "gpu_util_p95": 37.0,
+    "drop_growth": 0,
+    "degraded_samples": 0,
+    "real_lat_p95": 96.5,
+    "real_age_p95": 0.5,
+    "real_bad_samples": 0
+   },
+   "pass": true,
+   "violations": []
+  },
+  "6": {
+   "metrics": {
+    "samples": 18,
+    "lat_p50": 43.8,
+    "lat_p95": 83.2,
+    "lat_max": 92.6,
+    "age_p50": 0.3,
+    "age_p95": 0.5,
+    "age_max": 0.5,
+    "gpu_mem_max": 2976,
+    "gpu_total": 16303,
+    "gpu_mem_pct": 18.3,
+    "gpu_util_p95": 34.0,
+    "drop_growth": 0,
+    "degraded_samples": 0,
+    "real_lat_p95": 92.6,
+    "real_age_p95": 0.5,
+    "real_bad_samples": 0
+   },
+   "pass": true,
+   "violations": []
+  },
+  "7": {
+   "metrics": {
+    "samples": 18,
+    "lat_p50": 70.1,
+    "lat_p95": 116.2,
+    "lat_max": 145.7,
+    "age_p50": 0.2,
+    "age_p95": 0.5,
+    "age_max": 0.5,
+    "gpu_mem_max": 3016,
+    "gpu_total": 16303,
+    "gpu_mem_pct": 18.5,
+    "gpu_util_p95": 31.0,
+    "drop_growth": 0,
+    "degraded_samples": 0,
+    "real_lat_p95": 103.0,
+    "real_age_p95": 0.5,
+    "real_bad_samples": 0
+   },
+   "pass": true,
+   "violations": []
+  },
+  "8": {
+   "metrics": {
+    "samples": 18,
+    "lat_p50": 103.4,
+    "lat_p95": 309.3,
+    "lat_max": 341.8,
+    "age_p50": 0.3,
+    "age_p95": 18.7,
+    "age_max": 30.6,
+    "gpu_mem_max": 3060,
+    "gpu_total": 16303,
+    "gpu_mem_pct": 18.8,
+    "gpu_util_p95": 23.0,
+    "drop_growth": 0,
+    "degraded_samples": 1,
+    "real_lat_p95": 254.7,
+    "real_age_p95": 0.5,
+    "real_bad_samples": 0
+   },
+   "pass": false,
+   "violations": [
+    "degraded 샘플 1개"
+   ]
+  }
+ },
+ "limit_n": 7,
+ "recommend_n": 5
+}

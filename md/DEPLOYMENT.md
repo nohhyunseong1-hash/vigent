@@ -19,9 +19,16 @@
 | CUDA | torch 휠과 맞는 버전 | cu130 (torch 2.12.0+cu130) |
 | git | 최신 | 2.55.0 |
 | NSSM | 서비스 등록용 | winget으로 설치 |
+| **카메라 대수** | **권장 5대 이하**(한계 7대) | RTX 5070 Ti 기준 실측 |
 
-**GPU 없이도 동작한다**(CPU 폴백). 다만 카메라 여러 대는 GPU가 사실상 필수다 —
-수용량은 아직 미측정이다([docs/INFRA_REQUIREMENTS.md](../docs/INFRA_REQUIREMENTS.md)).
+**GPU 없이도 동작한다**(CPU 폴백). 다만 카메라 여러 대는 GPU가 사실상 필수다.
+
+**카메라 대수**: RTX 5070 Ti 기준 실측 결과 **한계 7대 / 권장 5대**다
+([benchmarks/capacity_report.md](../benchmarks/capacity_report.md), 2026-08-18).
+8대에서 검출 지연 p95가 116ms → 309ms로 무너진다.
+★다른 GPU라면 이 숫자를 그대로 쓰지 말고 `python scripts\capacity_probe.py` 로 재측정할 것.
+★GPU를 키운다고 대수가 늘지 않을 수 있다 — 8대 시점에도 GPU는 메모리 18.8%·util 23%로
+놀고 있었고, 병목은 CPU·추론 직렬화 쪽으로 보인다(원인 미확정).
 
 > ⚠️ **CUDA 버전 주의**: RTX 50 시리즈(sm_120)는 **cu126 이하에서 런타임 에러**가 난다.
 > 반드시 cu130 휠을 쓸 것(아래 3단계).
