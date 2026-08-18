@@ -83,6 +83,10 @@ def camera_status(st: dict[str, Any], thr: dict[str, float] | None = None) -> di
         "last_frame_age_s": frame_age,
         "last_detect_age_s": detect_age,
         "last_detect_latency_ms": st.get("last_detect_ms"),
+        # [E1] 병목 특정용 단계 분해 — 락 대기 / 추론 실행 / 프레임 획득
+        "lock_wait_ms": st.get("lock_wait_ms"),
+        "infer_ms": st.get("infer_ms"),
+        "read_ms": st.get("read_ms"),
         "session_generation": st.get("session_generation"),
         "dropped_frames": st.get("dropped_frames"),
         "reconnects": st.get("reconnects"),

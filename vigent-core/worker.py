@@ -606,6 +606,8 @@ class Worker:
         s["last_detect_secs_ago"] = round(time.time() - ldt, 1) if ldt else None
         sat = s.get("started_at", 0.0)
         s["uptime_s"] = round(time.time() - sat, 1) if sat else None   # [B2] grace 판정 기준
+        # [E1] 단계 분해 계측은 state 에 이미 들어 있다(lock_wait_ms·infer_ms·read_ms) —
+        #   status() 가 state 사본을 반환하므로 별도 처리 없이 그대로 노출된다.
         return s
 
     def _hang_watch(self, name):
@@ -737,7 +739,13 @@ class Worker:
             _H, _W = frame.shape[:2]
             person_boxes: list = []
             out: dict = {}
+            # [E1] 병목 특정용 계측 — 락 대기 시간과 추론 실행 시간을 **분리**해서 잰다.
+            #   last_detect_ms(=완료−프레임시각)만으로는 "기다린 것"과 "도는 것"을 구분할 수 없어
+            #   H2(추론 직렬화) 가설을 판정할 수 없다. 측정 전용이며 동작은 바꾸지 않는다.
+            _wait0 = time.time()
             with lock:                            # 코어 추론 직렬화(브라우저와 충돌 방지)
+                _lock_wait_ms = (time.time() - _wait0) * 1000.0
+                _infer0 = time.time()
                 self._last_frame = frame
                 disp_person = None
                 disp_ppe = None
@@ -779,6 +787,9 @@ class Worker:
                 _now = time.time()
                 self.state["last_detect_ts"] = _now
                 self.state["last_detect_ms"] = round((_now - t0) * 1000.0, 1)
+                # [E1] 단계 분해: 락 대기 / 락 안 실행(추론+트래킹) / 프레임 획득(디코드 프록시)
+                self.state["lock_wait_ms"] = round(_lock_wait_ms, 1)
+                self.state["infer_ms"] = round((_now - _infer0) * 1000.0, 1)
             if not do_full:                       # person 전용 프레임: 이벤트·포즈 없음(안전 캐던스 불변) — 표시만 갱신
                 return
             # 3.10 ①: 포즈(ergo)는 별도 스레드(ONNX-CPU)가 pose_fps 로 비동기 처리(풀세트 프레임에서만 입력 갱신).
