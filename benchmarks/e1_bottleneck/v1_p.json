@@ -1,0 +1,32 @@
+{
+ "config": "p",
+ "slots": [
+  "person"
+ ],
+ "n_slots": 1,
+ "vram_idle_mib": null,
+ "vram_loaded_mib": null,
+ "steps": [
+  {
+   "n": 1,
+   "frames": 120,
+   "lat_p50": 18.8,
+   "lat_p95": 44.1,
+   "proc_cpu": 125.3,
+   "core_mean": 22.5,
+   "vram_mib": null
+  },
+  {
+   "n": 4,
+   "frames": 480,
+   "lat_p50": 28.8,
+   "lat_p95": 64.8,
+   "proc_cpu": 479.5,
+   "core_mean": 36.9,
+   "vram_mib": null
+  }
+ ],
+ "cpu_per_camera_pct": 118.1,
+ "cores_per_camera_detect": 1.18,
+ "cores_per_camera_total_est": 1.83
+}

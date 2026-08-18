@@ -1,0 +1,14 @@
+{
+ "config": "ppf",
+ "slots": [
+  "person",
+  "ppe",
+  "fire_smoke"
+ ],
+ "n_slots": 3,
+ "torch_allocated_mib": 734.5,
+ "torch_reserved_mib": 1024.0,
+ "gpu_total_before_mib": 3552.0,
+ "gpu_total_after_mib": 4949.0,
+ "process_vram_mib": 1397.0
+}

@@ -1,0 +1,32 @@
+[
+ {
+  "rate_hz": 0.2,
+  "people": 1,
+  "calls": 8,
+  "lat_p50": 7.4,
+  "lat_p95": 8.7,
+  "proc_cpu_pct": 7.1,
+  "cores": 0.07,
+  "core_mean": 18.2
+ },
+ {
+  "rate_hz": 2.0,
+  "people": 1,
+  "calls": 80,
+  "lat_p50": 7.5,
+  "lat_p95": 12.5,
+  "proc_cpu_pct": 90.4,
+  "cores": 0.9,
+  "core_mean": 22.4
+ },
+ {
+  "rate_hz": 10.0,
+  "people": 1,
+  "calls": 399,
+  "lat_p50": 7.5,
+  "lat_p95": 11.0,
+  "proc_cpu_pct": 427.0,
+  "cores": 4.27,
+  "core_mean": 35.4
+ }
+]

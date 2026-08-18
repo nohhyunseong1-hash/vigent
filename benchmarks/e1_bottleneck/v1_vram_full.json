@@ -1,0 +1,15 @@
+{
+ "config": "full",
+ "slots": [
+  "person",
+  "ppe",
+  "fire_smoke",
+  "forklift"
+ ],
+ "n_slots": 4,
+ "torch_allocated_mib": 967.6,
+ "torch_reserved_mib": 1258.0,
+ "gpu_total_before_mib": 3597.0,
+ "gpu_total_after_mib": 5071.0,
+ "process_vram_mib": 1474.0
+}

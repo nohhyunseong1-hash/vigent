@@ -1,0 +1,35 @@
+{
+ "config": "full",
+ "slots": [
+  "person",
+  "ppe",
+  "fire_smoke",
+  "forklift"
+ ],
+ "n_slots": 4,
+ "vram_idle_mib": null,
+ "vram_loaded_mib": null,
+ "steps": [
+  {
+   "n": 1,
+   "frames": 120,
+   "lat_p50": 73.2,
+   "lat_p95": 112.6,
+   "proc_cpu": 168.2,
+   "core_mean": 23.0,
+   "vram_mib": null
+  },
+  {
+   "n": 4,
+   "frames": 480,
+   "lat_p50": 149.4,
+   "lat_p95": 223.5,
+   "proc_cpu": 622.5,
+   "core_mean": 41.8,
+   "vram_mib": null
+  }
+ ],
+ "cpu_per_camera_pct": 151.4,
+ "cores_per_camera_detect": 1.51,
+ "cores_per_camera_total_est": 2.16
+}

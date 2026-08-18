@@ -1,0 +1,13 @@
+{
+ "config": "pp",
+ "slots": [
+  "person",
+  "ppe"
+ ],
+ "n_slots": 2,
+ "torch_allocated_mib": 501.3,
+ "torch_reserved_mib": 790.0,
+ "gpu_total_before_mib": 4013.0,
+ "gpu_total_after_mib": 5032.0,
+ "process_vram_mib": 1019.0
+}
