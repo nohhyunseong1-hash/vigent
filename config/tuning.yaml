@@ -152,3 +152,16 @@ privacy:                    # [P1a] 저장·전송 이미지의 얼굴 비식별
     # 블러는 역합성 복원 공격에 약하다
   head_ratio: 0.30          # person 박스 상단 이 비율을 머리로 보고 가린다. CCTV 는 측면·후면·
     # 고각이 많아 얼굴검출기가 자주 실패하는데 개인정보에서 '놓침'은 곧 실패라 보수적으로 넓게 가린다
+
+relay:                      # [P3a] 물리 출력(사이렌·경광등) 네트워크 릴레이 — §8 보조 신호(인증 회로 대체 아님)
+  enabled: false            # 기본 비활성. 실물 릴레이를 붙인 현장에서만 켠다
+  url: ""                   # HTTP 릴레이 주소. 예: http://192.168.0.50/relay  (?state=on|off 자동 부착)
+  # on_url / off_url 을 따로 지정하면 그 값이 우선한다(장비가 별도 엔드포인트를 쓰는 경우)
+  method: GET               # GET | POST
+  on_duration_s: 30         # ON 유지 시간. 이 시간 뒤 자동 OFF(재경보 시 연장)
+  # ★OFF 는 ON 보다 강하게 재시도한다 — 사이렌이 안 켜지는 것보다 **안 꺼지는 것이 최악**이다.
+  on_attempts: 3            # ON 재시도 횟수
+  off_attempts: 8           # OFF 재시도 횟수(ON 보다 많이)
+  timeout_s: 5              # ON 요청 타임아웃
+  off_timeout_s: 8          # OFF 요청 타임아웃(ON 보다 길게)
+  backoff_cap_s: 4          # 재시도 백오프 상한

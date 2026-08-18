@@ -161,8 +161,18 @@ class DispatcherAgent(BaseAgent):
             results.append(self._send_email(f"[VIGENT 안전경보] {level.upper()}", text))
             results.append(self._send_webhook({"level": level, "message": message, "meta": meta or {}}))
         if "safety_relay_signal" in actions:
-            results.append({"channel": "safety_relay_signal", "sent": True,
-                            "note": "§8 보조 신호 로그(인증 회로 대체 아님)"})
+            # [P3a] 실제 물리 출력(네트워크 릴레이) — 이전에는 로그 항목만 추가하고 sent:True 를
+            #   반환해 "경보가 울렸다"고 표시되는데 아무 소리도 안 나는 상태였다(감사 🟠C7).
+            #   relay.enabled=false(기본)면 기존처럼 로그 신호만 남긴다.
+            try:
+                import relay
+                if relay.enabled():
+                    results.append(relay.turn_on(message))
+                else:
+                    results.append({"channel": "safety_relay_signal", "sent": True,
+                                    "note": "§8 보조 신호 로그(릴레이 비활성 — 물리 출력 없음)"})
+            except Exception as ex:  # noqa: BLE001  릴레이 실패가 다른 채널을 막지 않는다
+                results.append({"channel": "relay", "sent": False, "reason": str(ex)[:120]})
         results.append({"channel": "log", "sent": True, "text": text})
         remote = ("telegram", "email", "webhook")
         any_remote = any(r.get("sent") and r["channel"] in remote for r in results)

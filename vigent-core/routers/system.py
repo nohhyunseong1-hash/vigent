@@ -88,6 +88,14 @@ def health(theme: str = DEFAULT_THEME):
         privacy_status = {**_pv.status(), **_pv.storage_status()}
     except Exception:  # noqa: BLE001
         privacy_status = {"error": "privacy 상태 조회 실패"}
+    # [P3a] 물리 출력 상태. ★off_failed 는 "사이렌이 켜진 채 남았을 수 있다"는 뜻이라
+    #   degraded 로 올린다 — 현장에서 가장 시급한 이상이다.
+    relay_status: dict = {}
+    try:
+        import relay as _rl
+        relay_status = _rl.status()
+    except Exception:  # noqa: BLE001
+        relay_status = {"error": "relay 상태 조회 실패"}
     try:
         import health_status
         import readiness
@@ -109,6 +117,8 @@ def health(theme: str = DEFAULT_THEME):
             overall = "starting"
         elif phase == readiness.FAILED:
             overall = "unhealthy"
+        elif relay_status.get("off_failed") and overall == "healthy":
+            overall = "degraded"        # [P3a] 물리 출력이 안 꺼졌을 수 있다 — 정상이 아니다
     except Exception:  # noqa: BLE001  판정 실패가 헬스체크 자체를 죽이면 안 된다
         overall = "degraded"
         cameras = {}
@@ -119,6 +129,7 @@ def health(theme: str = DEFAULT_THEME):
         "warmup": warm,               # [B4] {phase, warmup_s, elapsed_s, error} — 예열 실측
         "alerts": alerts,             # [B5] {pending, sent, dead} — 미전송 경보(pending≥1 이면 degraded)
         "privacy": privacy_status,    # [P1a/P1c] 비식별화 설정 + 저장 폴더 암호화 검사 결과
+        "relay": relay_status,        # [P3a] 물리 출력 — ★off_failed=true 면 사이렌이 안 꺼졌을 수 있다
         "cameras": cameras,           # [B2] 카메라별 검출 생존
         "version": product_version(),
         "uptime_s": round(_time.time() - _START_TS, 1),
