@@ -19,16 +19,23 @@
 | CUDA | torch 휠과 맞는 버전 | cu130 (torch 2.12.0+cu130) |
 | git | 최신 | 2.55.0 |
 | NSSM | 서비스 등록용 | winget으로 설치 |
-| **카메라 대수** | **권장 5대 이하**(한계 7대) | RTX 5070 Ti 기준 실측 |
+| **카메라 대수** | **권장 5대 이하**(한계 7대) | Ryzen 9 9900X(24스레드) 기준 실측 |
+| **CPU** | 카메라당 **2.1 환산코어** | ★대수를 좌우하는 것은 **GPU 가 아니라 CPU** 다 |
 
 **GPU 없이도 동작한다**(CPU 폴백). 다만 카메라 여러 대는 GPU가 사실상 필수다.
 
-**카메라 대수**: RTX 5070 Ti 기준 실측 결과 **한계 7대 / 권장 5대**다
-([benchmarks/capacity_report.md](../benchmarks/capacity_report.md), 2026-08-18).
+**카메라 대수**: **Ryzen 9 9900X(12코어/24스레드) + RTX 5070 Ti** 기준 실측 결과
+**한계 7대 / 권장 5대**다([benchmarks/capacity_report.md](../benchmarks/capacity_report.md), 2026-08-18).
 8대에서 검출 지연 p95가 116ms → 309ms로 무너진다.
-★다른 GPU라면 이 숫자를 그대로 쓰지 말고 `python scripts\capacity_probe.py` 로 재측정할 것.
-★GPU를 키운다고 대수가 늘지 않을 수 있다 — 8대 시점에도 GPU는 메모리 18.8%·util 23%로
-놀고 있었고, 병목은 CPU·추론 직렬화 쪽으로 보인다(원인 미확정).
+
+★**병목은 CPU다** — [E1 실측](../benchmarks/e1_bottleneck_report.md)으로 특정됐다.
+8대 시점에도 GPU는 VRAM 3.2GB·util 16~42%로 **놀고 있다**. 카메라당 **2.1 환산코어**를
+쓰며, 8번째 카메라에서 CPU 증분이 208%→109%로 반토막나며 포화한다.
+- **GPU를 키워도 대수는 늘지 않는다.** 대수를 좌우하는 것은 CPU 코어 수·코어당 성능이다.
+- **영상 디코드는 병목이 아니다**(프레임당 1ms 미만). 해상도를 낮춰도 CPU는 5%만 준다.
+
+★**다른 기계라면 이 숫자를 그대로 쓰지 말고** `python scripts\capacity_probe.py --max-n 8 --hold 180`
+으로 재측정할 것. 구매 전 환산·체크리스트는 [docs/edgebox_purchase_guide.md](../docs/edgebox_purchase_guide.md).
 
 > ⚠️ **CUDA 버전 주의**: RTX 50 시리즈(sm_120)는 **cu126 이하에서 런타임 에러**가 난다.
 > 반드시 cu130 휠을 쓸 것(아래 3단계).
