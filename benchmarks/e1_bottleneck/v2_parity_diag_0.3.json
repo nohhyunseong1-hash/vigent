@@ -1,0 +1,15 @@
+[
+ {
+  "slot": "forklift",
+  "frames": 24,
+  "torch_dets": 0,
+  "onnx_dets": 0,
+  "matched": 0,
+  "unmatched": 0,
+  "mismatch_rate_pct": 0.0,
+  "max_bbox_err": 0.0,
+  "max_conf_err": 0.0,
+  "frames_over_tolerance": 0,
+  "verdict": "PASS"
+ }
+]

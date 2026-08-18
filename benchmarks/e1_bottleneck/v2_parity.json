@@ -1,0 +1,41 @@
+[
+ {
+  "slot": "ppe",
+  "frames": 24,
+  "torch_dets": 135,
+  "onnx_dets": 135,
+  "matched": 135,
+  "unmatched": 0,
+  "mismatch_rate_pct": 0.0,
+  "max_bbox_err": 0.0005,
+  "max_conf_err": 0.011,
+  "frames_over_tolerance": 0,
+  "verdict": "PASS"
+ },
+ {
+  "slot": "fire_smoke",
+  "frames": 24,
+  "torch_dets": 11,
+  "onnx_dets": 12,
+  "matched": 11,
+  "unmatched": 1,
+  "mismatch_rate_pct": 4.35,
+  "max_bbox_err": 0.0019,
+  "max_conf_err": 0.002,
+  "frames_over_tolerance": 0,
+  "verdict": "PASS"
+ },
+ {
+  "slot": "forklift",
+  "frames": 24,
+  "torch_dets": 33,
+  "onnx_dets": 31,
+  "matched": 25,
+  "unmatched": 14,
+  "mismatch_rate_pct": 21.88,
+  "max_bbox_err": 0.0491,
+  "max_conf_err": 0.001,
+  "frames_over_tolerance": 0,
+  "verdict": "FAIL"
+ }
+]

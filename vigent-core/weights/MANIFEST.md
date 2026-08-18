@@ -79,12 +79,41 @@ onnx-cpu` 설정 시 이 파일을 로드한다(`detect.backend: torch`가 기�
 | 정확도 검증 | `benchmarks/results/c2_onnx_cpu_bench.json`(dev 74장, torch와 완전 동일 결과) |
 | 재변환 시 검증 | `benchmarks/c2_onnx_cpu_bench.py --backend onnx_fp32 --onnx-path vigent-core/weights/ppe_rfdetr_v1.onnx`로 dev 74장 재채점해 위 수치와 같은지 확인할 것 |
 
+## [V2] 추가 ONNX export (2026-08-18) — 같은 가중치, 다른 실행기
+
+`ppe_rfdetr_v1.onnx` 와 **같은 절차**로 나머지 슬롯을 변환했다. 가중치 교체가 아니라
+**실행기만** 바꾼 것이다. `detect.backend: onnx-cpu` 일 때만 쓰이고, 기본값(`torch`)에서는
+이 파일들이 전혀 로드되지 않는다.
+
+★**원본 pth SHA256 을 ONNX 메타데이터(`rfdetr_notes.source_pth_sha256`) 안에도 심었다**
+— 파일 하나만 있어도 출처를 추적할 수 있다.
+
+| 슬롯 | 파일명 | 바이트 | SHA256 | 원본 pth | 원본 pth SHA256 | 동일성 검증 |
+|---|---|---|---|---|---|---|
+| **fire_smoke** | `fire_smoke_rfdetr_v1_e17.onnx` | 107,664,664 | `453e6798c22123701ea5898fb63768d81909b371d50332c0833398577f06246f` | `fire_smoke_rfdetr_v1_e17.pth` | `b7425ce450f12cad25cd821f616cd8e3f64d544de51d45bc6e0e6c833be6b4fb` | ✅ **PASS** |
+| **forklift** | `forklift_rfdetr_v1.onnx` | 107,662,591 | `4812da8a62953c1cf27acfda05867209f3fdaaa4c2c67af51adabcd9ab9572b0` | `forklift_rfdetr_v1.pth` | `cd76eb56487bf1aa308a2da428e0348c8f6fbff0187007db77ec577d693373ac` | ❌ **부결** |
+| person(측정 전용) | `person_rfdetr_coco_MEASURE_ONLY.onnx` | 107,846,251 | `74d7116ef4cb27928c9f65086cfde0c73cd5f108d1a9ffb663e93d86545beb96` | COCO 사전학습(rf-detr-nano) | (커스텀 아님) | 미실시 |
+
+- 클래스: fire_smoke = `['smoke','fire']` · forklift = `['forklift']` · person = COCO 80종
+- opset 17 · resolution 384 · 패키지: rfdetr 1.8.0 · onnx 1.22.0 · onnxruntime 1.27.0 · torch 2.12.0+cu130
+- 변환 커맨드: `benchmarks/e1_bottleneck/v2_export.py`(재현 가능). ★`notes=` 로 `class_names` 를
+  반드시 심어야 한다 — 없으면 `rfdetr_adapter.py:82` 가 로드를 거부하고 조용히 torch 로 폴백한다
+  (첫 시도에서 실제로 발생).
+- 검증 결과·판정 근거: `benchmarks/v2_onnx_report.md`
+
+### ★person 은 현재 배선으로 ONNX 가 적용되지 않는다
+
+`rfdetr_adapter.py:147` 이 `Path(weights).with_suffix(".onnx")` 로 경로를 만드는데,
+person 슬롯은 `vision.yaml` 에 `rfdetr_weights.person` 항목이 없다(COCO 사전학습을 그대로
+쓴다). 따라서 `weights` 가 비어 **onnx 경로 자체가 생성되지 않는다.**
+위 `person_..._MEASURE_ONLY.onnx` 는 **측정 목적 전용**이며 서빙 경로에 배선돼 있지 않다.
+
 ## 그 외 vision.yaml 참조 가중치 (이 데스크탑엔 없음 — 확인되는 대로 채울 것)
 
 | 파일명 | 슬롯 | 상태 |
 |---|---|---|
-| `forklift_rfdetr_v1.pth` | forklift(rfdetr) | 이 환경에 없음(`/health` MISSING_FALLBACK 확인) |
-| `fire_smoke_rfdetr_v1_e17.pth` | fire_smoke(rfdetr) | 이 환경에 없음(`/health` MISSING_FALLBACK 확인) |
+| `forklift_rfdetr_v1.pth` | forklift(rfdetr) | ★[2026-08-18 정정] **이 환경에 있음** — 2026-08-17 Release 복원. SHA256 `cd76eb56487bf1aa308a2da428e0348c8f6fbff0187007db77ec577d693373ac`(120,781,691B) |
+| `fire_smoke_rfdetr_v1_e17.pth` | fire_smoke(rfdetr) | ★[2026-08-18 정정] **이 환경에 있음** — 2026-08-17 Release 복원. SHA256 `b7425ce450f12cad25cd821f616cd8e3f64d544de51d45bc6e0e6c833be6b4fb`(120,807,675B) |
 | `ppe_css_v1.pt` | ppe(yolo 폴백, 비활성 backend) | 미확인 |
 | `forklift_boda_ax.pt` | forklift(yolo 폴백) | 미확인 |
 | `fire_smoke_boda.pt` | fire_smoke(yolo 폴백) | 미확인 |
