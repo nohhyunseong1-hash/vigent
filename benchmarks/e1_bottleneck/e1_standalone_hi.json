@@ -1,0 +1,62 @@
+[
+ {
+  "n": 1,
+  "frames": 120,
+  "decode_p50": 0.0,
+  "decode_p95": 0.4,
+  "wait_p50": 0.0,
+  "wait_p95": 0.0,
+  "wait_max": 0.0,
+  "infer_p50": 47.2,
+  "infer_p95": 68.7,
+  "core_max": 66.2,
+  "core_top3": [
+   66.2,
+   61.6,
+   59.0
+  ],
+  "cores_over50": 4,
+  "proc_cpu": 152.0,
+  "throughput_fps": 2.0
+ },
+ {
+  "n": 4,
+  "frames": 480,
+  "decode_p50": 0.0,
+  "decode_p95": 0.9,
+  "wait_p50": 53.2,
+  "wait_p95": 118.4,
+  "wait_max": 167.1,
+  "infer_p50": 46.7,
+  "infer_p95": 64.7,
+  "core_max": 79.7,
+  "core_top3": [
+   79.7,
+   76.3,
+   76.0
+  ],
+  "cores_over50": 7,
+  "proc_cpu": 577.8,
+  "throughput_fps": 8.0
+ },
+ {
+  "n": 7,
+  "frames": 840,
+  "decode_p50": 0.0,
+  "decode_p95": 1.0,
+  "wait_p50": 104.5,
+  "wait_p95": 231.0,
+  "wait_max": 283.8,
+  "infer_p50": 50.4,
+  "infer_p95": 67.8,
+  "core_max": 93.2,
+  "core_top3": [
+   93.2,
+   93.1,
+   90.8
+  ],
+  "cores_over50": 16,
+  "proc_cpu": 1009.0,
+  "throughput_fps": 14.0
+ }
+]

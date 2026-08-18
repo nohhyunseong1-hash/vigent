@@ -1,0 +1,74 @@
+[
+ {
+  "label": "N=1(기준)",
+  "cores": 24,
+  "core_max_avg": 39.9,
+  "core_top3": [
+   39.9,
+   39.4,
+   39.2
+  ],
+  "core_mean": 15.7,
+  "busy_cores_over50": 0,
+  "proc_cpu_mean": 204.9,
+  "lock_wait_p50": null,
+  "lock_wait_p95": null,
+  "lock_wait_max": null,
+  "infer_p50": null,
+  "infer_p95": null,
+  "read_p50": null,
+  "read_p95": null,
+  "total_p95": null,
+  "gpu_mem": 3205,
+  "gpu_util_p95": 25.0,
+  "samples": 0
+ },
+ {
+  "label": "N=4",
+  "cores": 24,
+  "core_max_avg": 67.7,
+  "core_top3": [
+   67.7,
+   67.0,
+   67.0
+  ],
+  "core_mean": 43.7,
+  "busy_cores_over50": 7,
+  "proc_cpu_mean": 841.1,
+  "lock_wait_p50": null,
+  "lock_wait_p95": null,
+  "lock_wait_max": null,
+  "infer_p50": null,
+  "infer_p95": null,
+  "read_p50": null,
+  "read_p95": null,
+  "total_p95": null,
+  "gpu_mem": 3209,
+  "gpu_util_p95": 27.0,
+  "samples": 0
+ },
+ {
+  "label": "N=7",
+  "cores": 24,
+  "core_max_avg": 93.2,
+  "core_top3": [
+   93.2,
+   88.8,
+   88.8
+  ],
+  "core_mean": 70.4,
+  "busy_cores_over50": 22,
+  "proc_cpu_mean": 1463.5,
+  "lock_wait_p50": null,
+  "lock_wait_p95": null,
+  "lock_wait_max": null,
+  "infer_p50": null,
+  "infer_p95": null,
+  "read_p50": null,
+  "read_p95": null,
+  "total_p95": null,
+  "gpu_mem": 3239,
+  "gpu_util_p95": 26.0,
+  "samples": 0
+ }
+]

@@ -1,0 +1,50 @@
+[
+ {
+  "n": 1,
+  "throughput_infps": 20.24,
+  "lat_p50": 48.5,
+  "lat_p95": 62.7,
+  "core_max": 85.6,
+  "core_mean": 35.4,
+  "cores_over80": 2,
+  "proc_cpu": 407.0,
+  "gpu_util_mean": 24.7,
+  "gpu_util_max": 32.0
+ },
+ {
+  "n": 2,
+  "throughput_infps": 22.62,
+  "lat_p50": 88.0,
+  "lat_p95": 107.5,
+  "core_max": 92.2,
+  "core_mean": 46.8,
+  "cores_over80": 5,
+  "proc_cpu": 687.8,
+  "gpu_util_mean": 27.1,
+  "gpu_util_max": 36.0
+ },
+ {
+  "n": 4,
+  "throughput_infps": 21.33,
+  "lat_p50": 190.0,
+  "lat_p95": 217.7,
+  "core_max": 96.8,
+  "core_mean": 71.4,
+  "cores_over80": 9,
+  "proc_cpu": 1254.8,
+  "gpu_util_mean": 23.5,
+  "gpu_util_max": 25.0
+ },
+ {
+  "n": 7,
+  "throughput_infps": 20.98,
+  "lat_p50": 341.7,
+  "lat_p95": 371.2,
+  "core_max": 97.6,
+  "core_mean": 80.8,
+  "cores_over80": 17,
+  "proc_cpu": 1479.5,
+  "gpu_util_mean": 32.0,
+  "gpu_util_max": 37.0
+ }
+]
