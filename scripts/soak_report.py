@@ -64,19 +64,48 @@ def main() -> int:
     unrecovered = 1 if cur else 0          # 끝까지 회복 못 한 구간
     longest_stale_min = (max(stale_runs) * iv / 60) if stale_runs else 0
 
-    # RSS 증가율: 끝점 두 개로 나누면 짧은 구간에서 노이즈가 그대로 시간당으로 증폭된다
-    #   (실제로 8분 구간에서 +14MB 가 +115MB/h 로 나와 오판정했다). 최소 구간을 두고,
-    #   최소소자승 회귀 기울기를 쓴다 — 일시적 스파이크에 덜 흔들린다.
+    # RSS 증가율 — [R4, 2026-08-18] 판정 로직 2건 수정
+    #   ① **감소는 실패가 아니다**: 이전엔 abs(기울기)로 비교해 -163.9MB/h 가 FAIL 로 나왔다.
+    #      메모리가 줄어드는 것은 누수의 반대다. 양의 기울기만 상한과 비교한다.
+    #   ② **계단식 낙차 분리**: 외부 요인(GPU 부하로 인한 Windows 워킹셋 트리밍 등)으로 RSS 가
+    #      한 샘플에 수백MB 급락하면 전체 단일 회귀가 무의미해진다(실측: 구간별 +1.2 ~ -4.9MB/h
+    #      인데 전체로는 -163.9MB/h). 큰 스텝을 경계로 구간을 나눠 구간별 기울기를 내고,
+    #      **판정은 최악(가장 큰 양의 기울기) 구간**으로 한다 — 누수를 놓치지 않기 위해.
     MIN_HOURS_FOR_GROWTH = 2.0
+    STEP_MB = 300.0          # 한 샘플에 이만큼 변하면 외부 요인에 의한 계단으로 본다
+    MIN_SEG_SAMPLES = 10
     rss_pts = [(r["t"] / 3600.0, r["rss_mb"]) for r in rows if r.get("rss_mb")]
     rss = [v for _, v in rss_pts]
+
+    def _slope(pts):
+        n = len(pts)
+        if n < MIN_SEG_SAMPLES:
+            return None
+        mx = sum(x for x, _ in pts) / n
+        my = sum(y for _, y in pts) / n
+        den = sum((x - mx) ** 2 for x, _ in pts)
+        return (sum((x - mx) * (y - my) for x, y in pts) / den) if den else 0.0
+
+    # 계단 경계로 구간 분할
+    segs, cur = [], []
+    for i, pt in enumerate(rss_pts):
+        if i and abs(pt[1] - rss_pts[i - 1][1]) >= STEP_MB:
+            segs.append(cur)
+            cur = []
+        cur.append(pt)
+    segs.append(cur)
+    segs = [sg for sg in segs if len(sg) >= MIN_SEG_SAMPLES]
+    steps = len(segs) - 1 if len(segs) > 1 else 0
+
     growth: float | None = None
-    if len(rss_pts) >= 10 and dur_h >= MIN_HOURS_FOR_GROWTH:
-        n = len(rss_pts)
-        mx = sum(x for x, _ in rss_pts) / n
-        my = sum(y for _, y in rss_pts) / n
-        den = sum((x - mx) ** 2 for x, _ in rss_pts)
-        growth = (sum((x - mx) * (y - my) for x, y in rss_pts) / den) if den else 0.0
+    seg_slopes: list[tuple[float, float, float]] = []      # (기울기, 시작h, 길이h)
+    if rss_pts and dur_h >= MIN_HOURS_FOR_GROWTH:
+        for sg in segs:
+            sl = _slope(sg)
+            if sl is not None:
+                seg_slopes.append((sl, sg[0][0], sg[-1][0] - sg[0][0]))
+        if seg_slopes:
+            growth = max(s for s, _, _ in seg_slopes)      # 최악(가장 큰 양의 기울기) 구간
     gpu = [r["gpu_mb"] for r in rows if r.get("gpu_mb")]
     pend_end = (rows[-1].get("alerts") or {}).get("pending", 0)
     rc_end = max([c.get("rc") or 0 for r in rows for c in (r.get("cams") or {}).values()] or [0])
@@ -92,9 +121,11 @@ def main() -> int:
         (f"degraded 누적 ≤{max_deg:.0f}분", degraded_min <= max_deg, f"{degraded_min:.1f}분"),
         ("자동복구 실패 0", unrecovered == 0,
          f"미회복 {unrecovered} (최장 stale {longest_stale_min:.1f}분)"),
+        # ★감소(음수)는 통과 — 누수의 반대다. 상한과 비교하는 것은 '증가'뿐이다.
         (f"RSS 증가 ≤{max_growth:.0f}MB/h",
-         True if growth is None else abs(growth) <= max_growth,
-         "판정보류(구간 <2h)" if growth is None else f"{growth:+.1f}MB/h"),
+         True if growth is None else growth <= max_growth,
+         "판정보류(구간 <2h)" if growth is None
+         else (f"{growth:+.1f}MB/h" + (f" (최악 구간, 계단 {steps}회 분리)" if steps else ""))),
         ("미전송 경보 0건", int(pend_end or 0) == 0, f"{pend_end}건"),
     ]
     print(f"{'기준':<28} {'결과':<24} 판정")
@@ -109,6 +140,11 @@ def main() -> int:
     print(f"  재연결 누적: {rc_end}회")
     if rss:
         print(f"  RSS: 시작 {rss[0]:.0f} → 끝 {rss[-1]:.0f} MB (최대 {max(rss):.0f})")
+    if steps:
+        print(f"  ※ RSS 계단 낙차 {steps}회 감지(±{STEP_MB:.0f}MB 이상) — 외부 요인 가능성."
+              f" 구간별 기울기로 판정했다:")
+        for sl, st_h, ln in seg_slopes:
+            print(f"     t={st_h:5.1f}h ~ {st_h + ln:5.1f}h ({ln:4.1f}h)  {sl:+7.2f} MB/h")
     if gpu:
         print(f"  GPU: 시작 {gpu[0]} → 끝 {gpu[-1]} MiB (최대 {max(gpu)})")
     if dur_h < 23.5:
