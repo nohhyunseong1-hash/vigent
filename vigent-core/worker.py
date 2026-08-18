@@ -917,6 +917,12 @@ class Worker:
                 else:
                     _rt = time.time()
                     ok, frame = cap.read()
+                    if ok:
+                        # [E1] decode_ms: read() 실소요(측정 전용). **파일 소스에서는 네트워크가
+                        #   없어 순수 디코드 비용에 가깝고**, 스트림 sync 모드에서는 네트워크
+                        #   대기가 섞인다. 아래 read_ms 는 '스트림 신선도 프록시'라 의미가 달라
+                        #   덮어쓰지 않고 별도 필드로 둔다(H1 판정용).
+                        self.state["decode_ms"] = round((time.time() - _rt) * 1000, 1)
                     if is_stream and ok:
                         # read_ms: sync 모드 신선도 프록시. 버퍼가 쌓이면 read 가 즉시 반환(작은 ms=과거 프레임),
                         #   버퍼 최소(BUFFERSIZE=1)면 read 가 다음 프레임을 기다림(간격에 근접=최신 프레임).

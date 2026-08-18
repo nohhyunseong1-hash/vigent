@@ -87,6 +87,7 @@ def camera_status(st: dict[str, Any], thr: dict[str, float] | None = None) -> di
         "lock_wait_ms": st.get("lock_wait_ms"),
         "infer_ms": st.get("infer_ms"),
         "read_ms": st.get("read_ms"),
+        "decode_ms": st.get("decode_ms"),
         "session_generation": st.get("session_generation"),
         "dropped_frames": st.get("dropped_frames"),
         "reconnects": st.get("reconnects"),
