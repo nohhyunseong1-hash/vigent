@@ -1,0 +1,54 @@
+{
+ "verdict": "스핀 낭비 실재",
+ "cores_recovered": 0.78,
+ "rows": [
+  {
+   "rate_hz": 2.0,
+   "calls": 80,
+   "t_start": 1787071001.0360854,
+   "t_end": 1787071041.0375938,
+   "lat_p50": 7.3,
+   "lat_p95": 11.5,
+   "proc_cpu_pct": 82.5,
+   "cores": 0.82,
+   "cpu_per_call_pct_s": 41.2,
+   "arm": "기본값(rtmlib 그대로)"
+  },
+  {
+   "rate_hz": 2.0,
+   "calls": 80,
+   "t_start": 1787071042.284426,
+   "t_end": 1787071082.2882214,
+   "lat_p50": 12.3,
+   "lat_p95": 14.1,
+   "proc_cpu_pct": 9.4,
+   "cores": 0.09,
+   "cpu_per_call_pct_s": 4.7,
+   "arm": "스핀OFF·4스레드"
+  },
+  {
+   "rate_hz": 2.0,
+   "calls": 80,
+   "t_start": 1787071083.529016,
+   "t_end": 1787071123.5380065,
+   "lat_p50": 17.1,
+   "lat_p95": 20.1,
+   "proc_cpu_pct": 8.6,
+   "cores": 0.09,
+   "cpu_per_call_pct_s": 4.3,
+   "arm": "스핀OFF·2스레드"
+  },
+  {
+   "rate_hz": 2.0,
+   "calls": 80,
+   "t_start": 1787071124.7715664,
+   "t_end": 1787071164.781489,
+   "lat_p50": 15.7,
+   "lat_p95": 20.8,
+   "proc_cpu_pct": 4.6,
+   "cores": 0.05,
+   "cpu_per_call_pct_s": 2.3,
+   "arm": "스핀OFF·1스레드"
+  }
+ ]
+}

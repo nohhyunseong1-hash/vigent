@@ -92,6 +92,7 @@ def run(n: int, vids: list[str], guard, slots: list[str], secs: float, fps: floa
     proc = psutil.Process()
     psutil.cpu_percent(percpu=True)
     proc.cpu_percent()
+    _t_begin = time.time()
     for t in ths:
         t.start()
     time.sleep(secs)
@@ -101,7 +102,7 @@ def run(n: int, vids: list[str], guard, slots: list[str], secs: float, fps: floa
     for t in ths:
         t.join(timeout=15)
     allv = [x for r in _lat.values() for x in r]
-    return {"n": n, "frames": len(allv),
+    return {"n": n, "frames": len(allv), "t_start": _t_begin, "t_end": time.time(),
             "lat_p50": pct(allv, .5), "lat_p95": pct(allv, .95),
             "proc_cpu": round(pcpu, 1),
             "core_mean": round(sum(cores) / len(cores), 1),

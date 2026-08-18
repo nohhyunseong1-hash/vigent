@@ -1,0 +1,375 @@
+{"t": 1787069343.3178327, "sys_cpu": 17.1, "hot": [{"pid": 13608, "name": "python.exe", "cpu": 250.4}]}
+{"t": 1787069349.2104151, "sys_cpu": 15.1, "hot": [{"pid": 13608, "name": "python.exe", "cpu": 263.4}]}
+{"t": 1787069355.0864308, "sys_cpu": 19.0, "hot": [{"pid": 13608, "name": "python.exe", "cpu": 248.9}]}
+{"t": 1787069361.0767467, "sys_cpu": 18.6, "hot": [{"pid": 13608, "name": "python.exe", "cpu": 257.0}, {"pid": 5888, "name": "MsMpEng.exe", "cpu": 84.3}]}
+{"t": 1787069367.2455716, "sys_cpu": 20.8, "hot": [{"pid": 13608, "name": "python.exe", "cpu": 265.8}]}
+{"t": 1787069373.730744, "sys_cpu": 31.4, "hot": [{"pid": 34360, "name": "python.exe", "cpu": 383.8}, {"pid": 13608, "name": "python.exe", "cpu": 257.7}]}
+{"t": 1787069380.1910274, "sys_cpu": 54.6, "hot": [{"pid": 34360, "name": "python.exe", "cpu": 889.3}, {"pid": 13608, "name": "python.exe", "cpu": 305.3}]}
+{"t": 1787069386.5172336, "sys_cpu": 52.6, "hot": [{"pid": 34360, "name": "python.exe", "cpu": 841.3}, {"pid": 13608, "name": "python.exe", "cpu": 282.4}]}
+{"t": 1787069392.700921, "sys_cpu": 53.5, "hot": [{"pid": 34360, "name": "python.exe", "cpu": 881.6}, {"pid": 13608, "name": "python.exe", "cpu": 302.8}]}
+{"t": 1787069398.9011936, "sys_cpu": 52.5, "hot": [{"pid": 34360, "name": "python.exe", "cpu": 849.2}, {"pid": 13608, "name": "python.exe", "cpu": 286.8}]}
+{"t": 1787069405.191723, "sys_cpu": 55.1, "hot": [{"pid": 34360, "name": "python.exe", "cpu": 911.6}, {"pid": 13608, "name": "python.exe", "cpu": 289.7}]}
+{"t": 1787069411.3444092, "sys_cpu": 52.0, "hot": [{"pid": 34360, "name": "python.exe", "cpu": 853.6}, {"pid": 13608, "name": "python.exe", "cpu": 250.2}]}
+{"t": 1787069417.308073, "sys_cpu": 48.1, "hot": [{"pid": 34360, "name": "python.exe", "cpu": 719.2}, {"pid": 13608, "name": "python.exe", "cpu": 297.4}]}
+{"t": 1787069423.2089162, "sys_cpu": 45.4, "hot": [{"pid": 34360, "name": "python.exe", "cpu": 667.2}, {"pid": 13608, "name": "python.exe", "cpu": 280.7}]}
+{"t": 1787069429.1795974, "sys_cpu": 44.5, "hot": [{"pid": 34360, "name": "python.exe", "cpu": 656.8}, {"pid": 13608, "name": "python.exe", "cpu": 277.3}]}
+{"t": 1787069435.1612124, "sys_cpu": 42.0, "hot": [{"pid": 34360, "name": "python.exe", "cpu": 663.2}, {"pid": 13608, "name": "python.exe", "cpu": 253.6}]}
+{"t": 1787069441.154429, "sys_cpu": 43.8, "hot": [{"pid": 34360, "name": "python.exe", "cpu": 658.1}, {"pid": 13608, "name": "python.exe", "cpu": 302.9}]}
+{"t": 1787069447.1888962, "sys_cpu": 44.8, "hot": [{"pid": 34360, "name": "python.exe", "cpu": 671.4}, {"pid": 13608, "name": "python.exe", "cpu": 287.0}]}
+{"t": 1787069453.189955, "sys_cpu": 43.8, "hot": [{"pid": 34360, "name": "python.exe", "cpu": 658.1}, {"pid": 13608, "name": "python.exe", "cpu": 294.0}]}
+{"t": 1787069458.9991682, "sys_cpu": 36.0, "hot": [{"pid": 34360, "name": "python.exe", "cpu": 464.0}, {"pid": 13608, "name": "python.exe", "cpu": 297.1}]}
+{"t": 1787069464.8931584, "sys_cpu": 33.8, "hot": [{"pid": 34360, "name": "python.exe", "cpu": 453.0}, {"pid": 13608, "name": "python.exe", "cpu": 264.4}]}
+{"t": 1787069470.7637641, "sys_cpu": 34.0, "hot": [{"pid": 34360, "name": "python.exe", "cpu": 448.0}, {"pid": 13608, "name": "python.exe", "cpu": 279.6}]}
+{"t": 1787069476.4251158, "sys_cpu": 34.0, "hot": [{"pid": 34360, "name": "python.exe", "cpu": 403.0}, {"pid": 13608, "name": "python.exe", "cpu": 308.3}]}
+{"t": 1787069482.232943, "sys_cpu": 33.7, "hot": [{"pid": 34360, "name": "python.exe", "cpu": 440.7}, {"pid": 13608, "name": "python.exe", "cpu": 277.1}]}
+{"t": 1787069488.0829122, "sys_cpu": 33.9, "hot": [{"pid": 34360, "name": "python.exe", "cpu": 447.3}, {"pid": 13608, "name": "python.exe", "cpu": 275.0}]}
+{"t": 1787069494.0836565, "sys_cpu": 34.2, "hot": [{"pid": 34360, "name": "python.exe", "cpu": 430.5}, {"pid": 13608, "name": "python.exe", "cpu": 281.2}]}
+{"t": 1787069500.1083934, "sys_cpu": 42.1, "hot": [{"pid": 34360, "name": "python.exe", "cpu": 632.7}, {"pid": 13608, "name": "python.exe", "cpu": 270.9}]}
+{"t": 1787069506.2154734, "sys_cpu": 43.5, "hot": [{"pid": 34360, "name": "python.exe", "cpu": 664.4}, {"pid": 13608, "name": "python.exe", "cpu": 294.6}]}
+{"t": 1787069512.211347, "sys_cpu": 43.4, "hot": [{"pid": 34360, "name": "python.exe", "cpu": 659.7}, {"pid": 13608, "name": "python.exe", "cpu": 284.1}]}
+{"t": 1787069518.1249804, "sys_cpu": 42.5, "hot": [{"pid": 34360, "name": "python.exe", "cpu": 633.6}, {"pid": 13608, "name": "python.exe", "cpu": 275.8}]}
+{"t": 1787069523.909944, "sys_cpu": 41.7, "hot": [{"pid": 34360, "name": "python.exe", "cpu": 629.1}, {"pid": 13608, "name": "python.exe", "cpu": 284.0}]}
+{"t": 1787069529.8543231, "sys_cpu": 43.2, "hot": [{"pid": 34360, "name": "python.exe", "cpu": 677.7}, {"pid": 13608, "name": "python.exe", "cpu": 273.0}]}
+{"t": 1787069535.6763237, "sys_cpu": 41.9, "hot": [{"pid": 34360, "name": "python.exe", "cpu": 608.9}, {"pid": 13608, "name": "python.exe", "cpu": 298.6}]}
+{"t": 1787069541.514097, "sys_cpu": 35.0, "hot": [{"pid": 34360, "name": "python.exe", "cpu": 467.2}, {"pid": 13608, "name": "python.exe", "cpu": 280.5}]}
+{"t": 1787069547.3399012, "sys_cpu": 36.9, "hot": [{"pid": 34360, "name": "python.exe", "cpu": 492.7}, {"pid": 13608, "name": "python.exe", "cpu": 295.7}]}
+{"t": 1787069553.183046, "sys_cpu": 36.5, "hot": [{"pid": 34360, "name": "python.exe", "cpu": 516.6}, {"pid": 13608, "name": "python.exe", "cpu": 273.0}]}
+{"t": 1787069559.0917528, "sys_cpu": 35.8, "hot": [{"pid": 34360, "name": "python.exe", "cpu": 492.6}, {"pid": 13608, "name": "python.exe", "cpu": 280.4}]}
+{"t": 1787069565.162496, "sys_cpu": 36.9, "hot": [{"pid": 34360, "name": "python.exe", "cpu": 478.5}, {"pid": 13608, "name": "python.exe", "cpu": 288.1}]}
+{"t": 1787069571.9374738, "sys_cpu": 49.1, "hot": [{"pid": 34360, "name": "python.exe", "cpu": 496.1}, {"pid": 13608, "name": "python.exe", "cpu": 279.0}, {"pid": 39968, "name": "taskhostw.exe", "cpu": 85.2}]}
+{"t": 1787069578.1759233, "sys_cpu": 37.1, "hot": [{"pid": 34360, "name": "python.exe", "cpu": 356.8}, {"pid": 13608, "name": "python.exe", "cpu": 284.2}]}
+{"t": 1787069584.7110634, "sys_cpu": 38.1, "hot": [{"pid": 34360, "name": "python.exe", "cpu": 320.4}, {"pid": 13608, "name": "python.exe", "cpu": 291.2}]}
+{"t": 1787069590.995397, "sys_cpu": 32.2, "hot": [{"pid": 34360, "name": "python.exe", "cpu": 323.3}, {"pid": 13608, "name": "python.exe", "cpu": 266.9}]}
+{"t": 1787069597.3920658, "sys_cpu": 36.9, "hot": [{"pid": 34360, "name": "python.exe", "cpu": 306.4}, {"pid": 13608, "name": "python.exe", "cpu": 287.8}]}
+{"t": 1787069603.7818878, "sys_cpu": 37.7, "hot": [{"pid": 34360, "name": "python.exe", "cpu": 341.7}, {"pid": 13608, "name": "python.exe", "cpu": 288.2}]}
+{"t": 1787069609.7474582, "sys_cpu": 36.0, "hot": [{"pid": 34360, "name": "python.exe", "cpu": 324.8}, {"pid": 13608, "name": "python.exe", "cpu": 282.4}, {"pid": 5888, "name": "MsMpEng.exe", "cpu": 88.9}]}
+{"t": 1787069615.8605258, "sys_cpu": 31.6, "hot": [{"pid": 34360, "name": "python.exe", "cpu": 328.8}, {"pid": 13608, "name": "python.exe", "cpu": 299.3}]}
+{"t": 1787069621.8882747, "sys_cpu": 35.3, "hot": [{"pid": 34360, "name": "python.exe", "cpu": 416.1}, {"pid": 13608, "name": "python.exe", "cpu": 266.8}]}
+{"t": 1787069627.9977543, "sys_cpu": 39.0, "hot": [{"pid": 34360, "name": "python.exe", "cpu": 421.9}, {"pid": 13608, "name": "python.exe", "cpu": 286.5}]}
+{"t": 1787069634.2008822, "sys_cpu": 35.1, "hot": [{"pid": 34360, "name": "python.exe", "cpu": 426.8}, {"pid": 13608, "name": "python.exe", "cpu": 264.2}]}
+{"t": 1787069640.2676837, "sys_cpu": 38.5, "hot": [{"pid": 34360, "name": "python.exe", "cpu": 423.7}, {"pid": 13608, "name": "python.exe", "cpu": 309.8}]}
+{"t": 1787069646.6511328, "sys_cpu": 36.7, "hot": [{"pid": 34360, "name": "python.exe", "cpu": 420.0}, {"pid": 13608, "name": "python.exe", "cpu": 279.1}]}
+{"t": 1787069652.690435, "sys_cpu": 36.3, "hot": [{"pid": 34360, "name": "python.exe", "cpu": 449.0}, {"pid": 13608, "name": "python.exe", "cpu": 312.0}]}
+{"t": 1787069658.567521, "sys_cpu": 29.6, "hot": [{"pid": 34360, "name": "python.exe", "cpu": 325.0}, {"pid": 13608, "name": "python.exe", "cpu": 272.7}]}
+{"t": 1787069664.5548012, "sys_cpu": 31.3, "hot": [{"pid": 34360, "name": "python.exe", "cpu": 304.4}, {"pid": 13608, "name": "python.exe", "cpu": 290.2}]}
+{"t": 1787069670.4867554, "sys_cpu": 28.3, "hot": [{"pid": 34360, "name": "python.exe", "cpu": 322.4}, {"pid": 13608, "name": "python.exe", "cpu": 269.8}]}
+{"t": 1787069676.403981, "sys_cpu": 30.2, "hot": [{"pid": 34360, "name": "python.exe", "cpu": 309.5}, {"pid": 13608, "name": "python.exe", "cpu": 278.9}]}
+{"t": 1787069682.386536, "sys_cpu": 29.8, "hot": [{"pid": 34360, "name": "python.exe", "cpu": 310.2}, {"pid": 13608, "name": "python.exe", "cpu": 298.2}]}
+{"t": 1787069688.2851202, "sys_cpu": 29.0, "hot": [{"pid": 34360, "name": "python.exe", "cpu": 304.5}, {"pid": 13608, "name": "python.exe", "cpu": 275.1}]}
+{"t": 1787069694.1576161, "sys_cpu": 29.6, "hot": [{"pid": 34360, "name": "python.exe", "cpu": 300.5}, {"pid": 13608, "name": "python.exe", "cpu": 295.8}]}
+{"t": 1787069700.0489514, "sys_cpu": 24.9, "hot": [{"pid": 13608, "name": "python.exe", "cpu": 267.0}, {"pid": 34360, "name": "python.exe", "cpu": 215.2}]}
+{"t": 1787069705.8124557, "sys_cpu": 24.5, "hot": [{"pid": 13608, "name": "python.exe", "cpu": 279.4}, {"pid": 34360, "name": "python.exe", "cpu": 211.4}]}
+{"t": 1787069711.626688, "sys_cpu": 24.5, "hot": [{"pid": 13608, "name": "python.exe", "cpu": 287.9}, {"pid": 34360, "name": "python.exe", "cpu": 197.0}]}
+{"t": 1787069717.3208954, "sys_cpu": 23.4, "hot": [{"pid": 13608, "name": "python.exe", "cpu": 288.5}, {"pid": 34360, "name": "python.exe", "cpu": 195.3}]}
+{"t": 1787069723.1171212, "sys_cpu": 24.9, "hot": [{"pid": 13608, "name": "python.exe", "cpu": 277.9}, {"pid": 34360, "name": "python.exe", "cpu": 217.8}]}
+{"t": 1787069728.8641322, "sys_cpu": 25.7, "hot": [{"pid": 13608, "name": "python.exe", "cpu": 277.8}, {"pid": 34360, "name": "python.exe", "cpu": 228.8}]}
+{"t": 1787069734.861487, "sys_cpu": 26.3, "hot": [{"pid": 13608, "name": "python.exe", "cpu": 281.1}, {"pid": 34360, "name": "python.exe", "cpu": 196.9}]}
+{"t": 1787069740.88827, "sys_cpu": 30.6, "hot": [{"pid": 13608, "name": "python.exe", "cpu": 274.4}, {"pid": 34360, "name": "python.exe", "cpu": 229.8}, {"pid": 30628, "name": "svchost.exe", "cpu": 125.9}]}
+{"t": 1787069746.883653, "sys_cpu": 30.9, "hot": [{"pid": 13608, "name": "python.exe", "cpu": 273.0}, {"pid": 34360, "name": "python.exe", "cpu": 227.9}, {"pid": 30628, "name": "svchost.exe", "cpu": 127.2}]}
+{"t": 1787069753.099093, "sys_cpu": 31.5, "hot": [{"pid": 13608, "name": "python.exe", "cpu": 281.6}, {"pid": 34360, "name": "python.exe", "cpu": 228.1}, {"pid": 30628, "name": "svchost.exe", "cpu": 107.9}]}
+{"t": 1787069758.9807673, "sys_cpu": 31.3, "hot": [{"pid": 13608, "name": "python.exe", "cpu": 268.8}, {"pid": 34360, "name": "python.exe", "cpu": 228.5}, {"pid": 30628, "name": "svchost.exe", "cpu": 125.6}]}
+{"t": 1787069765.4629364, "sys_cpu": 38.1, "hot": [{"pid": 13608, "name": "python.exe", "cpu": 287.7}, {"pid": 34360, "name": "python.exe", "cpu": 228.9}, {"pid": 30628, "name": "svchost.exe", "cpu": 124.6}, {"pid": 5888, "name": "MsMpEng.exe", "cpu": 82.0}]}
+{"t": 1787069771.479341, "sys_cpu": 31.9, "hot": [{"pid": 13608, "name": "python.exe", "cpu": 286.4}, {"pid": 34360, "name": "python.exe", "cpu": 233.7}, {"pid": 30628, "name": "svchost.exe", "cpu": 123.8}]}
+{"t": 1787069777.1795213, "sys_cpu": 25.9, "hot": [{"pid": 13608, "name": "python.exe", "cpu": 272.0}, {"pid": 34360, "name": "python.exe", "cpu": 202.4}]}
+{"t": 1787069783.0166461, "sys_cpu": 22.7, "hot": [{"pid": 13608, "name": "python.exe", "cpu": 282.6}, {"pid": 34360, "name": "python.exe", "cpu": 169.7}]}
+{"t": 1787069789.395347, "sys_cpu": 29.5, "hot": [{"pid": 13608, "name": "python.exe", "cpu": 277.7}, {"pid": 34360, "name": "python.exe", "cpu": 169.5}]}
+{"t": 1787069795.202713, "sys_cpu": 25.1, "hot": [{"pid": 13608, "name": "python.exe", "cpu": 270.4}, {"pid": 34360, "name": "python.exe", "cpu": 176.7}]}
+{"t": 1787069801.0463598, "sys_cpu": 26.0, "hot": [{"pid": 13608, "name": "python.exe", "cpu": 300.8}, {"pid": 34360, "name": "python.exe", "cpu": 167.9}]}
+{"t": 1787069807.0575657, "sys_cpu": 25.4, "hot": [{"pid": 13608, "name": "python.exe", "cpu": 296.1}, {"pid": 34360, "name": "python.exe", "cpu": 170.8}]}
+{"t": 1787069812.9661965, "sys_cpu": 24.3, "hot": [{"pid": 13608, "name": "python.exe", "cpu": 273.0}, {"pid": 34360, "name": "python.exe", "cpu": 170.8}]}
+{"t": 1787069818.844535, "sys_cpu": 22.2, "hot": [{"pid": 13608, "name": "python.exe", "cpu": 267.8}, {"pid": 34360, "name": "python.exe", "cpu": 130.6}]}
+{"t": 1787069824.915947, "sys_cpu": 24.1, "hot": [{"pid": 13608, "name": "python.exe", "cpu": 291.7}, {"pid": 34360, "name": "python.exe", "cpu": 112.9}]}
+{"t": 1787069830.7168214, "sys_cpu": 25.8, "hot": [{"pid": 13608, "name": "python.exe", "cpu": 287.7}, {"pid": 34360, "name": "python.exe", "cpu": 108.9}]}
+{"t": 1787069837.26361, "sys_cpu": 28.8, "hot": [{"pid": 13608, "name": "python.exe", "cpu": 286.4}, {"pid": 34360, "name": "python.exe", "cpu": 108.1}]}
+{"t": 1787069843.1059008, "sys_cpu": 22.3, "hot": [{"pid": 13608, "name": "python.exe", "cpu": 265.0}, {"pid": 34360, "name": "python.exe", "cpu": 114.8}]}
+{"t": 1787069848.88015, "sys_cpu": 25.1, "hot": [{"pid": 13608, "name": "python.exe", "cpu": 275.9}, {"pid": 34360, "name": "python.exe", "cpu": 119.4}]}
+{"t": 1787069854.8014934, "sys_cpu": 21.1, "hot": [{"pid": 13608, "name": "python.exe", "cpu": 278.8}, {"pid": 34360, "name": "python.exe", "cpu": 100.8}]}
+{"t": 1787069860.5292237, "sys_cpu": 16.8, "hot": [{"pid": 13608, "name": "python.exe", "cpu": 266.5}]}
+{"t": 1787069866.4702597, "sys_cpu": 19.1, "hot": [{"pid": 13608, "name": "python.exe", "cpu": 270.1}]}
+{"t": 1787069872.4160793, "sys_cpu": 22.1, "hot": [{"pid": 13608, "name": "python.exe", "cpu": 282.7}]}
+{"t": 1787069878.5066772, "sys_cpu": 24.4, "hot": [{"pid": 13608, "name": "python.exe", "cpu": 281.5}, {"pid": 5888, "name": "MsMpEng.exe", "cpu": 115.6}]}
+{"t": 1787069884.3691163, "sys_cpu": 23.3, "hot": [{"pid": 13608, "name": "python.exe", "cpu": 280.9}]}
+{"t": 1787069890.3065765, "sys_cpu": 24.7, "hot": [{"pid": 13608, "name": "python.exe", "cpu": 276.6}, {"pid": 34172, "name": "python.exe", "cpu": 218.2}]}
+{"t": 1787069896.412384, "sys_cpu": 31.3, "hot": [{"pid": 34172, "name": "python.exe", "cpu": 370.4}, {"pid": 13608, "name": "python.exe", "cpu": 278.7}]}
+{"t": 1787069902.8277555, "sys_cpu": 32.0, "hot": [{"pid": 34172, "name": "python.exe", "cpu": 384.7}, {"pid": 13608, "name": "python.exe", "cpu": 285.0}]}
+{"t": 1787069909.125511, "sys_cpu": 32.6, "hot": [{"pid": 34172, "name": "python.exe", "cpu": 398.8}, {"pid": 13608, "name": "python.exe", "cpu": 285.3}]}
+{"t": 1787069915.4973805, "sys_cpu": 33.0, "hot": [{"pid": 34172, "name": "python.exe", "cpu": 394.9}, {"pid": 13608, "name": "python.exe", "cpu": 278.9}]}
+{"t": 1787069921.8079116, "sys_cpu": 32.5, "hot": [{"pid": 34172, "name": "python.exe", "cpu": 392.5}, {"pid": 13608, "name": "python.exe", "cpu": 283.2}]}
+{"t": 1787069928.1936476, "sys_cpu": 33.8, "hot": [{"pid": 34172, "name": "python.exe", "cpu": 396.1}, {"pid": 13608, "name": "python.exe", "cpu": 288.5}]}
+{"t": 1787069934.5044556, "sys_cpu": 32.9, "hot": [{"pid": 34172, "name": "python.exe", "cpu": 391.6}, {"pid": 13608, "name": "python.exe", "cpu": 296.0}]}
+{"t": 1787069940.7135684, "sys_cpu": 31.6, "hot": [{"pid": 34172, "name": "python.exe", "cpu": 393.9}, {"pid": 13608, "name": "python.exe", "cpu": 268.3}]}
+{"t": 1787069946.913485, "sys_cpu": 32.0, "hot": [{"pid": 34172, "name": "python.exe", "cpu": 378.7}, {"pid": 13608, "name": "python.exe", "cpu": 285.1}]}
+{"t": 1787069953.0737777, "sys_cpu": 31.5, "hot": [{"pid": 34172, "name": "python.exe", "cpu": 379.6}, {"pid": 13608, "name": "python.exe", "cpu": 282.8}]}
+{"t": 1787069959.2667134, "sys_cpu": 32.5, "hot": [{"pid": 34172, "name": "python.exe", "cpu": 376.1}, {"pid": 13608, "name": "python.exe", "cpu": 303.6}]}
+{"t": 1787069965.3658564, "sys_cpu": 32.6, "hot": [{"pid": 34172, "name": "python.exe", "cpu": 377.8}, {"pid": 13608, "name": "python.exe", "cpu": 281.9}]}
+{"t": 1787069971.4830182, "sys_cpu": 31.6, "hot": [{"pid": 34172, "name": "python.exe", "cpu": 379.6}, {"pid": 13608, "name": "python.exe", "cpu": 277.4}]}
+{"t": 1787069977.6124167, "sys_cpu": 31.2, "hot": [{"pid": 34172, "name": "python.exe", "cpu": 381.6}, {"pid": 13608, "name": "python.exe", "cpu": 285.9}]}
+{"t": 1787069983.545786, "sys_cpu": 28.0, "hot": [{"pid": 34172, "name": "python.exe", "cpu": 320.8}, {"pid": 13608, "name": "python.exe", "cpu": 264.8}]}
+{"t": 1787069989.4703062, "sys_cpu": 26.9, "hot": [{"pid": 34172, "name": "python.exe", "cpu": 282.3}, {"pid": 13608, "name": "python.exe", "cpu": 271.5}]}
+{"t": 1787069995.3166306, "sys_cpu": 26.6, "hot": [{"pid": 13608, "name": "python.exe", "cpu": 284.7}, {"pid": 34172, "name": "python.exe", "cpu": 277.6}]}
+{"t": 1787070001.2003384, "sys_cpu": 27.3, "hot": [{"pid": 34172, "name": "python.exe", "cpu": 283.2}, {"pid": 13608, "name": "python.exe", "cpu": 280.6}]}
+{"t": 1787070007.1039164, "sys_cpu": 27.8, "hot": [{"pid": 13608, "name": "python.exe", "cpu": 281.5}, {"pid": 34172, "name": "python.exe", "cpu": 276.4}]}
+{"t": 1787070012.9587848, "sys_cpu": 26.5, "hot": [{"pid": 34172, "name": "python.exe", "cpu": 278.6}, {"pid": 13608, "name": "python.exe", "cpu": 270.0}]}
+{"t": 1787070018.7909772, "sys_cpu": 27.4, "hot": [{"pid": 13608, "name": "python.exe", "cpu": 285.9}, {"pid": 34172, "name": "python.exe", "cpu": 272.0}]}
+{"t": 1787070024.86477, "sys_cpu": 30.0, "hot": [{"pid": 34172, "name": "python.exe", "cpu": 363.9}, {"pid": 13608, "name": "python.exe", "cpu": 283.1}]}
+{"t": 1787070031.0008752, "sys_cpu": 31.6, "hot": [{"pid": 34172, "name": "python.exe", "cpu": 378.2}, {"pid": 13608, "name": "python.exe", "cpu": 285.9}]}
+{"t": 1787070037.1746094, "sys_cpu": 31.7, "hot": [{"pid": 34172, "name": "python.exe", "cpu": 377.5}, {"pid": 13608, "name": "python.exe", "cpu": 274.1}]}
+{"t": 1787070043.3443766, "sys_cpu": 31.7, "hot": [{"pid": 34172, "name": "python.exe", "cpu": 378.0}, {"pid": 13608, "name": "python.exe", "cpu": 278.2}]}
+{"t": 1787070049.4449472, "sys_cpu": 32.5, "hot": [{"pid": 34172, "name": "python.exe", "cpu": 378.2}, {"pid": 13608, "name": "python.exe", "cpu": 290.8}]}
+{"t": 1787070055.4503162, "sys_cpu": 31.4, "hot": [{"pid": 34172, "name": "python.exe", "cpu": 377.1}, {"pid": 13608, "name": "python.exe", "cpu": 280.8}]}
+{"t": 1787070061.4187484, "sys_cpu": 31.9, "hot": [{"pid": 34172, "name": "python.exe", "cpu": 374.7}, {"pid": 13608, "name": "python.exe", "cpu": 305.3}]}
+{"t": 1787070067.4154358, "sys_cpu": 30.2, "hot": [{"pid": 34172, "name": "python.exe", "cpu": 331.8}, {"pid": 13608, "name": "python.exe", "cpu": 280.0}]}
+{"t": 1787070073.3949885, "sys_cpu": 29.7, "hot": [{"pid": 34172, "name": "python.exe", "cpu": 336.8}, {"pid": 13608, "name": "python.exe", "cpu": 285.7}]}
+{"t": 1787070079.3934715, "sys_cpu": 29.3, "hot": [{"pid": 34172, "name": "python.exe", "cpu": 333.9}, {"pid": 13608, "name": "python.exe", "cpu": 294.5}]}
+{"t": 1787070085.4617918, "sys_cpu": 30.2, "hot": [{"pid": 34172, "name": "python.exe", "cpu": 335.2}, {"pid": 13608, "name": "python.exe", "cpu": 284.2}]}
+{"t": 1787070091.4366798, "sys_cpu": 28.7, "hot": [{"pid": 34172, "name": "python.exe", "cpu": 334.1}, {"pid": 13608, "name": "python.exe", "cpu": 276.5}]}
+{"t": 1787070097.648178, "sys_cpu": 31.9, "hot": [{"pid": 34172, "name": "python.exe", "cpu": 333.3}, {"pid": 13608, "name": "python.exe", "cpu": 284.0}]}
+{"t": 1787070103.9812095, "sys_cpu": 36.2, "hot": [{"pid": 13608, "name": "python.exe", "cpu": 276.2}, {"pid": 34172, "name": "python.exe", "cpu": 261.6}]}
+{"t": 1787070109.99163, "sys_cpu": 30.0, "hot": [{"pid": 13608, "name": "python.exe", "cpu": 306.2}, {"pid": 34172, "name": "python.exe", "cpu": 220.9}]}
+{"t": 1787070115.8182948, "sys_cpu": 26.8, "hot": [{"pid": 13608, "name": "python.exe", "cpu": 270.2}, {"pid": 34172, "name": "python.exe", "cpu": 210.4}]}
+{"t": 1787070121.626327, "sys_cpu": 25.7, "hot": [{"pid": 13608, "name": "python.exe", "cpu": 289.2}, {"pid": 34172, "name": "python.exe", "cpu": 227.7}]}
+{"t": 1787070127.5309782, "sys_cpu": 24.9, "hot": [{"pid": 13608, "name": "python.exe", "cpu": 272.8}, {"pid": 34172, "name": "python.exe", "cpu": 229.4}]}
+{"t": 1787070133.5908105, "sys_cpu": 30.3, "hot": [{"pid": 13608, "name": "python.exe", "cpu": 282.4}, {"pid": 34172, "name": "python.exe", "cpu": 224.5}]}
+{"t": 1787070139.4712996, "sys_cpu": 25.0, "hot": [{"pid": 13608, "name": "python.exe", "cpu": 267.8}, {"pid": 34172, "name": "python.exe", "cpu": 232.9}]}
+{"t": 1787070145.231508, "sys_cpu": 28.9, "hot": [{"pid": 34172, "name": "python.exe", "cpu": 323.1}, {"pid": 13608, "name": "python.exe", "cpu": 290.4}]}
+{"t": 1787070151.1542947, "sys_cpu": 30.2, "hot": [{"pid": 34172, "name": "python.exe", "cpu": 346.4}, {"pid": 13608, "name": "python.exe", "cpu": 285.7}]}
+{"t": 1787070157.0794806, "sys_cpu": 30.3, "hot": [{"pid": 34172, "name": "python.exe", "cpu": 340.6}, {"pid": 13608, "name": "python.exe", "cpu": 287.1}]}
+{"t": 1787070162.9368246, "sys_cpu": 28.9, "hot": [{"pid": 34172, "name": "python.exe", "cpu": 332.2}, {"pid": 13608, "name": "python.exe", "cpu": 278.6}]}
+{"t": 1787070168.8433805, "sys_cpu": 31.5, "hot": [{"pid": 34172, "name": "python.exe", "cpu": 338.9}, {"pid": 13608, "name": "python.exe", "cpu": 295.5}]}
+{"t": 1787070174.7108119, "sys_cpu": 29.9, "hot": [{"pid": 34172, "name": "python.exe", "cpu": 342.3}, {"pid": 13608, "name": "python.exe", "cpu": 274.9}]}
+{"t": 1787070180.5801532, "sys_cpu": 30.0, "hot": [{"pid": 34172, "name": "python.exe", "cpu": 329.2}, {"pid": 13608, "name": "python.exe", "cpu": 286.8}]}
+{"t": 1787070186.406972, "sys_cpu": 25.7, "hot": [{"pid": 13608, "name": "python.exe", "cpu": 277.1}, {"pid": 34172, "name": "python.exe", "cpu": 255.6}]}
+{"t": 1787070192.2633257, "sys_cpu": 26.8, "hot": [{"pid": 13608, "name": "python.exe", "cpu": 271.7}, {"pid": 34172, "name": "python.exe", "cpu": 265.4}]}
+{"t": 1787070198.1370363, "sys_cpu": 25.8, "hot": [{"pid": 13608, "name": "python.exe", "cpu": 288.0}, {"pid": 34172, "name": "python.exe", "cpu": 253.8}]}
+{"t": 1787070204.0805495, "sys_cpu": 27.4, "hot": [{"pid": 13608, "name": "python.exe", "cpu": 307.2}, {"pid": 34172, "name": "python.exe", "cpu": 252.2}]}
+{"t": 1787070210.0859747, "sys_cpu": 27.1, "hot": [{"pid": 13608, "name": "python.exe", "cpu": 277.6}, {"pid": 34172, "name": "python.exe", "cpu": 250.7}]}
+{"t": 1787070215.9564188, "sys_cpu": 26.4, "hot": [{"pid": 13608, "name": "python.exe", "cpu": 277.0}, {"pid": 34172, "name": "python.exe", "cpu": 247.2}]}
+{"t": 1787070221.6808887, "sys_cpu": 24.2, "hot": [{"pid": 13608, "name": "python.exe", "cpu": 281.0}, {"pid": 34172, "name": "python.exe", "cpu": 224.1}]}
+{"t": 1787070227.5169418, "sys_cpu": 22.4, "hot": [{"pid": 13608, "name": "python.exe", "cpu": 264.7}, {"pid": 34172, "name": "python.exe", "cpu": 174.7}]}
+{"t": 1787070233.2557974, "sys_cpu": 24.0, "hot": [{"pid": 13608, "name": "python.exe", "cpu": 309.9}, {"pid": 34172, "name": "python.exe", "cpu": 179.4}]}
+{"t": 1787070239.1662788, "sys_cpu": 27.9, "hot": [{"pid": 13608, "name": "python.exe", "cpu": 283.4}, {"pid": 34172, "name": "python.exe", "cpu": 166.8}, {"pid": 30628, "name": "svchost.exe", "cpu": 107.0}]}
+{"t": 1787070245.044964, "sys_cpu": 27.2, "hot": [{"pid": 13608, "name": "python.exe", "cpu": 285.4}, {"pid": 34172, "name": "python.exe", "cpu": 169.4}, {"pid": 30628, "name": "svchost.exe", "cpu": 124.3}]}
+{"t": 1787070250.746072, "sys_cpu": 28.1, "hot": [{"pid": 13608, "name": "python.exe", "cpu": 284.8}, {"pid": 34172, "name": "python.exe", "cpu": 160.0}, {"pid": 30628, "name": "svchost.exe", "cpu": 125.7}]}
+{"t": 1787070256.6592429, "sys_cpu": 28.4, "hot": [{"pid": 13608, "name": "python.exe", "cpu": 266.8}, {"pid": 34172, "name": "python.exe", "cpu": 174.3}, {"pid": 30628, "name": "svchost.exe", "cpu": 126.2}]}
+{"t": 1787070262.6120074, "sys_cpu": 29.5, "hot": [{"pid": 13608, "name": "python.exe", "cpu": 285.8}, {"pid": 34172, "name": "python.exe", "cpu": 195.0}, {"pid": 30628, "name": "svchost.exe", "cpu": 124.9}]}
+{"t": 1787070268.4870114, "sys_cpu": 29.9, "hot": [{"pid": 13608, "name": "python.exe", "cpu": 296.5}, {"pid": 34172, "name": "python.exe", "cpu": 228.1}, {"pid": 30628, "name": "svchost.exe", "cpu": 126.1}]}
+{"t": 1787070274.2948058, "sys_cpu": 30.7, "hot": [{"pid": 13608, "name": "python.exe", "cpu": 292.0}, {"pid": 34172, "name": "python.exe", "cpu": 224.8}, {"pid": 30628, "name": "svchost.exe", "cpu": 122.1}]}
+{"t": 1787070280.214915, "sys_cpu": 30.9, "hot": [{"pid": 13608, "name": "python.exe", "cpu": 281.2}, {"pid": 34172, "name": "python.exe", "cpu": 234.8}, {"pid": 30628, "name": "svchost.exe", "cpu": 124.4}]}
+{"t": 1787070285.9898047, "sys_cpu": 29.4, "hot": [{"pid": 13608, "name": "python.exe", "cpu": 274.0}, {"pid": 34172, "name": "python.exe", "cpu": 226.8}, {"pid": 30628, "name": "svchost.exe", "cpu": 113.1}]}
+{"t": 1787070291.70436, "sys_cpu": 25.3, "hot": [{"pid": 13608, "name": "python.exe", "cpu": 288.0}, {"pid": 34172, "name": "python.exe", "cpu": 230.6}]}
+{"t": 1787070297.5716038, "sys_cpu": 25.8, "hot": [{"pid": 13608, "name": "python.exe", "cpu": 287.2}, {"pid": 34172, "name": "python.exe", "cpu": 233.2}]}
+{"t": 1787070303.3008974, "sys_cpu": 22.0, "hot": [{"pid": 13608, "name": "python.exe", "cpu": 255.7}, {"pid": 34172, "name": "python.exe", "cpu": 195.9}]}
+{"t": 1787070309.0041127, "sys_cpu": 21.9, "hot": [{"pid": 13608, "name": "python.exe", "cpu": 273.5}, {"pid": 34172, "name": "python.exe", "cpu": 166.1}]}
+{"t": 1787070314.6662405, "sys_cpu": 21.8, "hot": [{"pid": 13608, "name": "python.exe", "cpu": 267.8}, {"pid": 34172, "name": "python.exe", "cpu": 176.3}]}
+{"t": 1787070320.2805414, "sys_cpu": 21.7, "hot": [{"pid": 13608, "name": "python.exe", "cpu": 282.8}, {"pid": 34172, "name": "python.exe", "cpu": 167.2}]}
+{"t": 1787070326.0108995, "sys_cpu": 22.5, "hot": [{"pid": 13608, "name": "python.exe", "cpu": 261.7}, {"pid": 34172, "name": "python.exe", "cpu": 170.3}]}
+{"t": 1787070331.727718, "sys_cpu": 22.4, "hot": [{"pid": 13608, "name": "python.exe", "cpu": 286.5}, {"pid": 34172, "name": "python.exe", "cpu": 167.5}]}
+{"t": 1787070337.4101949, "sys_cpu": 22.5, "hot": [{"pid": 13608, "name": "python.exe", "cpu": 275.6}, {"pid": 34172, "name": "python.exe", "cpu": 176.3}]}
+{"t": 1787070343.1504087, "sys_cpu": 20.9, "hot": [{"pid": 13608, "name": "python.exe", "cpu": 266.3}, {"pid": 34172, "name": "python.exe", "cpu": 144.9}]}
+{"t": 1787070348.7150395, "sys_cpu": 19.1, "hot": [{"pid": 13608, "name": "python.exe", "cpu": 284.7}, {"pid": 34172, "name": "python.exe", "cpu": 101.7}]}
+{"t": 1787070354.4074526, "sys_cpu": 20.4, "hot": [{"pid": 13608, "name": "python.exe", "cpu": 294.5}, {"pid": 34172, "name": "python.exe", "cpu": 123.1}]}
+{"t": 1787070360.1463342, "sys_cpu": 20.2, "hot": [{"pid": 13608, "name": "python.exe", "cpu": 269.8}, {"pid": 34172, "name": "python.exe", "cpu": 120.2}]}
+{"t": 1787070366.1084816, "sys_cpu": 28.5, "hot": [{"pid": 13608, "name": "python.exe", "cpu": 287.6}, {"pid": 34172, "name": "python.exe", "cpu": 109.0}]}
+{"t": 1787070371.7264826, "sys_cpu": 21.6, "hot": [{"pid": 13608, "name": "python.exe", "cpu": 246.7}, {"pid": 34172, "name": "python.exe", "cpu": 105.2}]}
+{"t": 1787070377.4079206, "sys_cpu": 18.8, "hot": [{"pid": 13608, "name": "python.exe", "cpu": 268.8}, {"pid": 34172, "name": "python.exe", "cpu": 116.8}]}
+{"t": 1787070383.170833, "sys_cpu": 19.2, "hot": [{"pid": 13608, "name": "python.exe", "cpu": 283.6}, {"pid": 2568, "name": "python.exe", "cpu": 93.8}]}
+{"t": 1787070389.3460362, "sys_cpu": 24.9, "hot": [{"pid": 13608, "name": "python.exe", "cpu": 273.5}, {"pid": 2568, "name": "python.exe", "cpu": 118.3}]}
+{"t": 1787070395.2135184, "sys_cpu": 21.8, "hot": [{"pid": 13608, "name": "python.exe", "cpu": 262.4}, {"pid": 2568, "name": "python.exe", "cpu": 156.1}]}
+{"t": 1787070400.9384642, "sys_cpu": 18.8, "hot": [{"pid": 13608, "name": "python.exe", "cpu": 253.0}, {"pid": 2568, "name": "python.exe", "cpu": 103.3}]}
+{"t": 1787070406.6268473, "sys_cpu": 21.7, "hot": [{"pid": 13608, "name": "python.exe", "cpu": 269.9}, {"pid": 2568, "name": "python.exe", "cpu": 160.7}]}
+{"t": 1787070412.3216798, "sys_cpu": 22.1, "hot": [{"pid": 13608, "name": "python.exe", "cpu": 277.8}, {"pid": 2568, "name": "python.exe", "cpu": 162.9}]}
+{"t": 1787070418.0991726, "sys_cpu": 22.5, "hot": [{"pid": 13608, "name": "python.exe", "cpu": 260.5}, {"pid": 2568, "name": "python.exe", "cpu": 158.6}]}
+{"t": 1787070423.7887795, "sys_cpu": 20.6, "hot": [{"pid": 13608, "name": "python.exe", "cpu": 260.9}, {"pid": 2568, "name": "python.exe", "cpu": 161.8}]}
+{"t": 1787070429.5741134, "sys_cpu": 20.3, "hot": [{"pid": 13608, "name": "python.exe", "cpu": 242.1}, {"pid": 2568, "name": "python.exe", "cpu": 146.6}]}
+{"t": 1787070435.226895, "sys_cpu": 21.5, "hot": [{"pid": 13608, "name": "python.exe", "cpu": 261.4}, {"pid": 2568, "name": "python.exe", "cpu": 162.1}]}
+{"t": 1787070440.836499, "sys_cpu": 22.3, "hot": [{"pid": 13608, "name": "python.exe", "cpu": 291.9}, {"pid": 2568, "name": "python.exe", "cpu": 166.3}]}
+{"t": 1787070447.7149608, "sys_cpu": 44.8, "hot": [{"pid": 2568, "name": "python.exe", "cpu": 379.4}, {"pid": 13608, "name": "python.exe", "cpu": 266.4}]}
+{"t": 1787070453.8348238, "sys_cpu": 50.7, "hot": [{"pid": 2568, "name": "python.exe", "cpu": 593.5}, {"pid": 13608, "name": "python.exe", "cpu": 269.9}, {"pid": 5888, "name": "MsMpEng.exe", "cpu": 207.9}]}
+{"t": 1787070459.8851473, "sys_cpu": 47.6, "hot": [{"pid": 2568, "name": "python.exe", "cpu": 575.2}, {"pid": 13608, "name": "python.exe", "cpu": 282.3}, {"pid": 5888, "name": "MsMpEng.exe", "cpu": 158.4}]}
+{"t": 1787070465.961336, "sys_cpu": 46.9, "hot": [{"pid": 2568, "name": "python.exe", "cpu": 572.5}, {"pid": 13608, "name": "python.exe", "cpu": 262.7}, {"pid": 5888, "name": "MsMpEng.exe", "cpu": 169.5}]}
+{"t": 1787070472.050746, "sys_cpu": 45.9, "hot": [{"pid": 2568, "name": "python.exe", "cpu": 573.3}, {"pid": 13608, "name": "python.exe", "cpu": 288.0}, {"pid": 5888, "name": "MsMpEng.exe", "cpu": 138.7}]}
+{"t": 1787070478.199427, "sys_cpu": 47.9, "hot": [{"pid": 2568, "name": "python.exe", "cpu": 563.3}, {"pid": 13608, "name": "python.exe", "cpu": 286.9}, {"pid": 5888, "name": "MsMpEng.exe", "cpu": 144.6}]}
+{"t": 1787070484.3296745, "sys_cpu": 47.2, "hot": [{"pid": 2568, "name": "python.exe", "cpu": 583.0}, {"pid": 13608, "name": "python.exe", "cpu": 269.3}, {"pid": 5888, "name": "MsMpEng.exe", "cpu": 132.3}]}
+{"t": 1787070490.3797026, "sys_cpu": 35.7, "hot": [{"pid": 13608, "name": "python.exe", "cpu": 276.5}]}
+{"t": 1787070496.2996266, "sys_cpu": 20.2, "hot": [{"pid": 13608, "name": "python.exe", "cpu": 265.1}, {"pid": 35364, "name": "python.exe", "cpu": 84.7}]}
+{"t": 1787070502.2649107, "sys_cpu": 22.2, "hot": [{"pid": 13608, "name": "python.exe", "cpu": 285.6}, {"pid": 35364, "name": "python.exe", "cpu": 136.0}]}
+{"t": 1787070508.126764, "sys_cpu": 23.1, "hot": [{"pid": 13608, "name": "python.exe", "cpu": 233.1}, {"pid": 35364, "name": "python.exe", "cpu": 148.3}]}
+{"t": 1787070513.8281248, "sys_cpu": 21.9, "hot": [{"pid": 13608, "name": "python.exe", "cpu": 278.2}, {"pid": 35364, "name": "python.exe", "cpu": 95.1}]}
+{"t": 1787070519.7923331, "sys_cpu": 25.4, "hot": [{"pid": 13608, "name": "python.exe", "cpu": 257.9}, {"pid": 35364, "name": "python.exe", "cpu": 113.7}]}
+{"t": 1787070525.431816, "sys_cpu": 20.2, "hot": [{"pid": 13608, "name": "python.exe", "cpu": 255.4}, {"pid": 35364, "name": "python.exe", "cpu": 120.7}]}
+{"t": 1787070531.2087388, "sys_cpu": 22.5, "hot": [{"pid": 13608, "name": "python.exe", "cpu": 276.9}, {"pid": 35364, "name": "python.exe", "cpu": 130.0}]}
+{"t": 1787070536.814035, "sys_cpu": 19.9, "hot": [{"pid": 13608, "name": "python.exe", "cpu": 272.9}, {"pid": 35364, "name": "python.exe", "cpu": 122.0}]}
+{"t": 1787070542.468789, "sys_cpu": 19.1, "hot": [{"pid": 13608, "name": "python.exe", "cpu": 256.7}, {"pid": 35364, "name": "python.exe", "cpu": 118.0}]}
+{"t": 1787070548.2405639, "sys_cpu": 19.5, "hot": [{"pid": 13608, "name": "python.exe", "cpu": 248.8}, {"pid": 35364, "name": "python.exe", "cpu": 112.2}]}
+{"t": 1787070554.090674, "sys_cpu": 23.7, "hot": [{"pid": 13608, "name": "python.exe", "cpu": 278.2}, {"pid": 35364, "name": "python.exe", "cpu": 121.0}]}
+{"t": 1787070559.866222, "sys_cpu": 33.8, "hot": [{"pid": 35364, "name": "python.exe", "cpu": 413.4}, {"pid": 13608, "name": "python.exe", "cpu": 269.0}]}
+{"t": 1787070565.6747534, "sys_cpu": 33.0, "hot": [{"pid": 35364, "name": "python.exe", "cpu": 438.1}, {"pid": 13608, "name": "python.exe", "cpu": 262.4}]}
+{"t": 1787070571.418428, "sys_cpu": 31.0, "hot": [{"pid": 35364, "name": "python.exe", "cpu": 411.1}, {"pid": 13608, "name": "python.exe", "cpu": 238.0}]}
+{"t": 1787070577.13109, "sys_cpu": 33.6, "hot": [{"pid": 35364, "name": "python.exe", "cpu": 452.1}, {"pid": 13608, "name": "python.exe", "cpu": 264.5}]}
+{"t": 1787070583.0144603, "sys_cpu": 34.8, "hot": [{"pid": 35364, "name": "python.exe", "cpu": 430.6}, {"pid": 13608, "name": "python.exe", "cpu": 256.2}]}
+{"t": 1787070588.7999585, "sys_cpu": 33.3, "hot": [{"pid": 35364, "name": "python.exe", "cpu": 412.4}, {"pid": 13608, "name": "python.exe", "cpu": 253.8}]}
+{"t": 1787070594.553216, "sys_cpu": 34.0, "hot": [{"pid": 35364, "name": "python.exe", "cpu": 451.1}, {"pid": 13608, "name": "python.exe", "cpu": 273.2}]}
+{"t": 1787070600.4904332, "sys_cpu": 32.2, "hot": [{"pid": 35364, "name": "python.exe", "cpu": 400.3}, {"pid": 13608, "name": "python.exe", "cpu": 252.6}]}
+{"t": 1787070606.3698878, "sys_cpu": 19.3, "hot": [{"pid": 13608, "name": "python.exe", "cpu": 268.1}]}
+{"t": 1787070612.2553458, "sys_cpu": 20.0, "hot": [{"pid": 13608, "name": "python.exe", "cpu": 294.7}, {"pid": 41544, "name": "MsMpEng.exe", "cpu": 88.9}]}
+{"t": 1787070618.0772967, "sys_cpu": 21.1, "hot": [{"pid": 13608, "name": "python.exe", "cpu": 275.3}, {"pid": 41544, "name": "MsMpEng.exe", "cpu": 88.2}]}
+{"t": 1787070623.9959638, "sys_cpu": 22.4, "hot": [{"pid": 13608, "name": "python.exe", "cpu": 323.0}, {"pid": 47392, "name": "python.exe", "cpu": 92.6}]}
+{"t": 1787070629.7738035, "sys_cpu": 19.9, "hot": [{"pid": 13608, "name": "python.exe", "cpu": 245.7}, {"pid": 47392, "name": "python.exe", "cpu": 150.3}]}
+{"t": 1787070635.4037554, "sys_cpu": 17.4, "hot": [{"pid": 13608, "name": "python.exe", "cpu": 255.0}]}
+{"t": 1787070641.0427775, "sys_cpu": 17.5, "hot": [{"pid": 13608, "name": "python.exe", "cpu": 263.3}, {"pid": 47392, "name": "python.exe", "cpu": 80.6}]}
+{"t": 1787070646.7173052, "sys_cpu": 18.6, "hot": [{"pid": 13608, "name": "python.exe", "cpu": 260.3}, {"pid": 47392, "name": "python.exe", "cpu": 89.6}]}
+{"t": 1787070652.3503885, "sys_cpu": 18.3, "hot": [{"pid": 13608, "name": "python.exe", "cpu": 286.5}]}
+{"t": 1787070657.9806395, "sys_cpu": 19.0, "hot": [{"pid": 13608, "name": "python.exe", "cpu": 271.3}, {"pid": 47392, "name": "python.exe", "cpu": 89.2}]}
+{"t": 1787070663.7211108, "sys_cpu": 18.6, "hot": [{"pid": 13608, "name": "python.exe", "cpu": 269.9}, {"pid": 47392, "name": "python.exe", "cpu": 86.4}]}
+{"t": 1787070669.301336, "sys_cpu": 18.4, "hot": [{"pid": 13608, "name": "python.exe", "cpu": 284.4}]}
+{"t": 1787070674.9308057, "sys_cpu": 18.5, "hot": [{"pid": 13608, "name": "python.exe", "cpu": 282.1}, {"pid": 47392, "name": "python.exe", "cpu": 83.6}]}
+{"t": 1787070680.606012, "sys_cpu": 22.5, "hot": [{"pid": 13608, "name": "python.exe", "cpu": 256.9}, {"pid": 47392, "name": "python.exe", "cpu": 180.2}]}
+{"t": 1787070686.2289562, "sys_cpu": 26.0, "hot": [{"pid": 47392, "name": "python.exe", "cpu": 276.9}, {"pid": 13608, "name": "python.exe", "cpu": 274.2}]}
+{"t": 1787070691.992931, "sys_cpu": 27.6, "hot": [{"pid": 47392, "name": "python.exe", "cpu": 306.8}, {"pid": 13608, "name": "python.exe", "cpu": 256.9}]}
+{"t": 1787070697.683664, "sys_cpu": 27.6, "hot": [{"pid": 47392, "name": "python.exe", "cpu": 305.2}, {"pid": 13608, "name": "python.exe", "cpu": 272.9}]}
+{"t": 1787070703.330286, "sys_cpu": 25.7, "hot": [{"pid": 47392, "name": "python.exe", "cpu": 277.6}, {"pid": 13608, "name": "python.exe", "cpu": 239.7}]}
+{"t": 1787070709.0208654, "sys_cpu": 27.6, "hot": [{"pid": 47392, "name": "python.exe", "cpu": 307.7}, {"pid": 13608, "name": "python.exe", "cpu": 263.7}]}
+{"t": 1787070714.7272024, "sys_cpu": 27.8, "hot": [{"pid": 47392, "name": "python.exe", "cpu": 304.7}, {"pid": 13608, "name": "python.exe", "cpu": 248.1}]}
+{"t": 1787070720.3996575, "sys_cpu": 24.8, "hot": [{"pid": 47392, "name": "python.exe", "cpu": 260.9}, {"pid": 13608, "name": "python.exe", "cpu": 248.9}]}
+{"t": 1787070725.9889014, "sys_cpu": 22.0, "hot": [{"pid": 13608, "name": "python.exe", "cpu": 252.3}]}
+{"t": 1787070731.597857, "sys_cpu": 15.8, "hot": [{"pid": 13608, "name": "python.exe", "cpu": 259.5}]}
+{"t": 1787070737.1834836, "sys_cpu": 15.9, "hot": [{"pid": 13608, "name": "python.exe", "cpu": 284.5}]}
+{"t": 1787070742.8659968, "sys_cpu": 16.2, "hot": [{"pid": 13608, "name": "python.exe", "cpu": 298.9}]}
+{"t": 1787070748.4813156, "sys_cpu": 13.9, "hot": [{"pid": 13608, "name": "python.exe", "cpu": 259.0}]}
+{"t": 1787070754.1050498, "sys_cpu": 15.2, "hot": [{"pid": 13608, "name": "python.exe", "cpu": 263.2}]}
+{"t": 1787070759.6931956, "sys_cpu": 15.7, "hot": [{"pid": 13608, "name": "python.exe", "cpu": 267.5}]}
+{"t": 1787070765.2961195, "sys_cpu": 14.4, "hot": [{"pid": 13608, "name": "python.exe", "cpu": 276.6}]}
+{"t": 1787070770.9138973, "sys_cpu": 16.3, "hot": [{"pid": 13608, "name": "python.exe", "cpu": 282.5}]}
+{"t": 1787070776.5079172, "sys_cpu": 16.0, "hot": [{"pid": 13608, "name": "python.exe", "cpu": 284.9}]}
+{"t": 1787070782.286071, "sys_cpu": 15.8, "hot": [{"pid": 13608, "name": "python.exe", "cpu": 255.5}]}
+{"t": 1787070787.8751945, "sys_cpu": 16.0, "hot": [{"pid": 13608, "name": "python.exe", "cpu": 284.0}]}
+{"t": 1787070793.7434404, "sys_cpu": 16.7, "hot": [{"pid": 13608, "name": "python.exe", "cpu": 256.2}]}
+{"t": 1787070799.4024363, "sys_cpu": 14.6, "hot": [{"pid": 13608, "name": "python.exe", "cpu": 263.3}]}
+{"t": 1787070804.9998217, "sys_cpu": 14.9, "hot": [{"pid": 13608, "name": "python.exe", "cpu": 276.3}]}
+{"t": 1787070810.6384752, "sys_cpu": 14.3, "hot": [{"pid": 13608, "name": "python.exe", "cpu": 274.4}]}
+{"t": 1787070816.2425528, "sys_cpu": 14.8, "hot": [{"pid": 13608, "name": "python.exe", "cpu": 271.1}]}
+{"t": 1787070821.8505933, "sys_cpu": 15.7, "hot": [{"pid": 13608, "name": "python.exe", "cpu": 267.7}]}
+{"t": 1787070827.4971309, "sys_cpu": 15.2, "hot": [{"pid": 13608, "name": "python.exe", "cpu": 270.1}]}
+{"t": 1787070833.0703177, "sys_cpu": 16.9, "hot": [{"pid": 13608, "name": "python.exe", "cpu": 287.4}]}
+{"t": 1787070838.6499374, "sys_cpu": 14.8, "hot": [{"pid": 13608, "name": "python.exe", "cpu": 268.0}]}
+{"t": 1787070844.2404907, "sys_cpu": 15.3, "hot": [{"pid": 13608, "name": "python.exe", "cpu": 275.9}]}
+{"t": 1787070849.8738217, "sys_cpu": 15.5, "hot": [{"pid": 13608, "name": "python.exe", "cpu": 263.6}]}
+{"t": 1787070855.508839, "sys_cpu": 15.1, "hot": [{"pid": 13608, "name": "python.exe", "cpu": 272.2}]}
+{"t": 1787070861.1513937, "sys_cpu": 16.4, "hot": [{"pid": 13608, "name": "python.exe", "cpu": 302.2}]}
+{"t": 1787070866.7810328, "sys_cpu": 14.8, "hot": [{"pid": 13608, "name": "python.exe", "cpu": 259.9}]}
+{"t": 1787070872.3589358, "sys_cpu": 15.5, "hot": [{"pid": 13608, "name": "python.exe", "cpu": 270.4}]}
+{"t": 1787070877.9784262, "sys_cpu": 14.7, "hot": [{"pid": 13608, "name": "python.exe", "cpu": 282.8}]}
+{"t": 1787070883.5414054, "sys_cpu": 14.8, "hot": [{"pid": 13608, "name": "python.exe", "cpu": 273.3}]}
+{"t": 1787070889.1164653, "sys_cpu": 15.0, "hot": [{"pid": 13608, "name": "python.exe", "cpu": 263.1}]}
+{"t": 1787070894.691186, "sys_cpu": 15.9, "hot": [{"pid": 13608, "name": "python.exe", "cpu": 274.0}]}
+{"t": 1787070900.4062881, "sys_cpu": 16.2, "hot": [{"pid": 13608, "name": "python.exe", "cpu": 271.5}]}
+{"t": 1787070905.9983318, "sys_cpu": 15.5, "hot": [{"pid": 13608, "name": "python.exe", "cpu": 275.0}]}
+{"t": 1787070911.5952332, "sys_cpu": 16.5, "hot": [{"pid": 13608, "name": "python.exe", "cpu": 281.4}]}
+{"t": 1787070917.1914077, "sys_cpu": 15.2, "hot": [{"pid": 13608, "name": "python.exe", "cpu": 283.5}]}
+{"t": 1787070922.8038507, "sys_cpu": 15.1, "hot": [{"pid": 13608, "name": "python.exe", "cpu": 277.5}]}
+{"t": 1787070928.3983867, "sys_cpu": 14.6, "hot": [{"pid": 13608, "name": "python.exe", "cpu": 260.3}]}
+{"t": 1787070933.9973366, "sys_cpu": 15.1, "hot": [{"pid": 13608, "name": "python.exe", "cpu": 268.9}]}
+{"t": 1787070939.5762727, "sys_cpu": 15.0, "hot": [{"pid": 13608, "name": "python.exe", "cpu": 278.7}]}
+{"t": 1787070945.141745, "sys_cpu": 14.3, "hot": [{"pid": 13608, "name": "python.exe", "cpu": 262.5}]}
+{"t": 1787070950.7873027, "sys_cpu": 15.8, "hot": [{"pid": 13608, "name": "python.exe", "cpu": 279.5}]}
+{"t": 1787070956.3333607, "sys_cpu": 15.7, "hot": [{"pid": 13608, "name": "python.exe", "cpu": 284.0}]}
+{"t": 1787070961.8855221, "sys_cpu": 15.7, "hot": [{"pid": 13608, "name": "python.exe", "cpu": 282.8}]}
+{"t": 1787070967.7848992, "sys_cpu": 16.8, "hot": [{"pid": 13608, "name": "python.exe", "cpu": 243.8}]}
+{"t": 1787070973.3655596, "sys_cpu": 16.1, "hot": [{"pid": 13608, "name": "python.exe", "cpu": 254.9}]}
+{"t": 1787070979.0473902, "sys_cpu": 14.0, "hot": [{"pid": 13608, "name": "python.exe", "cpu": 262.7}]}
+{"t": 1787070984.6121325, "sys_cpu": 15.8, "hot": [{"pid": 13608, "name": "python.exe", "cpu": 258.3}]}
+{"t": 1787070990.2378545, "sys_cpu": 15.1, "hot": [{"pid": 13608, "name": "python.exe", "cpu": 261.2}]}
+{"t": 1787070995.9179454, "sys_cpu": 15.1, "hot": [{"pid": 13608, "name": "python.exe", "cpu": 266.5}]}
+{"t": 1787071001.595623, "sys_cpu": 16.6, "hot": [{"pid": 13608, "name": "python.exe", "cpu": 250.5}, {"pid": 29252, "name": "python.exe", "cpu": 158.3}]}
+{"t": 1787071007.1982818, "sys_cpu": 17.7, "hot": [{"pid": 13608, "name": "python.exe", "cpu": 265.0}]}
+{"t": 1787071012.8642914, "sys_cpu": 18.5, "hot": [{"pid": 13608, "name": "python.exe", "cpu": 273.3}, {"pid": 29252, "name": "python.exe", "cpu": 81.2}]}
+{"t": 1787071018.4980328, "sys_cpu": 19.6, "hot": [{"pid": 13608, "name": "python.exe", "cpu": 270.4}, {"pid": 29252, "name": "python.exe", "cpu": 92.5}]}
+{"t": 1787071024.1199026, "sys_cpu": 19.9, "hot": [{"pid": 13608, "name": "python.exe", "cpu": 272.6}, {"pid": 29252, "name": "python.exe", "cpu": 105.6}]}
+{"t": 1787071029.7652588, "sys_cpu": 19.2, "hot": [{"pid": 13608, "name": "python.exe", "cpu": 276.5}]}
+{"t": 1787071035.3862913, "sys_cpu": 18.2, "hot": [{"pid": 13608, "name": "python.exe", "cpu": 274.7}]}
+{"t": 1787071041.1722412, "sys_cpu": 18.0, "hot": [{"pid": 13608, "name": "python.exe", "cpu": 255.4}, {"pid": 29252, "name": "python.exe", "cpu": 83.5}]}
+{"t": 1787071046.7609036, "sys_cpu": 16.5, "hot": [{"pid": 13608, "name": "python.exe", "cpu": 290.2}]}
+{"t": 1787071052.3654249, "sys_cpu": 14.8, "hot": [{"pid": 13608, "name": "python.exe", "cpu": 272.5}]}
+{"t": 1787071057.9981015, "sys_cpu": 16.1, "hot": [{"pid": 13608, "name": "python.exe", "cpu": 276.9}]}
+{"t": 1787071063.6664622, "sys_cpu": 15.7, "hot": [{"pid": 13608, "name": "python.exe", "cpu": 258.5}]}
+{"t": 1787071069.2705839, "sys_cpu": 15.7, "hot": [{"pid": 13608, "name": "python.exe", "cpu": 287.7}]}
+{"t": 1787071074.8611462, "sys_cpu": 15.9, "hot": [{"pid": 13608, "name": "python.exe", "cpu": 275.6}]}
+{"t": 1787071080.5505714, "sys_cpu": 15.6, "hot": [{"pid": 13608, "name": "python.exe", "cpu": 262.1}]}
+{"t": 1787071086.2482316, "sys_cpu": 16.0, "hot": [{"pid": 13608, "name": "python.exe", "cpu": 270.9}]}
+{"t": 1787071091.855131, "sys_cpu": 17.1, "hot": [{"pid": 13608, "name": "python.exe", "cpu": 291.1}]}
+{"t": 1787071097.45325, "sys_cpu": 16.1, "hot": [{"pid": 13608, "name": "python.exe", "cpu": 281.0}]}
+{"t": 1787071103.0645611, "sys_cpu": 15.2, "hot": [{"pid": 13608, "name": "python.exe", "cpu": 263.4}]}
+{"t": 1787071108.6733508, "sys_cpu": 16.5, "hot": [{"pid": 13608, "name": "python.exe", "cpu": 295.3}]}
+{"t": 1787071114.2441664, "sys_cpu": 16.1, "hot": [{"pid": 13608, "name": "python.exe", "cpu": 281.8}]}
+{"t": 1787071119.8143191, "sys_cpu": 14.7, "hot": [{"pid": 13608, "name": "python.exe", "cpu": 280.4}]}
+{"t": 1787071125.4719684, "sys_cpu": 15.6, "hot": [{"pid": 13608, "name": "python.exe", "cpu": 263.2}]}
+{"t": 1787071131.06053, "sys_cpu": 15.4, "hot": [{"pid": 13608, "name": "python.exe", "cpu": 273.2}]}
+{"t": 1787071136.7062912, "sys_cpu": 15.0, "hot": [{"pid": 13608, "name": "python.exe", "cpu": 281.0}]}
+{"t": 1787071142.2737086, "sys_cpu": 16.6, "hot": [{"pid": 13608, "name": "python.exe", "cpu": 299.7}]}
+{"t": 1787071147.8566906, "sys_cpu": 14.4, "hot": [{"pid": 13608, "name": "python.exe", "cpu": 254.9}]}
+{"t": 1787071153.4736035, "sys_cpu": 14.7, "hot": [{"pid": 13608, "name": "python.exe", "cpu": 267.2}]}
+{"t": 1787071159.1680436, "sys_cpu": 14.8, "hot": [{"pid": 13608, "name": "python.exe", "cpu": 265.1}]}
+{"t": 1787071164.7994933, "sys_cpu": 15.9, "hot": [{"pid": 13608, "name": "python.exe", "cpu": 294.4}]}
+{"t": 1787071170.4197814, "sys_cpu": 15.6, "hot": [{"pid": 13608, "name": "python.exe", "cpu": 269.1}]}
+{"t": 1787071175.9949102, "sys_cpu": 14.6, "hot": [{"pid": 13608, "name": "python.exe", "cpu": 279.9}]}
+{"t": 1787071181.560115, "sys_cpu": 15.7, "hot": [{"pid": 13608, "name": "python.exe", "cpu": 281.2}]}
+{"t": 1787071187.1393723, "sys_cpu": 15.5, "hot": [{"pid": 13608, "name": "python.exe", "cpu": 280.4}]}
+{"t": 1787071192.7221766, "sys_cpu": 15.2, "hot": [{"pid": 13608, "name": "python.exe", "cpu": 270.2}]}
+{"t": 1787071198.3825543, "sys_cpu": 15.6, "hot": [{"pid": 13608, "name": "python.exe", "cpu": 282.4}]}
+{"t": 1787071203.949483, "sys_cpu": 15.5, "hot": [{"pid": 13608, "name": "python.exe", "cpu": 268.4}]}
+{"t": 1787071209.5819423, "sys_cpu": 15.0, "hot": [{"pid": 13608, "name": "python.exe", "cpu": 277.9}]}
+{"t": 1787071215.4059289, "sys_cpu": 17.4, "hot": [{"pid": 13608, "name": "python.exe", "cpu": 267.6}]}
+{"t": 1787071221.078911, "sys_cpu": 15.8, "hot": [{"pid": 13608, "name": "python.exe", "cpu": 254.2}]}
+{"t": 1787071226.6617708, "sys_cpu": 15.4, "hot": [{"pid": 13608, "name": "python.exe", "cpu": 265.6}]}
+{"t": 1787071232.2471447, "sys_cpu": 14.6, "hot": [{"pid": 13608, "name": "python.exe", "cpu": 266.9}]}
+{"t": 1787071237.9054856, "sys_cpu": 15.0, "hot": [{"pid": 13608, "name": "python.exe", "cpu": 274.2}]}
+{"t": 1787071243.5467224, "sys_cpu": 16.3, "hot": [{"pid": 13608, "name": "python.exe", "cpu": 284.7}]}
+{"t": 1787071249.1076624, "sys_cpu": 14.2, "hot": [{"pid": 13608, "name": "python.exe", "cpu": 262.3}]}
+{"t": 1787071254.7167616, "sys_cpu": 15.3, "hot": [{"pid": 13608, "name": "python.exe", "cpu": 265.9}]}
+{"t": 1787071260.308216, "sys_cpu": 15.1, "hot": [{"pid": 13608, "name": "python.exe", "cpu": 273.9}]}
+{"t": 1787071265.9734495, "sys_cpu": 16.2, "hot": [{"pid": 13608, "name": "python.exe", "cpu": 280.0}]}
+{"t": 1787071271.5543878, "sys_cpu": 15.9, "hot": [{"pid": 13608, "name": "python.exe", "cpu": 270.5}]}
+{"t": 1787071277.0989823, "sys_cpu": 15.4, "hot": [{"pid": 13608, "name": "python.exe", "cpu": 284.0}]}
+{"t": 1787071282.7236018, "sys_cpu": 15.0, "hot": [{"pid": 13608, "name": "python.exe", "cpu": 264.2}]}
+{"t": 1787071288.3561125, "sys_cpu": 15.6, "hot": [{"pid": 13608, "name": "python.exe", "cpu": 266.5}]}
+{"t": 1787071293.9301093, "sys_cpu": 15.8, "hot": [{"pid": 13608, "name": "python.exe", "cpu": 272.0}]}
+{"t": 1787071299.501098, "sys_cpu": 14.6, "hot": [{"pid": 13608, "name": "python.exe", "cpu": 264.4}]}
+{"t": 1787071305.117486, "sys_cpu": 15.9, "hot": [{"pid": 13608, "name": "python.exe", "cpu": 265.4}]}
+{"t": 1787071310.74053, "sys_cpu": 14.9, "hot": [{"pid": 13608, "name": "python.exe", "cpu": 268.8}]}
+{"t": 1787071316.4076416, "sys_cpu": 15.0, "hot": [{"pid": 13608, "name": "python.exe", "cpu": 273.3}]}
+{"t": 1787071321.978144, "sys_cpu": 15.6, "hot": [{"pid": 13608, "name": "python.exe", "cpu": 270.8}]}
+{"t": 1787071327.5364895, "sys_cpu": 14.2, "hot": [{"pid": 13608, "name": "python.exe", "cpu": 261.9}]}
+{"t": 1787071333.079213, "sys_cpu": 16.1, "hot": [{"pid": 13608, "name": "python.exe", "cpu": 277.2}]}
+{"t": 1787071338.6997955, "sys_cpu": 14.9, "hot": [{"pid": 13608, "name": "python.exe", "cpu": 276.0}]}
+{"t": 1787071344.2725961, "sys_cpu": 15.0, "hot": [{"pid": 13608, "name": "python.exe", "cpu": 269.4}]}
+{"t": 1787071349.836249, "sys_cpu": 14.3, "hot": [{"pid": 13608, "name": "python.exe", "cpu": 271.0}]}
+{"t": 1787071355.4039688, "sys_cpu": 14.4, "hot": [{"pid": 13608, "name": "python.exe", "cpu": 274.9}]}
+{"t": 1787071361.009807, "sys_cpu": 15.1, "hot": [{"pid": 13608, "name": "python.exe", "cpu": 277.4}]}
+{"t": 1787071366.581902, "sys_cpu": 14.8, "hot": [{"pid": 13608, "name": "python.exe", "cpu": 270.3}]}
+{"t": 1787071372.1561124, "sys_cpu": 14.3, "hot": [{"pid": 13608, "name": "python.exe", "cpu": 254.5}]}
+{"t": 1787071377.7111244, "sys_cpu": 14.7, "hot": [{"pid": 13608, "name": "python.exe", "cpu": 255.8}]}
+{"t": 1787071383.3532853, "sys_cpu": 16.1, "hot": [{"pid": 13608, "name": "python.exe", "cpu": 276.8}]}
+{"t": 1787071388.996672, "sys_cpu": 15.2, "hot": [{"pid": 13608, "name": "python.exe", "cpu": 255.7}]}
+{"t": 1787071394.5634732, "sys_cpu": 16.4, "hot": [{"pid": 13608, "name": "python.exe", "cpu": 289.5}]}
+{"t": 1787071400.1284556, "sys_cpu": 15.2, "hot": [{"pid": 13608, "name": "python.exe", "cpu": 279.8}]}
+{"t": 1787071405.7351007, "sys_cpu": 15.4, "hot": [{"pid": 13608, "name": "python.exe", "cpu": 275.2}]}
+{"t": 1787071411.3487644, "sys_cpu": 14.4, "hot": [{"pid": 13608, "name": "python.exe", "cpu": 256.8}]}
+{"t": 1787071416.9710877, "sys_cpu": 15.9, "hot": [{"pid": 13608, "name": "python.exe", "cpu": 275.3}]}
+{"t": 1787071422.5421805, "sys_cpu": 14.7, "hot": [{"pid": 13608, "name": "python.exe", "cpu": 276.4}]}
+{"t": 1787071428.1019597, "sys_cpu": 15.0, "hot": [{"pid": 13608, "name": "python.exe", "cpu": 269.9}]}
+{"t": 1787071433.6745918, "sys_cpu": 14.4, "hot": [{"pid": 13608, "name": "python.exe", "cpu": 258.7}]}
+{"t": 1787071439.258228, "sys_cpu": 15.6, "hot": [{"pid": 13608, "name": "python.exe", "cpu": 273.3}]}
+{"t": 1787071444.8124607, "sys_cpu": 15.0, "hot": [{"pid": 13608, "name": "python.exe", "cpu": 268.0}]}
+{"t": 1787071450.3963218, "sys_cpu": 14.3, "hot": [{"pid": 13608, "name": "python.exe", "cpu": 271.8}]}
+{"t": 1787071455.998532, "sys_cpu": 14.6, "hot": [{"pid": 13608, "name": "python.exe", "cpu": 273.8}]}
+{"t": 1787071461.6107738, "sys_cpu": 16.3, "hot": [{"pid": 13608, "name": "python.exe", "cpu": 295.6}]}
+{"t": 1787071467.2111728, "sys_cpu": 14.9, "hot": [{"pid": 13608, "name": "python.exe", "cpu": 259.0}]}
+{"t": 1787071472.777153, "sys_cpu": 15.0, "hot": [{"pid": 13608, "name": "python.exe", "cpu": 273.3}]}
+{"t": 1787071478.3403656, "sys_cpu": 16.0, "hot": [{"pid": 13608, "name": "python.exe", "cpu": 286.2}]}
+{"t": 1787071483.9061987, "sys_cpu": 13.7, "hot": [{"pid": 13608, "name": "python.exe", "cpu": 260.2}]}
+{"t": 1787071489.4320798, "sys_cpu": 14.2, "hot": [{"pid": 13608, "name": "python.exe", "cpu": 242.7}]}
+{"t": 1787071494.9993007, "sys_cpu": 14.4, "hot": [{"pid": 13608, "name": "python.exe", "cpu": 250.8}]}
+{"t": 1787071500.5831654, "sys_cpu": 15.0, "hot": [{"pid": 13608, "name": "python.exe", "cpu": 279.4}]}
+{"t": 1787071506.2034295, "sys_cpu": 16.3, "hot": [{"pid": 13608, "name": "python.exe", "cpu": 270.3}]}
+{"t": 1787071511.8706536, "sys_cpu": 15.3, "hot": [{"pid": 13608, "name": "python.exe", "cpu": 274.5}]}
+{"t": 1787071517.45408, "sys_cpu": 14.6, "hot": [{"pid": 13608, "name": "python.exe", "cpu": 251.1}]}

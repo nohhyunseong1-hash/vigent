@@ -1,0 +1,39 @@
+{
+ "config": "ppf",
+ "fps": 1.0,
+ "slots": [
+  "person",
+  "ppe",
+  "fire_smoke"
+ ],
+ "n_slots": 3,
+ "vram_idle_mib": null,
+ "vram_loaded_mib": null,
+ "steps": [
+  {
+   "n": 1,
+   "frames": 45,
+   "t_start": 1787070633.3069263,
+   "t_end": 1787070678.3257518,
+   "lat_p50": 80.5,
+   "lat_p95": 86.5,
+   "proc_cpu": 82.4,
+   "core_mean": 18.3,
+   "vram_mib": null
+  },
+  {
+   "n": 4,
+   "frames": 180,
+   "t_start": 1787070678.3790374,
+   "t_end": 1787070723.42685,
+   "lat_p50": 102.7,
+   "lat_p95": 170.8,
+   "proc_cpu": 294.7,
+   "core_mean": 26.7,
+   "vram_mib": null
+  }
+ ],
+ "cpu_per_camera_pct": 70.8,
+ "cores_per_camera_detect": 0.71,
+ "cores_per_camera_total_est": 1.36
+}
