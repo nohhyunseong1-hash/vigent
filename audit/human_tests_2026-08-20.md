@@ -98,3 +98,20 @@ PC 에서 LAN IP 로 직접 요청: `HTTP 403 · 27바이트 · {"detail":"forbi
 | 실물 릴레이 연결(P3) | ⏸ 실물 릴레이 조달 시 |
 | retention 첫 삭제 주기 승인 | ⏸ 약 17일 후 도래분 |
 | 학원 방문(G 시리즈) | ⏸ 질문지 답변·일정 확정 대기 |
+
+### 라이브 반영·재검증 (00:40, 사람 실행 + Claude 검증)
+
+관리자 PowerShell 로 NSSM env 갱신(아래) + `Restart-Service VIGENT`:
+
+```powershell
+& $nssm set VIGENT AppEnvironmentExtra "VIGENT_REQUIRE_TOKEN=1" "VIGENT_CAPTURE_MODE=thread" "VIGENT_HOST=0.0.0.0" "VIGENT_RESTART_CMD=sc.exe stop VIGENT & sc.exe start VIGENT"
+```
+
+| 검증 | 결과 |
+|---|---|
+| 재시작 | ✅ 새 PID 28920 (00:40:33) |
+| LAN 경로(192.168.0.5:8010/health) | ✅ 예열 중 **503+본문**(정직한 준비중 응답) → 예열 후 **HTTP 200 · 3,566바이트 JSON** · healthy/ready · 실카 ok 72.2ms |
+| 403 | **소멸** — 결함 해소 확정 |
+
+→ 폰(사파리)에서 `http://192.168.0.5:8010/health` 재확인 시 JSON 텍스트가 표시돼야 정상.
+사람 가독 페이지는 백로그 B-status.
