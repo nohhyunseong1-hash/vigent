@@ -123,5 +123,7 @@
   }
  ],
  "release_tag": "weights-v1",
- "release_repo": "nohhyunseong1-hash/vigent"
+ "release_repo": "nohhyunseong1-hash/vigent",
+ "verified_at": "2026-08-19",
+ "verified_note": "전 10종 로컬 SHA256·크기 재검증 일치(fetch_weights --all 후 독립 재계산). ★Release weights-v1 에 10종 전부 업로드 완료 — 맥 없이도 어느 PC 든 fetch_weights.py 로 전체 복원 가능(Release 백업 완비)."
 }

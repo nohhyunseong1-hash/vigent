@@ -114,13 +114,17 @@ person 슬롯은 `vision.yaml` 에 `rfdetr_weights.person` 항목이 없다(COCO
 |---|---|---|
 | `forklift_rfdetr_v1.pth` | forklift(rfdetr) | ★[2026-08-18 정정] **이 환경에 있음** — 2026-08-17 Release 복원. SHA256 `cd76eb56487bf1aa308a2da428e0348c8f6fbff0187007db77ec577d693373ac`(120,781,691B) |
 | `fire_smoke_rfdetr_v1_e17.pth` | fire_smoke(rfdetr) | ★[2026-08-18 정정] **이 환경에 있음** — 2026-08-17 Release 복원. SHA256 `b7425ce450f12cad25cd821f616cd8e3f64d544de51d45bc6e0e6c833be6b4fb`(120,807,675B) |
-| `ppe_css_v1.pt` | ppe(yolo 폴백, 비활성 backend) | 미확인 |
-| `forklift_boda_ax.pt` | forklift(yolo 폴백) | 미확인 |
-| `fire_smoke_boda.pt` | fire_smoke(yolo 폴백) | 미확인 |
+| `ppe_css_v1.pt` | ppe(yolo 폴백, 비활성 backend) | ★[2026-08-19] 검증 완료 — SHA `17a968ab…` 일치 |
+| `forklift_boda_ax.pt` | forklift(yolo 폴백) | ★[2026-08-19] **검증 완료** — Release weights-v1 에서 조달, SHA256 `30579655ea0f…`(6,274,161B) 매니페스트 일치 |
+| `fire_smoke_boda.pt` | fire_smoke(yolo 폴백) | ★[2026-08-19] 검증 완료 — SHA `95ecffe9…` 일치 |
 | `yolo11m.pt` / `yolo11s.pt` | person(fallback) | 이 환경에 있음(`/health` 확인됨, SHA256 미기록 — 필요시 추가) |
 | `yolov8n-pose.pt` | pose(레거시 이름, 실제 백엔드 RTMPose) | 미확인 |
 
 ## Release 전달 자산 (Mac→데스크탑 이관, git 미추적 → GitHub Releases)
+
+> ★[2026-08-19] **Release 백업 완비** — `weights-v1` 에 매니페스트 10종 전부 업로드됐고,
+> 이 데스크탑에서 `fetch_weights.py --all` 로 내려받아 **10/10 SHA256·크기 일치**를
+> 재검증했다(독립 재계산). 맥 포맷 후에도 어느 PC 든 Release 만으로 전체 복원 가능하다.
 
 자체학습 RF-DETR 가중치는 git에 올리지 않고 **Release `weights-v1`** 자산으로 전달한다.
 데스크탑에서 `gh release download weights-v1 --pattern <파일> --dir weights/`(또는 브라우저 다운로드)로 받고,
