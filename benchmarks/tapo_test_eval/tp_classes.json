@@ -1,0 +1,72 @@
+{
+ "tp1": {
+  "person": {
+   "n": 253,
+   "mean_conf": 0.827
+  },
+  "NO-Safety-Vest": {
+   "n": 148,
+   "mean_conf": 0.854
+  },
+  "NO-Hardhat": {
+   "n": 140,
+   "mean_conf": 0.802
+  },
+  "NO-Mask": {
+   "n": 121,
+   "mean_conf": 0.724
+  }
+ },
+ "tp2": {
+  "person": {
+   "n": 236,
+   "mean_conf": 0.814
+  },
+  "NO-Safety-Vest": {
+   "n": 130,
+   "mean_conf": 0.78
+  },
+  "NO-Hardhat": {
+   "n": 97,
+   "mean_conf": 0.787
+  },
+  "NO-Mask": {
+   "n": 74,
+   "mean_conf": 0.631
+  },
+  "Mask": {
+   "n": 3,
+   "mean_conf": 0.485
+  }
+ },
+ "tp3": {
+  "person": {
+   "n": 344,
+   "mean_conf": 0.895
+  },
+  "NO-Hardhat": {
+   "n": 331,
+   "mean_conf": 0.805
+  },
+  "NO-Safety-Vest": {
+   "n": 299,
+   "mean_conf": 0.816
+  },
+  "NO-Mask": {
+   "n": 264,
+   "mean_conf": 0.662
+  },
+  "Mask": {
+   "n": 6,
+   "mean_conf": 0.425
+  },
+  "knife": {
+   "n": 1,
+   "mean_conf": 0.292
+  },
+  "Hardhat": {
+   "n": 1,
+   "mean_conf": 0.403
+  }
+ }
+}
