@@ -46,6 +46,12 @@ Test-NetConnection <카메라IP> -Port 554
 
 ## N-2. 저장 폴더 암호화(BitLocker 또는 EFS) **필수**
 
+> ★**Windows Pro 이상 필수 — Home 은 EFS·BitLocker 둘 다 불가**(2026-08-19 실측:
+> 개발 PC(Windows 11 Home)에서 `cipher /e` 가 전 파일 "지원되지 않는 요청입니다"로 0개
+> 암호화. Home 에디션은 EFS 미지원이며 BitLocker 관리 기능도 없다 — 장치 암호화(Device
+> Encryption)는 별개 기능으로 요건 충족 여부를 별도 확인해야 한다). **현장 장비 OS 는
+> 반드시 Pro 이상으로 조달할 것** — `docs/edgebox_purchase_guide.md` OS 요건 연동.
+
 - [ ] 개인영상정보 저장 폴더를 **BitLocker**(볼륨 단위, 권장) 또는 **EFS**(폴더 단위)로 보호
 - [ ] 적용 후 `/health` 의 `privacy.storage_encrypted` 가 `true` 인지 확인
 
@@ -74,9 +80,11 @@ cipher /c D:\vigent_original\data\evidence   # 각 파일 앞 'E' 표시 확인
 > EFS 는 **복구 인증서를 반드시 백업**할 것(`certmgr.msc` → 개인 → 인증서 → 내보내기).
 > 인증서를 잃으면 암호화된 파일을 영구히 열 수 없다.
 
-**현재 상태(2026-08-17 실측)**: 이 개발 PC 는 **미적용**이다
-(`storage_encrypted: false`, EFS 미적용, BitLocker 는 관리자 권한이 없어 `unknown`).
-현장 배포 전 반드시 적용할 것.
+**현재 상태(2026-08-19 확정)**: 이 개발 PC 는 **적용 불가**다(Windows 11 Home —
+위 실측). `storage_encrypted: false` 는 사실을 정직하게 반영하는 상태이므로 유지한다.
+★잔여 위험: `data\evidence` 에 실제 개인영상 프레임 **11,633개**가 비암호화로 쌓여 있다
+— **개발 PC Pro 업그레이드 또는 증거 데이터 현장 이관 시점에 재검토(사람 결정)**.
+현장 배포 장비(Pro 이상)에서는 반드시 적용·검증할 것.
 
 > ※ 앱 레벨 파일 암호화(Fernet 등)는 만들지 않았다 — 폴더/볼륨 암호화로 처리하고, 앱은
 > **검사해서 드러내는 역할만** 한다. 법적 충분성 판단은 이 문서가 하지 않는다(법무 검토 대상).

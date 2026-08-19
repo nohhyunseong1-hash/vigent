@@ -13,7 +13,7 @@
 
 | 항목 | 요구 | 이 문서 작성 시점의 검증 환경 |
 |---|---|---|
-| OS | Windows 10/11 (64bit) | Windows 11 Home 10.0.26200 |
+| OS | **Windows 10/11 Pro 이상**(64bit) ★현장 필수 | Windows 11 **Home** 10.0.26200 — ⚠개발 PC 가 Home 이라 **저장 암호화(N-2)는 이 PC 에서 검증 불가**(EFS·BitLocker 미지원, 2026-08-19 실측). 현장 장비(Pro)에서 검증할 것 |
 | Python | **3.11.x** | 3.11.9 |
 | GPU | NVIDIA(선택이나 강력 권장) | RTX 5070 Ti, 드라이버 610.74 |
 | CUDA | torch 휠과 맞는 버전 | cu130 (torch 2.12.0+cu130) |
