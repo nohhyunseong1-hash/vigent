@@ -122,6 +122,12 @@ $restartCmd = 'sc.exe stop ' + $ServiceName + ' & sc.exe start ' + $ServiceName
 $envLines = @(
   "VIGENT_REQUIRE_TOKEN=1",
   "VIGENT_CAPTURE_MODE=thread",
+  # ★[2026-08-20 정합 수정] uvicorn 은 --host 0.0.0.0(LAN 바인드)로 띄우면서 이 변수를
+  #   안 넣으면 앱이 "루프백 바인드"로 오인해 Host 허용목록을 루프백만으로 걸어 —
+  #   LAN 접속(폰 /health 점검 등)이 전부 403 "forbidden host" 가 된다(재부팅 시험에서
+  #   실측 발견). 바인드 주소와 앱 인식을 반드시 일치시킨다. LAN 노출 라우트는
+  #   VIGENT_REQUIRE_TOKEN=1 + Bearer 로 방어(설계 원안 그대로, /health 는 면제).
+  "VIGENT_HOST=0.0.0.0",
   "VIGENT_RESTART_CMD=$restartCmd"
 ) -join "`r`n"
 & $nssmPath set $ServiceName AppEnvironmentExtra $envLines

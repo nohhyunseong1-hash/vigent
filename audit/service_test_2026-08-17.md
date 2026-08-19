@@ -11,7 +11,7 @@
 | 2 | 기동 후 정상화 | ✅ **성공** | 등록 직후 HTTP 503(예열) → 약 30초 후 `HTTP 200 status=healthy phase=ready test=ok(f0.1/d0.5)` |
 | 3 | 방화벽 개방 | ✅ 완료 | `New-NetFirewallRule "VIGENT 8010"` (TCP 8010, Private 프로파일) |
 | 4 | 강제 kill → 자동 재기동 | ✅ **완료(2026-08-20)** | 관리자 세션에서 실측 — 재바인드 총 10.0s(AppRestartDelay 5s 포함) · healthy +28.8s · 카메라 자동 복귀. [`human_tests_2026-08-20.md`](human_tests_2026-08-20.md) T2 |
-| 5 | 재부팅 → 로그인 전 `/health` | ⏸ **대기** | 사용자가 별도 시점에 수행 예정 |
+| 5 | 재부팅 → 로그인 전 `/health` | ✅ **완료(2026-08-20)** | 부팅 +284s 자동 기동 · healthy · 실카 복귀. 폰 LAN 접속 403 은 VIGENT_HOST 미설정 결함으로 판명·수정([`human_tests_2026-08-20.md`](human_tests_2026-08-20.md) T3-결과) |
 
 **B1 현재 상태: 서비스 등록·healthy 확인 완료, 재부팅 시험 대기.**
 
