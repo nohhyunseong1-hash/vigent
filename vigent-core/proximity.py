@@ -19,6 +19,44 @@ VEHICLE_REF_M = {**_DEFAULT_REF, **(tuning.section("proximity").get("vehicle_ref
 DEFAULT_RADIUS_M = float(tuning.val("proximity", "radius_m", 3.0))
 
 
+def driver_containment() -> float:
+    """[G5] 운전자 판정 포함률 임계 — person 박스가 장비 박스에 이 비율 이상 포함되면 '탑승'.
+
+    근거(학원 유사 영상 320프레임 실측, benchmarks/forklift_duel_2026-08-19.md G5 절):
+    포함률 분포가 완전 이봉이다 — 보행자 0.0 vs 탑승 운전자 1.0, 중간(0.2~0.6)은 2프레임뿐.
+    0.65 는 운전자를 확실히 제외하면서, 하차 시 박스가 분리되기 시작하면 **즉시** 보행자로
+    복귀시킨다(하차 직후가 협착 최고 위험 — 제외가 과하면 안 된다). 1.0 초과로 설정하면
+    사실상 비활성(구 동작 복원 = 롤백 경로).
+    """
+    return float(tuning.val("proximity", "driver_containment", 0.65))
+
+
+def _containment(p: list[float], f: list[float]) -> float:
+    """person 박스가 장비 박스에 포함된 비율 = 교집합 면적 / person 면적 (0~1)."""
+    ix = max(0.0, min(p[2], f[2]) - max(p[0], f[0]))
+    iy = max(0.0, min(p[3], f[3]) - max(p[1], f[1]))
+    pa = max(1e-9, (p[2] - p[0]) * (p[3] - p[1]))
+    return ix * iy / pa
+
+
+def onboard_vehicle(pbox: list[float], detections: list[dict]) -> bool:
+    """[G5] 이 person 이 어느 장비에든 '탑승' 상태인가 — zone_intrusion 등 외부 판정 공유용.
+
+    detections 전체에서 장비 클래스 박스를 뽑아 포함률을 검사한다. 장비 검출이 없으면 False
+    (제외 없음 — 기존 동작). 판정은 프레임 단위라 하차로 박스가 분리되면 그 즉시 False."""
+    thr = driver_containment()
+    if thr > 1.0:
+        return False
+    for d in detections:
+        cls = str(d.get("label") or d.get("class") or "").lower()
+        if cls not in VEHICLE_REF_M:
+            continue
+        vb = d.get("bbox", [0, 0, 0, 0])
+        if len(vb) == 4 and _containment(pbox, vb) >= thr:
+            return True
+    return False
+
+
 def _gap(a: list[float], b: list[float], aspect_hw: float = 1.0) -> float:
     """두 박스([x1,y1,x2,y2])의 최단 거리(겹치면 0). 입력 단위 그대로 반환.
     ⚠ bbox는 x=폭(w)·y=높이(h)로 각각 정규화되어 x·y 스케일이 다르다(감사 E-1).
@@ -52,10 +90,16 @@ def detect(detections, radius_m: float = DEFAULT_RADIUS_M,
         elif cls == "person":
             persons.append(bb)
     out = []
+    thr = driver_containment()
     for vcls, vbox in vehicles:
         vw = max(1e-4, vbox[2] - vbox[0])        # 장비 가로폭(정규화)
         m_per_unit = VEHICLE_REF_M[vcls] / vw    # 단위(정규화)당 미터
         for pbox in persons:
+            # [G5] 운전자 제외: 이 장비 박스에 크게 포함된 person = 탑승자 → 이 장비와의
+            #   쌍만 제외한다(다른 장비와의 근접은 유지 — 보수적). 실측 근거는
+            #   driver_containment() docstring. 하차로 박스가 분리되면 즉시 다시 센다.
+            if thr <= 1.0 and _containment(pbox, vbox) >= thr:
+                continue
             dist_m = _gap(vbox, pbox, ar) * m_per_unit
             if dist_m <= radius_m:
                 out.append({"vehicle": vcls, "distance_m": round(dist_m, 1), "person_bbox": pbox})

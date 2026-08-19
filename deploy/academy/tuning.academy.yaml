@@ -4,6 +4,8 @@
 
 proximity:                  # 협착(작업반경) 감지
   radius_m: 3.0             # 위험반경(m) — 사람이 이 거리 안에 들어오면 경보
+  driver_containment: 0.65  # ★[학원 필수] 운전자 제외 — 없으면 탑승 운전자(실측 89.6% person
+    # 검출)로 근접·구역 경보가 상시 오발화한다. 상세 config/tuning.yaml 동일 키 주석.
   vehicle_ref_m:            # 장비 실제 가로폭(m) — 거리 추정 기준자(장비 모델 맞춰 조정)
     forklift: 2.5
     truck: 6.0

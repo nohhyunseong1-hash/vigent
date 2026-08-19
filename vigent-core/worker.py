@@ -146,6 +146,11 @@ def _derive(out: dict, zone: list, aspect_hw: float | None = None,
         for d in out.get("detections", []):
             if str(d.get("label", "")).lower() != "person":
                 continue
+            # [G5] 장비 탑승자(운전자)는 침입으로 세지 않는다 — 실습 코스를 구역으로 지정하면
+            #   운전자가 상시 침입이 되는 문제(학원 실측 89.6% 검출). proximity 와 같은
+            #   포함률 판정 공유. 하차로 박스가 분리되면 즉시 다시 센다.
+            if proximity.onboard_vehicle(d.get("bbox", [0, 0, 0, 0]), out.get("detections", [])):
+                continue
             # 판정 기준점: 기본 foot(박스 하단 중앙 = 지면 접점). config zone.reference 로 center 선택 가능
             #   — 직하방 카메라는 박스 하단이 발이 아닐 수 있다(docs/camera_requirements.md).
             px, py = zone_debounce.ref_point(d.get("bbox", [0, 0, 0, 0]))
