@@ -1,0 +1,1 @@
+{"frames": 71, "true_region_hits": 4, "true_recall_pct": 5.6, "true_labels": {"truck": 2, "car": 2}, "true_conf_max": 0.376, "true_conf_p50": 0.37, "false_region_hits": 0, "false_labels": {}}

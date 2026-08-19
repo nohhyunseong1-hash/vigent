@@ -1,0 +1,1 @@
+{"video": "KakaoTalk_20260807_000632301.mp4", "frames": 71, "true_region": {"n": 2, "recall_frames_pct": 2.8, "conf_max": 0.003, "conf_p50": 0.003}, "false_region": {"n": 133, "per_frame": 1.87, "conf_max": 0.003}}
