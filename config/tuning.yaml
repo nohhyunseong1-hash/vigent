@@ -142,8 +142,10 @@ zone:                       # [B6] 위험구역 침입 판정 디바운스 (guar
     # 직하방·고각 카메라는 박스 하단이 발이 아니라 어깨·머리 쪽이라 center 가 나을 수 있다
     # (docs/camera_requirements.md 설치각 조항). 현장에서 오탐 양상 보고 선택할 것.
 
-onnxruntime:                # [Q9] ORT 세션 옵션 — ★기본 off(켜야만 적용, 규칙6)
-  tune_sessions: false      # true 면 스핀 비활성 + intra_op 스레드 제한을 적용한다.
+onnxruntime:                # [Q9/Q10] ORT 세션 옵션 — ★기본 on(2026-08-19 실측 검증 후 전환)
+  tune_sessions: true       # 스핀 비활성 + intra_op 스레드 제한. false 로 바꾸면 즉시 롤백(재기동 필요).
+    # [Q10 전환 근거] 실서비스 짝지은 비교: 카메라당 CPU 2.10 → 1.55코어(-26%),
+    # 실카메라 검출 p95 162.9 → 85.8ms(개선). 한계 대수 8.0 → 10.9대(공식).
     # 근거(실측 benchmarks/v1_slot_config_report.md §5-2): ORT 는 SessionOptions 를 안 주면
     # intra_op 스레드 = 코어 수 + 스핀(busy-wait) 켜짐이 기본이다. pose(RTMPose)는 실연산이
     # 호출당 7.3ms 뿐인데 CPU 를 0.82코어 태웠고, 옵션만 바꾸니 0.09코어(-89%)가 됐다.

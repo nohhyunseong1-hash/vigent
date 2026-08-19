@@ -5,9 +5,10 @@
 pose(RTMPose) 는 실연산이 호출당 7.3ms 뿐인데 **CPU 를 0.82코어** 태웠다. 세션 옵션만
 바꿔 재측정하니 **0.09코어(−89%)** 로 떨어지고 지연은 7.3 → 12.3ms 만 늘었다.
 
-★규칙6(저하 금지) 준수: **기본 off** 다. `config/tuning.yaml` 의
-`onnxruntime.tune_sessions: true`(또는 환경변수 `VIGENT_ORT_TUNE=1`)일 때만 적용된다.
-끄면 현행 동작과 100% 동일하다.
+★[Q10, 2026-08-19] **기본 on** — 도입 시엔 규칙6에 따라 기본 off 였으나, 실서비스
+짝지은 비교(카메라당 CPU 2.10→1.55코어 · 실카 검출 p95 162.9→85.8ms, 부작용 없음)로
+검증한 뒤 기본값을 전환했다. `config/tuning.yaml` `onnxruntime.tune_sessions: false`
+(또는 환경변수 `VIGENT_ORT_TUNE=0`)로 끄면 구 동작과 100% 동일하다(즉시 롤백 경로).
 
 두 가지 적용 경로:
   1) `session_options()` — 세션을 우리가 직접 만드는 곳(detectors/rfdetr_adapter.py)에서
@@ -26,8 +27,13 @@ _LOG = vlog.get("vigent.ort_tune")
 
 
 def enabled() -> bool:
-    """기본 False — 켜야만 적용된다(규칙6)."""
-    return bool(tuning.val("onnxruntime", "tune_sessions", False, env="VIGENT_ORT_TUNE"))
+    """[Q10, 2026-08-19] 기본 True — 서비스 실측으로 검증 후 기본 on 으로 전환했다.
+
+    근거: 실서비스 짝지은 비교(N=1/4/7, 같은 날·같은 조건)에서 카메라당 CPU
+    2.10 → 1.55코어(회복 0.55코어/카메라), 실카메라 검출 p95 162.9 → 85.8ms 로
+    부작용 없음(오히려 개선). 상세: benchmarks/e1_bottleneck_report.md.
+    끄려면 config/tuning.yaml `onnxruntime.tune_sessions: false`(즉시 롤백 경로)."""
+    return bool(tuning.val("onnxruntime", "tune_sessions", True, env="VIGENT_ORT_TUNE"))
 
 
 def intra_threads() -> int:

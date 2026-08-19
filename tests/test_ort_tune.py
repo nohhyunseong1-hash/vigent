@@ -27,18 +27,29 @@ class _FakeBody:
         self.one_stage = False
 
 
-class TestDefaultOff(unittest.TestCase):
-    """★가장 중요한 계약: 설정을 안 켜면 아무것도 바뀌지 않는다."""
+class TestDefaults(unittest.TestCase):
+    """[Q10] 계약 갱신: **기본 on**(실측 검증 후 전환). config 로 끌 수 있어야 한다(롤백 경로)."""
 
-    def test_disabled_by_default(self):
+    def test_enabled_by_default(self):
+        """설정이 없으면 켜져 있다 — 2026-08-19 서비스 실측(2.10→1.55코어)으로 검증된 기본값."""
         with mock.patch.object(ort_tune.tuning, "val", side_effect=lambda s, k, d, env=None: d):
+            self.assertTrue(ort_tune.enabled())
+
+    def test_config_can_disable(self):
+        """★롤백 경로: tune_sessions: false 면 완전히 꺼진다(구 동작 복원)."""
+        cfg = {"tune_sessions": False}
+        with mock.patch.object(ort_tune.tuning, "val",
+                               side_effect=lambda s, k, d, env=None: cfg.get(k, d)):
             self.assertFalse(ort_tune.enabled())
             self.assertIsNone(ort_tune.session_options())
 
     def test_retune_is_noop_when_disabled(self):
+        """꺼져 있으면 세션을 절대 건드리지 않는다(규칙6)."""
         body = _FakeBody()
         before = (body.det_model.session, body.pose_model.session)
-        with mock.patch.object(ort_tune.tuning, "val", side_effect=lambda s, k, d, env=None: d):
+        cfg = {"tune_sessions": False}
+        with mock.patch.object(ort_tune.tuning, "val",
+                               side_effect=lambda s, k, d, env=None: cfg.get(k, d)):
             n = ort_tune.retune(body)
         self.assertEqual(n, 0, "비활성인데 세션을 건드렸다")
         self.assertIs(body.det_model.session, before[0])

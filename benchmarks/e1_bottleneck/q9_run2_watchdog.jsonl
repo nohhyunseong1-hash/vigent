@@ -1,0 +1,536 @@
+{"t": 1787102035.3022985, "sys_cpu": 18.4, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 171.4}, {"pid": 3908, "name": "OneDrive.exe", "cpu": 118.1}]}
+{"t": 1787102040.6640882, "sys_cpu": 20.2, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 187.2}, {"pid": 3908, "name": "OneDrive.exe", "cpu": 110.9}]}
+{"t": 1787102046.0809793, "sys_cpu": 16.3, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 190.8}]}
+{"t": 1787102051.5072138, "sys_cpu": 14.6, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 202.3}]}
+{"t": 1787102056.9272728, "sys_cpu": 14.0, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 196.2}]}
+{"t": 1787102062.282488, "sys_cpu": 14.2, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 203.2}]}
+{"t": 1787102067.6974318, "sys_cpu": 14.6, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 206.4}]}
+{"t": 1787102073.1416426, "sys_cpu": 13.6, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 206.9}]}
+{"t": 1787102078.5901744, "sys_cpu": 14.1, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 199.1}]}
+{"t": 1787102084.167681, "sys_cpu": 19.8, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 209.2}, {"pid": 3908, "name": "OneDrive.exe", "cpu": 81.6}]}
+{"t": 1787102089.6167822, "sys_cpu": 17.8, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 188.3}, {"pid": 3908, "name": "OneDrive.exe", "cpu": 91.5}]}
+{"t": 1787102095.050528, "sys_cpu": 15.6, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 204.1}]}
+{"t": 1787102100.5803804, "sys_cpu": 16.0, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 222.0}]}
+{"t": 1787102106.0457578, "sys_cpu": 15.4, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 205.4}]}
+{"t": 1787102111.5547616, "sys_cpu": 14.8, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 180.2}]}
+{"t": 1787102116.963102, "sys_cpu": 14.3, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 187.9}]}
+{"t": 1787102122.4248693, "sys_cpu": 14.9, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 188.0}]}
+{"t": 1787102127.9702098, "sys_cpu": 14.8, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 182.5}]}
+{"t": 1787102133.4981322, "sys_cpu": 16.9, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 182.2}]}
+{"t": 1787102138.9241743, "sys_cpu": 20.1, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 218.4}, {"pid": 3908, "name": "OneDrive.exe", "cpu": 121.8}]}
+{"t": 1787102144.3680816, "sys_cpu": 14.9, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 229.9}]}
+{"t": 1787102149.749695, "sys_cpu": 13.5, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 195.6}]}
+{"t": 1787102155.13856, "sys_cpu": 14.3, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 213.9}]}
+{"t": 1787102160.520121, "sys_cpu": 13.6, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 204.3}]}
+{"t": 1787102165.9587543, "sys_cpu": 13.6, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 212.3}]}
+{"t": 1787102171.357114, "sys_cpu": 13.9, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 199.1}]}
+{"t": 1787102176.7496228, "sys_cpu": 15.0, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 198.0}]}
+{"t": 1787102182.1549966, "sys_cpu": 20.5, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 208.7}, {"pid": 3908, "name": "OneDrive.exe", "cpu": 111.9}]}
+{"t": 1787102187.5499878, "sys_cpu": 16.1, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 208.4}]}
+{"t": 1787102192.892532, "sys_cpu": 12.8, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 187.7}]}
+{"t": 1787102198.2998977, "sys_cpu": 14.7, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 201.7}]}
+{"t": 1787102203.6961122, "sys_cpu": 15.0, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 225.2}]}
+{"t": 1787102209.1707768, "sys_cpu": 14.8, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 205.7}]}
+{"t": 1787102214.5330207, "sys_cpu": 14.7, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 214.8}]}
+{"t": 1787102219.947317, "sys_cpu": 14.2, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 212.8}]}
+{"t": 1787102225.3544865, "sys_cpu": 13.7, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 203.2}]}
+{"t": 1787102230.7502918, "sys_cpu": 17.2, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 197.4}]}
+{"t": 1787102236.2264757, "sys_cpu": 23.2, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 281.1}, {"pid": 3908, "name": "OneDrive.exe", "cpu": 124.4}]}
+{"t": 1787102241.6629114, "sys_cpu": 35.0, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 673.9}]}
+{"t": 1787102247.3789048, "sys_cpu": 51.4, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 1054.8}]}
+{"t": 1787102253.1195607, "sys_cpu": 55.9, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 1123.2}]}
+{"t": 1787102258.7989435, "sys_cpu": 55.0, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 1140.5}]}
+{"t": 1787102264.4629915, "sys_cpu": 55.0, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 1122.4}]}
+{"t": 1787102270.1000009, "sys_cpu": 54.2, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 1096.2}]}
+{"t": 1787102275.8316364, "sys_cpu": 56.0, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 1113.6}]}
+{"t": 1787102281.6723032, "sys_cpu": 60.6, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 1079.4}, {"pid": 3908, "name": "OneDrive.exe", "cpu": 98.9}]}
+{"t": 1787102287.5226283, "sys_cpu": 62.0, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 1104.1}, {"pid": 3908, "name": "OneDrive.exe", "cpu": 111.0}]}
+{"t": 1787102293.4382436, "sys_cpu": 57.4, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 1112.6}]}
+{"t": 1787102299.2465599, "sys_cpu": 56.3, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 1095.5}]}
+{"t": 1787102305.096991, "sys_cpu": 58.5, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 1147.7}]}
+{"t": 1787102310.8954089, "sys_cpu": 59.7, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 1140.2}]}
+{"t": 1787102316.696608, "sys_cpu": 56.2, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 1111.8}]}
+{"t": 1787102322.4911096, "sys_cpu": 58.2, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 1121.5}]}
+{"t": 1787102328.2924252, "sys_cpu": 54.9, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 1090.1}]}
+{"t": 1787102334.1386154, "sys_cpu": 60.2, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 1101.0}]}
+{"t": 1787102340.0642717, "sys_cpu": 65.0, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 1107.5}, {"pid": 3908, "name": "OneDrive.exe", "cpu": 97.3}]}
+{"t": 1787102345.9086072, "sys_cpu": 62.0, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 1111.2}]}
+{"t": 1787102351.8311546, "sys_cpu": 63.0, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 1124.3}]}
+{"t": 1787102357.8129172, "sys_cpu": 59.7, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 1108.7}]}
+{"t": 1787102363.939587, "sys_cpu": 61.8, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 1128.3}]}
+{"t": 1787102370.068892, "sys_cpu": 62.3, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 1112.0}]}
+{"t": 1787102375.56837, "sys_cpu": 43.2, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 812.2}]}
+{"t": 1787102380.983449, "sys_cpu": 26.6, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 460.7}]}
+{"t": 1787102386.3658688, "sys_cpu": 16.7, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 205.2}]}
+{"t": 1787102391.7542644, "sys_cpu": 20.6, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 186.9}, {"pid": 3908, "name": "OneDrive.exe", "cpu": 113.7}]}
+{"t": 1787102397.1805458, "sys_cpu": 15.7, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 185.6}]}
+{"t": 1787102402.5473154, "sys_cpu": 15.5, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 192.2}]}
+{"t": 1787102407.9774888, "sys_cpu": 14.5, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 196.0}]}
+{"t": 1787102413.3408058, "sys_cpu": 13.4, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 187.2}]}
+{"t": 1787102418.6849713, "sys_cpu": 14.7, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 204.7}]}
+{"t": 1787102424.0878508, "sys_cpu": 14.5, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 176.9}]}
+{"t": 1787102429.5206404, "sys_cpu": 14.8, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 199.2}]}
+{"t": 1787102434.9799786, "sys_cpu": 17.6, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 186.3}, {"pid": 3908, "name": "OneDrive.exe", "cpu": 88.7}]}
+{"t": 1787102440.3862793, "sys_cpu": 21.1, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 206.1}, {"pid": 3908, "name": "OneDrive.exe", "cpu": 91.7}]}
+{"t": 1787102445.788025, "sys_cpu": 14.7, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 184.0}, {"pid": 3908, "name": "OneDrive.exe", "cpu": 90.7}]}
+{"t": 1787102451.163147, "sys_cpu": 16.2, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 197.7}]}
+{"t": 1787102456.5561395, "sys_cpu": 15.3, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 207.3}]}
+{"t": 1787102462.140763, "sys_cpu": 16.4, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 188.0}]}
+{"t": 1787102467.589384, "sys_cpu": 18.4, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 221.5}]}
+{"t": 1787102473.0084245, "sys_cpu": 15.9, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 195.4}]}
+{"t": 1787102478.5764232, "sys_cpu": 22.0, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 194.9}, {"pid": 29448, "name": "python.exe", "cpu": 87.1}]}
+{"t": 1787102484.0788317, "sys_cpu": 25.0, "hot": [{"pid": 29448, "name": "python.exe", "cpu": 188.9}, {"pid": 36612, "name": "python.exe", "cpu": 187.8}]}
+{"t": 1787102489.6997252, "sys_cpu": 26.5, "hot": [{"pid": 29448, "name": "python.exe", "cpu": 216.1}, {"pid": 36612, "name": "python.exe", "cpu": 175.3}]}
+{"t": 1787102495.1663117, "sys_cpu": 29.7, "hot": [{"pid": 29448, "name": "python.exe", "cpu": 202.6}, {"pid": 36612, "name": "python.exe", "cpu": 178.6}, {"pid": 3908, "name": "OneDrive.exe", "cpu": 108.6}]}
+{"t": 1787102500.6305532, "sys_cpu": 22.9, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 188.0}, {"pid": 29448, "name": "python.exe", "cpu": 100.9}, {"pid": 3908, "name": "OneDrive.exe", "cpu": 83.7}]}
+{"t": 1787102506.1017559, "sys_cpu": 19.2, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 183.2}, {"pid": 29448, "name": "python.exe", "cpu": 100.3}]}
+{"t": 1787102511.5907414, "sys_cpu": 21.2, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 204.3}, {"pid": 29448, "name": "python.exe", "cpu": 99.4}]}
+{"t": 1787102517.1270726, "sys_cpu": 25.0, "hot": [{"pid": 29448, "name": "python.exe", "cpu": 215.0}, {"pid": 36612, "name": "python.exe", "cpu": 190.4}]}
+{"t": 1787102522.604603, "sys_cpu": 30.0, "hot": [{"pid": 29448, "name": "python.exe", "cpu": 334.0}, {"pid": 36612, "name": "python.exe", "cpu": 186.6}]}
+{"t": 1787102528.0941644, "sys_cpu": 26.8, "hot": [{"pid": 29448, "name": "python.exe", "cpu": 250.9}, {"pid": 36612, "name": "python.exe", "cpu": 189.7}]}
+{"t": 1787102533.569358, "sys_cpu": 21.4, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 193.2}, {"pid": 29448, "name": "python.exe", "cpu": 149.1}]}
+{"t": 1787102539.059071, "sys_cpu": 20.9, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 183.2}, {"pid": 29448, "name": "python.exe", "cpu": 100.6}]}
+{"t": 1787102544.530633, "sys_cpu": 25.6, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 187.4}, {"pid": 3908, "name": "OneDrive.exe", "cpu": 116.5}, {"pid": 29448, "name": "python.exe", "cpu": 100.0}]}
+{"t": 1787102550.0044503, "sys_cpu": 21.5, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 176.7}, {"pid": 29448, "name": "python.exe", "cpu": 100.3}]}
+{"t": 1787102555.4734063, "sys_cpu": 19.4, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 183.7}, {"pid": 29448, "name": "python.exe", "cpu": 101.7}]}
+{"t": 1787102560.9316626, "sys_cpu": 20.6, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 193.4}, {"pid": 29448, "name": "python.exe", "cpu": 100.6}]}
+{"t": 1787102566.4263306, "sys_cpu": 25.5, "hot": [{"pid": 29448, "name": "python.exe", "cpu": 211.1}, {"pid": 36612, "name": "python.exe", "cpu": 183.0}]}
+{"t": 1787102571.9000177, "sys_cpu": 24.2, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 181.5}]}
+{"t": 1787102577.5445476, "sys_cpu": 19.1, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 201.4}]}
+{"t": 1787102583.2419188, "sys_cpu": 20.6, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 195.6}]}
+{"t": 1787102588.971291, "sys_cpu": 21.0, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 184.4}]}
+{"t": 1787102594.5881128, "sys_cpu": 27.8, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 198.9}, {"pid": 3908, "name": "OneDrive.exe", "cpu": 96.4}]}
+{"t": 1787102600.1726322, "sys_cpu": 19.4, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 178.7}]}
+{"t": 1787102605.7264884, "sys_cpu": 18.8, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 199.4}]}
+{"t": 1787102611.2648256, "sys_cpu": 16.7, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 185.4}]}
+{"t": 1787102616.8622434, "sys_cpu": 19.2, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 179.6}]}
+{"t": 1787102622.566975, "sys_cpu": 22.7, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 184.7}]}
+{"t": 1787102628.088325, "sys_cpu": 17.0, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 181.9}]}
+{"t": 1787102633.7264988, "sys_cpu": 16.3, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 193.4}]}
+{"t": 1787102639.3166246, "sys_cpu": 21.3, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 187.1}]}
+{"t": 1787102644.9244418, "sys_cpu": 23.8, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 191.3}, {"pid": 3908, "name": "OneDrive.exe", "cpu": 120.9}]}
+{"t": 1787102650.588806, "sys_cpu": 20.4, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 188.7}, {"pid": 3908, "name": "OneDrive.exe", "cpu": 80.7}]}
+{"t": 1787102656.2199445, "sys_cpu": 17.7, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 198.3}]}
+{"t": 1787102661.6898198, "sys_cpu": 18.0, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 183.2}]}
+{"t": 1787102667.22725, "sys_cpu": 18.4, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 196.3}]}
+{"t": 1787102672.7250328, "sys_cpu": 14.9, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 191.5}]}
+{"t": 1787102678.312046, "sys_cpu": 16.4, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 183.2}]}
+{"t": 1787102683.8383245, "sys_cpu": 17.5, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 196.0}]}
+{"t": 1787102689.603171, "sys_cpu": 19.5, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 190.5}]}
+{"t": 1787102695.1869013, "sys_cpu": 26.0, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 193.0}, {"pid": 3908, "name": "OneDrive.exe", "cpu": 110.9}]}
+{"t": 1787102700.7247393, "sys_cpu": 21.8, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 190.1}]}
+{"t": 1787102706.221486, "sys_cpu": 18.5, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 198.0}]}
+{"t": 1787102711.7363493, "sys_cpu": 16.0, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 180.8}]}
+{"t": 1787102717.3295681, "sys_cpu": 17.7, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 194.7}]}
+{"t": 1787102722.9015572, "sys_cpu": 16.9, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 174.8}]}
+{"t": 1787102728.3691764, "sys_cpu": 14.8, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 189.1}]}
+{"t": 1787102733.8522575, "sys_cpu": 15.1, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 181.5}]}
+{"t": 1787102739.371806, "sys_cpu": 16.6, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 183.3}]}
+{"t": 1787102744.9763086, "sys_cpu": 21.7, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 196.6}, {"pid": 3908, "name": "OneDrive.exe", "cpu": 87.3}]}
+{"t": 1787102750.468215, "sys_cpu": 21.3, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 184.4}, {"pid": 3908, "name": "OneDrive.exe", "cpu": 117.4}]}
+{"t": 1787102755.9300506, "sys_cpu": 16.2, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 195.7}]}
+{"t": 1787102761.4132676, "sys_cpu": 16.1, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 185.2}]}
+{"t": 1787102766.8751922, "sys_cpu": 16.6, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 193.4}]}
+{"t": 1787102772.3638422, "sys_cpu": 14.9, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 182.1}]}
+{"t": 1787102777.8583817, "sys_cpu": 16.4, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 182.9}]}
+{"t": 1787102783.3650253, "sys_cpu": 16.3, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 185.0}]}
+{"t": 1787102788.8460462, "sys_cpu": 17.0, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 204.0}]}
+{"t": 1787102794.3012466, "sys_cpu": 22.8, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 190.0}, {"pid": 3908, "name": "OneDrive.exe", "cpu": 120.9}]}
+{"t": 1787102799.760188, "sys_cpu": 19.3, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 191.1}, {"pid": 3908, "name": "OneDrive.exe", "cpu": 88.0}]}
+{"t": 1787102805.2504046, "sys_cpu": 17.4, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 206.2}]}
+{"t": 1787102810.7348423, "sys_cpu": 16.1, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 181.8}]}
+{"t": 1787102816.339593, "sys_cpu": 18.4, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 195.2}]}
+{"t": 1787102821.726883, "sys_cpu": 14.8, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 176.8}]}
+{"t": 1787102827.1805537, "sys_cpu": 15.7, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 202.9}]}
+{"t": 1787102832.56811, "sys_cpu": 16.4, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 182.3}]}
+{"t": 1787102837.9821293, "sys_cpu": 15.3, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 205.5}]}
+{"t": 1787102843.3168297, "sys_cpu": 17.8, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 188.9}, {"pid": 3908, "name": "OneDrive.exe", "cpu": 102.3}]}
+{"t": 1787102848.6643648, "sys_cpu": 14.9, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 202.9}]}
+{"t": 1787102854.0715907, "sys_cpu": 14.6, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 214.5}]}
+{"t": 1787102859.4670887, "sys_cpu": 14.4, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 206.7}]}
+{"t": 1787102864.797247, "sys_cpu": 14.1, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 199.4}]}
+{"t": 1787102870.194013, "sys_cpu": 14.0, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 215.3}]}
+{"t": 1787102875.5921996, "sys_cpu": 14.8, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 223.8}]}
+{"t": 1787102881.0663989, "sys_cpu": 14.3, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 192.3}]}
+{"t": 1787102886.4674194, "sys_cpu": 16.9, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 182.3}]}
+{"t": 1787102891.8545945, "sys_cpu": 22.3, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 177.1}, {"pid": 3908, "name": "OneDrive.exe", "cpu": 103.2}]}
+{"t": 1787102897.2673342, "sys_cpu": 16.7, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 189.0}, {"pid": 3908, "name": "OneDrive.exe", "cpu": 101.4}]}
+{"t": 1787102902.7595048, "sys_cpu": 18.2, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 204.9}]}
+{"t": 1787102908.227648, "sys_cpu": 15.3, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 202.3}]}
+{"t": 1787102913.6767726, "sys_cpu": 14.3, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 190.5}]}
+{"t": 1787102919.068221, "sys_cpu": 12.8, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 184.0}]}
+{"t": 1787102924.4330227, "sys_cpu": 13.3, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 190.7}]}
+{"t": 1787102929.9289777, "sys_cpu": 14.2, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 208.8}]}
+{"t": 1787102935.379004, "sys_cpu": 16.5, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 214.6}]}
+{"t": 1787102940.8887227, "sys_cpu": 20.8, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 201.7}, {"pid": 3908, "name": "OneDrive.exe", "cpu": 115.1}]}
+{"t": 1787102946.4076169, "sys_cpu": 16.6, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 218.4}]}
+{"t": 1787102951.8554668, "sys_cpu": 16.7, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 204.0}]}
+{"t": 1787102957.250643, "sys_cpu": 14.7, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 192.7}]}
+{"t": 1787102962.718212, "sys_cpu": 14.7, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 187.1}]}
+{"t": 1787102968.1127915, "sys_cpu": 14.2, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 199.7}]}
+{"t": 1787102973.59599, "sys_cpu": 13.0, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 198.0}]}
+{"t": 1787102979.4192722, "sys_cpu": 17.1, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 198.7}]}
+{"t": 1787102985.115108, "sys_cpu": 18.6, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 189.0}]}
+{"t": 1787102990.8488379, "sys_cpu": 23.4, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 206.5}, {"pid": 3908, "name": "OneDrive.exe", "cpu": 95.6}]}
+{"t": 1787102996.3194525, "sys_cpu": 19.3, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 196.0}, {"pid": 3908, "name": "OneDrive.exe", "cpu": 107.2}]}
+{"t": 1787103001.951871, "sys_cpu": 16.5, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 192.2}]}
+{"t": 1787103007.4822392, "sys_cpu": 16.7, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 196.6}]}
+{"t": 1787103012.9779694, "sys_cpu": 14.9, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 198.3}]}
+{"t": 1787103018.4743185, "sys_cpu": 16.2, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 185.2}]}
+{"t": 1787103024.0711918, "sys_cpu": 16.4, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 188.6}]}
+{"t": 1787103029.6028855, "sys_cpu": 15.3, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 199.4}]}
+{"t": 1787103035.1032002, "sys_cpu": 16.3, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 185.3}]}
+{"t": 1787103040.651002, "sys_cpu": 22.4, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 188.2}, {"pid": 3908, "name": "OneDrive.exe", "cpu": 106.0}]}
+{"t": 1787103046.188579, "sys_cpu": 16.4, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 179.4}]}
+{"t": 1787103051.6732903, "sys_cpu": 16.3, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 189.2}]}
+{"t": 1787103057.175162, "sys_cpu": 15.5, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 185.2}]}
+{"t": 1787103062.7890098, "sys_cpu": 18.7, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 187.7}]}
+{"t": 1787103068.2482977, "sys_cpu": 16.3, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 211.4}]}
+{"t": 1787103073.8089733, "sys_cpu": 16.3, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 174.4}]}
+{"t": 1787103079.3321006, "sys_cpu": 15.4, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 189.8}]}
+{"t": 1787103085.0479739, "sys_cpu": 19.9, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 182.7}]}
+{"t": 1787103090.60339, "sys_cpu": 20.9, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 195.5}, {"pid": 3908, "name": "OneDrive.exe", "cpu": 121.5}]}
+{"t": 1787103096.2141764, "sys_cpu": 16.9, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 191.1}]}
+{"t": 1787103101.85231, "sys_cpu": 17.7, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 200.5}]}
+{"t": 1787103107.3388824, "sys_cpu": 14.7, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 189.8}]}
+{"t": 1787103113.0976474, "sys_cpu": 16.0, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 199.5}]}
+{"t": 1787103118.5763752, "sys_cpu": 16.1, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 182.6}]}
+{"t": 1787103124.1231797, "sys_cpu": 16.6, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 186.5}]}
+{"t": 1787103129.6403553, "sys_cpu": 17.8, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 192.3}]}
+{"t": 1787103135.1367083, "sys_cpu": 17.0, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 187.6}]}
+{"t": 1787103140.5390599, "sys_cpu": 21.2, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 176.2}, {"pid": 3908, "name": "OneDrive.exe", "cpu": 107.7}]}
+{"t": 1787103145.9607067, "sys_cpu": 16.1, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 216.6}]}
+{"t": 1787103151.3831718, "sys_cpu": 14.6, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 221.4}]}
+{"t": 1787103156.7971575, "sys_cpu": 14.2, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 198.2}]}
+{"t": 1787103162.1674027, "sys_cpu": 13.8, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 200.3}]}
+{"t": 1787103167.4791539, "sys_cpu": 12.7, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 205.9}]}
+{"t": 1787103172.9213617, "sys_cpu": 13.3, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 199.7}]}
+{"t": 1787103178.286451, "sys_cpu": 14.4, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 214.6}]}
+{"t": 1787103183.8414338, "sys_cpu": 21.1, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 201.4}, {"pid": 3908, "name": "OneDrive.exe", "cpu": 88.8}]}
+{"t": 1787103189.2182431, "sys_cpu": 17.5, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 180.5}, {"pid": 3908, "name": "OneDrive.exe", "cpu": 111.6}]}
+{"t": 1787103194.5686927, "sys_cpu": 12.1, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 175.2}]}
+{"t": 1787103200.0297132, "sys_cpu": 14.6, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 214.6}]}
+{"t": 1787103205.4717975, "sys_cpu": 14.6, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 208.0}]}
+{"t": 1787103210.9245844, "sys_cpu": 12.5, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 174.7}]}
+{"t": 1787103216.2903473, "sys_cpu": 13.2, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 193.6}]}
+{"t": 1787103221.6460595, "sys_cpu": 13.2, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 195.6}]}
+{"t": 1787103227.1045039, "sys_cpu": 14.3, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 210.3}]}
+{"t": 1787103232.4951856, "sys_cpu": 16.4, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 215.3}]}
+{"t": 1787103237.976358, "sys_cpu": 20.4, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 190.3}, {"pid": 3908, "name": "OneDrive.exe", "cpu": 108.2}]}
+{"t": 1787103243.3948762, "sys_cpu": 16.1, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 211.6}]}
+{"t": 1787103248.8338816, "sys_cpu": 14.6, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 216.1}]}
+{"t": 1787103254.2116592, "sys_cpu": 12.9, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 179.9}]}
+{"t": 1787103259.6194198, "sys_cpu": 14.1, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 205.5}]}
+{"t": 1787103265.0854943, "sys_cpu": 14.5, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 207.1}]}
+{"t": 1787103270.4821825, "sys_cpu": 13.2, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 198.0}]}
+{"t": 1787103275.905767, "sys_cpu": 12.7, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 184.1}]}
+{"t": 1787103281.4055185, "sys_cpu": 18.5, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 203.1}, {"pid": 3908, "name": "OneDrive.exe", "cpu": 88.0}]}
+{"t": 1787103286.7316282, "sys_cpu": 16.8, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 183.8}, {"pid": 3908, "name": "OneDrive.exe", "cpu": 112.9}]}
+{"t": 1787103292.1711793, "sys_cpu": 14.3, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 200.6}]}
+{"t": 1787103297.5970175, "sys_cpu": 14.7, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 219.9}]}
+{"t": 1787103303.0465214, "sys_cpu": 15.3, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 212.6}]}
+{"t": 1787103308.423606, "sys_cpu": 14.6, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 212.2}]}
+{"t": 1787103313.7366188, "sys_cpu": 13.5, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 206.2}]}
+{"t": 1787103319.1527739, "sys_cpu": 12.7, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 195.1}]}
+{"t": 1787103324.5345569, "sys_cpu": 14.2, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 209.9}]}
+{"t": 1787103329.9176948, "sys_cpu": 15.5, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 219.2}]}
+{"t": 1787103335.3085287, "sys_cpu": 20.4, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 201.4}, {"pid": 3908, "name": "OneDrive.exe", "cpu": 119.6}]}
+{"t": 1787103340.688997, "sys_cpu": 14.6, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 195.7}]}
+{"t": 1787103346.1440756, "sys_cpu": 15.7, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 225.8}]}
+{"t": 1787103351.5289128, "sys_cpu": 14.6, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 211.6}]}
+{"t": 1787103356.884715, "sys_cpu": 13.3, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 201.7}]}
+{"t": 1787103362.2747407, "sys_cpu": 13.2, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 194.5}]}
+{"t": 1787103367.7259228, "sys_cpu": 14.9, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 209.4}]}
+{"t": 1787103373.1903777, "sys_cpu": 15.3, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 210.3}]}
+{"t": 1787103378.6277137, "sys_cpu": 19.6, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 207.2}, {"pid": 3908, "name": "OneDrive.exe", "cpu": 101.4}]}
+{"t": 1787103384.0467398, "sys_cpu": 16.6, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 205.5}, {"pid": 3908, "name": "OneDrive.exe", "cpu": 101.2}]}
+{"t": 1787103389.4288266, "sys_cpu": 14.0, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 207.0}]}
+{"t": 1787103394.7897444, "sys_cpu": 14.5, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 213.7}]}
+{"t": 1787103400.250501, "sys_cpu": 13.0, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 190.3}]}
+{"t": 1787103405.6613252, "sys_cpu": 14.7, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 214.7}]}
+{"t": 1787103411.0485034, "sys_cpu": 14.3, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 219.1}]}
+{"t": 1787103416.3933525, "sys_cpu": 13.9, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 214.4}]}
+{"t": 1787103421.8046212, "sys_cpu": 14.9, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 200.3}]}
+{"t": 1787103427.2807708, "sys_cpu": 21.7, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 213.7}, {"pid": 3908, "name": "OneDrive.exe", "cpu": 120.1}]}
+{"t": 1787103432.6687436, "sys_cpu": 15.8, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 211.6}]}
+{"t": 1787103438.1123774, "sys_cpu": 14.2, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 205.8}]}
+{"t": 1787103443.450026, "sys_cpu": 12.8, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 186.2}]}
+{"t": 1787103448.8228533, "sys_cpu": 13.5, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 219.5}]}
+{"t": 1787103454.2617307, "sys_cpu": 14.0, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 213.8}]}
+{"t": 1787103459.6237864, "sys_cpu": 14.8, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 210.8}]}
+{"t": 1787103464.9721546, "sys_cpu": 14.6, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 220.5}]}
+{"t": 1787103470.3442335, "sys_cpu": 14.7, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 226.5}]}
+{"t": 1787103475.7235222, "sys_cpu": 19.7, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 200.9}, {"pid": 3908, "name": "OneDrive.exe", "cpu": 105.0}]}
+{"t": 1787103481.163829, "sys_cpu": 17.8, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 220.7}, {"pid": 3908, "name": "OneDrive.exe", "cpu": 95.1}]}
+{"t": 1787103486.489098, "sys_cpu": 13.9, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 198.8}]}
+{"t": 1787103491.9172914, "sys_cpu": 14.3, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 208.3}]}
+{"t": 1787103497.3385816, "sys_cpu": 13.9, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 202.6}]}
+{"t": 1787103502.7016003, "sys_cpu": 13.8, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 199.7}]}
+{"t": 1787103508.0687623, "sys_cpu": 12.4, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 188.9}]}
+{"t": 1787103513.4171684, "sys_cpu": 15.6, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 231.2}]}
+{"t": 1787103518.7500794, "sys_cpu": 15.4, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 217.0}]}
+{"t": 1787103524.193637, "sys_cpu": 19.4, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 187.9}, {"pid": 3908, "name": "OneDrive.exe", "cpu": 116.7}]}
+{"t": 1787103529.5062573, "sys_cpu": 16.3, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 221.4}]}
+{"t": 1787103534.8554995, "sys_cpu": 15.0, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 219.6}]}
+{"t": 1787103540.3188286, "sys_cpu": 14.6, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 203.4}]}
+{"t": 1787103545.7004657, "sys_cpu": 15.5, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 214.2}]}
+{"t": 1787103551.0803404, "sys_cpu": 14.5, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 213.7}]}
+{"t": 1787103556.4523869, "sys_cpu": 12.2, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 205.5}]}
+{"t": 1787103561.8515437, "sys_cpu": 13.6, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 213.3}]}
+{"t": 1787103567.2811675, "sys_cpu": 13.2, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 183.3}]}
+{"t": 1787103572.624667, "sys_cpu": 18.1, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 206.1}, {"pid": 3908, "name": "OneDrive.exe", "cpu": 81.9}]}
+{"t": 1787103578.0394857, "sys_cpu": 18.4, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 200.6}, {"pid": 3908, "name": "OneDrive.exe", "cpu": 114.4}]}
+{"t": 1787103583.4355805, "sys_cpu": 13.4, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 196.8}]}
+{"t": 1787103588.8040755, "sys_cpu": 13.7, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 207.0}]}
+{"t": 1787103594.1861525, "sys_cpu": 14.5, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 216.6}]}
+{"t": 1787103599.5435603, "sys_cpu": 13.9, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 199.1}]}
+{"t": 1787103604.892983, "sys_cpu": 13.8, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 217.2}]}
+{"t": 1787103610.3272977, "sys_cpu": 13.5, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 205.5}]}
+{"t": 1787103615.6685357, "sys_cpu": 15.2, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 210.8}]}
+{"t": 1787103621.0207765, "sys_cpu": 19.8, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 212.3}, {"pid": 3908, "name": "OneDrive.exe", "cpu": 110.2}]}
+{"t": 1787103626.4687557, "sys_cpu": 16.0, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 196.8}]}
+{"t": 1787103631.7981377, "sys_cpu": 12.6, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 186.5}]}
+{"t": 1787103637.1872282, "sys_cpu": 14.7, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 215.1}]}
+{"t": 1787103642.573097, "sys_cpu": 13.5, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 200.6}]}
+{"t": 1787103647.9825485, "sys_cpu": 14.5, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 215.3}]}
+{"t": 1787103653.4096591, "sys_cpu": 13.8, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 223.8}]}
+{"t": 1787103658.7646666, "sys_cpu": 13.5, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 207.9}]}
+{"t": 1787103664.1625576, "sys_cpu": 14.7, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 207.5}]}
+{"t": 1787103669.5851686, "sys_cpu": 18.0, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 218.4}]}
+{"t": 1787103674.9414358, "sys_cpu": 17.9, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 200.3}, {"pid": 3908, "name": "OneDrive.exe", "cpu": 114.8}]}
+{"t": 1787103680.37186, "sys_cpu": 14.6, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 200.3}]}
+{"t": 1787103685.6789556, "sys_cpu": 13.8, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 202.7}]}
+{"t": 1787103691.043397, "sys_cpu": 14.7, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 221.5}]}
+{"t": 1787103696.512817, "sys_cpu": 14.0, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 207.2}]}
+{"t": 1787103701.827631, "sys_cpu": 12.8, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 208.8}]}
+{"t": 1787103707.248627, "sys_cpu": 12.8, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 183.3}]}
+{"t": 1787103712.6342726, "sys_cpu": 16.1, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 221.8}]}
+{"t": 1787103718.035571, "sys_cpu": 19.7, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 193.0}, {"pid": 3908, "name": "OneDrive.exe", "cpu": 111.4}]}
+{"t": 1787103723.4767342, "sys_cpu": 14.5, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 195.4}]}
+{"t": 1787103728.8046715, "sys_cpu": 14.2, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 212.3}]}
+{"t": 1787103734.2167792, "sys_cpu": 14.5, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 227.1}]}
+{"t": 1787103739.658458, "sys_cpu": 13.0, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 190.0}]}
+{"t": 1787103744.9984035, "sys_cpu": 13.8, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 201.5}]}
+{"t": 1787103750.3683426, "sys_cpu": 12.7, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 204.4}]}
+{"t": 1787103755.7400806, "sys_cpu": 12.9, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 216.6}]}
+{"t": 1787103761.1133273, "sys_cpu": 14.7, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 205.5}]}
+{"t": 1787103766.6639524, "sys_cpu": 17.2, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 201.4}]}
+{"t": 1787103772.055846, "sys_cpu": 19.2, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 198.3}, {"pid": 3908, "name": "OneDrive.exe", "cpu": 124.3}]}
+{"t": 1787103777.4531784, "sys_cpu": 13.8, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 205.5}]}
+{"t": 1787103782.7690735, "sys_cpu": 13.7, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 207.4}]}
+{"t": 1787103788.1850672, "sys_cpu": 14.3, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 210.4}]}
+{"t": 1787103793.6152558, "sys_cpu": 13.8, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 208.3}]}
+{"t": 1787103798.926083, "sys_cpu": 13.4, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 195.3}]}
+{"t": 1787103804.369087, "sys_cpu": 14.8, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 199.1}]}
+{"t": 1787103809.7693667, "sys_cpu": 14.9, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 219.7}]}
+{"t": 1787103815.137529, "sys_cpu": 19.5, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 200.6}, {"pid": 3908, "name": "OneDrive.exe", "cpu": 111.9}]}
+{"t": 1787103820.581866, "sys_cpu": 16.2, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 202.3}]}
+{"t": 1787103825.9143362, "sys_cpu": 14.0, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 199.4}]}
+{"t": 1787103831.3392682, "sys_cpu": 14.6, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 201.7}]}
+{"t": 1787103836.7524924, "sys_cpu": 13.0, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 192.8}]}
+{"t": 1787103842.1710486, "sys_cpu": 13.2, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 196.5}]}
+{"t": 1787103847.5833352, "sys_cpu": 13.2, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 203.2}]}
+{"t": 1787103852.9006438, "sys_cpu": 14.2, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 201.5}]}
+{"t": 1787103858.4286242, "sys_cpu": 17.9, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 206.8}, {"pid": 3908, "name": "OneDrive.exe", "cpu": 80.9}]}
+{"t": 1787103863.8008733, "sys_cpu": 17.5, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 196.2}, {"pid": 3908, "name": "OneDrive.exe", "cpu": 111.5}]}
+{"t": 1787103869.166947, "sys_cpu": 14.1, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 208.1}]}
+{"t": 1787103874.5923123, "sys_cpu": 13.8, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 194.8}]}
+{"t": 1787103879.9741793, "sys_cpu": 15.5, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 217.1}]}
+{"t": 1787103885.4199064, "sys_cpu": 13.9, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 188.8}]}
+{"t": 1787103890.8128116, "sys_cpu": 13.9, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 202.1}]}
+{"t": 1787103896.2185771, "sys_cpu": 12.9, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 204.3}]}
+{"t": 1787103901.721366, "sys_cpu": 14.0, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 223.0}]}
+{"t": 1787103907.0821743, "sys_cpu": 14.7, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 210.5}]}
+{"t": 1787103912.5233212, "sys_cpu": 19.9, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 206.9}, {"pid": 3908, "name": "OneDrive.exe", "cpu": 111.1}]}
+{"t": 1787103917.9132342, "sys_cpu": 16.6, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 218.2}, {"pid": 3908, "name": "OneDrive.exe", "cpu": 84.7}]}
+{"t": 1787103923.2823522, "sys_cpu": 14.4, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 210.2}]}
+{"t": 1787103928.7109861, "sys_cpu": 13.0, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 189.9}]}
+{"t": 1787103934.0715077, "sys_cpu": 13.4, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 200.9}]}
+{"t": 1787103939.5170834, "sys_cpu": 15.0, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 213.2}]}
+{"t": 1787103944.887123, "sys_cpu": 13.5, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 201.7}]}
+{"t": 1787103950.2633832, "sys_cpu": 14.1, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 220.1}]}
+{"t": 1787103955.8204052, "sys_cpu": 17.1, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 203.6}]}
+{"t": 1787103961.1815627, "sys_cpu": 19.2, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 207.6}, {"pid": 3908, "name": "OneDrive.exe", "cpu": 115.0}]}
+{"t": 1787103966.6584868, "sys_cpu": 15.6, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 222.3}]}
+{"t": 1787103972.038806, "sys_cpu": 14.3, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 211.6}]}
+{"t": 1787103977.4427457, "sys_cpu": 14.5, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 209.3}]}
+{"t": 1787103982.8317237, "sys_cpu": 14.5, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 229.8}]}
+{"t": 1787103988.1454945, "sys_cpu": 12.6, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 210.6}]}
+{"t": 1787103993.5432594, "sys_cpu": 12.6, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 192.2}]}
+{"t": 1787103998.9260447, "sys_cpu": 14.0, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 213.4}]}
+{"t": 1787104004.2641175, "sys_cpu": 14.7, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 210.3}]}
+{"t": 1787104009.7295153, "sys_cpu": 20.5, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 198.0}, {"pid": 3908, "name": "OneDrive.exe", "cpu": 116.2}]}
+{"t": 1787104015.098175, "sys_cpu": 17.8, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 225.3}, {"pid": 3908, "name": "OneDrive.exe", "cpu": 91.9}]}
+{"t": 1787104020.5124066, "sys_cpu": 14.9, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 223.4}]}
+{"t": 1787104025.9112535, "sys_cpu": 15.4, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 212.7}]}
+{"t": 1787104031.2464318, "sys_cpu": 15.8, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 214.9}]}
+{"t": 1787104036.734394, "sys_cpu": 13.6, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 196.9}]}
+{"t": 1787104042.1883485, "sys_cpu": 14.6, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 237.3}]}
+{"t": 1787104047.6426246, "sys_cpu": 15.0, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 217.2}]}
+{"t": 1787104053.099482, "sys_cpu": 17.9, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 209.4}]}
+{"t": 1787104058.4914174, "sys_cpu": 18.5, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 196.5}, {"pid": 3908, "name": "OneDrive.exe", "cpu": 109.8}]}
+{"t": 1787104063.8781984, "sys_cpu": 15.4, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 223.2}]}
+{"t": 1787104069.277174, "sys_cpu": 13.3, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 189.6}]}
+{"t": 1787104074.758965, "sys_cpu": 15.7, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 227.1}]}
+{"t": 1787104080.1583707, "sys_cpu": 14.2, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 200.3}]}
+{"t": 1787104085.5575612, "sys_cpu": 12.6, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 191.3}]}
+{"t": 1787104090.9212916, "sys_cpu": 14.2, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 208.7}]}
+{"t": 1787104096.2738867, "sys_cpu": 13.6, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 205.0}]}
+{"t": 1787104101.7235053, "sys_cpu": 20.6, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 204.3}, {"pid": 3908, "name": "OneDrive.exe", "cpu": 112.0}]}
+{"t": 1787104107.1100361, "sys_cpu": 18.2, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 222.3}, {"pid": 3908, "name": "OneDrive.exe", "cpu": 85.9}]}
+{"t": 1787104112.439372, "sys_cpu": 13.8, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 192.7}]}
+{"t": 1787104117.9066682, "sys_cpu": 13.5, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 194.3}]}
+{"t": 1787104123.3176181, "sys_cpu": 14.3, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 211.9}]}
+{"t": 1787104128.7999995, "sys_cpu": 16.2, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 224.8}]}
+{"t": 1787104134.1480005, "sys_cpu": 12.1, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 182.8}]}
+{"t": 1787104139.5152678, "sys_cpu": 12.3, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 188.0}]}
+{"t": 1787104144.9927633, "sys_cpu": 14.9, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 212.6}]}
+{"t": 1787104150.364697, "sys_cpu": 18.0, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 199.7}]}
+{"t": 1787104155.8274724, "sys_cpu": 18.6, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 196.3}, {"pid": 3908, "name": "OneDrive.exe", "cpu": 121.7}]}
+{"t": 1787104161.204574, "sys_cpu": 14.7, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 191.6}]}
+{"t": 1787104166.8596556, "sys_cpu": 17.5, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 232.9}]}
+{"t": 1787104172.3181078, "sys_cpu": 16.4, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 195.5}]}
+{"t": 1787104177.7661114, "sys_cpu": 15.6, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 192.0}]}
+{"t": 1787104183.1689868, "sys_cpu": 16.4, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 206.1}]}
+{"t": 1787104188.5105813, "sys_cpu": 14.1, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 204.6}]}
+{"t": 1787104193.9343927, "sys_cpu": 14.9, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 207.5}]}
+{"t": 1787104199.3113306, "sys_cpu": 20.5, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 204.1}, {"pid": 3908, "name": "OneDrive.exe", "cpu": 118.3}]}
+{"t": 1787104204.808801, "sys_cpu": 15.7, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 188.3}, {"pid": 3908, "name": "OneDrive.exe", "cpu": 80.8}]}
+{"t": 1787104210.2037513, "sys_cpu": 15.7, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 200.3}]}
+{"t": 1787104215.5891185, "sys_cpu": 14.4, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 209.9}]}
+{"t": 1787104221.0452275, "sys_cpu": 15.3, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 207.4}]}
+{"t": 1787104226.4640238, "sys_cpu": 14.3, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 207.5}]}
+{"t": 1787104231.8421447, "sys_cpu": 13.6, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 200.3}]}
+{"t": 1787104237.1959174, "sys_cpu": 11.7, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 178.4}]}
+{"t": 1787104242.565866, "sys_cpu": 15.5, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 199.4}]}
+{"t": 1787104247.9529536, "sys_cpu": 21.0, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 199.4}, {"pid": 3908, "name": "OneDrive.exe", "cpu": 126.6}]}
+{"t": 1787104253.3385508, "sys_cpu": 15.0, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 206.4}]}
+{"t": 1787104258.6870627, "sys_cpu": 14.0, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 210.6}]}
+{"t": 1787104264.0873446, "sys_cpu": 13.7, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 198.8}]}
+{"t": 1787104269.5095828, "sys_cpu": 13.5, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 213.6}]}
+{"t": 1787104274.9154007, "sys_cpu": 16.4, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 227.4}]}
+{"t": 1787104280.2894263, "sys_cpu": 15.5, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 224.2}]}
+{"t": 1787104285.634377, "sys_cpu": 13.8, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 211.7}]}
+{"t": 1787104291.0951939, "sys_cpu": 19.0, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 213.4}, {"pid": 3908, "name": "OneDrive.exe", "cpu": 85.0}]}
+{"t": 1787104296.4854345, "sys_cpu": 18.4, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 217.4}, {"pid": 3908, "name": "OneDrive.exe", "cpu": 96.8}]}
+{"t": 1787104301.8988895, "sys_cpu": 15.7, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 226.3}]}
+{"t": 1787104307.2609184, "sys_cpu": 13.9, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 208.7}]}
+{"t": 1787104312.6683333, "sys_cpu": 14.7, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 223.7}]}
+{"t": 1787104318.0777917, "sys_cpu": 14.5, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 227.0}]}
+{"t": 1787104323.4590948, "sys_cpu": 13.1, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 193.9}]}
+{"t": 1787104328.7872803, "sys_cpu": 13.9, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 223.8}]}
+{"t": 1787104334.1738594, "sys_cpu": 15.3, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 221.4}]}
+{"t": 1787104339.5821662, "sys_cpu": 15.4, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 208.7}]}
+{"t": 1787104344.9928124, "sys_cpu": 19.6, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 203.2}, {"pid": 3908, "name": "OneDrive.exe", "cpu": 119.4}]}
+{"t": 1787104350.3311603, "sys_cpu": 14.4, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 203.2}]}
+{"t": 1787104355.713235, "sys_cpu": 14.6, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 216.2}]}
+{"t": 1787104361.1319802, "sys_cpu": 15.4, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 224.5}]}
+{"t": 1787104366.5142925, "sys_cpu": 13.9, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 211.3}]}
+{"t": 1787104371.8262093, "sys_cpu": 12.1, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 193.5}]}
+{"t": 1787104377.2021713, "sys_cpu": 13.7, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 214.5}]}
+{"t": 1787104382.589629, "sys_cpu": 14.4, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 205.5}]}
+{"t": 1787104387.99978, "sys_cpu": 19.0, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 225.7}]}
+{"t": 1787104393.3268974, "sys_cpu": 16.8, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 198.0}, {"pid": 3908, "name": "OneDrive.exe", "cpu": 95.7}]}
+{"t": 1787104398.7214901, "sys_cpu": 14.1, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 220.3}]}
+{"t": 1787104404.124583, "sys_cpu": 15.1, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 229.2}]}
+{"t": 1787104409.5278986, "sys_cpu": 14.6, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 219.7}]}
+{"t": 1787104414.8706694, "sys_cpu": 13.6, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 202.3}]}
+{"t": 1787104420.2668571, "sys_cpu": 15.2, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 219.7}]}
+{"t": 1787104425.645377, "sys_cpu": 14.2, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 202.6}]}
+{"t": 1787104431.018388, "sys_cpu": 13.3, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 214.3}]}
+{"t": 1787104436.3851883, "sys_cpu": 15.9, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 220.9}]}
+{"t": 1787104441.748662, "sys_cpu": 19.8, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 206.7}, {"pid": 3908, "name": "OneDrive.exe", "cpu": 125.7}]}
+{"t": 1787104447.2025032, "sys_cpu": 15.4, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 193.1}]}
+{"t": 1787104452.5962934, "sys_cpu": 14.7, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 213.4}]}
+{"t": 1787104457.9454596, "sys_cpu": 14.4, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 218.3}]}
+{"t": 1787104463.3274326, "sys_cpu": 14.5, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 222.7}]}
+{"t": 1787104468.7248511, "sys_cpu": 13.9, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 218.5}]}
+{"t": 1787104474.1224558, "sys_cpu": 15.0, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 205.8}]}
+{"t": 1787104479.4738147, "sys_cpu": 13.8, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 202.3}]}
+{"t": 1787104484.869917, "sys_cpu": 19.4, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 211.3}, {"pid": 3908, "name": "OneDrive.exe", "cpu": 101.7}]}
+{"t": 1787104490.266148, "sys_cpu": 17.3, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 213.9}, {"pid": 3908, "name": "OneDrive.exe", "cpu": 96.8}]}
+{"t": 1787104495.6630049, "sys_cpu": 13.3, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 196.5}]}
+{"t": 1787104501.031855, "sys_cpu": 15.3, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 216.2}]}
+{"t": 1787104506.4335306, "sys_cpu": 14.0, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 199.7}]}
+{"t": 1787104511.8339822, "sys_cpu": 15.0, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 220.0}]}
+{"t": 1787104517.2449956, "sys_cpu": 13.2, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 216.1}]}
+{"t": 1787104522.5991507, "sys_cpu": 12.7, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 188.9}]}
+{"t": 1787104527.9811676, "sys_cpu": 14.5, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 196.0}]}
+{"t": 1787104533.3652291, "sys_cpu": 18.9, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 204.4}, {"pid": 3908, "name": "OneDrive.exe", "cpu": 89.4}]}
+{"t": 1787104538.7414339, "sys_cpu": 14.5, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 187.2}]}
+{"t": 1787104544.099781, "sys_cpu": 13.9, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 219.5}]}
+{"t": 1787104549.4934838, "sys_cpu": 13.5, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 212.1}]}
+{"t": 1787104554.8916142, "sys_cpu": 14.4, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 214.8}]}
+{"t": 1787104560.3059595, "sys_cpu": 14.3, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 209.2}]}
+{"t": 1787104565.63225, "sys_cpu": 15.1, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 213.2}]}
+{"t": 1787104571.0082717, "sys_cpu": 15.1, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 225.0}]}
+{"t": 1787104576.4084456, "sys_cpu": 15.3, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 217.4}]}
+{"t": 1787104581.7336423, "sys_cpu": 12.2, "hot": [{"pid": 3908, "name": "OneDrive.exe", "cpu": 110.2}]}
+{"t": 1787104587.072046, "sys_cpu": 7.6, "hot": [{"pid": 3908, "name": "OneDrive.exe", "cpu": 83.3}]}
+{"t": 1787104592.3888476, "sys_cpu": 5.2, "hot": []}
+{"t": 1787104597.7017872, "sys_cpu": 4.6, "hot": []}
+{"t": 1787104603.0902548, "sys_cpu": 7.4, "hot": []}
+{"t": 1787104608.4473777, "sys_cpu": 15.0, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 233.0}]}
+{"t": 1787104613.7968326, "sys_cpu": 13.9, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 206.7}]}
+{"t": 1787104619.1815085, "sys_cpu": 15.4, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 216.8}]}
+{"t": 1787104624.6067586, "sys_cpu": 17.2, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 217.3}]}
+{"t": 1787104629.9815505, "sys_cpu": 18.8, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 203.2}, {"pid": 3908, "name": "OneDrive.exe", "cpu": 96.5}]}
+{"t": 1787104635.298909, "sys_cpu": 15.9, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 212.9}]}
+{"t": 1787104640.6893039, "sys_cpu": 14.6, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 217.7}]}
+{"t": 1787104646.0895538, "sys_cpu": 14.8, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 219.0}]}
+{"t": 1787104651.4866416, "sys_cpu": 14.2, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 215.1}]}
+{"t": 1787104656.8124897, "sys_cpu": 13.8, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 207.0}]}
+{"t": 1787104662.2046003, "sys_cpu": 14.6, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 226.9}]}
+{"t": 1787104667.5932605, "sys_cpu": 13.2, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 217.7}]}
+{"t": 1787104672.9880772, "sys_cpu": 14.9, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 211.9}]}
+{"t": 1787104678.3177814, "sys_cpu": 20.6, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 201.7}, {"pid": 3908, "name": "OneDrive.exe", "cpu": 125.8}]}
+{"t": 1787104683.7026093, "sys_cpu": 15.2, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 204.7}]}
+{"t": 1787104689.0998688, "sys_cpu": 13.7, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 208.4}]}
+{"t": 1787104694.4944963, "sys_cpu": 16.3, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 232.8}]}
+{"t": 1787104699.8098905, "sys_cpu": 15.0, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 202.9}]}
+{"t": 1787104705.1920233, "sys_cpu": 14.1, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 217.1}]}
+{"t": 1787104710.597947, "sys_cpu": 14.1, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 215.1}]}
+{"t": 1787104715.9230175, "sys_cpu": 13.0, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 199.1}]}
+{"t": 1787104721.3762012, "sys_cpu": 18.8, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 212.6}]}
+{"t": 1787104726.771454, "sys_cpu": 19.8, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 209.0}, {"pid": 3908, "name": "OneDrive.exe", "cpu": 113.8}]}
+{"t": 1787104732.1560578, "sys_cpu": 13.7, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 184.9}]}
+{"t": 1787104737.5375898, "sys_cpu": 13.4, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 188.1}]}
+{"t": 1787104742.8841267, "sys_cpu": 15.2, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 230.9}]}
+{"t": 1787104748.3024054, "sys_cpu": 15.2, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 223.3}]}
+{"t": 1787104753.6996248, "sys_cpu": 13.7, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 219.4}]}
+{"t": 1787104759.1090133, "sys_cpu": 14.0, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 200.9}]}
+{"t": 1787104764.4550369, "sys_cpu": 14.6, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 220.7}]}
+{"t": 1787104769.8440995, "sys_cpu": 18.2, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 208.1}, {"pid": 3908, "name": "OneDrive.exe", "cpu": 106.1}]}
+{"t": 1787104775.2244794, "sys_cpu": 17.0, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 229.3}]}
+{"t": 1787104780.5793834, "sys_cpu": 13.9, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 207.0}]}
+{"t": 1787104785.9334419, "sys_cpu": 14.5, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 205.2}]}
+{"t": 1787104791.326737, "sys_cpu": 13.7, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 193.9}]}
+{"t": 1787104796.7322211, "sys_cpu": 14.0, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 210.4}]}
+{"t": 1787104802.091703, "sys_cpu": 13.9, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 213.4}]}
+{"t": 1787104807.5096912, "sys_cpu": 18.8, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 192.5}]}
+{"t": 1787104812.9561918, "sys_cpu": 15.0, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 196.9}]}
+{"t": 1787104818.4645472, "sys_cpu": 18.6, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 190.1}, {"pid": 3908, "name": "OneDrive.exe", "cpu": 90.2}]}
+{"t": 1787104823.8489418, "sys_cpu": 18.6, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 217.2}, {"pid": 3908, "name": "OneDrive.exe", "cpu": 109.7}]}
+{"t": 1787104829.2577426, "sys_cpu": 13.6, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 214.5}]}
+{"t": 1787104834.6062844, "sys_cpu": 13.3, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 198.6}]}
+{"t": 1787104839.994629, "sys_cpu": 15.5, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 215.9}]}
+{"t": 1787104845.4132557, "sys_cpu": 15.0, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 209.8}]}
+{"t": 1787104850.8169224, "sys_cpu": 13.1, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 216.5}]}
+{"t": 1787104856.175753, "sys_cpu": 14.2, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 214.0}]}
+{"t": 1787104861.576775, "sys_cpu": 14.8, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 214.5}]}
+{"t": 1787104866.995679, "sys_cpu": 21.2, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 204.9}, {"pid": 3908, "name": "OneDrive.exe", "cpu": 88.1}]}
+{"t": 1787104872.4485314, "sys_cpu": 19.1, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 197.1}, {"pid": 3908, "name": "OneDrive.exe", "cpu": 89.6}]}
+{"t": 1787104877.9040809, "sys_cpu": 14.7, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 193.7}]}
+{"t": 1787104883.399978, "sys_cpu": 17.0, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 212.3}]}
+{"t": 1787104888.8709784, "sys_cpu": 15.0, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 199.1}]}
+{"t": 1787104894.3441784, "sys_cpu": 16.8, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 212.8}]}
+{"t": 1787104899.7848194, "sys_cpu": 16.1, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 206.1}]}
+{"t": 1787104905.2433245, "sys_cpu": 15.5, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 184.8}]}
+{"t": 1787104910.70657, "sys_cpu": 14.5, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 184.8}]}
+{"t": 1787104916.264571, "sys_cpu": 20.9, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 186.7}, {"pid": 3908, "name": "OneDrive.exe", "cpu": 92.6}]}
+{"t": 1787104921.688061, "sys_cpu": 19.7, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 210.3}, {"pid": 3908, "name": "OneDrive.exe", "cpu": 109.0}]}
+{"t": 1787104927.166995, "sys_cpu": 16.0, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 200.3}]}
+{"t": 1787104932.6461327, "sys_cpu": 16.7, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 216.0}]}
+{"t": 1787104938.1069224, "sys_cpu": 15.7, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 185.1}]}
+{"t": 1787104943.5710838, "sys_cpu": 15.2, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 189.7}]}
+{"t": 1787104949.039951, "sys_cpu": 14.6, "hot": [{"pid": 36612, "name": "python.exe", "cpu": 192.6}]}

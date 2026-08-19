@@ -28,7 +28,7 @@
 |---|---|---|---|
 | **GPU** | NVIDIA CUDA **VRAM ≥ 4GB** | VRAM 6GB | ★[V1, 2026-08-19 하향] **GPU 는 병목이 아니다** — 8대에서도 util **최대 42%**. VIGENT 단독 VRAM 실측 **1.4GB**(현행 3슬롯), 카메라당 +5 MiB. ★구 표기 "3.2GB"는 **GPU 총량 오독**이었다(Windows 데스크톱·VS Code 등 포함) → **GTX 1650(4GB)급이면 충분**. **비싼 GPU 는 낭비다** |
 | **동시 카메라** | 1대 | **권장 5대**(한계 7대) | ★[C5, 2026-08-18] Ryzen 9 9900X + RTX 5070 Ti 실측 — `benchmarks/capacity_report.md`. 8대에서 검출 p95 116→309ms 붕괴. 다른 사양은 재측정 필요 |
-| **CPU** | **카메라당 2.03 환산코어 @2fps**(GPU 있음)<br>**4.43**(GPU 없음) | 한계 N = 환산코어 × 0.70 ÷ 2.03 | ★[E1] **여기가 병목이다.** "환산코어" = 기준 CPU(Ryzen 9 9900X, PassMark ST 4,672 / Mark 54,322) 코어 환산 — 계산법은 [`edgebox_purchase_guide.md`](edgebox_purchase_guide.md) §2 |
+| **CPU** | **카메라당 1.55 환산코어 @2fps**(GPU 있음, ★[Q10] ORT 스핀 제거 후 실측)<br>**4.43**(GPU 없음, 스핀 제거 전) | 한계 N = 환산코어 × 0.70 ÷ 1.55 (공식 10.9대 — capacity_probe 재실측 전) | ★[E1] **여기가 병목이다.** "환산코어" = 기준 CPU(Ryzen 9 9900X, PassMark ST 4,672 / Mark 54,322) 코어 환산 — 계산법은 [`edgebox_purchase_guide.md`](edgebox_purchase_guide.md) §2 |
 | **RAM** | 16GB | 32GB | 소크 실측 RSS ≈ 3.2GB + OS·torch |
 | **저장** | SSD 256GB | NVMe 500GB | ★실사용 실측 **≈5.2GB**(site-packages 4.09 + 저장소 0.66 + 가중치 0.35 + 증거 30일 5대 0.1) — **병목 아님** |
 | **OS** | **Windows 10/11** | 동일 | ★현재 배포 경로가 Windows 의존(NSSM 서비스·`cipher /c`·BitLocker 검사·PowerShell). Linux 이식은 가능하나 **미검증** |

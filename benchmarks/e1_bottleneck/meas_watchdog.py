@@ -26,7 +26,19 @@ THRESHOLD = 80.0          # 이 % 를 넘는 외부 프로세스를 '고부하'�
 
 
 def main() -> int:
-    out = Path(sys.argv[1] if len(sys.argv) > 1 else "meas_watchdog.jsonl")
+    # ★[Q10] 파일명 미지정 시 타임스탬프로 고유화 — 2026-08-19 Q9 측정에서 감시자 2개가
+    #   같은 기본 파일명에 쓰는 바람에 기준선 구간의 감시 로그를 잃었다(덮어쓰기).
+    #   명시 지정한 파일명도 이미 존재하면 덮어쓰지 않고 타임스탬프를 덧붙인다.
+    import datetime
+    _ts = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+    if len(sys.argv) > 1:
+        out = Path(sys.argv[1])
+        if out.exists():
+            out = out.with_name(f"{out.stem}_{_ts}{out.suffix}")
+            print(f"[감시] 기존 파일 보존 — 새 파일로 기록: {out.name}", flush=True)
+    else:
+        out = Path(f"meas_watchdog_{_ts}.jsonl")
+    print(f"[감시] 기록 파일: {out}", flush=True)
     interval = float(sys.argv[2]) if len(sys.argv) > 2 else 5.0
     procs = {}
     for p in psutil.process_iter(["pid", "name"]):
