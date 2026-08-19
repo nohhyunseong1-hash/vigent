@@ -1,0 +1,267 @@
+[
+ {
+  "video": "KakaoTalk_20260819_144429663.mp4",
+  "cid": "site1",
+  "loop_s": 61.0,
+  "samples": 1857,
+  "slot": {
+   "person": {
+    "total": 322,
+    "per_frame": 0.17,
+    "mean_conf": 0.694,
+    "min_conf": 0.289
+   },
+   "ppe": {
+    "total": 401,
+    "per_frame": 0.22,
+    "mean_conf": 0.604,
+    "min_conf": 0.35
+   },
+   "fire_smoke": {
+    "total": 242,
+    "per_frame": 0.13,
+    "mean_conf": 0.604,
+    "min_conf": 0.305
+   },
+   "other": {
+    "total": 31,
+    "per_frame": 0.02,
+    "mean_conf": 0.325,
+    "min_conf": 0.28
+   },
+   "person_empty_spans_s": [
+    [
+     55.8,
+     132.9
+    ],
+    [
+     134.9,
+     137.4
+    ],
+    [
+     138.8,
+     426.8
+    ],
+    [
+     427.8,
+     484.9
+    ],
+    [
+     489.0,
+     498.9
+    ],
+    [
+     500.0,
+     653.6
+    ],
+    [
+     654.6,
+     691.8
+    ],
+    [
+     692.8,
+     700.2
+    ],
+    [
+     701.4,
+     735.9
+    ],
+    [
+     738.4,
+     743.9
+    ],
+    [
+     744.9,
+     746.4
+    ],
+    [
+     749.3,
+     756.4
+    ],
+    [
+     801.9,
+     812.5
+    ],
+    [
+     814.0,
+     854.9
+    ],
+    [
+     863.5,
+     882.0
+    ],
+    [
+     883.2,
+     898.5
+    ],
+    [
+     900.1,
+     914.6
+    ],
+    [
+     922.6,
+     924.2
+    ]
+   ]
+  },
+  "tracking": {
+   "unique_tids": 21,
+   "id_switches": 4,
+   "id_switches_loop_boundary": 0,
+   "fragmented": 3,
+   "reid_ok": 13,
+   "reid_rate_pct": 81.2
+  },
+  "health": [
+   {
+    "t": 8.0,
+    "overall": "healthy",
+    "lat": 110.8,
+    "st": "ok"
+   },
+   {
+    "t": 53.2,
+    "overall": "healthy",
+    "lat": 83.4,
+    "st": "ok"
+   },
+   {
+    "t": 98.2,
+    "overall": "healthy",
+    "lat": 81.0,
+    "st": "ok"
+   },
+   {
+    "t": 143.4,
+    "overall": "healthy",
+    "lat": 82.9,
+    "st": "ok"
+   },
+   {
+    "t": 188.4,
+    "overall": "healthy",
+    "lat": 83.8,
+    "st": "ok"
+   },
+   {
+    "t": 233.6,
+    "overall": "healthy",
+    "lat": 83.2,
+    "st": "ok"
+   },
+   {
+    "t": 278.8,
+    "overall": "healthy",
+    "lat": 106.9,
+    "st": "ok"
+   },
+   {
+    "t": 324.0,
+    "overall": "healthy",
+    "lat": 109.4,
+    "st": "ok"
+   },
+   {
+    "t": 369.1,
+    "overall": "healthy",
+    "lat": 108.3,
+    "st": "ok"
+   },
+   {
+    "t": 414.2,
+    "overall": "healthy",
+    "lat": 104.6,
+    "st": "ok"
+   },
+   {
+    "t": 459.2,
+    "overall": "healthy",
+    "lat": 74.9,
+    "st": "ok"
+   },
+   {
+    "t": 504.3,
+    "overall": "healthy",
+    "lat": 83.6,
+    "st": "ok"
+   },
+   {
+    "t": 549.4,
+    "overall": "healthy",
+    "lat": 122.5,
+    "st": "ok"
+   },
+   {
+    "t": 594.4,
+    "overall": "healthy",
+    "lat": 102.0,
+    "st": "ok"
+   },
+   {
+    "t": 639.5,
+    "overall": "healthy",
+    "lat": 85.0,
+    "st": "ok"
+   },
+   {
+    "t": 684.6,
+    "overall": "healthy",
+    "lat": 75.5,
+    "st": "ok"
+   },
+   {
+    "t": 729.7,
+    "overall": "healthy",
+    "lat": 83.6,
+    "st": "ok"
+   },
+   {
+    "t": 774.9,
+    "overall": "healthy",
+    "lat": 85.6,
+    "st": "ok"
+   },
+   {
+    "t": 820.1,
+    "overall": "healthy",
+    "lat": 79.0,
+    "st": "ok"
+   },
+   {
+    "t": 865.3,
+    "overall": "healthy",
+    "lat": 79.8,
+    "st": "ok"
+   },
+   {
+    "t": 910.5,
+    "overall": "healthy",
+    "lat": 89.5,
+    "st": "ok"
+   }
+  ],
+  "lat_list": [
+   110.8,
+   83.4,
+   81.0,
+   82.9,
+   83.8,
+   83.2,
+   106.9,
+   109.4,
+   108.3,
+   104.6,
+   74.9,
+   83.6,
+   122.5,
+   102.0,
+   85.0,
+   75.5,
+   83.6,
+   85.6,
+   79.0,
+   79.8,
+   89.5
+  ]
+ }
+]
