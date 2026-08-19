@@ -55,6 +55,14 @@ files = [
     "vigent-core/main.py",
 ]
 
+
+# [G1, 2026-08-19] ultralytics 는 측정용으로 이 PC 에만 설치됨(대결 실측). 설치되면 실타입이
+# 유입돼 기존 무타입 가정(ignore_missing_imports)이 깨진다 — 프로젝트 방침(서드파티 스텁
+# 미도입)대로 추적을 끊어 설치 유무와 무관하게 mypy 결과를 동일하게 유지한다.
+[[tool.mypy.overrides]]
+module = "ultralytics.*"
+follow_imports = "skip"
+
 # 완전 타입 강제 — 비핸들러 모듈만(미힌트 함수를 에러로). 힌트 보강이 실질이 되도록.
 [[tool.mypy.overrides]]
 module = [

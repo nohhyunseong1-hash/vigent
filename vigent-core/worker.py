@@ -87,8 +87,13 @@ def _point_in_poly(x: float, y: float, poly: list) -> bool:
 def _default_detectors() -> list[str]:
     """워커 기본 검출기 — 안전 테마 person+ppe+fire_smoke.
     forklift 는 F-7(과소학습 오탐, conf~0.002)로 **기본 제외**. 모델 개선 후
-    tuning detect.include_forklift=1(또는 env VIGENT_INCLUDE_FORKLIFT=1)로 명시 재활성 가능."""
-    base = ["person", "ppe", "fire_smoke"]
+    tuning detect.include_forklift=1(또는 env VIGENT_INCLUDE_FORKLIFT=1)로 명시 재활성 가능.
+    [G1, 2026-08-19] fire_smoke 도 현장 프로파일에서 뺄 수 있게 스위치 추가 —
+    기본 1(포함, 현행 무변경). 학원 실습장처럼 화재 감시가 계약 범위 밖이고
+    배경 오탐 리스크(프레스 현장 실측)가 있는 현장은 0 으로 끈다."""
+    base = ["person", "ppe"]
+    if tuning.val("detect", "include_fire_smoke", 1, env="VIGENT_INCLUDE_FIRE_SMOKE"):
+        base.append("fire_smoke")
     if tuning.val("detect", "include_forklift", 0, env="VIGENT_INCLUDE_FORKLIFT"):
         base.append("forklift")
     return base
