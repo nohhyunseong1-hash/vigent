@@ -1,0 +1,165 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1680 1180" width="1680" height="1180" font-family="Pretendard, 'Malgun Gothic', 'Apple SD Gothic Neo', sans-serif">
+  <rect width="1680" height="1180" fill="#F7F7F5"/>
+
+  <!-- ── 헤더 ── -->
+  <rect x="40" y="32" width="1600" height="108" rx="12" fill="#1F2933"/>
+  <text x="68" y="76" fill="#FFFFFF" font-size="30" font-weight="700">VIGENT 상용화 준비 현황</text>
+  <text x="68" y="110" fill="#9AA5B1" font-size="16">2026-08-08 · 실측 근거 기준 · 브랜치 fix/review-bugs</text>
+  <rect x="980" y="52" width="632" height="68" rx="8" fill="#2B3A46"/>
+  <text x="1004" y="80" fill="#FFD166" font-size="17" font-weight="700">필드 검증(A등급) 기능: 0개</text>
+  <text x="1004" y="105" fill="#CBD2D9" font-size="14">지금 상태로 상용 계약 불가 · 최소 파일럿도 외부 블로커 2개</text>
+
+  <!-- ── 즉시 조치 ── -->
+  <rect x="40" y="164" width="1600" height="104" rx="12" fill="#FEE2E2" stroke="#DC2626" stroke-width="2.5"/>
+  <text x="68" y="200" fill="#991B1B" font-size="20" font-weight="700">🔴 지금 당장 — main 브랜치에 미패치 P0 보안 취약점</text>
+  <text x="68" y="228" fill="#7F1D1D" font-size="15">/tapo/ws WebSocket 인증 우회 — 토큰 없이 실시간 카메라 영상 열람 가능. 외부 노출이 main 기준이면 현재도 뚫린 상태.</text>
+  <text x="68" y="252" fill="#7F1D1D" font-size="15">수정 커밋 9413d28(8/5)은 fix/review-bugs 에만 존재 → <tspan font-weight="700">fix/review-bugs → main 머지 결정이 최우선</tspan></text>
+
+  <!-- ── 도메인별 관문 ── -->
+  <text x="40" y="312" fill="#1F2933" font-size="20" font-weight="700">상용화 전 필수 관문</text>
+
+  <!-- card 1 -->
+  <rect x="40" y="330" width="310" height="150" rx="10" fill="#FFFFFF" stroke="#D9E2EC" stroke-width="1.5"/>
+  <circle cx="66" cy="360" r="8" fill="#059669"/>
+  <text x="84" y="366" fill="#1F2933" font-size="17" font-weight="700">1. 라이선스</text>
+  <text x="66" y="394" fill="#059669" font-size="14" font-weight="700">완료</text>
+  <text x="66" y="420" fill="#52606D" font-size="13">AGPL(ultralytics) 완전 제거</text>
+  <text x="66" y="440" fill="#52606D" font-size="13">4개 검출 슬롯 전부 Apache-2.0</text>
+  <text x="66" y="460" fill="#52606D" font-size="13">(RF-DETR) 이관 — 남은 항목 없음</text>
+
+  <!-- card 2 -->
+  <rect x="366" y="330" width="310" height="150" rx="10" fill="#FFFFFF" stroke="#D9E2EC" stroke-width="1.5"/>
+  <circle cx="392" cy="360" r="8" fill="#F59E0B"/>
+  <text x="410" y="366" fill="#1F2933" font-size="17" font-weight="700">2. 보안</text>
+  <text x="392" y="394" fill="#B45309" font-size="14" font-weight="700">대부분 해소 · 반영 필요</text>
+  <text x="392" y="420" fill="#52606D" font-size="13">P0: 코드 수정됨 / main 미반영</text>
+  <text x="392" y="440" fill="#52606D" font-size="13">P1 4건 미착수 (전부 작업량 S)</text>
+  <text x="392" y="460" fill="#52606D" font-size="13">LOTO 레이스는 기능 제거로 해소</text>
+
+  <!-- card 3 -->
+  <rect x="692" y="330" width="310" height="150" rx="10" fill="#FFFFFF" stroke="#D9E2EC" stroke-width="1.5"/>
+  <circle cx="718" cy="360" r="8" fill="#EAB308"/>
+  <text x="736" y="366" fill="#1F2933" font-size="17" font-weight="700">3. 개인정보</text>
+  <text x="718" y="394" fill="#A16207" font-size="14" font-weight="700">정책만 · 기술통제 0</text>
+  <text x="718" y="420" fill="#52606D" font-size="13">얼굴 블러 · 보관기간 자동파기 ·</text>
+  <text x="718" y="440" fill="#52606D" font-size="13">저장 암호화 — 셋 다 미구현</text>
+  <text x="718" y="460" fill="#52606D" font-size="13">고지·동의·노사협의 미착수</text>
+
+  <!-- card 4 -->
+  <rect x="1018" y="330" width="310" height="150" rx="10" fill="#FFFFFF" stroke="#D9E2EC" stroke-width="1.5"/>
+  <circle cx="1044" cy="360" r="8" fill="#F59E0B"/>
+  <text x="1062" y="366" fill="#1F2933" font-size="17" font-weight="700">5. 제품 분리</text>
+  <text x="1044" y="394" fill="#B45309" font-size="14" font-weight="700">부분 해소</text>
+  <text x="1044" y="420" fill="#52606D" font-size="13">라우트는 404로 차단됨</text>
+  <text x="1044" y="440" fill="#52606D" font-size="13">office/sports 코드가 main.py 에</text>
+  <text x="1044" y="460" fill="#52606D" font-size="13">물려 있어 클린 빌드 불가</text>
+
+  <!-- card 5 -->
+  <rect x="1344" y="330" width="296" height="150" rx="10" fill="#FFFFFF" stroke="#DC2626" stroke-width="2"/>
+  <circle cx="1370" cy="360" r="8" fill="#DC2626"/>
+  <text x="1388" y="366" fill="#1F2933" font-size="17" font-weight="700">6. 인프라</text>
+  <text x="1370" y="394" fill="#991B1B" font-size="14" font-weight="700">GPU 없음 — 착수 불가</text>
+  <text x="1370" y="420" fill="#52606D" font-size="13">현재 CPU/MPS만. 타일링이</text>
+  <text x="1370" y="440" fill="#52606D" font-size="13">CPU에서 +415ms/프레임</text>
+  <text x="1370" y="460" fill="#52606D" font-size="13">다중카메라 실시간 불가</text>
+
+  <!-- card 6 (안정성) -->
+  <rect x="40" y="496" width="310" height="150" rx="10" fill="#FFFFFF" stroke="#D9E2EC" stroke-width="1.5"/>
+  <circle cx="66" cy="526" r="8" fill="#059669"/>
+  <text x="84" y="532" fill="#1F2933" font-size="17" font-weight="700">7. 안정성</text>
+  <text x="66" y="560" fill="#059669" font-size="14" font-weight="700">코드 실증 완료</text>
+  <text x="66" y="586" fill="#52606D" font-size="13">워커 감독자·hang 감지·RTSP</text>
+  <text x="66" y="606" fill="#52606D" font-size="13">재연결·전역 예외처리 구현</text>
+  <text x="66" y="626" fill="#52606D" font-size="13">24h 실카메라 소크만 미실행</text>
+
+  <!-- 정확도 블록 -->
+  <rect x="366" y="496" width="962" height="150" rx="10" fill="#FFFFFF" stroke="#D9E2EC" stroke-width="1.5"/>
+  <circle cx="392" cy="526" r="8" fill="#059669"/>
+  <text x="410" y="532" fill="#1F2933" font-size="17" font-weight="700">4. 정확도 실측 — 오늘 진전, 핵심 약점은 그대로</text>
+  <text x="392" y="562" fill="#52606D" font-size="13">field_eval 109장(실제 사고영상) · 사람 전수 검수 정답지 525건 기준</text>
+
+  <text x="392" y="596" fill="#7B8794" font-size="12">클래스</text>
+  <text x="560" y="596" fill="#7B8794" font-size="12">현장 재현율</text>
+  <text x="700" y="596" fill="#7B8794" font-size="12">공개셋 대조</text>
+  <text x="860" y="596" fill="#7B8794" font-size="12">판정</text>
+
+  <text x="392" y="620" fill="#1F2933" font-size="13">person</text>
+  <text x="560" y="620" fill="#1F2933" font-size="13">56.7%</text>
+  <text x="700" y="620" fill="#059669" font-size="13">98.6%</text>
+  <text x="860" y="620" fill="#52606D" font-size="13">영상 열화 쪽에 무게</text>
+
+  <text x="392" y="640" fill="#1F2933" font-size="13">Hardhat(착용)</text>
+  <text x="560" y="640" fill="#1F2933" font-size="13">84.4%</text>
+  <text x="700" y="640" fill="#059669" font-size="13">91.1%</text>
+  <text x="860" y="640" fill="#52606D" font-size="13">정합 · 준수</text>
+
+  <!-- NO-Hardhat 강조 카드 -->
+  <rect x="1344" y="496" width="296" height="150" rx="10" fill="#FEF2F2" stroke="#DC2626" stroke-width="2.5"/>
+  <text x="1370" y="528" fill="#991B1B" font-size="16" font-weight="700">★ 최대 약점</text>
+  <text x="1370" y="562" fill="#DC2626" font-size="30" font-weight="700">NO-Hardhat 36.1%</text>
+  <text x="1370" y="590" fill="#7F1D1D" font-size="13">안전모 미착용 3명 중 2명 놓침</text>
+  <text x="1370" y="612" fill="#7F1D1D" font-size="13">안전상 가장 중요한 클래스</text>
+  <text x="1370" y="634" fill="#7F1D1D" font-size="13">공개셋은 라벨 오염으로 평가 불가</text>
+
+  <!-- 팔 수 있는 것 -->
+  <rect x="40" y="666" width="1600" height="92" rx="10" fill="#FFF7ED" stroke="#F59E0B" stroke-width="2"/>
+  <text x="68" y="700" fill="#92400E" font-size="18" font-weight="700">안전 감시 3대 시나리오 중 지금 팔 수 있는 것은 1개뿐</text>
+  <text x="68" y="730" fill="#78350F" font-size="15">PPE 미착용 → NO-Hardhat 36.1%로 주장 불가 &#160;&#160;|&#160;&#160; 협착(forklift) → 검출기 비활성 &#160;&#160;|&#160;&#160; 낙상 → 기능 자체 제거</text>
+  <text x="68" y="750" fill="#92400E" font-size="15" font-weight="700">→ 방어 가능한 유일한 경로: &#8220;위험구역 침입 경보&#8221; 단일 기능 파일럿</text>
+
+  <!-- 파일럿 경로 -->
+  <text x="40" y="800" fill="#1F2933" font-size="20" font-weight="700">최소 파일럿까지의 경로</text>
+
+  <g font-size="13">
+    <rect x="40" y="818" width="228" height="118" rx="10" fill="#FFFFFF" stroke="#334E68" stroke-width="1.5"/>
+    <text x="60" y="846" fill="#334E68" font-size="15" font-weight="700">1 · 즉시</text>
+    <text x="60" y="872" fill="#1F2933">fix/review-bugs → main</text>
+    <text x="60" y="892" fill="#52606D">P0 보안수정 반영</text>
+    <text x="60" y="918" fill="#7B8794">사내 · 기술</text>
+
+    <rect x="284" y="818" width="228" height="118" rx="10" fill="#FFFFFF" stroke="#334E68" stroke-width="1.5"/>
+    <text x="304" y="846" fill="#334E68" font-size="15" font-weight="700">2 · 수일</text>
+    <text x="304" y="872" fill="#1F2933">P1 보안·버그 4건</text>
+    <text x="304" y="892" fill="#52606D">전부 작업량 S</text>
+    <text x="304" y="918" fill="#7B8794">사내 · 기술</text>
+
+    <rect x="528" y="818" width="228" height="118" rx="10" fill="#FEE2E2" stroke="#DC2626" stroke-width="2.5"/>
+    <text x="548" y="846" fill="#991B1B" font-size="15" font-weight="700">3 · 1~2주 ★블로커</text>
+    <text x="548" y="872" fill="#1F2933">zone-tile 현장 오탐 실측</text>
+    <text x="548" y="892" fill="#7F1D1D">최대 블로커 · 미실측</text>
+    <text x="548" y="918" fill="#991B1B" font-weight="700">현장 카메라 접근 필요</text>
+
+    <rect x="772" y="818" width="228" height="118" rx="10" fill="#FEE2E2" stroke="#DC2626" stroke-width="2.5"/>
+    <text x="792" y="846" fill="#991B1B" font-size="15" font-weight="700">4 · 며칠~1주 ★블로커</text>
+    <text x="792" y="872" fill="#1F2933">GPU 1대 + 24h 소크</text>
+    <text x="792" y="892" fill="#7F1D1D">체크리스트는 준비됨</text>
+    <text x="792" y="918" fill="#991B1B" font-weight="700">외부 조달 필요</text>
+
+    <rect x="1016" y="818" width="228" height="118" rx="10" fill="#FFFFFF" stroke="#334E68" stroke-width="1.5"/>
+    <text x="1036" y="846" fill="#334E68" font-size="15" font-weight="700">5 · 며칠+법무</text>
+    <text x="1036" y="872" fill="#1F2933">얼굴 블러 · 보관파기</text>
+    <text x="1036" y="892" fill="#52606D">고지·동의·노사협의</text>
+    <text x="1036" y="918" fill="#7B8794">기술 + 법무</text>
+
+    <rect x="1260" y="818" width="228" height="118" rx="10" fill="#FFFFFF" stroke="#334E68" stroke-width="1.5"/>
+    <text x="1280" y="846" fill="#334E68" font-size="15" font-weight="700">6 · 법무</text>
+    <text x="1280" y="872" fill="#1F2933">파일럿 계약서</text>
+    <text x="1280" y="892" fill="#52606D">면책·데이터 조항</text>
+    <text x="1280" y="918" fill="#7B8794">법무</text>
+
+    <rect x="1504" y="818" width="136" height="118" rx="10" fill="#F0F4F8" stroke="#BCCCDC" stroke-width="1.5"/>
+    <text x="1524" y="846" fill="#627D98" font-size="15" font-weight="700">7 · 이후</text>
+    <text x="1524" y="872" fill="#627D98">NO-Hardhat 재학습</text>
+    <text x="1524" y="892" fill="#627D98">forklift 복원</text>
+    <text x="1524" y="912" fill="#627D98">E-1 코드분리</text>
+    <text x="1524" y="930" fill="#9AA5B1" font-size="12">파일럿엔 불필요</text>
+  </g>
+
+  <!-- 결론 -->
+  <rect x="40" y="960" width="1600" height="180" rx="12" fill="#1F2933"/>
+  <text x="68" y="998" fill="#FFFFFF" font-size="19" font-weight="700">결론</text>
+  <text x="68" y="1032" fill="#E4E7EB" font-size="15">1~6이 &#8220;위험구역 침입 경보&#8221; 단일기능 최소 파일럿의 관문이다. 이걸 통과해야 PPE·협착을 포함한 완전 상용화 논의가 의미를 갖는다.</text>
+  <text x="68" y="1060" fill="#FFD166" font-size="15" font-weight="700">사내에서 끝낼 수 없는 블로커 2개: (3) 현장 카메라 접근 · (4) GPU 조달 — 이 둘이 일정의 하한을 정한다.</text>
+  <text x="68" y="1094" fill="#9AA5B1" font-size="13">오늘 얻은 것: field_eval 109장 정답지 완성(525건) · 공개셋 대조로 person·Hardhat 저조가 &#8220;영상 열화&#8221; 쪽이라는 첫 정량 근거</text>
+  <text x="68" y="1118" fill="#9AA5B1" font-size="13">아직 모르는 것: NO-Hardhat 저조의 원인(공개셋 라벨 오염으로 평가 불가) · NO-Safety-Vest 역전(현장 63.0% &gt; 공개셋 34.5%)의 이유</text>
+</svg>
