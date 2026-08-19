@@ -24,6 +24,17 @@ class RtmPoseDetector:
         # Body = RTMDet(사람검출) + RTMPose(포즈), to_openpose=False → COCO-17 출력.
         self._body = Body(mode=mode, backend=backend, device=device)
         self._mode, self._device = mode, device
+        # [Q9] rtmlib 은 SessionOptions 주입 경로가 없다(tools/base.py 가 providers 만 넘김)
+        #   → ORT 기본값(intra_op=코어수·스핀 켜짐)으로 CPU 를 크게 태운다(실측 0.82코어).
+        #   기본 off. onnxruntime.tune_sessions 를 켰을 때만 같은 모델로 세션을 재구성한다.
+        try:
+            import sys
+            from pathlib import Path as _P
+            sys.path.insert(0, str(_P(__file__).resolve().parent.parent))
+            import ort_tune
+            ort_tune.retune(self._body)
+        except Exception:  # noqa: BLE001  튜닝 실패는 기능에 영향 없음(기존 세션 유지)
+            pass
 
     def persons(self, frame, bboxes: Any = None) -> list[tuple[np.ndarray, np.ndarray]]:
         """프레임 → 사람별 (kp_xy[17,2] px, kp_cf[17]). 사람 없으면 [].

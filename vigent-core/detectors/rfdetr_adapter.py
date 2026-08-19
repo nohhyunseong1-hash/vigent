@@ -67,7 +67,18 @@ class _OnnxRfdetrModel:
         import onnxruntime as ort
         from rfdetr.models.postprocess import PostProcess
 
-        self._session = ort.InferenceSession(str(onnx_path), providers=["CPUExecutionProvider"])
+        # [Q9] SessionOptions 미지정 시 ORT 기본값(intra_op=코어수·스핀 켜짐)이라 CPU 를
+        #   과하게 쓴다. 기본 off — onnxruntime.tune_sessions 를 켰을 때만 튜닝값을 넘긴다.
+        _so = None
+        try:
+            import ort_tune
+            _so = ort_tune.session_options()
+        except Exception:  # noqa: BLE001
+            _so = None
+        self._session = (ort.InferenceSession(str(onnx_path), sess_options=_so,
+                                              providers=["CPUExecutionProvider"])
+                         if _so is not None else
+                         ort.InferenceSession(str(onnx_path), providers=["CPUExecutionProvider"]))
         self._input_name = self._session.get_inputs()[0].name
         self._postprocess = PostProcess(num_select=_ONNX_NUM_SELECT)
 

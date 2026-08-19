@@ -142,6 +142,17 @@ zone:                       # [B6] 위험구역 침입 판정 디바운스 (guar
     # 직하방·고각 카메라는 박스 하단이 발이 아니라 어깨·머리 쪽이라 center 가 나을 수 있다
     # (docs/camera_requirements.md 설치각 조항). 현장에서 오탐 양상 보고 선택할 것.
 
+onnxruntime:                # [Q9] ORT 세션 옵션 — ★기본 off(켜야만 적용, 규칙6)
+  tune_sessions: false      # true 면 스핀 비활성 + intra_op 스레드 제한을 적용한다.
+    # 근거(실측 benchmarks/v1_slot_config_report.md §5-2): ORT 는 SessionOptions 를 안 주면
+    # intra_op 스레드 = 코어 수 + 스핀(busy-wait) 켜짐이 기본이다. pose(RTMPose)는 실연산이
+    # 호출당 7.3ms 뿐인데 CPU 를 0.82코어 태웠고, 옵션만 바꾸니 0.09코어(-89%)가 됐다.
+    # 지연은 7.3 → 12.3ms 로 늘어난다(검출 주기 0.5s 예산 대비 2.5% — 영향 미미).
+    # 적용 대상: pose(rtmlib 세션 재구성) + 검출 onnx-cpu 백엔드(SessionOptions 주입).
+    # 환경변수 VIGENT_ORT_TUNE=1 로도 켤 수 있다(재기동 필요).
+  intra_op_threads: 4       # 실측 균형점. 1이면 CPU 최소(0.05코어)지만 지연 +3ms
+  allow_spinning: false     # 스핀 허용 여부(이 기능의 목적이 끄는 것이라 기본 false)
+
 alerts:                     # [B5] 경보 전송 내구 큐(alert_queue.py — sqlite, 선기록 후전송)
   max_attempts: 10          # 이 횟수 실패하면 데드레터(dead) 표시 — 조용히 사라지지 않게
   backoff_cap_s: 60         # 지수 백오프 상한(1,2,4,…60초). 순단 복구 후 순서대로 재전송된다
