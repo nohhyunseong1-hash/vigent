@@ -66,7 +66,8 @@ from routers import tbm as _tbm_router  # noqa: E402
 from routers import zone as _zone_router  # noqa: E402
 
 # 공유 웹 헬퍼는 web_util.py 로 분리(P1-7) — 동일 이름 re-import(사용부 무변경)
-from web_util import (  # noqa: E402  # noqa: E402
+from web_util import (  # noqa: E402
+    json_charset_header,
     product_version,
 )
 
@@ -240,6 +241,16 @@ async def _auth_guard(request, call_next):
                     return RedirectResponse(f"/login?next={nxt}", status_code=303)
                 return JSONResponse({"detail": "unauthorized"}, status_code=401)
     return await call_next(request)
+
+
+@app.middleware("http")
+async def _json_utf8_charset(request, call_next):
+    """JSON 응답에 charset=utf-8 을 명시한다(B-enc). 근거·배경은 web_util.json_charset_header."""
+    resp = await call_next(request)
+    fixed = json_charset_header(resp.headers.get("content-type", ""))
+    if fixed:
+        resp.headers["content-type"] = fixed
+    return resp
 
 
 @app.middleware("http")
