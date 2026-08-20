@@ -1,0 +1,126 @@
+{
+  "measured_at": "2026-06-22T09:33:21",
+  "angle_accuracy": {
+    "cases": [
+      {
+        "truth": 0,
+        "neck_calc": 0.0,
+        "shoulder_calc": 0.0,
+        "err_neck": 0.0,
+        "err_shoulder": 0.0
+      },
+      {
+        "truth": 5,
+        "neck_calc": 5.0,
+        "shoulder_calc": 5.0,
+        "err_neck": 0.0,
+        "err_shoulder": 0.0
+      },
+      {
+        "truth": 10,
+        "neck_calc": 10.0,
+        "shoulder_calc": 10.0,
+        "err_neck": 0.0,
+        "err_shoulder": 0.0
+      },
+      {
+        "truth": 15,
+        "neck_calc": 15.0,
+        "shoulder_calc": 15.0,
+        "err_neck": 0.0,
+        "err_shoulder": 0.0
+      },
+      {
+        "truth": 20,
+        "neck_calc": 20.0,
+        "shoulder_calc": 20.0,
+        "err_neck": 0.0,
+        "err_shoulder": 0.0
+      },
+      {
+        "truth": 25,
+        "neck_calc": 25.0,
+        "shoulder_calc": 25.0,
+        "err_neck": 0.0,
+        "err_shoulder": 0.0
+      },
+      {
+        "truth": 30,
+        "neck_calc": 30.0,
+        "shoulder_calc": 30.0,
+        "err_neck": 0.0,
+        "err_shoulder": 0.0
+      },
+      {
+        "truth": 40,
+        "neck_calc": 40.0,
+        "shoulder_calc": 40.0,
+        "err_neck": 0.0,
+        "err_shoulder": 0.0
+      },
+      {
+        "truth": 50,
+        "neck_calc": 50.0,
+        "shoulder_calc": 50.0,
+        "err_neck": 0.0,
+        "err_shoulder": 0.0
+      },
+      {
+        "truth": 60,
+        "neck_calc": 60.0,
+        "shoulder_calc": 60.0,
+        "err_neck": 0.0,
+        "err_shoulder": 0.0
+      }
+    ],
+    "mean_abs_error_deg": 0.0,
+    "within_tol_pct": 100.0,
+    "tol_deg": 1.0,
+    "pass": true
+  },
+  "level_classification": {
+    "rows": [
+      {
+        "angle": 10,
+        "expected": "good",
+        "got": "good",
+        "ok": true
+      },
+      {
+        "angle": 15,
+        "expected": "good",
+        "got": "good",
+        "ok": true
+      },
+      {
+        "angle": 20,
+        "expected": "warn",
+        "got": "warn",
+        "ok": true
+      },
+      {
+        "angle": 25,
+        "expected": "warn",
+        "got": "warn",
+        "ok": true
+      },
+      {
+        "angle": 30,
+        "expected": "bad",
+        "got": "bad",
+        "ok": true
+      },
+      {
+        "angle": 45,
+        "expected": "bad",
+        "got": "bad",
+        "ok": true
+      }
+    ],
+    "pass": true
+  },
+  "pose_detection": {
+    "skipped": "이 환경 mediapipe 는 Tasks 전용(브라우저 엔진과 별개). 각도 정확도는 ①②로 검증됨",
+    "detect_rate_pct": null
+  }
+}

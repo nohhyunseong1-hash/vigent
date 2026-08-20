@@ -1,0 +1,19 @@
+{
+  "dataset": "office",
+  "split": "valid",
+  "target": "person",
+  "images": 204,
+  "gt_boxes": 344,
+  "pred_boxes": 245,
+  "conf_threshold": 0.4,
+  "device": "mps",
+  "ms_per_image": 29.2,
+  "precision@50": 0.6816,
+  "recall@50": 0.4855,
+  "f1@50": 0.5671,
+  "mAP@50": 0.4063,
+  "mAP@50-95": 0.193,
+  "kisa_gate": 0.9,
+  "kisa_pass": false,
+  "measured_at": "2026-06-21T00:15:19"
+}

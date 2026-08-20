@@ -1,0 +1,45 @@
+{
+  "dataset": "office",
+  "target": "person",
+  "images": 100,
+  "measured_at": "2026-06-21T00:21:24",
+  "results": [
+    {
+      "model": "rf-detr-nano",
+      "images": 100,
+      "precision": 0.6074,
+      "recall": 0.5077,
+      "f1": 0.5531,
+      "mAP50": 0.4256,
+      "ms_per_image": 30.3,
+      "device": "mps",
+      "kisa_pass": false,
+      "elapsed_s": 8.6
+    },
+    {
+      "model": "rf-detr-small",
+      "images": 100,
+      "precision": 0.5714,
+      "recall": 0.4923,
+      "f1": 0.5289,
+      "mAP50": 0.4119,
+      "ms_per_image": 47.3,
+      "device": "mps",
+      "kisa_pass": false,
+      "elapsed_s": 52.7
+    },
+    {
+      "model": "rf-detr-medium",
+      "images": 100,
+      "precision": 0.5893,
+      "recall": 0.5077,
+      "f1": 0.5455,
+      "mAP50": 0.4233,
+      "ms_per_image": 64.9,
+      "device": "mps",
+      "kisa_pass": false,
+      "elapsed_s": 64.3
+    }
+  ],
+  "best_f1": "rf-detr-nano"
+}
