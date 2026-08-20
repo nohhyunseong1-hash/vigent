@@ -151,5 +151,81 @@ class TestCooldownIndependence(_QueueTest):
         self.assertEqual([r["id"] for r in rows], sorted(r["id"] for r in rows))   # 순서 보존
 
 
+class TestLogOnlyLevelNotRetriedForever(_QueueTest):
+    """[2026-08-21] 원격 채널이 없는 등급이 영원히 재시도되다 데드레터가 되던 결함.
+
+    실측 경위: worker 가 rapid_motion·crowd_density 를 level="mid" 로 발화하는데
+    dispatch 기본 배선 `on_severity` 에는 "mid" 가 없어(있는 것은 "medium") log 전용으로
+    폴백한다. 그런데 큐에는 들어가므로 delivered=False 가 계속되고 10회 재시도 후
+    **dead**. 그 사이 pending 때문에 `/health` 가 **degraded** 로 떨어졌다.
+    """
+
+    def test_result_without_remote_channel_is_terminal(self):
+        """★로그 채널만 있는 결과는 '전달 완료'로 종결한다 — 재시도하지 않는다."""
+        def log_only(level, message, meta):
+            return {"delivered": False, "level": level,
+                    "results": [{"channel": "log", "sent": True, "text": message}]}
+        q.set_sender(log_only)
+        rid = q.enqueue("mid", "급격한 이동 감지", None)
+        self.assertTrue(q.try_send(dict(q.due()[0])), "종결 처리되지 않았다")
+        c = q.counts()
+        self.assertEqual(c["pending"], 0, "pending 이 남아 degraded 를 유발한다")
+        self.assertEqual(c["dead"], 0)
+        self.assertEqual(c["sent"], 1)
+        self.assertIsInstance(rid, int)
+
+    def test_relay_only_result_is_also_terminal(self):
+        """safety_relay_signal 만 있는 결과도 원격 전송이 아니므로 종결 대상이다."""
+        def relay_only(level, message, meta):
+            return {"delivered": False,
+                    "results": [{"channel": "safety_relay_signal", "sent": True},
+                                {"channel": "log", "sent": True}]}
+        q.set_sender(relay_only)
+        q.enqueue("critical", "프레스 우회", None)
+        q.try_send(dict(q.due()[0]))
+        self.assertEqual(q.counts()["pending"], 0)
+
+    def test_real_remote_failure_still_retries(self):
+        """★반대로 원격 채널을 실제로 시도했다가 실패한 건은 **계속 재시도**해야 한다.
+
+        (순단 복구 보장이 이 큐의 존재 이유다 — 종결 처리가 이걸 먹으면 안 된다.)
+        """
+        self.ch.up = False
+        q.enqueue("high", "위험구역 침입", None)
+        q.try_send(dict(q.due()[0]))
+        self.assertEqual(q.counts()["pending"], 1, "원격 실패 건이 종결돼 유실됐다")
+
+
+class TestQueueEligibilityFollowsWiring(unittest.TestCase):
+    """상류 차단: 원격 동작이 배선된 등급만 큐에 넣는다(하드코딩 금지)."""
+
+    def _agent(self, on_severity):
+        import sys
+        from pathlib import Path as _P
+        sys.path.insert(0, str(_P(__file__).resolve().parent.parent / "vigent-core"))
+        from agents.dispatcher import DispatcherAgent
+
+        class _Cfg:
+            raw = {"dispatch": {"on_severity": on_severity}}
+        return DispatcherAgent(_Cfg())
+
+    def test_log_only_level_is_not_queued(self):
+        a = self._agent({"critical": ["alarm"], "high": ["alarm", "manager_call"],
+                         "medium": ["log"]})
+        self.assertFalse(a._queue_enabled("mid"), "배선에 없는 등급이 큐에 들어간다")
+        self.assertFalse(a._queue_enabled("medium"))
+
+    def test_remote_levels_are_queued(self):
+        a = self._agent({"critical": ["alarm"], "high": ["alarm", "manager_call"],
+                         "medium": ["log"]})
+        self.assertTrue(a._queue_enabled("critical"))
+        self.assertTrue(a._queue_enabled("high"))
+
+    def test_follows_custom_wiring(self):
+        """현장에서 mid 에 원격을 배선하면 그때는 큐에 들어가야 한다."""
+        a = self._agent({"mid": ["manager_call"]})
+        self.assertTrue(a._queue_enabled("mid"))
+
+
 if __name__ == "__main__":
     unittest.main()

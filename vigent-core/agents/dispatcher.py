@@ -146,10 +146,18 @@ class DispatcherAgent(BaseAgent):
                 pass
         return res
 
-    @staticmethod
-    def _queue_enabled(level: str) -> bool:
-        """원격 채널을 실제로 쓰는 등급만 큐에 남긴다(log 전용 등급은 재전송 대상이 아니다)."""
-        return level in ("critical", "high", "mid")
+    def _queue_enabled(self, level: str) -> bool:
+        """원격 채널을 실제로 쓰는 등급만 큐에 남긴다(log 전용 등급은 재전송 대상이 아니다).
+
+        ★[2026-08-21 수정] 의도는 처음부터 위 문장이었으나 구현이 `("critical","high","mid")`
+        하드코딩이었다. 기본 배선의 `on_severity` 에는 **"mid" 가 없어** log 전용으로
+        폴백하는데(있는 것은 "medium"), 큐에는 들어가므로 원격 전송이 없는 채 영원히
+        `delivered=False` → 10회 재시도 → **데드레터**가 됐다. `/health` 가 pending 때문에
+        **degraded** 로 떨어지는 원인이기도 했다(실측: rapid_motion 이 #19 dead·#24 pending).
+        → 하드코딩을 버리고 **실제 배선(on_severity)에 원격 동작이 있는지**로 판단한다.
+        """
+        actions = self.on_severity.get(level, ["log"])
+        return any(a in actions for a in ("alarm", "manager_call"))
 
     def _dispatch_now(self, level: str, message: str, meta: dict[str, Any] | None = None) -> dict[str, Any]:
         """실제 채널 전송(재시도 없음). 큐가 이 함수를 재시도 때 다시 부른다."""
