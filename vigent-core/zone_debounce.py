@@ -55,9 +55,22 @@ def ref_point(bbox: list[float], ref: str | None = None) -> tuple[float, float]:
 class ZoneDebouncer:
     """카메라별 침입 확정 상태 기계. worker 가 카메라 1대당 1개를 들고 매 프레임 update() 한다."""
 
-    def __init__(self) -> None:
+    def __init__(self, enter: float | None = None, exit_: float | None = None) -> None:
+        """[W2] enter/exit 를 주면 그 값을 쓰고, 안 주면 기존처럼 config(zone.*)를 읽는다.
+
+        근접(협착) 경보처럼 **다른 시간상수가 필요한 위험**을 같은 상태기계로 재사용하기
+        위한 것이다 — 구역 침입 경로는 인자를 주지 않으므로 **동작이 바뀌지 않는다**.
+        """
         # cid → {"confirmed": bool, "raw": bool, "since": float}
         self._st: dict[str, dict[str, Any]] = {}
+        self._enter = enter
+        self._exit = exit_
+
+    def _enter_s(self) -> float:
+        return enter_s() if self._enter is None else float(self._enter)
+
+    def _exit_s(self) -> float:
+        return exit_s() if self._exit is None else float(self._exit)
 
     def update(self, cid: str, raw_inside: bool, now: float | None = None) -> bool:
         """raw_inside(이 프레임에 구역 안 사람이 있나) → 확정 침입 여부.
@@ -79,9 +92,9 @@ class ZoneDebouncer:
             return bool(s["confirmed"])
 
         held = now - s["since"]
-        if raw_inside and not s["confirmed"] and held >= enter_s():
+        if raw_inside and not s["confirmed"] and held >= self._enter_s():
             s["confirmed"] = True
-        elif (not raw_inside) and s["confirmed"] and held >= exit_s():
+        elif (not raw_inside) and s["confirmed"] and held >= self._exit_s():
             s["confirmed"] = False
         return bool(s["confirmed"])
 
