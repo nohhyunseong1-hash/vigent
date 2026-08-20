@@ -153,6 +153,30 @@ body{margin:0;background:var(--bg);color:var(--fg);font-family:"SF Mono","Menlo"
 var $=function(id){return document.getElementById(id);};
 var GS={4:[2,2],9:[3,3],16:[4,4]}, cur=16, CAMS=[], EVENTS=[], evFilter=null, openId=null;
 var spotId=null, pinned=false, showZone=true, zoneEdit=false, zonePts=[];
+// [W3] 구역 편집 중 대상이 바뀌면 찍어둔 점이 **다른 카메라에 저장된다** — 현장에서 원인 추적이
+//   불가능한 종류의 사고라 가드를 3중으로 둔다. ①자동전환 차단 ②편집 시작 시 자동 핀
+//   ③저장 직전 대상 일치 검증. 아래 두 함수는 **순수 로직**이라 tests/ 에서 Node 로 직접 검증한다.
+var zoneEditCam=null;      // 편집을 시작한 카메라 id(저장 대상 검증용)
+var zoneAutoPinned=false;  // 편집 때문에 **우리가** 핀을 켰는가(사용자가 켠 핀은 건드리지 않는다)
+function canAutoSwitchSpot(st){        // 경보 자동전환을 허용할 것인가
+  return !st.pinned && !st.zoneEdit;   // ★편집 중에는 절대 바꾸지 않는다
+}
+function endZoneEdit(){                // 편집 종료 — 상태·핀 원복을 한 곳에서
+  zoneEdit=false; zonePts=[]; zoneEditCam=null;
+  if(zoneAutoPinned){                 // ★우리가 켠 핀만 끈다 — 사용자가 켠 핀은 유지
+    pinned=false;
+    var el=document.getElementById('spin'); if(el) el.classList.remove('on');
+  }
+  zoneAutoPinned=false;
+}
+function zoneSaveCheck(st){            // 저장해도 되는가(마지막 방어선)
+  if(st.zoneEditCam==null) return {ok:false, reason:'no_edit'};
+  if(st.zoneEditCam!==st.spotId)
+    return {ok:false, reason:'target_mismatch', from:st.zoneEditCam, to:st.spotId};
+  var n=(st.zonePts||[]).length;
+  if(n>0 && n<3) return {ok:false, reason:'too_few_points', count:n};
+  return {ok:true, count:n};
+}
 var spotMode='snapshot', vsEl=null, spotDets=[], VS_READY=null, lastPMode=null, webrtcFailReason='', spotGen=0;   // WebRTC 재생 상태·계측·폴백사유·체인 세대
 var _spotBt=null, spotVis=[], spotDetTimer=null, spotRafId=null, spotLastTs=0, _focusCam=null;   // 스포트라이트: 워커결과 재사용(3.8)+BoxTracker+포커스
 var _dbg=false, _dbgIng=[], _dbgLastIngAt=0, _dbgFrames=0, _dbgStatic=0, _dbgPrevSig='', _dbgT0=0;   // 3.9 ⓪: 끊김 계측 오버레이(토글 'd', 기본 off)
@@ -279,8 +303,15 @@ function renderEvents(){
 }
 
 // ── 스포트라이트 + 설정 패널 ──
-function selectCam(id,userPin){ spotId=id; if(userPin&&pinned){ pinned=false; $('spin').classList.remove('on'); }  // 행/타일 클릭 시 핀 해제+수동전환
-  zoneEdit=false; zonePts=[]; stopWebRTC(); spotMode='snapshot'; spotDets=[]; lastPMode=null; webrtcFailReason='';
+function selectCam(id,userPin){
+  // [W3] 편집 중 수동 전환 — 자동전환과 달리 점을 버리므로 사고는 아니지만, 말없이 버리면
+  //   작업이 사라진 이유를 알 수 없다. 찍어둔 점이 있으면 확인을 받는다.
+  if(zoneEdit && zonePts.length && id!==spotId){
+    if(!confirm('구역을 편집 중입니다(꼭짓점 '+zonePts.length+'개).\n'+
+                '다른 카메라로 옮기면 찍어둔 점이 사라집니다. 계속할까요?')) return;
+  }
+  spotId=id; if(userPin&&pinned){ pinned=false; $('spin').classList.remove('on'); }  // 행/타일 클릭 시 핀 해제+수동전환
+  endZoneEdit(); stopWebRTC(); spotMode='snapshot'; spotDets=[]; lastPMode=null; webrtcFailReason='';
   _spotAges=[]; spotAutoLead=0;   // [잔여지연 자동보정] 카메라별 검출 나이 통계 리셋
   renderGrid(); renderSpot(); renderSet(); updatePMode();
   if(id&&id!=='__local') spotWebRTC(id);   // WebRTC 시도(실패 시 내부에서 스냅샷 폴백)
@@ -317,12 +348,30 @@ function renderSet(){
   if($('dOffP')) $('dOffP').onclick=function(){ setDispOff(spotId, dispOff(spotId)+50); };
   if($('dOffZ')) $('dOffZ').onclick=function(){ setDispOff(spotId, 0); };
   if($('cDel')) $('cDel').onclick=function(){ if(confirm('카메라 삭제?')) api('DELETE','/cameras/'+encodeURIComponent(spotId)).then(function(){ spotId=null; poll(); }); };
-  if($('zEdit')) $('zEdit').onclick=function(){ zoneEdit=true; zonePts=(byId(spotId).zone||[]).slice(); showZone=true; renderSet(); drawSpot(); };
-  if($('zCancel')) $('zCancel').onclick=function(){ zoneEdit=false; zonePts=[]; renderSet(); drawSpot(); };
+  if($('zEdit')) $('zEdit').onclick=function(){
+    zoneEdit=true; zoneEditCam=spotId;                       // [W3] 저장 대상 검증용으로 기억
+    zonePts=(byId(spotId).zone||[]).slice(); showZone=true;
+    // [W3] ★자동 핀 — 사용자가 핀을 잊어도 편집 중 자동전환이 막힌다(가드 ②).
+    if(!pinned){ pinned=true; zoneAutoPinned=true; $('spin').classList.add('on'); }
+    renderSet(); drawSpot(); };
+  if($('zCancel')) $('zCancel').onclick=function(){ endZoneEdit(); renderSet(); drawSpot(); };
   if($('zClear')) $('zClear').onclick=function(){ zonePts=[]; drawSpot(); };
   if($('zSave')) $('zSave').onclick=function(){
-    api('POST','/cameras/'+encodeURIComponent(spotId)+'/zone',{points:zonePts.map(function(p){return {x:p[0],y:p[1]};})})
-      .then(function(){ zoneEdit=false; poll(); }); };
+    // [W3] ★마지막 방어선 — 편집을 시작한 카메라와 저장 대상이 같은지 검증한다.
+    var chk=zoneSaveCheck({zoneEditCam:zoneEditCam, spotId:spotId, zonePts:zonePts});
+    if(!chk.ok){
+      if(chk.reason==='target_mismatch')
+        alert('저장을 취소했습니다.\n\n편집을 시작한 카메라: '+chk.from+
+              '\n지금 화면의 카메라: '+chk.to+
+              '\n\n다른 카메라에 구역이 저장될 뻔했습니다. 편집을 취소하고 다시 시작하세요.');
+      else if(chk.reason==='too_few_points')
+        alert('꼭짓점이 '+chk.count+'개입니다. 위험구역은 3개 이상이어야 판정에 쓰입니다.');
+      else alert('편집 상태가 아닙니다. 「위험구역 편집」을 먼저 누르세요.');
+      return;
+    }
+    var target=zoneEditCam;                                   // 검증된 대상으로만 보낸다
+    api('POST','/cameras/'+encodeURIComponent(target)+'/zone',{points:zonePts.map(function(p){return {x:p[0],y:p[1]};})})
+      .then(function(){ endZoneEdit(); poll(); }); };
   $('scanvas').classList.toggle('edit',zoneEdit);
 }
 // ── 스포트라이트: WebRTC(저지연) 우선 → 실패 시 스냅샷 폴링 폴백 ──
@@ -539,8 +588,11 @@ function updatePulseSpot(){
   reals().forEach(function(c){ if(c.online&&statusOf(c)==='A'){ nowA[c.id]=true;
     if(!prevA[c.id]){ pulseUntil[c.id]=Date.now()+2600; newlyAlert.push(c.id); } } });
   prevA=nowA;
-  if(!pinned&&newlyAlert.length) spotId=newlyAlert[newlyAlert.length-1];   // 경보 자동전환
-  if(!spotId){ var f=reals().filter(function(c){return c.online;})[0]||reals()[0]; if(f) spotId=f.id; }
+  // [W3] ★편집 중에는 자동전환하지 않는다 — 대상이 바뀌면 찍어둔 점이 다른 카메라로 간다.
+  if(canAutoSwitchSpot({pinned:pinned, zoneEdit:zoneEdit}) && newlyAlert.length)
+    spotId=newlyAlert[newlyAlert.length-1];                                // 경보 자동전환
+  // 대상이 비어 있을 때의 자동 선택도 편집 중에는 막는다(같은 사고 경로).
+  if(!spotId && !zoneEdit){ var f=reals().filter(function(c){return c.online;})[0]||reals()[0]; if(f) spotId=f.id; }
 }
 function poll(){
   api('GET','/cameras').then(function(j){
