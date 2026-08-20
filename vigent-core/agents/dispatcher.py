@@ -21,6 +21,8 @@ try:
 except ImportError:  # requests 없으면 전송은 폴백(로그)만
     requests = None
 
+import tuning
+
 from .base import BaseAgent
 
 _ROOT = Path(__file__).resolve().parent.parent.parent
@@ -188,8 +190,16 @@ class DispatcherAgent(BaseAgent):
                 "delivered": any_remote, "fallback": not any_remote}
 
     def relay(self, event: str = "guard_bypass", meta: dict[str, Any] | None = None) -> dict[str, Any]:
-        """프레스/전단기 §8 '보조 방호신호'. 인증 안전회로에 추가 신호만. 1차 비상정지 대체 아님(§8.1)."""
-        alert = self.dispatch("critical", f"{event}: 프레스/전단기 위험구역 신체 진입 감지", meta)
+        """§8 '보조 방호신호'. 인증 안전회로에 추가 신호만. 1차 비상정지 대체 아님(§8.1).
+
+        ★[2026-08-21] 경보 문구를 **현장별로 바꿀 수 있게** 설정으로 뺐다. 기본값도
+        "프레스/전단기" 를 빼고 **위험기계**로 일반화했다 — 지게차 실습장 같은 다른 현장에서
+        프레스 문구가 폰에 뜨면 담당자가 혼란스럽고 시연 설득력도 떨어진다(학원 준비 중 발견).
+        현장 문구는 `config/tuning.yaml` 의 `alerts.guard_bypass_text` 로 지정한다.
+        """
+        text = str(tuning.val("alerts", "guard_bypass_text",
+                              "위험기계 방호구역 신체 진입 감지")).strip()
+        alert = self.dispatch("critical", f"{event}: {text}", meta)
         return {"relay": "auxiliary_signal", "event": event, "is_primary_safety": False,
                 "boundary": "§8.1 — 비전은 보조·감시 계층. 1차 정지는 인증 하드웨어 책임.",
                 "delivered": alert["delivered"], "alert": alert}
