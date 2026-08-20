@@ -106,6 +106,16 @@ def warmup(guard: Any, detectors: list[str] | None = None) -> dict[str, Any]:
         return {"ok": False, "error": msg, "slots": []}
 
     t0 = time.time()
+    # ★[2026-08-20] 하드코딩 ["person","ppe","fire_smoke"] 제거 — 워커가 실제로 돌릴 슬롯을 예열한다.
+    #   학원 프로파일(include_forklift=1 / include_fire_smoke=0)에서 어긋남이 실측됐다:
+    #   껐는데 예열한 fire_smoke 는 4.9s + VRAM 낭비(4GB 카드), 켰는데 예열 안 한 forklift 는
+    #   현장 첫 프레임이 느려진다 — 예열의 존재 이유(첫 프레임 지연 제거)가 정작 핵심 슬롯을 비켰다.
+    if detectors is None:
+        try:
+            import worker as _w
+            detectors = _w.active_detectors()
+        except Exception:  # noqa: BLE001  worker 를 못 읽으면 기존 기본값으로 안전 폴백
+            _LOG.warning("active_detectors 조회 실패 — 기본 슬롯으로 예열한다")
     dets = detectors or ["person", "ppe", "fire_smoke"]
     img = np.zeros((720, 1280, 3), dtype=np.uint8)   # 더미 1프레임(실입력 없이 커널만 예열)
     done: list[str] = []

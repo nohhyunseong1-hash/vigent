@@ -128,5 +128,46 @@ class TestHealthBodyMatchesProfile(unittest.TestCase):
                         self.assertEqual(b["disabled_detectors"], worker.disabled_detectors())
 
 
+class TestWarmupMatchesProfile(unittest.TestCase):
+    """예열 슬롯이 **실제로 돌릴 슬롯**과 같은가.
+
+    하드코딩 시절엔 학원 프로파일에서 끈 fire_smoke 를 예열하고(4.9s + VRAM 낭비),
+    켠 forklift 는 예열하지 않아 현장 첫 프레임이 느려졌다 — 표시가 아니라 동작이 틀린 경우다.
+    """
+
+    class _FakeGuard:
+        def __init__(self):
+            self.warmed = []
+
+        def detect(self, img, detectors=None, track_key=None):
+            self.warmed.extend(detectors or [])
+            return []
+
+    def _warm(self, *, fire_smoke, forklift):
+        import readiness
+        g = self._FakeGuard()
+        with mock.patch.object(worker.tuning, "val", _tuning_stub(fire_smoke, forklift)),              mock.patch.object(readiness, "required_weights_missing", lambda: []):
+            readiness.warmup(g)
+        return g.warmed
+
+    def test_academy_profile_warms_forklift_not_fire_smoke(self):
+        warmed = self._warm(fire_smoke=0, forklift=1)
+        self.assertIn("forklift", warmed, "학원 프로파일인데 forklift 를 예열하지 않는다")
+        self.assertNotIn("fire_smoke", warmed, "껐는데 fire_smoke 를 예열한다(시간·VRAM 낭비)")
+
+    def test_global_default_warms_fire_smoke_not_forklift(self):
+        warmed = self._warm(fire_smoke=1, forklift=0)
+        self.assertIn("fire_smoke", warmed)
+        self.assertNotIn("forklift", warmed)
+
+    def test_warmup_equals_active_detectors(self):
+        for fs in (0, 1):
+            for fl in (0, 1):
+                with self.subTest(fire_smoke=fs, forklift=fl):
+                    warmed = self._warm(fire_smoke=fs, forklift=fl)
+                    with mock.patch.object(worker.tuning, "val", _tuning_stub(fs, fl)):
+                        self.assertEqual(warmed, worker.active_detectors())
+
+
 if __name__ == "__main__":
     unittest.main()
