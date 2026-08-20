@@ -15,9 +15,11 @@
 |---|---|---|
 | OS | **Windows 10/11 Pro 이상**(64bit) ★현장 필수 | Windows 11 **Home** 10.0.26200 — ⚠개발 PC 가 Home 이라 **저장 암호화(N-2)는 이 PC 에서 검증 불가**(EFS·BitLocker 미지원, 2026-08-19 실측). 현장 장비(Pro)에서 검증할 것 |
 | Python | **3.11.x** | 3.11.9 |
+| | ⚠**모순 주의**: 저장소 `.python-version` 은 `3.13.9`, `pyproject.toml` 은 `target-version="py313"` 이다. 어느 쪽이 정본인지 확정 필요(2026-08-20 제기). 3.11.9 로 전 의존성 설치·기동 실증됨 | |
 | GPU | NVIDIA(선택이나 강력 권장) | RTX 5070 Ti, 드라이버 610.74 |
 | CUDA | torch 휠과 맞는 버전 | cu130 (torch 2.12.0+cu130) |
 | git | 최신 | 2.55.0 |
+| **2차 검증 환경** | — | ★2026-08-20 **학원 현장 노트북**에서 이 문서로 재설치 실증: Windows 10 **Pro**(N-2 암호화 가능) · i7-10750H · **GTX 1650 Ti 4GB** · 드라이버 576.83(CUDA 12.9) · Python 3.11.9 · **torch 2.12.0+cu126** |
 | NSSM | 서비스 등록용 | winget으로 설치 |
 | **카메라 대수** | **권장 5대 이하**(한계 7대) | Ryzen 9 9900X(24스레드) 기준 실측 |
 | **CPU** | 카메라당 **1.55 환산코어** ([Q10] 스핀 제거 후) | ★대수를 좌우하는 것은 **GPU 가 아니라 CPU** 다 |
@@ -89,20 +91,58 @@ python -m pip install --upgrade pip
 python -m pip install -r requirements.txt
 ```
 
-**GPU를 쓸 경우 torch를 CUDA 휠로 교체**(위 CUDA 주의 참고):
+**GPU를 쓸 경우 torch를 CUDA 휠로 교체** — ★**드라이버 버전에 맞는 휠을 고를 것**:
+
+| 이 PC 의 GPU·드라이버 | 쓸 휠 | 근거 |
+|---|---|---|
+| RTX 50 시리즈(sm_120) | **cu130** | cu126 이하는 sm_120 커널이 없어 런타임 에러 |
+| 그 외(GTX 16 / RTX 20~40) **+ 드라이버 580 미만** | **cu126** | CUDA 13 런타임은 드라이버 580+ 를 요구한다 |
+
+먼저 `nvidia-smi` 우상단의 **`CUDA Version:`** 을 본다 — 이것이 **드라이버가 지원하는 상한**이다.
+`12.x` 로 나오면 cu130 을 깔아도 `torch.cuda.is_available()` 이 False 가 되거나 런타임 에러가 난다.
+
 ```powershell
+# RTX 50 시리즈(드라이버 580+)
 python -m pip install --index-url https://download.pytorch.org/whl/cu130 `
   torch==2.12.0+cu130 torchvision==0.27.0+cu130
+
+# 그 외 GPU / 드라이버 580 미만
+python -m pip install --index-url https://download.pytorch.org/whl/cu126 `
+  torch==2.12.0+cu126 torchvision==0.27.0+cu126
 ```
+
+> **실측(2026-08-20, 학원 현장 노트북)**: GTX 1650 Ti(sm_75)·드라이버 **576.83**(`CUDA Version: 12.9`)
+> 에서 **cu126 으로 `2.12.0+cu126 True` 확인**. 이 드라이버에서 cu130 은 쓸 수 없다.
 
 **성공 확인**
 ```powershell
 python -c "import torch; print(torch.__version__, torch.cuda.is_available())"
 ```
 ```
-2.12.0+cu130 True        ← GPU 사용 가능
-2.12.0+cpu False         ← CPU 폴백(동작은 하지만 느리다)
+2.12.0+cu130 True        ← GPU 사용 가능(RTX 50)
+2.12.0+cu126 True        ← GPU 사용 가능(그 외)
+2.12.0+cpu   False       ← CPU 폴백(동작은 하지만 느리다)
 ```
+
+### 3-1. ★opencv 정리 (필수 — 빠뜨리면 headless 가 가려진다)
+
+`supervision`·`rtmlib` 등이 **GUI opencv 를 전이의존으로 끌어온다**. 그대로 두면 배포가
+전제한 headless 대신 GUI 빌드의 `cv2` 가 쓰인다(같은 `cv2` 네임스페이스 충돌).
+`requirements.txt` 설치 **직후 반드시** 정리한다:
+
+```powershell
+python -m pip uninstall -y opencv-python opencv-contrib-python
+python -m pip install --force-reinstall --no-deps opencv-contrib-python-headless==4.13.0.92
+```
+
+확인 — `opencv-contrib-python-headless` **하나만** 남아야 한다:
+```powershell
+python -m pip list | Select-String opencv
+```
+
+> **실측(2026-08-20)**: 정리 전 `opencv-python 5.0.0.93` + `opencv-contrib-python 5.0.0.93` 이
+> 함께 깔려 headless(4.13.0.92)를 가렸다. ★**`ultralytics` 를 설치하면(학원 프로파일 등)
+> GUI opencv 가 다시 딸려오므로 그때도 이 정리를 반복해야 한다** — `deploy/academy/README_academy.md` 참고.
 
 ---
 
@@ -113,6 +153,12 @@ python -c "import torch; print(torch.__version__, torch.cuda.is_available())"
 ```powershell
 python scripts\fetch_weights.py
 ```
+
+> ⚠️ **반드시 `scripts\` 경로로 실행할 것.** 저장소 **루트에도 같은 이름의 구판**
+> `fetch_weights.py` 가 있는데 CLI 가 전혀 다르다(`verify`/`download` 서브커맨드,
+> `--all` 없음, URL 이 PLACEHOLDER). 루트본으로 `--all` 을 치면 실패한다.
+> 정본은 `scripts\fetch_weights.py` 하나이며 `weights_manifest.json` 도
+> 이쪽을 가리킨다(2026-08-20 학원 노트북 설치 시 확인).
 
 **성공하면 이렇게 보인다**
 ```
