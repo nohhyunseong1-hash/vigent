@@ -116,10 +116,28 @@ def anonymize_faces(frame: Any, person_boxes: list | None = None) -> Any:
             _mosaic_region(out, int(hx1), int(y1), int(hx2), int(y1 + bh * _head_ratio()))
             covered += 1
 
+        # ★[P1a-fix, 2026-08-21] YuNet 은 **공유 싱글톤**이라 setInputSize→detect 사이에
+        #   다른 스레드가 끼어들면 내부 버퍼 크기가 어긋나 예외가 난다(OpenCV 5 dnn:
+        #   "buf.shape() == m.shape()"). 워커(1920×1080)와 스냅샷(640×360)이 동시에 부르는
+        #   실서비스에서 **분당 145~160건** 발생했고(로그 4,054건), 그때마다 아래 except 로
+        #   빠져 **원본이 저장·전송**됐다. 락 없는 재현 실측 실패율 24%(80회 중 19회).
+        #   → 크기 설정과 추론을 한 임계구역으로 묶는다.
         det = _get_cascade()
         if det is not None:
-            det.setInputSize((w, h))
-            ok, faces = det.detect(out)
+            try:
+                with _lock:
+                    det.setInputSize((w, h))
+                    ok, faces = det.detect(out)
+            except Exception:  # noqa: BLE001
+                # ★얼굴검출기 실패가 **머리 모자이크까지 버리게 하면 안 된다**(이전 동작의 결함).
+                #   person 박스 기반 모자이크는 이미 out 에 적용돼 있으므로 그대로 살린다.
+                faces = None
+                try:
+                    import vlog
+                    vlog.get("vigent.privacy").warning(
+                        "YuNet 얼굴검출 실패 — person 박스 모자이크는 유지된 채 저장된다")
+                except Exception:  # noqa: BLE001
+                    pass
             for f in (faces if faces is not None else []):
                 fx, fy, fw, fh = (int(v) for v in f[:4])
                 m = int(fw * 0.20)      # 여유를 둬 경계 픽셀이 남지 않게

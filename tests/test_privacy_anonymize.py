@@ -169,5 +169,61 @@ class TestStorageEncryptionCheck(unittest.TestCase):
                                    "checked_dirs", "note"})
 
 
+class TestConcurrentAnonymize(unittest.TestCase):
+    """[P1a-fix, 2026-08-21] 동시 호출 경합으로 **원본이 저장·전송되던** 결함의 회귀 방지.
+
+    배경: YuNet 은 공유 싱글톤이라 setInputSize→detect 사이에 다른 스레드가 끼어들면
+    내부 버퍼 크기가 어긋나 예외가 났다(OpenCV 5 dnn "buf.shape() == m.shape()").
+    실서비스에서 워커(1920x1080)와 스냅샷(640x360)이 동시에 불러 **분당 145~160건**
+    발생했고(로그 4,054건), 그때마다 except 로 빠져 **비식별화 안 된 원본**이 나갔다.
+    """
+
+    def _frame(self, h, w):
+        # ★균일한 색으로 만들면 모자이크해도 픽셀이 안 변해 검증이 불가능하다 — 노이즈를 쓴다.
+        import numpy as np
+        rng = np.random.default_rng(20260821)
+        return rng.integers(0, 255, (h, w, 3), dtype=np.uint8)
+
+    def test_concurrent_mixed_sizes_never_returns_original(self):
+        """★크기가 다른 프레임을 동시에 넣어도 원본이 그대로 반환되면 안 된다."""
+        import threading
+
+        import numpy as np
+        boxes = [[0.3, 0.2, 0.5, 0.8]]
+        privacy.anonymize_faces(self._frame(1080, 1920), boxes)   # 예열(모델 로드)
+        bad = []
+
+        def run(h, w):
+            for _ in range(12):
+                f = self._frame(h, w)
+                out = privacy.anonymize_faces(f, boxes)
+                if out is f or np.array_equal(out, f):
+                    bad.append((h, w))
+
+        ts = [threading.Thread(target=run, args=(1080, 1920)),
+              threading.Thread(target=run, args=(360, 640))]
+        for t in ts:
+            t.start()
+        for t in ts:
+            t.join()
+        self.assertEqual(bad, [], f"원본이 그대로 반환됐다 — 비식별화 실패 {len(bad)}건")
+
+    def test_face_detector_failure_keeps_head_mosaic(self):
+        """★얼굴검출기가 실패해도 person 박스 머리 모자이크는 살아남아야 한다.
+
+        이전 동작은 예외 시 out 을 통째로 버리고 원본을 반환해, 이미 적용한 머리
+        모자이크까지 사라졌다.
+        """
+        import numpy as np
+        boxes = [[0.3, 0.2, 0.5, 0.8]]
+        f = self._frame(720, 1280)
+        broken = mock.Mock()
+        broken.setInputSize.side_effect = RuntimeError("detector 고장")
+        with mock.patch.object(privacy, "_get_cascade", return_value=broken):
+            out = privacy.anonymize_faces(f, boxes)
+        self.assertFalse(np.array_equal(out, f),
+                         "검출기 실패로 머리 모자이크까지 버려졌다(원본 유출)")
+
+
 if __name__ == "__main__":
     unittest.main()

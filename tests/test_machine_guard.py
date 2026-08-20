@@ -3,6 +3,7 @@ import os
 import sys
 import unittest
 from pathlib import Path
+from unittest import mock
 
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "vigent-core"))
@@ -24,9 +25,16 @@ class TestMachineGuard(unittest.TestCase):
 
     def test_relay_is_supplementary_not_primary(self):
         # §8: 보조 방호신호이며 1차 안전기능이 아님을 명시
+        # ★[2026-08-21] 환경변수만 지우면 부족하다 — notify_cfg() 는 config/notify.yaml 을
+        #   **먼저** 읽으므로, 현장에서 알림을 설정하면 이 테스트가 실제 텔레그램을 전송하고
+        #   delivered=True 가 되어 깨진다(실제로 발생). 설정을 통째로 격리한다.
+        import agents.dispatcher as _d
         for k in ("TELEGRAM_BOT_TOKEN", "TELEGRAM_CHAT_ID", "WEBHOOK_URL"):
             os.environ.pop(k, None)
-        r = self.agents["Dispatcher"].relay("guard_bypass")
+        with mock.patch.object(_d, "notify_cfg", return_value={"telegram_token": None, "telegram_chat": None, "webhook_url": None,
+     "smtp_host": None, "smtp_port": 587, "smtp_user": None,
+     "smtp_pass": None, "email_to": None}):
+            r = self.agents["Dispatcher"].relay("guard_bypass")
         self.assertFalse(r["is_primary_safety"])         # 1차 안전기능 아님
         self.assertEqual(r["relay"], "auxiliary_signal")
         self.assertIn("§8", r["boundary"])
