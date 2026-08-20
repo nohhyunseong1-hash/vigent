@@ -23,6 +23,11 @@ import urllib.error
 import urllib.request
 from pathlib import Path
 
+try:   # Windows 콘솔(cp949 등)이 이모지·한글기호를 못 찍어 죽는 문제 방지 — 출력 인코딩만 강제(로직 무관)
+    sys.stdout.reconfigure(encoding="utf-8")
+except Exception:  # noqa: BLE001
+    pass
+
 _ROOT = Path(__file__).resolve().parent.parent
 BASE = "http://127.0.0.1:8010"
 PASS_DETECT_AGE = 5.0        # 이 값 미만이면 검출 정상

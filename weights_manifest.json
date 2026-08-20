@@ -1,9 +1,22 @@
 {
- "_comment": "C-S1 가중치 배포 매니페스트. scripts/fetch_weights.py 가 이 파일로 검증 다운로드한다. ★[B8, 2026-08-17] SHA256·크기를 실제 배포 파일 기준으로 재실측해 정정했다 — 기존 값은 2026-07-05 기준이라 T10b RF-DETR 이관 이후 교체된 체크포인트와 어긋나 있었다(ppe_rfdetr_v1: 매니페스트 47db1e69/120922427 vs 실제 3380fa7d/120910843). 실제 파일이 v1 현장 기준선 리포트가 채점한 그 모델이다(benchmarks/v1_field_baseline_report.md §6). ★[2026-08-17] Release weights-v1 에 rfdetr 3종 업로드 완료(다운로드 후 SHA 재대조 일치). **v1 기준선(PPE 정밀도 95.9%) 채점 모델 = ppe_rfdetr_v1.pth sha 3380fa7d…** — 맥에 있던 동명 파일(47db1e69…/120,922,427B)은 구버전 체크포인트이므로 사용하지 않는다.",
+ "_comment": "C-S1 가중치 배포 매니페스트. scripts/fetch_weights.py 가 이 파일로 검증 다운로드한다. ★[B8, 2026-08-17] SHA256·크기를 실제 배포 파일 기준으로 재실측해 정정했다 — 기존 값은 2026-07-05 기준이라 T10b RF-DETR 이관 이후 교체된 체크포인트와 어긋나 있었다(ppe_rfdetr_v1: 매니페스트 47db1e69/120922427 vs 실제 3380fa7d/120910843). 실제 파일이 v1 현장 기준선 리포트가 채점한 그 모델이다(benchmarks/v1_field_baseline_report.md §6). ★[2026-08-17] Release weights-v1 에 rfdetr 3종 업로드 완료(다운로드 후 SHA 재대조 일치). **v1 기준선(PPE 정밀도 95.9%) 채점 모델 = ppe_rfdetr_v1.pth sha 3380fa7d…** — 맥에 있던 동명 파일(47db1e69…/120,922,427B)은 구버전 체크포인트이므로 사용하지 않는다. ★[2026-08-20] rf-detr-nano.pth(베이스 사전학습) 편입 — 학원 현장 노트북에서 서비스(LocalSystem)가 기동 시 349MB 를 인터넷에서 받는 것이 관측됐다. 사용자 프로필 캐시와 SYSTEM 프로필 캐시가 따로라 '집에서 데워 가면 된다'가 성립하지 않았다. url 은 업스트림 직결(resolve_url 이 release: 아닌 원문 URL 을 그대로 쓴다) — Release weights-v1 미러링은 후속 과제.",
  "schema_version": 1,
  "product_version": "0.2.0",
  "base_url_env": "VIGENT_WEIGHTS_BASE_URL",
  "weights": [
+  {
+   "file": "rf-detr-nano.pth",
+   "slot": "_pretrain",
+   "backend": "rfdetr",
+   "purpose": "RF-DETR 베이스 사전학습 체크포인트(COCO). 커스텀 .pth 3종이 이 위에 얹힌다. ★없으면 rfdetr 이 런타임에 인터넷으로 349MB 를 받으러 가 오프라인 현장에서 기동이 실패한다 — 그래서 required. RF_HOME 을 vigent-core/weights 로 두면 이 위치가 곧 rfdetr 의 캐시 경로가 된다.",
+   "version": "nano_coco_best_regular",
+   "sha256": "d8d6b9ee57d4d0ed2b1f305163624712a0532cb7bce0c747317984fc5457440d",
+   "size_bytes": 366287238,
+   "url": "https://storage.googleapis.com/rfdetr/nano_coco/checkpoint_best_regular.pth",
+   "license": "Apache-2.0 (Roboflow RF-DETR)",
+   "md5_upstream": "fb6504cce7fbdc783f7a46991f07639f",
+   "required": true
+  },
   {
    "file": "yolo11m.pt",
    "slot": "person",

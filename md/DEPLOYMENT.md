@@ -187,6 +187,36 @@ python scripts\fetch_weights.py
 
 ---
 
+### 4-1. ★RF_HOME — 오프라인 현장이면 반드시 확인
+
+RF-DETR 은 커스텀 가중치 밑에 **베이스 사전학습 체크포인트**(`rf-detr-nano.pth`, 349MB)를 깐다.
+이 파일이 없으면 rfdetr 이 **런타임에 인터넷에서 받아온다** — 인터넷이 없는 현장이면 기동 실패다.
+
+캐시 위치는 `RF_HOME` 이 정하고, 기본값 `~/.roboflow/models` 는 **계정별**이다.
+★서비스는 **LocalSystem** 으로 돌기 때문에 기본값이면
+`C:\Windows\System32\config\systemprofile\.roboflow\models` 를 본다 —
+**로그인 계정에서 미리 데워둔 캐시는 서비스에 아무 소용이 없다**(2026-08-20 실측: 서비스 첫
+기동에서 349MB 를 새로 받았다).
+
+그래서 배포는 `RF_HOME` 을 **`vigent-core\weights`** 로 고정한다:
+
+- 서비스: `install_service.ps1` 이 자동 주입한다(**기존 서비스는 재등록해야 반영된다**).
+- 수동 기동(6단계): 아래처럼 직접 넣는다.
+- 조달: 이 위치가 `scripts\fetch_weights.py` 의 다운로드 경로와 같아
+  `--all` 하나로 같이 받아진다(매니페스트 `rf-detr-nano.pth`, **required**).
+
+```powershell
+$env:RF_HOME = "C:\Users\1\Desktop\VIGENT\vigent-core\weights"
+```
+
+> **기동 시 캐시가 없으면 명시적으로 실패한다**(조용한 인터넷 의존 금지):
+> ```
+> [기동거부] RF-DETR 사전학습 체크포인트 부재: ...\rf-detr-nano.pth (파일 없음).
+> ```
+> 다운로드를 감수하고 띄우려면 `VIGENT_ALLOW_PRETRAIN_DOWNLOAD=1` 을 명시해야 한다.
+
+---
+
 ## 5. 설정 파일
 
 ### 5-1. `.env` (비밀값)
@@ -245,6 +275,8 @@ Invoke-RestMethod -Method Post -Uri http://127.0.0.1:8010/cameras `
 cd D:\vigent_original\vigent-core
 $env:VIGENT_REQUIRE_TOKEN = "1"
 $env:VIGENT_CAPTURE_MODE = "thread"
+$env:PYTHONUTF8 = "1"                 # 한글 로그 깨짐 방지(cp949 콘솔)
+$env:RF_HOME = "$PWD\weights"         # 4-1 참고 — 없으면 349MB 를 받으러 나간다
 python -m uvicorn main:app --host 127.0.0.1 --port 8010
 ```
 
