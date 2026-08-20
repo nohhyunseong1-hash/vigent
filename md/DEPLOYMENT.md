@@ -384,6 +384,16 @@ Start-Service VIGENT
 
 256MB마다 자동 로테이션(약 2GB 상한).
 
+> ⚠️ **로그를 읽을 때는 `-Encoding UTF8` 을 붙일 것.** 로그 파일은 UTF-8 로 저장되는데
+> PowerShell 5.1 의 `Get-Content` 는 기본적으로 시스템 ANSI(한국어 Windows=CP949)로 읽어
+> 한글이 `?덉뿴 slot=ppe` 처럼 깨져 보인다 — **파일이 깨진 게 아니라 읽는 쪽 문제다**.
+> ```powershell
+> Get-Content logs\vigent.err.log -Tail 30 -Encoding UTF8
+> ```
+> (서비스가 UTF-8 로 쓰도록 `install_service.ps1` 이 `PYTHONUTF8=1` 을 주입한다. 이게
+> 없던 시절엔 파일 자체가 `???? slot=ppe` 로 깨졌다 — 증상이 비슷하니 구분할 것:
+> `????` = 쓰기 문제 / `?덉뿴` = 읽기 문제.)
+
 ### 상태 감시
 
 `/health`만 보면 된다. **HTTP 코드로 판단 가능**하다:
