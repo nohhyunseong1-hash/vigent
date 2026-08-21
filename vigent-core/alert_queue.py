@@ -146,6 +146,20 @@ def set_sender(fn: Callable[[str, str, dict], dict]) -> None:
     _sender = fn
 
 
+_REMOTE_CHANNELS = ("telegram", "email", "webhook")
+
+
+def _attempted_remote(res: dict[str, Any]) -> bool:
+    """전송 결과에 **원격 채널이 하나라도 시도된 흔적**이 있는가.
+
+    log·safety_relay_signal 만 있는 결과는 '보낼 곳이 없는 등급' 이므로 재시도 대상이 아니다.
+    """
+    for r in (res.get("results") or []):
+        if isinstance(r, dict) and r.get("channel") in _REMOTE_CHANNELS:
+            return True
+    return False
+
+
 def try_send(row: dict[str, Any]) -> bool:
     """1건 전송 시도. 성공하면 sent 표시, 실패하면 백오프 예약."""
     if _sender is None:
@@ -154,6 +168,15 @@ def try_send(row: dict[str, Any]) -> bool:
     try:
         res = _sender(row["level"], row["message"], row["meta"])
         if res.get("delivered"):
+            mark_sent(row["id"])
+            return True
+        # ★[2026-08-21] 원격 채널을 **아예 시도조차 안 한** 건은 재시도해도 영원히 실패한다
+        #   (log 전용 등급). 이전에는 이런 건이 10회 재시도 후 데드레터로 갔고, 그 사이
+        #   pending 때문에 /health 가 degraded 로 떨어졌다. 상류(_queue_enabled)에서 막았지만
+        #   **이미 큐에 갇힌 건**도 스스로 풀리도록 여기서 종결 처리한다.
+        if not _attempted_remote(res):
+            _LOG.info("원격 채널 없는 등급(%s) — 로그 전달로 종결 처리(재시도 중단): %s",
+                      row["level"], str(row["message"])[:80])
             mark_sent(row["id"])
             return True
         mark_failed(row["id"], str(res.get("results"))[:300])

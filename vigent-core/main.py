@@ -368,6 +368,16 @@ def _startup() -> None:
             alert_queue.set_sender(
                 lambda lvl, msg, meta: _dispatcher._dispatch_now(lvl, msg, meta))
         alert_queue.start()
+        # ★[W1] 워커 검출 → 알림 전송 배선. 워커는 큐에 넣기만 하고 이 스레드가 보낸다
+        #   (동기 호출 시 채널 타임아웃 6~8초가 검출 루프를 멈춘다 — 규칙6 저하 금지).
+        #   dispatcher.dispatch 를 부르므로 [B5] 선기록·재시도·데드레터 경로를 그대로 탄다.
+        import alert_notify
+        if _dispatcher is not None:
+            alert_notify.set_sender(
+                lambda lvl, msg, meta: _dispatcher.dispatch(lvl, msg, meta))
+            alert_notify.start()
+        else:
+            _log.warning("Dispatcher 없음 — 경보 통보 미배선(검출·기록은 정상)")
     except Exception:  # noqa: BLE001  예열 배선 실패 시에도 워커는 기동(기존 동작으로 폴백)
         _log.warning("예열 기동 실패 — 워커를 즉시 시작(구 동작)\n%s", traceback.format_exc())
         _start_workers_after_warmup()

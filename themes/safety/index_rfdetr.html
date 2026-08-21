@@ -65,11 +65,19 @@
     <div id="riskItem"><div class="k">침입 발생 시 자동 분석됩니다.</div></div>
   </div>
 
-  <div id="zoneTools" class="panel"><h2>위험구역 설정</h2>
-    <div id="zoneHint" style="font-size:11px;color:var(--dim)">‘그리기’ → 영상 클릭 → ‘저장’</div>
-    <button id="zoneDraw">✏️ 그리기 시작</button>
-    <button id="zoneSave">✓ 저장</button>
-    <button id="zoneClear">🗑 지우기</button>
+  <div id="zoneTools" class="panel"><h2>위험구역 (읽기 전용)</h2>
+    <!-- [W3] ★이 화면의 구역 저장은 비활성화했다. 이유:
+         ① 여기 보이는 영상은 CCTV 가 아니라 이 PC 의 **웹캠**(getUserMedia)이다.
+         ② 그런데 저장 대상은 카메라별이 아니라 **전역 구역**(/zone/danger)이고,
+            워커는 카메라에 자기 구역이 없으면 전역 구역으로 폴백한다.
+         → 웹캠을 보고 찍은 좌표가 실제 CCTV 판정에 쓰이는 사고가 난다.
+         CCTV 위험구역은 /safety-hub 에서 **카메라별로** 설정한다(실영상 위에 그림). -->
+    <div id="zoneHint" style="font-size:11px;color:var(--dim);line-height:1.5">
+      이 화면은 <b>웹캠 데모</b>입니다.<br>CCTV 위험구역은
+      <a href="/safety-hub" style="color:var(--accent)">/safety-hub</a> 에서
+      <b>카메라별로</b> 설정하세요.
+    </div>
+    <div style="font-size:11px;color:var(--dim);margin-top:6px">저장된 전역 구역은 아래에 표시만 됩니다.</div>
   </div>
 
   <div id="banner">⚠ 위험구역 침입</div>
@@ -184,19 +192,11 @@ function render(){
   requestAnimationFrame(render);
 }
 
-// 위험구역 그리기
-canvas.addEventListener('click',ev=>{ if(!drawMode)return; draftZone.push(screenToImage(ev));
-  $('zoneHint').textContent=`점 ${draftZone.length}개`; });
-$('zoneDraw').addEventListener('click',()=>{ drawMode=!drawMode; $('zoneDraw').classList.toggle('on',drawMode);
-  $('zoneDraw').textContent=drawMode?'■ 그리는 중':'✏️ 그리기 시작'; if(drawMode){draftZone=[];$('zoneHint').textContent='영상 클릭';} });
-$('zoneSave').addEventListener('click',async()=>{ if(draftZone.length<3){$('zoneHint').textContent='3점 이상 필요';return;}
-  await fetch('/zone/danger',{method:'POST',headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({points:draftZone.map(([x,y])=>({x,y}))})});
-  dangerZone=draftZone.slice(); draftZone=[]; drawMode=false; $('zoneDraw').classList.remove('on');
-  $('zoneDraw').textContent='✏️ 그리기 시작'; $('zoneHint').textContent='저장 완료'; });
-$('zoneClear').addEventListener('click',async()=>{ draftZone=[];dangerZone=[];
-  await fetch('/zone/danger',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({points:[]})});
-  $('zoneHint').textContent='지움'; });
+// [W3] 위험구역 그리기·저장은 이 화면에서 **제거**했다(읽기 전용).
+//   근거는 위 zoneTools 주석 참조 — 웹캠 좌표가 전역 구역으로 저장돼 실제 CCTV 판정에
+//   쓰이는 사고를 원천 차단한다. 저장된 구역을 **표시**하는 기능(loadZone/drawPoly)은 유지한다.
+//   전역 구역을 꼭 설정해야 하면 API(`POST /zone/danger`)를 직접 쓴다.
+//   ★drawMode 는 항상 false 로 남아 render() 의 draftZone 분기가 동작하지 않는다.
 
 $('startBtn').addEventListener('click',async()=>{ $('startBtn').style.display='none';
   await loadZone();

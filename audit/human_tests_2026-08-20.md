@@ -18,6 +18,8 @@
   DEPLOYMENT §0.
 - ★잔여 위험 등재: `data\evidence` 에 개인영상 프레임 **11,633개 비암호화** —
   **개발 PC Pro 업그레이드 또는 증거 데이터 현장 이관 시점에 재검토(사람 결정)**.
+  [2026-08-20 추가] 맥에서 회수한 evidence **4,270장**(`D:\vigent_assets\vigent_salvage_data\`)도
+  같은 비암호화 상태다 — 이쪽은 **9/6 처분 결정**으로 정리 예정.
 - 신규 생성한 `data\audit`·`data\tbm` 폴더는 유지(retention GROUP_DIRS 정합).
 - 복구 인증서 백업(T1-4)은 EFS 자체가 불가라 **해당 없음** — 현장 장비 적용 시 필수 절차로
   SITE_CHECKLIST N-2 에 남아 있다.
@@ -96,7 +98,7 @@ PC 에서 LAN IP 로 직접 요청: `HTTP 403 · 27바이트 · {"detail":"forbi
 | ~~C3 저장 암호화~~ | ✅ **완결(2026-08-20)** — 현장 노트북(Win10 **Pro**)에 **BitLocker XtsAes256 적용·검증**: `FullyEncrypted/100%/On`, `/health` `storage_encrypted: true`·`bitlocker: on`. TPM 2.0 Ready 라 무인 운영 유지. 복구 키 USB 백업 확인. 개발 PC(Home)는 여전히 불가 — 잔여 위험 유지 |
 | 2인 실카메라 추적(P2) | ⏸ 사람 2명 필요(`docs/test_multiperson.md`) |
 | 실물 릴레이 연결(P3) | ⏸ 실물 릴레이 조달 시 |
-| retention 첫 삭제 주기 승인 | ⏸ 약 17일 후 도래분 |
+| retention 첫 삭제 주기 승인 | ⏸ 약 17일 후 도래분 — ★맥 회수분 evidence 4,270장 처분도 **같은 자리에서 함께 결정**([salvage_recovery §3-4](salvage_recovery_2026-08-20.md)) |
 | 학원 방문(G 시리즈) | ⏸ 질문지 답변·일정 확정 대기 |
 
 ### 라이브 반영·재검증 (00:40, 사람 실행 + Claude 검증)

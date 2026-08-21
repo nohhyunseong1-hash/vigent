@@ -21,6 +21,8 @@ try:
 except ImportError:  # requests 없으면 전송은 폴백(로그)만
     requests = None
 
+import tuning
+
 from .base import BaseAgent
 
 _ROOT = Path(__file__).resolve().parent.parent.parent
@@ -146,10 +148,18 @@ class DispatcherAgent(BaseAgent):
                 pass
         return res
 
-    @staticmethod
-    def _queue_enabled(level: str) -> bool:
-        """원격 채널을 실제로 쓰는 등급만 큐에 남긴다(log 전용 등급은 재전송 대상이 아니다)."""
-        return level in ("critical", "high", "mid")
+    def _queue_enabled(self, level: str) -> bool:
+        """원격 채널을 실제로 쓰는 등급만 큐에 남긴다(log 전용 등급은 재전송 대상이 아니다).
+
+        ★[2026-08-21 수정] 의도는 처음부터 위 문장이었으나 구현이 `("critical","high","mid")`
+        하드코딩이었다. 기본 배선의 `on_severity` 에는 **"mid" 가 없어** log 전용으로
+        폴백하는데(있는 것은 "medium"), 큐에는 들어가므로 원격 전송이 없는 채 영원히
+        `delivered=False` → 10회 재시도 → **데드레터**가 됐다. `/health` 가 pending 때문에
+        **degraded** 로 떨어지는 원인이기도 했다(실측: rapid_motion 이 #19 dead·#24 pending).
+        → 하드코딩을 버리고 **실제 배선(on_severity)에 원격 동작이 있는지**로 판단한다.
+        """
+        actions = self.on_severity.get(level, ["log"])
+        return any(a in actions for a in ("alarm", "manager_call"))
 
     def _dispatch_now(self, level: str, message: str, meta: dict[str, Any] | None = None) -> dict[str, Any]:
         """실제 채널 전송(재시도 없음). 큐가 이 함수를 재시도 때 다시 부른다."""
@@ -180,8 +190,16 @@ class DispatcherAgent(BaseAgent):
                 "delivered": any_remote, "fallback": not any_remote}
 
     def relay(self, event: str = "guard_bypass", meta: dict[str, Any] | None = None) -> dict[str, Any]:
-        """프레스/전단기 §8 '보조 방호신호'. 인증 안전회로에 추가 신호만. 1차 비상정지 대체 아님(§8.1)."""
-        alert = self.dispatch("critical", f"{event}: 프레스/전단기 위험구역 신체 진입 감지", meta)
+        """§8 '보조 방호신호'. 인증 안전회로에 추가 신호만. 1차 비상정지 대체 아님(§8.1).
+
+        ★[2026-08-21] 경보 문구를 **현장별로 바꿀 수 있게** 설정으로 뺐다. 기본값도
+        "프레스/전단기" 를 빼고 **위험기계**로 일반화했다 — 지게차 실습장 같은 다른 현장에서
+        프레스 문구가 폰에 뜨면 담당자가 혼란스럽고 시연 설득력도 떨어진다(학원 준비 중 발견).
+        현장 문구는 `config/tuning.yaml` 의 `alerts.guard_bypass_text` 로 지정한다.
+        """
+        text = str(tuning.val("alerts", "guard_bypass_text",
+                              "위험기계 방호구역 신체 진입 감지")).strip()
+        alert = self.dispatch("critical", f"{event}: {text}", meta)
         return {"relay": "auxiliary_signal", "event": event, "is_primary_safety": False,
                 "boundary": "§8.1 — 비전은 보조·감시 계층. 1차 정지는 인증 하드웨어 책임.",
                 "delivered": alert["delivered"], "alert": alert}

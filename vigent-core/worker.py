@@ -20,6 +20,7 @@ import traceback
 from pathlib import Path
 from typing import Any
 
+import alert_notify
 import cv2
 import data_engine
 import numpy as np
@@ -159,14 +160,29 @@ def _frame_to_dataurl(frame: "np.ndarray", person_boxes: list | None = None) -> 
     return ("data:image/jpeg;base64," + base64.b64encode(buf.tobytes()).decode()) if ok else None
 
 
+def _make_prox_debouncer() -> "zone_debounce.ZoneDebouncer | None":
+    """[W2] 근접 디바운서 생성. `proximity.enter_s <= 0` 이면 None → 구 동작(롤백 경로)."""
+    enter = float(tuning.val("proximity", "enter_s", 0.4))
+    if enter <= 0:
+        return None
+    return zone_debounce.ZoneDebouncer(
+        enter=enter, exit_=float(tuning.val("proximity", "exit_s", 1.0)))
+
+
 def _derive(out: dict, zone: list, aspect_hw: float | None = None,
             cid: str | None = None, debouncer: "zone_debounce.ZoneDebouncer | None" = None,
+            prox_debouncer: "zone_debounce.ZoneDebouncer | None" = None,
             ) -> list[tuple[str, str, str]]:
     """guard.detect 출력 → 발화한 위험 [(rule, level, note)].
 
     [B6] 위험구역 침입은 **시간 디바운스**를 거친다(zone_debounce). PPE(3프레임)·화재(2프레임)엔
     히스테리시스가 있는데 침입만 없어서 단일 프레임 오검출이 곧 경보였다 — 파일럿의 유일한
     판매 기능이 이것이라 가장 먼저 막아야 한다. debouncer 가 None 이면 기존 즉시 발화(하위호환).
+
+    [W2] 근접(협착)에도 같은 상태기계를 쓴다 — 다만 **시간상수를 짧게**(기본 0.4초) 둔다.
+    지게차가 3m 반경을 통과하는 데 약 1.1초(서행 10km/h)라 침입과 같은 1.0초를 쓰면
+    경고가 성립하기 전에 상황이 끝난다. 근거·계산은 `benchmarks/w1w2_alert_wiring.md` §2.
+    prox_debouncer 가 None 이면 기존 매 프레임 즉시 발화(롤백 경로).
     """
     fired: list[tuple[str, str, str]] = []
     sig = out.get("signals", {}) or {}
@@ -199,10 +215,21 @@ def _derive(out: dict, zone: list, aspect_hw: float | None = None,
         fired.append(("fire_smoke", "critical", "화재/연기 감지"))
     # 동적 작업반경(협착) — 지게차·차량 근처에 사람 진입(거리 자동추정)
     radius = float(tuning.val("proximity", "radius_m", 3.0, env="VIGENT_RADIUS_M"))
+    prox_hit = None
     for hz in proximity.detect(out.get("detections", []), radius, aspect_hw=aspect_hw):  # 감사 E-1
-        fired.append(("proximity_hazard", "high",
-                      f"{hz['vehicle']} 작업반경 침입 — 사람 약 {hz['distance_m']}m"))
+        prox_hit = hz
         break
+    if prox_debouncer is not None and cid is not None:
+        # [W2] 확정 진입 전이에서만 발화 — zone_intrusion(B6)과 같은 방식.
+        #   체류 중 재발화는 쿨다운·통보 게이트가 담당한다.
+        was_near = prox_debouncer.state(cid)["confirmed"]
+        now_near = prox_debouncer.update(cid, prox_hit is not None)
+        if now_near and not was_near and prox_hit is not None:
+            fired.append(("proximity_hazard", "high",
+                          f"{prox_hit['vehicle']} 작업반경 침입 — 사람 약 {prox_hit['distance_m']}m"))
+    elif prox_hit is not None:                        # 디바운서 미주입 경로(하위호환)
+        fired.append(("proximity_hazard", "high",
+                      f"{prox_hit['vehicle']} 작업반경 침입 — 사람 약 {prox_hit['distance_m']}m"))
     # 군집 밀집 — 인원이 임계 이상 몰림(혼잡·압사·동선 위험)
     pc = out.get("person_count", 0)
     if pc >= int(tuning.val("crowd", "threshold", 6, env="VIGENT_CROWD")):
@@ -572,6 +599,9 @@ class Worker:
         self._pose_thread: threading.Thread | None = None
         # [B6] 위험구역 침입 시간 디바운스(카메라별 상태) — 단일 프레임 오검출 경보 차단
         self._zone_debouncer = zone_debounce.ZoneDebouncer()
+        # [W2] 근접(협착) 디바운스 — 침입보다 짧은 시간상수(기본 0.4s 유지 / 1.0s 해제).
+        #   proximity.enter_s <= 0 이면 디바운스를 끄고 구 동작(매 프레임 발화)으로 되돌린다.
+        self._prox_debouncer = _make_prox_debouncer()
         self.state: dict[str, Any] = {
             "running": False, "source": "", "name": "", "fps": 0,
             "frames": 0, "events": 0, "last_event": "", "error": ""}
@@ -837,7 +867,8 @@ class Worker:
                 _pose_ev = self._pose_events
                 self._pose_events = []
             fired = _derive(out, ctx.zone, frame.shape[0] / frame.shape[1],
-                            cid=str(ctx.name), debouncer=self._zone_debouncer)   # [B6] 침입 시간 디바운스
+                            cid=str(ctx.name), debouncer=self._zone_debouncer,   # [B6] 침입 시간 디바운스
+                            prox_debouncer=self._prox_debouncer)                 # [W2] 근접 디바운스
             fired += _pose_ev                                       # ergo(별도 스레드 산출) — 쿨다운은 아래 공통
             # B9: 위험구역 한정 타일 재검출(가산·기본 off, VIGENT_ZONE_TILE=1). zone 내 놓친 소형 person 회수.
             #   ★확인1(스코프 한정): 타일 박스는 zone_intrusion 발화에만 쓴다 — 공유 out["detections"] 에
@@ -872,10 +903,23 @@ class Worker:
                     ctx.evidence_cd[rule] = now
                     evidence = _frame_to_dataurl(frame, [d.get('bbox') for d in self._last_dets
                                                       if d.get('class') == 'person'])
-                data_engine.log_event(rule=rule, level=level, site=ctx.name, note=note,
-                                      image_data_url=evidence)
+                rec = data_engine.log_event(rule=rule, level=level, site=ctx.name, note=note,
+                                            image_data_url=evidence)
                 self.state["events"] += 1
                 self.state["last_event"] = f"{rule}({level})"
+                # ★[W1] 통보 배선 — 기록 **다음**에, 그리고 **비동기로**만 부른다.
+                #   ①기록이 먼저여야 전송이 실패해도 증거·이벤트는 남는다.
+                #   ②submit 은 큐에 넣기만 하므로(마이크로초) 느린 채널이 검출을 막지 못한다.
+                #   ③submit 은 예외를 올리지 않는다 — 통보 실패가 이 루프를 끊지 않는다.
+                n = alert_notify.submit(
+                    cam=str(ctx.name), rule=rule, level=level,
+                    message=f"[{ctx.name}] {note}",
+                    meta={"evidence": (rec or {}).get("evidence"), "note": note})
+                if not n.get("queued"):
+                    self.state["alerts_suppressed"] = self.state.get("alerts_suppressed", 0) + 1
+                    self.state["last_suppress_reason"] = n.get("reason", "")
+                else:
+                    self.state["alerts_notified"] = self.state.get("alerts_notified", 0) + 1
         except Exception as _fe:   # noqa: BLE001  프레임 처리 실패 → 로그 남기고 다음 프레임(루프 유지)
             # [S2-수정] str(_fe)에 자격증명이 섞여 나올 수 있어 scrub — state["error"]는 /worker/status로 그대로 노출됨
             self.state["error"] = _scrub(f"frame: {type(_fe).__name__}: {_fe}")

@@ -3,6 +3,7 @@ import os
 import sys
 import unittest
 from pathlib import Path
+from unittest import mock
 
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "vigent-core"))
@@ -24,9 +25,16 @@ class TestMachineGuard(unittest.TestCase):
 
     def test_relay_is_supplementary_not_primary(self):
         # §8: 보조 방호신호이며 1차 안전기능이 아님을 명시
+        # ★[2026-08-21] 환경변수만 지우면 부족하다 — notify_cfg() 는 config/notify.yaml 을
+        #   **먼저** 읽으므로, 현장에서 알림을 설정하면 이 테스트가 실제 텔레그램을 전송하고
+        #   delivered=True 가 되어 깨진다(실제로 발생). 설정을 통째로 격리한다.
+        import agents.dispatcher as _d
         for k in ("TELEGRAM_BOT_TOKEN", "TELEGRAM_CHAT_ID", "WEBHOOK_URL"):
             os.environ.pop(k, None)
-        r = self.agents["Dispatcher"].relay("guard_bypass")
+        with mock.patch.object(_d, "notify_cfg", return_value={"telegram_token": None, "telegram_chat": None, "webhook_url": None,
+     "smtp_host": None, "smtp_port": 587, "smtp_user": None,
+     "smtp_pass": None, "email_to": None}):
+            r = self.agents["Dispatcher"].relay("guard_bypass")
         self.assertFalse(r["is_primary_safety"])         # 1차 안전기능 아님
         self.assertEqual(r["relay"], "auxiliary_signal")
         self.assertIn("§8", r["boundary"])
@@ -71,6 +79,56 @@ class TestMachineEndpoints(unittest.TestCase):
         r = self.client.post("/dispatch/relay", json={"event": "guard_bypass"}).json()
         self.assertFalse(r["is_primary_safety"])
         self.assertEqual(r["relay"], "auxiliary_signal")
+
+
+class TestGuardBypassText(unittest.TestCase):
+    """[2026-08-21] §8 보조 방호신호 문구가 현장별로 바뀌는지.
+
+    배경: 문구가 "프레스/전단기 위험구역 신체 진입 감지" 로 **코드에 하드코딩**돼 있어,
+    지게차 실습장 같은 다른 현장에서 폰에 프레스 경보가 떠 담당자가 혼란스럽고
+    시연 설득력도 떨어졌다(학원 준비 중 발견).
+    """
+
+    def _agent(self):
+        import agents.dispatcher as _d
+        from agents.dispatcher import DispatcherAgent
+
+        class _Cfg:
+            raw = {"dispatch": {"on_severity": {"critical": ["log"]}}}
+        return _d, DispatcherAgent(_Cfg())
+
+    def _empty_cfg(self):
+        return {"telegram_token": None, "telegram_chat": None, "webhook_url": None,
+                "smtp_host": None, "smtp_port": 587, "smtp_user": None,
+                "smtp_pass": None, "email_to": None}
+
+    def test_default_text_is_site_neutral(self):
+        """★기본 문구에 특정 설비명(프레스·전단기)이 들어가면 안 된다."""
+        _d, a = self._agent()
+        with mock.patch.object(_d, "notify_cfg", return_value=self._empty_cfg()):
+            r = a.relay("guard_bypass")
+        text = [x for x in r["alert"]["results"] if x["channel"] == "log"][0]["text"]
+        self.assertIn("위험기계", text)
+        self.assertNotIn("프레스", text, "기본 문구에 현장 특정 설비명이 남아 있다")
+        self.assertNotIn("전단기", text)
+
+    def test_text_is_configurable_per_site(self):
+        """현장 문구를 tuning.yaml(alerts.guard_bypass_text)로 바꿀 수 있다."""
+        _d, a = self._agent()
+        vals = {"guard_bypass_text": "중장비 방호구역 신체 진입 감지"}
+        with mock.patch.object(_d, "notify_cfg", return_value=self._empty_cfg()),              mock.patch.object(_d.tuning, "val",
+                               side_effect=lambda s, k, d, env=None: vals.get(k, d)):
+            r = a.relay("guard_bypass")
+        text = [x for x in r["alert"]["results"] if x["channel"] == "log"][0]["text"]
+        self.assertIn("중장비 방호구역", text)
+
+    def test_safety_boundary_unchanged(self):
+        """★문구를 바꿔도 §8 경계(1차 안전기능 아님) 표기는 그대로여야 한다."""
+        _d, a = self._agent()
+        with mock.patch.object(_d, "notify_cfg", return_value=self._empty_cfg()):
+            r = a.relay("guard_bypass")
+        self.assertFalse(r["is_primary_safety"])
+        self.assertIn("§8.1", r["boundary"])
 
 
 if __name__ == "__main__":

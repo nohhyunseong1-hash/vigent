@@ -3,6 +3,7 @@ import os
 import sys
 import unittest
 from pathlib import Path
+from unittest import mock
 
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "vigent-core"))
@@ -62,9 +63,15 @@ class TestStep4(unittest.TestCase):
 
     # ── Dispatcher: 키 없으면 폴백(예외로 죽지 않음) ──
     def test_dispatcher_fallback_without_keys(self):
+        # ★[2026-08-21] notify_cfg() 는 config/notify.yaml 을 **환경변수보다 먼저** 읽는다.
+        #   현장에서 알림을 설정하면 이 테스트가 진짜 텔레그램을 쏘고 깨진다(실제로 발생).
+        import agents.dispatcher as _d
         for k in ("TELEGRAM_BOT_TOKEN", "TELEGRAM_CHAT_ID", "WEBHOOK_URL"):
             os.environ.pop(k, None)
-        r = self.agents["Dispatcher"].dispatch("high", "테스트")
+        with mock.patch.object(_d, "notify_cfg", return_value={"telegram_token": None, "telegram_chat": None, "webhook_url": None,
+     "smtp_host": None, "smtp_port": 587, "smtp_user": None,
+     "smtp_pass": None, "email_to": None}):
+            r = self.agents["Dispatcher"].dispatch("high", "테스트")
         self.assertFalse(r["delivered"])      # 원격 전송 안 됨
         self.assertTrue(r["fallback"])        # 폴백(로그)으로 동작
         # log 채널은 항상 기록
