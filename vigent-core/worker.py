@@ -1111,6 +1111,26 @@ class WorkerManager:
             return {"ok": False, "error": f"{cam_id} 없음"}
         return w.stop()
 
+    def remove(self, cam_id: str) -> dict:
+        """워커를 정지하고 **목록에서도 제거**한다 — 삭제(DELETE) 경로 전용.
+
+        stop() 과 나누는 이유: `disable` 은 '꺼져 있음'을 운영자가 봐야 하므로 항목을
+        남겨야 맞다. 반면 **삭제는 존재 자체가 사라져야 한다.**
+
+        ★[2026-08-21] 이 구분이 없어서 stop() 만 부르고 dict 에는 남겨뒀다. 그 결과
+        `DELETE /cameras/{id}` 후에도 `/health.cameras` 에 `status: stopped` 로 영원히
+        남고 `last_detect_age_s` 가 무한히 증가했다(관측: 40,544초). 피해는 둘이었다:
+          ① 현장에서 카메라를 지웠는데 목록에 보여 오독한다
+          ② 측정 오염 — capacity_probe 가 그 stale age 를 '1대 기준 검출주기'로 잡아
+             지연 판정이 통째로 무력화되고 **"한계 1대"라는 거짓 결과**가 나왔다
+             (audit/capacity_probe_invalid_2026-08-21.md)
+        """
+        with self._reg_lock:
+            w = self._workers.pop(cam_id, None)
+        if not w:
+            return {"ok": False, "error": f"{cam_id} 없음"}
+        return w.stop()
+
     def set_fps(self, cam_id: str, fps: float) -> dict:
         w = self._workers.get(cam_id)
         if not w:

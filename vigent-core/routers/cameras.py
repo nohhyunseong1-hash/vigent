@@ -110,7 +110,9 @@ def cameras_disable(cid: str):
 @router.delete("/cameras/{cid}")
 def cameras_delete(cid: str):
     import worker as _w
-    _w.manager.stop(cid)
+    # ★[2026-08-21] stop() → remove(). stop() 은 워커를 멈추기만 하고 목록에 남겨서
+    #   삭제 후에도 /health.cameras 에 `stopped` 로 영원히 보였다(worker.py:remove 주석 참고).
+    _w.manager.remove(cid)
     _g2_unregister(cid)
     return {"ok": _reg.delete(cid)}
 

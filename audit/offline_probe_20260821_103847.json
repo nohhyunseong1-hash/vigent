@@ -1,0 +1,108 @@
+{
+ "verdict": {
+  "samples": 5,
+  "offline_samples": 0,
+  "healthy_while_offline": 0,
+  "detecting_while_offline": 0,
+  "download_attempts": 0,
+  "download_lines": [],
+  "result": "무효 — 관측 중 인터넷이 한 번도 끊기지 않았다"
+ },
+ "rows": [
+  {
+   "t": "10:38:21",
+   "internet": true,
+   "http": 200,
+   "status": "healthy",
+   "phase": "ready",
+   "cameras": {
+    "forklift_test": {
+     "status": "ok",
+     "detect_age_s": 0.4,
+     "infer_ms": 151.4
+    }
+   },
+   "alerts": {
+    "pending": 0,
+    "sent": 4,
+    "dead": 13
+   }
+  },
+  {
+   "t": "10:38:26",
+   "internet": true,
+   "http": 200,
+   "status": "healthy",
+   "phase": "ready",
+   "cameras": {
+    "forklift_test": {
+     "status": "ok",
+     "detect_age_s": 0.0,
+     "infer_ms": 173.1
+    }
+   },
+   "alerts": {
+    "pending": 0,
+    "sent": 4,
+    "dead": 13
+   }
+  },
+  {
+   "t": "10:38:31",
+   "internet": true,
+   "http": 200,
+   "status": "healthy",
+   "phase": "ready",
+   "cameras": {
+    "forklift_test": {
+     "status": "ok",
+     "detect_age_s": 0.2,
+     "infer_ms": 143.9
+    }
+   },
+   "alerts": {
+    "pending": 0,
+    "sent": 4,
+    "dead": 13
+   }
+  },
+  {
+   "t": "10:38:36",
+   "internet": true,
+   "http": 200,
+   "status": "healthy",
+   "phase": "ready",
+   "cameras": {
+    "forklift_test": {
+     "status": "ok",
+     "detect_age_s": 0.4,
+     "infer_ms": 142.1
+    }
+   },
+   "alerts": {
+    "pending": 0,
+    "sent": 4,
+    "dead": 13
+   }
+  },
+  {
+   "t": "10:38:42",
+   "internet": true,
+   "http": 200,
+   "status": "healthy",
+   "phase": "ready",
+   "cameras": {
+    "forklift_test": {
+     "status": "ok",
+     "detect_age_s": 0.1,
+     "infer_ms": 180.2
+    }
+   },
+   "alerts": {
+    "pending": 0,
+    "sent": 4,
+    "dead": 13
+   }
+  }
+ ]
+}
