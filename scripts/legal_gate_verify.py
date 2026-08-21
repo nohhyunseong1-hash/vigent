@@ -19,9 +19,9 @@ CORE = Path(__file__).resolve().parent.parent / "vigent-core"
 sys.path.insert(0, str(CORE))
 os.chdir(CORE)
 
-import legal_whitelist as L                # noqa: E402
-from agents.scribe import ScribeAgent      # noqa: E402
-from agents.copilot import CopilotAgent    # noqa: E402
+import legal_whitelist as L  # noqa: E402
+from agents.copilot import CopilotAgent  # noqa: E402
+from agents.scribe import ScribeAgent  # noqa: E402
 
 copilot = CopilotAgent(None)
 scribe = ScribeAgent(None)

@@ -108,8 +108,15 @@ def main() -> int:
         longest = max(longest, cur)
 
     def cams_ok(r: dict) -> bool:
+        """가동 중인 카메라가 하나 이상이고, 그중 이상이 없는가.
+
+        ★[2026-08-21] `all(status == "ok")` 였다가 고쳤다. /health 에는 **삭제된 카메라가
+        `stopped` 로 남는다**(worker 상태가 메모리에 잔존). 그게 섞이면 검출이 멀쩡해도
+        전 샘플이 실패로 찍힌다 — capacity_probe 의 stale age 사고와 같은 뿌리다.
+        """
         c = r.get("cameras") or {}
-        return bool(c) and all(v.get("status") == "ok" for v in c.values())
+        live = {k: v for k, v in c.items() if v.get("status") != "stopped"}
+        return bool(live) and all(v.get("status") == "ok" for v in live.values())
 
     # ★status 는 healthy 가 아니어도 된다. 인터넷이 끊기면 텔레그램이 못 나가고,
     #   설계상 '미전송 경보 있음 → degraded'(md/DEPLOYMENT.md §8)가 **정상**이다.

@@ -23,9 +23,9 @@ CORE = Path(__file__).resolve().parent.parent / "vigent-core"
 sys.path.insert(0, str(CORE))
 os.chdir(CORE)
 
-import legal_whitelist as L                # noqa: E402
-from agents.scribe import ScribeAgent      # noqa: E402
-from agents.copilot import CopilotAgent    # noqa: E402
+import legal_whitelist as L  # noqa: E402
+from agents.copilot import CopilotAgent  # noqa: E402
+from agents.scribe import ScribeAgent  # noqa: E402
 
 GOLD_PATH = Path(__file__).resolve().parent.parent / "eval" / "golden" / "item_01_crane_quantitative.json"
 gold = json.loads(GOLD_PATH.read_text(encoding="utf-8"))

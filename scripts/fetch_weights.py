@@ -60,6 +60,62 @@ def load_manifest() -> dict[str, Any]:
     return json.loads(_MANIFEST.read_text(encoding="utf-8"))
 
 
+def github_token() -> str:
+    """GitHub 토큰을 찾는다. 없으면 빈 문자열(공개 저장소면 없어도 된다).
+
+    [2026-08-21] 저장소를 **비공개로 전환**하면서 필요해졌다 — 비공개 릴리스 자산은
+    인증 없이 받으면 **403 이 아니라 404** 로 응답한다(존재 자체를 숨긴다). 그래서
+    "파일이 없다" 와 "권한이 없다" 가 겉으로 구분되지 않아, 아래 download() 가 이를
+    명시적으로 갈라 안내한다.
+
+    찾는 순서:
+      1. 환경변수 GITHUB_TOKEN / GH_TOKEN / VIGENT_GITHUB_TOKEN
+      2. git 자격증명 도우미(`git credential fill`) — Windows 는 GCM 이 이미 갖고 있는 경우가 많다
+    ★토큰 값은 절대 출력하지 않는다(로그·콘솔 유출 방지).
+    """
+    import subprocess
+    for k in ("GITHUB_TOKEN", "GH_TOKEN", "VIGENT_GITHUB_TOKEN"):
+        v = os.environ.get(k, "").strip()
+        if v:
+            return v
+    try:
+        r = subprocess.run(["git", "credential", "fill"],
+                           input="protocol=https\nhost=github.com\n\n",
+                           capture_output=True, text=True, timeout=20)
+        for line in (r.stdout or "").splitlines():
+            if line.startswith("password="):
+                return line.split("=", 1)[1].strip()
+    except Exception:  # noqa: BLE001  자격증명 도우미가 없거나 실패 → 토큰 없음으로 처리
+        pass
+    return ""
+
+
+def release_asset_url(repo: str, tag: str, filename: str, token: str) -> str:
+    """비공개 릴리스에서 파일 하나의 **API 자산 URL** 을 찾는다(없으면 빈 문자열).
+
+    비공개 저장소는 `releases/download/...` 브라우저 URL 로는 토큰을 붙여도 받기 어렵다.
+    자산 API(`/repos/{repo}/releases/assets/{id}`)에 `Accept: application/octet-stream` 을
+    주는 것이 정식 경로다.
+    """
+    if not token:
+        return ""
+    api = f"https://api.github.com/repos/{repo}/releases/tags/{tag}"
+    req = urllib.request.Request(api, headers={
+        "Authorization": f"Bearer {token}",
+        "Accept": "application/vnd.github+json",
+        "User-Agent": "vigent-fetch-weights",
+    })
+    try:
+        with urllib.request.urlopen(req, timeout=30) as r:
+            rel = json.loads(r.read().decode("utf-8"))
+    except Exception:  # noqa: BLE001  릴리스 조회 실패 → 호출자가 기존 경로로 폴백
+        return ""
+    for a in rel.get("assets") or []:
+        if a.get("name") == filename:
+            return str(a.get("url") or "")
+    return ""
+
+
 def resolve_url(entry: dict[str, Any], man: dict[str, Any]) -> str:
     """다운로드 URL 결정. 사내 미러(env) > release: 스킴 > 매니페스트 url 원문."""
     base = os.environ.get(str(man.get("base_url_env") or "VIGENT_WEIGHTS_BASE_URL"), "").rstrip("/")
@@ -95,12 +151,26 @@ def download(entry: dict[str, Any], man: dict[str, Any]) -> tuple[bool, str]:
     url = resolve_url(entry, man)
     if not url or "PLACEHOLDER" in url:
         return False, "다운로드 URL 미설정(매니페스트 url 또는 VIGENT_WEIGHTS_BASE_URL 필요)"
+    headers: dict[str, str] = {"User-Agent": "vigent-fetch-weights"}
+    # [2026-08-21] 비공개 저장소 대응 — release: 스킴이면 토큰이 있을 때 자산 API 로 바꾼다.
+    #   토큰이 없으면 기존 브라우저 URL 그대로 시도한다(공개 저장소면 그대로 받아진다).
+    if str(entry.get("url") or "").startswith("release:"):
+        tok = github_token()
+        if tok:
+            repo = str(man.get("release_repo") or "")
+            tag = str(entry["url"]).split(":", 1)[1] or str(man.get("release_tag") or "")
+            api_url = release_asset_url(repo, tag, entry["file"], tok)
+            if api_url:
+                url = api_url
+                headers["Accept"] = "application/octet-stream"
+            headers["Authorization"] = f"Bearer {tok}"
     dst = _WEIGHTS / entry["file"]
     tmp = dst.with_suffix(dst.suffix + ".part")
     _WEIGHTS.mkdir(parents=True, exist_ok=True)
     try:
         print(f"    ↓ {url}")
-        with urllib.request.urlopen(url, timeout=60) as r, tmp.open("wb") as f:
+        req = urllib.request.Request(url, headers=headers)
+        with urllib.request.urlopen(req, timeout=60) as r, tmp.open("wb") as f:
             total = 0
             while True:
                 b = r.read(1 << 20)

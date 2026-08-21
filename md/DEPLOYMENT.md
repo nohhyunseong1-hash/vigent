@@ -62,6 +62,26 @@ Cloning into 'vigent_original'...
 Resolving deltas: 100% (...), done.
 ```
 
+> ⚠️ **[2026-08-21] 저장소가 비공개로 전환됐다 — 인증이 필요하다.**
+> 비공개 저장소는 권한이 없으면 **403 이 아니라 404** 로 응답한다(존재 자체를 숨긴다).
+> `repository not found` 가 뜨면 "주소가 틀렸나" 가 아니라 **"로그인이 안 됐나"** 를 먼저 의심한다.
+>
+> Windows 는 Git for Windows 에 포함된 **자격증명 관리자(GCM)** 가 처리한다 — `git clone` 시
+> 브라우저 로그인 창이 뜨고, 한 번 로그인하면 이후에는 자동이다. 창이 안 뜨거나 실패하면:
+>
+> ```powershell
+> # 저장된 자격증명 확인(값은 화면에 찍히니 남 앞에서 실행하지 말 것)
+> git credential fill
+> #   protocol=https  ⏎  host=github.com  ⏎  ⏎  입력
+> ```
+>
+> 토큰을 직접 쓰려면 GitHub → Settings → Developer settings →
+> **Personal access tokens** 에서 `repo` 권한(또는 fine-grained 로 이 저장소 Contents: Read)
+> 토큰을 만들어 아래처럼 넣는다:
+> ```powershell
+> $env:GITHUB_TOKEN = "<발급받은 토큰>"
+> ```
+
 ---
 
 ## 2. 가상환경
@@ -177,8 +197,31 @@ python scripts\fetch_weights.py
 > (조용한 COCO 폴백 차단 — F-8). 쓰지 않아도 파일은 있어야 한다.
 
 - 처음이면 `[없음]` → 다운로드 진행 → `[OK]` 순으로 나온다(파일당 약 115MB).
-- **실패하면 종료 코드 1**과 함께 어느 파일이 왜 실패했는지 나온다. 저장소가 비공개면
-  접근 권한이 필요하다.
+- **실패하면 종료 코드 1**과 함께 어느 파일이 왜 실패했는지 나온다.
+
+> ★**[2026-08-21] 저장소가 비공개라 릴리스 자산도 인증이 필요하다.**
+> `scripts/fetch_weights.py` 는 토큰을 **자동으로 찾는다**:
+> 1. 환경변수 `GITHUB_TOKEN` / `GH_TOKEN` / `VIGENT_GITHUB_TOKEN`
+> 2. git 자격증명 도우미(`git credential fill`) — clone 할 때 로그인했다면 여기 이미 있다
+>
+> 토큰이 있으면 릴리스 **자산 API**(`/repos/{repo}/releases/assets/{id}` +
+> `Accept: application/octet-stream`)로 받는다. 브라우저용 `releases/download/...` URL 은
+> 비공개에서 토큰을 붙여도 잘 안 되기 때문이다.
+>
+> **토큰이 없으면** 공개 저장소 시절과 같은 URL 로 시도하다 실패한다:
+> ```
+> [실패] yolo11s.pt — HTTP 404
+> ```
+> 이 404 는 **"파일이 없다"가 아니라 "권한이 없다"** 다(비공개는 404 로 숨긴다).
+> 위 1·2 중 하나를 채우고 다시 실행한다.
+>
+> 사내 미러를 쓰면 GitHub 인증 자체가 불필요하다:
+> ```powershell
+> $env:VIGENT_WEIGHTS_BASE_URL = "https://<미러주소>"
+> ```
+>
+> **실증(2026-08-21)**: 비공개 전환 후 `yolo11s.pt` 를 지우고 재조달 → 자산 API 로
+> 다운로드·SHA256 검증 통과 확인.
 - 선택 가중치(YOLO 폴백)까지 받으려면 `--all`. 없어도 기동에는 지장 없다.
 - 검증만: `--check`
 
@@ -306,7 +349,8 @@ $env:VIGENT_REQUIRE_TOKEN = "1"
 $env:VIGENT_CAPTURE_MODE = "thread"
 $env:PYTHONUTF8 = "1"                 # 한글 로그 깨짐 방지(cp949 콘솔)
 $env:RF_HOME = "$PWD\weights"         # 4-1 참고 — 없으면 349MB 를 받으러 나간다
-$env:TORCH_HOME = "$PWD\weightstm_cache"   # 포즈 모델 156MB — 4-1 참고
+$env:TORCH_HOME = "$PWD\weights
+tm_cache"   # 포즈 모델 156MB — 4-1 참고
 python -m uvicorn main:app --host 127.0.0.1 --port 8010
 ```
 

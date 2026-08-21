@@ -18,8 +18,8 @@ CORE = Path(__file__).resolve().parent.parent / "vigent-core"
 sys.path.insert(0, str(CORE))
 os.chdir(CORE)
 
-from agents.scribe import ScribeAgent      # noqa: E402
-from agents.copilot import CopilotAgent    # noqa: E402
+from agents.copilot import CopilotAgent  # noqa: E402
+from agents.scribe import ScribeAgent  # noqa: E402
 
 scribe = ScribeAgent(None)
 scribe.copilot = CopilotAgent(None)

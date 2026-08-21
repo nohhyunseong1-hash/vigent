@@ -22,12 +22,12 @@ from __future__ import annotations
 import argparse
 import json
 import subprocess
+import sys
 import time
 import urllib.error
 import urllib.request
 from datetime import datetime, timedelta
 from pathlib import Path
-import sys
 
 try:   # Windows 콘솔(cp949 등)이 이모지·한글기호를 못 찍어 죽는 문제 방지 — 출력 인코딩만 강제(로직 무관)
     sys.stdout.reconfigure(encoding="utf-8")
