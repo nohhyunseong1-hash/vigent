@@ -121,8 +121,32 @@ Enable-NetAdapter -Name "이더넷"
 
 1. 노트북을 NVR 과 같은 네트워크에 연결(랜선 우선, 와이파이는 차선)
 2. `ping <NVR IP>` → 응답 확인
-3. RTSP 주소 조립(질문지 부록 메모) → 서비스에 카메라 등록:
-   `POST /cameras {"id":"academy1","source":"rtsp://계정:암호@<IP>:554/<경로>","fps":2,"enabled":true}`
+3. RTSP 주소 조립(질문지 부록 메모) → 서비스에 카메라 등록.
+   ★**브라우저로 등록하는 것이 기본 경로다** — `http://127.0.0.1:8010/safety-hub` 에서
+   카메라 추가. 이유는 **한글 이름이 깨지지 않기 때문**이다(아래 경고).
+
+   ```
+   ID     : academy1
+   이름   : 1번 카메라        ← 한글 가능
+   주소   : rtsp://계정:암호@<IP>:554/<경로>
+   FPS    : 2
+   ```
+
+   > 🔴 **PowerShell 로 등록하면 한글 이름이 깨진다**(2026-08-22 실측).
+   > PowerShell 5.1 의 `Invoke-RestMethod` 는 `-ContentType "application/json"` 만 주면
+   > 본문을 **UTF-8 이 아닌 시스템 ANSI 로 인코딩**해 보낸다. 결과: `"C200 실카메라"` 가
+   > `"C200 ????"` 로 저장된다.
+   > **왜 문제인가**: 카메라 이름은 **텔레그램 경보 문구에 그대로 들어간다**.
+   > `[1번 크레인] 위험구역 침입` 이 `[???? ????] 위험구역 침입` 으로 도착해
+   > **어느 카메라인지 알 수 없다.**
+   > 굳이 PowerShell 을 써야 하면 본문을 바이트로 만들고 charset 을 명시한다:
+   > ```powershell
+   > $json  = @{ id="academy1"; name="1번 카메라"; source=$src; fps=2; enabled=$true } | ConvertTo-Json
+   > $bytes = [Text.Encoding]::UTF8.GetBytes($json)
+   > Invoke-RestMethod -Method Post -Uri http://127.0.0.1:8010/cameras -Headers $h `
+   >   -ContentType "application/json; charset=utf-8" -Body $bytes
+   > ```
+   > (응답 쪽 같은 문제는 서버에서 이미 고쳤다 — B-enc, `charset=utf-8` 명시.)
 4. **성공하면 이렇게 보인다**: `/health` 에 `academy1: ok`, `last_frame_age_s < 2`
 5. **실패 시 볼 로그**: `logs/vigent.log` 에서 `academy1` 검색 —
    `재연결 #n` 반복 = 주소/계정 오류 또는 방화벽 · `기동 실패` = URL 형식 오류.
@@ -232,6 +256,38 @@ Enable-NetAdapter -Name "이더넷"
 - [ ] 노트북에 저장된 **계정 정보 삭제**(camera_secrets 포함 여부 확인)
 - [ ] 담당자에게 결과 요약 공유 약속(리포트 송부)
 - [ ] 당일 기록(3단계 메모·스냅샷·이벤트 로그) 백업
+
+## 문제해결 — 카메라가 끊겼다 돌아왔는지 어떻게 아나
+
+> 🔴 **`reconnects`·`session_generation` 만 보면 오독한다**(2026-08-22 실측).
+>
+> 카메라 전원을 20초 끊고 복구시킨 실험에서 **약 30초 만에 자동 복구**됐는데,
+> `/health` 의 `reconnects` 는 **0**, `session_generation` 은 **1** 그대로였다.
+> 복구가 **스트림 재연결이 아니라 [B4] HANG 워치독의 워커 재기동**으로 이뤄지기 때문이다 —
+> 워커를 새로 만드므로 두 카운터가 리셋된다.
+>
+> **그래서 카운터가 0 이어도 "끊긴 적 없다"는 뜻이 아니다.**
+
+**실제로 봐야 할 곳** — 로그의 HANG 감지 줄:
+
+```powershell
+Select-String -Path logsigent.err.log -Pattern "HANG 감지" -Encoding UTF8 | Select-Object -Last 10
+```
+
+```
+[ERROR] vigent.worker: 워커 '1번 카메라' HANG 감지(15.6s 무진전 > 15s) → 재기동
+```
+
+| 관찰 | 뜻 |
+|---|---|
+| HANG 줄이 **없다** | 그 구간에 끊김이 없었다 |
+| HANG 줄이 **몇 줄 몰려 있다** | 그때 카메라가 끊겼고 워치독이 복구했다(정상) |
+| HANG 줄이 **계속 늘어난다** | 복구가 안 되고 있다 — 카메라 전원·네트워크·RTSP 계정 확인 |
+| `dropped_frames` 가 증가 | 네트워크가 불안정해 프레임을 버리고 있다 |
+
+★참고: 카메라가 **1대뿐**이면 그 카메라가 끊긴 동안 `/health` 는 `unhealthy` + **HTTP 503** 이 된다
+(전 카메라 검출 정지). 정상 동작이며, 모니터링 스크립트가 503 을 "서버 다운"으로 오해하지 않도록
+본문의 `cameras` 를 함께 읽어야 한다.
 
 ## 실패 대비 요약표
 
