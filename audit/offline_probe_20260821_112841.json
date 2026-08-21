@@ -1,0 +1,1630 @@
+{
+ "verdict": {
+  "samples": 85,
+  "offline_samples": 50,
+  "longest_offline_run": 46,
+  "serving_while_offline": 50,
+  "detecting_while_offline": 50,
+  "download_attempts": 0,
+  "download_lines": [],
+  "fails": [],
+  "result": "통과 — 오프라인 지속 구간에서 서비스 응답 + 검출 지속, 다운로드 0건"
+ },
+ "rows": [
+  {
+   "t": "11:18:39",
+   "internet": true,
+   "http": 200,
+   "status": "healthy",
+   "phase": "ready",
+   "cameras": {
+    "forklift_test": {
+     "status": "ok",
+     "detect_age_s": 0.3,
+     "infer_ms": 184.5
+    }
+   },
+   "alerts": {
+    "pending": 0,
+    "sent": 7,
+    "dead": 15
+   }
+  },
+  {
+   "t": "11:18:44",
+   "internet": true,
+   "http": 200,
+   "status": "healthy",
+   "phase": "ready",
+   "cameras": {
+    "forklift_test": {
+     "status": "ok",
+     "detect_age_s": 0.1,
+     "infer_ms": 149.7
+    }
+   },
+   "alerts": {
+    "pending": 0,
+    "sent": 7,
+    "dead": 15
+   }
+  },
+  {
+   "t": "11:18:50",
+   "internet": true,
+   "http": 200,
+   "status": "healthy",
+   "phase": "ready",
+   "cameras": {
+    "forklift_test": {
+     "status": "ok",
+     "detect_age_s": 0.3,
+     "infer_ms": 164.8
+    }
+   },
+   "alerts": {
+    "pending": 0,
+    "sent": 7,
+    "dead": 15
+   }
+  },
+  {
+   "t": "11:18:55",
+   "internet": true,
+   "http": 200,
+   "status": "healthy",
+   "phase": "ready",
+   "cameras": {
+    "forklift_test": {
+     "status": "ok",
+     "detect_age_s": 0.5,
+     "infer_ms": 153.4
+    }
+   },
+   "alerts": {
+    "pending": 0,
+    "sent": 7,
+    "dead": 15
+   }
+  },
+  {
+   "t": "11:19:00",
+   "internet": true,
+   "http": 200,
+   "status": "healthy",
+   "phase": "ready",
+   "cameras": {
+    "forklift_test": {
+     "status": "ok",
+     "detect_age_s": 0.2,
+     "infer_ms": 120.2
+    }
+   },
+   "alerts": {
+    "pending": 0,
+    "sent": 7,
+    "dead": 15
+   }
+  },
+  {
+   "t": "11:19:05",
+   "internet": true,
+   "http": 200,
+   "status": "healthy",
+   "phase": "ready",
+   "cameras": {
+    "forklift_test": {
+     "status": "ok",
+     "detect_age_s": 0.3,
+     "infer_ms": 166.6
+    }
+   },
+   "alerts": {
+    "pending": 0,
+    "sent": 7,
+    "dead": 15
+   }
+  },
+  {
+   "t": "11:19:11",
+   "internet": false,
+   "http": 200,
+   "status": "healthy",
+   "phase": "ready",
+   "cameras": {
+    "forklift_test": {
+     "status": "ok",
+     "detect_age_s": 0.4,
+     "infer_ms": 133.7
+    }
+   },
+   "alerts": {
+    "pending": 0,
+    "sent": 7,
+    "dead": 15
+   }
+  },
+  {
+   "t": "11:19:16",
+   "internet": false,
+   "http": 200,
+   "status": "healthy",
+   "phase": "ready",
+   "cameras": {
+    "forklift_test": {
+     "status": "ok",
+     "detect_age_s": 0.3,
+     "infer_ms": 114.9
+    }
+   },
+   "alerts": {
+    "pending": 0,
+    "sent": 7,
+    "dead": 15
+   }
+  },
+  {
+   "t": "11:19:21",
+   "internet": false,
+   "http": 200,
+   "status": "healthy",
+   "phase": "ready",
+   "cameras": {
+    "forklift_test": {
+     "status": "ok",
+     "detect_age_s": 0.3,
+     "infer_ms": 122.2
+    }
+   },
+   "alerts": {
+    "pending": 0,
+    "sent": 7,
+    "dead": 15
+   }
+  },
+  {
+   "t": "11:19:26",
+   "internet": false,
+   "http": 200,
+   "status": "healthy",
+   "phase": "ready",
+   "cameras": {
+    "forklift_test": {
+     "status": "ok",
+     "detect_age_s": 0.2,
+     "infer_ms": 157.8
+    }
+   },
+   "alerts": {
+    "pending": 0,
+    "sent": 7,
+    "dead": 15
+   }
+  },
+  {
+   "t": "11:19:31",
+   "internet": false,
+   "http": 200,
+   "status": "healthy",
+   "phase": "ready",
+   "cameras": {
+    "forklift_test": {
+     "status": "ok",
+     "detect_age_s": 0.2,
+     "infer_ms": 145.4
+    }
+   },
+   "alerts": {
+    "pending": 0,
+    "sent": 7,
+    "dead": 15
+   }
+  },
+  {
+   "t": "11:19:36",
+   "internet": false,
+   "http": 200,
+   "status": "healthy",
+   "phase": "ready",
+   "cameras": {
+    "forklift_test": {
+     "status": "ok",
+     "detect_age_s": 0.1,
+     "infer_ms": 221.9
+    }
+   },
+   "alerts": {
+    "pending": 0,
+    "sent": 7,
+    "dead": 15
+   }
+  },
+  {
+   "t": "11:19:41",
+   "internet": false,
+   "http": 200,
+   "status": "healthy",
+   "phase": "ready",
+   "cameras": {
+    "forklift_test": {
+     "status": "ok",
+     "detect_age_s": 0.1,
+     "infer_ms": 120.5
+    }
+   },
+   "alerts": {
+    "pending": 0,
+    "sent": 7,
+    "dead": 15
+   }
+  },
+  {
+   "t": "11:19:46",
+   "internet": false,
+   "http": 200,
+   "status": "healthy",
+   "phase": "ready",
+   "cameras": {
+    "forklift_test": {
+     "status": "ok",
+     "detect_age_s": 0.2,
+     "infer_ms": 129.7
+    }
+   },
+   "alerts": {
+    "pending": 0,
+    "sent": 7,
+    "dead": 15
+   }
+  },
+  {
+   "t": "11:19:51",
+   "internet": false,
+   "http": 200,
+   "status": "healthy",
+   "phase": "ready",
+   "cameras": {
+    "forklift_test": {
+     "status": "ok",
+     "detect_age_s": 0.2,
+     "infer_ms": 116.0
+    }
+   },
+   "alerts": {
+    "pending": 0,
+    "sent": 7,
+    "dead": 15
+   }
+  },
+  {
+   "t": "11:19:56",
+   "internet": false,
+   "http": 200,
+   "status": "healthy",
+   "phase": "ready",
+   "cameras": {
+    "forklift_test": {
+     "status": "ok",
+     "detect_age_s": 0.1,
+     "infer_ms": 211.3
+    }
+   },
+   "alerts": {
+    "pending": 0,
+    "sent": 7,
+    "dead": 15
+   }
+  },
+  {
+   "t": "11:20:01",
+   "internet": false,
+   "http": 200,
+   "status": "healthy",
+   "phase": "ready",
+   "cameras": {
+    "forklift_test": {
+     "status": "ok",
+     "detect_age_s": 0.1,
+     "infer_ms": 140.7
+    }
+   },
+   "alerts": {
+    "pending": 0,
+    "sent": 7,
+    "dead": 15
+   }
+  },
+  {
+   "t": "11:20:06",
+   "internet": false,
+   "http": 200,
+   "status": "healthy",
+   "phase": "ready",
+   "cameras": {
+    "forklift_test": {
+     "status": "ok",
+     "detect_age_s": 0.5,
+     "infer_ms": 158.8
+    }
+   },
+   "alerts": {
+    "pending": 0,
+    "sent": 7,
+    "dead": 15
+   }
+  },
+  {
+   "t": "11:20:11",
+   "internet": false,
+   "http": 200,
+   "status": "healthy",
+   "phase": "ready",
+   "cameras": {
+    "forklift_test": {
+     "status": "ok",
+     "detect_age_s": 0.5,
+     "infer_ms": 131.0
+    }
+   },
+   "alerts": {
+    "pending": 0,
+    "sent": 7,
+    "dead": 15
+   }
+  },
+  {
+   "t": "11:20:16",
+   "internet": false,
+   "http": 200,
+   "status": "healthy",
+   "phase": "ready",
+   "cameras": {
+    "forklift_test": {
+     "status": "ok",
+     "detect_age_s": 0.5,
+     "infer_ms": 129.7
+    }
+   },
+   "alerts": {
+    "pending": 0,
+    "sent": 7,
+    "dead": 15
+   }
+  },
+  {
+   "t": "11:20:21",
+   "internet": false,
+   "http": 200,
+   "status": "healthy",
+   "phase": "ready",
+   "cameras": {
+    "forklift_test": {
+     "status": "ok",
+     "detect_age_s": 0.4,
+     "infer_ms": 148.3
+    }
+   },
+   "alerts": {
+    "pending": 0,
+    "sent": 7,
+    "dead": 15
+   }
+  },
+  {
+   "t": "11:20:26",
+   "internet": false,
+   "http": 200,
+   "status": "healthy",
+   "phase": "ready",
+   "cameras": {
+    "forklift_test": {
+     "status": "ok",
+     "detect_age_s": 0.4,
+     "infer_ms": 132.6
+    }
+   },
+   "alerts": {
+    "pending": 0,
+    "sent": 7,
+    "dead": 15
+   }
+  },
+  {
+   "t": "11:20:31",
+   "internet": false,
+   "http": 200,
+   "status": "healthy",
+   "phase": "ready",
+   "cameras": {
+    "forklift_test": {
+     "status": "ok",
+     "detect_age_s": 0.3,
+     "infer_ms": 119.6
+    }
+   },
+   "alerts": {
+    "pending": 0,
+    "sent": 7,
+    "dead": 15
+   }
+  },
+  {
+   "t": "11:20:36",
+   "internet": false,
+   "http": 200,
+   "status": "healthy",
+   "phase": "ready",
+   "cameras": {
+    "forklift_test": {
+     "status": "ok",
+     "detect_age_s": 0.2,
+     "infer_ms": 149.1
+    }
+   },
+   "alerts": {
+    "pending": 0,
+    "sent": 7,
+    "dead": 15
+   }
+  },
+  {
+   "t": "11:20:41",
+   "internet": false,
+   "http": 200,
+   "status": "healthy",
+   "phase": "ready",
+   "cameras": {
+    "forklift_test": {
+     "status": "ok",
+     "detect_age_s": 0.2,
+     "infer_ms": 157.3
+    }
+   },
+   "alerts": {
+    "pending": 0,
+    "sent": 7,
+    "dead": 15
+   }
+  },
+  {
+   "t": "11:20:46",
+   "internet": false,
+   "http": 200,
+   "status": "healthy",
+   "phase": "ready",
+   "cameras": {
+    "forklift_test": {
+     "status": "ok",
+     "detect_age_s": 0.1,
+     "infer_ms": 157.3
+    }
+   },
+   "alerts": {
+    "pending": 0,
+    "sent": 7,
+    "dead": 15
+   }
+  },
+  {
+   "t": "11:20:51",
+   "internet": false,
+   "http": 200,
+   "status": "healthy",
+   "phase": "ready",
+   "cameras": {
+    "forklift_test": {
+     "status": "ok",
+     "detect_age_s": 0.1,
+     "infer_ms": 120.2
+    }
+   },
+   "alerts": {
+    "pending": 0,
+    "sent": 7,
+    "dead": 15
+   }
+  },
+  {
+   "t": "11:20:56",
+   "internet": false,
+   "http": 200,
+   "status": "healthy",
+   "phase": "ready",
+   "cameras": {
+    "forklift_test": {
+     "status": "ok",
+     "detect_age_s": 0.0,
+     "infer_ms": 149.2
+    }
+   },
+   "alerts": {
+    "pending": 0,
+    "sent": 7,
+    "dead": 15
+   }
+  },
+  {
+   "t": "11:21:01",
+   "internet": false,
+   "http": 200,
+   "status": "healthy",
+   "phase": "ready",
+   "cameras": {
+    "forklift_test": {
+     "status": "ok",
+     "detect_age_s": 0.5,
+     "infer_ms": 148.9
+    }
+   },
+   "alerts": {
+    "pending": 0,
+    "sent": 7,
+    "dead": 15
+   }
+  },
+  {
+   "t": "11:21:06",
+   "internet": false,
+   "http": 200,
+   "status": "healthy",
+   "phase": "ready",
+   "cameras": {
+    "forklift_test": {
+     "status": "ok",
+     "detect_age_s": 0.5,
+     "infer_ms": 143.7
+    }
+   },
+   "alerts": {
+    "pending": 0,
+    "sent": 7,
+    "dead": 15
+   }
+  },
+  {
+   "t": "11:21:11",
+   "internet": false,
+   "http": 200,
+   "status": "healthy",
+   "phase": "ready",
+   "cameras": {
+    "forklift_test": {
+     "status": "ok",
+     "detect_age_s": 0.3,
+     "infer_ms": 204.7
+    }
+   },
+   "alerts": {
+    "pending": 0,
+    "sent": 7,
+    "dead": 15
+   }
+  },
+  {
+   "t": "11:21:16",
+   "internet": false,
+   "http": 200,
+   "status": "healthy",
+   "phase": "ready",
+   "cameras": {
+    "forklift_test": {
+     "status": "ok",
+     "detect_age_s": 0.3,
+     "infer_ms": 239.9
+    }
+   },
+   "alerts": {
+    "pending": 0,
+    "sent": 7,
+    "dead": 15
+   }
+  },
+  {
+   "t": "11:21:21",
+   "internet": false,
+   "http": 200,
+   "status": "healthy",
+   "phase": "ready",
+   "cameras": {
+    "forklift_test": {
+     "status": "ok",
+     "detect_age_s": 0.3,
+     "infer_ms": 138.1
+    }
+   },
+   "alerts": {
+    "pending": 0,
+    "sent": 7,
+    "dead": 15
+   }
+  },
+  {
+   "t": "11:21:26",
+   "internet": false,
+   "http": 200,
+   "status": "healthy",
+   "phase": "ready",
+   "cameras": {
+    "forklift_test": {
+     "status": "ok",
+     "detect_age_s": 0.2,
+     "infer_ms": 159.3
+    }
+   },
+   "alerts": {
+    "pending": 0,
+    "sent": 7,
+    "dead": 15
+   }
+  },
+  {
+   "t": "11:21:31",
+   "internet": false,
+   "http": 200,
+   "status": "healthy",
+   "phase": "ready",
+   "cameras": {
+    "forklift_test": {
+     "status": "ok",
+     "detect_age_s": 0.2,
+     "infer_ms": 129.3
+    }
+   },
+   "alerts": {
+    "pending": 0,
+    "sent": 7,
+    "dead": 15
+   }
+  },
+  {
+   "t": "11:21:36",
+   "internet": false,
+   "http": 200,
+   "status": "healthy",
+   "phase": "ready",
+   "cameras": {
+    "forklift_test": {
+     "status": "ok",
+     "detect_age_s": 0.2,
+     "infer_ms": 160.1
+    }
+   },
+   "alerts": {
+    "pending": 0,
+    "sent": 7,
+    "dead": 15
+   }
+  },
+  {
+   "t": "11:21:42",
+   "internet": false,
+   "http": 200,
+   "status": "healthy",
+   "phase": "ready",
+   "cameras": {
+    "forklift_test": {
+     "status": "ok",
+     "detect_age_s": 0.2,
+     "infer_ms": 124.9
+    }
+   },
+   "alerts": {
+    "pending": 0,
+    "sent": 7,
+    "dead": 15
+   }
+  },
+  {
+   "t": "11:21:47",
+   "internet": false,
+   "http": 200,
+   "status": "healthy",
+   "phase": "ready",
+   "cameras": {
+    "forklift_test": {
+     "status": "ok",
+     "detect_age_s": 0.1,
+     "infer_ms": 135.8
+    }
+   },
+   "alerts": {
+    "pending": 0,
+    "sent": 7,
+    "dead": 15
+   }
+  },
+  {
+   "t": "11:21:52",
+   "internet": false,
+   "http": 200,
+   "status": "healthy",
+   "phase": "ready",
+   "cameras": {
+    "forklift_test": {
+     "status": "ok",
+     "detect_age_s": 0.0,
+     "infer_ms": 149.3
+    }
+   },
+   "alerts": {
+    "pending": 0,
+    "sent": 7,
+    "dead": 15
+   }
+  },
+  {
+   "t": "11:21:57",
+   "internet": false,
+   "http": 200,
+   "status": "healthy",
+   "phase": "ready",
+   "cameras": {
+    "forklift_test": {
+     "status": "ok",
+     "detect_age_s": 0.0,
+     "infer_ms": 114.0
+    }
+   },
+   "alerts": {
+    "pending": 0,
+    "sent": 7,
+    "dead": 15
+   }
+  },
+  {
+   "t": "11:22:02",
+   "internet": false,
+   "http": 200,
+   "status": "healthy",
+   "phase": "ready",
+   "cameras": {
+    "forklift_test": {
+     "status": "ok",
+     "detect_age_s": 0.5,
+     "infer_ms": 127.0
+    }
+   },
+   "alerts": {
+    "pending": 0,
+    "sent": 7,
+    "dead": 15
+   }
+  },
+  {
+   "t": "11:22:07",
+   "internet": false,
+   "http": 200,
+   "status": "healthy",
+   "phase": "ready",
+   "cameras": {
+    "forklift_test": {
+     "status": "ok",
+     "detect_age_s": 0.4,
+     "infer_ms": 127.2
+    }
+   },
+   "alerts": {
+    "pending": 0,
+    "sent": 7,
+    "dead": 15
+   }
+  },
+  {
+   "t": "11:22:12",
+   "internet": false,
+   "http": 200,
+   "status": "healthy",
+   "phase": "ready",
+   "cameras": {
+    "forklift_test": {
+     "status": "ok",
+     "detect_age_s": 0.3,
+     "infer_ms": 139.0
+    }
+   },
+   "alerts": {
+    "pending": 0,
+    "sent": 7,
+    "dead": 15
+   }
+  },
+  {
+   "t": "11:22:17",
+   "internet": false,
+   "http": 200,
+   "status": "healthy",
+   "phase": "ready",
+   "cameras": {
+    "forklift_test": {
+     "status": "ok",
+     "detect_age_s": 0.3,
+     "infer_ms": 116.7
+    }
+   },
+   "alerts": {
+    "pending": 0,
+    "sent": 7,
+    "dead": 15
+   }
+  },
+  {
+   "t": "11:22:22",
+   "internet": false,
+   "http": 200,
+   "status": "healthy",
+   "phase": "ready",
+   "cameras": {
+    "forklift_test": {
+     "status": "ok",
+     "detect_age_s": 0.3,
+     "infer_ms": 128.5
+    }
+   },
+   "alerts": {
+    "pending": 0,
+    "sent": 7,
+    "dead": 15
+   }
+  },
+  {
+   "t": "11:22:27",
+   "internet": false,
+   "http": 200,
+   "status": "healthy",
+   "phase": "ready",
+   "cameras": {
+    "forklift_test": {
+     "status": "ok",
+     "detect_age_s": 0.3,
+     "infer_ms": 133.7
+    }
+   },
+   "alerts": {
+    "pending": 0,
+    "sent": 7,
+    "dead": 15
+   }
+  },
+  {
+   "t": "11:22:32",
+   "internet": false,
+   "http": 200,
+   "status": "healthy",
+   "phase": "ready",
+   "cameras": {
+    "forklift_test": {
+     "status": "ok",
+     "detect_age_s": 0.3,
+     "infer_ms": 130.8
+    }
+   },
+   "alerts": {
+    "pending": 0,
+    "sent": 7,
+    "dead": 15
+   }
+  },
+  {
+   "t": "11:22:37",
+   "internet": false,
+   "http": 200,
+   "status": "healthy",
+   "phase": "ready",
+   "cameras": {
+    "forklift_test": {
+     "status": "ok",
+     "detect_age_s": 0.2,
+     "infer_ms": 141.9
+    }
+   },
+   "alerts": {
+    "pending": 0,
+    "sent": 7,
+    "dead": 15
+   }
+  },
+  {
+   "t": "11:22:42",
+   "internet": false,
+   "http": 200,
+   "status": "healthy",
+   "phase": "ready",
+   "cameras": {
+    "forklift_test": {
+     "status": "ok",
+     "detect_age_s": 0.1,
+     "infer_ms": 129.0
+    }
+   },
+   "alerts": {
+    "pending": 0,
+    "sent": 7,
+    "dead": 15
+   }
+  },
+  {
+   "t": "11:22:47",
+   "internet": false,
+   "http": 200,
+   "status": "healthy",
+   "phase": "ready",
+   "cameras": {
+    "forklift_test": {
+     "status": "ok",
+     "detect_age_s": 0.1,
+     "infer_ms": 151.3
+    }
+   },
+   "alerts": {
+    "pending": 0,
+    "sent": 7,
+    "dead": 15
+   }
+  },
+  {
+   "t": "11:22:52",
+   "internet": false,
+   "http": 200,
+   "status": "healthy",
+   "phase": "ready",
+   "cameras": {
+    "forklift_test": {
+     "status": "ok",
+     "detect_age_s": 0.0,
+     "infer_ms": 130.4
+    }
+   },
+   "alerts": {
+    "pending": 0,
+    "sent": 7,
+    "dead": 15
+   }
+  },
+  {
+   "t": "11:22:57",
+   "internet": false,
+   "http": 200,
+   "status": "healthy",
+   "phase": "ready",
+   "cameras": {
+    "forklift_test": {
+     "status": "ok",
+     "detect_age_s": 0.5,
+     "infer_ms": 130.5
+    }
+   },
+   "alerts": {
+    "pending": 0,
+    "sent": 7,
+    "dead": 15
+   }
+  },
+  {
+   "t": "11:23:02",
+   "internet": true,
+   "http": 200,
+   "status": "healthy",
+   "phase": "ready",
+   "cameras": {
+    "forklift_test": {
+     "status": "ok",
+     "detect_age_s": 0.0,
+     "infer_ms": 107.1
+    }
+   },
+   "alerts": {
+    "pending": 0,
+    "sent": 7,
+    "dead": 15
+   }
+  },
+  {
+   "t": "11:23:16",
+   "internet": false,
+   "http": 200,
+   "status": "healthy",
+   "phase": "ready",
+   "cameras": {
+    "forklift_test": {
+     "status": "ok",
+     "detect_age_s": 0.4,
+     "infer_ms": 131.3
+    }
+   },
+   "alerts": {
+    "pending": 0,
+    "sent": 7,
+    "dead": 15
+   }
+  },
+  {
+   "t": "11:23:45",
+   "internet": false,
+   "http": 200,
+   "status": "healthy",
+   "phase": "ready",
+   "cameras": {
+    "forklift_test": {
+     "status": "ok",
+     "detect_age_s": 0.2,
+     "infer_ms": 133.1
+    }
+   },
+   "alerts": {
+    "pending": 0,
+    "sent": 7,
+    "dead": 15
+   }
+  },
+  {
+   "t": "11:24:14",
+   "internet": true,
+   "http": 200,
+   "status": "healthy",
+   "phase": "ready",
+   "cameras": {
+    "forklift_test": {
+     "status": "ok",
+     "detect_age_s": 0.0,
+     "infer_ms": 226.9
+    }
+   },
+   "alerts": {
+    "pending": 0,
+    "sent": 7,
+    "dead": 15
+   }
+  },
+  {
+   "t": "11:24:41",
+   "internet": true,
+   "http": 200,
+   "status": "healthy",
+   "phase": "ready",
+   "cameras": {
+    "forklift_test": {
+     "status": "ok",
+     "detect_age_s": 0.3,
+     "infer_ms": 196.8
+    }
+   },
+   "alerts": {
+    "pending": 0,
+    "sent": 7,
+    "dead": 15
+   }
+  },
+  {
+   "t": "11:25:07",
+   "internet": true,
+   "http": 200,
+   "status": "healthy",
+   "phase": "ready",
+   "cameras": {
+    "forklift_test": {
+     "status": "ok",
+     "detect_age_s": 0.3,
+     "infer_ms": 131.7
+    }
+   },
+   "alerts": {
+    "pending": 0,
+    "sent": 7,
+    "dead": 15
+   }
+  },
+  {
+   "t": "11:25:12",
+   "internet": false,
+   "http": 200,
+   "status": "healthy",
+   "phase": "ready",
+   "cameras": {
+    "forklift_test": {
+     "status": "ok",
+     "detect_age_s": 0.1,
+     "infer_ms": 134.7
+    }
+   },
+   "alerts": {
+    "pending": 0,
+    "sent": 7,
+    "dead": 15
+   }
+  },
+  {
+   "t": "11:25:44",
+   "internet": false,
+   "http": 200,
+   "status": "healthy",
+   "phase": "ready",
+   "cameras": {
+    "forklift_test": {
+     "status": "ok",
+     "detect_age_s": 0.3,
+     "infer_ms": 144.1
+    }
+   },
+   "alerts": {
+    "pending": 0,
+    "sent": 7,
+    "dead": 15
+   }
+  },
+  {
+   "t": "11:26:16",
+   "internet": true,
+   "http": 200,
+   "status": "healthy",
+   "phase": "ready",
+   "cameras": {
+    "forklift_test": {
+     "status": "ok",
+     "detect_age_s": 0.2,
+     "infer_ms": 135.6
+    }
+   },
+   "alerts": {
+    "pending": 0,
+    "sent": 7,
+    "dead": 15
+   }
+  },
+  {
+   "t": "11:26:33",
+   "internet": true,
+   "http": 200,
+   "status": "healthy",
+   "phase": "ready",
+   "cameras": {
+    "forklift_test": {
+     "status": "ok",
+     "detect_age_s": 0.4,
+     "infer_ms": 160.5
+    }
+   },
+   "alerts": {
+    "pending": 0,
+    "sent": 7,
+    "dead": 15
+   }
+  },
+  {
+   "t": "11:26:39",
+   "internet": true,
+   "http": 200,
+   "status": "healthy",
+   "phase": "ready",
+   "cameras": {
+    "forklift_test": {
+     "status": "ok",
+     "detect_age_s": 0.2,
+     "infer_ms": 168.5
+    }
+   },
+   "alerts": {
+    "pending": 0,
+    "sent": 7,
+    "dead": 15
+   }
+  },
+  {
+   "t": "11:26:44",
+   "internet": true,
+   "http": 200,
+   "status": "healthy",
+   "phase": "ready",
+   "cameras": {
+    "forklift_test": {
+     "status": "ok",
+     "detect_age_s": 0.4,
+     "infer_ms": 185.2
+    }
+   },
+   "alerts": {
+    "pending": 0,
+    "sent": 7,
+    "dead": 15
+   }
+  },
+  {
+   "t": "11:26:49",
+   "internet": true,
+   "http": 200,
+   "status": "healthy",
+   "phase": "ready",
+   "cameras": {
+    "forklift_test": {
+     "status": "ok",
+     "detect_age_s": 0.1,
+     "infer_ms": 141.1
+    }
+   },
+   "alerts": {
+    "pending": 0,
+    "sent": 7,
+    "dead": 15
+   }
+  },
+  {
+   "t": "11:26:55",
+   "internet": true,
+   "http": 200,
+   "status": "healthy",
+   "phase": "ready",
+   "cameras": {
+    "forklift_test": {
+     "status": "ok",
+     "detect_age_s": 0.3,
+     "infer_ms": 182.4
+    }
+   },
+   "alerts": {
+    "pending": 0,
+    "sent": 7,
+    "dead": 15
+   }
+  },
+  {
+   "t": "11:27:00",
+   "internet": true,
+   "http": 200,
+   "status": "healthy",
+   "phase": "ready",
+   "cameras": {
+    "forklift_test": {
+     "status": "ok",
+     "detect_age_s": 0.1,
+     "infer_ms": 158.9
+    }
+   },
+   "alerts": {
+    "pending": 0,
+    "sent": 7,
+    "dead": 15
+   }
+  },
+  {
+   "t": "11:27:05",
+   "internet": true,
+   "http": 200,
+   "status": "healthy",
+   "phase": "ready",
+   "cameras": {
+    "forklift_test": {
+     "status": "ok",
+     "detect_age_s": 0.4,
+     "infer_ms": 154.9
+    }
+   },
+   "alerts": {
+    "pending": 0,
+    "sent": 7,
+    "dead": 15
+   }
+  },
+  {
+   "t": "11:27:10",
+   "internet": true,
+   "http": 200,
+   "status": "healthy",
+   "phase": "ready",
+   "cameras": {
+    "forklift_test": {
+     "status": "ok",
+     "detect_age_s": 0.1,
+     "infer_ms": 161.1
+    }
+   },
+   "alerts": {
+    "pending": 0,
+    "sent": 7,
+    "dead": 15
+   }
+  },
+  {
+   "t": "11:27:16",
+   "internet": true,
+   "http": 200,
+   "status": "healthy",
+   "phase": "ready",
+   "cameras": {
+    "forklift_test": {
+     "status": "ok",
+     "detect_age_s": 0.5,
+     "infer_ms": 142.2
+    }
+   },
+   "alerts": {
+    "pending": 0,
+    "sent": 7,
+    "dead": 15
+   }
+  },
+  {
+   "t": "11:27:21",
+   "internet": true,
+   "http": 200,
+   "status": "healthy",
+   "phase": "ready",
+   "cameras": {
+    "forklift_test": {
+     "status": "ok",
+     "detect_age_s": 0.2,
+     "infer_ms": 144.5
+    }
+   },
+   "alerts": {
+    "pending": 0,
+    "sent": 7,
+    "dead": 15
+   }
+  },
+  {
+   "t": "11:27:26",
+   "internet": true,
+   "http": 200,
+   "status": "healthy",
+   "phase": "ready",
+   "cameras": {
+    "forklift_test": {
+     "status": "ok",
+     "detect_age_s": 0.5,
+     "infer_ms": 179.1
+    }
+   },
+   "alerts": {
+    "pending": 0,
+    "sent": 7,
+    "dead": 15
+   }
+  },
+  {
+   "t": "11:27:32",
+   "internet": true,
+   "http": 200,
+   "status": "healthy",
+   "phase": "ready",
+   "cameras": {
+    "forklift_test": {
+     "status": "ok",
+     "detect_age_s": 0.3,
+     "infer_ms": 170.8
+    }
+   },
+   "alerts": {
+    "pending": 0,
+    "sent": 7,
+    "dead": 15
+   }
+  },
+  {
+   "t": "11:27:37",
+   "internet": true,
+   "http": 200,
+   "status": "healthy",
+   "phase": "ready",
+   "cameras": {
+    "forklift_test": {
+     "status": "ok",
+     "detect_age_s": 0.0,
+     "infer_ms": 146.1
+    }
+   },
+   "alerts": {
+    "pending": 0,
+    "sent": 7,
+    "dead": 15
+   }
+  },
+  {
+   "t": "11:27:42",
+   "internet": true,
+   "http": 200,
+   "status": "healthy",
+   "phase": "ready",
+   "cameras": {
+    "forklift_test": {
+     "status": "ok",
+     "detect_age_s": 0.2,
+     "infer_ms": 174.8
+    }
+   },
+   "alerts": {
+    "pending": 0,
+    "sent": 7,
+    "dead": 15
+   }
+  },
+  {
+   "t": "11:27:48",
+   "internet": true,
+   "http": 200,
+   "status": "healthy",
+   "phase": "ready",
+   "cameras": {
+    "forklift_test": {
+     "status": "ok",
+     "detect_age_s": 0.1,
+     "infer_ms": 228.8
+    }
+   },
+   "alerts": {
+    "pending": 0,
+    "sent": 7,
+    "dead": 15
+   }
+  },
+  {
+   "t": "11:27:53",
+   "internet": true,
+   "http": 200,
+   "status": "healthy",
+   "phase": "ready",
+   "cameras": {
+    "forklift_test": {
+     "status": "ok",
+     "detect_age_s": 0.4,
+     "infer_ms": 151.4
+    }
+   },
+   "alerts": {
+    "pending": 0,
+    "sent": 7,
+    "dead": 15
+   }
+  },
+  {
+   "t": "11:27:58",
+   "internet": true,
+   "http": 200,
+   "status": "healthy",
+   "phase": "ready",
+   "cameras": {
+    "forklift_test": {
+     "status": "ok",
+     "detect_age_s": 0.1,
+     "infer_ms": 144.5
+    }
+   },
+   "alerts": {
+    "pending": 0,
+    "sent": 7,
+    "dead": 15
+   }
+  },
+  {
+   "t": "11:28:04",
+   "internet": true,
+   "http": 200,
+   "status": "healthy",
+   "phase": "ready",
+   "cameras": {
+    "forklift_test": {
+     "status": "ok",
+     "detect_age_s": 0.0,
+     "infer_ms": 186.7
+    }
+   },
+   "alerts": {
+    "pending": 0,
+    "sent": 7,
+    "dead": 15
+   }
+  },
+  {
+   "t": "11:28:09",
+   "internet": true,
+   "http": 200,
+   "status": "healthy",
+   "phase": "ready",
+   "cameras": {
+    "forklift_test": {
+     "status": "ok",
+     "detect_age_s": 0.2,
+     "infer_ms": 161.2
+    }
+   },
+   "alerts": {
+    "pending": 0,
+    "sent": 7,
+    "dead": 15
+   }
+  },
+  {
+   "t": "11:28:14",
+   "internet": true,
+   "http": 200,
+   "status": "healthy",
+   "phase": "ready",
+   "cameras": {
+    "forklift_test": {
+     "status": "ok",
+     "detect_age_s": 0.5,
+     "infer_ms": 168.7
+    }
+   },
+   "alerts": {
+    "pending": 0,
+    "sent": 7,
+    "dead": 15
+   }
+  },
+  {
+   "t": "11:28:20",
+   "internet": true,
+   "http": 200,
+   "status": "healthy",
+   "phase": "ready",
+   "cameras": {
+    "forklift_test": {
+     "status": "ok",
+     "detect_age_s": 0.2,
+     "infer_ms": 189.3
+    }
+   },
+   "alerts": {
+    "pending": 0,
+    "sent": 7,
+    "dead": 15
+   }
+  },
+  {
+   "t": "11:28:25",
+   "internet": true,
+   "http": 200,
+   "status": "healthy",
+   "phase": "ready",
+   "cameras": {
+    "forklift_test": {
+     "status": "ok",
+     "detect_age_s": 0.4,
+     "infer_ms": 164.7
+    }
+   },
+   "alerts": {
+    "pending": 0,
+    "sent": 7,
+    "dead": 15
+   }
+  },
+  {
+   "t": "11:28:30",
+   "internet": true,
+   "http": 200,
+   "status": "healthy",
+   "phase": "ready",
+   "cameras": {
+    "forklift_test": {
+     "status": "ok",
+     "detect_age_s": 0.1,
+     "infer_ms": 165.4
+    }
+   },
+   "alerts": {
+    "pending": 0,
+    "sent": 7,
+    "dead": 15
+   }
+  },
+  {
+   "t": "11:28:36",
+   "internet": true,
+   "http": 200,
+   "status": "healthy",
+   "phase": "ready",
+   "cameras": {
+    "forklift_test": {
+     "status": "ok",
+     "detect_age_s": 0.3,
+     "infer_ms": 138.8
+    }
+   },
+   "alerts": {
+    "pending": 0,
+    "sent": 7,
+    "dead": 15
+   }
+  }
+ ]
+}
