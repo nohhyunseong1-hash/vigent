@@ -215,6 +215,35 @@ $env:RF_HOME = "C:\Users\1\Desktop\VIGENT\vigent-core\weights"
 > ```
 > 다운로드를 감수하고 띄우려면 `VIGENT_ALLOW_PRETRAIN_DOWNLOAD=1` 을 명시해야 한다.
 
+#### 포즈 모델도 같은 함정이 있다 — `TORCH_HOME`
+
+`rtmlib`(RTMPose)은 **첫 사람 검출 시점에** 모델 2개를 인터넷에서 받는다:
+
+| 파일 | 크기 |
+|---|---|
+| `yolox_m_8xb8-300e_humanart-c2c7a14a.onnx` | 101MB |
+| `rtmpose-m_simcc-body7_pt-body7_420e-256x192-e48f03d0_20230504.onnx` | 54MB |
+
+기본 캐시가 `~/.cache/rtmlib` 이라 `RF_HOME` 과 똑같이 **계정별로 흩어진다**(서비스는
+LocalSystem 프로필). 배포는 `TORCH_HOME` 을 **`vigent-core\weights\rtm_cache`** 로 고정한다
+— `install_service.ps1` 이 자동 주입하고, 수동 기동은 직접 넣는다:
+
+```powershell
+$env:TORCH_HOME = "C:\Users\1\Desktop\VIGENT\vigent-core\weights\rtm_cache"
+```
+
+> ★**이건 기동 경로가 아니라 검출 경로다.** 서버가 healthy 로 떠도 캐시가 없으면
+> **사람이 처음 잡히는 순간** 다운로드를 시도한다 — 인터넷이 없으면 그때 실패한다.
+> 그래서 "서비스가 떴으니 오프라인 OK" 는 **검증이 아니다**. 반드시 카메라를 붙이고
+> 사람이 잡히는 것까지 확인해야 한다(2026-08-20 오프라인 시험이 카메라 없이 돌아 이걸
+> 놓쳤고, 다음날 지게차 영상을 물리자마자 156MB 다운로드가 관측됐다).
+
+미리 채우려면 인터넷이 되는 곳에서 한 번 돌려 둔다:
+```powershell
+$env:TORCH_HOME = "<루트>\vigent-core\weights\rtm_cache"
+python -c "from rtmlib import Body; Body(mode='balanced', backend='onnxruntime', device='cpu')"
+```
+
 ---
 
 ## 5. 설정 파일
@@ -277,6 +306,7 @@ $env:VIGENT_REQUIRE_TOKEN = "1"
 $env:VIGENT_CAPTURE_MODE = "thread"
 $env:PYTHONUTF8 = "1"                 # 한글 로그 깨짐 방지(cp949 콘솔)
 $env:RF_HOME = "$PWD\weights"         # 4-1 참고 — 없으면 349MB 를 받으러 나간다
+$env:TORCH_HOME = "$PWD\weightstm_cache"   # 포즈 모델 156MB — 4-1 참고
 python -m uvicorn main:app --host 127.0.0.1 --port 8010
 ```
 

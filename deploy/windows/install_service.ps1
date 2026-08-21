@@ -120,6 +120,7 @@ $errLog = Join-Path $LogDir "vigent.err.log"
 #   VIGENT_RESTART_CMD 는 기아 3단계(starvation_guard)가 실제로 소비한다.
 $restartCmd = 'sc.exe stop ' + $ServiceName + ' & sc.exe start ' + $ServiceName
 $WeightsDir = Join-Path $Core "weights"
+$RtmCacheDir = Join-Path $WeightsDir "rtm_cache"
 $envLines = @(
   "VIGENT_REQUIRE_TOKEN=1",
   "VIGENT_CAPTURE_MODE=thread",
@@ -140,6 +141,13 @@ $envLines = @(
   #   기동에서 349MB 를 인터넷에서 새로 받았다(실측). 인터넷 없는 현장이면 기동 실패다.
   #   이 위치는 scripts/fetch_weights.py 의 다운로드 경로와 같아 매니페스트로 조달된다.
   "RF_HOME=$WeightsDir",
+  # ★[2026-08-21] 포즈(RTMPose/rtmlib) 모델 캐시도 배포 폴더로 고정.
+  #   rtmlib 은 **첫 사람 검출 시점에** yolox_m(101MB) + rtmpose-m(54MB) 를 인터넷에서
+  #   받는다(합 156MB). 기본 캐시가 ~/.cache/rtmlib 이라 RF_HOME 과 똑같이 LocalSystem
+  #   프로필로 흩어진다. ★이건 기동이 아니라 **검출 경로**라 "서비스가 떴으니 오프라인
+  #   OK" 로는 안 잡힌다 — 2026-08-20 오프라인 시험이 카메라 없이 돌아 놓쳤고,
+  #   2026-08-21 지게차 영상을 물리자마자 다운로드가 관측됐다.
+  "TORCH_HOME=$RtmCacheDir",
   "VIGENT_RESTART_CMD=$restartCmd"
 ) -join "`r`n"
 & $nssmPath set $ServiceName AppEnvironmentExtra $envLines
