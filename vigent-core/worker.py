@@ -909,7 +909,30 @@ class Worker:
         dataset_dir = _ROOT / "data" / "dataset" / "images"
         mtrack = MotionTracker()                                       # 무동작·급이동 추적
         etrack = ErgonomicsTracker()                                   # 근골격계 부담자세 지속(가산)
-        zone = [tuple(p) for p in zone] if zone else _load_zone()   # 카메라별 구역 or 전역
+        # ★[F5, 2026-08-21] 구역 결정 — **전역 폴백은 기본 차단**한다.
+        #   이전 동작: 카메라별 구역이 없으면 조용히 전역 구역(config/danger_zone.json)을 썼다.
+        #   현장 사고 시나리오: 설치 당일 카메라만 등록하고 구역을 아직 안 그린 상태에서
+        #   **개발 중 만든 좌표가 즉시 적용**돼 엉뚱한 자리를 감시한다. 운영자는 "구역을 안
+        #   그렸으니 침입 감지는 없다"고 믿는데 실제로는 다른 곳을 보고 경보를 낸다.
+        #   ★"설정 안 함"과 "개발용 좌표 적용"은 완전히 다르다 — 미설정이면 **침입 판정을
+        #   하지 않는 것**이 안전하다(다른 규칙(PPE·화재·근접)은 구역과 무관하게 그대로 동작).
+        #   롤백: `zone.global_fallback: true` 로 두면 구 동작(전역 폴백) 복원.
+        zone_source = "camera"
+        if zone:
+            zone = [tuple(p) for p in zone]
+        elif bool(tuning.val("zone", "global_fallback", False)):
+            zone = _load_zone()
+            zone_source = "global" if zone else "none"
+            if zone:
+                _WLOG.warning("카메라 '%s' 구역 미설정 → **전역 구역** 사용(%d점). "
+                              "현장 좌표가 맞는지 확인할 것(zone.global_fallback=true)", name, len(zone))
+        else:
+            zone = []
+            zone_source = "none"
+            _WLOG.warning("카메라 '%s' 위험구역 미설정 — **침입 판정을 하지 않는다**. "
+                          "구역을 그리려면 /safety-hub 에서 카메라별로 설정하라.", name)
+        self.state["zone_source"] = zone_source          # /health·상태에 사실대로 노출
+        self.state["zone_points"] = len(zone)
         ctx = _FrameCtx(detectors, zone, mtrack, etrack,
                         collect_on, collect_every, dataset_dir, name, source)
         is_image = Path(source).suffix.lower() in _IMG_EXT and Path(source).exists()

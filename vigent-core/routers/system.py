@@ -32,11 +32,18 @@ def health(theme: str = DEFAULT_THEME):
     #   silent 폴백 탐지용 — state=LOADED 면 커스텀 탑재, MISSING_FALLBACK 이면 COCO 폴백(검출 저하).
     #   매니페스트 SHA 와 rfdetr_slots[].sha16 이 어긋나면 배포 실체가 선언과 다르다는 신호.
     rfdetr_slots = []
+    # ★[F1, 2026-08-21] slot_degraded 도 함께 꺼낸다. guard 는 슬롯 추론이 연속 실패하면
+    #   이 값을 세우고 "★/health 에서 확인할 것" 이라 로그를 남기는데, 정작 /health 가
+    #   읽지 않아 **person 슬롯이 죽어도 healthy** 였다(리뷰 F1). 이제 본문에 노출하고
+    #   전체 판정에도 넣는다.
+    slot_degraded: dict = {}
     if bundle:
         _g = bundle["agents"].get("Guard")
         if _g is not None:
             try:
-                rfdetr_slots = _g.status().get("rfdetr_slots", [])
+                _gs = _g.status()
+                rfdetr_slots = _gs.get("rfdetr_slots", [])
+                slot_degraded = _gs.get("slot_degraded", {}) or {}
             except Exception:  # noqa: BLE001
                 pass
     # LLM provider 실값 노출(추측 금지) — 키 값은 절대 내보내지 않고 존재여부만.
@@ -110,7 +117,8 @@ def health(theme: str = DEFAULT_THEME):
         except Exception:  # noqa: BLE001
             alerts = {}
         overall, cameras = health_status.build(_w.manager.status(), model_loaded,
-                                               alert_backlog=int(alerts.get("pending", 0)))
+                                               alert_backlog=int(alerts.get("pending", 0)),
+                                               slot_degraded=slot_degraded)
         # [B4] 예열 중에는 워커가 아직 없는 게 정상 — 카메라 판정으로 unhealthy 를 내지 않는다.
         #   대신 phase 로 "아직 준비 중"임을 알리고 503 을 준다(로드밸런서·워치독이 대기하도록).
         if phase == readiness.STARTING:
@@ -138,6 +146,9 @@ def health(theme: str = DEFAULT_THEME):
         "backend": backend,
         "models": models,
         "rfdetr_slots": rfdetr_slots,
+        # ★[F1] 런타임 추론이 연속 실패 중인 슬롯. 비어 있어야 정상이며,
+        #   "person" 이 들어 있으면 사람을 못 보는 상태 = status 도 unhealthy(503).
+        "slot_degraded": slot_degraded,
         "llm": llm,                   # {provider, available, model, note} — UI·운영이 실제 설정을 보게 함
         "disk_retention": disk_retention,   # [Z-2] {enabled, last_run, warnings}
         # F-8 로드 가시화 원칙과 일관: 모델은 LOADED 이나 소비 경로에서 명시적으로 끈 슬롯을 노출(은폐형 off 방지).

@@ -39,6 +39,12 @@ HAZARD_RULES = {"zone_intrusion", "ppe_missing", "guard_bypass",
 _DATAURL = re.compile(r"^data:image/\w+;base64,(.+)$", re.S)
 
 
+def _elog():
+    """지연 import 로거 — data_engine 은 vlog 를 최상위에서 끌어오지 않는다(순환 회피)."""
+    import vlog
+    return vlog.get("vigent.data_engine")
+
+
 def _save_frame(image_data_url: str, ts: datetime, rule: str, level: str) -> str | None:
     """base64 data URL → JPEG 파일 저장. 반환: 프로젝트 루트 기준 상대경로(없으면 None)."""
     m = _DATAURL.match(image_data_url or "")
@@ -46,12 +52,18 @@ def _save_frame(image_data_url: str, ts: datetime, rule: str, level: str) -> str
         return None
     day = ts.strftime("%Y%m%d")
     folder = _EVIDENCE / day
-    folder.mkdir(parents=True, exist_ok=True)
     safe_rule = re.sub(r"[^a-zA-Z0-9_]", "", rule) or "event"
     fname = f"ev_{ts.strftime('%Y%m%d_%H%M%S')}_{safe_rule}_{level}.jpg"
     try:
+        # ★[F2, 2026-08-21] mkdir 도 try 안으로 — 디스크 풀·권한 오류의 OSError 가 호출부까지
+        #   올라가면 worker._process_frame 의 프레임 단위 except 로 빠져 **뒤에 있는 알림 전송
+        #   (alert_notify.submit)까지 건너뛴다.** 증거를 못 남기는 것과 경보를 못 보내는 것은
+        #   전혀 다른 사고다 — 여기서 삼키고 None 을 돌려준다.
+        folder.mkdir(parents=True, exist_ok=True)
         (folder / fname).write_bytes(base64.b64decode(m.group(1)))
-    except (ValueError, OSError):
+    except (ValueError, OSError) as ex:
+        _elog().error("증거 프레임 저장 실패(%s) — 이벤트 기록·알림은 계속한다: %s",
+                      type(ex).__name__, ex)
         return None
     return str((folder / fname).relative_to(_ROOT))
 
@@ -93,10 +105,18 @@ def log_event(rule: str, level: str = "", score: float = 0.0,
         "rule": rule, "level": level, "score": round(float(score or 0), 1),
         "site": site, "note": note, "evidence": evidence,
     }
-    _RECOG.mkdir(parents=True, exist_ok=True)
-    logfile = _RECOG / f"events_{ts.strftime('%Y%m%d')}.jsonl"
-    with open(logfile, "a", encoding="utf-8") as f:
-        f.write(json.dumps(record, ensure_ascii=False) + "\n")
+    # ★[F2] docstring 의 "예외로 죽지 않음" 을 실제로 보장한다 — 이전에는 mkdir·open 이
+    #   try 밖이라 디스크 풀에서 예외가 올라갔고, **기록 실패가 알림 실패로 전이**됐다.
+    #   기록이 실패해도 record 는 정상 반환해 호출부의 통보 경로가 이어지게 한다.
+    try:
+        _RECOG.mkdir(parents=True, exist_ok=True)
+        logfile = _RECOG / f"events_{ts.strftime('%Y%m%d')}.jsonl"
+        with open(logfile, "a", encoding="utf-8") as f:
+            f.write(json.dumps(record, ensure_ascii=False) + "\n")
+    except OSError as ex:
+        record["logged"] = False
+        _elog().error("★이벤트 로그 기록 실패(%s) — 알림은 계속 보낸다(디스크·권한 확인 필요): %s",
+                      type(ex).__name__, ex)
     return record
 
 

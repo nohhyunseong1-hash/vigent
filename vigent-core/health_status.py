@@ -92,20 +92,40 @@ def camera_status(st: dict[str, Any], thr: dict[str, float] | None = None) -> di
         "dropped_frames": st.get("dropped_frames"),
         "reconnects": st.get("reconnects"),
         "hangs": st.get("hangs"),
+        # ★[F5] 위험구역이 실제로 설정돼 있는가 — "설정 안 함"과 "개발용 전역 좌표 적용"을
+        #   운영자가 구분할 수 있어야 한다. camera=카메라별 설정 / global=전역 폴백 /
+        #   none=미설정(침입 판정 안 함).
+        "zone_source": st.get("zone_source"),
+        "zone_points": st.get("zone_points"),
     }
 
 
-def overall(cameras: dict[str, dict[str, Any]], model_loaded: bool,
-            alert_backlog: int = 0) -> str:
-    """카메라별 판정 + 모델 로드 여부 → 전체 3단계.
+# ★[F1] 이 슬롯이 죽으면 감시 목적 자체가 사라진다 — degraded 가 아니라 unhealthy 다.
+#   person 이 없으면 침입·근접·무동작 판정이 전부 성립하지 않는다(모든 규칙의 입력).
+CRITICAL_SLOTS = ("person",)
 
-    - unhealthy: 모델 미로드, 또는 **활성 카메라가 있는데 전부 검출 정지**
-    - degraded : 일부 카메라 정지, 또는 미전송 경보가 남아 있음(B5 에서 채움)
+
+def overall(cameras: dict[str, dict[str, Any]], model_loaded: bool,
+            alert_backlog: int = 0,
+            slot_degraded: dict[str, bool] | None = None) -> str:
+    """카메라별 판정 + 모델 로드 여부 + 슬롯 생존 → 전체 3단계.
+
+    - unhealthy: 모델 미로드 / 활성 카메라가 전부 검출 정지 / **핵심 슬롯(person) 저하**
+    - degraded : 일부 카메라 정지, 미전송 경보 잔존, **비핵심 슬롯 저하**
     - healthy  : 나머지
     카메라가 0대면 '아직 아무것도 감시하지 않는 상태'라 healthy 로 본다(설치 직후 정상).
+
+    ★[F1, 2026-08-21] slot_degraded 를 판정에 넣은 이유: guard 는 슬롯 추론이 연속 실패하면
+    `slot_degraded` 를 세우고 로그에 "★/health 에서 확인할 것" 이라 남기는데, 정작 /health 가
+    그 값을 **읽지 않았다**. person 슬롯만 죽어도 다른 슬롯이 last_detect_ts 를 갱신해
+    stale_detect 에도 안 걸려 **영원히 healthy** 였다 — 사람이 위험구역에 들어가도 아무 일도
+    일어나지 않고 아무도 모르는 상태. 미검출 중 최악의 고장 모드라 unhealthy(503)로 올린다.
     """
     if not model_loaded:
         return UNHEALTHY
+    bad_slots = {k for k, v in (slot_degraded or {}).items() if v}
+    if bad_slots & set(CRITICAL_SLOTS):
+        return UNHEALTHY                      # 사람을 못 보는 상태 = 감시 실패
     active = {cid: c for cid, c in cameras.items() if c["status"] != STOPPED}
     if active:
         bad = [c for c in active.values() if c["status"] in (STALE_DETECT, STALE_FRAME)]
@@ -113,15 +133,21 @@ def overall(cameras: dict[str, dict[str, Any]], model_loaded: bool,
             return UNHEALTHY
         if bad:
             return DEGRADED
+    if bad_slots:
+        return DEGRADED                       # 비핵심 슬롯(ppe·fire_smoke·forklift) 저하
     if alert_backlog > 0:
         return DEGRADED
     return HEALTHY
 
 
 def build(worker_status: dict[str, Any], model_loaded: bool,
-          alert_backlog: int = 0) -> tuple[str, dict[str, Any]]:
-    """WorkerManager.status() → (전체상태, 카메라별 요약). /health 가 그대로 실어 보낸다."""
+          alert_backlog: int = 0,
+          slot_degraded: dict[str, bool] | None = None) -> tuple[str, dict[str, Any]]:
+    """WorkerManager.status() → (전체상태, 카메라별 요약). /health 가 그대로 실어 보낸다.
+
+    slot_degraded 는 guard.status()["slot_degraded"] — 런타임 추론이 연속 실패 중인 슬롯([F1]).
+    """
     thr = thresholds()
     cams = {cid: camera_status(st, thr)
             for cid, st in (worker_status.get("cameras") or {}).items()}
-    return overall(cams, model_loaded, alert_backlog), cams
+    return overall(cams, model_loaded, alert_backlog, slot_degraded), cams
