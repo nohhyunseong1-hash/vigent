@@ -74,7 +74,7 @@ class TestZoneFallbackBlocked(unittest.TestCase):
                "signals": {}, "person_count": 1}
         fired = W._derive(out, [], 0.5625, cid="cam",
                           debouncer=W.zone_debounce.ZoneDebouncer())
-        self.assertNotIn("zone_intrusion", [r for r, _, _ in fired])
+        self.assertNotIn("zone_intrusion", [r for r, *_ in fired])
 
     def test_camera_zone_is_used(self):
         """카메라별 구역이 있으면 그대로 쓴다(기존 동작 불변)."""

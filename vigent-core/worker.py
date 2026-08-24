@@ -177,8 +177,12 @@ def _make_prox_debouncer() -> "zone_debounce.ZoneDebouncer | None":
 def _derive(out: dict, zone: list, aspect_hw: float | None = None,
             cid: str | None = None, debouncer: "zone_debounce.ZoneDebouncer | None" = None,
             prox_debouncer: "zone_debounce.ZoneDebouncer | None" = None,
-            ) -> list[tuple[str, str, str]]:
-    """guard.detect 출력 → 발화한 위험 [(rule, level, note)].
+            ) -> list[tuple[str, str, str, str]]:
+    """guard.detect 출력 → 발화한 위험 [(rule, level, note, subject)].
+
+    subject: 발화 주체 식별자 — 사람 단위 규칙은 "t<track_id>", 그 외는 "".
+      ★[D1-C] 쿨다운을 **사람 단위**로 걸기 위해 필요하다(같은 사람의 반복은 억제,
+        다른 사람의 진입은 새 기록). 통보 게이트 키는 카메라 그대로다(폭주 방지 유지).
 
     [B6] 위험구역 침입은 **시간 디바운스**를 거친다(zone_debounce). PPE(3프레임)·화재(2프레임)엔
     히스테리시스가 있는데 침입만 없어서 단일 프레임 오검출이 곧 경보였다 — 파일럿의 유일한
@@ -189,10 +193,20 @@ def _derive(out: dict, zone: list, aspect_hw: float | None = None,
     경고가 성립하기 전에 상황이 끝난다. 근거·계산은 `benchmarks/w1w2_alert_wiring.md` §2.
     prox_debouncer 가 None 이면 기존 매 프레임 즉시 발화(롤백 경로).
     """
-    fired: list[tuple[str, str, str]] = []
+    fired: list[tuple[str, str, str, str]] = []
     sig = out.get("signals", {}) or {}
     if zone and len(zone) >= 3:                       # 위험구역 침입
+        # ★[D1-C, 2026-08-24] 사람 단위 판정으로 바꿨다.
+        #   예전엔 `raw_inside` 라는 **카메라 단위 집계 불리언**이었고 디바운서 키도 카메라였다.
+        #   그래서 A가 구역 안에 있는 동안 B가 들어오면 상태가 안 바뀌어 **아예 발화하지
+        #   않았다** — 15초 쿨다운의 문제가 아니라 A가 나갈 때까지 **무기한** 가려졌다.
+        #   이제 트랙별로 상태기계를 돌려 **각 사람의 진입을 따로** 잡는다.
+        #   ★단 통보 게이트(alert_gate) 키는 **카메라 그대로** 둔다(완화안 C) —
+        #     게이트 키까지 트랙으로 바꾸면 적응형 백오프가 무력화돼 폭주한다
+        #     (재생 검증 66배, benchmarks/d1d3_track_key_findings.md). 즉
+        #     **기록·증거는 사람 단위로 남기고, 폰 알림 폭주는 기존대로 막는다.**
         raw_inside = False
+        inside_tids: list = []
         for d in out.get("detections", []):
             if str(d.get("label", "")).lower() != "person":
                 continue
@@ -206,18 +220,33 @@ def _derive(out: dict, zone: list, aspect_hw: float | None = None,
             px, py = zone_debounce.ref_point(d.get("bbox", [0, 0, 0, 0]))
             if _point_in_poly(px, py, zone):
                 raw_inside = True
-                break
+                tid = d.get("tid")
+                if tid is not None:
+                    inside_tids.append(int(tid))
         if debouncer is not None and cid is not None:
-            was = debouncer.state(cid)["confirmed"]
-            now_in = debouncer.update(cid, raw_inside)
-            if now_in and not was:                    # 확정 진입 전이에서만 발화(체류 중 재발화는 쿨다운이 담당)
-                fired.append(("zone_intrusion", "high", "위험구역 내 작업자 감지(체류 확정)"))
+            # 이번 프레임에 안 보인 트랙도 '밖'으로 갱신해야 퇴장이 확정된다.
+            known = getattr(debouncer, "_vigent_seen", None)
+            if known is None:
+                known = set()
+                debouncer._vigent_seen = known        # type: ignore[attr-defined]
+            known |= set(inside_tids)
+            if not inside_tids and not known:         # 트랙 정보가 없으면 기존(카메라 단위) 경로
+                was = debouncer.state(cid)["confirmed"]
+                if debouncer.update(cid, raw_inside) and not was:
+                    fired.append(("zone_intrusion", "high", "위험구역 내 작업자 감지(체류 확정)", ""))
+            else:
+                for tid in sorted(known):
+                    key = f"{cid}#t{tid}"
+                    was = debouncer.state(key)["confirmed"]
+                    if debouncer.update(key, tid in inside_tids) and not was:
+                        fired.append(("zone_intrusion", "high",
+                                      "위험구역 내 작업자 감지(체류 확정)", f"t{tid}"))
         elif raw_inside:                              # 디바운서 미주입 경로(하위호환)
-            fired.append(("zone_intrusion", "high", "위험구역 내 작업자 감지"))
+            fired.append(("zone_intrusion", "high", "위험구역 내 작업자 감지", ""))
     if sig.get("ppe_missing"):
-        fired.append(("ppe_missing", "high", "보호구 미착용 감지"))
+        fired.append(("ppe_missing", "high", "보호구 미착용 감지", ""))
     if sig.get("fire_smoke"):
-        fired.append(("fire_smoke", "critical", "화재/연기 감지"))
+        fired.append(("fire_smoke", "critical", "화재/연기 감지", ""))
     # 동적 작업반경(협착) — 지게차·차량 근처에 사람 진입(거리 자동추정)
     radius = float(tuning.val("proximity", "radius_m", 3.0, env="VIGENT_RADIUS_M"))
     prox_hit = None
@@ -231,14 +260,14 @@ def _derive(out: dict, zone: list, aspect_hw: float | None = None,
         now_near = prox_debouncer.update(cid, prox_hit is not None)
         if now_near and not was_near and prox_hit is not None:
             fired.append(("proximity_hazard", "high",
-                          f"{prox_hit['vehicle']} 작업반경 침입 — 사람 약 {prox_hit['distance_m']}m"))
+                          f"{prox_hit['vehicle']} 작업반경 침입 — 사람 약 {prox_hit['distance_m']}m", ""))
     elif prox_hit is not None:                        # 디바운서 미주입 경로(하위호환)
         fired.append(("proximity_hazard", "high",
-                      f"{prox_hit['vehicle']} 작업반경 침입 — 사람 약 {prox_hit['distance_m']}m"))
+                      f"{prox_hit['vehicle']} 작업반경 침입 — 사람 약 {prox_hit['distance_m']}m", ""))
     # 군집 밀집 — 인원이 임계 이상 몰림(혼잡·압사·동선 위험)
     pc = out.get("person_count", 0)
     if pc >= int(tuning.val("crowd", "threshold", 6, env="VIGENT_CROWD")):
-        fired.append(("crowd_density", "mid", f"인원 밀집 — {pc}명 감지"))
+        fired.append(("crowd_density", "mid", f"인원 밀집 — {pc}명 감지", ""))
     return fired
 
 
@@ -891,20 +920,29 @@ class Worker:
                         _extra = zone_tile.zone_tile_detect(
                             frame, ctx.zone, lambda img: _rfs.rfdetr.detect_persons(img, thr=0.1))
                         if any(zone_tile.foot_in_zone(d["bbox"], ctx.zone) for d in _extra):
-                            fired.append(("zone_intrusion", "high", "위험구역 내 작업자 감지(구역-타일 회수)"))
+                            fired.append(("zone_intrusion", "high", "위험구역 내 작업자 감지(구역-타일 회수)", ""))
                     except Exception as _ze:  # noqa: BLE001  가산 레이어 — 실패해도 기존 검출 무중단
                         _WLOG.debug("worker 무시 예외 [zone-tile]: %s", _ze)
-            fired += ctx.mtrack.update(out.get("detections", []), t0)   # 무동작·급이동(포즈 무관 — 메인 유지)
+            # mtrack 은 3-튜플을 돌려주므로 subject 를 붙여 형식을 맞춘다(사람 단위 아님).
+            fired += [(r, lv, n, "") for r, lv, n in
+                      ctx.mtrack.update(out.get("detections", []), t0)]   # 무동작·급이동
             self._last_fired = [r[0] for r in fired]                # 3.1b: 이번 프레임 발화 규칙(뱃지·전역경보 근거)
             now = time.time()
-            for rule, level, note in fired:
-                if now - ctx.cooldown.get(rule, 0) < _COOLDOWN_S:
+            for rule, level, note, subject in fired:
+                # ★[D1-C] 쿨다운 키에 발화 주체를 넣는다 — A 때문에 걸린 쿨다운이
+                #   B의 진입을 가리지 않게. subject 가 ""(사람 단위 아님)면 기존과 동일.
+                ck = f"{rule}|{subject}" if subject else rule
+                if now - ctx.cooldown.get(ck, 0) < _COOLDOWN_S:
                     continue
-                ctx.cooldown[rule] = now
+                ctx.cooldown[ck] = now
                 # ②: 이벤트 기록은 항상 유지. 증거 JPEG(인코딩+디스크)은 rule별 별도 쿨다운으로 스로틀 —
                 #   폭주 오발화가 서버를 포화시키지 못하게. 안전 기능(발화·기록·알림)은 그대로.
                 evidence = None
                 privacy_failed = False
+                # ★[D1-C] 증거 JPEG 쿨다운은 **규칙 단위 그대로** 둔다(트랙 단위로 안 바꾼다).
+                #   사람마다 30초 증거를 뜨면 디스크가 인원수만큼 빨리 찬다 — 디스크 풀은
+                #   [F2] 경로로 기록·통보를 함께 죽인다. 이벤트(JSONL)는 사람 단위로 남으므로
+                #   '누가 언제 들어왔나'는 보존되고, 무거운 이미지만 스로틀된다.
                 if now - ctx.evidence_cd.get(rule, 0) >= _EVIDENCE_COOLDOWN_S:
                     ctx.evidence_cd[rule] = now
                     evidence, privacy_failed = _frame_to_dataurl(

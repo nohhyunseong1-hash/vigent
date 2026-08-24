@@ -257,6 +257,69 @@ Enable-NetAdapter -Name "이더넷"
 - [ ] 담당자에게 결과 요약 공유 약속(리포트 송부)
 - [ ] 당일 기록(3단계 메모·스냅샷·이벤트 로그) 백업
 
+## ★현장 데이터 수집 — 추적 ID 스위치율 (D1 B승격 판단용)
+
+> **왜 필요한가**: 위험구역 판정을 **사람 단위**로 바꾼 C안이 들어갔다(두 번째 사람이
+> 무기한 가려지던 문제 해소). 여기서 한 걸음 더 나가 **알림까지 사람 단위**로 할지(B안)는
+> **추적이 얼마나 안정적인가**에 달렸다. 추적이 흔들리면 같은 사람이 새 ID 를 계속 받아
+> 알림이 폭주한다(재생 검증 66배). **학원 현장의 실제 난이도**를 재야 결정할 수 있다.
+>
+> ★판정 기준은 [docs/PILOT_DECISIONS.md](PILOT_DECISIONS.md) D1 에 **미리 선언**해 뒀다
+> (≤2.0개/분 → B 승격 / >5.0 → C 유지 확정). 수치를 보고 기준을 만들지 않는다.
+
+### 무엇을 켜는가
+
+환경변수 **`VIGENT_TRACK_DEBUG=1`** 하나다. 서비스 계정 환경에 넣고 재시작한다.
+
+```powershell
+# 관리자 PowerShell — 서비스 환경변수로 설정
+[Environment]::SetEnvironmentVariable("VIGENT_TRACK_DEBUG", "1", "Machine")
+Restart-Service VIGENT
+```
+
+### 어디에 저장되는가
+
+**`data	rack_debug.jsonl`** (프로젝트 루트 기준). 프레임마다 1줄씩 **덧붙는다**(append).
+
+> ⚠**기존 파일이 있으면 먼저 옮겨라** — 이어 붙으면 예전 기록과 섞여 분석이 틀어진다.
+> ```powershell
+> if (Test-Path data	rack_debug.jsonl) { Move-Item data	rack_debug.jsonl data	rack_debug_이전.jsonl }
+> ```
+
+### 얼마나 돌리는가
+
+★**최소 20분**, 권장 **30분 이상**. 실습이 실제로 진행되는 동안 받아야 한다
+(사람이 안 움직이면 재는 의미가 없다). **20분 미만이면 "측정 불충분"으로 기록하고
+C 를 유지**한다 — 짧은 표본으로 알림 정책을 바꾸지 않는다.
+
+- 사람이 **드나드는** 구간이 포함돼야 한다(가만히 서 있기만 하면 ID 스위치가 안 잡힌다)
+- 지게차 뒤로 사람이 지나가는 **가림(occlusion)** 구간이 있으면 특히 좋다 — 거기서 ID 가 바뀐다
+
+### 끝나고 할 일
+
+**★반드시 끄고 재시작한다** — 켠 채 두면 프레임마다 파일에 쓰므로 디스크가 계속 찬다
+(디스크 풀은 [F2] 경로로 기록·통보를 함께 죽인다).
+
+```powershell
+[Environment]::SetEnvironmentVariable("VIGENT_TRACK_DEBUG", $null, "Machine")
+Restart-Service VIGENT
+```
+
+수집 파일은 **개인정보가 아니다**(좌표·ID 숫자만, 이미지 없음) — 그대로 가져와 분석한다.
+
+```powershell
+# 간단 확인 — 분당 신규 ID 수(이 값이 판정 기준)
+python benchmarks\d1c_replay_verify.py --data data	rack_debug.jsonl
+```
+
+- [ ] 수집 전 기존 파일 이동
+- [ ] `VIGENT_TRACK_DEBUG=1` 설정 + 재시작
+- [ ] **20분 이상** 실습 중 수집
+- [ ] ★**끄고 재시작**
+- [ ] 파일 회수(용량 확인 — 30분에 수 MB 예상)
+
+---
+
 ## 문제해결 — ★"정상으로 떴다가 몇 초 뒤 빨간불"이 되는 경우
 
 **당황하지 말 것. 고장이 아니라 진단이 늦게 나온 것이다.**
