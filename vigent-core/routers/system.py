@@ -46,6 +46,13 @@ def health(theme: str = DEFAULT_THEME):
                 slot_degraded = _gs.get("slot_degraded", {}) or {}
             except Exception:  # noqa: BLE001
                 pass
+    # ★[F6] 자동 스윕 스레드 상태 — 조회 실패가 헬스체크를 죽이면 안 된다.
+    retention_sweep: dict = {}
+    try:
+        import retention_scheduler as _rs
+        retention_sweep = _rs.status()
+    except Exception:  # noqa: BLE001
+        retention_sweep = {"error": "retention_scheduler 상태 조회 실패"}
     # LLM provider 실값 노출(추측 금지) — 키 값은 절대 내보내지 않고 존재여부만.
     #   ollama 제거 후 openai 단일화(2026-07-14). 키 없으면 규칙 기반 폴백으로 동작(기능 유지).
     llm = {}
@@ -151,6 +158,9 @@ def health(theme: str = DEFAULT_THEME):
         "slot_degraded": slot_degraded,
         "llm": llm,                   # {provider, available, model, note} — UI·운영이 실제 설정을 보게 함
         "disk_retention": disk_retention,   # [Z-2] {enabled, last_run, warnings}
+        # ★[F6] 자동 스윕 스레드가 실제로 돌고 있는가 + 다음 예정. thread_alive=false 면
+        #   보존 정책이 "설정만 있고 아무도 안 돌리는" 상태다(리뷰 F6 의 원래 결함).
+        "retention_sweep": retention_sweep,
         # F-8 로드 가시화 원칙과 일관: 모델은 LOADED 이나 소비 경로에서 명시적으로 끈 슬롯을 노출(은폐형 off 방지).
         "disabled_detectors": {
             "forklift": "F-7 과소학습(정탐 conf p50 0.002 ≈ 오탐 수준, 2026-07-11 실측). "

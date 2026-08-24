@@ -294,6 +294,20 @@ unhealthy=HTTP 503) / alert_queue 재시도(pending≥1 → degraded) / NSSM 자
 **F24. `fault_stop_detect` 결함 주입 코드 상존** — [worker.py:758](vigent-core/worker.py#L758)
 B2 시험용(추론 스킵). 기본 false·API 전용이지만 운영 빌드 제거 또는 이중 안전 검토.
 
+**F29. `test_relay` 가 전체 스위트에서 간헐 실패 — 게이트 신뢰도 훼손** 🟡 *(2026-08-21 추가)*
+- 위치: [tests/test_relay.py](tests/test_relay.py) + [scripts/mock_relay.py:69](scripts/mock_relay.py#L69)
+- 내용: 단독 실행은 **5/5 통과**인데 전체 스위트(378건)에서는 **4회 중 2회 실패**한다
+  (`test_auto_off_after_duration` · `test_off_failure_sets_flag_and_surfaces` — 회차마다 다른 케이스).
+  mock 릴레이가 **단일 스레드 `HTTPServer`**(`ThreadingHTTPServer` 아님)라 스위트 부하에서
+  연결 처리가 밀리고, `down=True` 의 "응답 없이 끊기" 와 타이밍이 겹치면 판정이 흔들린다.
+  `relay.py` 자체의 락·상태 관리에서는 경합을 찾지 못했다(코드 확인) — **제품 결함이 아니라
+  테스트 인프라 문제로 판단**하나, `relay.py` 실물 검증이 없는 상태라 단정하지 않는다.
+- 현장 시나리오: 직접적 현장 영향은 없다. 다만 **"4대 게이트 통과 후 커밋" 규칙이
+  무의미해진다** — 실패가 절반 확률로 나오면 진짜 회귀와 flake 를 구분할 수 없고,
+  결국 "또 그거겠지" 하고 넘기게 된다. 안전 제품에서 가장 위험한 습관이다.
+- 수정 제안: mock 을 `ThreadingHTTPServer` 로 바꾸거나, `down` 을 커넥션 끊기 대신
+  명시적 오류 응답으로 바꿔 타이밍 의존을 제거. 릴레이 실물 확보 시 F4·F13 과 함께 처리.
+
 ### 🟢 낮음 (정리 권장)
 
 **F25. ml/ 실험 스크립트 26개** — 서빙 참조는 `vlm_risk_summary` 1개뿐. `train_yoga.py`

@@ -367,6 +367,11 @@ def _startup() -> None:
             alert_notify.start()
         else:
             _log.warning("Dispatcher 없음 — 경보 통보 미배선(검출·기록은 정상)")
+        # ★[F6, 2026-08-21] 보존 정책 스윕을 **서버가 스스로** 돌린다. 이전에는 부르는 주체가
+        #   어디에도 없어(작업 스케줄러 미등록·main 스레드 없음) "자동 파기"가 사실이 아니었다.
+        #   별도 데몬 스레드라 DETECT_LOCK·GPU 를 건드리지 않고, 실패해도 검출에 영향이 없다.
+        import retention_scheduler
+        retention_scheduler.start()
     except Exception:  # noqa: BLE001  예열 배선 실패 시에도 워커는 기동(기존 동작으로 폴백)
         _log.warning("예열 기동 실패 — 워커를 즉시 시작(구 동작)\n%s", traceback.format_exc())
         _start_workers_after_warmup()
