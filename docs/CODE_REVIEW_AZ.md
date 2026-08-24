@@ -37,9 +37,11 @@
 
 - [ ] `tuning.val(section, key, default)` 의 **폴백 규칙** — 키가 없으면? 파일이 없으면?
 - [ ] 설정을 **언제 읽는가** — 기동 시 1회인가, 매번인가. 바꾸면 재시작이 필요한 것은 무엇인가
-- [ ] 🔴 **학원 프로파일이 파일 전체를 덮는 구조**(2026-08-24 발견).
-      기본값에 키가 추가되면 학원 프로파일은 조용히 뒤처진다. 실제로 6개 키가 누락돼
-      F5·F6 수정이 무효화될 뻔했다. **드리프트 검사 테스트가 붙었는지 확인할 것.**
+- [ ] ✅ **학원 프로파일 드리프트**(2026-08-24 발견·차단). 파일 전체를 덮는 구조라
+      기본값에 키가 추가되면 조용히 뒤처진다 — 실제로 6개 키가 누락돼 F5·F6 이
+      무효화될 뻔했다. `deploy/academy/profile_intent.yaml` 에 **의도한 차이를 선언**하고
+      `tests/test_profile_drift.py` 가 누락·미선언 변경을 게이트에서 잡는다.
+      ★리뷰 포인트: 새 설정을 추가할 때 이 게이트가 정말 도는가(`scripts/check_profile_drift.py`)
 - [ ] 환경변수 오버라이드(`env=`)가 있는 키는 무엇이고, `.env` 와 충돌하면 누가 이기는가
 
 **핵심 질문**: *설정 하나를 바꿨을 때, 그게 실제로 반영됐는지 어떻게 확인하는가?*  ⏱ 40분
@@ -149,6 +151,9 @@
 - [ ] ✅ **F1 수정 확인** — 슬롯 연속 3회 실패 시 `slot_degraded` 를 세우는 코드([:770](../vigent-core/agents/guard.py#L770)).
       이제 `/health` 에 배선됐다. **person 슬롯 저하 = unhealthy(503)** 인지 확인
 - [ ] imgsz 384 고정 — 원본 해상도와의 관계, **작은 물체 검출**에 미치는 영향
+- [ ] ✅ **F31 수정 확인**(2026-08-24) — `model is None`(로드 실패)도 추론 실패와 **같은 등급**
+      으로 취급하는가([:782](../vigent-core/agents/guard.py#L782)). 수정 전에는 조용히 `continue`
+      해서 person 이 죽어도 healthy 였다. 로그 폭주 억제(`LOAD_FAIL_LOG_EVERY`)도 함께 볼 것
 
 **핵심 질문**: *한 슬롯이 죽었을 때, 나머지가 살아 있어서 "정상"으로 보이지 않는가?* → F1 이 그 결함이었다  ⏱ 1.5시간
 
@@ -429,11 +434,12 @@
 ```powershell
 ruff check vigent-core tests                      # → 0
 python -m mypy                                    # → 화이트리스트 0 에러
-python -m unittest discover -s tests              # → 412 tests OK
+python -m unittest discover -s tests              # → 428 tests OK
 python scripts\check_openapi_diff.py              # → 108 == baseline
+python scripts\check_profile_drift.py             # → 현장 프로파일 드리프트 0
 ```
 
-- [ ] 테스트 **52개 파일 / 412건**. 어떤 영역에 **테스트가 없는지** 확인할 것
+- [ ] 테스트 **54개 파일 / 428건**. 어떤 영역에 **테스트가 없는지** 확인할 것
 - [ ] ★게이트가 초록인데 결함이 있었던 사례가 이번에 여럿 나왔다(F1·F2·F5·F6).
       **게이트는 회귀를 막지, 설계 결함을 잡지 못한다** — 그래서 이 눈 리뷰가 필요하다
 
@@ -473,6 +479,6 @@ python scripts\check_openapi_diff.py              # → 108 == baseline
 | **F9** | Y | 시스템 다운을 외부에 알릴 방법 없음 | 🟠 미착수 |
 | **F13** | U | 재기동 시 릴레이 OFF 미송신 | 🟡 미착수 |
 | **F30** | H | onnx_parity 간헐 ERROR | 🔍 원인 미확인 |
-| **—** | B | 학원 프로파일 드리프트(전체 덮어쓰기 구조) | 🔴 임시 조치·근본 해법 대기 |
+| **—** | B | 학원 프로파일 드리프트 | ✅ **게이트로 차단**(2026-08-24) · 오버레이 전환은 방문 후 |
 
 전체 30건과 수정 내역은 [SAFETY_REVIEW_REPORT.md](../SAFETY_REVIEW_REPORT.md) 참조.

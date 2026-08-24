@@ -34,7 +34,13 @@ perception:                       # ── Guard (감지)
   detectors:
     # 범용 객체(COCO 80종): yolo11m — 일상 사물 전반을 가장 정확히 잡는 주력 검출기.
     #   (재학습 office_person_v1 은 빠른학습이라 품질이 낮아 보류. 제대로 재학습 시 교체 예정)
-    - {id: person, model: vigent-core/weights/yolo11m.pt, fallback: vigent-core/weights/yolo11s.pt, classes: [person]}
+    # ★[정직화 2026-08-24] person 은 backend 가 rfdetr 이라 아래 경로가 **참조되지 않는다**
+    #   (guard.py `_get_model` rfdetr 분기는 _slot_path 를 안 본다). 전역 vision.yaml 과
+    #   동일하게 주석 처리 — 기록은 보존한다. 되살리려면 backend.person 을 yolo 로 바꾸면서
+    #   **반드시 이 줄의 주석도 함께 풀어야 한다**(안 그러면 person 검출이 조용히 죽는다).
+    #   ★★forklift 는 다르다 — 학원은 backend.forklift=yolo 라 **아래 forklift 항목이
+    #     반드시 살아 있어야 한다.** 지우면 지게차 검출이 통째로 죽는다.
+    # - {id: person, model: vigent-core/weights/yolo11m.pt, fallback: vigent-core/weights/yolo11s.pt, classes: [person]}
     # PPE: 25클래스 주력 모델. 안전모·조끼·마스크 착용/미착용 직접 감지 + 차량·중장비.
     #   라벨은 공백형으로 출력(Safety Vest 등) → guard.py 가 표준형(Safety-Vest)으로 정규화.
     # ppe_css_v1: CSS 상업데이터(CC BY 4.0) 학습. 실측 mAP50 — 마스크/조끼 91%, 안전모 86%,
