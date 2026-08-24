@@ -15,9 +15,11 @@
 |---|---|---|
 | OS | **Windows 10/11 Pro 이상**(64bit) ★현장 필수 | Windows 11 **Home** 10.0.26200 — ⚠개발 PC 가 Home 이라 **저장 암호화(N-2)는 이 PC 에서 검증 불가**(EFS·BitLocker 미지원, 2026-08-19 실측). 현장 장비(Pro)에서 검증할 것 |
 | Python | **3.11.x** | 3.11.9 |
+| | ⚠**모순 주의**: 저장소 `.python-version` 은 `3.13.9`, `pyproject.toml` 은 `target-version="py313"` 이다. 어느 쪽이 정본인지 확정 필요(2026-08-20 제기). 3.11.9 로 전 의존성 설치·기동 실증됨 | |
 | GPU | NVIDIA(선택이나 강력 권장) | RTX 5070 Ti, 드라이버 610.74 |
 | CUDA | torch 휠과 맞는 버전 | cu130 (torch 2.12.0+cu130) |
 | git | 최신 | 2.55.0 |
+| **2차 검증 환경** | — | ★2026-08-20 **학원 현장 노트북**에서 이 문서로 재설치 실증: Windows 10 **Pro**(N-2 암호화 가능) · i7-10750H · **GTX 1650 Ti 4GB** · 드라이버 576.83(CUDA 12.9) · Python 3.11.9 · **torch 2.12.0+cu126** |
 | NSSM | 서비스 등록용 | winget으로 설치 |
 | **카메라 대수** | **권장 5대 이하**(한계 7대) | Ryzen 9 9900X(24스레드) 기준 실측 |
 | **CPU** | 카메라당 **1.55 환산코어** ([Q10] 스핀 제거 후) | ★대수를 좌우하는 것은 **GPU 가 아니라 CPU** 다 |
@@ -60,6 +62,26 @@ Cloning into 'vigent_original'...
 Resolving deltas: 100% (...), done.
 ```
 
+> ⚠️ **[2026-08-21] 저장소가 비공개로 전환됐다 — 인증이 필요하다.**
+> 비공개 저장소는 권한이 없으면 **403 이 아니라 404** 로 응답한다(존재 자체를 숨긴다).
+> `repository not found` 가 뜨면 "주소가 틀렸나" 가 아니라 **"로그인이 안 됐나"** 를 먼저 의심한다.
+>
+> Windows 는 Git for Windows 에 포함된 **자격증명 관리자(GCM)** 가 처리한다 — `git clone` 시
+> 브라우저 로그인 창이 뜨고, 한 번 로그인하면 이후에는 자동이다. 창이 안 뜨거나 실패하면:
+>
+> ```powershell
+> # 저장된 자격증명 확인(값은 화면에 찍히니 남 앞에서 실행하지 말 것)
+> git credential fill
+> #   protocol=https  ⏎  host=github.com  ⏎  ⏎  입력
+> ```
+>
+> 토큰을 직접 쓰려면 GitHub → Settings → Developer settings →
+> **Personal access tokens** 에서 `repo` 권한(또는 fine-grained 로 이 저장소 Contents: Read)
+> 토큰을 만들어 아래처럼 넣는다:
+> ```powershell
+> $env:GITHUB_TOKEN = "<발급받은 토큰>"
+> ```
+
 ---
 
 ## 2. 가상환경
@@ -89,20 +111,58 @@ python -m pip install --upgrade pip
 python -m pip install -r requirements.txt
 ```
 
-**GPU를 쓸 경우 torch를 CUDA 휠로 교체**(위 CUDA 주의 참고):
+**GPU를 쓸 경우 torch를 CUDA 휠로 교체** — ★**드라이버 버전에 맞는 휠을 고를 것**:
+
+| 이 PC 의 GPU·드라이버 | 쓸 휠 | 근거 |
+|---|---|---|
+| RTX 50 시리즈(sm_120) | **cu130** | cu126 이하는 sm_120 커널이 없어 런타임 에러 |
+| 그 외(GTX 16 / RTX 20~40) **+ 드라이버 580 미만** | **cu126** | CUDA 13 런타임은 드라이버 580+ 를 요구한다 |
+
+먼저 `nvidia-smi` 우상단의 **`CUDA Version:`** 을 본다 — 이것이 **드라이버가 지원하는 상한**이다.
+`12.x` 로 나오면 cu130 을 깔아도 `torch.cuda.is_available()` 이 False 가 되거나 런타임 에러가 난다.
+
 ```powershell
+# RTX 50 시리즈(드라이버 580+)
 python -m pip install --index-url https://download.pytorch.org/whl/cu130 `
   torch==2.12.0+cu130 torchvision==0.27.0+cu130
+
+# 그 외 GPU / 드라이버 580 미만
+python -m pip install --index-url https://download.pytorch.org/whl/cu126 `
+  torch==2.12.0+cu126 torchvision==0.27.0+cu126
 ```
+
+> **실측(2026-08-20, 학원 현장 노트북)**: GTX 1650 Ti(sm_75)·드라이버 **576.83**(`CUDA Version: 12.9`)
+> 에서 **cu126 으로 `2.12.0+cu126 True` 확인**. 이 드라이버에서 cu130 은 쓸 수 없다.
 
 **성공 확인**
 ```powershell
 python -c "import torch; print(torch.__version__, torch.cuda.is_available())"
 ```
 ```
-2.12.0+cu130 True        ← GPU 사용 가능
-2.12.0+cpu False         ← CPU 폴백(동작은 하지만 느리다)
+2.12.0+cu130 True        ← GPU 사용 가능(RTX 50)
+2.12.0+cu126 True        ← GPU 사용 가능(그 외)
+2.12.0+cpu   False       ← CPU 폴백(동작은 하지만 느리다)
 ```
+
+### 3-1. ★opencv 정리 (필수 — 빠뜨리면 headless 가 가려진다)
+
+`supervision`·`rtmlib` 등이 **GUI opencv 를 전이의존으로 끌어온다**. 그대로 두면 배포가
+전제한 headless 대신 GUI 빌드의 `cv2` 가 쓰인다(같은 `cv2` 네임스페이스 충돌).
+`requirements.txt` 설치 **직후 반드시** 정리한다:
+
+```powershell
+python -m pip uninstall -y opencv-python opencv-contrib-python
+python -m pip install --force-reinstall --no-deps opencv-contrib-python-headless==4.13.0.92
+```
+
+확인 — `opencv-contrib-python-headless` **하나만** 남아야 한다:
+```powershell
+python -m pip list | Select-String opencv
+```
+
+> **실측(2026-08-20)**: 정리 전 `opencv-python 5.0.0.93` + `opencv-contrib-python 5.0.0.93` 이
+> 함께 깔려 headless(4.13.0.92)를 가렸다. ★**`ultralytics` 를 설치하면(학원 프로파일 등)
+> GUI opencv 가 다시 딸려오므로 그때도 이 정리를 반복해야 한다** — `deploy/academy/README_academy.md` 참고.
 
 ---
 
@@ -113,6 +173,12 @@ python -c "import torch; print(torch.__version__, torch.cuda.is_available())"
 ```powershell
 python scripts\fetch_weights.py
 ```
+
+> ⚠️ **반드시 `scripts\` 경로로 실행할 것.** 저장소 **루트에도 같은 이름의 구판**
+> `fetch_weights.py` 가 있는데 CLI 가 전혀 다르다(`verify`/`download` 서브커맨드,
+> `--all` 없음, URL 이 PLACEHOLDER). 루트본으로 `--all` 을 치면 실패한다.
+> 정본은 `scripts\fetch_weights.py` 하나이며 `weights_manifest.json` 도
+> 이쪽을 가리킨다(2026-08-20 학원 노트북 설치 시 확인).
 
 **성공하면 이렇게 보인다**
 ```
@@ -131,13 +197,95 @@ python scripts\fetch_weights.py
 > (조용한 COCO 폴백 차단 — F-8). 쓰지 않아도 파일은 있어야 한다.
 
 - 처음이면 `[없음]` → 다운로드 진행 → `[OK]` 순으로 나온다(파일당 약 115MB).
-- **실패하면 종료 코드 1**과 함께 어느 파일이 왜 실패했는지 나온다. 저장소가 비공개면
-  접근 권한이 필요하다.
+- **실패하면 종료 코드 1**과 함께 어느 파일이 왜 실패했는지 나온다.
+
+> ★**[2026-08-21] 저장소가 비공개라 릴리스 자산도 인증이 필요하다.**
+> `scripts/fetch_weights.py` 는 토큰을 **자동으로 찾는다**:
+> 1. 환경변수 `GITHUB_TOKEN` / `GH_TOKEN` / `VIGENT_GITHUB_TOKEN`
+> 2. git 자격증명 도우미(`git credential fill`) — clone 할 때 로그인했다면 여기 이미 있다
+>
+> 토큰이 있으면 릴리스 **자산 API**(`/repos/{repo}/releases/assets/{id}` +
+> `Accept: application/octet-stream`)로 받는다. 브라우저용 `releases/download/...` URL 은
+> 비공개에서 토큰을 붙여도 잘 안 되기 때문이다.
+>
+> **토큰이 없으면** 공개 저장소 시절과 같은 URL 로 시도하다 실패한다:
+> ```
+> [실패] yolo11s.pt — HTTP 404
+> ```
+> 이 404 는 **"파일이 없다"가 아니라 "권한이 없다"** 다(비공개는 404 로 숨긴다).
+> 위 1·2 중 하나를 채우고 다시 실행한다.
+>
+> 사내 미러를 쓰면 GitHub 인증 자체가 불필요하다:
+> ```powershell
+> $env:VIGENT_WEIGHTS_BASE_URL = "https://<미러주소>"
+> ```
+>
+> **실증(2026-08-21)**: 비공개 전환 후 `yolo11s.pt` 를 지우고 재조달 → 자산 API 로
+> 다운로드·SHA256 검증 통과 확인.
 - 선택 가중치(YOLO 폴백)까지 받으려면 `--all`. 없어도 기동에는 지장 없다.
 - 검증만: `--check`
 
 > 필수 가중치가 없으면 **서버가 예열 단계에서 명시적으로 실패**한다(`/health` `phase=failed`).
 > 조용히 COCO로 폴백해 "정상처럼 보이는데 아무것도 못 잡는" 상태가 되지 않도록 막아둔 것이다.
+
+---
+
+### 4-1. ★RF_HOME — 오프라인 현장이면 반드시 확인
+
+RF-DETR 은 커스텀 가중치 밑에 **베이스 사전학습 체크포인트**(`rf-detr-nano.pth`, 349MB)를 깐다.
+이 파일이 없으면 rfdetr 이 **런타임에 인터넷에서 받아온다** — 인터넷이 없는 현장이면 기동 실패다.
+
+캐시 위치는 `RF_HOME` 이 정하고, 기본값 `~/.roboflow/models` 는 **계정별**이다.
+★서비스는 **LocalSystem** 으로 돌기 때문에 기본값이면
+`C:\Windows\System32\config\systemprofile\.roboflow\models` 를 본다 —
+**로그인 계정에서 미리 데워둔 캐시는 서비스에 아무 소용이 없다**(2026-08-20 실측: 서비스 첫
+기동에서 349MB 를 새로 받았다).
+
+그래서 배포는 `RF_HOME` 을 **`vigent-core\weights`** 로 고정한다:
+
+- 서비스: `install_service.ps1` 이 자동 주입한다(**기존 서비스는 재등록해야 반영된다**).
+- 수동 기동(6단계): 아래처럼 직접 넣는다.
+- 조달: 이 위치가 `scripts\fetch_weights.py` 의 다운로드 경로와 같아
+  `--all` 하나로 같이 받아진다(매니페스트 `rf-detr-nano.pth`, **required**).
+
+```powershell
+$env:RF_HOME = "C:\Users\1\Desktop\VIGENT\vigent-core\weights"
+```
+
+> **기동 시 캐시가 없으면 명시적으로 실패한다**(조용한 인터넷 의존 금지):
+> ```
+> [기동거부] RF-DETR 사전학습 체크포인트 부재: ...\rf-detr-nano.pth (파일 없음).
+> ```
+> 다운로드를 감수하고 띄우려면 `VIGENT_ALLOW_PRETRAIN_DOWNLOAD=1` 을 명시해야 한다.
+
+#### 포즈 모델도 같은 함정이 있다 — `TORCH_HOME`
+
+`rtmlib`(RTMPose)은 **첫 사람 검출 시점에** 모델 2개를 인터넷에서 받는다:
+
+| 파일 | 크기 |
+|---|---|
+| `yolox_m_8xb8-300e_humanart-c2c7a14a.onnx` | 101MB |
+| `rtmpose-m_simcc-body7_pt-body7_420e-256x192-e48f03d0_20230504.onnx` | 54MB |
+
+기본 캐시가 `~/.cache/rtmlib` 이라 `RF_HOME` 과 똑같이 **계정별로 흩어진다**(서비스는
+LocalSystem 프로필). 배포는 `TORCH_HOME` 을 **`vigent-core\weights\rtm_cache`** 로 고정한다
+— `install_service.ps1` 이 자동 주입하고, 수동 기동은 직접 넣는다:
+
+```powershell
+$env:TORCH_HOME = "C:\Users\1\Desktop\VIGENT\vigent-core\weights\rtm_cache"
+```
+
+> ★**이건 기동 경로가 아니라 검출 경로다.** 서버가 healthy 로 떠도 캐시가 없으면
+> **사람이 처음 잡히는 순간** 다운로드를 시도한다 — 인터넷이 없으면 그때 실패한다.
+> 그래서 "서비스가 떴으니 오프라인 OK" 는 **검증이 아니다**. 반드시 카메라를 붙이고
+> 사람이 잡히는 것까지 확인해야 한다(2026-08-20 오프라인 시험이 카메라 없이 돌아 이걸
+> 놓쳤고, 다음날 지게차 영상을 물리자마자 156MB 다운로드가 관측됐다).
+
+미리 채우려면 인터넷이 되는 곳에서 한 번 돌려 둔다:
+```powershell
+$env:TORCH_HOME = "<루트>\vigent-core\weights\rtm_cache"
+python -c "from rtmlib import Body; Body(mode='balanced', backend='onnxruntime', device='cpu')"
+```
 
 ---
 
@@ -199,6 +347,10 @@ Invoke-RestMethod -Method Post -Uri http://127.0.0.1:8010/cameras `
 cd D:\vigent_original\vigent-core
 $env:VIGENT_REQUIRE_TOKEN = "1"
 $env:VIGENT_CAPTURE_MODE = "thread"
+$env:PYTHONUTF8 = "1"                 # 한글 로그 깨짐 방지(cp949 콘솔)
+$env:RF_HOME = "$PWD\weights"         # 4-1 참고 — 없으면 349MB 를 받으러 나간다
+$env:TORCH_HOME = "$PWD\weights
+tm_cache"   # 포즈 모델 156MB — 4-1 참고
 python -m uvicorn main:app --host 127.0.0.1 --port 8010
 ```
 
@@ -305,6 +457,16 @@ Start-Service VIGENT
 | go2rtc | `data\go2rtc.log` |
 
 256MB마다 자동 로테이션(약 2GB 상한).
+
+> ⚠️ **로그를 읽을 때는 `-Encoding UTF8` 을 붙일 것.** 로그 파일은 UTF-8 로 저장되는데
+> PowerShell 5.1 의 `Get-Content` 는 기본적으로 시스템 ANSI(한국어 Windows=CP949)로 읽어
+> 한글이 `?덉뿴 slot=ppe` 처럼 깨져 보인다 — **파일이 깨진 게 아니라 읽는 쪽 문제다**.
+> ```powershell
+> Get-Content logs\vigent.err.log -Tail 30 -Encoding UTF8
+> ```
+> (서비스가 UTF-8 로 쓰도록 `install_service.ps1` 이 `PYTHONUTF8=1` 을 주입한다. 이게
+> 없던 시절엔 파일 자체가 `???? slot=ppe` 로 깨졌다 — 증상이 비슷하니 구분할 것:
+> `????` = 쓰기 문제 / `?덉뿴` = 읽기 문제.)
 
 ### 상태 감시
 

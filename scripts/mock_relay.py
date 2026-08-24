@@ -15,11 +15,16 @@ from __future__ import annotations
 
 import argparse
 import json
+import sys
 import threading
 import time
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from urllib.parse import parse_qs, urlparse
 
+try:   # Windows 콘솔(cp949 등)이 이모지·한글기호를 못 찍어 죽는 문제 방지 — 출력 인코딩만 강제(로직 무관)
+    sys.stdout.reconfigure(encoding="utf-8")
+except Exception:  # noqa: BLE001
+    pass
 
 class MockRelay:
     """ON/OFF 요청을 기록하는 최소 서버. 장애 주입 옵션 포함."""

@@ -67,10 +67,65 @@ data\risk_assessments  위험성평가서
 **적용 방법 — 둘 중 하나**
 
 *A. BitLocker(볼륨 전체, 권장)* — 관리자 PowerShell:
+
+★**서비스가 LocalSystem 으로 도는 배포에서는 BitLocker 를 쓴다(EFS 아님).** EFS 는 계정별
+키라, 서비스(SYSTEM)가 만든 증거 파일을 로그인 계정이 못 여는 상황이 생긴다 — 사고 조사용
+증거 반출 절차가 곤란해진다(2026-08-20 판단).
+
 ```powershell
-Enable-BitLocker -MountPoint "D:" -EncryptionMethod XtsAes256 -UsedSpaceOnly -PasswordProtector
-Get-BitLockerVolume -MountPoint "D:"     # ProtectionStatus = On 확인
+# 0) TPM 확인 — 없으면 여기서 멈춘다
+Get-Tpm | Select-Object TpmPresent,TpmReady,TpmEnabled,TpmActivated
 ```
+> ★**TpmPresent/TpmReady 가 False 면 진행하지 말 것.** TPM 없이 걸면 부팅마다 암호 입력이
+> 필요해져 **B1 무인 운영(재부팅 자동 기동)이 깨진다.** 그 경우 사람 판단으로 되돌아간다.
+
+```powershell
+# 1) 암호화 — TPM 보호기로 부팅 시 자동 잠금해제(무인 운영 유지)
+Enable-BitLocker -MountPoint "C:" -EncryptionMethod XtsAes256 -UsedSpaceOnly -TpmProtector -SkipHardwareTest
+# 2) 복구 키 보호기 추가(TPM 상태가 바뀌어도 열 수 있게)
+Add-BitLockerKeyProtector -MountPoint "C:" -RecoveryPasswordProtector
+# 3) 진행률 — 100% / FullyEncrypted / On 이 되어야 완료
+Get-BitLockerVolume -MountPoint "C:" | Select-Object VolumeStatus,EncryptionPercentage,ProtectionStatus,EncryptionMethod
+```
+
+### ★★ 복구 키 백업 — 드라이브 문자를 반드시 먼저 확인할 것
+
+> **2026-08-20 실제 사고**: USB 를 `E:` 로 가정하고 복구 키를 저장했는데, 이 노트북의 `E:` 는
+> **내장 AOMEI 복구 파티션**이었다. 실제 USB 는 `G:` 였다. `Out-File` 은 **오류 없이 성공**했고
+> 복구 키가 **잠긴 디스크와 같은 기계 안에 평문으로** 저장됐다. 나중에 전수 검색으로 발견해
+> 지웠지만, 현장에서 이걸 못 잡으면 ①키가 기계와 함께 도난·분실되고 ②본인은 USB 에 있다고
+> 믿는다. **드라이브 문자는 가정하지 말고 매번 조회할 것.**
+
+```powershell
+# 1) 실제 이동식 드라이브만 조회 — 여기서 나온 문자만 쓴다
+Get-Volume | Where-Object DriveType -eq 'Removable' |
+  Select-Object DriveLetter, FileSystemLabel, @{n='GB';e={[math]::Round($_.SizeRemaining/1GB,1)}}
+
+# 2) 위에서 확인한 문자로 저장(<USB> 를 교체)
+(Get-BitLockerVolume -MountPoint C:).KeyProtector |
+  Where-Object KeyProtectorType -eq 'RecoveryPassword' |
+  ForEach-Object { "ID : $($_.KeyProtectorId)"; "KEY: $($_.RecoveryPassword)" } |
+  Out-File -Encoding utf8 "<USB>:\VIGENT-BitLocker-복구키.txt"
+
+# 3) ★저장 검증 — 파일이 '이동식' 드라이브에 있는지 되짚어 확인(내용은 열지 않는다)
+$f = Get-Item "<USB>:\VIGENT-BitLocker-복구키.txt"
+$f | Select-Object FullName, Length, LastWriteTime
+(Get-Volume -DriveLetter $f.PSDrive.Name).DriveType   # 'Removable' 이어야 한다
+
+# 4) ★내장 디스크에 잘못 저장된 사본이 없는지 전수 검색
+Get-PSDrive -PSProvider FileSystem | ForEach-Object {
+  Get-ChildItem "$($_.Root)" -Filter "*BitLocker*복구키*" -Recurse -Force -ErrorAction SilentlyContinue
+} | Select-Object FullName
+```
+
+- [ ] 이동식 드라이브 문자 **조회로** 확인(가정 금지)
+- [ ] 저장 후 `DriveType = Removable` 로 되짚어 검증
+- [ ] 내장 디스크 전수 검색 → 잘못된 사본 **0건**
+- [ ] USB 는 노트북과 **분리 보관**(같은 가방 금지 — 분실 시 둘 다 잃는다)
+- [ ] 복구 키를 채팅·문서·이슈에 붙여넣지 않았는지 확인
+
+> 잘못된 위치에 쓴 사본을 지웠다면, 그 볼륨의 **빈 공간 덮어쓰기**도 검토한다(삭제만으로는
+> 미할당 영역에 내용이 남을 수 있다): `cipher /w:E:\` — 시간이 걸리므로 현장 아닌 때 수행.
 
 *B. EFS(폴더 단위)* — 일반 PowerShell로도 가능:
 ```powershell
@@ -80,11 +135,28 @@ cipher /c D:\vigent_original\data\evidence   # 각 파일 앞 'E' 표시 확인
 > EFS 는 **복구 인증서를 반드시 백업**할 것(`certmgr.msc` → 개인 → 인증서 → 내보내기).
 > 인증서를 잃으면 암호화된 파일을 영구히 열 수 없다.
 
-**현재 상태(2026-08-19 확정)**: 이 개발 PC 는 **적용 불가**다(Windows 11 Home —
-위 실측). `storage_encrypted: false` 는 사실을 정직하게 반영하는 상태이므로 유지한다.
-★잔여 위험: `data\evidence` 에 실제 개인영상 프레임 **11,633개**가 비암호화로 쌓여 있다
-— **개발 PC Pro 업그레이드 또는 증거 데이터 현장 이관 시점에 재검토(사람 결정)**.
-현장 배포 장비(Pro 이상)에서는 반드시 적용·검증할 것.
+**현재 상태 — 장비별로 다르다(2026-08-20 갱신)**
+
+| 장비 | 상태 |
+|---|---|
+| **학원 현장 노트북**(Windows 10 **Pro**) | ✅ **적용 완료·검증됨** — 아래 실측 |
+| 개발 PC(Windows 11 **Home**) | ❌ **적용 불가**(EFS·BitLocker 둘 다 미지원, 2026-08-19 실측) |
+
+*현장 노트북 실측(2026-08-20)*
+- TPM 2.0 `Present/Ready/Enabled/Activated` 전부 `True` → **TpmProtector 로 부팅 시 자동
+  잠금해제**, B1 무인 운영 유지됨
+- `C:` `XtsAes256` · `-UsedSpaceOnly` · `VolumeStatus=FullyEncrypted` ·
+  `EncryptionPercentage=100` · `ProtectionStatus=On`
+- 재기동 후 `/health` → **`privacy.storage_encrypted: true`, `bitlocker: "on"`** 확인
+  (`efs_by_dir` 는 전부 false 지만 볼륨이 BitLocker 로 보호되므로 `true` 가 맞다 —
+  `privacy.py` 가 `bitlocker == "on"` 을 우선 판정한다)
+- 복구 키: USB 파일 저장 + 내장 디스크 전수 검색 0건 확인(위 사고 사례 참고)
+
+> ★`/health` 의 `bitlocker` 조회는 **관리자 권한**이 필요하다. 서비스는 LocalSystem 이라
+> 정상 조회되지만, 일반 사용자 셸로 수동 기동하면 `"unknown"` 이 나온다 — 결함이 아니다.
+
+*개발 PC 잔여 위험(변동 없음)*: `data\evidence` 에 개인영상 프레임 **11,633개**가
+비암호화로 쌓여 있다 — **Pro 업그레이드 또는 증거 데이터 현장 이관 시점에 재검토(사람 결정)**.
 
 > ※ 앱 레벨 파일 암호화(Fernet 등)는 만들지 않았다 — 폴더/볼륨 암호화로 처리하고, 앱은
 > **검사해서 드러내는 역할만** 한다. 법적 충분성 판단은 이 문서가 하지 않는다(법무 검토 대상).
@@ -131,6 +203,14 @@ cipher /c D:\vigent_original\data\evidence   # 각 파일 앞 'E' 표시 확인
 야간(조명 변화로 검출 증가)·재연결 폭주 여유를 둔 값이다.
 
 ★**다른 사양이면 이 숫자를 쓰지 말고 재측정할 것**: `python scripts/capacity_probe.py --max-n 8`
+
+> ⚠️ **재측정 전제 — 모의 소스 영상이 필요하다.** `capacity_probe.py` 는
+> `runs/rfdetr/accident/*.mp4` 를 파일 카메라로 등록해 부하를 만든다. 그런데 `runs/` 는
+> `.gitignore` 대상이라 **clone 만으로는 없다** — 새 PC 에서 그냥 실행하면
+> `모의 소스 영상이 없습니다` 로 종료된다(2026-08-20 현장 노트북에서 확인).
+> 개발 PC 에서 `runs/rfdetr/accident/` 를 통째로 복사해 올 것.
+> ★**정적 이미지나 합성 영상으로 대체하지 말 것** — 스크립트 주석이 명시하듯 검출 부하가
+> 실장면보다 가벼워 **한계 N 이 후하게 나온다**(현장에서 무너질 수를 통과시킨다).
 
 ★**GPU 를 키운다고 대수가 늘지 않을 수 있다**: 8대 시점에도 GPU 메모리 18.8%·util 23% 로
 **GPU 는 놀고 있었다**. 병목은 CPU 디코드·추론 직렬화 쪽으로 보인다(원인 미확정 —

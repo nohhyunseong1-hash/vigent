@@ -13,6 +13,7 @@
 from __future__ import annotations
 
 import os
+import re
 from pathlib import Path
 from typing import Any
 
@@ -59,6 +60,37 @@ def notify_cfg() -> dict[str, Any]:
     }
 
 
+_SECRET_PATTERNS = (
+    # 텔레그램 봇 토큰: URL **경로**에 토큰이 들어간다(https://api.telegram.org/bot<토큰>/sendMessage).
+    #   requests 예외 메시지는 URL 을 통째로 담으므로 그대로 두면 로그·DB(last_error)·
+    #   API 응답까지 평문 토큰이 흐른다(2026-08-21 현장 노트북 로그에서 실제 관측).
+    (re.compile(r"bot\d+:[A-Za-z0-9_\-]{10,}"), lambda m: "bot<REDACTED>"),
+    # Slack/Discord 계열 웹훅: 경로 뒷부분이 곧 비밀값이다. 호스트·경로 앞부분은 남겨
+    #   "어느 채널이 실패했는지"는 여전히 진단 가능하게 한다.
+    (re.compile(r"(hooks\.slack\.com/services)/[A-Za-z0-9/_\-]+"),
+     lambda m: m.group(1) + "/<REDACTED>"),
+    (re.compile(r"(discord(?:app)?\.com/api/webhooks)/[A-Za-z0-9/_\-]+"),
+     lambda m: m.group(1) + "/<REDACTED>"),
+    # 흔한 쿼리스트링 비밀(token=·key=·api_key=·access_token=)
+    (re.compile(r"([?&](?:token|key|api_key|access_token)=)[^&\s'\"]+", re.I),
+     lambda m: m.group(1) + "<REDACTED>"),
+)
+
+
+def redact_secrets(s: str) -> str:
+    """예외 메시지에서 비밀값을 지운다.
+
+    통보 채널의 자격증명은 **URL 안에** 들어가는 경우가 많고, requests 등의 예외 메시지는
+    URL 을 그대로 포함한다. 그 문자열이 로그(`logs/vigent.err.log`)·경보 DB(`last_error`)·
+    API 응답으로 흘러나가면 토큰이 평문으로 퍼진다. 카메라 자격증명을
+    `data/camera_secrets.json` 에만 두고 로그엔 마스킹하는 기존 원칙과 동일하게 맞춘다.
+    """
+    out = s
+    for pat, repl in _SECRET_PATTERNS:
+        out = pat.sub(repl, out)
+    return out
+
+
 class DispatcherAgent(BaseAgent):
     name = "Dispatcher"
     role = "연동: 텔레그램/이메일/웹훅 알림, 관리자 통보, (보조)방호 신호 — §8 경계 준수"
@@ -90,7 +122,7 @@ class DispatcherAgent(BaseAgent):
                               json={"chat_id": c["telegram_chat"], "text": text}, timeout=6)
             return {"channel": "telegram", "sent": r.ok, "fallback": not r.ok, "status": r.status_code}
         except Exception as ex:  # noqa: BLE001
-            return {"channel": "telegram", "sent": False, "fallback": True, "reason": str(ex)}
+            return {"channel": "telegram", "sent": False, "fallback": True, "reason": redact_secrets(str(ex))}
 
     def _send_email(self, subject: str, text: str) -> dict[str, Any]:
         c = notify_cfg()
@@ -120,7 +152,7 @@ class DispatcherAgent(BaseAgent):
             r = requests.post(c["webhook_url"], json=payload, timeout=6)
             return {"channel": "webhook", "sent": r.ok, "fallback": not r.ok, "status": r.status_code}
         except Exception as ex:  # noqa: BLE001
-            return {"channel": "webhook", "sent": False, "fallback": True, "reason": str(ex)}
+            return {"channel": "webhook", "sent": False, "fallback": True, "reason": redact_secrets(str(ex))}
 
     def dispatch(self, level: str, message: str, meta: dict[str, Any] | None = None) -> dict[str, Any]:
         """severity 등급에 맞는 채널로 경보. 항상 결과 반환(예외로 죽지 않음).

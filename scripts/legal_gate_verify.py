@@ -10,13 +10,18 @@ import os
 import sys
 from pathlib import Path
 
+try:   # Windows 콘솔(cp949 등)이 이모지·한글기호를 못 찍어 죽는 문제 방지 — 출력 인코딩만 강제(로직 무관)
+    sys.stdout.reconfigure(encoding="utf-8")
+except Exception:  # noqa: BLE001
+    pass
+
 CORE = Path(__file__).resolve().parent.parent / "vigent-core"
 sys.path.insert(0, str(CORE))
 os.chdir(CORE)
 
-import legal_whitelist as L                # noqa: E402
-from agents.scribe import ScribeAgent      # noqa: E402
-from agents.copilot import CopilotAgent    # noqa: E402
+import legal_whitelist as L  # noqa: E402
+from agents.copilot import CopilotAgent  # noqa: E402
+from agents.scribe import ScribeAgent  # noqa: E402
 
 copilot = CopilotAgent(None)
 scribe = ScribeAgent(None)

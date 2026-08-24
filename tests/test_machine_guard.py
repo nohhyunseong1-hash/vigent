@@ -53,11 +53,17 @@ class TestMachineEndpoints(unittest.TestCase):
         import main  # noqa
         from fastapi.testclient import TestClient
         self.main = main
+        # ★[2026-08-20] 인증 격리 — 배포 .env 의 VIGENT_API_TOKEN 이 있으면 이 엔드포인트
+        #   테스트가 전부 401 로 깨진다(현장 노트북에서 실제 발생). 인증 자체는
+        #   test_security_gate.py 등이 따로 검증한다. 상세는 test_endpoints_smoke.py 주석.
+        self._saved_token = main._API_TOKEN
+        main._API_TOKEN = ""
         self.client = TestClient(main.app)
         self.client.__enter__()
 
     def tearDown(self):
         self.client.__exit__(None, None, None)
+        self.main._API_TOKEN = self._saved_token
 
     def test_machine_zone_roundtrip(self):
         c = self.client

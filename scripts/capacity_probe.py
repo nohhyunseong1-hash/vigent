@@ -23,11 +23,17 @@ from __future__ import annotations
 import argparse
 import json
 import subprocess
+import sys
 import time
 import urllib.error
 import urllib.request
 from pathlib import Path
 from typing import Any
+
+try:   # Windows 콘솔(cp949 등)이 이모지·한글기호를 못 찍어 죽는 문제 방지 — 출력 인코딩만 강제(로직 무관)
+    sys.stdout.reconfigure(encoding="utf-8")
+except Exception:  # noqa: BLE001
+    pass
 
 _ROOT = Path(__file__).resolve().parent.parent
 BASE = "http://127.0.0.1:8010"
@@ -38,6 +44,9 @@ SCENE_DIR = _ROOT / "runs" / "rfdetr" / "accident"
 #   base_cycle_s: 1대 기준 실효 검출 주기(실측으로 채운다)
 #   detect p95 가 기준 주기의 2배 초과 / GPU 메모리 90% 초과 / 프레임 드랍 지속 /
 #   status=degraded 지속 중 하나라도 걸리면 그 N 은 불합격 → 직전 N 이 한계.
+# 기준 주기가 이 값을 넘으면 측정 자체가 오염된 것으로 보고 중단한다(정지 카메라 stale age 방어).
+BASE_CYCLE_SANE_MAX_S = 30.0
+
 PASS_CRITERIA = {
     "detect_p95_max_ratio": 2.0,
     "gpu_mem_max_pct": 90.0,
@@ -131,14 +140,25 @@ def cleanup() -> int:
 def sample(n_expected: int) -> dict[str, Any]:
     code, h = api("/health")
     cams = h.get("cameras") or {}
-    lat = [c.get("last_detect_latency_ms") for c in cams.values()
+    # ★[2026-08-21] 집계는 **가동 중인 카메라만**. 삭제된 카메라가 `stopped` 로 남아
+    #   stale 한 age(수만 초)를 보고하는데, 그게 섞이면 통계가 통째로 오염된다.
+    live = {k: c for k, c in cams.items() if c.get("status") != "stopped"}
+    lat = [c.get("last_detect_latency_ms") for c in live.values()
            if c.get("last_detect_latency_ms")]
-    age = [c.get("last_detect_age_s") for c in cams.values()
+    age = [c.get("last_detect_age_s") for c in live.values()
            if c.get("last_detect_age_s") is not None]
     # ★실카메라(test) 지표를 따로 뽑는다 — 전 카메라 평균만 보면 모의 카메라가 많아질수록
     #   실카메라의 저하가 희석돼 한계를 놓친다(1차 측정의 두 번째 결함).
     real = cams.get("test") or {}
-    drop = sum(c.get("dropped_frames") or 0 for c in cams.values())
+    drop = sum(c.get("dropped_frames") or 0 for c in live.values())
+    # [2026-08-21] degraded 를 **사유별로** 가른다.
+    #   /health 의 degraded 는 ①카메라 검출 저하 ②미전송 경보 적체 둘 다에서 난다
+    #   (md/DEPLOYMENT.md §8). 후자는 통보채널·인터넷 문제라 **카메라 용량과 무관**한데
+    #   뭉뚱그려 불합격 처리하면 멀쩡한 N 이 탈락한다(1차 측정 실제 사고: N=2 가 경보 적체
+    #   degraded 2샘플만으로 탈락 → "한계 1대"라는 거짓 결과).
+    cam_bad = [k for k, c in cams.items() if c.get("status") not in ("ok", "stopped", None)]
+    alerts = h.get("alerts") or {}
+    alert_backlog = int(alerts.get("pending") or 0)
     gu, gt, gp = gpu()
     return {"ts": time.strftime("%H:%M:%S"), "code": code, "status": h.get("status"),
             "cams": len(cams), "expected": n_expected,
@@ -146,7 +166,8 @@ def sample(n_expected: int) -> dict[str, Any]:
             "real_lat": real.get("last_detect_latency_ms"),
             "real_age": real.get("last_detect_age_s"),
             "real_status": real.get("status"),
-            "gpu_used": gu, "gpu_total": gt, "gpu_util": gp}
+            "gpu_used": gu, "gpu_total": gt, "gpu_util": gp,
+            "cam_bad": cam_bad, "alert_backlog": alert_backlog}
 
 
 def _p(v: list[float], q: float) -> float | None:
@@ -173,6 +194,13 @@ def summarize(samples: list[dict], base_cycle_s: float | None) -> dict[str, Any]
         "gpu_util_p95": _p([float(x) for x in gutil], 0.95),
         "drop_growth": (drops[-1] - drops[0]) if drops else 0,
         "degraded_samples": degraded,
+        # ★degraded 를 사유별로 나눠 둔다 — 판정은 카메라 쪽만 쓴다.
+        "degraded_camera_samples": sum(1 for s in samples if s.get("cam_bad")),
+        "degraded_alert_samples": sum(1 for s in samples
+                                      if s["status"] not in ("healthy", None)
+                                      and not s.get("cam_bad")),
+        "alert_backlog_max": max((s.get("alert_backlog") or 0) for s in samples) if samples else 0,
+        "cam_bad_names": sorted({k for s in samples for k in (s.get("cam_bad") or [])}),
         # 실카메라 단독 지표(희석 없음) — 판정은 이 값으로 한다
         "real_lat_p95": _p([s["real_lat"] for s in samples if s.get("real_lat")], 0.95),
         "real_age_p95": _p([s["real_age"] for s in samples if s.get("real_age") is not None], 0.95),
@@ -197,8 +225,11 @@ def judge(m: dict[str, Any], base_cycle_s: float) -> tuple[bool, list[str]]:
         bad.append(f"GPU 메모리 {m['gpu_mem_pct']:.1f}% > 90%")
     if m["drop_growth"] > 0:
         bad.append(f"프레임 드랍 증가 {m['drop_growth']}건")
-    if m["degraded_samples"] > 0:
-        bad.append(f"degraded 샘플 {m['degraded_samples']}개")
+    # ★degraded 는 **카메라 사유일 때만** 불합격. 경보 적체(pending)로 인한 degraded 는
+    #   인터넷·통보채널 문제라 카메라 수용량과 무관하다 — 기록만 하고 판정에서 뺀다.
+    if m.get("degraded_camera_samples", 0) > 0:
+        bad.append(f"카메라 저하 degraded {m['degraded_camera_samples']}샘플 "
+                   f"({', '.join(m.get('cam_bad_names') or []) or '이름 미상'})")
     return (not bad), bad
 
 
@@ -226,9 +257,21 @@ def main() -> int:
     base_s = [sample(1) for _ in range(int(min(60, a.hold) / a.interval))
               if not time.sleep(a.interval)]
     base = summarize(base_s, None)
-    base_cycle_s = (base["age_p95"] or 0.5)
+    # ★[2026-08-21] 기준 주기는 **기준 카메라(test) 단독 age** 로 잡는다.
+    #   예전에는 전 카메라 age_p95 를 썼는데, /health 에 남은 **정지 카메라 한 대**의
+    #   stale age(수만 초)가 섞이면 기준이 통째로 파괴된다. 그러면
+    #   limit = base_cycle_s x 1000 x 2 가 수천만 ms 가 되어 **지연 판정이 무력화**된다
+    #   (1차 측정 실제 사고: base_cycle_s=40544s -> 어떤 지연도 통과, "한계 1대" 거짓 결과).
+    base_cycle_s = base.get("real_age_p95")
+    if not base_cycle_s or base_cycle_s <= 0 or base_cycle_s > BASE_CYCLE_SANE_MAX_S:
+        print(f"\n★중단: 기준 주기가 비정상입니다 — real_age_p95={base_cycle_s}"
+              f" (정상 범위 0<x<={BASE_CYCLE_SANE_MAX_S}s)")
+        print("  원인 후보: ①기준 카메라('test')가 등록되지 않았다"
+              " ②/health 에 정지 카메라가 남아 지표가 오염됐다(서비스 재시작으로 정리)")
+        print("  이 상태의 측정은 무효이므로 진행하지 않습니다.")
+        return 2
     print(f"  1대 기준: detect p50 {base['lat_p50']:.0f}ms / p95 {base['lat_p95']:.0f}ms · "
-          f"검출주기(age p95) {base_cycle_s:.2f}s · GPU {base['gpu_mem_pct']:.1f}%\n")
+          f"검출주기(기준카메라 age p95) {base_cycle_s:.2f}s · GPU {base['gpu_mem_pct']:.1f}%\n")
 
     results: dict[str, Any] = {
         "generated_at": time.strftime("%Y-%m-%d %H:%M:%S"),

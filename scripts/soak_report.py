@@ -12,6 +12,10 @@ import json
 import sys
 from pathlib import Path
 
+try:   # Windows 콘솔(cp949 등)이 이모지·한글기호를 못 찍어 죽는 문제 방지 — 출력 인코딩만 강제(로직 무관)
+    sys.stdout.reconfigure(encoding="utf-8")
+except Exception:  # noqa: BLE001
+    pass
 
 def load(p: Path) -> tuple[dict, list[dict]]:
     header: dict = {}
@@ -45,7 +49,18 @@ def main() -> int:
     dur_h = rows[-1]["t"] / 3600 if rows else 0
 
     unhealthy = [r for r in rows if r.get("status") == "unhealthy"]
-    degraded = [r for r in rows if r.get("status") == "degraded"]
+    # ★[2026-08-21] degraded 를 **사유별로** 가른다. /health 의 degraded 는
+    #   ①카메라 검출 저하 ②미전송 경보 적체 둘 다에서 난다(md/DEPLOYMENT.md §8).
+    #   후자는 통보채널·인터넷 문제라 **소크(안정성) 판정과 무관**한데, 뭉뚱그리면
+    #   카메라가 24시간 멀쩡해도 텔레그램이 죽었다는 이유로 소크가 불합격 난다.
+    #   (capacity_probe 1차 측정이 같은 실수로 "한계 1대"라는 거짓 결과를 냈다.)
+    def _cam_degraded(r: dict) -> bool:
+        return any((c.get("s") or "") not in ("ok", "stopped", "")
+                   for c in (r.get("cams") or {}).values())
+
+    degraded_all = [r for r in rows if r.get("status") == "degraded"]
+    degraded = [r for r in degraded_all if _cam_degraded(r)]          # 판정 대상
+    degraded_alert_only = [r for r in degraded_all if not _cam_degraded(r)]  # 기록만
     noresp = [r for r in rows if r.get("code") == 0]
     degraded_min = len(degraded) * iv / 60
 
@@ -118,7 +133,10 @@ def main() -> int:
     max_growth = float(crit.get("rss_growth_mb_per_hour_max", 30))
     checks = [
         ("unhealthy 0회", len(unhealthy) == 0, f"{len(unhealthy)}회"),
-        (f"degraded 누적 ≤{max_deg:.0f}분", degraded_min <= max_deg, f"{degraded_min:.1f}분"),
+        (f"degraded(카메라 사유) 누적 ≤{max_deg:.0f}분", degraded_min <= max_deg,
+         f"{degraded_min:.1f}분"
+         + (f" · 경보적체 사유 별도 {len(degraded_alert_only) * iv / 60:.1f}분(판정 제외)"
+            if degraded_alert_only else "")),
         ("자동복구 실패 0", unrecovered == 0,
          f"미회복 {unrecovered} (최장 stale {longest_stale_min:.1f}분)"),
         # ★감소(음수)는 통과 — 누수의 반대다. 상한과 비교하는 것은 '증가'뿐이다.

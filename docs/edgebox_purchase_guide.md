@@ -301,6 +301,20 @@ A 는 SMT 를 실코어처럼 세어 과대평가하기 쉽고, B 는 벤치 구
 python scripts\capacity_probe.py --max-n 8 --hold 180
 ```
 
+> ⚠️ **측정 전 반드시 확인할 전제 3가지** (2026-08-20 학원 현장 노트북 준비 중 확인)
+>
+> 1. **모의 소스 영상이 있어야 한다** — `runs/rfdetr/accident/*.mp4`. `runs/` 는
+>    `.gitignore` 라 clone 만으로는 없다. 개발 PC 에서 복사해 올 것.
+>    ★정적 이미지·합성 영상 대체 금지 — 검출 부하가 가벼워 **한계 N 이 후하게 나온다**.
+> 2. **★BitLocker 암호화가 진행 중이면 돌리지 말 것.** 최초 암호화는 CPU·디스크를
+>    지속적으로 쓰기 때문에 검출 지연이 부풀려져 **한계 N 이 실제보다 낮게 나온다**.
+>    `Get-BitLockerVolume -MountPoint C: | Select EncryptionPercentage` 가 **100** 이고
+>    `VolumeStatus=FullyEncrypted` 인 것을 확인한 뒤 측정한다.
+>    (같은 이유로 백신 전체검사·Windows 업데이트·대용량 파일 복사 중에도 돌리지 않는다.)
+> 3. **전원·전력 상태** — 충전기 연결 + 고성능 전원 계획 활성. 노트북은 배터리 모드에서
+>    CPU 를 제한하므로 배터리로 재면 값이 낮게 나온다. 노트북에는 발열 스로틀링도
+>    함께 관측해 기록할 것(데스크탑 기준 수치와 직접 비교하면 안 된다).
+
 - [ ] **한계 N × 0.75 = 그 기계의 권장 대수**로 확정
 - [ ] `benchmarks/capacity_report.md` 에 **기종명과 함께** 기록
 - [ ] `md/DEPLOYMENT.md` §0 의 대수 표기를 그 기계 값으로 갱신

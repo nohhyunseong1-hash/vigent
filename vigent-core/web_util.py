@@ -174,3 +174,21 @@ def product_version() -> str:
         return (_ROOT / "VERSION").read_text(encoding="utf-8").strip()
     except Exception:  # noqa: BLE001
         return "unknown"
+
+
+def json_charset_header(content_type: str) -> str | None:
+    """JSON 응답의 content-type 에 charset=utf-8 을 붙여야 하면 새 값을, 아니면 None.
+
+    [B-enc, 2026-08-20 확정] JSON 은 규격상 UTF-8 이 기본이라 charset 이 없어도 되지만,
+    **명시가 없으면 시스템 ANSI 로 디코드하는 클라이언트가 있다** — 한국어 Windows 의
+    PowerShell 5.1 `Invoke-RestMethod` 가 대표적이라 CP949 로 읽어 한글이 깨진다:
+        "BitLocker 조회는 관리자 권한이 필요하다" → "BitLocker 議고쉶뒗 愿由ъ옄..."
+    개발 PC 에서 관측된 뒤 현장 노트북(새 기계)에서도 그대로 재현돼 추정이 아니라 확정이다.
+    현장에서 /health 로 상태를 읽어야 하는데 정작 원인 설명 문자열이 안 읽히는 문제다.
+    """
+    ct = (content_type or "").strip()
+    if not ct.startswith("application/json"):
+        return None
+    if "charset" in ct.lower():
+        return None
+    return ct + "; charset=utf-8"

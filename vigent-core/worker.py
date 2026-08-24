@@ -100,6 +100,35 @@ def _default_detectors() -> list[str]:
     return base
 
 
+# 슬롯별 '왜 소비 경로에서 빠졌는가' — /health 표시의 단일 출처(하드코딩 금지 원칙).
+DETECTOR_EXCLUSION_REASONS = {
+    "forklift": ("F-7 과소학습(정탐 conf p50 0.002 ≈ 오탐 수준, 2026-07-11 실측). "
+                 "라이브·safety-local·재해분석(incident)·음성안내(voice) 소비 경로 제외"
+                 "(강재를 지게차로 오탐→협착 오염·오경보). "
+                 "detect.include_forklift=1(또는 VIGENT_INCLUDE_FORKLIFT=1)로 활성화."),
+    "fire_smoke": ("detect.include_fire_smoke=0 으로 껐다(또는 VIGENT_INCLUDE_FIRE_SMOKE=0). "
+                   "학원 등 화재 감시가 계약 범위 밖이고 배경 오탐 리스크가 있는 현장 프로파일."),
+}
+_KNOWN_SLOTS = ("person", "ppe", "fire_smoke", "forklift")
+
+
+def active_detectors() -> list[str]:
+    """워커가 **실제로** 돌릴 검출 슬롯(런타임 tuning/env 반영).
+
+    /health 의 disabled_detectors 표시가 이 함수를 단일 출처로 쓴다 — 표시를 하드코딩하면
+    프로파일을 바꿔도 표시가 안 따라와 '동작은 맞고 표시만 틀린' 조용한 거짓말이 된다
+    (2026-08-20 학원 프로파일에서 실제 발생: include_forklift=1 인데 계속 '제외됨'으로 보고).
+    """
+    return _default_detectors()
+
+
+def disabled_detectors() -> dict[str, str]:
+    """모델은 있으나 소비 경로에서 빠진 슬롯 → 사유. active_detectors() 의 여집합."""
+    active = set(active_detectors())
+    return {s: DETECTOR_EXCLUSION_REASONS.get(s, "소비 경로에서 제외됨(사유 미기재)")
+            for s in _KNOWN_SLOTS if s not in active}
+
+
 def _det_dict(d: dict) -> dict:
     """guard 검출 → 대시보드 표시 dict(정규화 bbox + 트랙 id). 3.12: 풀세트·person고속 공통 포맷.
     stale([T-E2E 유령박스]): 미매칭 코스팅 트랙 표식 — 표시 경로가 숨긴다(판정 경로 무영향)."""
@@ -1101,6 +1130,26 @@ class WorkerManager:
 
     def stop(self, cam_id: str) -> dict:
         w = self._workers.get(cam_id)
+        if not w:
+            return {"ok": False, "error": f"{cam_id} 없음"}
+        return w.stop()
+
+    def remove(self, cam_id: str) -> dict:
+        """워커를 정지하고 **목록에서도 제거**한다 — 삭제(DELETE) 경로 전용.
+
+        stop() 과 나누는 이유: `disable` 은 '꺼져 있음'을 운영자가 봐야 하므로 항목을
+        남겨야 맞다. 반면 **삭제는 존재 자체가 사라져야 한다.**
+
+        ★[2026-08-21] 이 구분이 없어서 stop() 만 부르고 dict 에는 남겨뒀다. 그 결과
+        `DELETE /cameras/{id}` 후에도 `/health.cameras` 에 `status: stopped` 로 영원히
+        남고 `last_detect_age_s` 가 무한히 증가했다(관측: 40,544초). 피해는 둘이었다:
+          ① 현장에서 카메라를 지웠는데 목록에 보여 오독한다
+          ② 측정 오염 — capacity_probe 가 그 stale age 를 '1대 기준 검출주기'로 잡아
+             지연 판정이 통째로 무력화되고 **"한계 1대"라는 거짓 결과**가 나왔다
+             (audit/capacity_probe_invalid_2026-08-21.md)
+        """
+        with self._reg_lock:
+            w = self._workers.pop(cam_id, None)
         if not w:
             return {"ok": False, "error": f"{cam_id} 없음"}
         return w.stop()

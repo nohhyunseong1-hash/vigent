@@ -71,3 +71,7 @@ data/go2rtc.log
 
 # [B1] NSSM 바이너리 — 배포 스크립트가 winget/다운로드로 조달(저장소에 커밋하지 않음)
 deploy/windows/nssm.exe
+
+# 측정 스크립트의 raw 콘솔 출력(요약본 .md/.json 만 보존)
+audit/*_console.log
+audit/*_console.err

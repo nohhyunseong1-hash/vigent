@@ -451,7 +451,50 @@ class GuardAgent(BaseAgent):
                     f"[기동거부·F-8] rfdetr 커스텀 가중치 부재: slot={slot} path={p}. "
                     f"파일을 배치하거나 VIGENT_ALLOW_FALLBACK=1 로 COCO 폴백을 명시 허용하라"
                     f"(폴백은 커스텀 검출을 COCO로 대체 → 검출 저하). silent 폴백은 차단됨.")
+        self._require_rfdetr_pretrain(bool(out) or "rfdetr" in self._backend.values())
         return out
+
+    # RF-DETR 베이스 사전학습 체크포인트(rfdetr 패키지가 받아 캐시하는 파일).
+    #   커스텀 .pth 는 이 베이스 위에 얹히므로, 베이스가 없으면 rfdetr 이 **런타임에 인터넷으로
+    #   349MB 를 받으러 간다**. 인터넷이 없는 현장(학원 등)에서는 그대로 기동 실패다.
+    PRETRAIN_FILE = "rf-detr-nano.pth"          # detectors/rfdetr_adapter.py 가 RFDETRNano 사용
+    PRETRAIN_SIZE = 366287238
+
+    @staticmethod
+    def rfdetr_cache_dir() -> "_Path":
+        """rfdetr 이 사전학습 체크포인트를 찾는 디렉터리(RF_HOME 우선, 기본 ~/.roboflow/models).
+
+        ★배포에서는 RF_HOME 을 vigent-core/weights 로 고정한다 — 그래야
+        ①수동 실행과 LocalSystem 서비스가 **같은 캐시 하나**를 보고
+        ②scripts/fetch_weights.py 가 받는 위치와 정확히 겹쳐 매니페스트로 조달된다.
+        (2026-08-20 실측: 고정 전에는 사용자 프로필과 SYSTEM 프로필에 캐시가 따로 생겨
+         서비스 첫 기동에서 349MB 를 새로 받았다.)
+        """
+        import os
+        return _Path(os.path.expanduser(os.environ.get("RF_HOME", "~/.roboflow/models")))
+
+    def _require_rfdetr_pretrain(self, needed: bool) -> None:
+        """베이스 체크포인트 부재를 **기동 시점에 명시적으로** 실패시킨다(F-8 과 같은 원칙).
+
+        조용히 인터넷에 의존하다 현장에서 죽는 것을 막는다. 우회는 명시적 opt-in 만 허용.
+        """
+        import os
+        if not needed or os.environ.get("VIGENT_ALLOW_PRETRAIN_DOWNLOAD") == "1":
+            return
+        log = _guard_logger()
+        p = self.rfdetr_cache_dir() / self.PRETRAIN_FILE
+        if p.exists() and p.stat().st_size == self.PRETRAIN_SIZE:
+            log.info("RF-DETR 사전학습 캐시 확인: %s", p)
+            return
+        why = "파일 없음" if not p.exists() else f"크기 불일치({p.stat().st_size:,} != {self.PRETRAIN_SIZE:,})"
+        log.error("RF-DETR 사전학습 캐시 부재: %s (%s)", p, why)
+        raise FileNotFoundError(
+            f"[기동거부] RF-DETR 사전학습 체크포인트 부재: {p} ({why}). "
+            f"이대로 두면 rfdetr 이 런타임에 인터넷에서 349MB 를 받으려 하고, "
+            f"인터넷이 없는 현장에서는 기동이 실패한다. 조치: "
+            f"`python scripts/fetch_weights.py --all` 로 조달하고 RF_HOME 이 "
+            f"vigent-core/weights 를 가리키는지 확인하라(deploy/windows/install_service.ps1 이 주입). "
+            f"다운로드를 허용하려면 VIGENT_ALLOW_PRETRAIN_DOWNLOAD=1 을 명시하라.")
 
     def status(self) -> dict[str, Any]:
         return {"name": self.name, "role": self.role, "implemented": True,

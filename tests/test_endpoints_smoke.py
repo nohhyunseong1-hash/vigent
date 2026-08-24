@@ -20,14 +20,25 @@ from fastapi.testclient import TestClient  # noqa: E402
 
 
 class TestEndpointsSmoke(unittest.TestCase):
+
+    # ★[2026-08-20] 인증 환경 격리 — 이 클래스는 "무인증 기본 동작"을 검증한다.
+    #   배포 설정이 된 기계에는 .env 에 VIGENT_API_TOKEN 이 있고, main 이 import 시점에
+    #   그것을 읽어 전 라우트에 Bearer 를 강제한다 → 여기 테스트가 전부 401 로 깨진다.
+    #   CI 는 .env 가 없어 초록인데 실기계는 빨강 = "게이트가 통과했다"는 조용한 거짓말이 된다
+    #   (현장 노트북에서 실제로 11건 실패 발생). 인증 자체는 test_security_gate.py ·
+    #   test_ws_auth.py · test_browser_session_auth.py 가 따로 검증한다.
+    #   main._API_TOKEN 은 요청마다 전역 조회라 monkeypatch 로 격리된다(test_security_gate 관례).
     @classmethod
     def setUpClass(cls):
+        cls._saved_token = main._API_TOKEN
+        main._API_TOKEN = ""                  # 무인증 기본 동작으로 고정
         cls.client = TestClient(main.app)
         cls.client.__enter__()   # startup 이벤트(기본 테마 로드) 발화
 
     @classmethod
     def tearDownClass(cls):
         cls.client.__exit__(None, None, None)
+        main._API_TOKEN = cls._saved_token
 
     def test_health_ok(self):
         # [B2] status 계약: "ok" 고정 → 실판정(healthy|degraded|unhealthy).

@@ -1,8 +1,10 @@
 # VIGENT — ruff 린터/포매터 최소 구성 (P1-5)
-# 정본 파이썬: 3.13 (.python-version). 로직 변경 없이 포맷·import 정렬만 자동수정.
+# 정본 파이썬: 3.11 (.python-version). 로직 변경 없이 포맷·import 정렬만 자동수정.
+#   [2026-08-20] 3.13 → 3.11 정정: md/DEPLOYMENT.md 가 3.11.x 를 요구하고 개발 PC(3.11.9)·
+#   학원 현장 노트북(3.11.9) 모두 3.11 로 실증됐다. 저장소 표기만 3.13 이라 모순이었다.
 [tool.ruff]
 line-length = 120
-target-version = "py313"
+target-version = "py311"
 # 사본/아카이브/산출물은 린트 대상에서 제외(.gitignore 와 정합)
 extend-exclude = [
     "VIGENT_archive", "VIGENT USB", "vigent-landing 2", "vigentFacialRecognition",
@@ -27,7 +29,7 @@ quote-style = "preserve"
 # 원칙: strict 전면 금지. 아래 files 화이트리스트 모듈만 검사하고, 정리된 모듈부터 하나씩 편입한다.
 #   대상 순서: app_state → web_util → routers/ → worker → main.
 [tool.mypy]
-python_version = "3.13"
+python_version = "3.11"
 mypy_path = "vigent-core"            # 모듈이 bare import(import app_state 등) → sys.path 처럼 해석
 ignore_missing_imports = true        # cv2·rfdetr·supervision 등 스텁 없는 서드파티는 무시
 disable_error_code = ["import-untyped"]   # PyYAML 등 스텁 미제공 라이브러리(우리 코드만 타입, 서드파티 스텁은 도입 안 함)

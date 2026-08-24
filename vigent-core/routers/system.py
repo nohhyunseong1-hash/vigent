@@ -110,10 +110,15 @@ def health(theme: str = DEFAULT_THEME):
         relay_status = _rl.status()
     except Exception:  # noqa: BLE001
         relay_status = {"error": "relay 상태 조회 실패"}
+    # try 안에서 채우되, 실패해도 body 구성이 NameError 로 죽지 않도록 선초기화한다.
+    active_dets: list = []
+    disabled_dets: dict = {}
     try:
         import health_status
         import readiness
         import worker as _w
+        active_dets = _w.active_detectors()
+        disabled_dets = _w.disabled_detectors()
         phase = readiness.phase()
         warm = readiness.snapshot()
         model_loaded = bool(bundle) and bool(rfdetr_slots)
@@ -161,12 +166,13 @@ def health(theme: str = DEFAULT_THEME):
         # ★[F6] 자동 스윕 스레드가 실제로 돌고 있는가 + 다음 예정. thread_alive=false 면
         #   보존 정책이 "설정만 있고 아무도 안 돌리는" 상태다(리뷰 F6 의 원래 결함).
         "retention_sweep": retention_sweep,
-        # F-8 로드 가시화 원칙과 일관: 모델은 LOADED 이나 소비 경로에서 명시적으로 끈 슬롯을 노출(은폐형 off 방지).
-        "disabled_detectors": {
-            "forklift": "F-7 과소학습(정탐 conf p50 0.002 ≈ 오탐 수준, 2026-07-11 실측). "
-                        "라이브·safety-local·재해분석(incident)·음성안내(voice) 소비 경로 제외(강재를 지게차로 오탐→협착 오염·오경보). "
-                        "T10b full 재학습 후 복원 예정. 측정은 detectors 명시 지정 시 가능.",
-        },
+        # F-8 로드 가시화 원칙과 일관: 모델은 LOADED 이나 소비 경로에서 빠진 슬롯을 노출(은폐형 off 방지).
+        #   ★[2026-08-20] 하드코딩 제거 — worker 의 런타임 설정을 그대로 반영한다.
+        #   기존에는 forklift 를 무조건 '제외됨'으로 찍어서, 학원 프로파일이
+        #   detect.include_forklift=1 로 켠 뒤에도 /health 가 계속 꺼졌다고 보고했다
+        #   ('동작은 맞고 표시만 틀림' = 이 프로젝트가 금지하는 조용한 거짓말 유형).
+        "disabled_detectors": disabled_dets,
+        "active_detectors": active_dets,
     }
     # [B2] unhealthy 는 HTTP 503 — 외부 워치독이 본문 파싱 없이 상태코드만으로 장애를 잡게 한다.
     #   degraded 는 200(운영은 계속되지만 일부 카메라 정지) + 본문으로 구분.

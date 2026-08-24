@@ -7,18 +7,22 @@
 관리체계·TBM·아차사고는 생성기가 없어 위험성평가서로만 수집한다.
 실행: /opt/anaconda3/bin/python3 scripts/legal_trigger_collect.py
 """
-import json
 import os
 import sys
 from pathlib import Path
+
+try:   # Windows 콘솔(cp949 등)이 이모지·한글기호를 못 찍어 죽는 문제 방지 — 출력 인코딩만 강제(로직 무관)
+    sys.stdout.reconfigure(encoding="utf-8")
+except Exception:  # noqa: BLE001
+    pass
 
 CORE = Path(__file__).resolve().parent.parent / "vigent-core"
 sys.path.insert(0, str(CORE))
 os.chdir(CORE)
 
-import legal_whitelist as L                      # noqa: E402
-from agents.scribe import ScribeAgent            # noqa: E402
-from agents.copilot import CopilotAgent          # noqa: E402
+import legal_whitelist as L  # noqa: E402
+from agents.copilot import CopilotAgent  # noqa: E402
+from agents.scribe import ScribeAgent  # noqa: E402
 
 # 1) 이전(단위테스트 등) 로그 오염 제거 — 깨끗한 수집
 if L._BLOCKED_LOG.exists():
