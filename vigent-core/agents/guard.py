@@ -247,6 +247,9 @@ class GuardAgent(BaseAgent):
     #   DEGRADED로 표시(/health 노출). "멀쩡해 보이는데 아무것도 안 보는" 상태가 안전 제품에서
     #   최악의 고장 모드라 — 1회 일시적 예외로 과민반응하지 않게 N=3(연속 3프레임)으로 잡았다.
     PREDICT_FAIL_DEGRADE_THRESHOLD = 3
+    # [F31] 로드 실패는 재시도가 없어 매 프레임 반복된다 — 임계 초과 후 로그 주기(프레임 수).
+    #   2fps 기준 1200프레임 ≈ 10분마다 1줄(디스크 보호).
+    LOAD_FAIL_LOG_EVERY = 1200
 
     # [P-2, 2026-08] person 이중 신호 앙상블: ppe 슬롯 자체의 Person 클래스를 person 검출에 포함할지.
     #   True(기본) = 오늘까지의 실제 동작 그대로(person+ppe 슬롯을 함께 부르면 ppe 의 Person 검출도
@@ -780,6 +783,30 @@ class GuardAgent(BaseAgent):
         for slot in want:
             model = self._get_model(slot)
             if model is None:
+                # ★[F31, 2026-08-24] 예전엔 여기서 **조용히 continue** 했다 — 로드 실패(가중치 손상·
+                #   GPU OOM·라이브러리 오류)로 슬롯이 통째로 죽어도 스트릭도 DEGRADED 도 서지 않아
+                #   /health 가 healthy 를 유지했다. person 이면 침입 경보가 영구 무력화되는데 초록불
+                #   이다 — [Q-3] 가 "가장 위험한 고장 모드"라 부른 그 상태이며, [F1] 은 **추론 실패**
+                #   경로만 덮어 이 **로드 실패** 경로가 남아 있었다. 아래 추론 실패 핸들러와 같은
+                #   등급으로 취급해 F1 배선(핵심 슬롯 저하 → unhealthy)을 그대로 탄다.
+                #   ★재시도는 넣지 않는다(범위 밖) — _get_model 이 실패를 캐시하므로 복구하려면
+                #     재시작이 필요하다. 재시도·간격제한 설계는 docs/P3_BACKLOG.md 로 이월.
+                streak = self._predict_fail_streak.get(slot, 0) + 1
+                self._predict_fail_streak[slot] = streak
+                why = self._load_errors.get(slot) or "모델 미로드(가중치 경로·backend 설정 확인)"
+                # ★로그 폭주 방지: 로드 실패는 재시도가 없어 **매 프레임 영구 발생**한다(2fps면
+                #   하루 17만 줄). 그대로 두면 이 수정이 디스크를 채워 [F2] 를 되살린다.
+                #   임계까지는 매번 남기고(진단에 필요), 그 뒤로는 주기적으로만 남긴다.
+                if streak <= self.PREDICT_FAIL_DEGRADE_THRESHOLD or streak % self.LOAD_FAIL_LOG_EVERY == 0:
+                    _guard_logger().error(
+                        "검출 슬롯 미가동(slot=%s, 연속 %d회): %s — 이 프레임은 해당 슬롯 결과 없이 진행",
+                        slot, streak, why)
+                if streak >= self.PREDICT_FAIL_DEGRADE_THRESHOLD and not self._slot_degraded.get(slot):
+                    self._slot_degraded[slot] = True
+                    _guard_logger().error(
+                        "★검출 슬롯 DEGRADED(로드 실패): slot=%s 연속 %d회(임계 %d) — /health 확인. "
+                        "로드 실패는 자동 복구되지 않는다(재시작 필요).",
+                        slot, streak, self.PREDICT_FAIL_DEGRADE_THRESHOLD)
                 continue
             slot_conf = conf_override if conf_override is not None else self.DETECTOR_CONF.get(slot, self.DEFAULT_CONF)
             # 클래스별 후필터 맵(ppe·fire_smoke): 맵의 최저 임계로 추론해 후보 확보 → 아래 박스 루프에서 클래스별로 거른다.
