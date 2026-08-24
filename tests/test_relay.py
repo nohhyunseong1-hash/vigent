@@ -130,12 +130,20 @@ class TestRetrigger(_RelayTest):
         self.assertEqual(st["retrigger_count"], 1)
 
     def test_auto_off_after_duration(self):
-        """on_duration_s 뒤 자동 OFF 된다."""
+        """on_duration_s 뒤 자동 OFF 된다.
+
+        ★[F29, 2026-08-21] 고정 sleep(1.0s) → **조건 폴링**으로 바꿨다. 타이머가 0.3s 에
+        발화한 뒤 OFF 요청이 왕복하는데, 전체 스위트 부하에서는 남은 0.7s 여유가 얇아
+        아직 on 인 채로 단정되곤 했다(단독 실행은 통과 / 전체 실행은 절반 확률 실패).
+        '언제까지 되는가' 가 아니라 '되는가' 를 보는 테스트라 폴링이 맞다.
+        """
         with self._cfg(on_duration_s=0.3), mock.patch.object(relay, "enabled", return_value=True):
             relay.turn_on("자동해제 확인")
             self.assertTrue(relay.status()["on"])
-            time.sleep(1.0)
-            self.assertFalse(relay.status()["on"], "자동 OFF 가 동작하지 않았다")
+            deadline = time.time() + 5.0
+            while time.time() < deadline and relay.status()["on"]:
+                time.sleep(0.02)
+            self.assertFalse(relay.status()["on"], "자동 OFF 가 동작하지 않았다(5초 내)")
         self.assertIn("off", self.m.actions())
 
 

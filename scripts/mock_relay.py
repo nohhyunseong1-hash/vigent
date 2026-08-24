@@ -18,7 +18,7 @@ import json
 import sys
 import threading
 import time
-from http.server import BaseHTTPRequestHandler, HTTPServer
+from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import parse_qs, urlparse
 
 try:   # Windows 콘솔(cp949 등)이 이모지·한글기호를 못 찍어 죽는 문제 방지 — 출력 인코딩만 강제(로직 무관)
@@ -71,13 +71,32 @@ class MockRelay:
             def log_message(self, *a):               # 콘솔 소음 억제
                 pass
 
-        self._srv = HTTPServer(("127.0.0.1", port), _H)
+        # ★[F29, 2026-08-21] 단일 스레드 HTTPServer → ThreadingHTTPServer.
+        #   relay.py 는 OFF 를 8회까지 재시도하는데(사이렌이 안 꺼지는 게 최악이라 의도한 설계),
+        #   단일 스레드 서버는 그 연속 요청을 직렬 처리하느라 전체 스위트 부하에서 밀린다.
+        #   그 결과 test_relay 가 **단독 5/5 통과인데 전체 스위트에서는 절반 확률로 실패**했다
+        #   — 진짜 회귀와 flake 를 구분할 수 없게 되는 것이 게이트에서 가장 나쁘다.
+        self._srv = ThreadingHTTPServer(("127.0.0.1", port), _H)
+        self._srv.daemon_threads = True          # 핸들러 스레드가 종료를 붙잡지 않게
         self.port = self._srv.server_address[1]
         self._th = threading.Thread(target=self._srv.serve_forever, daemon=True)
 
-    def start(self) -> "MockRelay":
+    def start(self, wait_s: float = 3.0) -> "MockRelay":
+        """서버를 띄우고 **실제로 응답할 때까지 기다린다.**
+
+        ★기동을 안 기다리면 첫 요청이 연결 거부로 실패해 테스트가 흔들린다 —
+        `serve_forever` 는 스레드 시작 직후 곧바로 수락 가능한 상태가 아니다.
+        """
         self._th.start()
-        return self
+        import urllib.request
+        deadline = time.time() + wait_s
+        while time.time() < deadline:
+            try:
+                with urllib.request.urlopen(f"http://127.0.0.1:{self.port}/log", timeout=0.5):
+                    return self                  # 응답 확인 = 수락 준비 완료
+            except Exception:  # noqa: BLE001
+                time.sleep(0.02)
+        raise RuntimeError(f"mock 릴레이 기동 실패(포트 {self.port}) — {wait_s}s 내 응답 없음")
 
     def stop(self) -> None:
         self._srv.shutdown()

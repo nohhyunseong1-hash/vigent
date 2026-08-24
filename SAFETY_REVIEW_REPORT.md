@@ -294,7 +294,7 @@ unhealthy=HTTP 503) / alert_queue 재시도(pending≥1 → degraded) / NSSM 자
 **F24. `fault_stop_detect` 결함 주입 코드 상존** — [worker.py:758](vigent-core/worker.py#L758)
 B2 시험용(추론 스킵). 기본 false·API 전용이지만 운영 빌드 제거 또는 이중 안전 검토.
 
-**F29. `test_relay` 가 전체 스위트에서 간헐 실패 — 게이트 신뢰도 훼손** 🟡 *(2026-08-21 추가)*
+**F29. `test_relay` 가 전체 스위트에서 간헐 실패 — 게이트 신뢰도 훼손** — ✅ **수정 완료(2026-08-21)**
 - 위치: [tests/test_relay.py](tests/test_relay.py) + [scripts/mock_relay.py:69](scripts/mock_relay.py#L69)
 - 내용: 단독 실행은 **5/5 통과**인데 전체 스위트(378건)에서는 **4회 중 2회 실패**한다
   (`test_auto_off_after_duration` · `test_off_failure_sets_flag_and_surfaces` — 회차마다 다른 케이스).
@@ -305,8 +305,16 @@ B2 시험용(추론 스킵). 기본 false·API 전용이지만 운영 빌드 제
 - 현장 시나리오: 직접적 현장 영향은 없다. 다만 **"4대 게이트 통과 후 커밋" 규칙이
   무의미해진다** — 실패가 절반 확률로 나오면 진짜 회귀와 flake 를 구분할 수 없고,
   결국 "또 그거겠지" 하고 넘기게 된다. 안전 제품에서 가장 위험한 습관이다.
-- 수정 제안: mock 을 `ThreadingHTTPServer` 로 바꾸거나, `down` 을 커넥션 끊기 대신
-  명시적 오류 응답으로 바꿔 타이밍 의존을 제거. 릴레이 실물 확보 시 F4·F13 과 함께 처리.
+- ✅ **적용된 수정**(원인이 둘이라 둘 다 고쳤다):
+  ① `scripts/mock_relay.py` 를 **`ThreadingHTTPServer`** 로 교체(+`daemon_threads`). relay 는
+     OFF 를 8회까지 재시도하는데 단일 스레드 서버가 그 연속 요청을 직렬 처리하며 밀렸다.
+  ② `MockRelay.start()` 가 **실제 응답을 확인할 때까지 대기**한다(`/log` 폴링, 상한 3초).
+     `serve_forever` 는 스레드 시작 직후 곧바로 수락 가능한 상태가 아니라 첫 요청이
+     연결 거부로 실패할 수 있었다.
+  ③ `test_auto_off_after_duration` 의 고정 `sleep(1.0)` 을 **조건 폴링(상한 5초)** 으로 바꿨다.
+     '언제까지 되는가' 가 아니라 '되는가' 를 보는 테스트라 폴링이 맞다.
+  검증: relay 단독 3회 + **전체 스위트(412건) 3회 연속 통과** — 수정 전에는 전체 실행
+  4회 중 2회 실패했다.
 
 ### 🟢 낮음 (정리 권장)
 
