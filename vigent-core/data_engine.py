@@ -95,8 +95,15 @@ def unpin_evidence(rel_path: str) -> None:
 
 def log_event(rule: str, level: str = "", score: float = 0.0,
               site: str = "", note: str = "",
-              image_data_url: str | None = None) -> dict[str, Any]:
-    """위험 이벤트 1건 기록(+증거 프레임). 항상 결과를 반환(예외로 죽지 않음)."""
+              image_data_url: str | None = None,
+              privacy_failed: bool = False) -> dict[str, Any]:
+    """위험 이벤트 1건 기록(+증거 프레임). 항상 결과를 반환(예외로 죽지 않음).
+
+    ★[D4-②, 2026-08-24] `privacy_failed=True` 면 그 증거 이미지는 **얼굴 모자이크가
+      실패한 원본**이다. 설계 결정상 저장은 계속하되(증거 보전 우선), 기록에 표시해
+      **나중에 그 건만 골라 삭제**할 수 있게 한다. 표시가 없으면 원본이 어느 건인지
+      알 수 없어 전량 폐기밖에 수가 없다.
+    """
     ts = datetime.now(KST)
     evidence = _save_frame(image_data_url, ts, rule, level) if image_data_url else None
     record = {
@@ -105,6 +112,8 @@ def log_event(rule: str, level: str = "", score: float = 0.0,
         "rule": rule, "level": level, "score": round(float(score or 0), 1),
         "site": site, "note": note, "evidence": evidence,
     }
+    if privacy_failed:                 # [D4-②] 원본이 저장된 건만 표시(선별 삭제용 꼬리표)
+        record["privacy_failed"] = True
     # ★[F2] docstring 의 "예외로 죽지 않음" 을 실제로 보장한다 — 이전에는 mkdir·open 이
     #   try 밖이라 디스크 풀에서 예외가 올라갔고, **기록 실패가 알림 실패로 전이**됐다.
     #   기록이 실패해도 record 는 정상 반환해 호출부의 통보 경로가 이어지게 한다.

@@ -22,6 +22,8 @@
 from __future__ import annotations
 
 import threading
+import threading as _threading
+import time as _time
 from typing import Any
 
 import tuning
@@ -95,6 +97,7 @@ def anonymize_faces(frame: Any, person_boxes: list | None = None) -> Any:
     """
     if frame is None or not enabled():
         return frame
+    _begin_call()                   # [D4-②] 지난 호출의 실패 표시를 내린다(다음 건 오염 방지)
     try:
         out = frame.copy()          # ★원본은 절대 수정하지 않는다(검출 파이프라인 보호)
         h, w = out.shape[:2]
@@ -145,13 +148,97 @@ def anonymize_faces(frame: Any, person_boxes: list | None = None) -> Any:
                 covered += 1
         return out
     except Exception:  # noqa: BLE001  비식별화 실패가 저장 자체를 막으면 안 된다
-        # ★단, 실패하면 원본이 나가므로 로그로 반드시 드러낸다.
+        # ★[D4, 2026-08-24] 결정: **현행(원본 저장) 유지**. 증거를 버리면 사고를 증명할 수 없다.
+        #   단 세 가지를 조건으로 단다 — ①실패가 잦으면 통보 ②기록에 표시 ③법무 검토 대상.
+        #   ★단, 실패하면 원본이 나가므로 로그로 반드시 드러낸다.
+        _note_failure()
         try:
             import vlog
             vlog.get("vigent.privacy").exception("얼굴 비식별화 실패 — 원본이 저장·전송된다")
         except Exception:  # noqa: BLE001
             pass
         return frame
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# [D4, 2026-08-24] 모자이크 실패 감시 — "원본이 나갔다"를 조용히 넘기지 않는다.
+#   결정: 실패해도 저장은 계속한다(증거 보전 우선). 대신 ①잦으면 통보 ②기록에 표시
+#   ③법무 검토 대상 꼬리표. 과거 YuNet 락 누락 때 **분당 145~160건** 실패한 전례가 있다.
+_fail_lock = _threading.Lock()
+_fail_times: list[float] = []          # 최근 실패 시각(초) — 1분 창
+_fail_total = 0
+_last_alert_at = 0.0
+# ★②용 플래그는 **스레드 로컬**이다. anonymize_faces 는 워커와 스냅샷 경로가 **동시에**
+#   부른다(그 동시성이 바로 YuNet 락 사고의 원인이었다). 전역 플래그로 두면 스냅샷의
+#   실패가 워커의 이벤트에 붙어 **엉뚱한 건이 '원본 저장'으로 표시**된다 — 선별 삭제가
+#   틀린 파일을 지우게 되므로 개인정보 관점에서 더 나쁘다.
+_tls = _threading.local()
+
+
+def _fail_threshold() -> int:
+    """분당 몇 건부터 통보할 것인가(기본 5 — 사용자 결정)."""
+    return int(tuning.val("privacy", "fail_alert_per_min", 5))
+
+
+def _note_failure() -> None:
+    """실패 1건 기록. 1분 내 임계를 넘으면 **통보 채널로 경보**한다(가산식 — 실패해도 저장은 계속)."""
+    global _fail_total, _last_alert_at
+    now = _time.time()
+    _tls.failed = True                 # 이 스레드의 이번 호출이 실패했다
+    with _fail_lock:
+        _fail_total += 1
+        _fail_times.append(now)
+        while _fail_times and now - _fail_times[0] > 60.0:
+            _fail_times.pop(0)
+        recent = len(_fail_times)
+        thr = _fail_threshold()
+        # 통보 자체가 폭주하지 않게 10분에 1회로 제한한다.
+        if recent >= thr and now - _last_alert_at >= 600.0:
+            _last_alert_at = now
+            fire = True
+        else:
+            fire = False
+    if not fire:
+        return
+    try:   # ★통보 실패가 검출·저장을 막으면 안 된다 — 전부 삼킨다.
+        import alert_notify
+        alert_notify.submit(
+            cam="privacy", rule="privacy_anonymize_failed", level="high",
+            message=(f"[개인정보] 얼굴 모자이크가 1분간 {recent}건 실패했다 — "
+                     f"그 사이 **원본 이미지가 저장·전송**됐다. 즉시 확인 필요."),
+            meta={"recent_per_min": recent, "total": _fail_total, "threshold": thr})
+    except Exception:  # noqa: BLE001
+        pass
+
+
+def _begin_call() -> None:
+    """호출 시작 시 플래그를 내린다 — 지난 호출의 실패가 다음 건에 딸려가지 않게."""
+    _tls.failed = False
+
+
+def took_failure() -> bool:
+    """직전 호출이 실패했는지 확인하고 **플래그를 소비**한다(호출부가 이벤트 기록에 남긴다).
+
+    ★스레드 로컬이라 다른 스레드(스냅샷 등)의 실패가 섞이지 않는다.
+    """
+    v = bool(getattr(_tls, "failed", False))
+    _tls.failed = False
+    return v
+
+
+def failure_status() -> dict[str, Any]:
+    """/health 노출 — 원본이 나간 적이 있는지 밖에서 보이게."""
+    now = _time.time()
+    with _fail_lock:
+        recent = sum(1 for x in _fail_times if now - x <= 60.0)
+        return {"anonymize_failures_total": _fail_total,
+                "anonymize_failures_per_min": recent,
+                "alert_threshold_per_min": _fail_threshold(),
+                # ③ 법무 검토 대상 꼬리표 — 실패가 있었다면 원본이 저장된 기록이 남아 있다.
+                "legal_review_required": _fail_total > 0,
+                "legal_review_note": ("모자이크 실패 시 원본이 저장된다(설계 결정 D4). "
+                                      "실패 이벤트는 기록의 privacy_failed=true 로 선별할 수 있다.")
+                if _fail_total > 0 else ""}
 
 
 def status() -> dict[str, Any]:

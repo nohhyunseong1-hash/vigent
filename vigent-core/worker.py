@@ -149,15 +149,20 @@ def _load_zone() -> list[tuple[float, float]]:
         return []
 
 
-def _frame_to_dataurl(frame: "np.ndarray", person_boxes: list | None = None) -> str | None:
+def _frame_to_dataurl(frame: "np.ndarray", person_boxes: list | None = None) -> "tuple[str | None, bool]":
     """BGR 프레임 → JPEG data URL(증거 저장용).
 
     [P1a] 저장 직전에 얼굴을 비식별화한다 — 이 경로가 디스크에 남는 증거 이미지다.
     원본 frame 은 수정되지 않는다(privacy.anonymize_faces 가 사본을 만든다) → 검출 무영향.
     """
     safe = privacy.anonymize_faces(frame, person_boxes)
+    # ★[D4-②, 2026-08-24] 모자이크가 실패하면 **원본이 그대로 저장된다**(설계 결정 — 증거 보전 우선).
+    #   그 사실을 이벤트 기록에 남겨야 나중에 **선별 삭제**가 가능하다. 표시가 없으면
+    #   "원본이 섞여 있는데 어느 건인지 모르는" 상태가 되어 전량 폐기밖에 수가 없다.
+    failed = privacy.took_failure()
     ok, buf = cv2.imencode(".jpg", safe, [cv2.IMWRITE_JPEG_QUALITY, 75])
-    return ("data:image/jpeg;base64," + base64.b64encode(buf.tobytes()).decode()) if ok else None
+    url = ("data:image/jpeg;base64," + base64.b64encode(buf.tobytes()).decode()) if ok else None
+    return url, failed
 
 
 def _make_prox_debouncer() -> "zone_debounce.ZoneDebouncer | None":
@@ -899,12 +904,13 @@ class Worker:
                 # ②: 이벤트 기록은 항상 유지. 증거 JPEG(인코딩+디스크)은 rule별 별도 쿨다운으로 스로틀 —
                 #   폭주 오발화가 서버를 포화시키지 못하게. 안전 기능(발화·기록·알림)은 그대로.
                 evidence = None
+                privacy_failed = False
                 if now - ctx.evidence_cd.get(rule, 0) >= _EVIDENCE_COOLDOWN_S:
                     ctx.evidence_cd[rule] = now
-                    evidence = _frame_to_dataurl(frame, [d.get('bbox') for d in self._last_dets
-                                                      if d.get('class') == 'person'])
+                    evidence, privacy_failed = _frame_to_dataurl(
+                        frame, [d.get('bbox') for d in self._last_dets if d.get('class') == 'person'])
                 rec = data_engine.log_event(rule=rule, level=level, site=ctx.name, note=note,
-                                            image_data_url=evidence)
+                                            image_data_url=evidence, privacy_failed=privacy_failed)
                 self.state["events"] += 1
                 self.state["last_event"] = f"{rule}({level})"
                 # ★[W1] 통보 배선 — 기록 **다음**에, 그리고 **비동기로**만 부른다.

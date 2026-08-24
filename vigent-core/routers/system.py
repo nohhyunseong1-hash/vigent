@@ -120,7 +120,7 @@ def health(theme: str = DEFAULT_THEME):
     privacy_status: dict = {}
     try:
         import privacy as _pv
-        privacy_status = {**_pv.status(), **_pv.storage_status()}
+        privacy_status = {**_pv.status(), **_pv.storage_status(), **_pv.failure_status()}
     except Exception:  # noqa: BLE001
         privacy_status = {"error": "privacy 상태 조회 실패"}
     # [P3a] 물리 출력 상태. ★off_failed 는 "사이렌이 켜진 채 남았을 수 있다"는 뜻이라
