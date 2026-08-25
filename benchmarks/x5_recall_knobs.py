@@ -292,12 +292,16 @@ def exp_ensemble(frames, gt, args):
     y = YoloDetector(str(w), g.device, g.IMGSZ, LABEL_NORMALIZE, JUNK_LABELS)
     agg = {c: [0, 0, 0, 0, 0] for c in CLASSES}
     lat = []
-    for i, fn in enumerate(frames):
+    # ★기준선(run_once)이 **영상별 순차 입력**이므로 앙상블 팔도 똑같이 넣어야 비교가 성립한다.
+    #   처음엔 여기서 detect_isolated(고립 입력)를 써서 두 팔의 조건이 달랐다 —
+    #   고립 입력은 ByteTrack 이 person 을 전부 버리므로(§0) 사실상 yolo11m 단독 측정이 됐다.
+    ordered = [(v, f) for v, fs in _by_video(frames).items() for f in fs]
+    for i, (vid, fn) in enumerate(ordered):
         img = cv2.imread(str(_FE / "frames" / fn))
         if img is None:
             continue
         t0 = time.perf_counter()
-        out = detect_isolated(g, img, detectors=["person", "ppe"])
+        out = g.detect(img, detectors=["person", "ppe"], track_key=f"ens:{vid}")
         extra = y.detect(img, conf=g.DETECTOR_CONF["person"], imgsz=g.IMGSZ, augment=False)
         dt = (time.perf_counter() - t0) * 1000.0
         if i >= 3:
@@ -465,10 +469,77 @@ def _count_ids(g_unused, frames, gt, key, passthru):
     return len(tids), no_tid
 
 
+def run_two_stage(guard, frames, gt, detectors=("person", "ppe")):
+    """★검출 단계와 추적 단계를 **분리**해서 잰다 — 어느 쪽이 병목인지 가르기 위해.
+
+    `_track` 을 감싸 **추적 직전(pre)** 과 **직후(post)** 의 검출 목록을 각각 GT 에 매칭한다.
+    pre 재현율 = 모델이 본 것 / post 재현율 = 경보까지 전달된 것.
+    둘의 차이가 **추적이 버린 몫**이다.
+    """
+    import agents.guard as GM
+    orig = GM.GuardAgent._track
+    cap: dict = {"pre": None}
+
+    def spy(self, fresh, key):
+        cap["pre"] = [dict(d) for d in fresh]
+        return orig(self, fresh, key)
+
+    agg_pre = {c: [0, 0, 0, 0, 0] for c in CLASSES}
+    agg_post = {c: [0, 0, 0, 0, 0] for c in CLASSES}
+    lat = []
+    GM.GuardAgent._track = spy
+    try:
+        for i, (vid, fn) in enumerate([(v, f) for v, fs in _by_video(frames).items() for f in fs]):
+            img = cv2.imread(str(_FE / "frames" / fn))
+            if img is None:
+                continue
+            t0 = time.perf_counter()
+            out = guard.detect(img, detectors=list(detectors), track_key=f"ts:{vid}")
+            dt = (time.perf_counter() - t0) * 1000.0
+            if i >= 3:
+                lat.append(dt)
+            g_boxes = gt.get(Path(fn).stem, [])
+            for tag, src, agg in (("pre", cap["pre"] or [], agg_pre),
+                                  ("post", out.get("detections", []), agg_post)):
+                preds = [(str(d.get("label", "")), d.get("bbox") or [0, 0, 0, 0],
+                          float(d.get("conf", 0))) for d in src]
+                for c in CLASSES:
+                    r = _match(preds, g_boxes, c)
+                    for j in range(5):
+                        agg[c][j] += r[j]
+    finally:
+        GM.GuardAgent._track = orig
+    lat.sort()
+    return ({"agg": agg_pre, "p50": lat[len(lat) // 2] if lat else 0,
+             "p95": lat[int(len(lat) * 0.95)] if lat else 0, "max": lat[-1] if lat else 0},
+            {"agg": agg_post, "p50": lat[len(lat) // 2] if lat else 0,
+             "p95": lat[int(len(lat) * 0.95)] if lat else 0, "max": lat[-1] if lat else 0})
+
+
+def exp_imgsz2(frames, gt, args):
+    """실험2(재설계) — 해상도별로 **검출 재현율**과 **추적 후 재현율**을 둘 다 잰다."""
+    print("\n■ 실험2 해상도 — 병목 분리(검출 vs 추적) · dev person")
+    print(f"  {'imgsz':<10}{'검출R':>8}{'추적후R':>9}{'추적손실':>9}{'검출작은R':>10}"
+          f"{'추적후작은R':>11}{'정밀도':>8}{'FP':>5}{'p50':>7}{'p95':>7}")
+    for sz in args.sizes:
+        g = _guard()
+        g.IMGSZ = int(sz)
+        g._models = {}                # ★RF-DETR 은 로드 시 해상도 컴파일 고정 → 재로드 필수
+        pre, post = run_two_stage(g, frames, gt)
+        a, b = fmt(pre["agg"], "person"), fmt(post["agg"], "person")
+        loss = a["rec"] - b["rec"]
+        asr = f"{a['small_rec']:.0f}%" if a["small_rec"] is not None else "—"
+        bsr = f"{b['small_rec']:.0f}%" if b["small_rec"] is not None else "—"
+        star = " ★현재" if sz == 384 else ""
+        print(f"  {str(sz) + star:<10}{a['rec']:>8.1f}{b['rec']:>9.1f}{loss:>9.1f}{asr:>10}"
+              f"{bsr:>11}{b['prec']:>8.1f}{b['fp']:>5}{post['p50']:>7.0f}{post['p95']:>7.0f}")
+    print("\n  [수용 대수] 검출주기 500ms 기준 = 500 / p95")
+
+
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--exp", required=True,
-                    choices=["conf", "track", "tracker", "imgsz", "ensemble", "confirm"])
+                    choices=["conf", "track", "tracker", "imgsz", "imgsz2", "ensemble", "confirm"])
     ap.add_argument("--split", default="dev", choices=["dev", "test"])
     ap.add_argument("--confs", type=float, nargs="+",
                     default=[0.30, 0.35, 0.40, 0.50, 0.60, 0.70, 0.80])
@@ -491,7 +562,7 @@ def main() -> int:
     print(f"평가셋: field_eval/{args.split} {len(frames)}장 · GT {n}")
     print("★측정만 한다 — tuning.yaml/vision.yaml 을 수정하지 않는다.")
 
-    {"conf": exp_conf, "track": exp_track, "tracker": exp_tracker, "imgsz": exp_imgsz,
+    {"conf": exp_conf, "track": exp_track, "tracker": exp_tracker, "imgsz": exp_imgsz, "imgsz2": exp_imgsz2,
      "ensemble": exp_ensemble, "confirm": exp_confirm}[args.exp](frames, gt, args)
     return 0
 
