@@ -346,10 +346,129 @@ def exp_confirm(frames, gt, args):
         _print_row("적용본", res, c)
 
 
+# ─────────────────────────────────────────────────────────────────────────────
+# [X5-①] 트래커 5개 후보 — 추적이 검출을 얼마나 버리는가를 후보별로 비교한다.
+#   ★운영 코드는 건드리지 않는다. 각 후보는 `_track` 을 감싸는 **실험 분기**로만 구현한다.
+def _apply_candidate(g, name: str, passthru_conf: float = 0.50):
+    """후보 설정을 guard 인스턴스에 적용하고, 필요하면 _track 을 감싼다."""
+    import agents.guard as GM
+    orig = GM.GuardAgent._track
+    stats = {"pre": 0, "post": 0, "readded": 0, "tids": set(), "no_tid": 0}
+
+    if name == "bytetrack":
+        wrapper = None
+    elif name == "minframes0":
+        g.BYTETRACK_MIN_FRAMES = 0
+        wrapper = None
+    elif name == "iou":
+        g.TRACK_ALGO = "iou"
+        wrapper = None
+    elif name == "hybrid":
+        # ByteTrack 결과를 쓰되, **ByteTrack 이 버린 person 을 IoU 추적으로 한 번 더 건진다.**
+        #   ID 는 ByteTrack 것을 우선하고, 건진 건에는 IoU 트랙 id 를 준다.
+        def wrapper(self, fresh, key):
+            stats["pre"] += sum(1 for d in fresh if str(d.get("label", "")).lower() == "person")
+            bt = orig(self, fresh, key)
+            kept = {id(d) for d in bt}
+            missing = [d for d in fresh if id(d) not in kept
+                       and str(d.get("label", "")).lower() == "person"]
+            if missing:
+                algo, self.TRACK_ALGO = self.TRACK_ALGO, "iou"
+                try:
+                    extra = orig(self, missing, key + ":iou")
+                finally:
+                    self.TRACK_ALGO = algo
+                stats["readded"] += len(extra)
+                bt = list(bt) + list(extra)
+            stats["post"] += sum(1 for d in bt if str(d.get("label", "")).lower() == "person")
+            return bt
+    elif name == "passthrough":
+        # ★검출 통과 — 트랙 확정 여부와 무관하게 **고신뢰 검출을 그대로 통과**시킨다.
+        #   트랙 ID 는 되는 것만 쓴다(없으면 tid 없음). 경보 재현율을 추적기 성능에서 분리한다.
+        def wrapper(self, fresh, key):
+            stats["pre"] += sum(1 for d in fresh if str(d.get("label", "")).lower() == "person")
+            tracked = orig(self, fresh, key)
+            kept = {id(d) for d in tracked}
+            out = list(tracked)
+            for d in fresh:
+                if id(d) in kept:
+                    continue
+                if str(d.get("label", "")).lower() != "person":
+                    continue
+                if float(d.get("conf", 0)) < passthru_conf:
+                    continue
+                d = {**d, "tid": None, "passthrough": True}   # ★ID 없음을 명시
+                out.append(d)
+                stats["readded"] += 1
+                stats["no_tid"] += 1
+            stats["post"] += sum(1 for d in out if str(d.get("label", "")).lower() == "person")
+            return out
+    else:
+        raise ValueError(name)
+    return wrapper, orig, stats
+
+
+def exp_tracker(frames, gt, args):
+    """★① 트래커 5개 후보 비교 — dev."""
+    import agents.guard as GM
+    cands = [("bytetrack", "현행 bytetrack ★운영"), ("minframes0", "MIN_FRAMES=0"),
+             ("iou", "iou 복귀"), ("hybrid", "하이브리드(BT+IoU회수)"),
+             ("passthrough", f"검출통과(conf≥{args.passthru})")]
+    print("\n■ ① 트래커 후보 비교 — dev person (GT 157건) · 순차 입력")
+    print(f"  {'후보':<26}{'정밀도':>8}{'재현율':>8}{'F1':>7}{'  재현율CI':<12}"
+          f"{'TP':>5}{'FP':>5}{'작은R':>7}{'고유ID':>7}{'ID없음':>7}{'p50':>7}")
+    results = {}
+    for key, label in cands:
+        g = _guard()
+        wrapper, orig, stats = _apply_candidate(g, key, args.passthru)
+        if wrapper is not None:
+            GM.GuardAgent._track = wrapper
+        try:
+            r = run_once(g, frames, gt, ["person", "ppe"])
+        finally:
+            GM.GuardAgent._track = orig
+        m = fmt(r["agg"], "person")
+        tids, no_tid = _count_ids(g, frames, gt, key, args.passthru)
+        sr = f"{m['small_rec']:.0f}" if m["small_rec"] is not None else "—"
+        print(f"  {label:<26}{m['prec']:>8.1f}{m['rec']:>8.1f}{m['f1']:>7.1f}"
+              f"  [{m['rec_lo']:.0f},{m['rec_hi']:.0f}]{m['tp']:>7}{m['fp']:>5}{sr:>7}"
+              f"{tids:>7}{no_tid:>7}{r['p50']:>7.0f}")
+        results[key] = (m, r, tids, no_tid)
+    return results
+
+
+def _count_ids(g_unused, frames, gt, key, passthru):
+    """후보별 고유 track id 수(ID 스위치 대리 지표)와 ID 없는 검출 수."""
+    import agents.guard as GM
+    g = _guard()
+    wrapper, orig, stats = _apply_candidate(g, key, passthru)
+    if wrapper is not None:
+        GM.GuardAgent._track = wrapper
+    tids: set = set()
+    no_tid = 0
+    try:
+        for vid, fns in _by_video(frames).items():
+            for fn in fns:
+                img = cv2.imread(str(_FE / "frames" / fn))
+                if img is None:
+                    continue
+                o = g.detect(img, detectors=["person", "ppe"], track_key=f"id:{vid}")
+                for d in o.get("detections", []):
+                    if str(d.get("label", "")).lower() != "person":
+                        continue
+                    if d.get("tid") is None:
+                        no_tid += 1
+                    else:
+                        tids.add((vid, int(d["tid"])))
+    finally:
+        GM.GuardAgent._track = orig
+    return len(tids), no_tid
+
+
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--exp", required=True,
-                    choices=["conf", "track", "imgsz", "ensemble", "confirm"])
+                    choices=["conf", "track", "tracker", "imgsz", "ensemble", "confirm"])
     ap.add_argument("--split", default="dev", choices=["dev", "test"])
     ap.add_argument("--confs", type=float, nargs="+",
                     default=[0.30, 0.35, 0.40, 0.50, 0.60, 0.70, 0.80])
@@ -358,6 +477,8 @@ def main() -> int:
     ap.add_argument("--person-conf", type=float, default=0.0)
     ap.add_argument("--ppe-conf", type=float, default=0.0)
     ap.add_argument("--imgsz", type=int, default=0)
+    ap.add_argument("--passthru", type=float, default=0.50,
+                    help="검출통과 후보의 고신뢰 기준")
     args = ap.parse_args()
 
     if args.exp != "confirm" and args.split != "dev":
@@ -370,7 +491,7 @@ def main() -> int:
     print(f"평가셋: field_eval/{args.split} {len(frames)}장 · GT {n}")
     print("★측정만 한다 — tuning.yaml/vision.yaml 을 수정하지 않는다.")
 
-    {"conf": exp_conf, "track": exp_track, "imgsz": exp_imgsz,
+    {"conf": exp_conf, "track": exp_track, "tracker": exp_tracker, "imgsz": exp_imgsz,
      "ensemble": exp_ensemble, "confirm": exp_confirm}[args.exp](frames, gt, args)
     return 0
 
