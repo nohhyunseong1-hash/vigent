@@ -309,6 +309,10 @@ class GuardAgent(BaseAgent):
     #   zoom_tid44_f321.jpg(철근 아래 다리). 분석: benchmarks/pa_person_count_{verify,cause}.py.
     #   두 임계가 따로 노는 것이 원인이었으므로 값을 바꾸는 대신 **참조를 연결**한다 — 이후 운용 임계를
     #   튜닝하면 스폰 자격이 자동으로 따라온다.
+    # ★[B-passthru] 추적이 버린 고신뢰 person 을 되살리는 임계. **0 = 비활성(기존 동작)**.
+    #   tuning `track.passthrough_conf` 로 주입. 되살린 박스는 tid 가 없으므로
+    #   zone.grid_cells(위치 기반 대체 키)와 **함께** 켜야 경보까지 닿는다.
+    PASSTHROUGH_CONF = 0.0
     BYTETRACK_ACTIVATION: float | None = None
     BYTETRACK_MIN_FRAMES = 1         # 트랙 확정(tid 부여)까지 필요한 연속매칭 수. guard MIN_HITS=1 과 동일하게
                                       # 맞춰 "확정까지 프레임 수" 자체는 회귀 없게(라이브러리 기본 2 아님).
@@ -363,6 +367,7 @@ class GuardAgent(BaseAgent):
             _act = tuning.val("track", "bytetrack_activation", None)   # None = person 임계 자동 연동(위 주석)
             self.BYTETRACK_ACTIVATION = float(_act) if _act is not None else None
             self.BYTETRACK_MIN_FRAMES = int(tuning.val("track", "bytetrack_min_frames", self.BYTETRACK_MIN_FRAMES))
+            self.PASSTHROUGH_CONF = float(tuning.val("track", "passthrough_conf", self.PASSTHROUGH_CONF))
         except Exception:  # noqa: BLE001
             pass
         self._models: dict[str, Any] = {}      # id → YOLO (지연 로드 캐시)
@@ -873,7 +878,32 @@ class GuardAgent(BaseAgent):
         detections = _cross_validate_ppe(detections, self.PPE_PERSON_EXPAND)
         if not self.PERSON_ENSEMBLE:
             detections = _drop_ppe_origin_person(detections)
+        _pre_track = detections
         detections = self._track(detections, track_key)
+        # ★[B-passthru] 추적이 버린 **고신뢰 person** 을 되살린다(기본 off — PASSTHROUGH_CONF=0).
+        #   실측(dev 74장): 추적이 검출의 29.3%p 를 버리고 원거리는 83%→8% 로 전멸한다.
+        #   "못 보는 것"이 아니라 "보고도 버리는 것"이라, 경보 재현율을 추적기 성능에서
+        #   분리하려면 이 경로가 필요하다. 되살린 박스는 **tid 가 없다** — 하위 판정은
+        #   worker._derive 의 위치 기반 격자 키가 받는다(zone.grid_cells).
+        #   ※NMS·억제·교차검증은 이미 위에서 통과한 목록이므로 품질이 보장된다
+        #     (추적 '이후'에 덧붙이던 실험 분기와 달리 파이프라인을 건너뛰지 않는다).
+        if self.PASSTHROUGH_CONF > 0:
+            kept = {id(d) for d in detections}
+            # ★중복 제거가 필수다 — 되살린 박스가 **이미 추적된 같은 사람**과 겹치면
+            #   그 사람 GT 는 하나뿐이라 둘째 박스가 곧바로 오탐이 된다.
+            #   중복 제거 없이 쟀을 때 정밀도가 82.5→54.2% 로 무너졌다(TP +18 인데 FP +57).
+            live = [d.get("bbox") or [0, 0, 0, 0] for d in detections
+                    if str(d.get("label", "")).lower() == "person"]
+            for d in _pre_track:
+                if id(d) in kept or str(d.get("label", "")).lower() != "person":
+                    continue
+                if float(d.get("conf", 0)) < self.PASSTHROUGH_CONF:
+                    continue
+                bb = d.get("bbox") or [0, 0, 0, 0]
+                if any(_iou(bb, e) >= self.TRACK_IOU for e in live):
+                    continue                      # 이미 추적된 사람과 같은 자리 → 버린다
+                live.append(bb)
+                detections.append({**d, "tid": None, "passthrough": True})
         # 안 B(box-overlay): 추적 이후, 교차소스(person 슬롯↔ppe 슬롯) person 중복만 병합.
         #   _nms(0.55)↔TRACK_IOU(0.45) 임계 불일치가 남긴 IoU 0.45~0.55 person 이중박스 해소.
         #   같은 소스는 병합 안 함(진짜 두 사람 보호). 검출·nms·추적 로직은 불변.

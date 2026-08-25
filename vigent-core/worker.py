@@ -165,6 +165,17 @@ def _frame_to_dataurl(frame: "np.ndarray", person_boxes: list | None = None) -> 
     return url, failed
 
 
+def _grid_cells() -> int:
+    """[B-passthru] 발끝점 격자 분할 수. **0 = 비활성(기존 동작 그대로)**.
+
+    ★격자 크기가 이 설계의 유일한 자유변수다:
+      · 촘촘할수록(큰 값) 사람이 조금만 움직여도 새 키 → **경보 폭주**
+      · 성길수록(작은 값) 다른 사람이 같은 키를 받아 **두 번째 사람이 다시 가려짐**
+    재생 검증으로 정한 값을 tuning `zone.grid_cells` 에 넣는다.
+    """
+    return max(0, int(tuning.val("zone", "grid_cells", 0, env="VIGENT_ZONE_GRID")))
+
+
 def _make_prox_debouncer() -> "zone_debounce.ZoneDebouncer | None":
     """[W2] 근접 디바운서 생성. `proximity.enter_s <= 0` 이면 None → 구 동작(롤백 경로)."""
     enter = float(tuning.val("proximity", "enter_s", 0.4))
@@ -222,7 +233,15 @@ def _derive(out: dict, zone: list, aspect_hw: float | None = None,
                 raw_inside = True
                 tid = d.get("tid")
                 if tid is not None:
-                    inside_tids.append(int(tid))
+                    inside_tids.append(f"t{int(tid)}")
+                elif _grid_cells() > 0:
+                    # ★[B-passthru] 추적이 버린 검출(tid 없음)에 **위치 기반 대체 키**를 준다.
+                    #   D1-C 가 판정 키를 tid 로 쓰기 때문에, tid 없는 검출은 구역 판정에서
+                    #   통째로 빠졌다(실측: 99건 전부 무시, 경보 변화 0). 추적이 검출의 29.3%p 를
+                    #   버리는 상황에서 그 손실이 곧 경보 미검출이 된다.
+                    #   발끝점을 격자로 양자화해 키를 만든다 — **같은 자리에 머무는 오탐은 같은 키**를
+                    #   받아 디바운스·쿨다운이 정상 작동하고, **다른 위치의 진입은 새 키**라 살아난다.
+                    inside_tids.append(f"g{int(px * _grid_cells())}_{int(py * _grid_cells())}")
         if debouncer is not None and cid is not None:
             # 이번 프레임에 안 보인 트랙도 '밖'으로 갱신해야 퇴장이 확정된다.
             known = getattr(debouncer, "_vigent_seen", None)
@@ -230,17 +249,18 @@ def _derive(out: dict, zone: list, aspect_hw: float | None = None,
                 known = set()
                 debouncer._vigent_seen = known        # type: ignore[attr-defined]
             known |= set(inside_tids)
-            if not inside_tids and not known:         # 트랙 정보가 없으면 기존(카메라 단위) 경로
+            if not inside_tids and not known:         # 주체 정보가 없으면 기존(카메라 단위) 경로
                 was = debouncer.state(cid)["confirmed"]
                 if debouncer.update(cid, raw_inside) and not was:
                     fired.append(("zone_intrusion", "high", "위험구역 내 작업자 감지(체류 확정)", ""))
             else:
-                for tid in sorted(known):
-                    key = f"{cid}#t{tid}"
+                for subj in sorted(known):
+                    key = f"{cid}#{subj}"
                     was = debouncer.state(key)["confirmed"]
-                    if debouncer.update(key, tid in inside_tids) and not was:
-                        fired.append(("zone_intrusion", "high",
-                                      "위험구역 내 작업자 감지(체류 확정)", f"t{tid}"))
+                    if debouncer.update(key, subj in inside_tids) and not was:
+                        note = ("위험구역 내 작업자 감지(체류 확정)" if subj.startswith("t")
+                                else "위험구역 내 작업자 감지(체류 확정·추적미확정)")
+                        fired.append(("zone_intrusion", "high", note, subj))
         elif raw_inside:                              # 디바운서 미주입 경로(하위호환)
             fired.append(("zone_intrusion", "high", "위험구역 내 작업자 감지", ""))
     if sig.get("ppe_missing"):
