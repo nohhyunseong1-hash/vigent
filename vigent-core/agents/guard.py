@@ -537,9 +537,57 @@ class GuardAgent(BaseAgent):
         now = time.time()
         self._key_last_used[track_key] = now   # 사용 중인 키는 계속 갱신 → TTL 청소 대상에서 제외(F-2④)
         self._maybe_sweep_stale_keys(now)
+        # [T-E2E 유령박스 계측 · 2026-08-26 수정] 계측은 **여기(디스패처)** 에서 한다.
+        #   예전엔 `_track_iou` 안에 있었는데, algo="bytetrack" 이면 `_track_bytetrack` 이
+        #   person 을 먼저 떼어내고 나머지만 `_track_iou` 로 넘기므로(아래 _track_bytetrack 참조)
+        #   **person 이 기록에서 통째로 빠졌다** — 정작 계측의 주 대상인데. 실제로 2026-08-26
+        #   리허설에서 Hardhat 624건이 잡힌 영상인데 person 0건이 기록됐다. 디스패처로 올리면
+        #   algo 와 무관하게 fresh 원본 전체가 잡힌다. env 게이트(기본 꺼짐) 밖 동작은 불변.
+        _dbg = os.environ.get("VIGENT_TRACK_DEBUG") == "1"
         if self.TRACK_ALGO == "bytetrack":
-            return self._track_bytetrack(fresh, track_key)
-        return self._track_iou(fresh, track_key)
+            out = self._track_bytetrack(fresh, track_key)
+        else:
+            out = self._track_iou(fresh, track_key)
+        if _dbg:
+            self._dbg_write(now, track_key, fresh, out)
+        return out
+
+    def _dbg_write(self, now: float, track_key: str,
+                   fresh: list[dict[str, Any]], out: list[dict[str, Any]]) -> None:
+        """[T-E2E 유령박스 계측] VIGENT_TRACK_DEBUG=1 일 때만 프레임마다 JSONL 1줄 기록.
+
+        추적 전(fresh, 원본 검출)과 추적 후(out, 실제 반환 트랙)를 함께 남긴다 —
+        benchmarks/b_passthru_2fps_check.py 가 이 둘을 대조해 '추적이 버린 고신뢰 검출'을 센다.
+        기본 꺼짐 = 비용·동작 변화 0. 자격증명·프레임 픽셀은 기록하지 않는다.
+
+        hits/misses/age_ms 는 `_track_iou` 내부 트랙 상태에서 tid 로 이어 붙인다. ByteTrack 이
+        모는 person 트랙은 내부 상태가 트래커 안에 있어 이 값들이 None 이다(분석기는 label·bbox
+        만 쓰므로 무영향). 기록 대상이 '내부 트랙 전체'에서 '실제 반환분'으로 바뀌었는데,
+        "버려진 검출" 판정에는 오히려 이쪽이 정확하다(출력에 없으면 소비자에게 안 간 것).
+        """
+        try:
+            import json as _json
+            from pathlib import Path as _P
+            internal = {tr.get("tid"): tr for tr in self._tracks_by_key.get(track_key, [])}
+            tracks = []
+            for tr in out:
+                it = internal.get(tr.get("tid"))
+                tracks.append({
+                    "tid": tr.get("tid"), "label": tr.get("label"),
+                    "bbox": [round(v, 4) for v in tr.get("bbox", [])],
+                    "hits": it.get("hits") if it else None,
+                    "misses": it.get("misses") if it else None,
+                    "age_ms": round((now - it["seen"]) * 1000) if it else None})
+            rec = {"t": round(now * 1000), "key": track_key,
+                   "algo": self.TRACK_ALGO,   # 분석기가 되묻는 '수집 당시 추적기'를 기록에 남긴다
+                   "fresh": [{"label": f.get("label"), "conf": round(f.get("conf", 0), 3),
+                              "bbox": [round(v, 4) for v in f.get("bbox", [])]} for f in fresh],
+                   "tracks": tracks}
+            with open(_P(__file__).resolve().parent.parent.parent / "data" / "track_debug.jsonl",
+                      "a", encoding="utf-8") as _f:
+                _f.write(_json.dumps(rec, ensure_ascii=False) + "\n")
+        except Exception:  # noqa: BLE001  계측 실패가 검출을 막으면 안 됨
+            pass
 
     def _maybe_sweep_stale_keys(self, now: float) -> None:
         """F-2: KEY_TTL_SEC 넘게 안 쓰인 track_key 정리 + MAX_TRACKED_KEYS 하드 백스톱.
@@ -645,14 +693,8 @@ class GuardAgent(BaseAgent):
         카메라 명의로 오발화된다(F-리뷰 5단계). 키를 안 주면 'default' 로 기존 동작 유지."""
         now = time.time()
         tracks = self._tracks_by_key.setdefault(track_key, [])   # 키별 격리 상태
-        # [T-E2E 유령박스 계측] VIGENT_TRACK_DEBUG=1 일 때만: 매 프레임 fresh(트래커 입력)와
-        #   트랙 상태(tid·misses·seen 경과)를 JSONL 로 기록 — 유령(동결 트랙)의 misses 리셋 경로
-        #   확정용. 기본 꺼짐 = 비용·동작 변화 0. 자격증명·프레임 데이터는 기록하지 않는다.
-        _dbg = os.environ.get("VIGENT_TRACK_DEBUG") == "1"
-        if _dbg:
-            self._dbg_fresh_snapshot = [
-                {"label": f.get("label"), "conf": round(f.get("conf", 0), 3),
-                 "bbox": [round(v, 4) for v in f.get("bbox", [])]} for f in fresh]
+        # [T-E2E 유령박스 계측] 기록은 디스패처 `_track` 의 `_dbg_write` 로 옮겼다(2026-08-26).
+        #   여기 두면 algo="bytetrack" 에서 person 이 빠진다 — `_track` 주석 참조.
         used: set[int] = set()   # 감사 E-2: 한 트랙에 복수 검출이 중복 매칭돼 인원 과소집계되던 문제 → 1:1 강제
         for f in fresh:
             best, best_iou = None, self.TRACK_IOU
@@ -701,21 +743,6 @@ class GuardAgent(BaseAgent):
         tracks = [t for t in tracks
                   if t.get("misses", 0) <= self.STALE_MAX_MISSES and now - t["seen"] <= self.TRACK_TTL]
         self._tracks_by_key[track_key] = tracks   # 필터 결과 반영(키별)
-        if _dbg:
-            try:
-                import json as _json
-                from pathlib import Path as _P
-                rec = {"t": round(now * 1000), "key": track_key,
-                       "fresh": self._dbg_fresh_snapshot,
-                       "tracks": [{"tid": t.get("tid"), "label": t.get("label"),
-                                   "bbox": [round(v, 4) for v in t.get("bbox", [])],
-                                   "hits": t.get("hits"), "misses": t.get("misses"),
-                                   "age_ms": round((now - t["seen"]) * 1000)} for t in tracks]}
-                with open(_P(__file__).resolve().parent.parent.parent / "data" / "track_debug.jsonl",
-                          "a", encoding="utf-8") as _f:
-                    _f.write(_json.dumps(rec, ensure_ascii=False) + "\n")
-            except Exception:  # noqa: BLE001  계측 실패가 검출을 막으면 안 됨
-                pass
         # MIN_HITS 이상 '확인된' 트랙만 표시(한 프레임 헛것 제거). 내부필드(seen·hits·misses)는 빼고 반환.
         # [T-E2E 유령박스] stale=이번 프레임 미매칭(코스팅 중) 플래그를 가산 — 계측(2026-08-12,
         #   data/track_debug.jsonl)으로 확정한 유령 기전: 작은 PPE 박스는 보행 속도에서 프레임당
