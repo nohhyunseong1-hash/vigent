@@ -62,10 +62,23 @@ def _release_go2rtc_slot(cid: str) -> bool:
 
 
 def _restart_worker(cid: str) -> bool:
-    """해당 카메라 워커만 재시작(다른 카메라 무영향)."""
+    """해당 카메라 워커만 재시작(다른 카메라 무영향).
+
+    ★[2026-08-26] **등록부에 없는 카메라는 되살리지 않고 거둔다.**
+    삭제된 카메라를 여기서 재생성하면 "등록부에 없는데 돌고 있는 워커"가 되어
+    죽은 주소로 계속 재접속하고 /health 를 영구 unhealthy 로 만든다. 삭제 라우트의
+    순서를 고쳐 경합 창을 닫았지만, **여기서도 막는다** — 워커를 되살리는 입구가
+    두 곳이면 한 곳만 막아도 세 번째가 나온다(2026-08-21 remove() 수정을 우회한 전례).
+    """
     try:
+        import camera_registry as _reg
         import worker as _w
         from routers.cameras import _start as _cam_start  # 등록 정보(자격증명 포함)로 기동하는 정규 경로
+        if _reg.get(cid) is None:
+            _w.manager.remove(cid)                # 유령 워커 회수
+            _state.pop(cid, None)
+            _LOG.warning("[기아] 등록부에 없는 카메라 '%s' — 되살리지 않고 제거", cid)
+            return False
         _w.manager.stop(cid)
         time.sleep(1.0)
         _cam_start(cid)

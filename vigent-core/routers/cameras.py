@@ -110,11 +110,20 @@ def cameras_disable(cid: str):
 @router.delete("/cameras/{cid}")
 def cameras_delete(cid: str):
     import worker as _w
-    # ★[2026-08-21] stop() → remove(). stop() 은 워커를 멈추기만 하고 목록에 남겨서
-    #   삭제 후에도 /health.cameras 에 `stopped` 로 영원히 보였다(worker.py:remove 주석 참고).
+    # ★[2026-08-26] **등록부를 가장 먼저 지운다** — 순서가 안전의 핵심이다.
+    #   이전 순서(remove → g2_unregister → reg.delete)에는 경합 창이 있었다:
+    #   `_g2_unregister` 는 go2rtc 가 안 떠 있으면 **최대 3초를 기다린다**(timeout=3).
+    #   그 3초 동안 등록부에는 카메라가 살아 있으므로, 기아 감시(starvation_guard)가
+    #   그 틈에 `_start(cid)` 를 부르면 **워커가 되살아난다**. 이후 reg.delete 가 등록부만
+    #   지우므로 "등록부에 없는데 돌고 있는 워커"가 남아, 죽은 주소로 15초마다 재접속하며
+    #   /health 를 영구 unhealthy 로 만든다(2026-08-26 소크 준비 중 실제 발생).
+    #   등록부를 먼저 지우면 그 사이 어떤 경로가 _start 를 불러도 "없는 카메라"로 거부된다.
+    ok = _reg.delete(cid)
     _w.manager.remove(cid)
     _g2_unregister(cid)
-    return {"ok": _reg.delete(cid)}
+    # 등록부 삭제와 워커 제거 사이에 되살아났을 수 있다(위 3초 창의 잔여분) — 한 번 더 거둔다.
+    _w.manager.remove(cid)
+    return {"ok": ok}
 
 
 @router.get("/cameras/{cid}/detections")

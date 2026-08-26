@@ -18,6 +18,7 @@ import unittest
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "vigent-core"))
+sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 import worker  # noqa: E402
 
@@ -71,12 +72,11 @@ class TestDeletedCameraLeavesNoGhost(unittest.TestCase):
 
     def test_delete_route_uses_remove_not_stop(self):
         """라우트가 stop() 으로 되돌아가면 유령이 부활한다 — 소스로 잠근다."""
-        src = (Path(__file__).resolve().parent.parent
-               / "vigent-core" / "routers" / "cameras.py").read_text(encoding="utf-8")
-        i = src.index("def cameras_delete")
-        body_ = src[i:i + 400]
-        self.assertIn("manager.remove(cid)", body_)
-        self.assertNotIn("manager.stop(cid)", body_,
+        from _source_probe import code_of
+        code = code_of("vigent-core/routers/cameras.py", "cameras_delete")
+        self.assertIn("manager.remove(cid)", code,
+                      "삭제 경로가 워커를 제거하지 않는다 — /health 에 유령이 남는다")
+        self.assertNotIn("manager.stop(cid)", code,
                          "삭제 경로가 stop() 을 쓰면 유령이 남는다")
 
 

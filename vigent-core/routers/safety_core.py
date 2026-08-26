@@ -314,15 +314,23 @@ def safety_auto_console():
 def worker_start(payload: dict = Body(...), theme: str = DEFAULT_THEME):
     """카메라 1대 워커 시작. payload={id?, source(RTSP/비디오/이미지/웹캠번호), name?, fps?, zone?}.
     위험 감지 시 data_engine 기록 → 자동처리 콘솔 자동 노출."""
+    import camera_registry as _reg
     import worker as _w
     bundle = STATE.get(theme) or _load_theme(theme)
     src = str(payload.get("source", "")).strip()
     if not src:
         raise HTTPException(status_code=400, detail="source(RTSP/비디오/이미지 경로 또는 웹캠번호) 필요")
-    return _w.manager.start(bundle["agents"].get("Guard"), _DETECT_LOCK,
-                            str(payload.get("id", "cam1")), src,
-                            name=str(payload.get("name", "")),
-                            fps=float(payload.get("fps", 2.0)), zone=payload.get("zone"))
+    cid = str(payload.get("id", "cam1"))
+    name = str(payload.get("name", "")) or cid
+    fps = float(payload.get("fps", 2.0))
+    # ★[2026-08-26] 시작한 워커를 **등록부에도 남긴다.**
+    #   이전에는 manager.start 를 직접 불러 등록부를 거치지 않았다. 그렇게 만든 워커는
+    #   `/cameras` 에는 없는데 `/health.cameras` 에는 보이고, `DELETE /cameras/{id}` 가
+    #   404 라 **지울 방법이 재시작뿐**이었다 — 워커를 되살리는 세 번째 입구이자 유령의 원형.
+    #   등록부에 넣어 두면 정규 삭제·비활성 경로가 그대로 듣는다(동작은 그대로, 회수만 가능해짐).
+    _reg.upsert(cid, name=name, source=src, enabled=True, fps=fps, zone=payload.get("zone"))
+    return _w.manager.start(bundle["agents"].get("Guard"), _DETECT_LOCK, cid, src,
+                            name=name, fps=fps, zone=payload.get("zone"))
 
 @router.post("/worker/stop")
 def worker_stop(payload: dict = Body(default={})):

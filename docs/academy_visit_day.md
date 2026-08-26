@@ -681,6 +681,7 @@ Invoke-RestMethod -Method Delete -Uri http://127.0.0.1:8010/cameras/zonelab -Hea
 | 0-O | ★**카메라 수용량 실측** | **한계 6대 / 권장 4대** — N=7 에서 검출 p95 1,177ms(기준 1,000ms) 초과 | ✅ |
 | 0-P | 발열 스로틀링 | GPU 65~75℃ · 45샘플 중 **1건**(순간, 클럭 1665MHz 유지) · CPU 최대 94.9% | ✅ 실사용 지장 없음 |
 | 0-Q | 카메라 삭제 후 목록 정합 | `DELETE` → `/health` 에서 즉시 사라짐 · `disable` → `stopped` 로 남음(의도) | ✅ 실증 |
+| 0-R | **단축 소크 3시간**(F1·F5·F6) | PASS — 스윕 7회·failures 0 · **스윕 ±90초 검출 p95 0.40s vs 평상시 0.50s(방해 없음)** · RSS -52.3MB/h · unhealthy 0 | ✅ [기록](../audit/soak_after_fixes_2026-08-26.md) |
 
 ## 판정
 
@@ -692,7 +693,31 @@ Invoke-RestMethod -Method Delete -Uri http://127.0.0.1:8010/cameras/zonelab -Hea
 >
 > 카메라 수용량도 실측됐다(**한계 6 / 권장 4**) — 학원 예상 1~2대에 여유가 크다.
 >
-> ✅ **실카메라(0-C·0-J)까지 완료됐다. 남은 ⛔ 는 없다.**
+> ✅ **부록 D-2 전 항목 통과** — 실카메라(0-C·0-J)·수용량·오프라인·암호화·소크까지.
+>
+> ⛔ **다만 "현장 갈 준비 완료" 선언은 보류한다.** 아래 두 가지가 아직 열려 있다.
+
+### 선언을 보류하는 이유 (2026-08-26)
+
+**① 병합된 코드가 이 노트북에서 실카메라로 검증되지 않았다**
+
+부록 D-2 를 채운 뒤 개발 PC 에서 **13개 커밋**이 병합됐고, 그중 검출·추적·구역 판정의
+핵심 경로를 바꾼 것이 있다:
+
+| 커밋 | 무엇을 바꿨나 | 왜 재확인이 필요한가 |
+|---|---|---|
+| `[D1-C]` 구역 침입을 사람 단위로 | **구역 판정 로직** | ★0-J 가 검증한 바로 그 경로다 |
+| `[X5]` 트래커 5종 비교·MIN_FRAMES=0 | 추적 | 구역 체류 판정이 추적에 의존한다 |
+| `[B-passthru]` 검출통과·위치 기반 키 | 검출 | 커밋 메시지에 **"경보는 미확인"** 이라 적혀 있다 |
+
+**② 소크는 파일 카메라 기반이었다 — 네트워크 내성은 별도 검증분이다**
+
+0-R 소크는 `runs/rfdetr/accident` 영상 2대로 돌았다. 그래서 **RTSP 수신·재연결·네트워크
+순단** 부하는 이 소크에 **포함되지 않는다**. 그 항목들은 0-C·0-C-2 에서 따로 검증했으나
+**병합 전 코드 기준**이다.
+
+→ **출발 전 30분 재확인**(부록 D-3)이 통과하면 그때 선언한다.
+
 >
 > 다만 아래 "C200 과 학원 조건의 차이" 세 가지(H.265·NVR 주소 형식·화각)는
 > **집에서 검증할 수 없는 항목**이라 현장 첫 30분의 위험으로 남는다.
@@ -749,4 +774,129 @@ Invoke-RestMethod -Method Delete -Uri http://127.0.0.1:8010/cameras/zonelab -Hea
 | 휴대용 공유기(폰 대역 불일치 대비) | 확인 필요 |
 | USB 메모리(64GB+, 녹화 회수용) | 이관용 USB 재사용 가능 |
 | 질문지 답변(RTSP 주소·계정) | ★미해결이면 방문 연기 |
+
+---
+
+# 부록 D-3. 출발 전 실카메라 재확인 (30분) — ★"현장 갈 준비 완료" 선언 조건
+
+> ## 이 확인의 목적
+>
+> 🔴 **`[D1-C] 구역 침입을 사람 단위로` 가 실카메라에서 도는 것을 아직 아무도 보지 못했다.**
+>
+> 이 커밋은 **구역 판정 로직 자체를 바꿨다** — 부록 D-2 의 0-J 가 검증한 바로 그 경로다.
+> 그 뒤로 이 노트북에서 실카메라로 구역 침입을 발화시킨 적이 없다(0-R 소크는 파일 카메라였다).
+> 함께 병합된 `[X5]` 트래커 교체와 `[B-passthru]`(커밋 메시지에 **"경보는 미확인"**)도
+> 같은 경로를 지난다.
+>
+> **즉 이 30분은 "다시 해보는 것"이 아니라, 바뀐 코드의 첫 실카메라 검증이다.**
+
+## 0. 카메라 연결 (10분)
+
+★현재 C200 은 **다른 망에 있다**. RTSP 는 카메라 IP 로 직접 접속하므로
+**노트북과 같은 네트워크**여야 한다.
+
+1. C200 전원을 켜고 Tapo 앱에서 **온라인** 확인
+2. 노트북과 **같은 공유기**에 붙인다(노트북이 랜선이면 그 랜선과 같은 공유기의 Wi-Fi)
+3. 카메라 IP 확인 — 앱의 기기 정보, 또는 노트북에서 스캔:
+
+```powershell
+.venv\Scripts\python.exe -c "import socket;from concurrent.futures import ThreadPoolExecutor as T;
+import sys
+base='.'.join(socket.gethostbyname(socket.gethostname()).split('.')[:3])
+f=lambda i:(lambda s:(s.settimeout(.6), (s.connect_ex((f'{base}.{i}',554))==0) and print(f'{base}.{i}'), s.close())[1])(socket.socket())
+list(T(max_workers=128).map(f, range(1,255)))"
+```
+
+4. 등록 — ★**브라우저로 한다**(`http://127.0.0.1:8010/safety-hub` → 카메라 추가).
+   PowerShell 로 등록하면 **한글 이름이 깨진다**(1단계 경고 참고 — 경보 문구에 그대로 들어간다).
+
+```
+ID     : cam_c200
+이름   : C200 재확인
+주소   : rtsp://<카메라계정>:<비번>@<IP>:554/stream1
+FPS    : 2
+```
+
+- [ ] `/health` 에 `cam_c200: ok` · `last_frame_age_s < 2`
+
+## 1. 회귀 확인 3종 (5분)
+
+```powershell
+curl.exe -s http://127.0.0.1:8010/health | .venv\Scripts\python.exe -c "import sys,json; d=json.load(sys.stdin); print('slot_degraded:', d.get('slot_degraded')); print('backend:', d.get('backend')); print('active:', d.get('active_detectors')); [print(' cam',k,'status=',v.get('status'),'zone_source=',v.get('zone_source')) for k,v in (d.get('cameras') or {}).items()]"
+```
+
+| # | 확인 | 합격 | 틀리면 |
+|---|---|---|---|
+| 1 | `slot_degraded` | **`{}`** | 슬롯 로드 실패 — 가중치·기동 로그 확인(F1·F31) |
+| 2 | `zone_source` | **`camera`**(구역 그린 뒤) 또는 `none` | **`global`** 이면 F5 전역 폴백이 살아난 것 — 보고 |
+| 3 | `backend.forklift` | **`yolo`** · `active_detectors` 에 `forklift` | 학원 프로파일 미적용 — `deploy/academy/` 재적용 |
+
+**지게차 검출 실동작**(파일 카메라로 30초, 실카메라와 별개):
+
+```powershell
+.venv\Scripts\python.exe scripts\check_profile_drift.py
+```
+- [ ] `✅ 프로파일 드리프트 없음`
+
+## 2. ★0-J 재현 — 구역 그리기 → 걸어 들어가기 → 텔레그램 (15분)
+
+### 2-1. 구역 그리기 (브라우저)
+
+`http://127.0.0.1:8010/safety-hub` → `cam_c200` 타일 → 확대뷰 → **구역 편집** 켜기
+→ 영상 위 클릭으로 꼭짓점 **3개 이상** → **저장**
+
+> ★**발이 닿는 바닥에 그린다.** 판정 기준점은 **사람 박스 하단 중앙(발끝)** 이다.
+> 카메라가 가까우면 몸이 화면 아래로 잘려 발끝이 `y≈1.0` 으로 찍힌다 —
+> 그때는 **구역 아래 경계를 화면 바닥까지** 내려야 한다(2026-08-22 실측 사례).
+>
+> ★**사람 없이 스냅샷을 먼저 보고**, person 이 잘못 잡히는 자리(짐·이불·자재 더미)를
+> 확인해 **그 영역을 피해** 그린다. 안 그러면 걸어 들어가도 내가 잡힌 건지 물체가 잡힌
+> 건지 구분할 수 없다.
+
+### 2-2. 걸어 들어가기
+
+구역 안에 **3초 이상** 머문다(침입 확정 `zone.enter_s` = 1.0초).
+
+### 2-3. 확인 — ★로그가 아니라 **이벤트·큐** 를 본다
+
+```powershell
+# ① 발화했나 (전송 성공/실패와 무관하게 항상 남는다)
+Get-Content dataecognition\events_$(Get-Date -f yyyyMMdd).jsonl -Encoding UTF8 |
+  Select-String "zone_intrusion" | Select-Object -Last 3
+
+# ② 통보가 나갔나
+.venv\Scripts\python.exe -c "import sqlite3;d=sqlite3.connect('data/alert_queue.db');print(d.execute('SELECT status,COUNT(*) FROM alerts GROUP BY status').fetchall())"
+```
+
+- [ ] 이벤트 jsonl 에 `zone_intrusion` **신규 기록**
+- [ ] 큐에 `sent` 증가
+- [ ] **폰 텔레그램 도착**
+
+> 🔴 **`logs/vigent.err.log` 에서 "위험구역" 을 찾지 말 것.** 그 로그에는 **전송 실패한
+> 경보만** 남는다. 텔레그램이 정상이면 성공 건은 한 줄도 안 남아 "발화 안 함" 으로 오판한다
+> (2026-08-22 실제 오진 — 56건이 나갔는데 로그가 비어 30분을 헤맸다).
+>
+> 🔴 `/cameras/{id}/detections` 의 `fired` 로도 판단하지 말 것 — **그 프레임만** 보여주고
+> 구역 침입은 **진입 전이에서 한 번만** 발화한다. 몇 초 간격 폴링으로는 대부분 놓친다.
+
+★**재시연은 5분 간격** — 같은 카메라·같은 규칙은 300초 억제가 정상이다.
+
+## 3. 정리 (2분)
+
+- [ ] 시험용 카메라 제거: `/safety-hub` 에서 `cam_c200` 삭제
+- [ ] `/health.cameras` 가 비는지 확인 — **남아 있으면 보고**
+      (2026-08-26 에 삭제 경합·기아 되살림·`/worker/start` 세 입구를 막았다. 그래도
+       남으면 **네 번째 입구**가 있다는 뜻이다)
+- [ ] 카메라 계정 정보가 노트북에 남았는지 확인(`data/camera_secrets.json`)
+
+## 판정
+
+| 결과 | 다음 |
+|---|---|
+| 1·2 전부 통과 | ✅ **"현장 갈 준비 완료" 선언** — 부록 D-2 의 보류를 해제한다 |
+| 2 에서 구역 경보가 안 남 | 🔴 `[D1-C]` 회귀 의심 — **개발 PC 에 보고하고 방문 보류** |
+| 1 에서 `zone_source: global` | 🔴 F5 회귀 — 보고 |
+| 1 에서 `slot_degraded` 비지 않음 | 🔴 F1/F31 회귀 — 보고 |
+
+★**억지로 통과시키지 않는다.** 이 30분은 방문 당일 30분을 사는 보험이다.
 

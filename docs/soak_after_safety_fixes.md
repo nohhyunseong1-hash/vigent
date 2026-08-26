@@ -149,11 +149,20 @@ curl.exe -s http://127.0.0.1:8010/health | python -c "import sys,json; d=json.lo
 - [ ] `status: healthy`
 - [ ] `/safety-hub` 재로그인(재시작했으므로)
 
-> **git 으로 확인하는 방법**도 있다 — 원복이 제대로 됐는지 못 미더우면:
+> 🔴 **`git diff config\tuning.yaml` 로는 원복을 확인할 수 없다** — 이 안내는 틀렸다.
+> (2026-08-26 정정)
+>
+> **왜**: 현장 노트북은 `config/tuning.yaml` 을 **학원 프로파일이 통째로 덮은 상태**다
+> (`deploy/academy/tuning.academy.yaml` 을 `copy` 한 것). 그래서 `git diff` 는 **원복 여부와
+> 무관하게 항상 내용이 나온다** — 비는 일이 없다. 그걸 보고 "원복이 안 됐다"고 오판하거나,
+> 반대로 되돌리려고 `git checkout` 하면 **학원 프로파일이 날아간다.**
+>
+> **원복 판정은 아래 하나로만 한다** — 실행 중인 서비스가 실제로 무엇을 읽었는지가 유일한 근거다:
 > ```powershell
-> git diff config\tuning.yaml
+> curl.exe -s http://127.0.0.1:8010/health | .venv\Scripts\python.exe -c "import sys,json; s=json.load(sys.stdin).get('retention_sweep') or {}; print('interval_h:', s.get('interval_h'), '(24.0 이어야 정상)')"
 > ```
-> 아무것도 안 나오면 원복 완료다(다른 의도한 변경이 없다는 전제).
+> ★`config/tuning.yaml` 은 **커밋하지 않는다**. 커밋하면 학원 설정(fire_smoke 꺼짐·
+> forklift 켜짐)이 저장소 기본값이 되어 다른 현장·개발 PC 까지 오염된다.
 
 ---
 
