@@ -103,7 +103,7 @@ class TestDeriveIntegration(unittest.TestCase):
     OUT = {"detections": [{"label": "person", "bbox": [0.4, 0.4, 0.6, 0.8]}], "signals": {}}
 
     def _rules(self, fired):
-        return [r for r, _lvl, _n in fired]
+        return [r for r, *_ in fired]
 
     def test_no_fire_on_single_frame(self):
         d = zone_debounce.ZoneDebouncer()

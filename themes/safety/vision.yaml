@@ -30,17 +30,35 @@ perception:                       # ── Guard (감지)
     fire_smoke: vigent-core/weights/fire_smoke_rfdetr_v1_e17.pth
     ppe: vigent-core/weights/ppe_rfdetr_v1.pth
   detectors:
-    # 범용 객체(COCO 80종): yolo11m — 일상 사물 전반을 가장 정확히 잡는 주력 검출기.
-    #   (재학습 office_person_v1 은 빠른학습이라 품질이 낮아 보류. 제대로 재학습 시 교체 예정)
-    - {id: person, model: vigent-core/weights/yolo11m.pt, fallback: vigent-core/weights/yolo11s.pt, classes: [person]}
+    # ★[정직화 2026-08-24] person 항목은 **죽은 설정**이라 주석 처리했다(기록은 보존).
+    #   위 backend 가 person: rfdetr 이므로 guard.py `_get_model` 이 rfdetr 분기로 가고,
+    #   그 분기는 `_slot_path`(= 아래 model/fallback 경로)를 **아예 참조하지 않는다**
+    #   (vigent-core/agents/guard.py:735). 즉 person 은 yolo11m 이 아니라
+    #   **RF-DETR COCO 사전학습**(rf_w="" → weights/rf-detr-nano.pth)으로 돈다.
+    #   구 주석의 "범용 객체(COCO 80종)"도 실제와 달랐다 — classes:[person] 이라 사람만 걸러낸다.
+    #   구 주석의 office_person_v1 재학습 계획은 [Z-3, 2026-08-10] office 테마 영구삭제로 무효.
+    #
+    #   ★되살리는 절차(yolo 롤백 시 반드시 함께 할 것):
+    #     ① 아래 person 줄의 주석을 푼다  ② backend 의 person 을 yolo 로 바꾼다.
+    #     ★①을 빠뜨리고 ②만 하면 `_get_model` 이 `backend=="yolo" and not path` 에 걸려
+    #       **None 을 반환한다 = person 검출이 조용히 죽는다**(guard.py:732). 순서 주의.
+    #   (주석화해도 워커 슬롯 목록은 worker.py `_default_detectors` 하드코딩이라 무영향.
+    #    영향은 guard.status()의 detectors_available 표시뿐 — 소비처 0건·/health 미노출 확인.)
+    # - {id: person, model: vigent-core/weights/yolo11m.pt, fallback: vigent-core/weights/yolo11s.pt, classes: [person]}
     # PPE: 25클래스 주력 모델. 안전모·조끼·마스크 착용/미착용 직접 감지 + 차량·중장비.
     #   라벨은 공백형으로 출력(Safety Vest 등) → guard.py 가 표준형(Safety-Vest)으로 정규화.
     # ppe_css_v1: CSS 상업데이터(CC BY 4.0) 학습. 실측 mAP50 — 마스크/조끼 91%, 안전모 86%,
     #   미착용 NO-Hardhat 72%·NO-Mask 79%·NO-Safety Vest 82% (구 v30 대비 미착용 감지 대폭↑).
     #   되돌리려면 model 을 weights/ppe_construction_v30.pt 로 바꾸면 됨(구 모델 보존).
+    # ★[정직화 2026-08-24] 아래 fallback(heuristic/hsv_heuristic/none)은 **구현·소비가 0건**이다.
+    #   vision_loader `_is_heuristic()` 이 '파일이 아님'으로 분류만 하고, 그 휴리스틱을 실제로
+    #   돌리는 코드가 없다(전수 검색). 즉 모델이 없으면 폴백이 도는 게 아니라 **그 슬롯은 아무것도
+    #   못 본다.** "폴백이 있으니 괜찮다"고 읽히던 표기라 바로잡는다 — 없는 기능을 있다고 적는 것이
+    #   가장 위험하다. (모델 부재는 [F31] 로 /health 에 DEGRADED 로 드러난다.)
     - {id: ppe, model: vigent-core/weights/ppe_css_v1.pt, fallback: heuristic,
        classes: [Hardhat, NO-Hardhat, Safety-Vest, NO-Safety-Vest, Mask, NO-Mask]}
-    # 화재/연기: fire_smoke_boda(Fire/smoke 2종, smoke mAP 0.896). 폴백은 HSV 색공간 휴리스틱
+    # 화재/연기: fire_smoke_boda(Fire/smoke 2종, smoke mAP 0.896).
+    #   ※ hsv_heuristic 폴백은 표기만 있고 구현 없음(위 정직화 주석 참조).
     - {id: fire_smoke, model: vigent-core/weights/fire_smoke_boda.pt, fallback: hsv_heuristic}
     # 지게차/중장비: 폴백 없음(모델 없으면 해당 기능만 비활성, 나머지는 정상)
     - {id: forklift, model: vigent-core/weights/forklift_boda_ax.pt, fallback: none}

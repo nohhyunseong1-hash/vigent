@@ -1,0 +1,46 @@
+# 학원 프로파일이 전역 기본값과 **의도적으로** 다른 항목 — 선언 목록
+#
+# ★왜 이 파일이 있는가(2026-08-24):
+#   학원 프로파일은 `copy` 로 **파일 전체를 덮는** 방식이라, 기본값에 키가 추가되면
+#   프로파일이 조용히 뒤처진다. 실제로 6개 키(proximity 2 · retention 3 · zone 1)가
+#   누락돼 [F5](전역 구역 폴백 차단)·[F6](자동 파기)가 학원에서 무효화될 뻔했다.
+#   → `scripts/check_profile_drift.py` 와 `tests/test_profile_drift.py` 가 이 파일을
+#     기준으로 **누락 키**와 **선언되지 않은 값 변경**을 게이트에서 잡는다.
+#
+# 규칙:
+#   · 기본값에 있는 키가 프로파일에 없으면 → 무조건 실패(드리프트).
+#   · 값이 다르면 → 아래 `overrides` 에 선언돼 있어야 통과. 선언 없으면 실패.
+#   · 프로파일에만 있는 키는 → 아래 `profile_only` 에 선언돼 있어야 통과.
+#   · 새 차이를 만들 때는 **이유를 함께** 적는다. 이유 없는 차이는 나중에 아무도 못 되돌린다.
+
+tuning:
+  base: config/tuning.yaml
+  profile: deploy/academy/tuning.academy.yaml
+  profile_only:
+    detect.include_forklift:
+      value: 1
+      why: "학원 실습 대상이 지게차다 — 전역은 F-7(과소학습 오탐)로 기본 제외이나 여기선 켠다."
+    detect.include_fire_smoke:
+      value: 0
+      why: "화재 감시가 계약 범위 밖이고, 프레스 현장 실측에서 배경 오탐 리스크가 확인됐다."
+  overrides:
+    detect.conf.forklift:
+      value: 0.5
+      why: >-
+        forklift_boda_ax(yolo) 운용점. 전역 0.002 는 RF-DETR forklift 용 임계라
+        yolo 모델에 그대로 쓰면 오탐이 쏟아진다.
+        근거: benchmarks/forklift_duel_2026-08-19.md
+
+vision:
+  base: themes/safety/vision.yaml
+  profile: deploy/academy/vision.academy.yaml
+  profile_only: {}
+  overrides:
+    perception.backend.forklift:
+      value: yolo
+      why: >-
+        G1 대결에서 forklift_boda_ax(yolo)가 RF-DETR 판을 이겼다(운용 conf 0.50).
+        ★이 값이 yolo 이므로 vision.academy 의 detectors 에 forklift 항목이
+        **반드시 있어야 한다** — 없으면 guard `_get_model` 이 None 을 돌려주고
+        지게차 검출이 통째로 죽는다(F31 참조).
+        근거: benchmarks/forklift_duel_2026-08-19.md

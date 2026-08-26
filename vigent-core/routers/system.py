@@ -1,5 +1,6 @@
 """routers/system.py — 헬스체크·시스템 상태 (P1-7 분할). main 미import."""
 import json
+import re as _re
 import time as _time
 
 from app_state import _START_TS, DEFAULT_THEME, STATE
@@ -9,6 +10,18 @@ from fastapi.responses import JSONResponse
 from web_util import _ROOT, product_version
 
 router = APIRouter()
+
+# ★[F31, 2026-08-24] /health 는 무인증 허용(워치독용)이라 응답에 내부 절대경로를 싣지 않는다.
+#   슬롯 로드 실패 원인은 현장 진단에 꼭 필요하지만, 원인 문자열에 가중치 절대경로가 섞여
+#   나온다(예: "FileNotFoundError: D:\vigent_original\vigent-core\weights\x.pth").
+#   경로처럼 보이는 토큰만 **파일명으로 축약**한다 — 파일명은 진단에 필요하고 노출 가치가 낮다.
+_PATH_RE = _re.compile(r"(?:[A-Za-z]:)?(?:[\\/][^\\/\s'\"]+){2,}")
+
+
+def _strip_paths(msg: str, limit: int = 200) -> str:
+    """오류 문자열에서 경로를 파일명으로 축약하고 길이를 제한한다."""
+    out = _PATH_RE.sub(lambda m: m.group(0).replace("\\", "/").rsplit("/", 1)[-1], msg)
+    return out[:limit]
 
 
 @router.get("/health")
@@ -37,6 +50,7 @@ def health(theme: str = DEFAULT_THEME):
     #   읽지 않아 **person 슬롯이 죽어도 healthy** 였다(리뷰 F1). 이제 본문에 노출하고
     #   전체 판정에도 넣는다.
     slot_degraded: dict = {}
+    slot_errors: dict = {}          # ★[F31] 슬롯이 왜 못 떴는지 — 원인 문자열(경로는 자름)
     if bundle:
         _g = bundle["agents"].get("Guard")
         if _g is not None:
@@ -44,6 +58,13 @@ def health(theme: str = DEFAULT_THEME):
                 _gs = _g.status()
                 rfdetr_slots = _gs.get("rfdetr_slots", [])
                 slot_degraded = _gs.get("slot_degraded", {}) or {}
+                # ★[F31, 2026-08-24] load_errors 를 /health 로 꺼낸다. 원인 문자열은 guard 가
+                #   이미 갖고 있었는데(예: "RuntimeError: ... weights corrupted") 아무도 꺼내지
+                #   않아, 현장에서 슬롯이 죽어도 **왜 죽었는지 알 방법이 없었다**.
+                #   ★경로는 자르고 파일명만 남긴다 — /health 는 인증 뒤이긴 하나 내부 절대경로를
+                #     응답에 싣지 않는다는 원칙(자격증명·경로 비노출).
+                slot_errors = {k: _strip_paths(str(v))
+                               for k, v in (_gs.get("load_errors", {}) or {}).items() if v}
             except Exception:  # noqa: BLE001
                 pass
     # ★[F6] 자동 스윕 스레드 상태 — 조회 실패가 헬스체크를 죽이면 안 된다.
@@ -99,7 +120,7 @@ def health(theme: str = DEFAULT_THEME):
     privacy_status: dict = {}
     try:
         import privacy as _pv
-        privacy_status = {**_pv.status(), **_pv.storage_status()}
+        privacy_status = {**_pv.status(), **_pv.storage_status(), **_pv.failure_status()}
     except Exception:  # noqa: BLE001
         privacy_status = {"error": "privacy 상태 조회 실패"}
     # [P3a] 물리 출력 상태. ★off_failed 는 "사이렌이 켜진 채 남았을 수 있다"는 뜻이라
@@ -161,6 +182,7 @@ def health(theme: str = DEFAULT_THEME):
         # ★[F1] 런타임 추론이 연속 실패 중인 슬롯. 비어 있어야 정상이며,
         #   "person" 이 들어 있으면 사람을 못 보는 상태 = status 도 unhealthy(503).
         "slot_degraded": slot_degraded,
+        "slot_errors": slot_errors,
         "llm": llm,                   # {provider, available, model, note} — UI·운영이 실제 설정을 보게 함
         "disk_retention": disk_retention,   # [Z-2] {enabled, last_run, warnings}
         # ★[F6] 자동 스윕 스레드가 실제로 돌고 있는가 + 다음 예정. thread_alive=false 면

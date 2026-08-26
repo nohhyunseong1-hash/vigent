@@ -247,6 +247,9 @@ class GuardAgent(BaseAgent):
     #   DEGRADED로 표시(/health 노출). "멀쩡해 보이는데 아무것도 안 보는" 상태가 안전 제품에서
     #   최악의 고장 모드라 — 1회 일시적 예외로 과민반응하지 않게 N=3(연속 3프레임)으로 잡았다.
     PREDICT_FAIL_DEGRADE_THRESHOLD = 3
+    # [F31] 로드 실패는 재시도가 없어 매 프레임 반복된다 — 임계 초과 후 로그 주기(프레임 수).
+    #   2fps 기준 1200프레임 ≈ 10분마다 1줄(디스크 보호).
+    LOAD_FAIL_LOG_EVERY = 1200
 
     # [P-2, 2026-08] person 이중 신호 앙상블: ppe 슬롯 자체의 Person 클래스를 person 검출에 포함할지.
     #   True(기본) = 오늘까지의 실제 동작 그대로(person+ppe 슬롯을 함께 부르면 ppe 의 Person 검출도
@@ -306,6 +309,10 @@ class GuardAgent(BaseAgent):
     #   zoom_tid44_f321.jpg(철근 아래 다리). 분석: benchmarks/pa_person_count_{verify,cause}.py.
     #   두 임계가 따로 노는 것이 원인이었으므로 값을 바꾸는 대신 **참조를 연결**한다 — 이후 운용 임계를
     #   튜닝하면 스폰 자격이 자동으로 따라온다.
+    # ★[B-passthru] 추적이 버린 고신뢰 person 을 되살리는 임계. **0 = 비활성(기존 동작)**.
+    #   tuning `track.passthrough_conf` 로 주입. 되살린 박스는 tid 가 없으므로
+    #   zone.grid_cells(위치 기반 대체 키)와 **함께** 켜야 경보까지 닿는다.
+    PASSTHROUGH_CONF = 0.0
     BYTETRACK_ACTIVATION: float | None = None
     BYTETRACK_MIN_FRAMES = 1         # 트랙 확정(tid 부여)까지 필요한 연속매칭 수. guard MIN_HITS=1 과 동일하게
                                       # 맞춰 "확정까지 프레임 수" 자체는 회귀 없게(라이브러리 기본 2 아님).
@@ -360,6 +367,7 @@ class GuardAgent(BaseAgent):
             _act = tuning.val("track", "bytetrack_activation", None)   # None = person 임계 자동 연동(위 주석)
             self.BYTETRACK_ACTIVATION = float(_act) if _act is not None else None
             self.BYTETRACK_MIN_FRAMES = int(tuning.val("track", "bytetrack_min_frames", self.BYTETRACK_MIN_FRAMES))
+            self.PASSTHROUGH_CONF = float(tuning.val("track", "passthrough_conf", self.PASSTHROUGH_CONF))
         except Exception:  # noqa: BLE001
             pass
         self._models: dict[str, Any] = {}      # id → YOLO (지연 로드 캐시)
@@ -780,6 +788,30 @@ class GuardAgent(BaseAgent):
         for slot in want:
             model = self._get_model(slot)
             if model is None:
+                # ★[F31, 2026-08-24] 예전엔 여기서 **조용히 continue** 했다 — 로드 실패(가중치 손상·
+                #   GPU OOM·라이브러리 오류)로 슬롯이 통째로 죽어도 스트릭도 DEGRADED 도 서지 않아
+                #   /health 가 healthy 를 유지했다. person 이면 침입 경보가 영구 무력화되는데 초록불
+                #   이다 — [Q-3] 가 "가장 위험한 고장 모드"라 부른 그 상태이며, [F1] 은 **추론 실패**
+                #   경로만 덮어 이 **로드 실패** 경로가 남아 있었다. 아래 추론 실패 핸들러와 같은
+                #   등급으로 취급해 F1 배선(핵심 슬롯 저하 → unhealthy)을 그대로 탄다.
+                #   ★재시도는 넣지 않는다(범위 밖) — _get_model 이 실패를 캐시하므로 복구하려면
+                #     재시작이 필요하다. 재시도·간격제한 설계는 docs/P3_BACKLOG.md 로 이월.
+                streak = self._predict_fail_streak.get(slot, 0) + 1
+                self._predict_fail_streak[slot] = streak
+                why = self._load_errors.get(slot) or "모델 미로드(가중치 경로·backend 설정 확인)"
+                # ★로그 폭주 방지: 로드 실패는 재시도가 없어 **매 프레임 영구 발생**한다(2fps면
+                #   하루 17만 줄). 그대로 두면 이 수정이 디스크를 채워 [F2] 를 되살린다.
+                #   임계까지는 매번 남기고(진단에 필요), 그 뒤로는 주기적으로만 남긴다.
+                if streak <= self.PREDICT_FAIL_DEGRADE_THRESHOLD or streak % self.LOAD_FAIL_LOG_EVERY == 0:
+                    _guard_logger().error(
+                        "검출 슬롯 미가동(slot=%s, 연속 %d회): %s — 이 프레임은 해당 슬롯 결과 없이 진행",
+                        slot, streak, why)
+                if streak >= self.PREDICT_FAIL_DEGRADE_THRESHOLD and not self._slot_degraded.get(slot):
+                    self._slot_degraded[slot] = True
+                    _guard_logger().error(
+                        "★검출 슬롯 DEGRADED(로드 실패): slot=%s 연속 %d회(임계 %d) — /health 확인. "
+                        "로드 실패는 자동 복구되지 않는다(재시작 필요).",
+                        slot, streak, self.PREDICT_FAIL_DEGRADE_THRESHOLD)
                 continue
             slot_conf = conf_override if conf_override is not None else self.DETECTOR_CONF.get(slot, self.DEFAULT_CONF)
             # 클래스별 후필터 맵(ppe·fire_smoke): 맵의 최저 임계로 추론해 후보 확보 → 아래 박스 루프에서 클래스별로 거른다.
@@ -846,7 +878,32 @@ class GuardAgent(BaseAgent):
         detections = _cross_validate_ppe(detections, self.PPE_PERSON_EXPAND)
         if not self.PERSON_ENSEMBLE:
             detections = _drop_ppe_origin_person(detections)
+        _pre_track = detections
         detections = self._track(detections, track_key)
+        # ★[B-passthru] 추적이 버린 **고신뢰 person** 을 되살린다(기본 off — PASSTHROUGH_CONF=0).
+        #   실측(dev 74장): 추적이 검출의 29.3%p 를 버리고 원거리는 83%→8% 로 전멸한다.
+        #   "못 보는 것"이 아니라 "보고도 버리는 것"이라, 경보 재현율을 추적기 성능에서
+        #   분리하려면 이 경로가 필요하다. 되살린 박스는 **tid 가 없다** — 하위 판정은
+        #   worker._derive 의 위치 기반 격자 키가 받는다(zone.grid_cells).
+        #   ※NMS·억제·교차검증은 이미 위에서 통과한 목록이므로 품질이 보장된다
+        #     (추적 '이후'에 덧붙이던 실험 분기와 달리 파이프라인을 건너뛰지 않는다).
+        if self.PASSTHROUGH_CONF > 0:
+            kept = {id(d) for d in detections}
+            # ★중복 제거가 필수다 — 되살린 박스가 **이미 추적된 같은 사람**과 겹치면
+            #   그 사람 GT 는 하나뿐이라 둘째 박스가 곧바로 오탐이 된다.
+            #   중복 제거 없이 쟀을 때 정밀도가 82.5→54.2% 로 무너졌다(TP +18 인데 FP +57).
+            live = [d.get("bbox") or [0, 0, 0, 0] for d in detections
+                    if str(d.get("label", "")).lower() == "person"]
+            for d in _pre_track:
+                if id(d) in kept or str(d.get("label", "")).lower() != "person":
+                    continue
+                if float(d.get("conf", 0)) < self.PASSTHROUGH_CONF:
+                    continue
+                bb = d.get("bbox") or [0, 0, 0, 0]
+                if any(_iou(bb, e) >= self.TRACK_IOU for e in live):
+                    continue                      # 이미 추적된 사람과 같은 자리 → 버린다
+                live.append(bb)
+                detections.append({**d, "tid": None, "passthrough": True})
         # 안 B(box-overlay): 추적 이후, 교차소스(person 슬롯↔ppe 슬롯) person 중복만 병합.
         #   _nms(0.55)↔TRACK_IOU(0.45) 임계 불일치가 남긴 IoU 0.45~0.55 person 이중박스 해소.
         #   같은 소스는 병합 안 함(진짜 두 사람 보호). 검출·nms·추적 로직은 불변.

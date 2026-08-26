@@ -57,7 +57,8 @@
 - [ ] **오프라인 대비**: 인터넷 없이도 서비스가 뜨는지 확인(가중치·의존성 전부 로컬 —
       모델 콜드 로드가 인터넷을 찾지 않는지)
   - [ ] ★`RF_HOME` 이 `vigent-core\weights` 를 가리키는지 + 그 안에 **`rf-detr-nano.pth`(349MB)**
-        가 있는지 (`python scriptsetch_weights.py --all --check` 로 한 번에 확인)
+        가 있는지 (`python scripts
+etch_weights.py --all --check` 로 한 번에 확인)
   - [ ] ★**Wi-Fi 를 실제로 끄고 `Restart-Service VIGENT` → `/health` healthy** 확인.
         서비스는 LocalSystem 이라 로그인 계정 캐시와 **다른 캐시**를 본다 — "집에서 한 번 띄워
         봤으니 됐다" 는 성립하지 않는다(2026-08-20 실측). 반드시 **서비스로** 확인할 것.
@@ -257,6 +258,111 @@ Enable-NetAdapter -Name "이더넷"
 - [ ] 담당자에게 결과 요약 공유 약속(리포트 송부)
 - [ ] 당일 기록(3단계 메모·스냅샷·이벤트 로그) 백업
 
+## ★현장 데이터 수집 — 추적 ID 스위치율 (D1 B승격 판단용)
+
+> **왜 필요한가**: 위험구역 판정을 **사람 단위**로 바꾼 C안이 들어갔다(두 번째 사람이
+> 무기한 가려지던 문제 해소). 여기서 한 걸음 더 나가 **알림까지 사람 단위**로 할지(B안)는
+> **추적이 얼마나 안정적인가**에 달렸다. 추적이 흔들리면 같은 사람이 새 ID 를 계속 받아
+> 알림이 폭주한다(재생 검증 66배). **학원 현장의 실제 난이도**를 재야 결정할 수 있다.
+>
+> ★판정 기준은 [docs/PILOT_DECISIONS.md](PILOT_DECISIONS.md) D1 에 **미리 선언**해 뒀다
+> (≤2.0개/분 → B 승격 / >5.0 → C 유지 확정). 수치를 보고 기준을 만들지 않는다.
+
+### 무엇을 켜는가
+
+환경변수 **`VIGENT_TRACK_DEBUG=1`** 하나다. 서비스 계정 환경에 넣고 재시작한다.
+
+```powershell
+# 관리자 PowerShell — 서비스 환경변수로 설정
+[Environment]::SetEnvironmentVariable("VIGENT_TRACK_DEBUG", "1", "Machine")
+Restart-Service VIGENT
+```
+
+### 어디에 저장되는가
+
+**`data\track_debug.jsonl`** (프로젝트 루트 기준). 프레임마다 1줄씩 **덧붙는다**(append).
+
+> ⚠**기존 파일이 있으면 먼저 옮겨라** — 이어 붙으면 예전 기록과 섞여 분석이 틀어진다.
+> ```powershell
+> if (Test-Path data\track_debug.jsonl) { Move-Item data\track_debug.jsonl data\track_debug_이전.jsonl }
+> ```
+
+### 얼마나 돌리는가
+
+★**최소 20분**, 권장 **30분 이상**. 실습이 실제로 진행되는 동안 받아야 한다
+(사람이 안 움직이면 재는 의미가 없다). **20분 미만이면 "측정 불충분"으로 기록하고
+C 를 유지**한다 — 짧은 표본으로 알림 정책을 바꾸지 않는다.
+
+- 사람이 **드나드는** 구간이 포함돼야 한다(가만히 서 있기만 하면 ID 스위치가 안 잡힌다)
+- 지게차 뒤로 사람이 지나가는 **가림(occlusion)** 구간이 있으면 특히 좋다 — 거기서 ID 가 바뀐다
+
+### 끝나고 할 일
+
+**★반드시 끄고 재시작한다** — 켠 채 두면 프레임마다 파일에 쓰므로 디스크가 계속 찬다
+(디스크 풀은 [F2] 경로로 기록·통보를 함께 죽인다).
+
+```powershell
+[Environment]::SetEnvironmentVariable("VIGENT_TRACK_DEBUG", $null, "Machine")
+Restart-Service VIGENT
+```
+
+수집 파일은 **개인정보가 아니다**(좌표·ID 숫자만, 이미지 없음) — 그대로 가져와 분석한다.
+
+```powershell
+# ★이 수집 하나로 판정 3건이 닫힌다
+python benchmarks\b_passthru_2fps_check.py --data data\track_debug.jsonl --conf 0.6
+```
+
+| 이 수집으로 닫히는 판정 | 지표 | 기준이 적힌 곳 |
+|---|---|---|
+| **D1** 사람 단위 알림 B승격 | 분당 신규 track id | `docs/PILOT_DECISIONS.md` D1 |
+| **D5** 추적기 iou 복귀 | 추적 생존율(추적 후 ÷ 추적 전) | `docs/PILOT_DECISIONS.md` D5 |
+| **B-passthru** 검출통과 적용 | 버려진 검출의 연속구간 길이 분포 | `benchmarks/b_passthru_results.md` §6 |
+
+★위 스크립트가 세 번째 판정을 **자동으로** 내려준다(판정 기준이 스크립트에 박혀 있다).
+앞의 둘은 같은 파일에서 수동 계산한다.
+
+- [ ] 수집 전 기존 파일 이동
+- [ ] `VIGENT_TRACK_DEBUG=1` 설정 + 재시작
+- [ ] **20분 이상** 실습 중 수집
+- [ ] ★**끄고 재시작**
+- [ ] 파일 회수(용량 확인 — 30분에 수 MB 예상)
+
+---
+
+## 문제해결 — ★"정상으로 떴다가 몇 초 뒤 빨간불"이 되는 경우
+
+**당황하지 말 것. 고장이 아니라 진단이 늦게 나온 것이다.**
+
+기동 직후 예열은 **슬롯당 1회만** 검출을 돌려본다. 그런데 [F31] 의 저하 판정은
+**연속 3회 실패**해야 서므로, 예열 시점에는 아직 임계에 못 미쳐 `ready`(초록)로 뜬다.
+그 뒤 워커가 0.5초 주기로 돌기 시작하면 **약 1.5초 만에** 임계에 도달해 빨간불이 된다.
+
+```
+기동 → 예열 통과(초록, ready) → 워커 시작 → ~1.5초 후 unhealthy(503)
+```
+
+즉 **"떴다가 갑자기 빨개졌다"는 것 자체가 증상이 아니라, 진짜 고장을 늦게 발견한 것**이다.
+초록이던 순간에도 그 슬롯은 이미 죽어 있었다.
+
+**할 일** — `/health` 의 `slot_errors` 를 보면 원인이 바로 나온다:
+
+```powershell
+curl.exe -s http://127.0.0.1:8010/health | python -c "import sys,json; d=json.load(sys.stdin); print('degraded:',d.get('slot_degraded')); print('원인:',d.get('slot_errors'))"
+```
+
+- `slot_degraded` 에 **person** 이 있으면 🔴 **사람 검출이 죽은 것** — 침입 경보가 나가지 않는다.
+  **시연을 진행하지 말고** 원인을 먼저 잡아야 한다.
+- `slot_errors` 에 원인이 파일명과 함께 나온다(예: `RuntimeError: ... rf-detr-nano.pth`).
+  가중치 문제면 `python scripts
+etch_weights.py --all --check` 로 확인한다.
+- ★**로드 실패는 저절로 낫지 않는다** — 원인을 고친 뒤 **서비스를 재시작**해야 한다
+  (실패한 슬롯을 재시도하지 않고 기억해 두기 때문. 재시도는 방문 후 백로그).
+
+**반대로**, 예열에서 이미 `failed` 면 그건 다른 문제다(가중치 자체가 없음 → 기동 거부).
+
+---
+
 ## 문제해결 — ★경보가 정말 안 난 건지 확인하는 법
 
 > 🔴 **`logs/vigent.err.log` 에 경보가 없다고 "발화 안 함"으로 판단하면 틀린다**
@@ -302,7 +408,8 @@ ecognition\events_20260822.jsonl -Encoding UTF8 |
 **실제로 봐야 할 곳** — 로그의 HANG 감지 줄:
 
 ```powershell
-Select-String -Path logsigent.err.log -Pattern "HANG 감지" -Encoding UTF8 | Select-Object -Last 10
+Select-String -Path logs
+igent.err.log -Pattern "HANG 감지" -Encoding UTF8 | Select-Object -Last 10
 ```
 
 ```

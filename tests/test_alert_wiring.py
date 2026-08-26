@@ -290,7 +290,7 @@ class TestDeriveWiring(unittest.TestCase):
             for _ in range(3):
                 fired_all.append(W._derive(out, [], 0.5625, cid="c", prox_debouncer=db))
                 clock[0] += 0.5                       # 검출주기 0.5초
-        rules = [[r for r, _, _ in f] for f in fired_all]
+        rules = [[r for r, *_ in f] for f in fired_all]
         self.assertNotIn("proximity_hazard", rules[0])
         self.assertIn("proximity_hazard", rules[1], "확정 전이에서 발화하지 않았다")
         self.assertNotIn("proximity_hazard", rules[2], "체류 중 재발화했다(폭주 위험)")
@@ -304,7 +304,7 @@ class TestDeriveWiring(unittest.TestCase):
             f1 = W._derive(out, [], 0.5625, cid="c", prox_debouncer=None)
             f2 = W._derive(out, [], 0.5625, cid="c", prox_debouncer=None)
         for f in (f1, f2):
-            self.assertIn("proximity_hazard", [r for r, _, _ in f])
+            self.assertIn("proximity_hazard", [r for r, *_ in f])
 
 
 class TestWorkerCallsNotify(unittest.TestCase):

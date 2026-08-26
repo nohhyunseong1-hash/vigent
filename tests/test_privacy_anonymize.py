@@ -112,9 +112,12 @@ class TestEvidencePathWired(unittest.TestCase):
             return frame
 
         with mock.patch.object(worker.privacy, "anonymize_faces", side_effect=_spy):
-            url = worker._frame_to_dataurl(f, [[0.2, 0.1, 0.6, 0.9]])
+            # ★[D4-②, 2026-08-24] 반환이 (url, privacy_failed) 튜플로 바뀌었다 —
+            #   모자이크 실패 사실을 이벤트 기록에 남겨 **선별 삭제**가 가능하게 하기 위함.
+            url, failed = worker._frame_to_dataurl(f, [[0.2, 0.1, 0.6, 0.9]])
         self.assertTrue(called.get("yes"), "증거 저장 경로가 비식별화를 거치지 않는다")
         self.assertTrue(url.startswith("data:image/jpeg;base64,"))
+        self.assertFalse(failed, "정상 경로인데 모자이크 실패로 표시됐다")
         base64.b64decode(url.split(",", 1)[1])       # 유효한 JPEG base64
 
 
