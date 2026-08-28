@@ -1,0 +1,185 @@
+<meta charset="utf-8"><title>현장 테스트 보고서</title>
+<style>
+@page { size: A4; margin: 16mm 14mm; }
+* { box-sizing: border-box; }
+body { font-family: "Malgun Gothic","맑은 고딕",sans-serif; color:#1a1a1a;
+       font-size:10.5pt; line-height:1.65; margin:0; }
+h1 { font-size:21pt; margin:0 0 4px; letter-spacing:-.5px; }
+h2 { font-size:13pt; margin:26px 0 10px; padding-bottom:6px; border-bottom:2px solid #1a1a1a; }
+h3 { font-size:11pt; margin:18px 0 6px; color:#333; }
+.sub { color:#666; font-size:10pt; margin-bottom:18px; }
+.meta { background:#f5f6f7; border-left:4px solid #444; padding:12px 14px;
+        font-size:9.3pt; line-height:1.75; margin:16px 0 22px; }
+.meta b.k { display:inline-block; min-width:74px; color:#000; }
+table { width:100%; border-collapse:collapse; margin:10px 0 16px; font-size:9.8pt; }
+th { background:#eceef0; text-align:left; padding:7px 9px; border:1px solid #c8ccd0; font-weight:600; }
+td { padding:7px 9px; border:1px solid #d8dcdf; vertical-align:top; }
+td.n, th.n { text-align:right; font-variant-numeric:tabular-nums; }
+tr:nth-child(even) td { background:#fafbfc; }
+.big { font-weight:700; color:#0a6b2e; }
+.warn { font-weight:700; color:#b3541e; }
+.bad { font-weight:700; color:#b32020; }
+figure { margin:14px 0; page-break-inside:avoid; }
+figure img { width:100%; border:1px solid #c8ccd0; display:block; }
+figcaption { font-size:8.8pt; color:#555; margin-top:5px; line-height:1.5; }
+.note { background:#fff8e6; border:1px solid #e8d9a8; padding:11px 13px; font-size:9.4pt; margin:14px 0; }
+.grid2 { display:flex; gap:11px; }
+.grid2 figure { flex:1; margin:14px 0; }
+ul,ol { margin:8px 0 14px; padding-left:20px; }
+li { margin:5px 0; }
+footer { margin-top:26px; padding-top:10px; border-top:1px solid #ccc; font-size:8.5pt; color:#777; }
+.pb { page-break-before:always; }
+.kpi { display:flex; gap:9px; margin:14px 0 20px; }
+.kpi div { flex:1; border:1px solid #c8ccd0; padding:10px 8px; text-align:center; background:#fafbfc; }
+.kpi .v { font-size:17pt; font-weight:700; display:block; line-height:1.25; }
+.kpi .l { font-size:8.3pt; color:#555; }
+</style>
+
+<h1>VIGENT 현장 테스트 보고서</h1>
+<div class="sub">중장비 학원 실습장 · 지게차 안전 시나리오 7장면 · 2026-08-27</div>
+
+<div class="meta">
+<b class="k">측정 일시</b> 2026-08-27 13:16 ~ 14:10 (54분)<br>
+<b class="k">장소·조건</b> 중장비 학원 실습장 · 야외 · 주간 · 맑음<br>
+<b class="k">카메라</b> TP-Link Tapo C200 1대 (RTSP stream1 · 현장 Wi-Fi · 판정 2 fps)<br>
+<b class="k">검출기</b> RF-DETR (person · PPE) + YOLO boda_ax (forklift) · 추적 ByteTrack<br>
+<b class="k">대상</b> 작업자 1명 · 지게차 1대 (현대 33D-9B)<br>
+<b class="k">표본</b> 9장면 929프레임 · 판정 270건 · 증거 사진 107장
+</div>
+
+<div class="kpi">
+  <div><span class="v big">97.7%</span><span class="l">지게차 검출률<br>(929프레임)</span></div>
+  <div><span class="v big">0.0%</span><span class="l">운전자 오경보<br>(200프레임)</span></div>
+  <div><span class="v big">100%</span><span class="l">경보 전송 성공<br>(19/19)</span></div>
+  <div><span class="v big">1.8초</span><span class="l">알림 지연<br>(중앙값)</span></div>
+</div>
+
+<h2>1. 이 보고서의 수치가 무엇인가</h2>
+<p>정답 기준은 <b>장면 대본</b>이다. 프레임마다 사람이 눈으로 라벨링한 것이 아니라,
+"이 장면에서는 안전모를 착용했다/하지 않았다"는 시나리오 설계값을 정답으로 삼아
+시스템 판정과 대조했다. 따라서 이 보고서는 다음을 구분한다.</p>
+<ul>
+<li><b>말할 수 있는 것</b> — 착용 상태를 착용으로 판정한 프레임 비율, 사람이 없는데 잡은 오검출 수,
+경보 전달 성공률과 지연</li>
+<li><b>말할 수 없는 것</b> — 학술적 의미의 precision / recall / mAP, 박스 위치 정확도(IoU).
+프레임 단위 수동 라벨링이 없어 <b>측정 불가</b>다.</li>
+</ul>
+<div class="note"><b>과소평가 방향의 오차</b> — 장면 전환 구간(승하차 중, 보호구 착탈 중)은
+정답이 모호하지만 그대로 집계에 포함했다. 즉 실제 일치율은 표의 값보다 높을 가능성이 있다.</div>
+
+<h2>2. 지게차 검출</h2>
+<table>
+<tr><th>장면</th><th class="n">프레임</th><th class="n">검출</th><th>비고</th></tr>
+<tr><td>1 — 정지</td><td class="n">70</td><td class="n big">100%</td><td>score 0.938~0.945, 변동 거의 없음</td></tr>
+<tr><td>4 — 주행 (화면 33% 횡단)</td><td class="n">137</td><td class="n big">99%</td><td>놓친 구간 2프레임 1회</td></tr>
+<tr><td>5 — 주행</td><td class="n">146</td><td class="n">92%</td><td></td></tr>
+<tr><td><b>전체 9장면</b></td><td class="n"><b>929</b></td><td class="n big">97.7%</td><td>정지·주행 모두 사실상 놓치지 않음</td></tr>
+</table>
+__BASE__
+
+<h2 class="pb">3. 보호구 판정 — 거리가 지배 변수</h2>
+<p>사람이 검출된 프레임에서 장면 대본과 판정이 일치한 비율이다.</p>
+<table>
+<tr><th>장비</th><th class="n">전체</th><th class="n">캐빈 (운전석)</th><th class="n">지상 (근거리)</th></tr>
+<tr><td>안전모</td><td class="n">373/436 = <b>85.6%</b></td><td class="n warn">125/184 = 67.9%</td><td class="n big">248/252 = 98.4%</td></tr>
+<tr><td>안전조끼</td><td class="n">382/404 = <b>94.6%</b></td><td class="n">102/119 = 85.7%</td><td class="n big">280/285 = 98.2%</td></tr>
+</table>
+<p>사람 박스 크기 중앙값은 <b>캐빈 0.24</b>(720p 환산 172px), <b>지상 0.82</b>(588px)였다.
+즉 모델 성능의 한계가 아니라 <b>화각 안에서 사람이 얼마나 크게 잡히는가</b>의 문제이며,
+운전석은 캐빈 프레임·기둥에 의한 가림이 겹친다.</p>
+<div class="grid2">__NOP____FULL__</div>
+
+<h3>사람 검출률 (재현율 아님)</h3>
+<table>
+<tr><th>구간</th><th class="n">검출</th><th>주의</th></tr>
+<tr><td>지상 · 연속 체류</td><td class="n big">271/273 = 99%</td><td>사람이 계속 화면에 있던 구간 — 재현율에 가장 가까운 값</td></tr>
+<tr><td>캐빈 (운전 중)</td><td class="n warn">258/469 = 55%</td><td>착석·가림 구간. 사람이 화면 밖이던 프레임도 포함돼 <b>하한값</b></td></tr>
+</table>
+
+<h2>4. 오검출 — 측정 가능했던 항목</h2>
+<table>
+<tr><th>항목</th><th>조건</th><th class="n">결과</th></tr>
+<tr><td>사람 오검출</td><td>장면 1 · 화면에 사람 없음</td><td class="n big">0 / 70 (0%)</td></tr>
+<tr><td><b>운전자 오경보</b><br>(탑승자를 침입자로 오인)</td><td>운전자 확인 200프레임</td><td class="n big">0 (0.0%)</td></tr>
+<tr><td class="bad"><b>운전자 오인</b><br>(지면의 사람을 운전자로 오인)</td><td>포함률 0.65↑ 210프레임 중</td><td class="n bad">10 (4.8%)</td></tr>
+<tr><td>지게차 오검출</td><td>지게차가 항상 실재 — 조건 미성립</td><td class="n">미측정</td></tr>
+</table>
+<p>운전자 제외 로직은 <b>운전석의 사람을 침입자로 오인한 적이 한 번도 없다</b>(200프레임).
+탑승 전후 포함률 0.29~0.58 구간에서는 정상적으로 근접경보가 발생했다.</p>
+__BOARD__
+
+<h3 class="bad">발견 — 지면에 선 사람이 운전자로 오인되는 경우</h3>
+<p>운전자 판정은 <b>사람 박스가 지게차 박스에 얼마나 겹치는가</b>(2차원 포함률)로 한다.
+그런데 사람이 카메라 방향에서 <b>지게차 바로 앞에 서면</b> 겹침이 커져 포함률이 0.65를 넘고,
+운전자로 간주돼 <b>근접 판정에서 제외된다</b>. 포함률 0.65 이상 210프레임을 육안으로 분류한 결과
+<b>10프레임(4.8%)</b>이 이 경우였고, 최장 <b>약 2.1초 연속</b>이었다 — 근접 디바운스(0.4초)를
+넘는 길이다.</p>
+<div class="note"><b>왜 중요한가</b> — 오류의 방향이 <b>위험한 쪽</b>이다. 경보가 잘못 울리는 것이
+아니라 <b>울려야 할 때 울리지 않는다</b>. 지게차 바로 앞은 실제로 가장 위험한 위치다.
+<br><b>다만</b> 오늘 표본에서 이 상태가 근접경보의 실제 누락으로 이어졌는지는 디바운스·쿨다운
+상태와 얽혀 있어 <b>단정할 수 없다</b>. 추가 검증이 필요하다.
+<br><b>분류 기준</b> — 사람 발끝이 지게차 박스 하단보다 화면 높이의 10% 이상 아래면 지면으로 봤다.
+이 기준은 16프레임을 육안 대조해 정했다(기준을 3%로 낮추면 발판에 올라선 승차 중까지 포함돼
+과대계상된다).</div>
+__MISFIRE__
+
+<h2 class="pb">5. 위험구역 침입</h2>
+<table>
+<tr><th>시도</th><th>구역</th><th class="n">발끝이 구역 안</th><th>판정</th></tr>
+<tr><td>1차</td><td>v1 (오른쪽 상단)</td><td class="n">9프레임 (스침)</td><td class="bad">미발화 — 체류 1초 미달</td></tr>
+<tr><td>2차</td><td>v1</td><td class="n bad">0프레임</td><td class="bad">미발화 — 구역이 밟을 수 없는 위치</td></tr>
+<tr><td>3차</td><td>v2 (재작도)</td><td class="n">88프레임</td><td class="big">발화 (14:00:25 체류 확정)</td></tr>
+<tr><td>장면 7</td><td>v2</td><td class="n">82프레임</td><td class="big">발화</td></tr>
+</table>
+<p><b>실패 원인은 알고리즘이 아니라 구역 작도였다.</b> 침입 판정 기준점은
+<b>발끝(박스 하단 중앙)</b>이며, 1차 구역은 사람이 실제로 설 수 없는 위치에 그려져 있었다.
+구역을 재작도한 뒤에는 두 번 모두 정상 발화했다.</p>
+__ZONE__
+
+<h2>6. 경보 전달</h2>
+<table>
+<tr><th>항목</th><th class="n">결과</th></tr>
+<tr><td>큐 적재 → 텔레그램 전송</td><td class="n big">19 / 19 = 100% (실패 0)</td></tr>
+<tr><td>전송 지연</td><td class="n">최소 1.2초 · <b>중앙값 1.8초</b> · 최대 3.7초</td></tr>
+<tr><td>판정 기록 → 폰 알림 요약비</td><td class="n">270건 → 19건 = <b>14.2 : 1</b></td></tr>
+<tr><td>쿨다운 합산 알림 ("N건 억제됨")</td><td class="n">9건</td></tr>
+</table>
+<p>판정 270건(보호구 미착용 133 · 근접 48 · 구역침입 45 · 급격동작 38 · 무동작 3 · 협업 3)이
+모두 기록으로 남는 동안, 휴대폰에는 19건만 전달됐다.
+<b>기록은 전부 남기고 알림은 요약한다</b>는 설계가 현장에서 확인됐다.</p>
+
+<h2 class="pb">7. 확인된 개선 과제</h2>
+<ol>
+<li class="bad"><b>[안전 관련·최우선] 운전자 판정에 깊이 정보가 없다</b> — 2차원 박스 겹침만
+보므로 "지게차 앞에 선 사람"과 "운전석의 운전자"를 구분하지 못한다(210프레임 중 10프레임,
+최장 2.1초). 오류 방향이 위험한 쪽이다. → 발끝 높이 비교(사람 발끝이 장비 바닥보다 아래면
+지면)를 운전자 판정에 추가하는 방안을 검토한다. 오늘 육안 대조에서 이 기준은 16프레임 중
+16프레임을 올바르게 분류했다.</li>
+<li><b>마스크 미착용이 보호구 경보를 지배한다</b> — 판정 라벨이
+{NO-Hardhat, NO-Safety-Vest, NO-Mask}로 묶여 있어, 안전모·조끼를 모두 착용해도
+마스크 미착용으로 경보가 계속 발생했다(장면 4 발화 41건의 원인: NO-Mask 33 ·
+NO-Hardhat 19 · NO-Safety-Vest 10). → 야외 실습장 프로파일에서 NO-Mask 제외 검토.</li>
+<li><b>캐빈 거리 안전모 판정 67.9%</b> — 카메라를 운전석에 더 가깝게·낮게 설치하거나,
+운전자 전용 임계를 분리하는 방안 검토. 오늘 데이터가 근거 자료가 된다.</li>
+<li><b>구역 작도 절차 표준화</b> — 화각이 바뀌면 반드시 재작도하고, 스냅샷에 구역을 겹쳐
+"밟을 수 있는 땅인지" 눈으로 확인하는 단계를 절차서에 포함한다.</li>
+<li><b>이동 중 추적 번호 교체</b> — 20초에 4회 교체가 관측됐다. 정지 체류 판정에는 영향이
+없었으나 "멈추지 않고 통과하는 침입자"는 별도 검증이 필요하다. <b>미측정</b>.</li>
+</ol>
+
+<h2>8. 이 측정의 한계</h2>
+<p>대외 문서에 이 수치를 인용할 때는 아래를 함께 밝혀야 한다.</p>
+<ul>
+<li>카메라 <b>1대</b>, 대상 <b>1명</b>, <b>주간·맑음</b> 조건의 단일 세션(54분) 결과다.</li>
+<li><b>야간·역광 미측정</b>. H.265 코덱, NVR 경유 연결은 <b>미검증</b>이다.</li>
+<li>정답이 장면 대본 수준이므로 mAP·IoU 등 학술 지표는 <b>산출 불가</b>다.</li>
+<li>지게차 1종(현대 33D-9B) 기준이며, 타 기종으로의 일반화는 <b>근거가 없다</b>.</li>
+<li>비전 인식은 확률적이므로 <b>인증 안전장치를 대체할 수 없다</b>.
+VIGENT는 보조·감시 계층으로 신호만 제공한다.</li>
+</ul>
+
+<footer>
+VIGENT 현장 테스트 보고서 · 측정 2026-08-27 · 원자료 runs/field_20260827/ ·
+상세 분석 benchmarks/field_academy_2026-08-27.md<br>
+본 보고서의 모든 수치는 실제 실행 로그에서 집계한 값이며, 추정치를 포함하지 않는다.
+</footer>

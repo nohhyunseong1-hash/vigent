@@ -19,7 +19,8 @@ vigent-core/weights/*
 
 # ── 데이터셋·산출물 ──
 data/
-runs/
+runs/*          # ★'runs/' 가 아니라 'runs/*' 다 — 디렉터리 자체를 제외하면
+                #   git 이 안으로 내려가지 않아 아래 현장자료 예외(!)가 무효가 된다.
 
 # ── 파이썬 캐시·가상환경 ──
 __pycache__/
@@ -75,3 +76,23 @@ deploy/windows/nssm.exe
 # 측정 스크립트의 raw 콘솔 출력(요약본 .md/.json 만 보존)
 audit/*_console.log
 audit/*_console.err
+
+# ── 현장 시험 자료(2026-08-27 학원 방문) ──
+#   원칙: **좌표·라벨·시각만 커밋한다. 사람이 찍힌 것은 커밋하지 않는다.**
+#   `runs/` 는 22행에서 통째로 무시되므로, 현장 원자료 텍스트만 아래에서 되살린다.
+#   얼굴 포함 원본은 저장소 밖 `VIGENT_현장자료_<날짜>/` 로 분리해 옮긴다.
+!runs/field_*/
+!runs/field_*/**/
+!runs/field_*/**/*.jsonl
+!runs/field_*/**/*.md
+!runs/field_*/**/*.json
+# 되살린 폴더 안에서도 이미지·영상은 다시 차단(방어선 2중)
+runs/field_*/**/*.jpg
+runs/field_*/**/*.png
+runs/field_*/**/*.mp4
+runs/raw_*/
+data/evidence/
+# 보고서는 md 만 커밋 — pdf/html 은 얼굴 사진이 base64 로 박혀 있다
+reports/*.pdf
+reports/*.png
+reports/현장테스트_보고서_*.html
