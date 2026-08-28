@@ -344,7 +344,7 @@ B2 시험용(추론 스킵). 기본 false·API 전용이지만 운영 빌드 제
   검증: relay 단독 3회 + **전체 스위트(412건) 3회 연속 통과** — 수정 전에는 전체 실행
   4회 중 2회 실패했다.
 
-**F30. `test_rfdetr_onnx_parity` 가 전체 스위트에서 1회 ERROR — 🔍 미확인, 재발 시 조사** 🟡 *(2026-08-21 추가)*
+**F30. `test_rfdetr_onnx_parity` 간헐 ERROR** — ✅ **원인 확정·수정 완료(2026-08-28)**
 - 위치: [tests/test_rfdetr_onnx_parity.py](tests/test_rfdetr_onnx_parity.py)
 - **관측된 사실만**(추측과 구분해 적는다):
   · 2026-08-21 전체 스위트 **6회 실행 중 1회** `ERROR` 발생
@@ -367,9 +367,28 @@ B2 시험용(추론 스킵). 기본 false·API 전용이지만 운영 빌드 제
 - 현장 시나리오: 직접적 현장 영향은 없다(측정·검증 전용 테스트). 다만 **F29 와 같은
   종류의 함정**이다 — 간헐 실패를 "flake 니까 괜찮다"로 넘기기 시작하면 게이트가
   경고 기능을 잃는다. F29 를 고친 직후이므로 같은 판단 실수를 반복하지 않기 위해 남긴다.
-- 재발 시 조사 순서: ①예외 traceback 확보(전체 실행 로그 보존) ②`nvidia-smi` 로 실행 중
-  VRAM 추이 관측 ③단독/전체 실행 간 차이가 메모리인지 순서인지 분리(테스트 격리 실행)
-  ④메모리로 확인되면 테스트 tearDown 에서 모델 해제·`torch.cuda.empty_cache()` 검토.
+- ✅ **2026-08-28 traceback 확보 — GPU 메모리 가설은 반증됐다**:
+
+  ```
+  File "rfdetr/detr.py", line 1489, in predict
+      from supervision import Detections, KeyPoints
+  ImportError: cannot import name 'BackgroundOverlayAnnotator'
+               from 'supervision.annotators.core'
+  ```
+
+  ★그 클래스는 **실제로 존재한다**(supervision 0.29.0 에서 확인). 즉 **부분 초기화된
+  모듈**을 본 것이다 — rfdetr 의 `predict()` 가 호출 시점에 supervision 을 **런타임 import**
+  하는데, 두 스레드가 **첫 검출에 동시 진입**하면 한쪽이 초기화 중인 모듈을 본다
+  (Python 의 import 락은 모듈 단위라 이런 창이 생긴다). **메모리와 무관하다.**
+
+  ★**3회에 걸쳐 "GPU 메모리 압박 의심"이라 기록했으나 틀렸다.** 정황(무거운 GPU 작업 직후)이
+  그럴듯했을 뿐이고, 실제로는 그때가 **배경 스레드가 많이 도는 시점**이라 경합 확률이 높았던 것이다.
+  추측을 기록으로 남겨 둔 것이 결과적으로 옳았다 — 사실로 승격시키지 않았기에 뒤집을 수 있었다.
+
+- ✅ **적용된 수정**: `detectors/rfdetr_adapter.py` 가 모듈 적재 시 `supervision` 을
+  **선적재**한다(`_preload_supervision()`). 실패해도 조용히 넘어간다(여기서 죽으면 검출이 안 뜬다).
+- ★**운영 영향도 있었다**: 여러 카메라 워커가 첫 검출에 동시 진입하면 같은 ImportError 로
+  슬롯 로드가 실패하고 [F31] 배선을 타 DEGRADED 가 된다. 선적재로 창 자체가 사라진다.
 
 ### 🟢 낮음 (정리 권장)
 

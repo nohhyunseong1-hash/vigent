@@ -29,6 +29,37 @@ from typing import Any
 
 from .base import BaseDetector, finalize_box
 
+_LOG_PRELOAD = logging.getLogger("vigent.rfdetr_adapter")
+
+
+def _preload_supervision() -> None:
+    """★[2026-08-28] `supervision` 을 **미리** 올려 동시 import 경합을 없앤다.
+
+    rfdetr 의 `predict()` 는 호출 시점에 `from supervision import Detections, KeyPoints` 를
+    **런타임에** 한다(rfdetr/detr.py). 두 스레드가 **첫 검출에 동시에 진입**하면 한쪽이
+    아직 초기화 중인 supervision 모듈을 보고 다음처럼 터진다:
+
+        ImportError: cannot import name 'BackgroundOverlayAnnotator'
+                     from 'supervision.annotators.core'
+
+    (그 클래스는 실제로 존재한다 — **부분 초기화된 모듈**을 본 것이다. Python 3.3+ 의
+     import 락은 모듈 단위라 동시 import 시 이런 창이 생긴다.)
+
+    실측: 전체 테스트 스위트에서 간헐 발생(누적 18회 중 4회, [F30]). 3회에 걸쳐
+    "GPU 메모리 압박"으로 추정했으나 **traceback 확보 결과 반증**됐다 — 메모리와 무관하다.
+
+    ★운영에서도 같은 일이 난다: 여러 카메라 워커가 첫 검출에 동시 진입하면 슬롯 로드가
+    실패하고, [F31] 배선을 타 DEGRADED 로 뜬다. 모듈 적재 시 한 번 올려두면 창 자체가 사라진다.
+    실패해도 조용히 넘어간다 — 여기서 죽으면 검출 자체가 못 뜬다.
+    """
+    try:
+        import supervision  # noqa: F401
+    except Exception as ex:  # noqa: BLE001
+        _LOG_PRELOAD.debug("supervision 선적재 건너뜀(%s) — predict 시 재시도된다", type(ex).__name__)
+
+
+_preload_supervision()
+
 _LOG = logging.getLogger("vigent.rfdetr_adapter")
 
 # [C-3] ONNX 전처리 상수 — rfdetr/detr.py predict() 내부 값과 동일(F.to_tensor→F.resize

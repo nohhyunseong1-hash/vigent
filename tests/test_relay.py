@@ -20,6 +20,17 @@ from mock_relay import MockRelay  # noqa: E402
 
 class _RelayTest(unittest.TestCase):
     def setUp(self):
+        # ★[2026-08-28] 다른 테스트가 띄워둔 **배경 전송 스레드를 먼저 재운다.**
+        #   alert_notify 전송 스레드와 alert_queue 재시도 스레드는 dispatcher 를 거쳐
+        #   `relay.turn_on()` 까지 닿는다. 그 스레드가 이 테스트 도중 깨어나면 전역 릴레이
+        #   상태(on_count·retrigger_count)를 건드려 **전체 스위트에서만** 실패한다
+        #   (실측: retrigger_count 가 1 이 아니라 2, 단독 실행은 3/3 통과).
+        #   [F29] 와 같은 계열 — 간헐 실패는 진짜 회귀와 구분이 안 돼 게이트를 못 믿게 만든다.
+        for _mod in ("alert_notify", "alert_queue"):
+            try:
+                __import__(_mod).stop()
+            except Exception:  # noqa: BLE001  없거나 안 돌고 있으면 그만이다
+                pass
         self.m = MockRelay().start()
         relay._reset_for_test()
 

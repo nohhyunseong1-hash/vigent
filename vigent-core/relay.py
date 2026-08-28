@@ -176,7 +176,21 @@ def status() -> dict[str, Any]:
 
 
 def _reset_for_test() -> None:
+    """★[2026-08-28] 테스트 간 상태 격리 — 실행 **중인** 자동해제 콜백까지 기다린다.
+
+    `Timer.cancel()` 은 **아직 시작하지 않은** 타이머만 막는다. 이미 발화해 `turn_off` 를
+    실행 중이면(HTTP 재시도 최대 8회) 그 콜백이 **리셋 이후에** `_state` 를 덮어써서
+    다음 테스트의 on_count·retrigger_count 가 어긋난다.
+    실제로 전체 스위트에서만 `test_duplicate_alert_extends_not_duplicates` 가 실패했다
+    (단독 3/3 통과) — 부하가 클수록 콜백 실행 창이 길어져 확률이 올라간다.
+    [F29] 와 같은 계열의 문제다: 간헐 실패는 진짜 회귀와 구분이 안 돼 게이트를 못 믿게 만든다.
+    """
     global _timer
+    t = _timer
+    if t is not None:
+        t.cancel()
+        if t.is_alive():        # 이미 발화해 콜백이 도는 중이면 끝날 때까지 기다린다
+            t.join(timeout=5.0)
     with _lock:
         _cancel_timer()
         _state.update(on=False, on_since=None, off_due=None, off_failed=False,

@@ -263,6 +263,9 @@ class GuardAgent(BaseAgent):
     # 보호구 클래스별 임계(후필터) — ppe 모델을 맵 최저 conf로 추론한 뒤 클래스별 임계로 거른다.
     #   최약체(NO-Hardhat)만 낮춰 재현율↑, 나머지는 유지. tuning.yaml detect.conf.ppe_per_class 로 조정.
     #   비어 있으면(기본) 기존 동작(단일 ppe conf) 그대로 → 저하 없음.
+    # 보호구 경보로 볼 '미착용' 라벨. 기본은 기존 3종(회귀 0). tuning `ppe.required` 로 바꾼다.
+    #   예: 마스크를 빼려면  ppe: { required: ["NO-Hardhat", "NO-Safety-Vest"] }
+    PPE_REQUIRED: set = set(PPE_MISSING_LABELS)
     PPE_PER_CLASS: dict[str, float] = {}
     # 화재/연기 클래스별 후필터 임계(T14-F, F-6 완화) — fire·smoke 는 confidence 분포가 달라
     #   단일 임계로 둘 다 만족 불가(smoke 는 낮추면 오검출 급증). tuning.yaml detect.conf.fire_smoke_per_class.
@@ -368,6 +371,11 @@ class GuardAgent(BaseAgent):
             self.BYTETRACK_ACTIVATION = float(_act) if _act is not None else None
             self.BYTETRACK_MIN_FRAMES = int(tuning.val("track", "bytetrack_min_frames", self.BYTETRACK_MIN_FRAMES))
             self.PASSTHROUGH_CONF = float(tuning.val("track", "passthrough_conf", self.PASSTHROUGH_CONF))
+            _req = tuning.section("ppe").get("required")
+            if _req:      # 지정했을 때만 좁힌다 — 오타로 전부 꺼지는 것을 막아 알려지지 않은 라벨은 무시
+                picked = {LABEL_NORMALIZE.get(str(x), str(x)) for x in _req} & set(PPE_MISSING_LABELS)
+                if picked:
+                    self.PPE_REQUIRED = picked
         except Exception:  # noqa: BLE001
             pass
         self._models: dict[str, Any] = {}      # id → YOLO (지연 로드 캐시)
@@ -938,7 +946,13 @@ class GuardAgent(BaseAgent):
 
         # 파생 신호(딥러닝 → 규칙 가산용)
         person_count = sum(1 for d in detections if d["label"].lower() == "person")
-        ppe_missing_hits = [d for d in detections if d["label"] in PPE_MISSING_LABELS]
+        # ★[현장 2026-08-27] 어떤 미착용을 '보호구 경보'로 볼지는 **현장마다 다르다**.
+        #   실측: 학원 야외 실습장에서 보호구 경보 490건 중 **87건(17.8%)이 "마스크 미착용"만**이
+        #   방아쇠였고, 완전 착용 장면에서는 **81건 중 72건(88.9%)** 이 그랬다
+        #   (안전모 0.83~0.91 · 조끼 0.87~0.93 정상 착용 상태 — 육안 확인).
+        #   마스크는 그 현장의 필수 보호구가 아니어서 **운영상 무의미한 경보**였다.
+        #   → tuning `ppe.required` 로 대상을 고른다. 미지정이면 **기존 3종 그대로**(회귀 0).
+        ppe_missing_hits = [d for d in detections if d["label"] in self.PPE_REQUIRED]
         # ppe_conf: 미착용 탐지 최고 confidence(있으면 Analyst 가산용으로 전달)
         ppe_conf = max((d["conf"] for d in ppe_missing_hits), default=0.0)
         # 화재·연기 탐지(보조 신호 — §8: 인증 화재경보 대체 아님)
