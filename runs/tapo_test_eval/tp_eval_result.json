@@ -1,0 +1,305 @@
+[
+ {
+  "video": "KakaoTalk_20260819_110751012.mp4",
+  "cid": "tp1",
+  "loop_s": 11.6,
+  "samples": 480,
+  "slot": {
+   "person": {
+    "total": 955,
+    "per_frame": 1.99,
+    "mean_conf": 0.829,
+    "min_conf": 0.334
+   },
+   "ppe": {
+    "total": 1623,
+    "per_frame": 3.38,
+    "mean_conf": 0.789,
+    "min_conf": 0.351
+   },
+   "fire_smoke": {
+    "total": 0,
+    "per_frame": 0.0,
+    "mean_conf": null,
+    "min_conf": null
+   },
+   "other": {
+    "total": 0,
+    "per_frame": 0.0,
+    "mean_conf": null,
+    "min_conf": null
+   },
+   "person_empty_spans_s": []
+  },
+  "tracking": {
+   "unique_tids": 7,
+   "id_switches": 0,
+   "id_switches_loop_boundary": 0,
+   "fragmented": 4,
+   "reid_ok": 8,
+   "reid_rate_pct": 66.7
+  },
+  "health": [
+   {
+    "t": 10.2,
+    "overall": "healthy",
+    "lat": 87.3,
+    "st": "ok"
+   },
+   {
+    "t": 40.2,
+    "overall": "healthy",
+    "lat": 48.2,
+    "st": "ok"
+   },
+   {
+    "t": 70.2,
+    "overall": "healthy",
+    "lat": 58.1,
+    "st": "ok"
+   },
+   {
+    "t": 100.4,
+    "overall": "healthy",
+    "lat": 59.4,
+    "st": "ok"
+   },
+   {
+    "t": 130.5,
+    "overall": "healthy",
+    "lat": 64.6,
+    "st": "ok"
+   },
+   {
+    "t": 160.6,
+    "overall": "healthy",
+    "lat": 57.0,
+    "st": "ok"
+   },
+   {
+    "t": 190.7,
+    "overall": "healthy",
+    "lat": 64.1,
+    "st": "ok"
+   },
+   {
+    "t": 220.9,
+    "overall": "healthy",
+    "lat": 71.4,
+    "st": "ok"
+   }
+  ],
+  "lat_list": [
+   87.3,
+   48.2,
+   58.1,
+   59.4,
+   64.6,
+   57.0,
+   64.1,
+   71.4
+  ]
+ },
+ {
+  "video": "KakaoTalk_20260819_110753108.mp4",
+  "cid": "tp2",
+  "loop_s": 10.9,
+  "samples": 481,
+  "slot": {
+   "person": {
+    "total": 964,
+    "per_frame": 2.0,
+    "mean_conf": 0.82,
+    "min_conf": 0.283
+   },
+   "ppe": {
+    "total": 1267,
+    "per_frame": 2.63,
+    "mean_conf": 0.725,
+    "min_conf": 0.351
+   },
+   "fire_smoke": {
+    "total": 0,
+    "per_frame": 0.0,
+    "mean_conf": null,
+    "min_conf": null
+   },
+   "other": {
+    "total": 0,
+    "per_frame": 0.0,
+    "mean_conf": null,
+    "min_conf": null
+   },
+   "person_empty_spans_s": []
+  },
+  "tracking": {
+   "unique_tids": 13,
+   "id_switches": 0,
+   "id_switches_loop_boundary": 0,
+   "fragmented": 8,
+   "reid_ok": 14,
+   "reid_rate_pct": 63.6
+  },
+  "health": [
+   {
+    "t": 10.1,
+    "overall": "healthy",
+    "lat": 65.2,
+    "st": "ok"
+   },
+   {
+    "t": 40.3,
+    "overall": "healthy",
+    "lat": 53.9,
+    "st": "ok"
+   },
+   {
+    "t": 70.4,
+    "overall": "healthy",
+    "lat": 59.0,
+    "st": "ok"
+   },
+   {
+    "t": 100.6,
+    "overall": "healthy",
+    "lat": 83.5,
+    "st": "ok"
+   },
+   {
+    "t": 130.7,
+    "overall": "healthy",
+    "lat": 54.4,
+    "st": "ok"
+   },
+   {
+    "t": 160.8,
+    "overall": "healthy",
+    "lat": 50.3,
+    "st": "ok"
+   },
+   {
+    "t": 190.9,
+    "overall": "healthy",
+    "lat": 51.0,
+    "st": "ok"
+   },
+   {
+    "t": 221.0,
+    "overall": "healthy",
+    "lat": 53.2,
+    "st": "ok"
+   }
+  ],
+  "lat_list": [
+   65.2,
+   53.9,
+   59.0,
+   83.5,
+   54.4,
+   50.3,
+   51.0,
+   53.2
+  ]
+ },
+ {
+  "video": "KakaoTalk_20260819_110756003.mp4",
+  "cid": "tp3",
+  "loop_s": 14.5,
+  "samples": 480,
+  "slot": {
+   "person": {
+    "total": 1374,
+    "per_frame": 2.86,
+    "mean_conf": 0.904,
+    "min_conf": 0.291
+   },
+   "ppe": {
+    "total": 3536,
+    "per_frame": 7.37,
+    "mean_conf": 0.765,
+    "min_conf": 0.354
+   },
+   "fire_smoke": {
+    "total": 0,
+    "per_frame": 0.0,
+    "mean_conf": null,
+    "min_conf": null
+   },
+   "other": {
+    "total": 2,
+    "per_frame": 0.0,
+    "mean_conf": 0.292,
+    "min_conf": 0.292
+   },
+   "person_empty_spans_s": []
+  },
+  "tracking": {
+   "unique_tids": 17,
+   "id_switches": 3,
+   "id_switches_loop_boundary": 1,
+   "fragmented": 24,
+   "reid_ok": 0,
+   "reid_rate_pct": 0.0
+  },
+  "health": [
+   {
+    "t": 10.1,
+    "overall": "healthy",
+    "lat": 58.8,
+    "st": "ok"
+   },
+   {
+    "t": 40.2,
+    "overall": "healthy",
+    "lat": 57.0,
+    "st": "ok"
+   },
+   {
+    "t": 70.3,
+    "overall": "healthy",
+    "lat": 49.9,
+    "st": "ok"
+   },
+   {
+    "t": 100.3,
+    "overall": "healthy",
+    "lat": 53.9,
+    "st": "ok"
+   },
+   {
+    "t": 130.5,
+    "overall": "healthy",
+    "lat": 44.9,
+    "st": "ok"
+   },
+   {
+    "t": 160.6,
+    "overall": "healthy",
+    "lat": 58.6,
+    "st": "ok"
+   },
+   {
+    "t": 190.7,
+    "overall": "healthy",
+    "lat": 71.1,
+    "st": "ok"
+   },
+   {
+    "t": 220.8,
+    "overall": "healthy",
+    "lat": 44.6,
+    "st": "ok"
+   }
+  ],
+  "lat_list": [
+   58.8,
+   57.0,
+   49.9,
+   53.9,
+   44.9,
+   58.6,
+   71.1,
+   44.6
+  ]
+ }
+]
