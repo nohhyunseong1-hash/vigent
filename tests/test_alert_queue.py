@@ -33,12 +33,23 @@ class _Channel:
 
 class _QueueTest(unittest.TestCase):
     def setUp(self):
+        # ★[2026-08-28] 배경 재시도 스레드를 **먼저 재운다.**
+        #   main.py 가 기동 시 alert_queue.start() 를 부르므로, main 을 import 하는 테스트가
+        #   하나라도 있으면 재시도 스레드가 스위트 내내 살아 5초마다 drain() 한다.
+        #   그러면 **그 시점의 전역 sender**(= 이 테스트의 채널)로 경보가 새어 들어가
+        #   타이밍에 따라 실패한다(셔플 10회 중 4회 실측: test_dead_is_not_retried 등).
+        q.stop()
+        try:
+            __import__("alert_notify").stop()
+        except Exception:  # noqa: BLE001
+            pass
         self.tmp = tempfile.TemporaryDirectory()
         q._reset_for_test(Path(self.tmp.name) / "aq.db")
         self.ch = _Channel()
         q.set_sender(self.ch.send)
 
     def tearDown(self):
+        q.stop()
         q._reset_for_test()
         self.tmp.cleanup()
 

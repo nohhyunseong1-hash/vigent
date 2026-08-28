@@ -389,6 +389,18 @@ B2 시험용(추론 스킵). 기본 false·API 전용이지만 운영 빌드 제
   **선적재**한다(`_preload_supervision()`). 실패해도 조용히 넘어간다(여기서 죽으면 검출이 안 뜬다).
 - ★**운영 영향도 있었다**: 여러 카메라 워커가 첫 검출에 동시 진입하면 같은 ImportError 로
   슬롯 로드가 실패하고 [F31] 배선을 타 DEGRADED 가 된다. 선적재로 창 자체가 사라진다.
+- ★**2026-08-28 추가 — 같은 계열이 하나가 아니었다.** 순서 셔플 10회 검증(별도 프로세스)에서
+  같은 테스트가 **다른 모듈**로 1회 실패했다:
+
+  ```
+  AttributeError: module 'sympy' has no attribute 'printing'
+  ```
+
+  `sympy.printing` 도 **실제로 존재한다**(sympy 1.14.0 확인) — 역시 **부분 초기화**다.
+  `torch.fx/onnx` 경로가 sympy 를 런타임 import 하기 때문이다.
+  → 선적재 목록에 `sympy`·`sympy.printing` 을 추가했다.
+  ★**목록이 완전하다고 단정하지 않는다** — 무거운 지연 import 는 더 있을 수 있다.
+    재발하면 그 모듈명을 추가하는 구조로 두었다(`_preload_supervision()` 의 루프).
 
 ### 🟢 낮음 (정리 권장)
 

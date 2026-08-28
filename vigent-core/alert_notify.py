@@ -95,6 +95,14 @@ def stop(join_s: float = 2.0) -> None:
     t = _thread
     if t is not None and t.is_alive():
         t.join(timeout=join_s)
+        if t.is_alive():
+            # ★[2026-08-28] 예전에는 join 실패해도 참조를 지웠다. 그러면 다음 start() 가
+            #   **두 번째 스레드**를 띄우고, 고아 스레드는 그때그때의 전역 sender 로 계속
+            #   전송한다(느린 채널이면 join 2초를 넘기기 쉽다 — 실측으로 확인).
+            #   참조를 유지하면 start() 가 그 스레드를 재사용해 중복이 생기지 않는다.
+            _LOG.warning("통보 스레드가 %.1f초 안에 끝나지 않았다 — 참조를 유지한다"
+                         "(중복 기동 방지)", join_s)
+            return
     _thread = None
 
 

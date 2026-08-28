@@ -61,21 +61,76 @@ class NarrowingWorks(unittest.TestCase):
 
 
 class MisconfigurationIsSafe(unittest.TestCase):
-    """계약 3 — ★오타가 안전 기능을 죽이면 안 된다."""
+    """계약 3 — ★오타가 안전 기능을 죽이면 안 되고, **조용히 넘어가서도 안 된다**.
+
+    ★[2026-08-28] 예전에는 오타·빈 목록이 **로그 한 줄 없이** 기본 3종으로 복귀했다.
+      그러면 운영자는 "마스크를 껐다"고 믿는데 오탐은 그대로 나고 원인은 보이지 않는다.
+      조용한 폴백이 오탐 자체보다 나쁘다 — 반드시 드러나야 한다.
+    """
 
     def test_unknown_label_falls_back_to_default(self):
         g = _guard(["NO-Helmet", "오타"])      # 전부 미지의 라벨
         self.assertEqual(g.PPE_REQUIRED, {"NO-Hardhat", "NO-Safety-Vest", "NO-Mask"},
                          "★오타만 있는 설정에서 보호구 경보가 통째로 꺼졌다")
 
-    def test_empty_list_falls_back(self):
-        g = _guard([])
-        self.assertEqual(g.PPE_REQUIRED, {"NO-Hardhat", "NO-Safety-Vest", "NO-Mask"})
+    def test_unknown_label_is_not_silent(self):
+        """★핵심 — 무시했다는 사실이 상태로 드러나야 한다."""
+        g = _guard(["helemt"])
+        warn = g.status()["ppe_config_warn"]
+        self.assertTrue(warn, "★오타가 조용히 무시됐다 — 운영자가 알 방법이 없다")
+        self.assertIn("helemt", warn, "무엇이 잘못됐는지 문구에 없다")
+        self.assertIn("NO-Hardhat", warn, "가능한 값 안내가 없다")
 
-    def test_partial_typo_keeps_valid_ones(self):
-        """일부만 유효하면 유효한 것만 쓴다(전부 무시하지 않는다)."""
-        g = _guard(["NO-Hardhat", "오타"])
-        self.assertEqual(g.PPE_REQUIRED, {"NO-Hardhat"})
+    def test_unknown_label_logs_error(self):
+        """로그로도 남는다 — /health 를 안 보는 운영자를 위해."""
+        with mock.patch.object(guard_mod, "_guard_logger") as lg:
+            _guard(["helemt"])
+        self.assertTrue(lg.return_value.error.called or lg.return_value.warning.called,
+                        "★설정 무효인데 로그가 없다")
+
+    def test_empty_list_is_not_silent(self):
+        """빈 리스트도 마찬가지 — 보호구 경보가 꺼지지도, 조용하지도 않는다."""
+        g = _guard([])
+        self.assertEqual(g.PPE_REQUIRED, {"NO-Hardhat", "NO-Safety-Vest", "NO-Mask"},
+                         "★빈 리스트로 보호구 경보가 통째로 꺼졌다")
+        self.assertTrue(g.status()["ppe_config_warn"], "★빈 리스트가 조용히 무시됐다")
+
+    def test_partial_typo_invalidates_whole_config(self):
+        """★[2026-08-28 재수정] 일부만 유효해도 **설정 전체를 무효**로 본다.
+
+        예전에는 "유효한 것만 골라 쓰기"를 했는데, 그게 **가장 위험한 경우에 신호가 가장
+        약한** 구조였다 — 오타 단독·빈 목록은 기본 3종으로 폴백해 커버리지가 **넓어지지만**,
+        부분 무효만 커버리지가 **좁아졌다.** 예: 안전모+조끼를 의도한
+        `['helemt','NO-Safety-Vest']` 가 조끼만 감시하고 **안전모 미착용 경보가 조용히 사라진다.**
+        앞의 둘은 과탐 쪽으로 틀리지만 이건 **미탐 쪽으로** 틀린다.
+        """
+        g = _guard(["helemt", "NO-Safety-Vest"])
+        self.assertEqual(g.PPE_REQUIRED, {"NO-Hardhat", "NO-Safety-Vest", "NO-Mask"},
+                         "★부분 무효인데 좁은 설정이 적용됐다 — 안전모 경보가 조용히 사라진다")
+        warn = g.status()["ppe_config_warn"]
+        self.assertTrue(warn, "부분 무효를 알리지 않았다")
+        self.assertIn("helemt", warn, "무엇이 잘못됐는지 문구에 없다")
+
+    def test_all_invalid_cases_behave_identically(self):
+        """★세 경우(오타단독·빈목록·부분무효)의 처리가 **같아야** 한다 — 심각도 통일."""
+        results = [(_guard(r).PPE_REQUIRED, bool(_guard(r).status()["ppe_config_warn"]))
+                   for r in (["helemt"], [], ["helemt", "NO-Safety-Vest"])]
+        base = {"NO-Hardhat", "NO-Safety-Vest", "NO-Mask"}
+        for req, warned in results:
+            self.assertEqual(req, base, "무효 설정인데 기본값으로 안 돌아갔다")
+            self.assertTrue(warned, "무효 설정인데 조용하다")
+
+    def test_partial_invalid_logs_error_not_just_warning(self):
+        """★부분 무효도 ERROR 다 — 예전엔 WARN 뿐이라 신호가 약했다."""
+        with mock.patch.object(guard_mod, "_guard_logger") as lg:
+            _guard(["helemt", "NO-Safety-Vest"])
+        self.assertTrue(lg.return_value.error.called,
+                        "★부분 무효가 ERROR 로 남지 않는다 — 미탐 방향인데 신호가 약하다")
+
+    def test_valid_config_has_no_warning(self):
+        """정상 설정에서는 경고가 없어야 한다 — 늑대소년이 되면 아무도 안 본다."""
+        self.assertEqual(_guard(["NO-Hardhat", "NO-Safety-Vest"]).status()["ppe_config_warn"], "")
+        self.assertEqual(_guard().status()["ppe_config_warn"], "")
 
 
 class WiredIntoSignal(unittest.TestCase):

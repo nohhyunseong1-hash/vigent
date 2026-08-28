@@ -23,6 +23,15 @@ tuning:
     detect.include_fire_smoke:
       value: 0
       why: "화재 감시가 계약 범위 밖이고, 프레스 현장 실측에서 배경 오탐 리스크가 확인됐다."
+    ppe.required:
+      value: [NO-Hardhat, NO-Safety-Vest]
+      why: >-
+        마스크 제외. 현장 시험 2026-08-27 관측: 보호구 경보 490건 중 87건이
+        마스크 미착용만이 방아쇠였고, 보호구를 갖춰 입은 04·07 장면은 122건 중 81건이었다
+        (안전모 0.83~0.91·조끼 0.87~0.93 정상 착용인데 울림 — 육안 확인).
+        야외 중장비 실습장에서 마스크는 필수 보호구가 아니다.
+        ★전역 기본값은 3종 그대로 둔다 — 실내 분진 작업 등 다른 현장에서는 필수일 수 있다.
+        근거: benchmarks/ppe_mask_share_ci.py · audit/field_v1.2_reanalysis_2026-08-28.md
   overrides:
     detect.conf.forklift:
       value: 0.5

@@ -223,8 +223,24 @@ def start(interval: float = 5.0) -> threading.Thread:
     return _thread
 
 
-def stop() -> None:
+def stop(join_s: float = 3.0) -> None:
+    """재시도 스레드 정지. ★플래그만 세우지 말고 **실제로 끝날 때까지 기다린다.**
+
+    예전에는 `_stop.set()` 만 했다. 그러면 루프가 다음 주기(기본 5초)까지 계속 돌면서
+    `drain()` 으로 **그 시점의 전역 sender** 에 전송한다. 테스트에서는 다른 테스트가
+    설치한 채널로 경보가 새어 들어가 **타이밍에 따라 실패**했다(셔플 10회 중 4회 —
+    test_dead_is_not_retried 등). 운영에서도 종료 중 전송이 이어지는 것은 바람직하지 않다.
+    """
+    global _thread
     _stop.set()
+    t = _thread
+    if t is not None and t.is_alive():
+        t.join(timeout=join_s)
+        if t.is_alive():
+            _LOG.warning("재시도 스레드가 %.0f초 안에 끝나지 않았다 — 참조를 유지한다"
+                         "(중복 기동 방지)", join_s)
+            return
+    _thread = None
 
 
 def _reset_for_test(path: Path | None = None) -> None:

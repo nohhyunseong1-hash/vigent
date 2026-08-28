@@ -266,6 +266,7 @@ class GuardAgent(BaseAgent):
     # 보호구 경보로 볼 '미착용' 라벨. 기본은 기존 3종(회귀 0). tuning `ppe.required` 로 바꾼다.
     #   예: 마스크를 빼려면  ppe: { required: ["NO-Hardhat", "NO-Safety-Vest"] }
     PPE_REQUIRED: set = set(PPE_MISSING_LABELS)
+    PPE_CONFIG_WARN = ""      # 설정이 무시·부분무시됐을 때 사유(빈 문자열 = 정상)
     PPE_PER_CLASS: dict[str, float] = {}
     # 화재/연기 클래스별 후필터 임계(T14-F, F-6 완화) — fire·smoke 는 confidence 분포가 달라
     #   단일 임계로 둘 다 만족 불가(smoke 는 낮추면 오검출 급증). tuning.yaml detect.conf.fire_smoke_per_class.
@@ -371,11 +372,38 @@ class GuardAgent(BaseAgent):
             self.BYTETRACK_ACTIVATION = float(_act) if _act is not None else None
             self.BYTETRACK_MIN_FRAMES = int(tuning.val("track", "bytetrack_min_frames", self.BYTETRACK_MIN_FRAMES))
             self.PASSTHROUGH_CONF = float(tuning.val("track", "passthrough_conf", self.PASSTHROUGH_CONF))
+            self.PPE_CONFIG_WARN = ""
             _req = tuning.section("ppe").get("required")
-            if _req:      # 지정했을 때만 좁힌다 — 오타로 전부 꺼지는 것을 막아 알려지지 않은 라벨은 무시
-                picked = {LABEL_NORMALIZE.get(str(x), str(x)) for x in _req} & set(PPE_MISSING_LABELS)
-                if picked:
-                    self.PPE_REQUIRED = picked
+            if _req is not None:
+                # ★[2026-08-28] 예전에는 오타·빈 목록이 **로그 한 줄 없이** 기본 3종으로
+                #   복귀했다. 그러면 운영자는 "마스크를 껐다"고 믿는데 오탐은 그대로 나고,
+                #   원인은 보이지 않는다 — 조용한 폴백이 오탐보다 나쁘다.
+                #   이제 **반드시 드러낸다**: WARN 로그 + guard.status() 노출(/health).
+                #   ★기동을 실패시키지는 않는다 — 설정 오타로 안전 시스템 전체가 안 뜨는 것이
+                #     더 위험하다. 대신 "적용되지 않았다"는 사실을 크게 남긴다.
+                raw = [str(x) for x in (_req if isinstance(_req, (list, tuple, set)) else [_req])]
+                norm = {LABEL_NORMALIZE.get(x, x) for x in raw}
+                unknown = sorted(norm - set(PPE_MISSING_LABELS))
+                # ★[2026-08-28 재수정] 알 수 없는 라벨이 **하나라도** 섞이면 설정 **전체를 무효**로
+                #   본다. 예전에는 "유효한 것만 골라 쓰기"를 했는데, 그게 **가장 위험한 경우에
+                #   신호가 가장 약한** 구조였다:
+                #     ['helemt']                 → 기본 3종(커버리지 ↑)  + ERROR
+                #     []                         → 기본 3종(커버리지 ↑)  + ERROR
+                #     ['helemt','NO-Safety-Vest'] → 조끼만(커버리지 ↓)   + WARN 뿐  ← ★미탐 방향
+                #   안전모+조끼를 의도했는데 오타 하나로 **안전모 미착용 경보가 조용히 사라진다.**
+                #   앞의 둘은 과탐 쪽으로 틀리지만 이건 **미탐 쪽으로** 틀린다 — 심각도가 거꾸로였다.
+                #   → 세 경우를 통일한다: 기본값 폴백 + ERROR + /health 노출.
+                #   ★기동은 실패시키지 않는다(F1·F31 원칙) — 심각도만 고친다.
+                if unknown or not norm:
+                    self.PPE_CONFIG_WARN = (
+                        f"ppe.required={raw} 무효 — "
+                        + (f"알 수 없는 라벨 {unknown} 포함. " if unknown else "빈 목록. ")
+                        + f"**설정 전체를 적용하지 않고 기본 {sorted(PPE_MISSING_LABELS)} 로 동작한다.** "
+                        f"(일부만 골라 쓰면 의도한 감시 항목이 조용히 빠질 수 있다.) "
+                        f"가능한 값: {sorted(PPE_MISSING_LABELS)}")
+                    _guard_logger().error("★설정 무효: %s", self.PPE_CONFIG_WARN)
+                else:
+                    self.PPE_REQUIRED = norm
         except Exception:  # noqa: BLE001
             pass
         self._models: dict[str, Any] = {}      # id → YOLO (지연 로드 캐시)
@@ -520,6 +548,9 @@ class GuardAgent(BaseAgent):
                 "rfdetr_slots": getattr(self, "_rfdetr_status", []),   # F-8: 커스텀 가중치 실검사 결과
                 # [Q-3, 2026-08-10] 런타임 추론 실패 가시화 — 로드는 됐지만 매 프레임 예외로 실질
                 #   무응답인 슬롯을 여기서 잡는다(로드 성공 여부만 보는 rfdetr_slots 로는 못 잡음).
+                # ★[2026-08-28] 설정이 조용히 무시되는 상태를 밖에서 보이게 한다.
+                "ppe_required": sorted(self.PPE_REQUIRED),
+                "ppe_config_warn": self.PPE_CONFIG_WARN,
                 "slot_degraded": {k: v for k, v in self._slot_degraded.items() if v},
                 "predict_fail_streak": {k: v for k, v in self._predict_fail_streak.items() if v}}
 

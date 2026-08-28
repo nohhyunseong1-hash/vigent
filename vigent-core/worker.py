@@ -155,6 +155,12 @@ def _frame_to_dataurl(frame: "np.ndarray", person_boxes: list | None = None) -> 
     [P1a] 저장 직전에 얼굴을 비식별화한다 — 이 경로가 디스크에 남는 증거 이미지다.
     원본 frame 은 수정되지 않는다(privacy.anonymize_faces 가 사본을 만든다) → 검출 무영향.
     """
+    # ★[2026-08-28] 플래그 초기화를 **호출 지점**에서도 한다.
+    #   privacy.anonymize_faces 안에서만 초기화하면, 그 함수를 모킹하는 코드 경로에서
+    #   **앞선 호출의 실패 플래그가 그대로 새어** 정상 건이 '원본 저장'으로 표시된다
+    #   (셔플 실행에서 test_frame_to_dataurl_anonymizes 가 10회 중 4회 실패 — 실측).
+    #   운영에서는 실제 함수가 다시 초기화하므로 동작 변화는 없다(이중 초기화는 무해).
+    privacy._begin_call()
     safe = privacy.anonymize_faces(frame, person_boxes)
     # ★[D4-②, 2026-08-24] 모자이크가 실패하면 **원본이 그대로 저장된다**(설계 결정 — 증거 보전 우선).
     #   그 사실을 이벤트 기록에 남겨야 나중에 **선별 삭제**가 가능하다. 표시가 없으면

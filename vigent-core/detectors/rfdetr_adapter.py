@@ -52,10 +52,19 @@ def _preload_supervision() -> None:
     실패하고, [F31] 배선을 타 DEGRADED 로 뜬다. 모듈 적재 시 한 번 올려두면 창 자체가 사라진다.
     실패해도 조용히 넘어간다 — 여기서 죽으면 검출 자체가 못 뜬다.
     """
-    try:
-        import supervision  # noqa: F401
-    except Exception as ex:  # noqa: BLE001
-        _LOG_PRELOAD.debug("supervision 선적재 건너뜀(%s) — predict 시 재시도된다", type(ex).__name__)
+    # ★같은 계열이 하나가 아니다(2026-08-28 셔플 검증에서 2번째 사례 확인):
+    #     supervision — rfdetr.predict() 가 런타임 import
+    #     sympy       — torch.fx/onnx 경로가 런타임 import
+    #                   (관측: "AttributeError: module 'sympy' has no attribute 'printing'"
+    #                    — 그 속성은 실제로 존재한다. 부분 초기화된 모듈을 본 것이다.)
+    #   ★목록이 완전하다고 단정하지 않는다 — 무거운 지연 import 는 더 있을 수 있다.
+    #     재발하면 그 모듈명을 여기에 추가한다.
+    for _mod in ("supervision", "sympy", "sympy.printing"):
+        try:
+            __import__(_mod)
+        except Exception as ex:  # noqa: BLE001
+            _LOG_PRELOAD.debug("%s 선적재 건너뜀(%s) — 사용 시점에 재시도된다",
+                               _mod, type(ex).__name__)
 
 
 _preload_supervision()
