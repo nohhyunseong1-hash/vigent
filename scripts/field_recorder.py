@@ -60,6 +60,21 @@ def api(path: str, tok: str, raw: bool = False):
     return data if raw else json.loads(data.decode("utf-8"))
 
 
+def _save_jpg(path, img) -> None:
+    """★규칙 11 — 저장하고 **있는지 확인**한다.
+
+    `cv2.imwrite` 는 Windows 한글 경로에서 예외 없이 실패한다(2026-08-27 스모크 실측).
+    imencode 로 만들어 파이썬이 쓰고, 쓴 뒤 파일 존재·크기를 본다.
+    """
+    import cv2
+    ok, buf = cv2.imencode(".jpg", img)
+    if not ok:
+        raise RuntimeError(f"JPEG 인코딩 실패: {path}")
+    path.write_bytes(buf.tobytes())
+    if not path.exists() or path.stat().st_size == 0:
+        raise RuntimeError(f"파일이 쓰이지 않았다: {path}")
+
+
 def main() -> int:
     import cv2
     import numpy as np
@@ -75,11 +90,13 @@ def main() -> int:
     day = time.strftime("%Y%m%d")
     out = ROOT / "runs" / f"field_{day}" / a.scene
     out.mkdir(parents=True, exist_ok=True)
+    raw_dir = out / "raw"          # ★주석 없는 스틸
+    raw_dir.mkdir(parents=True, exist_ok=True)
     stop_file = out / "STOP"
     if stop_file.exists():
         stop_file.unlink()
 
-    vw = None
+    vw = raw_vw = None
     jl = (out / "dets.jsonl").open("a", encoding="utf-8")
     n = n_fail = still_i = 0
     label_counts: dict[str, int] = {}
@@ -110,6 +127,12 @@ def main() -> int:
             time.sleep(a.interval)
             continue
         h, w = fr.shape[:2]
+        # ★[2026-08-29] 원본은 여기서 지켜야 한다.
+        #   예전에는 fr 에 직접 박스를 그리고 그것만 저장해서 **주석 없는 원본이 그 자리에서
+        #   사라졌다.** 그 결과 학원 현장 929프레임으로 정답지를 만들 수 없게 됐다
+        #   (라벨러가 그려진 박스를 따라 그리면 정답지가 거울이 된다).
+        #   → 그리기는 반드시 **사본(vis)** 에 한다.
+        vis = fr.copy()
 
         for d in det.get("detections") or []:
             lb = str(d.get("class") or d.get("label") or "?")
@@ -117,8 +140,8 @@ def main() -> int:
             bb = d.get("bbox") or [0, 0, 0, 0]
             x1, y1, x2, y2 = int(bb[0] * w), int(bb[1] * h), int(bb[2] * w), int(bb[3] * h)
             col = COLORS.get(lb.lower(), (180, 180, 180))
-            cv2.rectangle(fr, (x1, y1), (x2, y2), col, 2)
-            cv2.putText(fr, f"{lb} {conf:.2f}", (x1, max(12, y1 - 4)),
+            cv2.rectangle(vis, (x1, y1), (x2, y2), col, 2)
+            cv2.putText(vis, f"{lb} {conf:.2f}", (x1, max(12, y1 - 4)),
                         cv2.FONT_HERSHEY_SIMPLEX, 0.45, col, 1, cv2.LINE_AA)
             label_counts[lb] = label_counts.get(lb, 0) + 1
 
@@ -130,15 +153,20 @@ def main() -> int:
             key = str(f.get("rule") or f) if isinstance(f, dict) else str(f)
             fired_seen[key] = fired_seen.get(key, 0) + 1
         head = f"{a.scene}  {time.strftime('%H:%M:%S')}  person={pc}"
-        cv2.putText(fr, head, (6, 16), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 1, cv2.LINE_AA)
+        cv2.putText(vis, head, (6, 16), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 1, cv2.LINE_AA)
         if fired:
-            cv2.putText(fr, "FIRED: " + ",".join((str(f.get("rule") or f) if isinstance(f, dict) else str(f)) for f in fired)[:60],
+            cv2.putText(vis, "FIRED: " + ",".join((str(f.get("rule") or f) if isinstance(f, dict) else str(f)) for f in fired)[:60],
                         (6, 34), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255), 2, cv2.LINE_AA)
 
         if vw is None:
+            # 실효 캡처 ~0.8fps(왕복 1.2s) — 1.0 이 실시간에 가깝다
             vw = cv2.VideoWriter(str(out / "overlay.mp4"),
-                                 cv2.VideoWriter_fourcc(*"mp4v"), 1.0, (w, h))  # 실효 캡처 ~0.8fps(왕복 1.2s) — 1.0 이 실시간에 가깝다
-        vw.write(fr)
+                                 cv2.VideoWriter_fourcc(*"mp4v"), 1.0, (w, h))
+            # ★주석 없는 원본 — 라벨링·재학습의 유일한 재료다. overlay 는 부산물이다.
+            raw_vw = cv2.VideoWriter(str(out / "original.mp4"),
+                                     cv2.VideoWriter_fourcc(*"mp4v"), 1.0, (w, h))
+        vw.write(vis)
+        raw_vw.write(fr)
         jl.write(json.dumps({"t": round(tick * 1000), "person_count": pc,
                              "fired": fired, "signals": det.get("signals"),
                              "detections": det.get("detections")}, ensure_ascii=False) + "\n")
@@ -147,9 +175,8 @@ def main() -> int:
             still_i += 1
             # cv2.imwrite 는 Windows 한글 경로에서 **조용히 실패**한다(2026-08-27 스모크에서 실측)
             #   → imencode 로 만들고 파이썬이 쓴다.
-            ok_j, buf = cv2.imencode(".jpg", fr)
-            if ok_j:
-                (out / f"still_{still_i:03d}.jpg").write_bytes(buf.tobytes())
+            _save_jpg(out / f"still_{still_i:03d}.jpg", vis)          # 눈으로 볼 것
+            _save_jpg(raw_dir / f"still_{still_i:03d}.jpg", fr)         # ★라벨링할 것
             last_still = tick
         if n % 40 == 0:
             print(f"  +{tick - t0:4.0f}s  프레임 {n} · person 최대 {pc_max} · fired {sum(fired_seen.values())}건")
@@ -157,7 +184,27 @@ def main() -> int:
 
     if vw is not None:
         vw.release()
+    if raw_vw is not None:
+        raw_vw.release()
     jl.close()
+
+    # ★규칙 11 — "저장했다"가 아니라 "있다"를 확인한다.
+    #   이번 사고(2026-08-29)의 뿌리가 여기다: 절차서에는 "원본 확보"라고 적혀 있었지만
+    #   그것을 **만드는 장치도, 확인하는 장치도** 없었다. 적어 두는 것과 만드는 것은 다르다.
+    problems: list[str] = []
+    raw_mp4, ov_mp4 = out / "original.mp4", out / "overlay.mp4"
+    for f, why in ((raw_mp4, "★주석 없는 원본 — 라벨링·재학습의 유일한 재료"),
+                   (ov_mp4, "오버레이(부산물)")):
+        if not f.exists() or f.stat().st_size == 0:
+            problems.append(f"{f.name} 없음/비어있음 — {why}")
+    raw_n = len(list(raw_dir.glob("still_*.jpg")))
+    ov_n = len(list(out.glob("still_*.jpg")))
+    if raw_n != still_i or ov_n != still_i:
+        problems.append(f"스틸 개수 불일치 — 기대 {still_i} · 원본 {raw_n} · 오버레이 {ov_n}")
+    if n > 0 and not problems:
+        print(f"[확인] ★원본 {raw_mp4.name} {raw_mp4.stat().st_size / 1e6:.1f}MB · "
+              f"오버레이 {ov_mp4.stat().st_size / 1e6:.1f}MB · 원본 스틸 {raw_n}장 — 디스크 확인 완료")
+
     dur = time.time() - t0
     lines = [f"# 장면 {a.scene} — {time.strftime('%Y-%m-%d %H:%M')}",
              f"- 길이 {dur / 60:.1f}분 · 프레임 {n} (실효 {n / max(dur, 1):.2f}fps) · 캡처실패 {n_fail}",
@@ -168,6 +215,11 @@ def main() -> int:
     (out / "summary.md").write_text("\n".join(lines) + "\n", encoding="utf-8")
     print("\n".join(lines))
     print(f"[저장] {out}")
+    if problems:
+        print("❌ 저장 검증 실패 — 이 장면은 **다시 찍어야 한다**:")
+        for x in problems:
+            print(f"    · {x}")
+        return 1
     return 0 if n > 0 else 1
 
 
