@@ -256,11 +256,44 @@ def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--template", required=True)
     ap.add_argument("--out", required=True)
+    ap.add_argument("--force", action="store_true",
+                    help="기존 산출물이 커밋본과 달라도 덮어쓴다(백업은 그래도 만든다)")
     args = ap.parse_args()
     tpl, out = Path(args.template), Path(args.out)
     if not tpl.exists():
         print(f"❌ 양식 없음: {tpl}")
         return 1
+
+    # ★[사고 재발 방지 — 2026-09-03] 이 스크립트가 사용자가 직접 편집한 docx 를
+    #   확인 없이 덮어써 편집 내용을 유실시킨 일이 실제로 있었다(규칙 2 위반).
+    #   → 덮어쓰기 전에 ①무조건 백업을 만들고 ②기존 파일이 저장소 최신 커밋본과
+    #     다르면(=사람이 고쳤을 가능성) --force 없이는 중단한다.
+    if out.exists():
+        import hashlib
+        import shutil
+        import subprocess
+        import time as _time
+        ts = _time.strftime("%Y%m%d_%H%M%S")
+        backup = out.with_name(f"{out.stem}_백업_{ts}{out.suffix}")
+        shutil.copy2(out, backup)
+        if not backup.exists() or backup.stat().st_size != out.stat().st_size:
+            print(f"❌ 백업 생성 실패 — 진행하지 않는다: {backup}")
+            return 1
+        cur = hashlib.sha256(out.read_bytes()).hexdigest()
+        head = None
+        try:
+            r = subprocess.run(["git", "-C", str(out.parent), "show", f"HEAD:./{out.name}"],
+                               capture_output=True, timeout=30)
+            if r.returncode == 0:
+                head = hashlib.sha256(r.stdout).hexdigest()
+        except Exception:  # noqa: BLE001
+            pass
+        if cur != head and not args.force:
+            print("⛔ 중단: 기존 산출물이 저장소 최신 커밋본과 다르다 — **사람이 편집했을 수 있다.**")
+            print(f"   기존 파일 백업: {backup}")
+            print("   편집 내용을 확인·병합한 뒤 다시 실행하거나, 정말 덮으려면 --force 를 붙여라.")
+            return 1
+        print(f"   (덮어쓰기 전 백업 생성: {backup.name})")
 
     doc = docx.Document(str(tpl))
     body = doc.element.body
