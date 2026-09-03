@@ -1,15 +1,19 @@
 #!/usr/bin/env python3
-"""[문서] md → docx 변환 — 외부 라이브러리 없이(표준 라이브러리만).
+"""[문서] md → docx 변환 — python-docx 기반 (v2).
 
-★왜 이렇게 하나
-  python-docx 가 설치돼 있지 않고, 외부 설치는 승인 절차가 필요하다(CLAUDE.md).
-  docx 는 zip + XML 이므로 표준 라이브러리로 만들 수 있다.
-  ★양식 docx 를 통째로 복사한 뒤 본문(word/document.xml)만 갈아끼우고
-  하이퍼링크 관계(document.xml.rels)를 덧붙인다 — 양식의 스타일·글꼴·설정을 물려받는다.
+★내력
+  v1(2026-09-03 오전)은 python-docx 미설치 상태라 zip+XML 을 손으로 조립했다.
+  같은 날 사용자 승인으로 python-docx 를 설치해(requirements-optional.txt)
+  라이브러리 기반으로 재작성했다 — 관계(rels)·네임스페이스를 라이브러리가 관리하므로
+  손조립보다 워드프로세서 호환성이 안전하다.
 
-지원 문법(이 저장소 md 가 쓰는 부분집합만 — 범위 밖 문법은 ★일반 문단으로 떨어진다):
+★양식 계승
+  --template 로 받은 양식 docx 를 **열어 본문만 비우고** 내용을 다시 채운다.
+  → 양식 파일의 스타일 정의·기본 글꼴·용지 설정(sectPr)을 그대로 물려받는다.
+
+지원 문법(이 저장소 md 부분집합 — 범위 밖 문법은 일반 문단으로 떨어진다):
   # ~ ### 제목 · GFM 표 · '- ' 목록(2칸 들여쓰기 1단계) · '> ' 인용 ·
-  **굵게** · `코드` · [글](링크) · '---' 구분선 · [공란 …] 노란 형광펜
+  **굵게** · `코드` · [글](링크) · '---' 구분선 무시 · '[공란 …]' 노란 형광펜
 
 사용:
   python scripts/md_to_docx.py --md <입력.md> --template <양식.docx> --out <출력.docx>
@@ -18,158 +22,178 @@ from __future__ import annotations
 
 import argparse
 import re
-import shutil
 import sys
-import zipfile
 from pathlib import Path
-from xml.sax.saxutils import escape
 
 if hasattr(sys.stdout, "reconfigure"):
     sys.stdout.reconfigure(encoding="utf-8")
 
-FONT = '<w:rFonts w:ascii="Malgun Gothic" w:eastAsia="맑은 고딕" w:hAnsi="Malgun Gothic"/>'
 HL_RE = re.compile(r"(\[공란[^\]]*\])")            # 대표가 채울 칸 — 노란 형광펜
 LINK_RE = re.compile(r"\[([^\]]+)\]\((https?://[^)]+)\)")
 BOLD_RE = re.compile(r"\*\*(.+?)\*\*")
 CODE_RE = re.compile(r"`([^`]+)`")
+EAST, WEST = "맑은 고딕", "Malgun Gothic"
 
 
-class Doc:
-    def __init__(self) -> None:
-        self.body: list[str] = []
-        self.links: list[str] = []                  # rId 순서 = 목록 순서
+def main() -> int:
+    import docx
+    from docx.enum.text import WD_COLOR_INDEX
+    from docx.opc.constants import RELATIONSHIP_TYPE as RT
+    from docx.oxml.ns import qn
+    from docx.shared import Pt, RGBColor
 
-    # ── 런(글자 조각) ────────────────────────────────────────────
-    def _runs(self, text: str, sz: int, bold: bool, color: str | None) -> str:
-        """인라인 문법(**굵게**·`코드`·[링크]·[공란 형광펜])을 w:r 나열로 바꾼다."""
-        out: list[str] = []
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--md", required=True)
+    ap.add_argument("--template", required=True, help="★양식 docx — 스타일·용지 설정을 물려받는다")
+    ap.add_argument("--out", required=True)
+    args = ap.parse_args()
+    md_p, tpl, out = Path(args.md), Path(args.template), Path(args.out)
+    for p in (md_p, tpl):
+        if not p.exists():
+            print(f"❌ 없음: {p}")
+            return 1
 
-        def rpr(b: bool, hl: bool = False, link: bool = False, code: bool = False) -> str:
-            p = [FONT, f'<w:sz w:val="{sz}"/><w:szCs w:val="{sz}"/>']
-            if b:
-                p.append("<w:b/>")
-            if hl:
-                p.append('<w:highlight w:val="yellow"/>')
-            if link:
-                p.append('<w:color w:val="0563C1"/><w:u w:val="single"/>')
-            elif color:
-                p.append(f'<w:color w:val="{color}"/>')
-            if code:
-                p.insert(0, '<w:rFonts w:ascii="Consolas" w:eastAsia="맑은 고딕" w:hAnsi="Consolas"/>')
-                p.pop(1) if False else None
-            return "<w:rPr>" + "".join(p) + "</w:rPr>"
+    doc = docx.Document(str(tpl))
 
-        def run(t: str, b: bool, hl: bool = False, code: bool = False) -> str:
-            return f'<w:r>{rpr(b, hl, code=code)}<w:t xml:space="preserve">{escape(t)}</w:t></w:r>'
+    # ── 양식 본문 비우기(용지 설정 sectPr 만 남긴다) ─────────────
+    body = doc.element.body
+    for child in list(body):
+        if not child.tag.endswith("}sectPr"):
+            body.remove(child)
 
-        # 1) 링크 분리
+    # ── 헬퍼 ────────────────────────────────────────────────────
+    def style_run(r, sz, bold=False, color=None, hl=False, code=False):
+        r.font.name = "Consolas" if code else WEST
+        r.element.rPr.rFonts.set(qn("w:eastAsia"), EAST)
+        r.font.size = Pt(sz)
+        r.bold = bold
+        if color:
+            r.font.color.rgb = RGBColor.from_string(color)
+        if hl:
+            r.font.highlight_color = WD_COLOR_INDEX.YELLOW
+
+    def add_link(par, text, url, sz):
+        """python-docx 에는 고수준 하이퍼링크 API 가 없다 — 관계 등록 + oxml 로 만든다."""
+        rid = par.part.relate_to(url, RT.HYPERLINK, is_external=True)
+        h = docx.oxml.OxmlElement("w:hyperlink")
+        h.set(qn("r:id"), rid)
+        r = docx.oxml.OxmlElement("w:r")
+        rpr = docx.oxml.OxmlElement("w:rPr")
+        for tag, attrs in (("w:rFonts", {"w:ascii": WEST, "w:hAnsi": WEST, "w:eastAsia": EAST}),
+                           ("w:color", {"w:val": "0563C1"}),
+                           ("w:sz", {"w:val": str(sz * 2)}),
+                           ("w:u", {"w:val": "single"})):
+            e = docx.oxml.OxmlElement(tag)
+            for k, v in attrs.items():
+                e.set(qn(k), v)
+            rpr.append(e)
+        t = docx.oxml.OxmlElement("w:t")
+        t.set(qn("xml:space"), "preserve")
+        t.text = text
+        r.append(rpr)
+        r.append(t)
+        h.append(r)
+        par._p.append(h)
+
+    def inline(par, text, sz, bold=False, color=None):
+        """**굵게**·`코드`·[링크]·[공란 형광펜] 을 런으로 풀어 넣는다."""
         pos = 0
-        for m in LINK_RE.finditer(text):
-            before, label, url = text[pos:m.start()], m.group(1), m.group(2)
-            out.append(self._plain(before, sz, bold, rpr, run))
-            self.links.append(url)
-            rid = f"rIdVG{len(self.links)}"
-            out.append(f'<w:hyperlink r:id="{rid}"><w:r>{rpr(bold, link=True)}'
-                       f'<w:t xml:space="preserve">{escape(label)}</w:t></w:r></w:hyperlink>')
-            pos = m.end()
-        out.append(self._plain(text[pos:], sz, bold, rpr, run))
-        return "".join(out)
+        for lm in LINK_RE.finditer(text):
+            _plain(par, text[pos:lm.start()], sz, bold, color)
+            add_link(par, lm.group(1), lm.group(2), sz)
+            pos = lm.end()
+        _plain(par, text[pos:], sz, bold, color)
 
-    @staticmethod
-    def _plain(text: str, sz: int, bold: bool, rpr, run) -> str:
-        """링크가 없는 조각 — 굵게·코드·형광펜만 처리."""
-        parts: list[str] = []
-        # [공란] 형광펜 우선 분리
+    def _plain(par, text, sz, bold, color):
         for i, seg in enumerate(HL_RE.split(text)):
             hl = bool(i % 2)
-            pos = 0
-            for m in BOLD_RE.finditer(seg):
-                pre = seg[pos:m.start()]
-                if pre:
-                    parts.append(Doc._code_runs(pre, bold, hl, run))
-                parts.append(Doc._code_runs(m.group(1), True, hl, run))
-                pos = m.end()
-            rest = seg[pos:]
-            if rest:
-                parts.append(Doc._code_runs(rest, bold, hl, run))
-        return "".join(parts)
+            p2 = 0
+            for bm in BOLD_RE.finditer(seg):
+                _code(par, seg[p2:bm.start()], sz, bold, color, hl)
+                _code(par, bm.group(1), sz, True, color, hl)
+                p2 = bm.end()
+            _code(par, seg[p2:], sz, bold, color, hl)
 
-    @staticmethod
-    def _code_runs(text: str, bold: bool, hl: bool, run) -> str:
-        parts: list[str] = []
-        pos = 0
-        for m in CODE_RE.finditer(text):
-            if text[pos:m.start()]:
-                parts.append(run(text[pos:m.start()], bold, hl))
-            parts.append(run(m.group(1), bold, hl, code=True))
-            pos = m.end()
-        if text[pos:]:
-            parts.append(run(text[pos:], bold, hl))
-        return "".join(parts)
+    def _code(par, text, sz, bold, color, hl):
+        p2 = 0
+        for cm in CODE_RE.finditer(text):
+            if text[p2:cm.start()]:
+                style_run(par.add_run(text[p2:cm.start()]), sz, bold, color, hl)
+            style_run(par.add_run(cm.group(1)), sz, bold, color, hl, code=True)
+            p2 = cm.end()
+        if text[p2:]:
+            style_run(par.add_run(text[p2:]), sz, bold, color, hl)
 
-    # ── 블록 ────────────────────────────────────────────────────
-    def para(self, text: str, sz: int = 20, bold: bool = False, indent: int = 0,
-             color: str | None = None, before: int = 40, after: int = 40,
-             page_break: bool = False, border_bottom: bool = False) -> None:
-        ppr = [f'<w:spacing w:before="{before}" w:after="{after}" w:line="276" w:lineRule="auto"/>']
+    def para(text, sz=10, bold=False, indent=None, color=None,
+             before=2, after=2, page_break=False, rule=False):
+        p = doc.add_paragraph()
+        pf = p.paragraph_format
+        pf.space_before, pf.space_after = Pt(before), Pt(after)
         if indent:
-            ppr.append(f'<w:ind w:left="{indent}"/>')
-        if border_bottom:
-            ppr.append('<w:pBdr><w:bottom w:val="single" w:sz="12" w:space="1" w:color="333333"/></w:pBdr>')
-        pb = '<w:r><w:br w:type="page"/></w:r>' if page_break else ""
-        self.body.append(f'<w:p><w:pPr>{"".join(ppr)}</w:pPr>{pb}'
-                         f'{self._runs(text, sz, bold, color)}</w:p>')
+            pf.left_indent = Pt(indent)
+        if page_break:
+            from docx.enum.text import WD_BREAK
+            style_run(p.add_run(), sz)
+            p.runs[0].add_break(WD_BREAK.PAGE)
+        if rule:                                    # 제목 밑줄
+            pbdr = docx.oxml.OxmlElement("w:pBdr")
+            bot = docx.oxml.OxmlElement("w:bottom")
+            for k, v in (("w:val", "single"), ("w:sz", "12"), ("w:space", "1"), ("w:color", "333333")):
+                bot.set(qn(k), v)
+            pbdr.append(bot)
+            p._p.get_or_add_pPr().append(pbdr)
+        inline(p, text, sz, bold, color)
+        return p
 
-    def table(self, rows: list[list[str]]) -> None:
+    def set_cell_borders(tbl):
+        tblPr = tbl._tbl.tblPr
+        borders = docx.oxml.OxmlElement("w:tblBorders")
+        for edge in ("top", "left", "bottom", "right", "insideH", "insideV"):
+            e = docx.oxml.OxmlElement(f"w:{edge}")
+            for k, v in (("w:val", "single"), ("w:sz", "4"), ("w:color", "8C8C8C")):
+                e.set(qn(k), v)
+            borders.append(e)
+        tblPr.append(borders)
+
+    def table(rows):
         ncol = max(len(r) for r in rows)
-        b = '<w:top w:val="single" w:sz="4" w:color="8C8C8C"/><w:left w:val="single" w:sz="4" w:color="8C8C8C"/>' \
-            '<w:bottom w:val="single" w:sz="4" w:color="8C8C8C"/><w:right w:val="single" w:sz="4" w:color="8C8C8C"/>' \
-            '<w:insideH w:val="single" w:sz="4" w:color="8C8C8C"/><w:insideV w:val="single" w:sz="4" w:color="8C8C8C"/>'
-        out = [f'<w:tbl><w:tblPr><w:tblW w:w="5000" w:type="pct"/>'
-               f'<w:tblBorders>{b}</w:tblBorders>'
-               f'<w:tblCellMar><w:left w:w="85" w:type="dxa"/><w:right w:w="85" w:type="dxa"/></w:tblCellMar>'
-               f'<w:tblLayout w:type="autofit"/></w:tblPr>']
+        tbl = doc.add_table(rows=len(rows), cols=ncol)
+        set_cell_borders(tbl)                       # 양식에 'Table Grid' 스타일이 없어도 안전
+        tbl.autofit = True
         for ri, row in enumerate(rows):
-            out.append("<w:tr>")
             for ci in range(ncol):
-                cell = row[ci] if ci < len(row) else ""
-                shd = '<w:shd w:val="clear" w:fill="E8EAED"/>' if ri == 0 else ""
-                out.append(f'<w:tc><w:tcPr><w:tcW w:w="0" w:type="auto"/>{shd}'
-                           f'<w:vAlign w:val="center"/></w:tcPr>'
-                           f'<w:p><w:pPr><w:spacing w:before="20" w:after="20"/></w:pPr>'
-                           f'{self._runs(cell, 18, ri == 0, None)}</w:p></w:tc>')
-            out.append("</w:tr>")
-        out.append("</w:tbl>")
-        # 표 뒤 빈 문단(Word 규칙: 표가 연달아 붙거나 문서 끝이면 깨질 수 있다)
-        out.append('<w:p><w:pPr><w:spacing w:before="0" w:after="60"/></w:pPr></w:p>')
-        self.body.append("".join(out))
+                cell = tbl.cell(ri, ci)
+                txt = row[ci] if ci < len(row) else ""
+                p = cell.paragraphs[0]
+                p.paragraph_format.space_before = p.paragraph_format.space_after = Pt(1)
+                inline(p, txt, 9, bold=(ri == 0))
+                if ri == 0:                         # 머리행 음영
+                    shd = docx.oxml.OxmlElement("w:shd")
+                    for k, v in (("w:val", "clear"), ("w:fill", "E8EAED")):
+                        shd.set(qn(k), v)
+                    cell._tc.get_or_add_tcPr().append(shd)
+        doc.add_paragraph().paragraph_format.space_after = Pt(3)   # 표 뒤 분리 문단
 
-
-def convert(md: str) -> Doc:
-    d = Doc()
-    lines = md.split("\n")
-    i, n = 0, len(lines)
-    first_h1 = True
+    # ── md 파싱(제품 md 부분집합) ────────────────────────────────
+    lines = md_p.read_text(encoding="utf-8").split("\n")
     cells = lambda ln: [c.strip() for c in ln.strip().strip("|").split("|")]  # noqa: E731
+    i, n, first_h1 = 0, len(lines), True
     while i < n:
         ln = lines[i]
-        if not ln.strip():
-            i += 1
-            continue
-        if ln.startswith("---") and set(ln.strip()) == {"-"}:
+        if not ln.strip() or (ln.startswith("---") and set(ln.strip()) == {"-"}):
             i += 1
             continue
         if ln.startswith("#"):
             lv = len(ln) - len(ln.lstrip("#"))
             txt = ln[lv:].strip()
             if lv == 1:
-                d.para(txt, sz=30, bold=True, before=200, after=120,
-                       page_break=not first_h1, border_bottom=True)
+                para(txt, sz=15, bold=True, before=10, after=6,
+                     page_break=not first_h1, rule=True)
                 first_h1 = False
             elif lv == 2:
-                d.para(txt, sz=24, bold=True, before=200, after=80, border_bottom=True)
+                para(txt, sz=12, bold=True, before=10, after=4, rule=True)
             else:
-                d.para(txt, sz=22, bold=True, before=160, after=60)
+                para(txt, sz=11, bold=True, before=8, after=3)
             i += 1
             continue
         if ln.startswith("|") and i + 1 < n and re.match(r"^\|[\s:|-]+\|$", lines[i + 1]):
@@ -178,102 +202,62 @@ def convert(md: str) -> Doc:
             while i < n and lines[i].startswith("|"):
                 rows.append(cells(lines[i]))
                 i += 1
-            d.table(rows)
+            table(rows)
             continue
         if ln.startswith(">"):
-            buf = []
             while i < n and lines[i].startswith(">"):
                 t = lines[i].lstrip(">").strip()
                 if t:
-                    buf.append(t)
+                    para(t, sz=9, color="595959", indent=12, before=0, after=0)
                 i += 1
-            for t in buf:
-                d.para(t, sz=18, color="595959", indent=340, before=10, after=10)
             continue
         m = re.match(r"^(\s*)- (.*)$", ln)
         if m:
             depth = len(m.group(1)) // 2
-            # 이어지는 들여쓴 연속줄을 같은 항목으로 붙인다
             item = [m.group(2).strip()]
             i += 1
             while i < n and lines[i].strip() and not re.match(r"^(\s*)- ", lines[i]) \
                     and not lines[i].startswith(("#", "|", ">", "**◦")) \
-                    and (lines[i].startswith("  ") or lines[i].startswith("\t")):
+                    and lines[i][:1] in (" ", "\t"):
                 item.append(lines[i].strip())
                 i += 1
-            d.para(("· " if depth == 0 else "‐ ") + " ".join(item),
-                   sz=20, indent=340 + depth * 340, before=20, after=20)
+            para(("· " if depth == 0 else "‐ ") + " ".join(item),
+                 sz=10, indent=12 + depth * 12, before=1, after=1)
             continue
-        # 일반 문단(이어지는 줄 합침)
         buf = [ln.strip()]
         i += 1
         while i < n and lines[i].strip() and not lines[i].startswith(("#", "|", ">", "-", " ")):
             buf.append(lines[i].strip())
             i += 1
-        d.para(" ".join(buf), sz=20, before=60, after=60)
-    return d
+        para(" ".join(buf), sz=10, before=3, after=3)
 
+    doc.save(str(out))
 
-def main() -> int:
-    ap = argparse.ArgumentParser()
-    ap.add_argument("--md", required=True)
-    ap.add_argument("--template", required=True, help="★양식 docx — 복사본의 본문만 교체한다")
-    ap.add_argument("--out", required=True)
-    args = ap.parse_args()
-
-    md_p, tpl, out = Path(args.md), Path(args.template), Path(args.out)
-    for p in (md_p, tpl):
-        if not p.exists():
-            print(f"❌ 없음: {p}")
-            return 1
-
-    doc = convert(md_p.read_text(encoding="utf-8"))
-
-    with zipfile.ZipFile(tpl) as z:
-        old_doc = z.read("word/document.xml").decode("utf-8")
-        old_rels = z.read("word/_rels/document.xml.rels").decode("utf-8")
-
-    # 양식의 루트 태그(네임스페이스 선언)를 그대로 재사용한다 — 호환성 문제 회피
-    root_open = re.search(r"<w:document[^>]*>", old_doc).group(0)
-    sect = ('<w:sectPr><w:pgSz w:w="11906" w:h="16838"/>'
-            '<w:pgMar w:top="1134" w:right="1134" w:bottom="1134" w:left="1134"'
-            ' w:header="720" w:footer="720" w:gutter="0"/></w:sectPr>')
-    new_doc = ('<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\r\n'
-               + root_open + "<w:body>" + "".join(doc.body) + sect + "</w:body></w:document>")
-
-    # 하이퍼링크 관계를 기존 rels 에 덧붙인다(기존 rId 는 건드리지 않는다)
-    hl = "".join(
-        f'<Relationship Id="rIdVG{k + 1}" '
-        f'Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/hyperlink" '
-        f'Target="{escape(u)}" TargetMode="External"/>'
-        for k, u in enumerate(doc.links))
-    new_rels = old_rels.replace("</Relationships>", hl + "</Relationships>")
-
-    shutil.copy(tpl, out)
-    # zip 안 파일 교체: 표준 라이브러리엔 in-place 교체가 없어 새로 싼다
-    with zipfile.ZipFile(tpl) as zin, zipfile.ZipFile(out, "w", zipfile.ZIP_DEFLATED) as zout:
-        for item in zin.infolist():
-            if item.filename == "word/document.xml":
-                zout.writestr(item, new_doc)
-            elif item.filename == "word/_rels/document.xml.rels":
-                zout.writestr(item, new_rels)
-            else:
-                zout.writestr(item, zin.read(item.filename))
-
-    # ★규칙 11 — 결과물을 다시 열어 확인한다
-    import xml.dom.minidom as MD
-    with zipfile.ZipFile(out) as z:
-        dx = z.read("word/document.xml").decode("utf-8")
-        MD.parseString(dx)                                   # XML 정형성
-        MD.parseString(z.read("word/_rels/document.xml.rels").decode("utf-8"))
-        n_p = dx.count("<w:p>") + dx.count("<w:p ")
-        n_t = dx.count("<w:tbl>")
-        n_h = dx.count("<w:hyperlink")
-    if out.stat().st_size == 0 or n_p == 0:
+    # ── ★규칙 11 — 저장한 것을 다시 열어 확인 ────────────────────
+    #   ★검증 착시 주의(2026-09-03 실제 겪음):
+    #   · paragraph.text 는 하이퍼링크 안 글자를 세지 않아 본문이 적어 보인다
+    #   · rels 는 같은 URL 을 1개로 중복 제거해 "링크가 빠진" 것처럼 보인다
+    #   → 본문·링크 수는 XML 에서 직접 세고, 링크는 rId 정합성으로 검증한다.
+    import zipfile as _zf
+    chk = docx.Document(str(out))                    # 라이브러리 재개봉 자체가 1차 검증
+    n_t = len(chk.tables)
+    with _zf.ZipFile(out) as z:
+        xml = z.read("word/document.xml").decode("utf-8")
+        rels = z.read("word/_rels/document.xml.rels").decode("utf-8")
+    full_text = "".join(m.group(1) for m in re.finditer(r"<w:t[^>]*>(.*?)</w:t>", xml, re.S))
+    used_ids = re.findall(r'<w:hyperlink[^>]*r:id="([^"]+)"', xml)
+    rel_ids = set(re.findall(r'Id="([^"]+)"[^>]*relationships/hyperlink', rels))
+    dangling = [i for i in used_ids if i not in rel_ids]
+    n_p = xml.count("<w:p>") + xml.count("<w:p ")
+    if out.stat().st_size == 0 or not full_text.strip():
         print("❌ 산출물이 비었다")
         return 1
-    print(f"✅ {out} — {out.stat().st_size / 1024:.0f}KB · 문단 {n_p} · 표 {n_t} · "
-          f"하이퍼링크 {n_h}(rels {len(doc.links)}) — 재개봉·XML 검증 통과")
+    if dangling:
+        print(f"❌ rels 에 없는 하이퍼링크 rId {len(dangling)}개 — 워드에서 깨진 링크가 된다")
+        return 1
+    print(f"✅ {out} — {out.stat().st_size / 1024:.0f}KB · 문단 {n_p}(표 포함) · 표 {n_t} · "
+          f"하이퍼링크 {len(used_ids)}개(고유 URL {len(rel_ids)}) · 본문 {len(full_text):,}자 "
+          f"— 재개봉·rId 정합 검증 통과")
     return 0
 
 

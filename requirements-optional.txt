@@ -22,3 +22,6 @@ scikit-learn==1.7.2
 mediapipe==0.10.35
 # tensorflow(BODA 분류기): 현재 미설치·미사용(폴백 동작). 필요 시 기기용 휠로 별도 설치.
 # tensorflow==2.x
+# python-docx(문서 도구): scripts/md_to_docx.py 가 사업계획서 md→docx 변환에 사용.
+#   런타임(vigent-core) 의존 아님. 2026-09-03 사용자 승인으로 설치.
+python-docx==1.2.0
