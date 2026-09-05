@@ -180,13 +180,19 @@ def report_safety(theme: str = DEFAULT_THEME, hours: float = 24, vlm: bool = Fal
 def risk_assessment_list(theme: str = DEFAULT_THEME):
     """저장된 위험성평가서 목록(최신순)."""
     bundle = STATE.get(theme) or _load_theme(theme)
-    return {"items": bundle["agents"]["Scribe"].list_saved()}
+    scribe = bundle["agents"].get("Scribe")
+    if scribe is None:   # [2026-09-06] LLM 에이전트는 선택 모듈 — 미로드면 503(코어 무관)
+        raise HTTPException(status_code=503, detail="Scribe 미로드")
+    return {"items": scribe.list_saved()}
 
 @router.get("/safety/risk-assessment/{aid}", response_class=HTMLResponse)
 def risk_assessment_open(aid: str, theme: str = DEFAULT_THEME):
     """저장된 위험성평가서 다시열기(HTML)."""
     bundle = STATE.get(theme) or _load_theme(theme)
-    page = bundle["agents"]["Scribe"].load_html(aid)
+    scribe = bundle["agents"].get("Scribe")
+    if scribe is None:
+        raise HTTPException(status_code=503, detail="Scribe 미로드")
+    page = scribe.load_html(aid)
     if page is None:
         raise HTTPException(status_code=404, detail="평가서 없음")
     return page
@@ -195,7 +201,10 @@ def risk_assessment_open(aid: str, theme: str = DEFAULT_THEME):
 def safety_reports(theme: str = DEFAULT_THEME):
     """저장된 평가서 목록 화면 + '지금 생성' 버튼."""
     bundle = STATE.get(theme) or _load_theme(theme)
-    items = bundle["agents"]["Scribe"].list_saved()
+    scribe = bundle["agents"].get("Scribe")
+    if scribe is None:
+        raise HTTPException(status_code=503, detail="Scribe 미로드")
+    items = scribe.list_saved()
     rows = "".join(
         f"""<tr><td>{i['generated_at']}</td><td>{i['site']}</td>
         <td style="text-align:center">{i['총항목']}</td>
