@@ -1,0 +1,35 @@
+﻿# VIGENT 서비스 설정 백업 — 2026-09-06 (비관리자 컨텍스트: nssm get 전 파라미터 + 레지스트리 export)
+# 복원: install_service.ps1 재실행이 정본. 아래는 참고용 원본 값.
+
+Application = C:\Users\shgus\AppData\Local\Programs\Python\Python311\python.exe
+AppDirectory = D:\vigent_original\vigent-core
+AppParameters = -m uvicorn main:app --host 0.0.0.0 --port 8010
+AppExit = Parameter "AppExit" requires a subparameter!
+AppRestartDelay = 5000
+AppThrottle = 10000
+AppNoConsole = 0
+AppPriority = NORMAL_PRIORITY_CLASS
+AppStdout = D:\vigent_original\logs\vigent.out.log
+AppStderr = D:\vigent_original\logs\vigent.err.log
+AppRotateFiles = 1
+AppRotateOnline = 1
+AppRotateSeconds = 0
+AppRotateBytes = 268435456
+AppTimestampLog = 0
+AppStopMethodSkip = 0
+AppKillProcessTree = 1
+DisplayName = VIGENT ???? ?? ??
+Description = RTSP ??? ?? ???? ??(??�PPE�??/??). /health ? ?? ?? ??.
+Start = SERVICE_DELAYED_AUTO_START
+Type = SERVICE_WIN32_OWN_PROCESS
+ObjectName = LocalSystem
+DependOnService = 
+ImagePath = C:\Users\shgus\AppData\Local\Microsoft\WinGet\Packages\NSSM.NSSM_Microsoft.Winget.Source_8wekyb3d8bbwe\nssm-2.24-101-g897c7ad\win64\nssm.exe
+AppEnvironmentExtra =
+  VIGENT_REQUIRE_TOKEN=1
+  
+  VIGENT_CAPTURE_MODE=thread
+  
+  VIGENT_HOST=0.0.0.0
+  
+  VIGENT_RESTART_CMD=sc.exe stop VIGENT & sc.exe start VIGENT

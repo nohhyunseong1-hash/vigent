@@ -1,0 +1,21 @@
+﻿# nssm dump VIGENT — 2026-09-06 (관리자 컨텍스트). 복원 시 이 명령들을 관리자 PowerShell 에서 그대로 실행.
+D:\vigent_original\deploy\windows\nssm.exe install VIGENT C:\Users\shgus\AppData\Local\Programs\Python\Python311\python.exe
+D:\vigent_original\deploy\windows\nssm.exe set VIGENT AppParameters "-m uvicorn main:app --host 0.0.0.0 --port 8010"
+D:\vigent_original\deploy\windows\nssm.exe set VIGENT AppDirectory D:\vigent_original\vigent-core
+D:\vigent_original\deploy\windows\nssm.exe set VIGENT AppExit Default Restart
+D:\vigent_original\deploy\windows\nssm.exe set VIGENT AppEnvironmentExtra :VIGENT_REQUIRE_TOKEN=1
+D:\vigent_original\deploy\windows\nssm.exe set VIGENT AppEnvironmentExtra +VIGENT_CAPTURE_MODE=thread
+D:\vigent_original\deploy\windows\nssm.exe set VIGENT AppEnvironmentExtra +VIGENT_HOST=0.0.0.0
+D:\vigent_original\deploy\windows\nssm.exe set VIGENT AppEnvironmentExtra ^"+VIGENT_RESTART_CMD=sc.exe stop VIGENT ^& sc.exe start VIGENT^"
+D:\vigent_original\deploy\windows\nssm.exe set VIGENT AppRestartDelay 5000
+D:\vigent_original\deploy\windows\nssm.exe set VIGENT AppStdout D:\vigent_original\logs\vigent.out.log
+D:\vigent_original\deploy\windows\nssm.exe set VIGENT AppStderr D:\vigent_original\logs\vigent.err.log
+D:\vigent_original\deploy\windows\nssm.exe set VIGENT AppThrottle 10000
+D:\vigent_original\deploy\windows\nssm.exe set VIGENT AppRotateFiles 1
+D:\vigent_original\deploy\windows\nssm.exe set VIGENT AppRotateOnline 1
+D:\vigent_original\deploy\windows\nssm.exe set VIGENT AppRotateBytes 268435456
+D:\vigent_original\deploy\windows\nssm.exe set VIGENT Description "RTSP 移대찓??湲곕컲 ?곗뾽?덉쟾 寃異??щ엺쨌PPE쨌?붿옱/?곌린). /health 濡?寃異??앹〈 ?뺤씤."
+D:\vigent_original\deploy\windows\nssm.exe set VIGENT DisplayName "VIGENT ?곗뾽?덉쟾 鍮꾩쟾 ?쒕쾭"
+D:\vigent_original\deploy\windows\nssm.exe set VIGENT ObjectName LocalSystem
+D:\vigent_original\deploy\windows\nssm.exe set VIGENT Start SERVICE_DELAYED_AUTO_START
+D:\vigent_original\deploy\windows\nssm.exe set VIGENT Type SERVICE_WIN32_OWN_PROCESS
