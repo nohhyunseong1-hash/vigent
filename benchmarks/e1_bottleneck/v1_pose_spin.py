@@ -20,7 +20,9 @@ import sys
 import time
 from pathlib import Path
 
-sys.path.insert(0, "D:/vigent_original/vigent-core")
+_REPO = Path(__file__).resolve().parents[2]   # [C5] 절대경로 제거
+sys.path.insert(0, str(_REPO / "vigent-core"))
+from data_paths import media  # noqa: E402  [C5] 미디어는 저장소 밖(VIGENT_DATA_DIR)
 import cv2  # noqa: E402
 import numpy as np  # noqa: E402
 import psutil  # noqa: E402
@@ -98,7 +100,7 @@ def main() -> int:
     rate = float(sys.argv[2]) if len(sys.argv) > 2 else 2.0
 
     frames = []
-    for v in sorted(Path("D:/vigent_original/runs/rfdetr/accident").glob("*.mp4"))[:3]:
+    for v in sorted(media("runs/rfdetr/accident").glob("*.mp4"))[:3]:
         cap = cv2.VideoCapture(str(v))
         for _ in range(20):
             ok, f = cap.read()

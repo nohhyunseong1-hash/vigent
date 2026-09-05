@@ -14,10 +14,15 @@
 ### 1. 얼굴이 식별되는 추적 이미지 9장 제거
 2026-08-28 전수 분류에서 **얼굴 식별 가능**으로 판정된 것들이다.
 
-| 위치 | 개수 | 내용 |
-|---|---|---|
-| `benchmarks/webcam_coord/` | jpg 5 | 웹캠 정면 촬영 — 얼굴 정면·근접 |
-| `benchmarks/rfdetr/refset/` | mp4 4 | 참조 영상 — 프레임에 얼굴 |
+| 위치(이력상 경로) | 개수 | 내용 | 최초 커밋 |
+|---|---|---|---|
+| `benchmarks/results/webcam_coord/` | jpg 5 | 웹캠 정면 촬영 — 얼굴 정면·근접 | `2a98fa9` (2026-07-12) |
+| `runs/rfdetr/refset/` | mp4 4 | 참조 영상 — 프레임에 얼굴 | `b9e8289` (2026-08-28) |
+| `runs/rfdetr/accident/` | mp4 9 | 카카오톡 사고 영상 — 출처·동의 미확인(2026-09-06 추가 등재) | `b9e8289` |
+
+> ★**2026-09-06 감사 C5**: 위 파일들은 **작업트리에서 제거**돼 저장소 밖 `../vigent_private_data/`
+> (`VIGENT_DATA_DIR`)에 있다(`.gitignore`가 `*.jpg`·`*.mp4`를 차단). 그러나 **git 이력에는 그대로 남아
+> 있고 `origin/main`·`origin/fix/review-bugs`에 push돼 있다.** 아래 이력 재작성은 여전히 필요하다.
 
 **★파일을 지우는 것만으로는 부족하다.** git 이력에 남는다.
 공개 전환 시에는 `git filter-repo` 로 **이력에서도 제거**해야 한다.
@@ -25,14 +30,15 @@
 ```bash
 # 예시 — 실행 전 반드시 백업 브랜치/미러를 뜬다
 git clone --mirror <repo> backup-mirror.git
-git filter-repo --path benchmarks/webcam_coord --path benchmarks/rfdetr/refset --invert-paths
+git filter-repo --path benchmarks/results/webcam_coord --path runs/rfdetr/refset \
+                --path runs/rfdetr/accident --path runs/site01_eval --invert-paths
 ```
 
 > ★이력 재작성은 **모든 커밋 해시를 바꾼다.** 다른 클론·워크트리·열린 PR 이 전부 깨진다.
 > 협업자가 생긴 뒤라면 재작성 전에 합의해야 한다. **혼자 쓰는 지금이 가장 싸다.**
 
 ### 2. 고객사 설비가 드러나는 이미지 24장 검토
-`benchmarks/site01_eval/` — 고객사 프레스 공장 내부. 얼굴 문제와는 별개로
+`runs/site01_eval/`(이력상 경로 · 2026-09-06 C5로 작업트리에선 `../vigent_private_data/`로 이동) — 고객사 프레스 공장 내부. 얼굴 문제와는 별개로
 **설비 배치·공정이 드러난다.** 계약상 공개 가능 여부를 확인한다.
 (개인정보가 아니라 **영업비밀** 쪽 사안이다.)
 

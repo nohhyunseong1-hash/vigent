@@ -2,7 +2,9 @@
 #   잡히면 boda 지게차 박스에 얼마나 포함되는가(제외 로직 설계 근거).
 import json, sys
 from pathlib import Path
-sys.path.insert(0, "D:/vigent_original/vigent-core")
+_REPO = Path(__file__).resolve().parents[2]   # [C5] 절대경로 제거
+sys.path.insert(0, str(_REPO / "vigent-core"))
+from data_paths import media  # noqa: E402  [C5] 미디어는 저장소 밖(VIGENT_DATA_DIR)
 import cv2
 from agents.guard import JUNK_LABELS, LABEL_NORMALIZE
 from detectors.rfdetr_adapter import RfdetrDetector
@@ -19,7 +21,7 @@ def containment(p, f):
     return ix * iy / pa
 
 pdet = RfdetrDetector("", LABEL_NORMALIZE, JUNK_LABELS, resolution=384)
-fdet = YoloDetector("D:/vigent_original/vigent-core/weights/forklift_boda_ax.pt",
+fdet = YoloDetector(str(_REPO / "vigent-core/weights/forklift_boda_ax.pt"),
                     "cuda", 384, LABEL_NORMALIZE, JUNK_LABELS)
 cap = cv2.VideoCapture(VID)
 n = int(cap.get(7)); fps = cap.get(5)

@@ -32,6 +32,7 @@ sys.path.insert(0, str(_HERE))
 sys.path.insert(0, str(_ROOT / "vigent-core"))
 
 import box_quality as bq  # noqa: E402
+from data_paths import media  # noqa: E402  [C5] 미디어는 저장소 밖(VIGENT_DATA_DIR)
 
 try:
     sys.stdout.reconfigure(encoding="utf-8")
@@ -149,7 +150,7 @@ def main() -> None:
     classified = [classify_event(frames, ev) for ev in events]
 
     print("배경 optical flow(카메라 팬) 계산 중...", flush=True)
-    pans = compute_pan_series(Path("runs/rfdetr/multi_scene.mp4"), len(frames))
+    pans = compute_pan_series(media("runs/rfdetr/multi_scene.mp4"), len(frames))
 
     for c in classified:
         c["pan_px"] = pans[c["idx"]] if c["idx"] < len(pans) else None

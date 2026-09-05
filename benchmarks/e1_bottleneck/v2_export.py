@@ -19,7 +19,7 @@ import sys
 import tempfile
 from pathlib import Path
 
-W = Path("D:/vigent_original/vigent-core/weights")
+W = Path(__file__).resolve().parents[2] / "vigent-core" / "weights"   # [C5] 절대경로 제거
 
 # (슬롯, 원본 pth, 출력 onnx) — None 이면 COCO 사전학습(person)
 TARGETS: list[tuple[str, Path | None, Path]] = [

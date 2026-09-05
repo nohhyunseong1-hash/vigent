@@ -2,7 +2,7 @@
 import json, time, urllib.request
 from collections import Counter, defaultdict
 from pathlib import Path
-ROOT = Path("D:/vigent_original")
+ROOT = Path(__file__).resolve().parents[2]   # [C5] 절대경로 제거
 TOK = [l.split("=",1)[1].strip() for l in (ROOT/".env").read_text(encoding="utf-8").splitlines() if l.startswith("VIGENT_API_TOKEN=")][0]
 def api(p, m="GET", b=None):
     d = json.dumps(b).encode() if b else None

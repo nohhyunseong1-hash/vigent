@@ -1,12 +1,14 @@
 # [G1-보조] COCO 사전학습(person 슬롯 백본)이 지게차를 truck/car 로 잡는지 — 대용 신호 가능성.
 import json, sys
 from pathlib import Path
-sys.path.insert(0, "D:/vigent_original/vigent-core")
+_REPO = Path(__file__).resolve().parents[2]   # [C5] 절대경로 제거
+sys.path.insert(0, str(_REPO / "vigent-core"))
+from data_paths import media  # noqa: E402  [C5] 미디어는 저장소 밖(VIGENT_DATA_DIR)
 import cv2
 from agents.guard import JUNK_LABELS, LABEL_NORMALIZE
 from detectors.rfdetr_adapter import RfdetrDetector
 
-VID = Path("D:/vigent_original/runs/rfdetr/accident/KakaoTalk_20260807_000632301.mp4")
+VID = media("runs/rfdetr/accident/KakaoTalk_20260807_000632301.mp4")
 det = RfdetrDetector("", LABEL_NORMALIZE, JUNK_LABELS, resolution=384)   # COCO 사전학습
 cap = cv2.VideoCapture(str(VID)); n = int(cap.get(7))
 VEH = {"truck", "car", "bus", "train"}

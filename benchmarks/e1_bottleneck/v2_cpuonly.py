@@ -23,8 +23,9 @@ from pathlib import Path
 os.environ.setdefault("VIGENT_DETECT_DEVICE", "cpu")
 os.environ.setdefault("VIGENT_ALLOW_FALLBACK", "1")
 
-ROOT = Path("D:/vigent_original")
+ROOT = Path(__file__).resolve().parents[2]   # [C5] 절대경로 제거
 sys.path.insert(0, str(ROOT / "vigent-core"))
+from data_paths import media  # noqa: E402  [C5] 미디어는 저장소 밖(VIGENT_DATA_DIR)
 import cv2  # noqa: E402
 import numpy as np  # noqa: E402
 import psutil  # noqa: E402
@@ -63,7 +64,7 @@ def main() -> int:
         wiring[slot] = type(getattr(m, "model", m)).__name__ if m else "NONE"
     print(f"[{backend}] 슬롯 배선: {wiring}", flush=True)
 
-    vids = sorted(str(p) for p in (ROOT / "runs/rfdetr/accident").glob("*.mp4"))[:3]
+    vids = sorted(str(p) for p in media("runs/rfdetr/accident").glob("*.mp4"))[:3]
     caps = [cv2.VideoCapture(v) for v in vids]
     fi = 0
 

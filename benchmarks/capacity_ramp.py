@@ -35,6 +35,8 @@ from pathlib import Path
 
 _HERE = Path(__file__).resolve().parent
 _ROOT = _HERE.parent
+sys.path.insert(0, str(_ROOT / "vigent-core"))
+from data_paths import media  # noqa: E402  [C5] 미디어는 저장소 밖(VIGENT_DATA_DIR)
 
 try:
     import psutil
@@ -248,7 +250,7 @@ def main() -> int:
     ap.add_argument("--url", default="http://127.0.0.1:8010")
     ap.add_argument("--token", default="")
     ap.add_argument("--pid", type=int, default=0, help="서버 PID(CPU%%·RSS 측정용, psutil)")
-    ap.add_argument("--video", default=str(_ROOT / "runs" / "rfdetr" / "multi_scene.mp4"))
+    ap.add_argument("--video", default=str(media("runs/rfdetr/multi_scene.mp4")))
     ap.add_argument("--cam-prefix", default="cap")
     ap.add_argument("--tag", default="")
     ap.add_argument("--warmup-s", type=float, default=15.0)

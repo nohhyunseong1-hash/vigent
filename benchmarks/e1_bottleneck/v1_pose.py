@@ -17,7 +17,9 @@ import sys
 import time
 from pathlib import Path
 
-sys.path.insert(0, "D:/vigent_original/vigent-core")
+_REPO = Path(__file__).resolve().parents[2]   # [C5] 절대경로 제거
+sys.path.insert(0, str(_REPO / "vigent-core"))
+from data_paths import media  # noqa: E402  [C5] 미디어는 저장소 밖(VIGENT_DATA_DIR)
 import cv2  # noqa: E402
 import numpy as np  # noqa: E402
 import psutil  # noqa: E402
@@ -32,7 +34,7 @@ def main() -> int:
     secs = float(sys.argv[1]) if len(sys.argv) > 1 else 45.0
     rates = [float(x) for x in (sys.argv[2].split(",") if len(sys.argv) > 2 else ["2"])]
     people_list = [int(x) for x in (sys.argv[3].split(",") if len(sys.argv) > 3 else ["1","2","3"])]
-    vids = sorted(Path("D:/vigent_original/runs/rfdetr/accident").glob("*.mp4"))[:3]
+    vids = sorted(media("runs/rfdetr/accident").glob("*.mp4"))[:3]
 
     # 실제 프레임 확보(디코드 비용을 측정에서 빼기 위해 미리 메모리에 올린다)
     frames: list[np.ndarray] = []

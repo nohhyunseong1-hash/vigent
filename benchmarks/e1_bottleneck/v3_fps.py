@@ -19,7 +19,9 @@ import threading
 import time
 from pathlib import Path
 
-sys.path.insert(0, "D:/vigent_original/vigent-core")
+_REPO = Path(__file__).resolve().parents[2]   # [C5] 절대경로 제거
+sys.path.insert(0, str(_REPO / "vigent-core"))
+from data_paths import media  # noqa: E402  [C5] 미디어는 저장소 밖(VIGENT_DATA_DIR)
 import cv2  # noqa: E402
 import numpy as np  # noqa: E402
 import psutil  # noqa: E402
@@ -114,7 +116,7 @@ def main() -> int:
     secs = float(sys.argv[2]) if len(sys.argv) > 2 else 60.0
     fps = float(sys.argv[3]) if len(sys.argv) > 3 else 2.0
     slots = CONFIGS[cfg]
-    vids = sorted(str(p) for p in Path("D:/vigent_original/runs/rfdetr/accident").glob("*.mp4"))[:7]
+    vids = sorted(str(p) for p in media("runs/rfdetr/accident").glob("*.mp4"))[:7]
 
     vram_before = my_vram_mib()
     guard = build_agents(vision_loader.load_vision("safety"))["Guard"]

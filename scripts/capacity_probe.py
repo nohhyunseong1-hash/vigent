@@ -36,9 +36,11 @@ except Exception:  # noqa: BLE001
     pass
 
 _ROOT = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(_ROOT / "vigent-core"))
+from data_paths import media  # noqa: E402  [C5] 미디어는 저장소 밖(VIGENT_DATA_DIR)
 BASE = "http://127.0.0.1:8010"
 PREFIX = "cap"          # 모의 카메라 id 접두 — 정리 시 이 접두만 지운다
-SCENE_DIR = _ROOT / "runs" / "rfdetr" / "accident"
+SCENE_DIR = media("runs/rfdetr/accident")
 
 # ── 합격 기준 (★측정 전에 선언 — 사후 조정 금지) ────────────────────────────
 #   base_cycle_s: 1대 기준 실효 검출 주기(실측으로 채운다)

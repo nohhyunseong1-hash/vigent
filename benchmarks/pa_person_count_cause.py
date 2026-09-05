@@ -24,13 +24,14 @@ sys.path.insert(0, str(_HERE))
 sys.path.insert(0, str(_ROOT / "vigent-core"))
 
 import track_quality_baseline as tqb  # noqa: E402
+from data_paths import media  # noqa: E402  [C5] 미디어는 저장소 밖(VIGENT_DATA_DIR)
 
 try:
     sys.stdout.reconfigure(encoding="utf-8")
 except Exception:  # noqa: BLE001
     pass
 
-VIDEO = _ROOT / "runs" / "rfdetr" / "multi_scene.mp4"
+VIDEO = media("runs/rfdetr/multi_scene.mp4")
 OUT_DIR = _HERE / "results" / "pa_verify"
 IOU_CONF = 0.40
 MATCH_IOU = 0.5
