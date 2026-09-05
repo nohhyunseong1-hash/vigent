@@ -69,6 +69,9 @@ _EVIDENCE_COOLDOWN_S = float(tuning.val("detect", "evidence_cooldown_s", 30.0))
 # 3.9 ①: 포즈(근골격) 추론은 검출(guard)과 주기 분리 — 고정 pose_fps 로만 실행.
 #   프레임당 포즈(CPU ~수백ms)가 focus 5fps 검출을 막던 문제(3.8). 기존 자세 캐던스(2fps)와 동일해 회귀 0.
 _POSE_MIN_INTERVAL = 1.0 / max(0.2, float(tuning.val("worker", "pose_fps", 2.0)))
+# [CODE_REVIEW M1-14] 풀세트 주기 판정의 지터 허용치(초) — 루프 간격이 _full_interval 보다 이만큼 짧게
+#   돌아도 "이번 프레임이 풀세트 차례"로 본다(0.06 = 2fps 기준 주기의 12%). 매직넘버를 이름으로 고정.
+_FULLSET_SLACK_S = 0.06
 
 
 def _point_in_poly(x: float, y: float, poly: list) -> bool:
@@ -844,11 +847,12 @@ class Worker:
     fault_stop_detect = bool(os.environ.get("VIGENT_FAULT_STOP_DETECT"))
 
     def _process_frame(self, frame, t0, guard, lock, ctx: "_FrameCtx"):
-        if self.fault_stop_detect:      # [B2] 주입된 결함: 추론을 건너뛴다 → last_detect_ts 가 늙는다
-            return
         """단일 프레임 처리 — 수집·추론·트래커·발화·쿨다운·이벤트로깅(P2-13에서 _loop 에서 추출).
         프레임 단위 예외를 여기서 격리(한 프레임 실패가 루프를 죽이지 않음).
-        ctx.cooldown/last_collect 와 self.state 를 갱신한다. 동작은 추출 전과 동일."""
+        ctx.cooldown/last_collect 와 self.state 를 갱신한다. 동작은 추출 전과 동일.
+        ([CODE_REVIEW M1-8] 이 docstring 이 아래 if 문 뒤에 있어 실행 없는 문자열이었다 — 위치만 교정)"""
+        if self.fault_stop_detect:      # [B2] 주입된 결함: 추론을 건너뛴다 → last_detect_ts 가 늙는다
+            return
         try:                                        # 1단계: 프레임 단위 예외 격리 → 한 프레임 실패가 루프를 죽이지 않음
             if ctx.collect_on and (t0 - ctx.last_collect) >= ctx.collect_every:   # 학습용 프레임 수집
                 ctx.last_collect = t0
@@ -864,7 +868,7 @@ class Worker:
             #   person 전용은 단일 슬롯(~27ms)이라 focus 5fps 라도 GPU 예산이 5fps 풀세트(425ms/s)보다 낮다
             #   (focus 예산 ≈ 2×85[풀세트] + 5×27[person] = 305ms/s). focus 아니면 매 프레임 풀세트(기존과 동일).
             focus_active = self._interval < self._full_interval - 1e-6
-            do_full = (not focus_active) or (t0 - self._last_full_ts >= self._full_interval - 0.06)
+            do_full = (not focus_active) or (t0 - self._last_full_ts >= self._full_interval - _FULLSET_SLACK_S)
             _H, _W = frame.shape[:2]
             person_boxes: list = []
             out: dict = {}
