@@ -410,6 +410,41 @@ NSSM : ...\nssm.exe
 로그 : D:\vigent_original\logs\vigent.out.log
 ```
 
+### 7-1. Windows 서비스 설치·재설치 절차 (★2026-09-06 감사 — 크래시 루프 사고 후 정리)
+
+> **사고**: 이 개발 PC의 서비스 `VIGENT`가 2026-08-17~09-06 **3주간 130초마다 재시작을 반복**(4,067회,
+> `logs/` 8,139파일 49.7MB)했는데 아무도 몰랐다. 원인은 `install_service.ps1`이 `RF_HOME`을 넣도록 고쳐진
+> (`a37538a`, 08-20) **이전에 설치된 서비스가 그대로 남아** LocalSystem 프로필(`\Windows\System32\config\systemprofile\
+> .roboflow\models`)에서 `rf-detr-nano.pth`를 못 찾아 기동 거부 → NSSM 재시작 → 반복. 기록: `audit/c4_smoke_2026-09-06.md` §3.
+> 개발 PC의 서비스는 **비활성화(SERVICE_DISABLED)** 했고, 설정 백업은 `audit/vigent_service_backup_2026-09-06*.txt`.
+
+**원칙**: 서비스는 **항상 최신 `install_service.ps1`로 (재)설치**한다. 스크립트가 바뀌면 `uninstall_service.ps1` → `install_service.ps1`.
+env를 `nssm set`으로 손으로 고치지 않는다(다음 재설치 때 되돌아간다).
+
+| 순서 | 명령(관리자 PowerShell) | 확인 |
+|---|---|---|
+| 1 | `cd D:\vigent_original\deploy\windows; .\uninstall_service.ps1` (기존 서비스가 있을 때) | `Get-Service VIGENT` → 없음 |
+| 2 | 가중치 조달: `python scripts\fetch_weights.py --all` (§4) | `vigent-core\weights\rf-detr-nano.pth` + rfdetr 3종 존재 |
+| 3 | `.\install_service.ps1` | "서비스 'VIGENT' 상태: Running" |
+| 4 | `.\service_status.ps1` 를 **예열 후(≥20초) 한 번 더** | `HTTP 200 · status=healthy/degraded · phase=ready` — 15초 넘게 503이면 §9-② |
+| 5 | **크래시 루프 검사**: `Get-ChildItem logs\vigent.err-* \| Measure-Object` 가 몇 분 사이 계속 늘면 루프다 | 늘지 않음 |
+
+**`install_service.ps1`이 서비스에 넣는 환경변수(2026-09-06 현재, 스크립트 `$envLines`)** — 재설치 시 전부 자동 설정된다:
+
+| 변수 | 값 | 왜 필요한가 |
+|---|---|---|
+| `VIGENT_REQUIRE_TOKEN` | `1` | LAN 바인딩이라 전 라우트 Bearer 필수(`/health` 면제) |
+| `VIGENT_CAPTURE_MODE` | `thread` | 캡처 스레드 모드 |
+| `VIGENT_HOST` | `0.0.0.0` | uvicorn 바인드와 앱 인식 일치(불일치 시 LAN 403) |
+| `PYTHONUTF8` | `1` | 서비스 로그 한글 깨짐 방지 |
+| **`RF_HOME`** | `<루트>\vigent-core\weights` | ★RF-DETR 사전학습 캐시를 배포 폴더로 고정 — **없으면 LocalSystem 프로필을 보고 기동 거부(이번 사고)** |
+| `TORCH_HOME` | `<루트>\vigent-core\weights\rtm_cache` | RTMPose(rtmlib) 모델 캐시 고정(오프라인 현장) |
+| `VIGENT_RESTART_CMD` | `sc.exe stop VIGENT & sc.exe start VIGENT` | 기아 3단계(starvation_guard)가 소비 |
+
+비밀값(`VIGENT_API_TOKEN`·텔레그램·카메라 자격증명)은 서비스 env가 아니라 `.env`·`config/notify.yaml`·`data/camera_secrets.json`(전부 gitignore)에서 읽는다.
+
+> 4단계 개선 검토(대표 지시): 기동 실패 시 **알림**(텔레그램 또는 Windows 이벤트 로그) 또는 **NSSM 재시작 제한**(`AppThrottle`/`AppExit` 조정)으로 "3주간 미감지"가 재발하지 않게 한다.
+
 ### 방화벽 (다른 기기에서 접속할 경우만)
 
 ```powershell
