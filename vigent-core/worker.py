@@ -465,28 +465,58 @@ class MotionTracker:
 
     def __init__(self) -> None:
         self._tracks: list[dict] = []
+        # [M2-3] 프레임 세로/가로 비(h/w). worker 가 프레임마다 채운다(스텁 호환을 위해 인자 대신 속성).
+        #   None = 무보정(정사각 가정, 기존 동작).
+        self.aspect_hw: float | None = None
 
-    def update(self, detections, ts) -> list[tuple[str, str, str]]:
+    def update(self, detections, ts, aspect_hw: float | None = None) -> list[tuple[str, str, str]]:
+        """[CODE_REVIEW M2-2, 2026-09-06] guard 가 주는 안정 tid 를 **우선** 사용한다.
+
+        예전엔 tid 를 무시하고 중심점 최근접(MATCH=0.32 = 화면 폭 1/3)으로만 사람을 이었다 →
+        A 가 나가고 옆에 B 가 나타나면 "같은 사람이 0.25 이동" 이 되어 급격동작이 오발화하고,
+        무동작 트랙은 옆 사람에게 이어져 리셋됐다. tid 가 없는 검출(추적 미확정·passthrough)만
+        기존 중심점 폴백을 쓴다(tid 없는 트랙끼리만 매칭). [M2-3] 급격동작 거리는 y 에 h/w 를 곱해
+        x(폭) 척도로 맞춘다(proximity._gap 과 동일 — 감사 E-1 동류). 무동작 퍼짐 판정은 불변."""
+        ar = aspect_hw if aspect_hw is not None else self.aspect_hw
+        ar = 1.0 if ar is None else max(1e-3, float(ar))
         persons = []
         for d in detections:
             if str(d.get("label", "")).lower() != "person":
                 continue
             bb = d.get("bbox", [0, 0, 0, 0])
-            persons.append(((bb[0] + bb[2]) / 2, (bb[1] + bb[3]) / 2))
+            persons.append(((bb[0] + bb[2]) / 2, (bb[1] + bb[3]) / 2, d.get("tid")))
         used = set()
-        for cx, cy in persons:
-            best, bd = None, 1e9
-            for k, tr in enumerate(self._tracks):
-                if k in used:
-                    continue
-                dd = ((cx - tr["cx"]) ** 2 + (cy - tr["cy"]) ** 2) ** 0.5
-                if dd < bd:
-                    bd, best = dd, k
-            if best is not None and bd < self.MATCH:
+        for cx, cy, tid in persons:
+            best = None
+            if tid is not None:                                   # ① tid 우선(정확 일치)
+                for k, tr in enumerate(self._tracks):
+                    if k not in used and tr.get("tid") == tid:
+                        best = k
+                        break
+                # ★타당성 게이트(실측 2026-09-06 multi_scene): ByteTrack 이 먼 사람에게 같은 tid 를
+                #   재부여하면(ID 점프, 한 표본에 0.45~0.64 이동) tid 만 믿을 때 급격동작이 오발화한다.
+                #   구 동작과 같은 한계(MATCH)를 넘는 점프는 "다른 사람" 으로 보고 새 트랙을 연다
+                #   (옛 트랙은 tid 를 떼어 만료되게 둔다). 사람의 실제 급이동(0.15~0.32)은 그대로 잡힌다.
+                if best is not None:
+                    tr0 = self._tracks[best]
+                    if ((cx - tr0["cx"]) ** 2 + (cy - tr0["cy"]) ** 2) ** 0.5 >= self.MATCH:
+                        tr0["tid"] = None
+                        best = None
+            else:                                                 # ② 폴백: tid 없는 트랙끼리 중심점
+                bd = 1e9
+                for k, tr in enumerate(self._tracks):
+                    if k in used or tr.get("tid") is not None:
+                        continue
+                    dd = ((cx - tr["cx"]) ** 2 + (cy - tr["cy"]) ** 2) ** 0.5
+                    if dd < bd:
+                        bd, best = dd, k
+                if best is not None and bd >= self.MATCH:
+                    best = None
+            if best is not None:
                 tr = self._tracks[best]
                 used.add(best)
             else:
-                tr = {"hist": []}
+                tr = {"hist": [], "tid": tid}
                 self._tracks.append(tr)
                 used.add(len(self._tracks) - 1)
             tr["cx"], tr["cy"] = cx, cy
@@ -498,7 +528,7 @@ class MotionTracker:
             h = tr["hist"]
             rec = [x for x in h if 0 <= ts - x[0] <= self.RAPID_T]
             if len(rec) >= 2:
-                dx, dy = rec[-1][1] - rec[0][1], rec[-1][2] - rec[0][2]
+                dx, dy = rec[-1][1] - rec[0][1], (rec[-1][2] - rec[0][2]) * ar   # [M2-3] y→x 척도
                 if (dx * dx + dy * dy) ** 0.5 > self.RAPID_DIST:
                     out["rapid_motion"] = ("rapid_motion", "mid", "급격한 이동 감지 — 돌진·이상행동")
             win = [x for x in h if ts - x[0] <= self.IMMOBILE_S]
@@ -967,6 +997,7 @@ class Worker:
                     except Exception as _ze:  # noqa: BLE001  가산 레이어 — 실패해도 기존 검출 무중단
                         _WLOG.debug("worker 무시 예외 [zone-tile]: %s", _ze)
             # mtrack 은 3-튜플을 돌려주므로 subject 를 붙여 형식을 맞춘다(사람 단위 아님).
+            ctx.mtrack.aspect_hw = _H / _W if _W else None            # [M2-3] y 척도 보정용(속성 주입 — 스텁 호환)
             fired += [(r, lv, n, "") for r, lv, n in
                       ctx.mtrack.update(out.get("detections", []), t0)]   # 무동작·급이동
             self._last_fired = [r[0] for r in fired]                # 3.1b: 이번 프레임 발화 규칙(뱃지·전역경보 근거)
