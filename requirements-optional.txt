@@ -1,4 +1,6 @@
 # VIGENT 선택 기능 의존성 (C-S2). 없으면 해당 기능만 자동 폴백(핵심 검출·서버는 정상 = 저하 0).
+#   [감사 C6, 2026-09-06] 클라우드 LLM·RAG 는 requirements-agents.txt 로, 측정·학습은 requirements-train.txt 로 분리.
+#   여기 남는 것 = Apple 전용 로컬 VLM(mlx) · 보조 분류기/포즈 폴백 · 문서 도구.
 #   설치:  python3 -m pip install -r requirements-optional.txt
 #   전부 지연 import(try/except) — 미설치 시 서버 부팅·핵심 안전검출에 영향 없음.
 
@@ -8,13 +10,7 @@ mlx==0.31.2
 mlx-vlm==0.6.3
 mlx-lm==0.31.3
 
-# ── RAG 의미검색(안전규정·재해원인 검색 정확도↑) ──
-# 최초 1회 한국어 임베딩(jhgan/ko-sroberta-multitask ~400MB) 다운로드. 없으면 키워드(bigram) 폴백.
-sentence-transformers==5.6.0
-
-# ── 클라우드 LLM(종합의견 서술 품질↑) — 키 있을 때만 호출, 없으면 로컬/규칙 폴백 ──
-anthropic==0.115.1           # ANTHROPIC_API_KEY(.env)
-openai==2.44.0               # OPENAI_API_KEY + VIGENT_LLM_PROVIDER=openai
+# ── RAG 의미검색 · 클라우드 LLM → requirements-agents.txt 로 이동([C6]) ──
 
 # ── 보조 분류기·포즈 폴백 ──
 scipy==1.16.3

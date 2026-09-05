@@ -21,7 +21,8 @@
 ```bash
 /opt/anaconda3/bin/python3 -m pip install -r requirements.txt
 # 선택: 평가/학습 도구
-# /opt/anaconda3/bin/python3 -m pip install -r requirements-optional.txt -r requirements-eval.txt
+# /opt/anaconda3/bin/python3 -m pip install -r requirements-agents.txt   # 에이전트(LLM·RAG)
+# /opt/anaconda3/bin/python3 -m pip install -r requirements-train.txt    # 학습·측정(구 requirements-eval)
 ```
 > `torch`/`torchvision`은 플랫폼마다 설치법이 다르다(Jetson/CUDA는 기기용 휠 별도). `requirements.txt` 주석 참조.
 

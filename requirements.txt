@@ -1,7 +1,8 @@
 # VIGENT 배포 의존성 (C-S2) — 서버 기동 + 핵심 안전검출에 필요한 최소 폐포.
 #   설치:  python3 -m pip install -r requirements.txt
 #   (진입점 재귀 import 추적 + pip 설치버전 실측으로 확정. 지어낸 버전 아님.)
-#   선택 기능(VLM·RAG·클라우드LLM)은 requirements-optional.txt, 측정은 requirements-eval.txt 로 분리.
+#   선택 기능: 에이전트(LLM·RAG)=requirements-agents.txt · Apple VLM/보조=requirements-optional.txt ·
+#   학습·측정=requirements-train.txt (구 requirements-eval.txt, [C6] 2026-09-06).
 
 # ── 웹서버 / 기본 ────────────────────────────────
 fastapi==0.137.2
@@ -59,7 +60,7 @@ onnx==1.22.0                 # [C-3, 2026-08-12] detect.backend=onnx-cpu 서빙 
 #    완료(config/tuning.yaml detect.backend, md/DEPLOYMENT.md §5.2). torch/torchvision/numpy
 #    보호 절차 동일 적용, 실측 불변 확인(2026-08-11).
 # ultralytics(AGPL): 배포 제거 완료(A-4, T10b — person/ppe/fire_smoke/forklift 전부 RF-DETR 이관).
-#   YOLO baseline 측정용으로만 requirements-eval.txt 에 잔존. 라이브 경로 ultralytics 0건(런타임 실증).
+#   YOLO baseline 측정·학습용으로만 requirements-train.txt 에 잔존. 라이브 경로 ultralytics 0건(런타임 실증).
 
 # ── 포즈: RTMPose(rtmlib, Apache) — 낙상·근골격(T10c) ──
 rtmlib==0.0.15
