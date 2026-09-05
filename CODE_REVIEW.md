@@ -22,6 +22,9 @@
 | R11 | 낮음 | CI Python 3.13 vs `.python-version` 3.11.9 | AUDIT §2-2 | 7 | 대기 |
 | R12 | 낮음 | C1 unittest 1회 flaky(이름 미포착, 이후 8회 연속 OK) | 3단계 | 게이트 공통 | ★**이름 포착·원인·수정(2026-09-06 run3)**: `test_readiness_warmup.TestWarmup.test_on_ready_not_called_when_warmup_fails`('ready' != 'failed'). 로그 `audit/unittest_flaky_2026-09-06_run3.log`. 원인 = `test_endpoints_smoke`가 TestClient startup 으로 띄운 **실모델 예열 스레드**("vigent-warmup", 20초+)가 자기 모듈이 끝난 뒤에도 살아 전역 readiness 상태에 READY 를 덮어씀(테스트 격리 결함, 제품 결함 아님). 단독 실행 3/3 통과. 수정: 해당 모듈 setUp 에서 잔존 예열 스레드 join. C1 때 실패가 같은 테스트였는지는 **미확인**(당시 이름 미포착) |
 | R13 | 낮음 | `training/train_merged.py`·`train_monitor.py` mac 경로·mps 기본값 | C3 | (training 범위 밖) | 문서 기재만 |
+| R14 | **치명** | 테스트 스위트가 운영 `data/`(alert_queue.db·evidence·recognition·risk_assessments)에 쓴다 — notify.yaml 설정 PC 에서는 시험 문구가 실제 텔레그램으로 발송 가능 | §4-0 ④ 실측 | 테스트 격리 | ✅ **수정 완료**(커밋 `[CODE_REVIEW ④]`): `tests/_isolate.py` + 9개 모듈 적용. 검증 = data/ 28,815파일 sha256 전후 비교 **추가 0·변경 0**(격리 전엔 +3 파일·1 변경) |
+| R15 | 중간 | 카메라별 무동작 임계값(45s/0.03) 설정화 — 앉아 작업 현장 오경보 방지(M2-7) | §2 M2-7 | 7(설정) | 대표 등록 2026-09-06. 하드코딩 상수 7개(§2-3)와 함께 모듈 7에서 설정 모듈로 |
+| R16 | **FINAL_SUMMARY 1순위군** | 중장비 협착 규칙이 forklift 를 장비로 못 본다(F-7 슬롯 비활성 → COCO car/truck/bus/motorcycle 만) — "forklift 슬롯 활성화 또는 대체 감지 경로"를 Windows VLM 대체와 같은 1순위군으로 | §2-1 협착 행 | (범위 밖) | FINAL_SUMMARY 에 기재 |
 
 ---
 
@@ -57,17 +60,112 @@
 ### 1-2. 수정 계획 → 진행 현황(대표 조건부 승인 2026-09-06)
 - **높음 M1-1**: ✅ 커밋 `2d8d218` — 1회·멱등 삽입 유지(cwd 가정 없음) + 캐시 + 폴백 WARNING. 3개 컨텍스트(저장소 루트 unittest / run.ps1 / NSSM cwd+env) 모두 backend=vlog, 101회 호출 sys.path 증가 0~1(최초). LocalSystem 계정 차이는 재현 불가.
 - **중간 M1-4·M1-6·M1-7 + 낮음 M1-10**: 테스트 선행(신규 `test_warmup_holds_detect_lock.py`·`test_guard_tuning_partial_failure.py`·`test_slot_degraded.py` +1) → 수정 → 게이트 → 커밋(아래 커밋 목록).
-- **중간 M1-5**: 대표 결정 대기(동작 변경·재측정 동반) — "앞서 승인한 대로"가 이 항목의 **수정 승인**인지 **백로그 유지**인지 명시 필요.
+- **중간 M1-5**: ✅ 수정(대표 승인 2026-09-06). 선행 테스트 4 → 측정 → 수정 → 재측정. 저장소 밖 영상 5개(multi_scene + refset 4, 숫자만 기록):
+
+  | 영상 | 프레임(사람0) | 트랙 수 전→후 | 최대 수명 s | 평균 수명 s | ID 스위치 | 부활(≥1.0s 공백) |
+  |---|---|---|---|---|---|---|
+  | multi_scene | 497(1) | 19→19 | 20.67→20.67 | 2.42→2.42 | 1→1 | 0→0 |
+  | multi_cross | 176(1) | 5→5 | 11.64→11.64 | 4.75→4.75 | 0→0 | 0→0 |
+  | occlusion | 164(1) | 5→5 | 10.85→10.85 | 4.25→4.25 | 0→0 | 0→0 |
+  | single_fast | 217(1) | 11→11 | 14.35→14.35 | 4.0→4.0 | 0→0 | 0→0 |
+  | single_move | 84(1) | 1→1 | 3.46→3.46 | 3.46→3.46 | 0→0 | 0→0 |
+
+  multi_scene 구간 지표(S1~S6 ID스위치·swap·신규트랙·가림후유지율)도 전후 동일. **해석**: 5개 영상 모두 사람 0명 프레임이 1개뿐이라 수정이 작용할 "부재 구간"이 없다 → **회귀 0은 입증, 효과는 이 영상으로 입증 불가**. 그래서 통제 실험을 추가했다(`--gap-demo`, 같은 코드에 구 동작을 몽키패치로 재현): multi_scene 앞 120프레임 → 검은 프레임 120개(**5.0s 부재**, lost 버퍼 1.25s) → 뒤 120프레임에서 앞 구간 tid 부활 수 — **구 동작 2/5 → 수정 후 0/5**.
 - **낮음 M1-8·M1-14**: 포매팅 커밋 1개(로직 커밋과 분리).
 - **정정 M1-2·M1-3·M1-9**: 코드 무수정, `audit/c4_smoke_2026-09-06.md` §1·§2·§6 정정 완료.
 - **R12 flaky**: 이름 포착·원인·수정(§0 R12) — 테스트 전용 커밋.
 
 ---
 
-## 2. 모듈 2 — 5개 감지 규칙 (대기)
+## 2. 모듈 2 — 5개 감지 규칙 (보고 2026-09-06, 수정 대기)
+
+**읽은 파일(전체)**: `worker.py` 130~500(`_derive`·`MotionTracker`·`ErgonomicsTracker`·`_PoseModel`) · `proximity.py` · `zone_debounce.py` · `zone_tile.py` · `ergonomics.py` · `hazard_rules.py`(라이브 규칙 아님 — incident/scribe용, 범위 밖 확인만) · `alert_notify.py` · `agents/dispatcher.py`(등급 매핑 확인) · `config/tuning.yaml` · `themes/safety/vision.yaml judgment`.
+
+**규칙 발화 경로(공통)**: 풀세트 프레임(2fps)마다 `_derive()`(`worker.py:197`) → `MotionTracker.update()`(`:954`) → 포즈 스레드 산출(`_pose_events`) 합류 → 규칙별 쿨다운 15s(`_COOLDOWN_S`, 주체 있으면 `rule|subject`) → `data_engine.log_event`(증거 JPEG는 규칙별 30s) → `alert_notify.submit`(통보 게이트 → 모듈 3·4).
+
+### 2-1. 규칙별 한 줄 요약(발화 조건 / 억제 조건)
+
+| 규칙 | 발화 | 억제 |
+|---|---|---|
+| **보호구 미착용 `ppe_missing`**(high) | ppe 슬롯 검출 라벨이 `PPE_REQUIRED`(기본 NO-Hardhat·NO-Safety-Vest·NO-Mask)에 있고, 그 박스가 person 박스와 결부(교차게이트)되며, 같은 카메라 키에서 **연속 3프레임**(`HYSTERESIS ppe_missing=3`) 유지 | 사람 없음(PPE 전부 폐기) · 클래스별 conf 미달(`ppe_per_class`) · 3프레임 미만 · 규칙 쿨다운 15s(주체 없음 = 카메라 단위) |
+| **위험구역 `zone_intrusion`**(high) | 카메라별 구역(≥3점) 안에 person **발끝점**(`zone.reference=foot`)이 있고, 그 사람(tid 또는 격자키)이 **1.0s 연속**(`zone.enter_s`) 유지 → 확정 전이 시 1회 | 구역 미설정(전역 폴백 기본 off → 판정 안 함) · 장비 탑승자(포함률≥0.65) · tid 없고 `grid_cells=0`이면 판정에서 제외 · 이탈은 1.0s 유지 후 · 쿨다운은 **사람 단위** |
+| **중장비 협착 `proximity_hazard`**(high) | `VEHICLE_REF_M` 클래스(forklift·truck·car·bus·motorcycle·crane·excavator) 박스와 person 박스 최단거리 × (장비 실폭 m / 박스폭) ≤ `radius_m` 3.0 → 카메라 단위 **0.4s 연속**(`proximity.enter_s`) 확정 전이 시 1회 | 장비 박스가 화면 대부분(폭>0.9 또는 면적>0.7) · 탑승자 · 해제는 1.0s · ★forklift 슬롯은 F-7로 기본 제외 → 현재는 **COCO car/truck/bus/motorcycle**만 장비로 잡힘 |
+| **급격동작 `rapid_motion`**(mid) | 같은 사람(중심점 매칭 0.32)의 **1.0s 창** 첫·끝 샘플 거리 > `rapid_dist` 0.15(정규화) | 매 프레임 재판정 → 쿨다운 15s · 통보는 **mid 등급 → log 전용**(원격 통보 없음, 설계) |
+| **무동작 `immobility`**(high) | 같은 사람 트랙이 **45s**(`immobile_s`) 이상 존재하고 최근 45s 창 샘플 ≥5개의 x·y 퍼짐 < 0.03 | 트랙 3s 미매칭이면 소멸(재시작) · 쿨다운 15s · 통보 게이트 |
+| (부가) `crowd_density`(mid) / `fire_smoke`(critical) / `ergonomic_risk` | 인원 ≥6 / fire·smoke 연속 2프레임 / 나쁜 자세 3s 지속(포즈 스레드) | crowd·mid 는 log 전용 · ergonomic 등급이 **한글**("중간"/"높음") → §2-2 M2-4 |
+
+### 2-2. 발견 사항
+
+| ID | 파일:줄 | 심각도 | 문제 | 근거 | 수정안 |
+|---|---|---|---|---|---|
+| M2-1 | `worker.py:254-272` (`_derive` zone, `debouncer._vigent_seen`) · `zone_debounce.py:65` | **높음(루프 내 메모리 누적)** | 구역 안에 들어온 주체 키(`t<tid>`·`g<x>_<y>`)를 `known` 집합과 디바운서 `_st`에 넣기만 하고 **어디서도 지우지 않는다**. ByteTrack tid는 단조 증가하므로 카메라가 켜져 있는 한 키가 계속 쌓이고, 매 프레임 `for subj in sorted(known)`을 전수 순회한다(하루 수천 명 통행 현장이면 프레임마다 수천 회 정렬·상태 조회) | 코드 경로(`known |= …` 후 pop 없음 · `ZoneDebouncer.reset()` 호출부 0) | 프레임마다 "이번에 안 보인 주체"는 디바운서 상태가 `confirmed=False`이고 `exit_s` 이상 밖이면 `known`·`_st`에서 제거(퇴장 확정 후 정리). 테스트: tid 1..N 순차 진입·퇴장 후 `len(known)` 상한 확인 |
+| M2-2 | `worker.py:444-497` (`MotionTracker`) | **중간(오경보 방향)** | guard가 이미 안정 tid(ByteTrack)를 주는데 **무시하고** 중심점 최근접 매칭(`MATCH=0.32`, 화면 폭의 1/3)으로 사람을 다시 잇는다. 두 사람이 0.32 안에 있으면 ID가 서로 바뀌어 "1초에 0.15 이동"이 되어 **급격동작 오발화**, 반대로 무동작 트랙이 옆 사람에게 이어져 리셋된다 | 코드. 실 운영 흔적: `dispatcher.py:190` "rapid_motion 이 #19 dead·#24 pending"(test 카메라) · dead 35건 중 rapid_motion 3건 | tid가 있으면 tid로 잇고(없을 때만 중심점, 임계 0.15로 축소). **경보 동작 변경** → 수정 전후 `multi_scene.mp4` 재생으로 rapid/immobility 발화 수 비교(M1-5와 같은 절차) |
+| M2-3 | `worker.py:486-489` · `proximity.py:60-67` 대비 | 낮음 | `rapid_motion` 거리는 x(폭)·y(높이) 정규화 스케일이 다른데 무보정으로 유클리드 → 세로 이동이 과대(16:9면 1.78배). `proximity._gap`은 `aspect_hw`로 보정했는데 여기만 빠짐(감사 E-1 동류) | 코드 | `MotionTracker.update(detections, ts, aspect_hw)`로 y에 h/w 곱. M2-2와 같은 커밋·같은 측정 |
+| M2-4 | `worker.py:434` (`ErgonomicsTracker`) · `dispatcher.py:193-198` · `alert_gate` | **중간** | ergonomic_risk 등급이 **한글**("중간"/"높음")로 발화되는데 통보 배선 `on_severity` 키는 `critical/high/medium` → `get(level, ["log"])`로 **항상 log 전용**. 즉 근골격 경보는 기록만 되고 원격 통보가 구조적으로 불가(의도라면 `/safety/posture`처럼 명시해야 하는데 여기엔 주석 없음). R9(ergo 4파일 보류)의 "경보까지 이어지는가" 답: **기록 O · 통보 X** | 코드(`{"warn":"중간","bad":"높음"}`) · `safety_core.py:739` 는 근골격은 통보 안 한다고 명시 | 대표 결정: (a) 의도(기록 전용)면 `level="low"`로 통일하고 주석 명시 (b) 통보 원하면 `"medium"/"high"`로. 어느 쪽이든 한글 등급은 제거 |
+| M2-5 | `worker.py:275-276` | 낮음 | `ppe_missing` note가 "보호구 미착용 감지" 고정 — 어떤 항목(안전모/조끼/마스크)인지 이벤트·통보에 없다. 운영자가 현장 조치를 못 고른다. guard 는 `ppe_missing_hits` 라벨을 갖고 있으나 signals에 안 실림 | 코드 | guard signals에 `ppe_missing_labels` 추가 → note "보호구 미착용(NO-Hardhat)". 출력 계약 추가(기존 키 불변) |
+| M2-6 | `worker.py:298`·`:280` 등 | 낮음 | `tuning.val`을 **프레임마다** 호출(crowd threshold·radius·grid_cells·enter_s…) — `tuning.cfg()`가 캐시라 비용은 dict 조회 수준, 실해 없음. 다만 `MotionTracker.IMMOBILE_S/RAPID_DIST`는 **import 시점 1회**라 같은 파일의 다른 키와 반영 시점이 다르다(F-6 재시작 필요 원칙과 일치하나 혼재) | 코드 | 문서 기재만(동작 무변경) |
+| M2-7 | `worker.py:491-496` | 낮음(제품 판단) | 무동작 45s는 **앉아서 작업하는 사람**(프레스 조작·검사대)도 매 45s 마다 "쓰러짐 의심"으로 잡는다. 억제는 쿨다운·통보 게이트뿐 | 설계 | 현장 프로파일에서 `motion.immobile_s` 상향 또는 구역 한정 옵션 — 대표 판단 |
+| M2-8 | `tests/` | 낮음(테스트 공백) | `MotionTracker`(급격동작·무동작)·`crowd_density` 단위 테스트 **0건**(grep). zone_debounce·proximity·쿨다운은 있음 | grep | M2-2 수정 시 선행 테스트로 추가(중심점·tid 매칭, 45s 창, 1.0s 창) |
+
+**확인했으나 문제 없음**: zone 디바운서 첫 관측을 '밖'으로 초기화(기동 순간 발화 방지, `zone_debounce.py:83-87`) · 탑승자 제외 포함률 실측 근거(`proximity.py:22-31`) · 협착 y 스케일 보정(`aspect_hw=h/w` 전달 `worker.py:929`) · 포즈 스레드는 풀세트 프레임에서만 입력 갱신 · 규칙 쿨다운 키에 주체 포함(D1-C).
+
+### 2-4. 진행 현황(대표 승인 2026-09-06) — 커밋 3개
+- **M2-1** ✅ `6e7e964`: 퇴장 확정 주체 정리(known·디바운서). 선행 테스트 5(300명 순차 진입·퇴장 시뮬 → 키 ≤2).
+- **M2-2·M2-3·M2-8** ✅ `8a9a61c`: tid 우선(중심점은 tid 없는 검출만 폴백) + ByteTrack ID 재부여 방어 게이트(실측 중 발견: 같은 tid가 한 표본에 0.45~0.64 점프) + y×(h/w) 보정 + 단위 테스트 11. 측정(`benchmarks/motion_rules_ab.py`, 영상 5개 ByteTrack 캐시를 2fps 표본화):
+
+  | 영상 | 표본 | 급격동작 프레임 발화 구→신 | 15s 쿨다운 이벤트 시각(s) 구→신 | 무동작 | 구 동작 ID 스왑 |
+  |---|---|---|---|---|---|
+  | multi_scene | 42/497f | 7→11 | [9.0]→[2.5, 18.5] | 0→0 | 11 |
+  | multi_cross | 22/176f | 6→7 | [3.73]→[3.73] | 0→0 | 5 |
+  | occlusion | 21/164f | 2→1 | [4.79]→[4.79] | 0→0 | 3 |
+  | single_fast | 28/217f | 7→4 | [5.85]→[9.57] | 0→0 | 22 |
+  | single_move | 7/84f | 0→0 | []→[] | 0→0 | 0 |
+
+  사라진 발화(구에만): single_fast 5.8·6.4·8.0·13.3·13.8s(d 0.22~0.30, tid 없음=파편 트랙 사이 "가짜 이동"), occlusion 10.1s, multi_scene 12.5s(둘째). 생긴 발화(신에만): multi_scene 2.5s(tid …000, d 0.17, S1 카메라 급이동 구간)·9.5·13.0·13.5·19.x s(tid …001·009·015·017, d 0.18~0.73, S5 다인 교차). **해석은 추측/미검증(육안 미확인)**: 구 동작은 스왑(11·22회)으로 궤적이 끊겨 실제 이동량이 작게 계산됐고, 신 동작은 같은 사람의 1초 이동량이 온전히 잡힌다. 무동작은 영상이 ≤20s라 전부 0(임계 45s) — 무동작 회귀는 단위 테스트로만 확인.
+- **M2-4·M2-5** ✅ `59f259d`: 근골격 `level="low"` 기록 전용 명시(R9 답: 기록 O·통보 X) · `ppe_missing_labels` 신호 + note.
+- **M2-6·M2-7** 문서만(M2-7 → R15 중간 등록). 하드코딩 상수 7개는 모듈 7에서 설정 모듈로.
+
+### 2-3. 규칙 간 상수·시간창 목록(코드 흩어짐)
+
+| 상수 | 값 | 위치 | 설정 가능 |
+|---|---|---|---|
+| PPE 히스테리시스 | 3프레임 | `guard.py HYSTERESIS_FRAMES` | tuning `detect.hysteresis_frames`(전 신호 통일값만) |
+| 화재 히스테리시스 | 2프레임 | 〃 | 〃 |
+| 구역 진입/이탈 유지 | 1.0s / 1.0s | tuning `zone.enter_s/exit_s` | O |
+| 구역 기준점 | foot | tuning `zone.reference` | O |
+| 격자키 분할 | 0(비활성) | tuning `zone.grid_cells` | O |
+| 협착 반경 / 진입 / 해제 | 3.0m / 0.4s / 1.0s | tuning `proximity.*` | O |
+| 탑승자 포함률 | 0.65 | tuning `proximity.driver_containment` | O |
+| 장비 크기 필터 | 폭>0.9 또는 면적>0.7 제외 | `proximity.py:87` | ✗ 하드코딩 |
+| 급격동작 거리 / 창 | 0.15 / **1.0s** | tuning `motion.rapid_dist` / `MotionTracker.RAPID_T` | 거리만 O, 창 ✗ |
+| 무동작 시간 / 퍼짐 / 최소 샘플 | 45s / **0.03** / **5개** | tuning `motion.immobile_s` / `IMMOBILE_SPREAD` / 코드 | 시간만 O |
+| 사람 매칭 거리(모션 / 포즈) | **0.32 / 0.18** | `MotionTracker.MATCH` / `ErgonomicsTracker.MATCH` | ✗ |
+| 트랙 이력 / 소멸 | 60s / 3.0s | `HIST_S` / `worker.py:482·440` | ✗ |
+| 군집 임계 | 6명 | tuning `crowd.threshold` | O |
+| 자세 지속 / 평가 간격 | 3s / 0.5s | vision.yaml `ergonomics.hold_sec` / `_MIN_INTERVAL` | 지속만 O |
+| 규칙 쿨다운 / 증거 쿨다운 | 15s / 30s | tuning `detect.cooldown_s / evidence_cooldown_s` | O |
+| 통보 게이트 | 300s·×2.0·상한 3600s·조용 1800s·시간당 6 | tuning `alerts.*` | O(모듈 3) |
+| 구역 타일 재검출 | thr 0.1·최소 높이 15px·확대 2.0 | `zone_tile.py:31` | ✗(env `VIGENT_ZONE_TILE`) |
+
 ## 3. 모듈 3 — 오경보 억제 (대기)
 ## 4. 모듈 4 — 통보(dispatcher·텔레그램·기동 실패 알림) (대기)
-> 예약: M1-3 후속 — `data/alert_queue.db` pending 15건(2026-08-28)이 재시도 스레드에 의해 sent/dead로 옮겨지지 않은 원인.
+
+### 4-0. ★예약(치명) — `data/alert_queue.db` pending 15건 실측(2026-09-06, 읽기 전용·발송 0)
+
+| id | 생성(08-28) | 등급 | 카메라 / 규칙 | 메시지(요지) | 시도 | 마지막 실패 사유 | 판별 |
+|---|---|---|---|---|---|---|---|
+| 73·74·77·79·84·85 | 14:16·14:20·15:09·15:12·19:27·19:31 | critical | (없음, meta `{}`) | "프레스 우회" | 8·8·8·7·5·5 | telegram **미설정** · email **SMTP 미설정** · webhook **미설정** · safety_relay_signal sent(로그) | **시험 경보** — `/alerts/test`(payload level/message 자유 입력, `safety_core.py:728`) 또는 UI 시험 버튼. 코드 어디에도 "프레스 우회" 문자열 없음 |
+| 75·76·80·83·87 | 15:09·15:09·18:56·19:27·20:12 | critical | (없음) | "guard_bypass: 위험기계 방호구역 신체 진입 감지" | 8·8·7·5·4 | 동일 | **시험/데모 경보** — `/dispatch/relay`(프론트 프레스 모드) 또는 `dispatcher.relay()` 직접 호출. 카메라·증거 없음 |
+| 78·86 | 15:09·19:53 | high | (없음) | "테스트" | 7·4 | 동일 | **시험 경보**(`/alerts/test`) |
+| 81 | 19:27:22 | high | **TZ** / zone_intrusion | "[TZ] 위험구역 내 작업자 감지(구역-타일 회수)" | 6 | 동일 | **테스트 스위트가 쓴 행** — 카메라명 TZ·"구역-타일 회수" 문구는 `tests/test_worker_zone_tile.py:29`(VIGENT_ZONE_TILE=1)만 만든다 |
+| 82 | 19:27:27 | critical | **TESTCAM** / fire_smoke | "[TESTCAM] 화재/연기 감지" | 6 | 동일 | **테스트 스위트가 쓴 행** — TESTCAM 은 `tests/test_worker_process_frame.py:27`·`test_worker_credential_masking.py:25` |
+
+- **실제 현장 경보 0건 / 시험·데모 13건 / 테스트 스위트 2건.** 토큰·chat_id 는 행에 저장돼 있지 않음(마스킹 대상 없음).
+- **실패 분류**: 15건 전부 원격 채널 3종 **미설정**(`config/notify.yaml`·env 모두 비어 있음 — 401/403/네트워크 아님). 즉 dispatcher 재시도 로직의 문제가 아니라 **"보낼 곳이 없는데 큐에 넣는" 설계 공백**: `_queue_enabled()`는 등급의 `on_severity`에 alarm/manager_call 이 있으면 큐에 넣고(`dispatcher.py:193`), `try_send()`의 종결 조건은 "원격 채널을 시도조차 안 한 경우"뿐(`alert_queue.py:177`)이라 **미설정 실패도 재시도 대상**이 되어 pending → 10회 후 dead 로 흐른다. 참고: dead 35건 중 31건은 telegram **401**(토큰 무효, 08-18~08-26) — 당시엔 설정이 있었으나 토큰이 틀렸던 것. 이건 config 문제.
+- **왜 아직 pending 인가**: 재시도는 서버 프로세스 안에서만 돈다. 08-28 세션 종료로 멈췄고, 오늘 03:25 스모크 기동 때 1~2회 더 시도된 뒤(`next_attempt_at` 09-06 03:25) 종료. 서버가 다시 뜨면 남은 2~6회를 시도하고 dead 로 간다 — **그동안 /health 는 degraded**.
+- **치명 항목으로 등록(모듈 4에서 수정)**: ① 원격 채널이 하나도 설정되지 않은 등급은 큐에 넣지 않거나 즉시 종결(재시도 무의미) ② 재시도 상한·데드레터 도달 시 **운영자에게 알릴 수단이 없음**(데드레터 = 조용한 유실; 로그 ERROR 1줄뿐) ③ 401(토큰 무효) 같은 **설정 오류는 재시도 대상이 아니라 즉시 설정 경고**여야 함 ④ ★**테스트 스위트가 운영 DB(`data/alert_queue.db`)에 행을 쓴다** — `_process_frame` 통합 테스트가 실제 `alert_notify.submit`→dispatcher 경로를 탄다(#81·#82). notify.yaml 이 설정된 PC에서 테스트를 돌리면 **"[TESTCAM] 화재/연기 감지"가 실제 텔레그램으로 나간다**. 테스트에서 `alert_notify` sender·DB 경로를 강제 격리해야 함.
+- ✅ **15건 처리(대표 결정 2026-09-06)**: 전부 시험·테스트 행으로 확인 → `status=dead`, `last_error="audit 2026-09-06: 시험/테스트 행 폐기"`(삭제 아님, attempts 보존). 처리 후 집계 dead 50 · sent 37 · pending **0**. ④(테스트 격리)는 모듈 4를 기다리지 않고 즉시 수정(R14). 격리 전 1회 스위트 실행이 남긴 `data/evidence/20260906/ev_20260906_043204_zone_intrusion_high.jpg` · `data/risk_assessments/ra_20260906_043206.{html,json}`(테스트 산출, 검은 프레임·더미 평가서)은 **대표 판단으로 삭제**(자동 삭제 안 함).
+- ①②③은 모듈 4 치명 그대로.
 ## 5. 모듈 5 — 카메라 입력·go2rtc (대기)
 ## 6. 모듈 6 — 보존 스윕 (대기)
 ## 7. 모듈 7 — 설정·경로·기동 (대기)
