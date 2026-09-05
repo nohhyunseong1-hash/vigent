@@ -119,10 +119,15 @@ def warmup(guard: Any, detectors: list[str] | None = None) -> dict[str, Any]:
     dets = detectors or ["person", "ppe", "fire_smoke"]
     img = np.zeros((720, 1280, 3), dtype=np.uint8)   # 더미 1프레임(실입력 없이 커널만 예열)
     done: list[str] = []
+    # [CODE_REVIEW M1-4] 예열도 DETECT_LOCK 안에서 — 예열 중 서버는 이미 응답 중이라 /detect/frame
+    #   (락 보유)이 같은 슬롯의 지연 로드(_get_model)에 동시에 들어갈 수 있었다(이중 로드·부분
+    #   초기화 import 경합). 호출부 4곳 중 여기만 무락이었다. RLock 이라 재진입 안전.
+    from app_state import DETECT_LOCK
     try:
         for slot in dets:
             st = time.time()
-            guard.detect(img, detectors=[slot], track_key="warmup")
+            with DETECT_LOCK:
+                guard.detect(img, detectors=[slot], track_key="warmup")
             done.append(slot)
             _LOG.info("예열 slot=%s %.1fs", slot, time.time() - st)
         _mark(READY)

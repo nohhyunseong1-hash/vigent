@@ -365,43 +365,69 @@ class GuardAgent(BaseAgent):
     def __init__(self, config: Any):
         super().__init__(config)
         # 현장 튜닝값(config/tuning.yaml)으로 conf·해상도 덮기(없으면 클래스 기본값)
+        # [CODE_REVIEW M1-6] ★키 단위 격리. 예전엔 이 블록 전체가 `except: pass` 라 값 하나가
+        #   잘못되면(예: ema: "abc") **그 줄 이후의 모든 설정이 로그 한 줄 없이 기본값**으로 남았다
+        #   (조용한 부분 적용 — ppe.required 를 크게 드러내도록 고친 취지와 정반대). 이제 실패한
+        #   키만 기본값 + ERROR + status()["tuning_warn"](/health) 노출, 나머지는 그대로 적용한다.
+        #   기동은 실패시키지 않는다(F1·F31 원칙).
+        self.TUNING_WARN: list[str] = []
+        _tun: Any = None
         try:
-            import tuning
-            conf_cfg = tuning.section("detect").get("conf") or {}
-            # *_per_class 는 검출기 임계가 아니라 클래스별 후필터 맵(dict) → DETECTOR_CONF 병합에서 제외
-            _per_class_keys = ("ppe_per_class", "fire_smoke_per_class")
-            self.DETECTOR_CONF = {**self.DETECTOR_CONF,
-                                  **{k: v for k, v in conf_cfg.items() if k not in _per_class_keys}}
-            # 클래스별 후필터 맵(라벨 표준화해서 저장) — 예: {"NO-Hardhat":0.30, "NO-Mask":0.50, ...}
-            self.PPE_PER_CLASS = {LABEL_NORMALIZE.get(str(k), str(k)): float(v)
-                                  for k, v in (conf_cfg.get("ppe_per_class") or {}).items()}
-            # 화재/연기 클래스별 후필터 맵(T14-F) — 예: {"fire":0.03, "smoke":0.20}
-            self.FIRE_SMOKE_PER_CLASS = {LABEL_NORMALIZE.get(str(k), str(k)): float(v)
-                                         for k, v in (conf_cfg.get("fire_smoke_per_class") or {}).items()}
-            self.IMGSZ = int(tuning.val("detect", "imgsz", self.IMGSZ))
-            self.STALE_MAX_MISSES = int(tuning.val("detect", "stale_max_misses", self.STALE_MAX_MISSES))
-            self.EMA = float(tuning.val("detect", "ema", self.EMA))   # 위치 평활 주입 가능(기본 0.75 불변 · 1.8b B-2 측정용)
-            self.EMA_MIN = float(tuning.val("track", "ema_min", self.EMA_MIN))     # 속도 적응형 EMA(2.2)
-            self.EMA_MAX = float(tuning.val("track", "ema_max", self.EMA_MAX))
-            self.EMA_DREF = float(tuning.val("track", "ema_dref", self.EMA_DREF))
-            self.CONTAIN_RATIO = float(tuning.val("detect", "contain_ratio", self.CONTAIN_RATIO))   # 포함비 억제 문턱(1.9d)
-            self.PPE_PERSON_EXPAND = float(tuning.val("detect", "ppe_person_expand", self.PPE_PERSON_EXPAND))   # 교차게이트(Phase C)
-            self.PERSON_ENSEMBLE = bool(tuning.val("detect", "person_ensemble", self.PERSON_ENSEMBLE))   # [P-2] 이중신호 앙상블 on/off
-            hf = int(tuning.val("detect", "hysteresis_frames", 0))   # >0 이면 전 신호를 이 N 으로 통일(1=끔). 0=기본(ppe3·fire2)
+            import tuning as _tun
+        except Exception as ex:  # noqa: BLE001
+            self._tuning_fail("import tuning", ex)
+        if _tun is not None:
+            tv = self._tuning_value
+            try:
+                conf_cfg = _tun.section("detect").get("conf") or {}
+                # *_per_class 는 검출기 임계가 아니라 클래스별 후필터 맵(dict) → DETECTOR_CONF 병합에서 제외
+                _per_class_keys = ("ppe_per_class", "fire_smoke_per_class")
+                self.DETECTOR_CONF = {**self.DETECTOR_CONF,
+                                      **{k: v for k, v in conf_cfg.items() if k not in _per_class_keys}}
+            except Exception as ex:  # noqa: BLE001
+                conf_cfg = {}
+                self._tuning_fail("detect.conf", ex)
+            try:
+                # 클래스별 후필터 맵(라벨 표준화해서 저장) — 예: {"NO-Hardhat":0.30, "NO-Mask":0.50, ...}
+                self.PPE_PER_CLASS = {LABEL_NORMALIZE.get(str(k), str(k)): float(v)
+                                      for k, v in (conf_cfg.get("ppe_per_class") or {}).items()}
+            except Exception as ex:  # noqa: BLE001
+                self._tuning_fail("detect.conf.ppe_per_class", ex)
+            try:
+                # 화재/연기 클래스별 후필터 맵(T14-F) — 예: {"fire":0.03, "smoke":0.20}
+                self.FIRE_SMOKE_PER_CLASS = {LABEL_NORMALIZE.get(str(k), str(k)): float(v)
+                                             for k, v in (conf_cfg.get("fire_smoke_per_class") or {}).items()}
+            except Exception as ex:  # noqa: BLE001
+                self._tuning_fail("detect.conf.fire_smoke_per_class", ex)
+            self.IMGSZ = tv(_tun, int, "detect", "imgsz", self.IMGSZ)
+            self.STALE_MAX_MISSES = tv(_tun, int, "detect", "stale_max_misses", self.STALE_MAX_MISSES)
+            self.EMA = tv(_tun, float, "detect", "ema", self.EMA)   # 위치 평활 주입 가능(기본 0.75 불변 · 1.8b B-2 측정용)
+            self.EMA_MIN = tv(_tun, float, "track", "ema_min", self.EMA_MIN)     # 속도 적응형 EMA(2.2)
+            self.EMA_MAX = tv(_tun, float, "track", "ema_max", self.EMA_MAX)
+            self.EMA_DREF = tv(_tun, float, "track", "ema_dref", self.EMA_DREF)
+            self.CONTAIN_RATIO = tv(_tun, float, "detect", "contain_ratio", self.CONTAIN_RATIO)   # 포함비 억제 문턱(1.9d)
+            self.PPE_PERSON_EXPAND = tv(_tun, float, "detect", "ppe_person_expand", self.PPE_PERSON_EXPAND)   # 교차게이트(Phase C)
+            self.PERSON_ENSEMBLE = tv(_tun, bool, "detect", "person_ensemble", self.PERSON_ENSEMBLE)   # [P-2] 이중신호 앙상블 on/off
+            hf = tv(_tun, int, "detect", "hysteresis_frames", 0)   # >0 이면 전 신호를 이 N 으로 통일(1=끔). 0=기본(ppe3·fire2)
             if hf > 0:
                 self.HYSTERESIS = {k: hf for k in self.HYSTERESIS}
-            self.TRACK_ALGO = str(tuning.val("track", "algo", self.TRACK_ALGO)).strip().lower()
-            self.BYTETRACK_LOW_CONF = float(tuning.val("track", "bytetrack_low_conf", self.BYTETRACK_LOW_CONF))
-            self.BYTETRACK_HIGH_CONF = float(tuning.val("track", "bytetrack_high_conf", self.BYTETRACK_HIGH_CONF))
-            self.BYTETRACK_FRAME_RATE = float(tuning.val("track", "bytetrack_frame_rate", self.BYTETRACK_FRAME_RATE))
-            self.BYTETRACK_LOST_BUFFER = int(tuning.val("track", "bytetrack_lost_buffer", self.BYTETRACK_LOST_BUFFER))
-            self.BYTETRACK_MIN_IOU = float(tuning.val("track", "bytetrack_min_iou", self.BYTETRACK_MIN_IOU))
-            _act = tuning.val("track", "bytetrack_activation", None)   # None = person 임계 자동 연동(위 주석)
-            self.BYTETRACK_ACTIVATION = float(_act) if _act is not None else None
-            self.BYTETRACK_MIN_FRAMES = int(tuning.val("track", "bytetrack_min_frames", self.BYTETRACK_MIN_FRAMES))
-            self.PASSTHROUGH_CONF = float(tuning.val("track", "passthrough_conf", self.PASSTHROUGH_CONF))
+            self.TRACK_ALGO = tv(_tun, lambda v: str(v).strip().lower(), "track", "algo", self.TRACK_ALGO)
+            self.BYTETRACK_LOW_CONF = tv(_tun, float, "track", "bytetrack_low_conf", self.BYTETRACK_LOW_CONF)
+            self.BYTETRACK_HIGH_CONF = tv(_tun, float, "track", "bytetrack_high_conf", self.BYTETRACK_HIGH_CONF)
+            self.BYTETRACK_FRAME_RATE = tv(_tun, float, "track", "bytetrack_frame_rate", self.BYTETRACK_FRAME_RATE)
+            self.BYTETRACK_LOST_BUFFER = tv(_tun, int, "track", "bytetrack_lost_buffer", self.BYTETRACK_LOST_BUFFER)
+            self.BYTETRACK_MIN_IOU = tv(_tun, float, "track", "bytetrack_min_iou", self.BYTETRACK_MIN_IOU)
+            # None = person 임계 자동 연동(위 주석) — None 은 캐스팅하지 않는다
+            self.BYTETRACK_ACTIVATION = tv(_tun, lambda v: None if v is None else float(v),
+                                           "track", "bytetrack_activation", None)
+            self.BYTETRACK_MIN_FRAMES = tv(_tun, int, "track", "bytetrack_min_frames", self.BYTETRACK_MIN_FRAMES)
+            self.PASSTHROUGH_CONF = tv(_tun, float, "track", "passthrough_conf", self.PASSTHROUGH_CONF)
             self.PPE_CONFIG_WARN = ""
-            _req = tuning.section("ppe").get("required")
+            try:
+                _req = _tun.section("ppe").get("required")
+            except Exception as ex:  # noqa: BLE001
+                _req = None
+                self._tuning_fail("ppe.required", ex)
             if _req is not None:
                 # ★[2026-08-28] 예전에는 오타·빈 목록이 **로그 한 줄 없이** 기본 3종으로
                 #   복귀했다. 그러면 운영자는 "마스크를 껐다"고 믿는데 오탐은 그대로 나고,
@@ -432,8 +458,6 @@ class GuardAgent(BaseAgent):
                     _guard_logger().error("★설정 무효: %s", self.PPE_CONFIG_WARN)
                 else:
                     self.PPE_REQUIRED = norm
-        except Exception:  # noqa: BLE001
-            pass
         self._models: dict[str, Any] = {}      # id → YOLO (지연 로드 캐시)
         self._load_errors: dict[str, str] = {}
         self._predict_fail_streak: dict[str, int] = {}   # [Q-3] 슬롯별 연속 추론 실패 횟수
@@ -470,6 +494,20 @@ class GuardAgent(BaseAgent):
             _raw_rfw = {}
         # 절대경로화 + 실파일 검증 + 로드 로그. 커스텀 부재 시 예외를 그대로 올려 기동을 거부(silent 폴백 차단).
         self._rfdetr_weights = self._resolve_rfdetr_weights(_raw_rfw)
+
+    def _tuning_fail(self, key: str, ex: Exception) -> None:
+        """[M1-6] tuning 키 하나의 적용 실패를 **드러내고**(ERROR + status) 기본값으로 계속 간다."""
+        msg = f"tuning {key} 적용 실패({type(ex).__name__}: {ex}) — 이 키만 기본값 유지"
+        self.TUNING_WARN.append(msg)
+        _guard_logger().error("★설정 무효: %s", msg)
+
+    def _tuning_value(self, tuning: Any, cast: Any, sec: str, key: str, default: Any) -> Any:
+        """[M1-6] tuning.val 1개를 읽어 cast. 실패하면 그 키만 기본값(+ERROR·status) — 다른 키에 전파 안 함."""
+        try:
+            return cast(tuning.val(sec, key, default))
+        except Exception as ex:  # noqa: BLE001
+            self._tuning_fail(f"{sec}.{key}", ex)
+            return default
 
     @staticmethod
     def _pick_device() -> str:
@@ -577,6 +615,8 @@ class GuardAgent(BaseAgent):
                 # ★[2026-08-28] 설정이 조용히 무시되는 상태를 밖에서 보이게 한다.
                 "ppe_required": sorted(self.PPE_REQUIRED),
                 "ppe_config_warn": self.PPE_CONFIG_WARN,
+                # [M1-6] tuning 키 단위 적용 실패 목록 — 비어 있어야 정상(조용한 부분 적용 금지)
+                "tuning_warn": list(getattr(self, "TUNING_WARN", [])),
                 "slot_degraded": {k: v for k, v in self._slot_degraded.items() if v},
                 "predict_fail_streak": {k: v for k, v in self._predict_fail_streak.items() if v}}
 
@@ -946,6 +986,10 @@ class GuardAgent(BaseAgent):
                                           slot, self._predict_fail_streak[slot])
                 self._predict_fail_streak[slot] = 0
                 self._slot_degraded[slot] = False
+                # [CODE_REVIEW M1-7] 복구됐는데 옛 추론 오류 문자열이 /health slot_errors 에 영구 잔존하던
+                #   결함 — predict 계열(:907 에서 기록)만 지운다(로드 실패는 재시도가 없어 여기 못 온다).
+                if str(self._load_errors.get(slot, "")).startswith("predict:"):
+                    self._load_errors.pop(slot, None)
             used.append(slot)
             for d in boxes:
                 # 클래스별 임계 후필터(ppe·fire_smoke): 맵에 있으면 그 임계, 없으면 slot_conf 로 거른다.

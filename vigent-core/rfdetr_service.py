@@ -87,7 +87,7 @@ class RFDetrService:
             import cv2
             import supervision as sv
             from PIL import Image
-            from rfdetr.util.coco_classes import COCO_CLASSES
+            from rfdetr.assets.coco_classes import COCO_CLASSES  # [M1-10] rfdetr.util.* 은 1.9.0 제거 예정
 
             h, w = image_bgr.shape[:2]
             pts, thr = _load_zone_and_threshold("safety")   # 매 프레임 설정 반영(화면서 구역 바꾸면 즉시)
@@ -148,7 +148,7 @@ class RFDetrService:
             self._ensure()
             import cv2
             from PIL import Image
-            from rfdetr.util.coco_classes import COCO_CLASSES
+            from rfdetr.assets.coco_classes import COCO_CLASSES  # [M1-10] rfdetr.util.* 은 1.9.0 제거 예정
             h, w = image_bgr.shape[:2]
             det = self._model.predict(
                 Image.fromarray(cv2.cvtColor(image_bgr, cv2.COLOR_BGR2RGB)), threshold=thr)
