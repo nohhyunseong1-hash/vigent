@@ -270,6 +270,19 @@ def _derive(out: dict, zone: list, aspect_hw: float | None = None,
                         note = ("위험구역 내 작업자 감지(체류 확정)" if subj.startswith("t")
                                 else "위험구역 내 작업자 감지(체류 확정·추적미확정)")
                         fired.append(("zone_intrusion", "high", note, subj))
+                # ★[CODE_REVIEW M2-1, 2026-09-06] 퇴장이 확정된 주체는 정리한다. 예전엔 known·디바운서
+                #   상태에 넣기만 하고 지우지 않아 ByteTrack tid(단조 증가)가 켜둔 만큼 무한히 쌓이고
+                #   매 프레임 전수 순회했다(루프 내 메모리 누적). 조건: 이번 프레임에 안 보이고,
+                #   확정 아님 + raw 밖 상태가 exit_s 이상 유지(= 퇴장 확정). 재진입은 새 진입으로 발화.
+                for subj in list(known):
+                    if subj in inside_tids:
+                        continue
+                    st = debouncer.state(f"{cid}#{subj}")
+                    if st["confirmed"] or st["raw"]:
+                        continue
+                    if st["held_s"] is None or st["held_s"] >= debouncer._exit_s():
+                        known.discard(subj)
+                        debouncer.reset(f"{cid}#{subj}")
         elif raw_inside:                              # 디바운서 미주입 경로(하위호환)
             fired.append(("zone_intrusion", "high", "위험구역 내 작업자 감지", ""))
     if sig.get("ppe_missing"):
