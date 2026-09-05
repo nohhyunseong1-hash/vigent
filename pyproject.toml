@@ -10,6 +10,7 @@ extend-exclude = [
     "VIGENT_archive", "VIGENT USB", "vigent-landing 2", "vigentFacialRecognition",
     "VIGENT_artifacts", "benchmarks/results", "runs", "data", "weights",
     "cloud", "**/vendor/**",
+    "_archive",   # [감사 2026-09-06] 격리된 구테마·구설정 — 실행 대상 아님
 ]
 
 [tool.ruff.lint]
