@@ -11,7 +11,7 @@
 
 ## 프로세스 생존
 - **Linux**: `deploy/systemd/vigent-edge.service`(Restart=always) + `vigent-watchdog.{service,timer}`(/health 30초 점검).
-- **macOS**: `deploy/launchd/com.vigent.edge.plist`(KeepAlive=true). `__INSTALL_DIR__` 를 실제 경로(위 제약 준수)로 치환.
+- **macOS**: `_archive/macos/launchd/com.vigent.edge.plist`(KeepAlive=true · ★2026-09-06 감사 C4에서 격리 — mac 재배포 시 `deploy/launchd/`로 복귀). `__INSTALL_DIR__` 를 실제 경로(위 제약 준수)로 치환.
 - 공통 워치독 로직: `deploy/watchdog.sh`(/health N회 실패 시 재기동).
 
 ## 바인딩 · 인증 (C-S0)

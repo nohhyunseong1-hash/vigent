@@ -8,42 +8,47 @@
 
 ## 빠른 시작 (로컬)
 
-### 1. 파이썬 — 3.13 고정
-이 저장소는 **Python 3.13.9** 기준으로 검증한다(`.python-version`). 모든 테스트·의존성 작업은 이 인터프리터로만 수행한다.
-```bash
-# ★ 이 환경의 정본 인터프리터(3.13.9):
-/opt/anaconda3/bin/python3 --version        # Python 3.13.9
+> 2026-09-06 감사 C4: 개발 PC가 Windows 로 옮겨져 **Windows 절차를 앞에** 둔다. mac/Linux 는 `run.sh`.
+> mac 전용 더블클릭 런처(`.command`)·launchd plist 는 `_archive/macos/` 로 격리했다.
+
+### 1. 파이썬 — 3.11 고정
+정본은 **Python 3.11.x**(`.python-version` = 3.11.9 · `pyproject.toml` py311). 개발 PC·학원 현장 노트북 모두 3.11.9 실증.
+```powershell
+py -3.11 --version        # Windows (py 런처)
+python3 --version         # mac/Linux
 ```
-> ⚠️ 시스템 기본 `python3`가 다른 버전(예: 3.9)일 수 있다. **아래 명령은 반드시 위 정본 경로로 실행**한다.
-> 편의를 위해 셸에서 `PY=/opt/anaconda3/bin/python3` 로 두고 `$PY …` 로 써도 된다.
+> ⚠ CI(`.github/workflows/ci.yml`)는 아직 **3.13** 으로 돌아 개발 환경과 다르다 — 감사 4단계 정합 대상(AUDIT_REPORT §2-2).
 
 ### 2. 의존성 설치
-```bash
-/opt/anaconda3/bin/python3 -m pip install -r requirements.txt
-# 선택: 평가/학습 도구
-# /opt/anaconda3/bin/python3 -m pip install -r requirements-agents.txt   # 에이전트(LLM·RAG)
-# /opt/anaconda3/bin/python3 -m pip install -r requirements-train.txt    # 학습·측정(구 requirements-eval)
+```powershell
+py -3.11 -m pip install -r requirements.txt           # 감시 서버(필수)
+# 선택 — 기능별 분리([C6])
+py -3.11 -m pip install -r requirements-agents.txt    # 에이전트 LLM·RAG (키는 .env: OPENAI_API_KEY 등)
+py -3.11 -m pip install -r requirements-train.txt     # 학습·측정 (ultralytics 포함 — 배포 아님)
 ```
-> `torch`/`torchvision`은 플랫폼마다 설치법이 다르다(Jetson/CUDA는 기기용 휠 별도). `requirements.txt` 주석 참조.
+> `torch`/`torchvision`은 플랫폼마다 설치법이 다르다. **이 데스크탑(RTX 5070 Ti)은 반드시 cu130 휠**(`requirements.txt` 주석 참조).
+> 로컬 VLM(mlx, `requirements-optional.txt`)은 **Apple 전용** — Windows 에선 설치하지 않으며 VLM 기능만 조용히 꺼진다.
 
 ### 3. 서버 실행
-```bash
-./run.sh                    # 로컬 개발: http://127.0.0.1:8010 (무토큰)
+```powershell
+.un.ps1            # Windows: http://127.0.0.1:8010 (무토큰). 더블클릭은 run.bat 또는 "VIGENT Safety 시작.bat"
+./run.sh             # mac/Linux
 # 외부 노출은 토큰 필수:
-# VIGENT_HOST=0.0.0.0 VIGENT_API_TOKEN=<비밀> ./run.sh
+#   $env:VIGENT_HOST="0.0.0.0"; $env:VIGENT_API_TOKEN="<비밀>"; .un.ps1
 ```
-> `run.sh`는 uvicorn/fastapi가 설치된 파이썬을 자동 탐색한다(정본 경로 포함).
+> 두 런처 모두 uvicorn/fastapi 가 설치된 파이썬을 자동 탐색한다(`.venv` → `py -3.11` → `python`).
+> 재부팅 자동기동(서비스 등록)은 [deploy/windows/README.md](deploy/windows/README.md).
 
 기동 확인:
-```bash
-curl -s http://127.0.0.1:8010/health | /opt/anaconda3/bin/python3 -m json.tool
-# status: "ok", rfdetr_slots 3개 LOADED, llm.provider 확인
+```powershell
+Invoke-RestMethod http://127.0.0.1:8010/health | ConvertTo-Json -Depth 3
+# status: "ok", rfdetr_slots 3개 LOADED, llm.provider 확인 — 기동 후 ~15초는 phase=starting(HTTP 503)이 정상(B4)
 ```
 주요 화면: `/home`(허브) · `/safety/incident`(재해 원인분석) · `/health`.
 
 ### 4. 테스트
-```bash
-/opt/anaconda3/bin/python3 -m unittest discover -s tests    # 34 tests 통과가 정상
+```powershell
+py -3.11 -m unittest discover -s tests    # 481 tests OK 가 정상(2026-09-06 실측)
 ```
 
 ---
