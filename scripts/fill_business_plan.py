@@ -16,7 +16,7 @@
 
 사용:
   python scripts/fill_business_plan.py \
-      --template "docs/사업계획서 양식.docx" --out "docs/사업계획서_VIGENT_초안.docx"
+      --template "docs/templates/사업계획서_양식.docx" --out "docs/사업계획서_VIGENT_초안.docx"
 """
 from __future__ import annotations
 
