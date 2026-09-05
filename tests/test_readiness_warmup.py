@@ -18,6 +18,18 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "vigent-core"))
 import readiness  # noqa: E402
 
 
+def _drain_stray_warmups(timeout: float = 90.0) -> None:
+    """[R12 flaky, 2026-09-06 실측] 다른 테스트 모듈이 FastAPI 앱 startup 으로 띄운 **실모델 예열
+    스레드**("vigent-warmup", 20초+)가 그 테스트가 끝난 뒤에도 살아서 전역 readiness 상태에
+    _mark(READY) 를 쓴다. 이 모듈이 FAILED 를 기대하는 순간 그 스레드가 READY 로 덮으면
+    실패한다(전체 스위트 -v 로그: audit/unittest_flaky_2026-09-06_run3.log —
+    test_on_ready_not_called_when_warmup_fails, 'ready' != 'failed'). 단독 실행은 항상 통과.
+    → 검증 전에 남아 있는 예열 스레드를 기다려 상태 경합을 없앤다(테스트 격리 결함이지 제품 결함 아님)."""
+    for t in threading.enumerate():
+        if t.name == "vigent-warmup" and t is not threading.current_thread():
+            t.join(timeout)
+
+
 class _FakeGuard:
     """detect 호출을 기록하는 최소 가드."""
 
@@ -37,6 +49,7 @@ class _FakeGuard:
 
 class TestWarmup(unittest.TestCase):
     def setUp(self):
+        _drain_stray_warmups()
         readiness._mark(readiness.STARTING)
         with readiness._lock:
             readiness._state["started_at"] = time.time()
@@ -106,6 +119,7 @@ class TestRequiredWeightsGuard(unittest.TestCase):
     """[B8] 필수 가중치가 없으면 조용히 폴백하지 않고 명시적으로 실패해야 한다."""
 
     def setUp(self):
+        _drain_stray_warmups()
         readiness._mark(readiness.STARTING)
 
     def test_missing_required_weight_fails_warmup(self):
