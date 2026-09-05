@@ -9,11 +9,14 @@ ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "vigent-core"))
 
 import vision_loader  # noqa: E402
+from _isolate import isolate_alerts, isolate_data_dirs  # noqa: E402
 from agents import build_agents  # noqa: E402
 
 
 class TestStep4(unittest.TestCase):
     def setUp(self):
+        self.addCleanup(isolate_alerts())     # [4단계 ④] dispatch("critical","프레스 우회") 가 운영 큐에 남지 않게
+        self.addCleanup(isolate_data_dirs())  # Scribe 저장 경로도 격리
         cfg = vision_loader.load_vision("safety")
         self.agents = build_agents(cfg)
 

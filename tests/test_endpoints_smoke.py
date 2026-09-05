@@ -16,6 +16,7 @@ ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "vigent-core"))
 
 import main  # noqa: E402
+from _isolate import isolate_alerts  # noqa: E402
 from fastapi.testclient import TestClient  # noqa: E402
 
 
@@ -32,6 +33,9 @@ class TestEndpointsSmoke(unittest.TestCase):
     def setUpClass(cls):
         cls._saved_token = main._API_TOKEN
         main._API_TOKEN = ""                  # 무인증 기본 동작으로 고정
+        # ★[4단계 ④] startup 이 alert_notify 전송기를 실제 dispatcher 에 배선한다 — 그 배선이
+        #   운영 data/alert_queue.db 에 시험 행을 남겼다(실측 2026-08-28). 큐·전송기를 격리한다.
+        cls.addClassCleanup(isolate_alerts())
         cls.client = TestClient(main.app)
         cls.client.__enter__()   # startup 이벤트(기본 테마 로드) 발화
 

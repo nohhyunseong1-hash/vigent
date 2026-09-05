@@ -18,6 +18,7 @@ sys.path.insert(0, str(ROOT / "vigent-core"))
 import data_engine  # noqa: E402
 import rfdetr_service  # noqa: E402  (모듈 로드만 — 싱글톤 생성, 모델 로드 아님)
 import worker  # noqa: E402
+from _isolate import isolate_alerts  # noqa: E402
 
 ZONE = [(0.05, 0.05), (0.95, 0.05), (0.95, 0.95), (0.05, 0.95)]   # 거의 전체 프레임
 
@@ -37,6 +38,7 @@ class _QuietGuard:
 
 class TestWorkerZoneTile(unittest.TestCase):
     def setUp(self):
+        self.addCleanup(isolate_alerts())     # [4단계 ④] 실측: 이 테스트가 운영 큐에 "[TZ] …" 행을 남겼다(#81)
         self.frame = np.zeros((480, 640, 3), dtype=np.uint8)
         self.lock = threading.Lock()
         self.worker = worker.Worker()

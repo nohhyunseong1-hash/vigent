@@ -8,6 +8,7 @@ sys.path.insert(0, str(ROOT / "vigent-core"))
 
 import data_engine  # noqa: E402
 import vision_loader  # noqa: E402
+from _isolate import isolate_data_dirs  # noqa: E402
 from agents import build_agents  # noqa: E402
 
 # 1x1 흰 픽셀 JPEG (base64) — 증거 프레임 저장 테스트용
@@ -20,11 +21,14 @@ _PIX = ("data:image/jpeg;base64,/9j/4AAQSkZJRgABAQEAYABgAAD/2wBDAP//////////////
 
 
 class TestDataEngine(unittest.TestCase):
+    def setUp(self):
+        self.addCleanup(isolate_data_dirs())   # [4단계 ④] 운영 data/evidence·recognition 에 쓰지 않는다
+
     def test_log_event_writes_record_and_frame(self):
         rec = data_engine.log_event("zone_intrusion", "high", 60, site="t", image_data_url=_PIX)
         self.assertEqual(rec["rule"], "zone_intrusion")
         self.assertIsNotNone(rec["evidence"])                  # 증거 경로 생성
-        self.assertTrue((ROOT / rec["evidence"]).exists())     # 실제 파일 저장됨
+        self.assertTrue((data_engine._ROOT / rec["evidence"]).exists())   # 실제 파일 저장됨(격리 루트 기준)
 
     def test_log_without_image_is_ok(self):
         rec = data_engine.log_event("ppe_missing", "medium", 30)
@@ -39,6 +43,7 @@ class TestDataEngine(unittest.TestCase):
 
 class TestReport(unittest.TestCase):
     def setUp(self):
+        self.addCleanup(isolate_data_dirs())   # [4단계 ④] save=True 가 운영 data/risk_assessments 에 남지 않게
         cfg = vision_loader.load_vision("safety")
         self.scribe = build_agents(cfg)["Scribe"]
 

@@ -19,6 +19,7 @@
 from __future__ import annotations
 
 import json
+import os
 import sqlite3
 import threading
 import time
@@ -30,7 +31,9 @@ import vlog
 
 _LOG = vlog.get("vigent.alert_queue")
 _ROOT = Path(__file__).resolve().parent.parent
-_DB_PATH = _ROOT / "data" / "alert_queue.db"
+# [4단계 ④, 2026-09-06] 큐 DB 경로를 env 로 바꿀 수 있게 — 테스트·격리 실행이 운영 DB 를 건드리지
+#   않도록(실측: 테스트 스위트가 운영 큐에 시험 행을 남겼다, CODE_REVIEW.md §4-0). 기본값 불변.
+_DB_PATH = Path(os.environ.get("VIGENT_ALERT_DB") or (_ROOT / "data" / "alert_queue.db"))
 
 PENDING, SENT, DEAD = "pending", "sent", "dead"
 

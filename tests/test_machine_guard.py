@@ -9,11 +9,13 @@ ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "vigent-core"))
 
 import vision_loader  # noqa: E402
+from _isolate import isolate_alerts  # noqa: E402
 from agents import build_agents  # noqa: E402
 
 
 class TestMachineGuard(unittest.TestCase):
     def setUp(self):
+        self.addCleanup(isolate_alerts())     # [4단계 ④] relay()→dispatch()→큐 기록을 운영 DB 밖으로
         cfg = vision_loader.load_vision("safety")
         self.agents = build_agents(cfg)
 
@@ -58,6 +60,7 @@ class TestMachineEndpoints(unittest.TestCase):
         #   test_security_gate.py 등이 따로 검증한다. 상세는 test_endpoints_smoke.py 주석.
         self._saved_token = main._API_TOKEN
         main._API_TOKEN = ""
+        self.addCleanup(isolate_alerts())     # [4단계 ④] startup 배선(전송기·재시도 스레드) 격리
         self.client = TestClient(main.app)
         self.client.__enter__()
 

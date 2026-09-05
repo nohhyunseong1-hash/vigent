@@ -72,6 +72,10 @@ class FailureAlerting(unittest.TestCase):
 class RecordMarking(unittest.TestCase):
     """② 원본 저장 사실이 기록에 남는다 — 선별 삭제의 전제."""
 
+    def setUp(self):
+        from _isolate import isolate_data_dirs
+        self.addCleanup(isolate_data_dirs())   # [4단계 ④] 운영 data/recognition/events_*.jsonl 에 쓰지 않는다
+
     def test_marked_only_when_failed(self):
         clean = data_engine.log_event(rule="t", level="low", note="정상")
         dirty = data_engine.log_event(rule="t", level="low", note="실패", privacy_failed=True)
