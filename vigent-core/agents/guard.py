@@ -751,14 +751,25 @@ class GuardAgent(BaseAgent):
         person = [d for d in fresh if str(d.get("label", "")).lower() == "person"]
         other = [d for d in fresh if str(d.get("label", "")).lower() != "person"]
         tracked_other = self._track_iou(other, track_key) if other else []
+        bt = self._bytetrack_by_key.get(track_key)
         if not person:
+            # ★[CODE_REVIEW M1-5, 2026-09-06] 예전엔 여기서 그냥 return 해 **트래커의 시간이 멈췄다**
+            #   (위 BYTETRACK_LOST_BUFFER 주석의 모순 — 11.55초 부재 후에도 같은 tid 부활). 사람이
+            #   없는 프레임에도 빈 Detections 로 update 를 불러 lost 버퍼가 실시간으로 만료되게 한다.
+            #   트래커가 아직 없는 키(사람이 한 번도 없었음)는 만들지 않는다. 수정 전후 실측:
+            #   benchmarks/bytetrack_empty_update_ab.py → CODE_REVIEW.md §1 M1-5.
+            if bt is not None:
+                import supervision as sv
+                try:
+                    bt.update(sv.Detections.empty())
+                except Exception as ex:  # noqa: BLE001  시간 진행 실패가 검출 결과를 막으면 안 됨
+                    _guard_logger().warning("ByteTrack 빈 프레임 update 실패(%s: %s)", type(ex).__name__, ex)
             return tracked_other
 
         import numpy as np
         import supervision as sv
         from trackers import ByteTrackTracker
 
-        bt = self._bytetrack_by_key.get(track_key)
         if bt is None:
             bt = ByteTrackTracker(
                 lost_track_buffer=self.BYTETRACK_LOST_BUFFER,
