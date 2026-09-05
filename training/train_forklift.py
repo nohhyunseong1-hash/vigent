@@ -5,7 +5,8 @@
 - yolov8n 전이학습. 결과: runs/detect/forklift_boda_ax/weights/best.pt
   좋으면 메인 탐지에 융합(작업자-지게차 안전거리/속도 연동).
 
-사용:  python backend/ml/train_forklift.py [epochs imgsz device]
+사용:  python training/train_forklift.py [epochs imgsz device]
+  ※ 2026-09-06 감사: vigent-core/ml/ → training/ 이동(ROOT 계산 parents[2]→parents[1]).
 """
 import sys
 from pathlib import Path
@@ -13,7 +14,7 @@ from pathlib import Path
 import yaml
 from ultralytics import YOLO
 
-ROOT = Path(__file__).resolve().parents[2]
+ROOT = Path(__file__).resolve().parents[1]
 DATA = ROOT / "datasets" / "safety" / "forklift"
 
 

@@ -4,9 +4,11 @@
 - 데이터: datasets/safety/fire (classes: Fire, default, smoke)
   · 'default'는 Roboflow 잡음 클래스 — 추론 시 무시(hazard_detector가 fire/smoke만 매핑).
 - yolov8n 전이학습. 결과: runs/detect/fire_boda_ax/weights/best.pt
-  좋으면 config/settings.yaml 의 fire_model_path 를 이 경로로 교체.
+  좋으면 themes/safety/vision.yaml 의 fire_smoke 슬롯 경로를 이 경로로 교체.
+  (구 config/settings.yaml 은 2026-09-06 감사에서 _archive/config/ 로 격리 — 읽는 코드 없음)
 
-사용:  python backend/ml/train_fire.py [epochs imgsz device]
+사용:  python training/train_fire.py [epochs imgsz device]
+  ※ 2026-09-06 감사: vigent-core/ml/ → training/ 이동(ROOT 계산 parents[2]→parents[1]).
 """
 import sys
 from pathlib import Path
@@ -14,7 +16,7 @@ from pathlib import Path
 import yaml
 from ultralytics import YOLO
 
-ROOT = Path(__file__).resolve().parents[2]
+ROOT = Path(__file__).resolve().parents[1]
 DATA = ROOT / "datasets" / "safety" / "fire"
 
 

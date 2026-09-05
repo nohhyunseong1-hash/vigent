@@ -4,7 +4,7 @@
 YOLO 라벨 형식(.txt)으로 저장한다. 사람이 라벨링 도구(예: labelImg, Roboflow)에서
 이 사전라벨을 '교정'만 하면 되므로 라벨링 시간을 크게 줄인다.
 
-사용:  python3 tools/prelabel.py
+사용:  python training/prelabel.py   (2026-09-06 감사: tools/ → training/ 이동, ROOT 깊이 동일)
 출력:  data/dataset/labels/<같은이름>.txt  (class cx cy w h, 0~1 정규화)
        data/dataset/classes.txt
 """
@@ -43,7 +43,7 @@ def main():
         (LBL / (p.stem + ".txt")).write_text("\n".join(lines), encoding="utf-8")
         n += 1
     print(f"[완료] {n}장 사전라벨 생성 → {LBL}")
-    print("다음: labelImg/Roboflow 등에서 이 라벨을 '교정'한 뒤 tools/train_safety.py 로 재학습하세요.")
+    print("다음: labelImg/Roboflow 등에서 이 라벨을 '교정'한 뒤 training/train_safety.py 로 재학습하세요.")
 
 
 if __name__ == "__main__":

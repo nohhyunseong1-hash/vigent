@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """VIGENT PPE 학습 진행상황 모니터 — 3초마다 갱신.
-실행:  python3 tools/train_monitor.py
+실행:  python training/train_monitor.py   (2026-09-06 감사: tools/ → training/ 이동)
 종료:  Ctrl+C
 """
 import csv, os, time, sys

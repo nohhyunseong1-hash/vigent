@@ -1,6 +1,7 @@
 """모델 비교 — 같은 평가셋에 여러 rf-detr 크기를 측정해 표로 정리(어느 모델로 갈지 근거).
 
-사용: python3 vigent-core/ml/compare_models.py data/retrain/office --target person --limit 100 --models nano,small,medium
+사용: python training/eval/compare_models.py data/retrain/office --target person --limit 100 --models nano,small,medium
+※ 2026-09-06 감사: vigent-core/ml/ → training/eval/ 이동(ROOT 깊이 동일, 계산 불변).
 출력: 콘솔 비교표 + runs/eval/compare_<시각>.json / .md
 """
 from __future__ import annotations

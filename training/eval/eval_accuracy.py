@@ -4,8 +4,9 @@ KISA 지능형 CCTV 인증(카테고리별 90%+)의 토대. 모델 불가지론(
 전부 permissive(rfdetr Apache-2.0, supervision MIT).
 
 사용:
-  python3 vigent-core/ml/eval_accuracy.py data/retrain/office  --target person
-  python3 vigent-core/ml/eval_accuracy.py data/retrain/person  --target person --limit 200
+  python training/eval/eval_accuracy.py data/retrain/office  --target person
+  python training/eval/eval_accuracy.py data/retrain/person  --target person --limit 200
+  ※ 2026-09-06 감사: vigent-core/ml/ → training/eval/ 이동(ROOT 깊이 동일, 계산 불변).
 출력: runs/eval/<셋이름>_<시각>.json + 콘솔 표 + KISA 90% 게이트 판정
 """
 from __future__ import annotations

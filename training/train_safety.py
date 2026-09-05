@@ -6,7 +6,7 @@
 ⚠ 권장: GPU. Mac(CPU)에서도 되지만 매우 느리다. 클라우드 GPU(Colab 등) 권장.
 ⚠ 라벨이 충분해야 효과(수백~수천 장 권장). 적으면 과적합.
 
-사용:  python3 tools/train_safety.py
+사용:  python training/train_safety.py   (2026-09-06 감사: tools/ → training/ 이동, ROOT 깊이 동일)
 입력:  data/dataset/images/*.jpg + data/dataset/labels/*.txt + classes.txt
 출력:  runs/detect/train*/weights/best.pt  → vigent-core/weights/ 로 교체하면 적용
 """
@@ -24,7 +24,7 @@ IMGSZ = 960
 def main():
     classes_file = DS / "classes.txt"
     if not (DS / "images").exists() or not classes_file.exists():
-        print(f"[안내] 학습 데이터가 없습니다: {DS}\n  → 수집 → tools/prelabel.py → 라벨 교정 순서를 먼저 하세요.")
+        print(f"[안내] 학습 데이터가 없습니다: {DS}\n  → 수집 → training/prelabel.py → 라벨 교정 순서를 먼저 하세요.")
         return
     names = [c for c in classes_file.read_text(encoding="utf-8").splitlines() if c.strip()]
     # data.yaml 생성(이미지=라벨 같은 폴더 구조). 간단히 train=val(소규모 파일럿) — 정식은 분리 권장.

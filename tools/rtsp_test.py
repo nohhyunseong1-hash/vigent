@@ -5,10 +5,11 @@ VIGENT 본체에 붙이기 전, 카메라 주소·계정이 맞는지 먼저 검
 
 사용:
   # 1) .env 에 RTSP_URL=rtsp://계정:비번@192.168.0.10:554/stream1 넣고:
-  python3 vigent-core/ml/rtsp_test.py
+  python tools/rtsp_test.py
   # 2) 또는 직접:
-  python3 vigent-core/ml/rtsp_test.py "rtsp://계정:비번@192.168.0.10:554/stream1"
+  python tools/rtsp_test.py "rtsp://계정:비번@192.168.0.10:554/stream1"
 출력: 연결 성공/실패 진단 + 첫 프레임을 runs/rtsp/first_frame.jpg 로 저장
+※ 2026-09-06 감사: vigent-core/ml/ → tools/ 이동(ROOT 계산 한 단계 얕아짐).
 """
 from __future__ import annotations
 
@@ -18,7 +19,7 @@ import sys
 import time
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parent.parent.parent
+ROOT = Path(__file__).resolve().parent.parent
 
 
 def load_url() -> str | None:
@@ -44,7 +45,7 @@ def main() -> None:
     if not url:
         print("❌ RTSP 주소가 없습니다.")
         print("   방법1) .env 에  RTSP_URL=rtsp://계정:비번@카메라IP:554/stream1  추가")
-        print("   방법2) python3 vigent-core/ml/rtsp_test.py \"rtsp://...\"")
+        print("   방법2) python tools/rtsp_test.py \"rtsp://...\"")
         return
 
     import cv2

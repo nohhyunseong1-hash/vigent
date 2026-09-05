@@ -4,11 +4,13 @@
 - 기존 PPE 모델(construction_ppe_v30)과 동일 스택(ultralytics YOLO) 사용.
   ⚠️ ultralytics는 AGPL-3.0 — 상용 배포 시 라이선스 결정 필요(기존과 동일).
 - 결과: runs/detect/ppe_construction_ax/weights/best.pt
-  좋으면 config/settings.yaml 의 ppe_model_path 를 이 경로로 교체.
+  좋으면 themes/safety/vision.yaml 의 ppe 슬롯 경로를 이 경로로 교체.
+  (구 config/settings.yaml 은 2026-09-06 감사에서 _archive/config/ 로 격리 — 읽는 코드 없음)
 
 사용:
-  python backend/ml/train_ppe.py            # 기본 학습(60ep, mps)
-  python backend/ml/train_ppe.py 5 416 cpu  # epochs imgsz device
+  python training/train_ppe.py            # 기본 학습(60ep, mps)
+  python training/train_ppe.py 5 416 cpu  # epochs imgsz device
+  ※ 2026-09-06 감사: vigent-core/ml/ → training/ 이동(ROOT 계산 parents[2]→parents[1]).
 """
 import sys
 from pathlib import Path
@@ -16,7 +18,7 @@ from pathlib import Path
 import yaml
 from ultralytics import YOLO
 
-ROOT = Path(__file__).resolve().parents[2]
+ROOT = Path(__file__).resolve().parents[1]
 DATA = ROOT / "datasets" / "safety" / "construction-ppe"
 
 
@@ -42,7 +44,7 @@ def main():
     )
     best = ROOT / "runs" / "detect" / "ppe_construction_ax" / "weights" / "best.pt"
     print(f"[train_ppe] ✅ 완료 → {best}")
-    print("[train_ppe] config/settings.yaml 의 ppe_model_path 를 위 경로로 교체하면 적용됩니다.")
+    print("[train_ppe] themes/safety/vision.yaml 의 ppe 슬롯 경로를 위 경로로 교체하면 적용됩니다.")
 
 
 if __name__ == "__main__":

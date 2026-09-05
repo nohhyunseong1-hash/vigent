@@ -1,6 +1,7 @@
 """테스트용 합성 영상 생성 — 사람 있는 이미지를 좌우로 이동시켜 '움직이는 사람' 영상으로.
 외부 다운로드 없이 추적+위험구역 침입 파이프라인을 로컬에서 검증하기 위함.
-사용: python3 vigent-core/ml/make_test_video.py <사람이미지> [출력.mp4]
+사용: python tools/make_test_video.py <사람이미지> [출력.mp4]
+※ 2026-09-06 감사: vigent-core/ml/ → tools/ 이동(ROOT 계산 한 단계 얕아짐).
 """
 from __future__ import annotations
 
@@ -10,7 +11,7 @@ from pathlib import Path
 import cv2
 import numpy as np
 
-ROOT = Path(__file__).resolve().parent.parent.parent
+ROOT = Path(__file__).resolve().parent.parent
 
 
 def main(img_path: str, out: str | None = None) -> None:
@@ -39,6 +40,6 @@ def main(img_path: str, out: str | None = None) -> None:
 
 if __name__ == "__main__":
     if len(sys.argv) < 2:
-        print("사용: python3 vigent-core/ml/make_test_video.py <사람이미지> [출력.mp4]")
+        print("사용: python tools/make_test_video.py <사람이미지> [출력.mp4]")
         sys.exit(1)
     main(sys.argv[1], sys.argv[2] if len(sys.argv) > 2 else None)
