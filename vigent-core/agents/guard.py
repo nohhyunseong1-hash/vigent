@@ -45,16 +45,44 @@ def _sha16(path) -> str:
         return "??"
 
 
+def _ensure_core_on_path() -> None:
+    """`vigent-core/` 를 sys.path 에 **1회·멱등**으로 올린다(CODE_REVIEW M1-1).
+
+    guard.py 는 서버(cwd=vigent-core) 외에 저장소 루트의 unittest·tools/ 스크립트·NSSM 서비스
+    (cwd·env 상이)에서도 import 된다 — cwd 가정을 하지 않고 경로를 보장하되, 예전처럼 호출마다
+    `sys.path.insert` 를 반복하면 경로가 무한 증가한다(실측: 100회 호출 → 7→107 항목).
+    """
+    import sys
+    core = str(_PROJECT_ROOT / "vigent-core")
+    if core not in sys.path:
+        sys.path.insert(0, core)
+
+
+_LOG = None              # 1회 해석 후 캐시(M1-1) — 호출마다 import·경로 삽입을 반복하지 않는다
+_LOG_BACKEND = ""        # "vlog" | "logging" — 어느 쪽이 잡혔는지 진단용(테스트·status)
+
+
 def _guard_logger():
-    """vlog 우선(없으면 표준 logging). 슬롯 로드 상태 가시화(F-8)."""
+    """vlog 우선(없으면 표준 logging). 슬롯 로드 상태 가시화(F-8).
+
+    폴백은 **조용히 하지 않는다**: vlog 를 못 올리면 표준 logging 으로 WARNING 1줄을 남긴다 —
+    그래야 파일 로테이션(vlog) 없이 도는 상태가 로그에 드러난다.
+    """
+    global _LOG, _LOG_BACKEND
+    if _LOG is not None:
+        return _LOG
+    import logging
     try:
-        import sys
-        sys.path.insert(0, str(_PROJECT_ROOT / "vigent-core"))
+        _ensure_core_on_path()
         import vlog
-        return vlog.get("vigent.guard")
-    except Exception:  # noqa: BLE001
-        import logging
-        return logging.getLogger("vigent.guard")
+        _LOG = vlog.get("vigent.guard")
+        _LOG_BACKEND = "vlog"
+    except Exception as ex:  # noqa: BLE001
+        _LOG = logging.getLogger("vigent.guard")
+        _LOG_BACKEND = "logging"
+        _LOG.warning("vlog 미사용, 표준 logging 폴백(%s: %s) — 파일 로테이션 로그가 안 남는다",
+                     type(ex).__name__, ex)
+    return _LOG
 
 # 모델이 내보내는 원시 라벨 → VIGENT 표준 라벨(규칙이 비교하는 문자열)
 LABEL_NORMALIZE = {
@@ -448,9 +476,7 @@ class GuardAgent(BaseAgent):
         """추론 장치 선택(단일 소스 device.pick_device 사용, 감사 C-2).
         YOLO는 macOS MPS 다회추론 크래시가 관찰돼 prefer_mps=False(맥=CPU). CUDA는 사용.
         속도가 필요하고 위험 감수 시 VIGENT_DETECT_DEVICE=mps 로 강제."""
-        import sys
-        from pathlib import Path
-        sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+        _ensure_core_on_path()          # M1-1: 멱등 삽입(예전엔 인스턴스마다 insert)
         import device as _device
         return _device.pick_device(prefer_mps=False)
 
