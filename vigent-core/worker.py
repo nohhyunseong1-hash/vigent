@@ -286,7 +286,10 @@ def _derive(out: dict, zone: list, aspect_hw: float | None = None,
         elif raw_inside:                              # 디바운서 미주입 경로(하위호환)
             fired.append(("zone_intrusion", "high", "위험구역 내 작업자 감지", ""))
     if sig.get("ppe_missing"):
-        fired.append(("ppe_missing", "high", "보호구 미착용 감지", ""))
+        # [CODE_REVIEW M2-5] 어떤 항목이 빠졌는지 note 에 싣는다(guard signals.ppe_missing_labels). 없으면 기존 문구.
+        labels = [str(x) for x in (sig.get("ppe_missing_labels") or [])]
+        note = "보호구 미착용 감지" + (f"({', '.join(labels)})" if labels else "")
+        fired.append(("ppe_missing", "high", note, ""))
     if sig.get("fire_smoke"):
         fired.append(("fire_smoke", "critical", "화재/연기 감지", ""))
     # 동적 작업반경(협착) — 지게차·차량 근처에 사람 진입(거리 자동추정)
@@ -444,8 +447,12 @@ class ErgonomicsTracker:
                 held = ts - tr["bad_since"]
                 if held >= self._hold_sec and not tr.get("fired"):   # 지속 확정 시 1회만
                     tr["fired"] = True
-                    level = {"warn": "중간", "bad": "높음"}.get(eff, a.get("level", "낮음"))
-                    note = f"{a['note']} · {held:.0f}초 지속"
+                    # ★[CODE_REVIEW M2-4, 2026-09 결정] 근골격은 **기록 전용, 통보 없음** — level="low"
+                    #   (`/safety/posture` 와 동일). 예전엔 한글 등급("중간"/"높음")이라 dispatcher.on_severity
+                    #   (critical/high/medium)에 안 걸려 어차피 log 전용이었는데, 그 사실이 코드에 드러나지
+                    #   않았다. 등급(warn/bad)은 note 에 남겨 평가·집계에 쓴다.
+                    level = "low"
+                    note = f"{a['note']} · {held:.0f}초 지속 · 등급 {eff}"
                     out.append(("ergonomic_risk", level, note))
             else:                                        # 자세 회복 → 상태 리셋
                 tr["bad_since"] = None

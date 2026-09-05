@@ -1080,6 +1080,9 @@ class GuardAgent(BaseAgent):
                 #   N=1(tuning)이면 현행과 동일. conf 게이지(ppe_conf·fire_conf)는 원값 유지(Analyst 가산용).
                 "ppe_missing": self._hysteresis(track_key, "ppe_missing", bool(ppe_missing_hits)),
                 "ppe_conf": ppe_conf,
+                # [CODE_REVIEW M2-5] 어떤 항목(NO-Hardhat/NO-Safety-Vest/NO-Mask)이 빠졌는지 — 운영자가
+                #   현장 조치를 고를 수 있게. 기존 키는 불변(추가 키만).
+                "ppe_missing_labels": sorted({str(d["label"]) for d in ppe_missing_hits}),
                 "forklift_present": any(d["label"].lower() == "forklift" for d in detections),
                 "fire_smoke": self._hysteresis(track_key, "fire_smoke", bool(fire_hits)),
                 "fire_conf": fire_conf,
