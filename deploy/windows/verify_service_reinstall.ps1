@@ -14,7 +14,14 @@
     4) 의도적 기동 실패: AppEnvironmentExtra 의 RF_HOME 을 없는 폴더로 → 재시작 → data/startup_failure.json count 증가 ·
        이벤트 로그(Application/VIGENT ID 1000 또는 1001) · 연속 실패 간격 ≥ 60s(AppRestartDelay)
     5) 정상 복구: env 원복 → 재시작 → Running → /health 200 → service_status.ps1 종료코드 0
-    6) finally: 서비스 Stopped + Disabled(원래 상태) · 중화 파일 원복(sha256 대조) · 보고서 작성
+    6) finally: 서비스 Start 타입·상태를 0)에서 백업한 값(nssm get Start · Get-Service)으로 원복 — 설정 파일 원복과 같은 등급 ·
+       중화 파일 원복(sha256 대조) · 보고서 작성. 예외·install 실패 시 err 로그 꼬리 20줄(회전본 포함)과 startup_failure.json 을
+       콘솔·보고서에 즉시 출력
+
+  실사고(2026-09-06, 5-2 3차): ① 헬퍼 매개변수 이름이 $Args 라 `@Args` 가 빈 자동 변수를 스플래팅 → nssm 이 인자 없이 실행되어
+     dump 는 사용법 배너, finally 의 stop/set Start 는 무동작(서비스가 Paused/Automatic 으로 남음) ② 임시 .env 를
+     @("머리글", "VIGENT_API_TOKEN=" + $tok) 로 만들어 쉼표가 + 보다 먼저 묶여 토큰이 다음 줄로 떨어짐 → dotenv 가 빈 토큰으로
+     읽어 보안 게이트 SystemExit(1) → NSSM Paused. 둘 다 아래에서 정정하고 tests/test_verify_service_script.py 로 고정.
 
 .EXAMPLE
   cd deploy\windows ; .\verify_service_reinstall.ps1
@@ -36,6 +43,7 @@ if (-not $isAdmin) { Write-Error "관리자 권한 PowerShell 에서 실행하�
 $Here = Split-Path -Parent $MyInvocation.MyCommand.Path
 $Root = (Resolve-Path (Join-Path $Here "..\..")).Path
 $Stamp = Get-Date -Format "yyyyMMdd_HHmmss"
+$VerifyStart = Get-Date            # 이 검증 시작 시각(회전된 err 로그 선별 기준)
 $AuditDir = Join-Path $Root "audit"
 $LogDir = Join-Path $Root "logs"
 if (-not (Test-Path $AuditDir)) { New-Item -ItemType Directory $AuditDir | Out-Null }
@@ -66,10 +74,45 @@ $VenvPy = Join-Path $Root ".venv\Scripts\python.exe"
 if (-not (Test-Path $VenvPy)) { Write-Error (".venv 가 없습니다(" + $VenvPy + "). py -3.11 -m venv .venv ; .\.venv\Scripts\python.exe -m pip install -r requirements.txt 후 재실행"); exit 1 }
 
 # nssm 은 stderr 로 진행 문구를 내보내 $ErrorActionPreference=Stop 에서 NativeCommandError 가 된다 → 호출부에서만 Continue 로 내려 흡수
-function Nssm { param([string[]]$Args) $old = $ErrorActionPreference; $ErrorActionPreference = "Continue"
-  try { $out = (& $nssmPath @Args 2>&1) | ForEach-Object { "$_" }; return ($out -join "`n") } finally { $ErrorActionPreference = $old } }
+# ★실사고(5-2 3차): 매개변수 이름을 $Args 로 지으면 `@Args` 는 **빈 자동 변수 $args** 를 스플래팅해 nssm 이 인자 없이 실행된다
+#   (인자 없는 nssm 은 사용법 배너 또는 GUI 창 → 멈춤). 이름은 $Argv, 빈 인자 호출은 거부.
+function Nssm {
+  param([string[]]$Argv)
+  if (-not $Argv -or $Argv.Count -eq 0) { throw "Nssm: 인자 없이 호출됨" }
+  $old = $ErrorActionPreference; $ErrorActionPreference = "Continue"
+  try { $out = (& $nssmPath @Argv 2>&1) | ForEach-Object { "$_" }; return ($out -join "`n") } finally { $ErrorActionPreference = $old }
+}
 function Sha256([string]$p) { if (Test-Path $p) { (Get-FileHash -Algorithm SHA256 $p).Hash } else { "(없음)" } }
-function ErrTail() { $e = Join-Path $LogDir "vigent.err.log"; if (Test-Path $e) { (Get-Content -Tail 20 -Encoding UTF8 $e) -join " ⏎ " } else { "(err 로그 없음)" } }
+function Mask([string]$s) { return (($s -replace '(?i)(token|key|secret|password)=\S+', '$1=<masked>') -replace 'rtsp://\S+', 'rtsp://<masked>') }
+# NSSM 은 시작마다 err 로그를 회전하므로 실패 stderr 는 회전본(vigent.err-<시각>.log)에 남는다 → 이 검증 시작 이후 회전본 + 현재본을 함께 본다
+function ErrFiles() {
+  $rot = @(Get-ChildItem -Path $LogDir -Filter "vigent.err-*.log" -ErrorAction SilentlyContinue | Where-Object { $_.LastWriteTime -ge $VerifyStart } | Sort-Object LastWriteTime | Select-Object -Last 2 | ForEach-Object { $_.FullName })
+  return @(($rot + @((Join-Path $LogDir "vigent.err.log"))) | Where-Object { Test-Path $_ })
+}
+function ErrTailLines([int]$n) {
+  $ls = @()
+  foreach ($f in (ErrFiles)) { $ls += ("-- " + (Split-Path -Leaf $f) + " 마지막 " + $n + "줄 --"); $ls += @(Get-Content -Tail $n -Encoding UTF8 $f | ForEach-Object { Mask $_ }) }
+  if ($ls.Count -eq 0) { $ls = @("(err 로그 없음)") }
+  return $ls
+}
+function ErrTail() { return ((ErrTailLines 20) -join " ⏎ ") }
+function Show-Diag([string]$why) {   # install 실패·예외·Running 아님 → err 꼬리 20줄 + startup_failure.json 을 콘솔과 보고서에 즉시
+  Log ("★진단(" + $why + ") — err 로그 꼬리 · startup_failure.json")
+  foreach ($l in (ErrTailLines 20)) { Write-Host ("    " + $l); $Lines.Add("    " + $l) }
+  $p = Join-Path $Root "data\startup_failure.json"
+  if (Test-Path $p) { Log "startup_failure.json:"; foreach ($l in @(Get-Content -Encoding UTF8 $p)) { Write-Host ("    " + (Mask $l)); $Lines.Add("    " + (Mask $l)) } }
+  else { Log "startup_failure.json: (없음)" }
+}
+function New-TempToken() { return (-join ((1..32) | ForEach-Object { "abcdefghijklmnopqrstuvwxyz0123456789"[(Get-Random -Maximum 36)] })) }
+# ★실사고(5-2 3차): @("머리글", "VIGENT_API_TOKEN=" + $tok) 는 쉼표가 + 보다 먼저 묶여 @("머리글","VIGENT_API_TOKEN=") + $tok 이 된다
+#   → 토큰이 다음 줄로 떨어지고 dotenv 는 VIGENT_API_TOKEN='' 로 읽어 보안 게이트 SystemExit(1). 결합은 괄호로 감싸고 줄 단위로 넣는다.
+function Build-TempEnvLines([string]$Token, [string[]]$Keys, [string]$StampText) {
+  $ls = New-Object System.Collections.Generic.List[string]
+  $ls.Add(("# temporary .env written by verify_service_reinstall.ps1 " + $StampText + " - original kept as .env.audit_hold, restored in finally"))
+  $ls.Add(("VIGENT_API_TOKEN=" + $Token))
+  foreach ($k in $Keys) { if ($k -and ($k -ne "VIGENT_API_TOKEN")) { $ls.Add(($k + "=")) } }
+  return $ls.ToArray()
+}
 function SvcStatus() { $s = Get-Service -Name $ServiceName -ErrorAction SilentlyContinue; if ($s) { "" + $s.Status } else { "(없음)" } }
 function WaitRunning([int]$sec) { $t0 = Get-Date; while (((Get-Date) - $t0).TotalSeconds -lt $sec) { if ((SvcStatus) -eq "Running") { return $true }; Start-Sleep -Seconds 2 }; return ((SvcStatus) -eq "Running") }
 function HealthJson() {
@@ -106,7 +149,33 @@ function CountEvents([datetime]$since) {
 # ── 0. 백업 ─────────────────────────────────────────────────────────────
 $svc0 = Get-Service -Name $ServiceName -ErrorAction SilentlyContinue
 $state0 = if ($svc0) { "" + $svc0.Status + "/" + $svc0.StartType } else { "(서비스 없음)" }
-Log ("기존 서비스 상태: " + $state0)
+$status0 = if ($svc0) { "" + $svc0.Status } else { "" }
+$nssmStart0 = ""                   # finally 에서 그대로 되돌릴 nssm Start 값(SERVICE_DISABLED 등)
+if ($svc0) { try { $nssmStart0 = (Nssm @("get", $ServiceName, "Start")).Trim() } catch { $nssmStart0 = "" } }
+if ($svc0 -and ($nssmStart0 -notmatch "^SERVICE_")) {   # nssm get 이 실패하면 Win32_Service 로 환산
+  $w = Get-CimInstance Win32_Service -Filter ("Name='" + $ServiceName + "'") -ErrorAction SilentlyContinue
+  $nssmStart0 = switch ("" + $w.StartMode) { "Auto" { if ($w.DelayedAutoStart) { "SERVICE_DELAYED_AUTO_START" } else { "SERVICE_AUTO_START" } } "Manual" { "SERVICE_DEMAND_START" } default { "SERVICE_DISABLED" } }
+}
+Log ("기존 서비스 상태: " + $state0 + $(if ($nssmStart0) { " (nssm Start=" + $nssmStart0 + ")" } else { "" }))
+function Restore-ServiceState() {   # 서비스 Start 타입·상태를 백업값으로 — 원래 서비스가 없었으면 재설치본을 Stopped/Disabled 로
+  if (-not (Get-Service -Name $ServiceName -ErrorAction SilentlyContinue)) { Log "서비스 원복: 서비스 없음(설치 전 중단)"; return $true }
+  $target = if ($nssmStart0) { $nssmStart0 } else { "SERVICE_DISABLED" }
+  $wantRunning = ($status0 -eq "Running")
+  try { Nssm @("set", $ServiceName, "Start", $target) | Out-Null } catch { Log ("★nssm set Start 실패: " + $_) }
+  if ($wantRunning) { try { Nssm @("start", $ServiceName) | Out-Null } catch { Log ("★nssm start 실패: " + $_) } }
+  else {
+    try { Nssm @("stop", $ServiceName) | Out-Null } catch { Log ("★nssm stop 실패: " + $_) }
+    $tw = Get-Date; while ((((Get-Date) - $tw).TotalSeconds -lt 20) -and ((SvcStatus) -ne "Stopped")) { Start-Sleep -Seconds 2 }
+    if ((SvcStatus) -ne "Stopped") { try { Stop-Service -Name $ServiceName -Force -ErrorAction Stop } catch { Log ("★Stop-Service 실패: " + $_) } }
+  }
+  $svc1 = Get-Service -Name $ServiceName -ErrorAction SilentlyContinue
+  $nowStart = ""; try { $nowStart = (Nssm @("get", $ServiceName, "Start")).Trim() } catch {}
+  $wantStatus = if ($wantRunning) { "Running" } else { "Stopped" }
+  $match = [bool]($svc1 -and (("" + $svc1.Status) -eq $wantStatus) -and ($nowStart -eq $target))
+  Log ("서비스 원복: " + $(if ($svc1) { "" + $svc1.Status + "/" + $svc1.StartType } else { "(없음)" }) + " nssm Start=" + $nowStart + " → 기대 " + $wantStatus + "/" + $target + " 일치=" + $match + " (원래: " + $state0 + ")")
+  if (-not $match) { Log ("★서비스 원복 불일치 — 수동: nssm set " + $ServiceName + " Start " + $target + " ; nssm " + $(if ($wantRunning) { "start" } else { "stop" }) + " " + $ServiceName) }
+  return $match
+}
 $dump0 = Join-Path $AuditDir ("service_nssm_dump_before_" + $Stamp + ".txt")
 if ($svc0) { (Nssm @("dump", $ServiceName)) | Out-File -Encoding utf8 $dump0; Log ("NSSM 설정 백업: " + (Split-Path -Leaf $dump0)) }
 
@@ -124,15 +193,18 @@ try {
     if (Test-Path $f) { Move-Item -Force $f ($f + ".audit_hold"); $held += $f; Log ("중화: " + (Split-Path -Leaf $f) + " → .audit_hold (sha256 " + $sha0[$f].Substring(0, 12) + "…)") }
   }
   # .env: 키 값만 비운 임시본 — 채널 키는 빈값, VIGENT_API_TOKEN 은 무작위 임시값(보안 게이트 통과용, 실제 토큰 미사용)
-  $tmpToken = -join ((1..32) | ForEach-Object { "abcdefghijklmnopqrstuvwxyz0123456789"[(Get-Random -Maximum 36)] })
-  $tmpEnv = @("# 검증용 임시 .env (verify_service_reinstall.ps1 " + $Stamp + ") — 원본은 .env.audit_hold, finally 에서 원복", "VIGENT_API_TOKEN=" + $tmpToken)
+  $tmpToken = New-TempToken
+  $keys = @()
   if (Test-Path $envFile) {
     Move-Item -Force $envFile ($envFile + ".audit_hold"); $envHeld = $true
-    $keys = Get-Content -Encoding UTF8 ($envFile + ".audit_hold") | Where-Object { $_ -match "^\s*[A-Za-z_][A-Za-z0-9_]*\s*=" } | ForEach-Object { ($_ -split "=", 2)[0].Trim() } | Where-Object { $_ -ne "VIGENT_API_TOKEN" }
-    foreach ($k in $keys) { $tmpEnv += ($k + "=") }
+    $keys = @(Get-Content -Encoding UTF8 ($envFile + ".audit_hold") | Where-Object { $_ -match "^\s*[A-Za-z_][A-Za-z0-9_]*\s*=" } | ForEach-Object { ($_ -split "=", 2)[0].Trim() } | Where-Object { $_ -ne "VIGENT_API_TOKEN" })
     Log ("중화: .env → .env.audit_hold (sha256 " + $sha0[$envFile].Substring(0, 12) + "…), 임시본 키 " + ($keys.Count + 1) + "개(값 비움·토큰 임시값)")
   } else { Log "중화: .env 없음 → 임시 .env(토큰 임시값)만 생성" }
-  $tmpEnv | Out-File -Encoding ascii $envFile
+  (Build-TempEnvLines $tmpToken $keys $Stamp) | Out-File -Encoding ascii $envFile
+  # 규칙 11: 쓴 파일을 같은 실행 안에서 다시 읽어 토큰 줄이 정확히 1줄인지 확인 — 아니면 설치 전에 중단
+  $tokLines = @(Get-Content -Encoding ascii $envFile | Where-Object { $_ -match "^VIGENT_API_TOKEN=[a-z0-9]{32}$" })
+  if ($tokLines.Count -ne 1) { throw ("임시 .env 자가검증 실패: VIGENT_API_TOKEN 줄 " + $tokLines.Count + "개(기대 1) — 설치 전 중단") }
+  Log "임시 .env 자가검증: VIGENT_API_TOKEN 줄 1개(32자) 확인"
   $fs = ReadFailState; if ($fs) { $failCountBefore = [int]$fs.count }
 
   # ── 2. 재설치 ───────────────────────────────────────────────────────
@@ -153,8 +225,8 @@ try {
   # ── 3. Running → /health ─────────────────────────────────────────────
   $healthOk = $false
   if (-not (WaitRunning 40)) {
-    Log ("★서비스가 Running 이 아님: " + (SvcStatus) + " — err 로그: " + (ErrTail))
-    $fs = ReadFailState; if ($fs) { Log ("startup_failure.json: stage=" + $fs.stage + " count=" + $fs.count + " last_error=" + $fs.last_error) }
+    Log ("★서비스가 Running 이 아님: " + (SvcStatus))
+    Show-Diag "Running 아님"
   } else {
     $h = WaitHealth $HealthTimeoutSec
     $warn = ""; $status = ""
@@ -168,11 +240,13 @@ try {
   Log ("startup_failure.json: " + $(if ($fs) { "count=" + $fs.count + " stage=" + $fs.stage + " event_log_ok=" + $fs.event_log_ok } else { "(없음 — 정상 기동)" }))
 
   # ── 4. 의도적 기동 실패 ──────────────────────────────────────────────
-  $badEnv = ($envs -split "`r?`n" | ForEach-Object { if ($_ -match "^RF_HOME=") { "RF_HOME=D:\__vigent_bad_rf_home" } else { $_ } } | Where-Object { $_.Trim() -ne "" }) -join "`r`n"
+  # AppEnvironmentExtra(REG_MULTI_SZ)는 항목마다 별도 인자로 넘긴다 — 줄바꿈으로 묶은 한 인자는 변수 하나로 저장된다
+  $envArr = @($envs -split "`r?`n" | Where-Object { $_ -match "=" })
+  $badEnv = @($envArr | ForEach-Object { if ($_ -match "^RF_HOME=") { "RF_HOME=D:\__vigent_bad_rf_home" } else { $_ } })
   Log "기동 실패 유도: RF_HOME → D:\__vigent_bad_rf_home 후 재시작"
-  Nssm @("set", $ServiceName, "AppEnvironmentExtra", $badEnv) | Out-Null
+  Nssm (@("set", $ServiceName, "AppEnvironmentExtra") + $badEnv) | Out-Null
   $t0 = Get-Date
-  Nssm @("restart", $ServiceName, "confirm") | Out-Null
+  Nssm @("restart", $ServiceName) | Out-Null
   $stamps = New-Object System.Collections.Generic.List[double]
   $lastCount = $failCountBefore
   $tEnd = (Get-Date).AddSeconds($FailWatchSec)
@@ -196,8 +270,8 @@ try {
   Log ("검증 4: 실패 기록 · 이벤트 1000/1001 · 간격 ≥ 60s → " + $failOk)
 
   # ── 5. 정상 복구 ─────────────────────────────────────────────────────
-  Nssm @("set", $ServiceName, "AppEnvironmentExtra", $envs) | Out-Null
-  Nssm @("restart", $ServiceName, "confirm") | Out-Null
+  Nssm (@("set", $ServiceName, "AppEnvironmentExtra") + $envArr) | Out-Null
+  Nssm @("restart", $ServiceName) | Out-Null
   $recovOk = $false; $statusExit = -1
   if (WaitRunning 40) {
     $h2 = WaitHealth $HealthTimeoutSec
@@ -211,13 +285,17 @@ try {
   Log ("검증 5: 복구 Running · /health 200 · status exit 0 → " + $recovOk)
   $ok = $venvOk -and $healthOk -and $failOk -and $recovOk
 }
+catch {
+  Log ("★예외로 중단: " + $_)
+  if ($_.ScriptStackTrace) { $Lines.Add("    " + (("" + $_.ScriptStackTrace) -replace "`r?`n", " ⏎ ")) }
+  Show-Diag "예외"
+}
 finally {
   # ── 6. 원복 ─────────────────────────────────────────────────────────
-  try { Nssm @("stop", $ServiceName, "confirm") | Out-Null; Start-Sleep -Seconds 3 } catch {}
-  try { Nssm @("set", $ServiceName, "Start", "SERVICE_DISABLED") | Out-Null } catch {}
-  $svc1 = Get-Service -Name $ServiceName -ErrorAction SilentlyContinue
-  Log ("서비스 최종 상태: " + $(if ($svc1) { "" + $svc1.Status + "/" + $svc1.StartType } else { "(없음)" }) + " (원래: " + $state0 + ")")
   $restoreOk = $true
+  $svcRestoreOk = $false
+  try { $svcRestoreOk = Restore-ServiceState } catch { Log ("★서비스 원복 예외: " + $_) }
+  if (-not $svcRestoreOk) { $restoreOk = $false }
   foreach ($f in $held) {
     if (Test-Path $f) { Log ("★서버가 중화 중 파일을 생성함: " + (Split-Path -Leaf $f) + " — " + (Split-Path -Leaf $f) + ".audit_generated 로 보관"); Move-Item -Force $f ($f + ".audit_generated") }
     Move-Item -Force ($f + ".audit_hold") $f
@@ -232,7 +310,7 @@ finally {
   } else { Remove-Item -Force $envFile -ErrorAction SilentlyContinue; Log "원복: 임시 .env 제거(원본 없었음)" }
   $dump1 = Join-Path $AuditDir ("service_nssm_dump_after_" + $Stamp + ".txt")
   try { (Nssm @("dump", $ServiceName)) | Out-File -Encoding utf8 $dump1 } catch {}
-  $hdr = @("# 서비스 재설치 검증 " + $Stamp, "", "결과: " + $(if ($ok) { "✅ 통과" } else { "❌ 미통과(아래 로그 확인)" }) + " · 원복 sha256 " + $(if ($restoreOk) { "일치" } else { "★불일치" }), "",
+  $hdr = @("# 서비스 재설치 검증 " + $Stamp, "", "결과: " + $(if ($ok) { "✅ 통과" } else { "❌ 미통과(아래 로그 확인)" }) + " · 원복(파일 sha256·서비스 상태) " + $(if ($restoreOk) { "일치" } else { "★불일치" }), "",
            "백업: " + (Split-Path -Leaf $dump0) + " / 사후: " + (Split-Path -Leaf $dump1), "")
   ($hdr + $Lines) | Out-File -Encoding utf8 $Report
   Write-Host ("보고서: " + $Report)
