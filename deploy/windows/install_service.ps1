@@ -55,13 +55,20 @@ $LogDir = Join-Path $Root "logs"
 if (-not (Test-Path $Core)) { Write-Error "vigent-core 를 찾을 수 없습니다: $Core"; exit 1 }
 if (-not (Test-Path $LogDir)) { New-Item -ItemType Directory $LogDir | Out-Null }
 
-# python: 프로젝트 venv 우선, 없으면 시스템 python
+# python: 프로젝트 .venv(3.11) 우선, 없으면 **py -3.11 이 가리키는 실행파일**(정본). bare python(PATH) 은 쓰지 않는다.
+#   ★[CODE_REVIEW M7-6, 2026-09-06] 개발 PC 실측: py 런처 기본이 3.14 → PATH python 이 바뀌면 서비스가 미검증 인터프리터로 뜬다.
 $Py = Join-Path $Root ".venv\Scripts\python.exe"
-if (-not (Test-Path $Py)) {
-  $cmd = Get-Command python -ErrorAction SilentlyContinue
-  if (-not $cmd) { Write-Error "python 을 찾을 수 없습니다. .venv 를 만들거나 python 을 PATH 에 두세요."; exit 1 }
-  $Py = $cmd.Source
+if (Test-Path $Py) {
+  $v = & $Py -c "import sys; print('%d.%d' % sys.version_info[:2])" 2>$null
+  if ($v -ne "3.11") { Write-Warning ".venv 파이썬이 3.11 이 아닙니다($v) — py -3.11 로 대체합니다"; $Py = $null }
+} else { $Py = $null }
+if (-not $Py) {
+  if (-not (Get-Command py -ErrorAction SilentlyContinue)) { Write-Error "py 런처가 없습니다. Python 3.11.x(python.org)를 설치하세요."; exit 1 }
+  $Py = & py -3.11 -c "import sys; print(sys.executable)" 2>$null
+  if (-not $Py) { Write-Error "Python 3.11 이 없습니다(py -3.11 실패). 3.11.x 를 설치한 뒤 py -3.11 -m pip install -r requirements.txt"; exit 1 }
 }
+$probe = & $Py -c "import sys, uvicorn, fastapi; sys.exit(0 if sys.version_info[:2] == (3, 11) else 3)" 2>$null; $probeCode = $LASTEXITCODE
+if ($probeCode -ne 0) { Write-Error "선택된 파이썬($Py)에 uvicorn/fastapi 가 없거나 3.11 이 아닙니다(code $probeCode). py -3.11 -m pip install -r requirements.txt"; exit 1 }
 Write-Host "루트 : $Root"
 Write-Host "파이썬: $Py"
 

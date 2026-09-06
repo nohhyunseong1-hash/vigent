@@ -218,7 +218,12 @@ class TestQueueEligibilityFollowsWiring(unittest.TestCase):
 
         class _Cfg:
             raw = {"dispatch": {"on_severity": on_severity}}
-        return DispatcherAgent(_Cfg())
+        a = DispatcherAgent(_Cfg())
+        # [5단계 5-1, 2026-09-06 새 클론 실측] _queue_enabled 는 [M4] 이후 "채널이 설정돼 있어야" 참이다. 이 테스트는
+        #   **등급 배선**만 보는 것이라 채널 존재는 고정한다 — 이전엔 개발 PC 의 config/notify.yaml 이 있어야만 통과했다
+        #   (새 클론에서 2건 실패로 드러남: 저장소 밖 파일에 숨은 의존).
+        a.channels_configured = lambda: True   # type: ignore[method-assign]
+        return a
 
     def test_log_only_level_is_not_queued(self):
         a = self._agent({"critical": ["alarm"], "high": ["alarm", "manager_call"],

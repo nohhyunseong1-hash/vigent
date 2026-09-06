@@ -180,14 +180,17 @@ python scripts\fetch_weights.py
 > 정본은 `scripts\fetch_weights.py` 하나이며 `weights_manifest.json` 도
 > 이쪽을 가리킨다(2026-08-20 학원 노트북 설치 시 확인).
 
-**성공하면 이렇게 보인다**
+**성공하면 이렇게 보인다**(★2026-09-06 새 클론 실측: `--all` 13종 938MB · **117초**, required 6종)
 ```
-가중치 디렉터리: D:\vigent_original\vigent-core\weights
-대상 3개 (required 만)
+가중치 디렉터리: D:\vigent_verify\vigent-core\weights
+대상 6개 (required 만)
 
+  [OK]   rf-detr-nano.pth  (필수) — 검증됨
   [OK]   ppe_rfdetr_v1.pth  (필수) — 검증됨
   [OK]   forklift_rfdetr_v1.pth  (필수) — 검증됨
   [OK]   fire_smoke_rfdetr_v1_e17.pth  (필수) — 검증됨
+  [OK]   yolox_m_8xb8-300e_humanart-c2c7a14a.onnx  (필수) — 검증됨
+  [OK]   rtmpose-m_simcc-body7_pt-body7_420e-256x192-e48f03d0_20230504.onnx  (필수) — 검증됨
 
 필수 가중치 전부 확인됨.
 ```
@@ -275,7 +278,7 @@ LocalSystem 프로필). 배포는 `TORCH_HOME` 을 **`vigent-core\weights\rtm_ca
 > `required` 로 등록돼 `rtm_cache\hub\checkpoints\` 에 내려받고 SHA256 을 대조한다(이전에는 "고정"만 하고 조달
 > 절차가 없어 오프라인 현장은 첫 사람 검출에서 다운로드를 시도했다). 실측(개발 PC, 2026-09-06): 2파일 155.7MB,
 > **14.4초**, 저장 경로 `vigent-core\weights\rtm_cache\hub\checkpoints\`. 오프라인 현장 점검은 `fetch_weights.py --check`
-> 통과 + **카메라를 물린 뒤 첫 사람 검출**까지 확인한다(deploy/SITE_CHECKLIST.md N-3).
+> 통과 + **카메라를 물린 뒤 첫 사람 검출**까지 확인한다(deploy/SITE_CHECKLIST.md N-5).
 
 수동 기동(run.ps1 을 쓰지 않을 때)은 직접 넣는다:
 
