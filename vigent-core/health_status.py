@@ -105,9 +105,26 @@ def camera_status(st: dict[str, Any], thr: dict[str, float] | None = None) -> di
 CRITICAL_SLOTS = ("person",)
 
 
+def alert_health(counts: dict[str, Any], dispatcher_status: dict[str, Any] | None) -> tuple[int, list[str]]:
+    """[CODE_REVIEW M4-1·M4-2] 통보 전달 상태 → (문제 건수, 경고 목록).
+
+    - 문제(→ degraded): 최근 1시간 데드레터(`dead_1h`) + critical/high 가 발생했는데 채널이 없어 폐기(`undeliverable_count`)
+    - 경고(status 는 그대로): 채널 미설정 자체 `channels_not_configured` — 개발 PC 가 상시 degraded 가 되지 않게
+    """
+    d = dispatcher_status or {}
+    problems = int(counts.get("dead_1h", 0) or 0) + int(d.get("undeliverable_count", 0) or 0)
+    warnings: list[str] = []
+    if d and not d.get("channels_configured", True):
+        warnings.append("channels_not_configured")
+    if d.get("last_config_error"):
+        warnings.append("notify_config_error")
+    return problems, warnings
+
+
 def overall(cameras: dict[str, dict[str, Any]], model_loaded: bool,
             alert_backlog: int = 0,
-            slot_degraded: dict[str, bool] | None = None) -> str:
+            slot_degraded: dict[str, bool] | None = None,
+            alert_problems: int = 0) -> str:
     """카메라별 판정 + 모델 로드 여부 + 슬롯 생존 → 전체 3단계.
 
     - unhealthy: 모델 미로드 / 활성 카메라가 전부 검출 정지 / **핵심 슬롯(person) 저하**
@@ -137,17 +154,21 @@ def overall(cameras: dict[str, dict[str, Any]], model_loaded: bool,
         return DEGRADED                       # 비핵심 슬롯(ppe·fire_smoke·forklift) 저하
     if alert_backlog > 0:
         return DEGRADED
+    if alert_problems > 0:
+        return DEGRADED                       # [M4-1·M4-2] 데드레터(1h)·채널 없어 폐기된 critical/high
     return HEALTHY
 
 
 def build(worker_status: dict[str, Any], model_loaded: bool,
           alert_backlog: int = 0,
-          slot_degraded: dict[str, bool] | None = None) -> tuple[str, dict[str, Any]]:
+          slot_degraded: dict[str, bool] | None = None,
+          alert_problems: int = 0) -> tuple[str, dict[str, Any]]:
     """WorkerManager.status() → (전체상태, 카메라별 요약). /health 가 그대로 실어 보낸다.
 
     slot_degraded 는 guard.status()["slot_degraded"] — 런타임 추론이 연속 실패 중인 슬롯([F1]).
+    alert_problems 는 health_status.alert_health() 의 문제 건수([M4-1·M4-2]).
     """
     thr = thresholds()
     cams = {cid: camera_status(st, thr)
             for cid, st in (worker_status.get("cameras") or {}).items()}
-    return overall(cams, model_loaded, alert_backlog, slot_degraded), cams
+    return overall(cams, model_loaded, alert_backlog, slot_degraded, alert_problems), cams

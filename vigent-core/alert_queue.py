@@ -72,6 +72,10 @@ def _db() -> sqlite3.Connection:
                     sent_at REAL
                 )""")
             _conn.execute("CREATE INDEX IF NOT EXISTS ix_status_next ON alerts(status, next_attempt_at)")
+            # [M4-2] dead 시각 — "최근 1시간 데드레터" 집계(/health degraded 판정)용. 구 DB 는 열을 추가한다.
+            cols = {r[1] for r in _conn.execute("PRAGMA table_info(alerts)")}
+            if "dead_at" not in cols:
+                _conn.execute("ALTER TABLE alerts ADD COLUMN dead_at REAL")
             _conn.commit()
         return _conn
 
@@ -95,21 +99,81 @@ def mark_sent(row_id: int) -> None:
         db.commit()
 
 
-def mark_failed(row_id: int, err: str) -> None:
-    """실패 기록 + 다음 시도 시각 예약. 최대 횟수 초과면 dead."""
+def mark_failed(row_id: int, err: str, delay: float | None = None) -> None:
+    """실패 기록 + 다음 시도 시각 예약. 최대 횟수 초과면 dead.
+
+    delay ([M4-3]): 서버가 준 Retry-After(초). 없으면 기존 지수 백오프(1,2,4,…상한).
+    """
     db = _db()
     with _lock:
         row = db.execute("SELECT attempts FROM alerts WHERE id=?", (row_id,)).fetchone()
         attempts = (row[0] if row else 0) + 1
         if attempts >= max_attempts():
-            db.execute("UPDATE alerts SET status=?, attempts=?, last_error=? WHERE id=?",
-                       (DEAD, attempts, err[:500], row_id))
+            db.execute("UPDATE alerts SET status=?, attempts=?, last_error=?, dead_at=? WHERE id=?",
+                       (DEAD, attempts, err[:500], time.time(), row_id))
             _LOG.error("경보 데드레터(재시도 %d회 초과) id=%s: %s", attempts, row_id, err[:200])
+            dead = True
         else:
-            delay = min(2.0 ** (attempts - 1), backoff_cap_s())
+            if delay is None:
+                delay = min(2.0 ** (attempts - 1), backoff_cap_s())
             db.execute("UPDATE alerts SET attempts=?, next_attempt_at=?, last_error=? WHERE id=?",
-                       (attempts, time.time() + delay, err[:500], row_id))
+                       (attempts, time.time() + float(delay), err[:500], row_id))
+            dead = False
         db.commit()
+    if dead:
+        _on_dead(row_id)
+
+
+def mark_dead(row_id: int, err: str) -> None:
+    """[M4-3] 설정 오류(4xx) 등 재시도가 무의미한 실패 → 즉시 dead(시도 횟수는 +1 기록)."""
+    db = _db()
+    with _lock:
+        row = db.execute("SELECT attempts FROM alerts WHERE id=?", (row_id,)).fetchone()
+        attempts = (row[0] if row else 0) + 1
+        db.execute("UPDATE alerts SET status=?, attempts=?, last_error=?, dead_at=? WHERE id=?",
+                   (DEAD, attempts, err[:500], time.time(), row_id))
+        db.commit()
+    _LOG.error("경보 데드레터(설정 오류 — 재시도 안 함) id=%s: %s", row_id, err[:200])
+    _on_dead(row_id)
+
+
+# [M4-2] 데드레터 요약 통보 — 1시간 1회, 살아 있는 채널로(alert_notify → 게이트 → dispatcher). 요약 자신은 재귀 금지.
+_DEAD_NOTIFY_EVERY_S = 3600.0
+_last_dead_notify = 0.0
+
+
+def _reset_dead_notify_for_test() -> None:
+    global _last_dead_notify
+    _last_dead_notify = 0.0
+
+
+def _submit_dead_summary(dead_1h: int, dead_total: int, sample: str) -> None:
+    """요약 통보 제출(별도 함수 — 테스트에서 대역으로 바꾼다)."""
+    import alert_notify
+    alert_notify.submit(cam="system", rule="alert_dead", level="high",
+                        message=f"[시스템] 경보 전송 실패로 폐기(데드레터) 최근 1시간 {dead_1h}건(누적 {dead_total}건) — "
+                                f"채널 설정·네트워크 확인 필요. 예: {sample[:80]}",
+                        meta={"dead_1h": dead_1h, "dead_total": dead_total})
+
+
+def _on_dead(row_id: int) -> None:
+    """dead 발생 시: 자기 자신(alert_dead)이 아니고 마지막 통보 후 1시간 지났으면 요약 통보."""
+    global _last_dead_notify
+    try:
+        db = _db()
+        with _lock:
+            row = db.execute("SELECT message, meta FROM alerts WHERE id=?", (row_id,)).fetchone()
+        meta = json.loads((row[1] if row else None) or "{}")
+        if meta.get("rule") == "alert_dead":
+            return                                   # 요약 통보가 죽어도 또 요약하지 않는다(재귀 차단)
+        now = time.time()
+        if now - _last_dead_notify < _DEAD_NOTIFY_EVERY_S:
+            return
+        _last_dead_notify = now
+        c = counts()
+        _submit_dead_summary(int(c.get("dead_1h", 0)), int(c.get("dead", 0)), str(row[0] if row else ""))
+    except Exception:  # noqa: BLE001  통보 실패가 큐 처리를 막으면 안 된다
+        _LOG.exception("데드레터 요약 통보 실패")
 
 
 def due(limit: int = 20) -> list[dict[str, Any]]:
@@ -132,6 +196,9 @@ def counts() -> dict[str, int]:
     c = {PENDING: 0, SENT: 0, DEAD: 0}
     for st, n in rows:
         c[st] = n
+    with _lock:   # [M4-2] 최근 1시간 데드레터 — /health degraded 판정 입력
+        c["dead_1h"] = int(db.execute("SELECT COUNT(*) FROM alerts WHERE status=? AND dead_at>?",
+                                      (DEAD, time.time() - 3600.0)).fetchone()[0])
     return c
 
 
@@ -182,7 +249,12 @@ def try_send(row: dict[str, Any]) -> bool:
                       row["level"], str(row["message"])[:80])
             mark_sent(row["id"])
             return True
-        mark_failed(row["id"], str(res.get("results"))[:300])
+        if res.get("config_error"):                  # [M4-3] 4xx 설정 오류 — 재시도해도 영원히 실패 → 즉시 dead
+            mark_dead(row["id"], "config_error: " + str(res.get("results"))[:280])
+            return False
+        ra = res.get("retry_after")                  # [M4-3] 429 — 서버가 준 Retry-After 존중
+        mark_failed(row["id"], str(res.get("results"))[:300],
+                    delay=float(ra) if ra is not None else None)
         return False
     except Exception as ex:  # noqa: BLE001  전송 예외도 재시도 대상
         mark_failed(row["id"], f"{type(ex).__name__}: {ex}")

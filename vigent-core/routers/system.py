@@ -134,6 +134,7 @@ def health(theme: str = DEFAULT_THEME):
     # try 안에서 채우되, 실패해도 body 구성이 NameError 로 죽지 않도록 선초기화한다.
     active_dets: list = []
     disabled_dets: dict = {}
+    alert_warnings: list = []
     try:
         import health_status
         import readiness
@@ -149,9 +150,22 @@ def health(theme: str = DEFAULT_THEME):
             alerts = alert_queue.counts()
         except Exception:  # noqa: BLE001
             alerts = {}
+        # [M4-1·M4-2] 전달 상태: 채널 미설정 자체는 경고만, critical/high 폐기·최근 1h 데드레터는 degraded
+        disp_status: dict = {}
+        try:
+            _disp = bundle["agents"].get("Dispatcher") if bundle else None
+            disp_status = _disp.status() if _disp is not None else {}
+        except Exception:  # noqa: BLE001
+            disp_status = {}
+        alert_problems, alert_warnings = health_status.alert_health(alerts, disp_status)
+        alerts = {**alerts,
+                  "undeliverable": disp_status.get("undeliverable_count", 0),
+                  "channels_configured": disp_status.get("channels_configured"),
+                  "last_config_error": disp_status.get("last_config_error")}
         overall, cameras = health_status.build(_w.manager.status(), model_loaded,
                                                alert_backlog=int(alerts.get("pending", 0)),
-                                               slot_degraded=slot_degraded)
+                                               slot_degraded=slot_degraded,
+                                               alert_problems=alert_problems)
         # [B4] 예열 중에는 워커가 아직 없는 게 정상 — 카메라 판정으로 unhealthy 를 내지 않는다.
         #   대신 phase 로 "아직 준비 중"임을 알리고 503 을 준다(로드밸런서·워치독이 대기하도록).
         if phase == readiness.STARTING:
@@ -168,7 +182,8 @@ def health(theme: str = DEFAULT_THEME):
         "status": overall,
         "phase": phase,               # [B4] starting|ready|failed — 예열 완료 여부
         "warmup": warm,               # [B4] {phase, warmup_s, elapsed_s, error} — 예열 실측
-        "alerts": alerts,             # [B5] {pending, sent, dead} — 미전송 경보(pending≥1 이면 degraded)
+        "alerts": alerts,             # [B5] {pending, sent, dead, dead_1h, undeliverable, channels_configured, last_config_error}
+        "warnings": alert_warnings,   # [M4-1] channels_not_configured · notify_config_error — status 는 바꾸지 않는 경고
         "privacy": privacy_status,    # [P1a/P1c] 비식별화 설정 + 저장 폴더 암호화 검사 결과
         "relay": relay_status,        # [P3a] 물리 출력 — ★off_failed=true 면 사이렌이 안 꺼졌을 수 있다
         "cameras": cameras,           # [B2] 카메라별 검출 생존

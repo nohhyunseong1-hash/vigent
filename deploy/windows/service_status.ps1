@@ -50,6 +50,15 @@ if ($h.cameras) {
   }
 }
 $camStr = if ($cams.Count) { $cams -join ", " } else { "카메라 없음" }
+# [CODE_REVIEW M4-2] 통보 전달 상태 — 데드레터(폐기)·채널 없어 폐기된 critical/high 는 텔레그램으로도 못 알릴 수 있어 여기서 본다.
+$alertStr = ""
+if ($h.alerts) {
+  $a = $h.alerts
+  $alertStr = " | 경보 pending={0} dead_1h={1} undeliverable={2}" -f $a.pending, $a.dead_1h, $a.undeliverable
+  if ($a.channels_configured -eq $false) { $alertStr += " (채널 미설정)" }
+  if ($a.last_config_error) { $alertStr += (" (설정 오류: {0} HTTP {1})" -f $a.last_config_error.channel, $a.last_config_error.status) }
+}
+if ($h.warnings -and $h.warnings.Count) { $alertStr += " | 경고: " + ($h.warnings -join ",") }
 
 # 예열 중(starting)은 장애가 아니라 '아직 준비 안 됨' — 빨강이 아니라 노랑으로 구분한다.
 $color = switch ($status) {
@@ -59,7 +68,7 @@ $color = switch ($status) {
   default    { "Red" }
 }
 $hint = if ($status -eq "starting") { "  ← 예열 중(약 15초), 정상" } else { "" }
-Write-Host ("서비스={0} | HTTP {1} | status={2} phase={3} | {4}{5}" -f $svcState, $code, $status, $phase, $camStr, $hint) -ForegroundColor $color
+Write-Host ("서비스={0} | HTTP {1} | status={2} phase={3} | {4}{5}{6}" -f $svcState, $code, $status, $phase, $camStr, $alertStr, $hint) -ForegroundColor $color
 
 switch ($status) {
   "healthy"  { exit 0 }
