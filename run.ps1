@@ -17,24 +17,24 @@ if (-not $env:PYTHONUTF8) { $env:PYTHONUTF8 = "1" }
 if (-not $env:RF_HOME) { $env:RF_HOME = Join-Path $Dir "vigent-core\weights" }
 if (-not $env:TORCH_HOME) { $env:TORCH_HOME = Join-Path $Dir "vigent-core\weights\rtm_cache" }
 
-# uvicorn/fastapi 가 설치된 파이썬 탐색: 프로젝트 .venv → py -3.11(정본) → PATH 의 python
-#   각 후보 = @(실행파일, 선행인자문자열). 검사는 숨은 창에서 돌리고 종료코드만 본다.
+# ★[CODE_REVIEW M7-5·M7-6, 2026-09-06] 파이썬은 **3.11 정본만** 쓴다: 프로젝트 .venv(3.11 인 경우) → py -3.11.
+#   PATH 의 bare python 후보는 없앴다 — 개발 PC 실측에서 py 런처 기본이 3.14 라 미검증 인터프리터로 뜰 수 있었다.
+#   각 후보 = @(실행파일, 선행인자문자열). 검사(3.11 + uvicorn/fastapi)는 숨은 창에서 돌리고 종료코드만 본다.
 $candidates = @()
 $venv = Join-Path $Dir ".venv\Scripts\python.exe"
 if (Test-Path $venv) { $candidates += ,@($venv, "") }
 if (Get-Command py -ErrorAction SilentlyContinue) { $candidates += ,@("py", "-3.11") }
-if (Get-Command python -ErrorAction SilentlyContinue) { $candidates += ,@("python", "") }
 
 $Py = $null
 foreach ($c in $candidates) {
-    $probeArgs = ($c[1] + ' -c "import uvicorn, fastapi"').Trim()
+    $probeArgs = ($c[1] + ' -c "import sys, uvicorn, fastapi; sys.exit(0 if sys.version_info[:2] == (3, 11) else 3)"').Trim()
     try {
         $pr = Start-Process -FilePath $c[0] -ArgumentList $probeArgs -WindowStyle Hidden -Wait -PassThru -ErrorAction Stop
         if ($pr.ExitCode -eq 0) { $Py = $c; break }
     } catch { }
 }
 if (-not $Py) {
-    Write-Host "[오류] uvicorn/fastapi 가 설치된 python 을 찾지 못했습니다. 'py -3.11 -m pip install -r requirements.txt' 후 재시도." -ForegroundColor Red
+    Write-Host "[오류] Python 3.11(정본) + uvicorn/fastapi 를 찾지 못했습니다. 설치: python.org 3.11.x → 'py -3.11 -m pip install -r requirements.txt' 후 재시도. (3.13/3.14 등 다른 버전은 쓰지 않는다 — .python-version 참조)" -ForegroundColor Red
     exit 1
 }
 

@@ -104,6 +104,7 @@ retention:                   # [Z-2] 디스크 보존 정책(scripts/retention_s
   auto_sweep: true    # [드리프트 보충] 전역 기본값에서 상속
   sweep_initial_delay_s: 600    # [드리프트 보충] 전역 기본값에서 상속
   sweep_interval_s: 86400    # [드리프트 보충] 전역 기본값에서 상속
+  sweep_overdue_delay_s: 60    # [드리프트 보충] 전역 기본값에서 상속
 
 upload:                      # [S2-수정] 이미지 업로드(data URL) 상한 — 대량 페이로드 메모리고갈 방지
   max_image_mb: 10            # 정상 프레임(수백KB~수MB)엔 영향 없음. 초과 시 413.

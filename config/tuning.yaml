@@ -118,6 +118,11 @@ detect:                     # 탐지 공통
       smoke: 0.50           # raw 스윕 R87.9%/FAR15.4%(구 R24.85 대비 3.5배). 조기경보 가치로 recall 우선.
       # ⚠️ 조건부: pipeline 재측정 smoke FAR>18%면 0.60(R77.9/FAR9.2)로 후퇴. in-domain(D-Fire) 기준 — 현장 재검증 대기.
       # 되돌리려면 backend.fire_smoke 를 yolo 로, 임계를 fire 0.03/smoke 0.20 으로 원복.
+  # ── [CODE_REVIEW M7-9] 코드가 읽지만 여기 없던 키(코드 기본값으로 동작) — 필요할 때 주석을 풀어 쓴다 ──
+  # evidence_cooldown_s: 30   # 규칙별 증거 JPEG 저장 최소 간격(초). cooldown_s(기록)와 별도
+  # include_fire_smoke: 1     # 검출기 목록에 화재/연기 포함(0=제외). 환경변수 VIGENT_INCLUDE_FIRE_SMOKE 우선
+  # include_forklift: 0       # 지게차 슬롯 포함(F-7 과소학습으로 기본 제외). 학원 프로파일은 1
+  # pose_interleave: 3        # /detect/frame 포즈 추론 간격(프레임)
 
 retention:                   # [Z-2] 디스크 보존 정책(scripts/retention_sweep.py)
   enabled: true              # 보존 정책 전체 스위치
@@ -129,6 +134,12 @@ retention:                   # [Z-2] 디스크 보존 정책(scripts/retention_s
   auto_sweep: true           # 서버 내 자동 스윕 스레드. **false = 구 동작(수동 실행만)** — 롤백 경로
   sweep_interval_s: 86400    # 스윕 주기(초). 기본 24시간
   sweep_initial_delay_s: 600 # 기동 후 첫 스윕까지 대기(초) — 예열·워커 기동과 디스크 경합 회피
+  sweep_overdue_delay_s: 60  # [CODE_REVIEW M7-8] 마지막 스윕(status last_run)이 주기+1h 넘게 밀렸으면 이 값으로 단축 —
+    # 프로세스가 10분을 못 넘기는 재기동 반복에서 스윕이 영영 안 도는 것을 막는다(2026-08-26 이후 11일 미실행 실측)
+  # [M7-9] 코드가 읽지만 여기 없던 키(코드 기본값) — 필요 시 주석 해제(모듈 6 에서 추가된 정리 규칙)
+  # auto_pin_sent_alerts: true # [M6-10] 발송된 critical/high 경보의 증거·그날 인식 로그 자동 pin(사유 alert:<id>)
+  # alert_queue_days: 30       # [M6-4] 경보 큐 sent/dead 행 보존 일수(최신 config_error 1건은 유지)
+  # logs_keep_rotated: 50      # [M6-5] NSSM 회전본(logs/vigent.err-*, out-*) 최근 보관 개수
   dry_run: false             # [P1b, 2026-08-17] false=실제 삭제. 개인영상정보를 기한 없이
     # 보관하지 않으려면 실제 파기가 동작해야 한다(감사 🟠C2 — 정책만 있고 아무것도 안 지우고 있었다).
     # ★안전장치: dry_run 을 false 로 바꿔도 **첫 주기는 지우지 않는다**. 삭제 예정 목록만
@@ -211,6 +222,9 @@ stability:                  # [B3] 안정성·기아 방어 (STABILITY.md 의 2�
   starve_max_fails: 3       # [B3 3단계] 이 횟수 실패 → restart_cmd 로 프로세스 재기동
   restart_cmd: ""           # 프로세스 재기동 명령(Windows 서비스: "sc stop VIGENT & sc start VIGENT").
     # 미설정이면 3단계에서 경고만 남긴다. deploy/windows/install_service.ps1 이 설정해 준다.
+  # [M7-9] 코드가 읽지만 여기 없던 키(코드 기본값) — 필요 시 주석 해제
+  # rtsp_timeout_ms: 5000     # [M5-2] RTSP 열기/읽기 타임아웃(ms). 죽은 IP 실측 123s → 5.05s. 환경변수 VIGENT_RTSP_TIMEOUT_MS 우선
+  # cap_buffersize: 1         # sync 캡처 모드의 cv2 버퍼 크기(thread 모드에서는 무의미)
 
 zone:                       # [B6] 위험구역 침입 판정 디바운스
   global_fallback: false    # ★[F5, 2026-08-21] 카메라별 구역이 없을 때 전역 구역
@@ -229,6 +243,7 @@ zone:                       # [B6] 위험구역 침입 판정 디바운스
   reference: foot           # 판정 기준점: foot(박스 하단 중앙=지면 접점, 기본) | center(박스 중심)
     # 직하방·고각 카메라는 박스 하단이 발이 아니라 어깨·머리 쪽이라 center 가 나을 수 있다
     # (docs/camera_requirements.md 설치각 조항). 현장에서 오탐 양상 보고 선택할 것.
+  # grid_cells: 0             # [M7-9] 구역 격자키 분할(0=비활성). 환경변수 VIGENT_ZONE_GRID 우선
 
 onnxruntime:                # [Q9/Q10] ORT 세션 옵션 — ★기본 on(2026-08-19 실측 검증 후 전환)
   tune_sessions: true       # 스핀 비활성 + intra_op 스레드 제한. false 로 바꾸면 즉시 롤백(재기동 필요).
@@ -254,6 +269,14 @@ privacy:                    # [P1a] 저장·전송 이미지의 얼굴 비식별
   #   (통보 자체는 10분 1회로 스로틀 — 경보가 폭주하면 그것도 무시당한다.)
   #   전례: YuNet 락 누락 때 실서비스에서 분당 145~160건 실패했다.
   fail_alert_per_min: 5
+  # face_conf: 0.6            # [M7-9] YuNet 얼굴 검출 신뢰도(person 박스 밖 보조 검출). 코드 기본값
+
+# ── [M7-9] 코드가 읽지만 여기 없던 섹션(코드 기본값으로 동작) — 쓸 때 주석을 푼다 ──
+# press:                      # 프레스 부위별 경보(/detect/frame press 모드)
+#   confirm_frames: 2         # 연속 확정 프레임 수
+#   kp_conf: 0.5              # 키포인트 신뢰도 임계
+# ppe:                        # ★전역 기본값(guard.PPE_REQUIRED, 3종)은 바꾸지 않는다(대표 지시 2026-09) — 현장 프로파일에서만 조정
+#   required: [NO-Hardhat, NO-Safety-Vest, NO-Mask]
 
 relay:                      # [P3a] 물리 출력(사이렌·경광등) 네트워크 릴레이 — §8 보조 신호(인증 회로 대체 아님)
   enabled: false            # 기본 비활성. 실물 릴레이를 붙인 현장에서만 켠다

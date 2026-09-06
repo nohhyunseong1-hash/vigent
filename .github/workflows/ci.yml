@@ -18,10 +18,12 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Python 3.13 설정(.python-version 정합)
+      - name: Python 설정 — .python-version(3.11.9) 정본과 동일 인터프리터
+        # [CODE_REVIEW M7-5, 2026-09-06] 이전엔 "3.13" 을 박아 두고 이름만 "정합"이었다 — 로컬 정본(3.11.9)·pyproject py311·
+        #   README 와 어긋나 CI 가 검증하는 인터프리터를 개발 PC 어디서도 돌리지 못했다. 파일을 읽게 해 한 곳만 고치면 같이 움직인다.
         uses: actions/setup-python@v5
         with:
-          python-version: "3.13"
+          python-version-file: ".python-version"
 
       - name: 의존성 설치(headless opencv 단일화)
         run: |

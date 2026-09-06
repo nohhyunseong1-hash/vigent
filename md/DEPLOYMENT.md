@@ -15,7 +15,7 @@
 |---|---|---|
 | OS | **Windows 10/11 Pro 이상**(64bit) ★현장 필수 | Windows 11 **Home** 10.0.26200 — ⚠개발 PC 가 Home 이라 **저장 암호화(N-2)는 이 PC 에서 검증 불가**(EFS·BitLocker 미지원, 2026-08-19 실측). 현장 장비(Pro)에서 검증할 것 |
 | Python | **3.11.x** | 3.11.9 |
-| | ⚠**모순 주의**: 저장소 `.python-version` 은 `3.13.9`, `pyproject.toml` 은 `target-version="py313"` 이다. 어느 쪽이 정본인지 확정 필요(2026-08-20 제기). 3.11.9 로 전 의존성 설치·기동 실증됨 | |
+| | ✅[CODE_REVIEW M7-5, 2026-09-06 해소] `.python-version`=3.11.9 · `pyproject.toml` py311 · CI `python-version-file` — 전부 3.11 로 통일. 런처 `run.ps1` 은 `py -3.11` 우선(없으면 안내 후 종료). ⚠개발 PC 의 `py` 기본은 3.14 라 **버전 없는 `py`** 는 쓰지 않는다 | |
 | GPU | NVIDIA(선택이나 강력 권장) | RTX 5070 Ti, 드라이버 610.74 |
 | CUDA | torch 휠과 맞는 버전 | cu130 (torch 2.12.0+cu130) |
 | git | 최신 | 2.55.0 |

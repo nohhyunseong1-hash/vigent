@@ -47,6 +47,15 @@ class RunPs1Parity(unittest.TestCase):
             pat = re.compile(r'if \(-not \$env:' + name + r'\) \{ \$env:' + name + r' = ' + val + r' \}')
             self.assertTrue(pat.search(t), f"run.ps1 에 미설정-시 기본값이 없다: {name}")
 
+    def test_python_311_only_no_bare_python_candidate(self):
+        """[M7-5·M7-6] 런처는 .venv(3.11) → py -3.11 만 시도한다. bare python/py 후보는 없고, 후보 검사가 3.11 을 확인한다."""
+        t = _run_text()
+        self.assertIn('@("py", "-3.11")', t)
+        self.assertNotIn('@("python", "")', t, "PATH 의 bare python 후보가 남아 있다(py 기본 3.14 PC 에서 미검증 인터프리터)")
+        self.assertIn("sys.version_info[:2] == (3, 11)", t)
+        self.assertIn("Python 3.11(정본)", t)                     # 없으면 안내 후 종료
+        self.assertIn("exit 1", t)
+
     def test_values_match_install_service(self):
         svc = _SVC.read_bytes().decode("utf-8-sig")
         self.assertIn('"VIGENT_CAPTURE_MODE=thread"', svc)

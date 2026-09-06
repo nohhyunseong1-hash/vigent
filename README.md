@@ -36,7 +36,7 @@ py -3.11 -m pip install -r requirements-train.txt     # 학습·측정 (ultralyt
 # 외부 노출은 토큰 필수:
 #   $env:VIGENT_HOST="0.0.0.0"; $env:VIGENT_API_TOKEN="<비밀>"; .un.ps1
 ```
-> 두 런처 모두 uvicorn/fastapi 가 설치된 파이썬을 자동 탐색한다(`.venv` → `py -3.11` → `python`).
+> Windows 런처(`run.ps1`·`run.bat`·`VIGENT Safety 시작.bat`)는 **3.11 정본만** 쓴다(`.venv` 가 3.11 이면 그것 → `py -3.11`). 없으면 안내 후 종료 — bare `python`/`py` 는 쓰지 않는다(개발 PC 의 `py` 기본이 3.14 인 사례, [CODE_REVIEW M7-5·6]). `run.sh` 는 `python3`/`python` 자동 탐색.
 > 재부팅 자동기동(서비스 등록)은 [deploy/windows/README.md](deploy/windows/README.md).
 
 기동 확인:
