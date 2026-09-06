@@ -135,8 +135,11 @@ def submit(cam: str, rule: str, level: str, message: str,
         except queue.Full:
             # ★가득 차면 **가장 오래된 것을 버리고** 새 것을 넣는다 — 최신 위험이 우선이다.
             try:
-                _q.get_nowait()
+                old = _q.get_nowait()
                 _stats["dropped"] += 1
+                # [CODE_REVIEW M4-6] 폐기는 stats 에만 남던 조용한 유실 — WARNING 으로 드러내고 /health alerts.dropped 로 노출
+                _LOG.warning("통보 대기열 가득(%d) — 가장 오래된 경보 폐기(누적 %d건): %s",
+                             queue_max(), _stats["dropped"], str(old[1])[:80] if isinstance(old, tuple) else "?")
             except queue.Empty:
                 pass
             try:

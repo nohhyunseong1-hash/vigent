@@ -157,8 +157,17 @@ def health(theme: str = DEFAULT_THEME):
             disp_status = _disp.status() if _disp is not None else {}
         except Exception:  # noqa: BLE001
             disp_status = {}
+        try:                                         # [M4-6] 전송 대기열 폐기·깊이·스레드 생존
+            import alert_notify
+            _ns = alert_notify.stats()
+            disp_status = {**disp_status, "dropped": _ns.get("dropped", 0)}
+        except Exception:  # noqa: BLE001
+            _ns = {}
         alert_problems, alert_warnings = health_status.alert_health(alerts, disp_status)
         alerts = {**alerts,
+                  "dropped": _ns.get("dropped", 0),
+                  "queue_depth": _ns.get("queue_depth", 0),
+                  "notify_thread_alive": _ns.get("thread_alive"),
                   "undeliverable": disp_status.get("undeliverable_count", 0),
                   "channels_configured": disp_status.get("channels_configured"),
                   "last_config_error": disp_status.get("last_config_error")}

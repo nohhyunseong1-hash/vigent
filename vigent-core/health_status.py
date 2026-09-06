@@ -118,6 +118,8 @@ def alert_health(counts: dict[str, Any], dispatcher_status: dict[str, Any] | Non
         warnings.append("channels_not_configured")
     if d.get("last_config_error"):
         warnings.append("notify_config_error")
+    if int(d.get("dropped", 0) or 0) > 0:
+        warnings.append("notify_queue_dropped")   # [M4-6] 대기열 가득 → 최고령 폐기 있었음(최신 경보는 살아 있음 = 경고)
     return problems, warnings
 
 
