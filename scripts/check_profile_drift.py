@@ -12,6 +12,10 @@ README_academy.md). 그래서 전역 기본값에 키가 추가될 때마다 프
      (프로파일의 존재 이유가 '값을 바꾸는 것'이므로 차이 자체는 정상이나,
       **무엇을 왜 바꿨는지 적혀 있어야** 나중에 되돌릴 수 있다.)
   3) **미선언 추가 키** — 프로파일에만 있는데 선언이 없다 → 실패.
+  4) ★[CODE_REVIEW M7-1, 2026-09-06] **읽히지 않는 키** — 파일에 적힌 (섹션.키)가 코드 어디서도
+     읽히지 않는다 → 실패. 실사고: 최상위 `alerts:` 가 두 번 있어 앞 블록 8키가 파싱 결과에서 사라졌는데
+     이 검사는 파싱 결과만 비교해 잡지 못했다. 이제 로더가 중복 키를 거부하고(tuning.load_file), 이 검사가
+     "파일에 적힌 키 ⊆ 코드가 읽는 키" 를 보장한다(죽은 설정·오타 키 차단).
 
 사용:
     python scripts/check_profile_drift.py           # 검사만(게이트용, 실패 시 exit 1)
@@ -37,7 +41,53 @@ except Exception:  # noqa: BLE001
     pass
 
 _ROOT = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(_ROOT / "vigent-core"))
+import tuning  # noqa: E402  [M7-1] 엄격 로더(중복 키 거부)를 게이트도 그대로 쓴다
+
 _INTENT = _ROOT / "deploy" / "academy" / "profile_intent.yaml"
+_CORE = _ROOT / "vigent-core"
+
+# 코드가 tuning 값을 읽는 3가지 형태(모듈 별칭 tuning/_tun/_tuning 포함):
+#   tuning.val("sec", "key", …) · tuning.section("sec")[.get("key")] · tv(_tun, 형변환, "sec", "key", …)
+_RE_VAL = _re.compile(r'\.val\(\s*"([A-Za-z_]+)"\s*,\s*"([A-Za-z_]+)"')
+_RE_VAL_DYN = _re.compile(r'\.val\(\s*"([A-Za-z_]+)"\s*,(?=\s*[^\s"])')   # 키가 변수(래퍼 함수, 예: relay._v) → 섹션 통째
+_RE_SECTION = _re.compile(r'\.section\(\s*"([A-Za-z_]+)"\s*\)(?:\s*\.get\(\s*"([A-Za-z_]+)")?')
+_RE_TV = _re.compile(r'\btv\(.*?"([A-Za-z_]+)"\s*,\s*"([A-Za-z_]+)"')   # 형변환 인자에 람다(괄호)가 와도 같은 줄이면 잡는다
+
+
+def code_read_keys(core: Path = _CORE) -> set[str]:
+    """코드가 읽는 (섹션.키) 집합. 섹션을 통째로 읽으면 '섹션.*' 로 표기한다."""
+    out: set[str] = set()
+    for p in core.rglob("*.py"):
+        try:
+            t = p.read_text(encoding="utf-8", errors="replace")
+        except OSError:
+            continue
+        for m in _RE_VAL.finditer(t):
+            out.add(f"{m.group(1)}.{m.group(2)}")
+        for m in _RE_VAL_DYN.finditer(t):
+            out.add(f"{m.group(1)}.*")
+        for m in _RE_TV.finditer(t):
+            out.add(f"{m.group(1)}.{m.group(2)}")
+        for m in _RE_SECTION.finditer(t):
+            out.add(f"{m.group(1)}.{m.group(2)}" if m.group(2) else f"{m.group(1)}.*")
+    return out
+
+
+def unread_keys(path: Path, read: set[str] | None = None) -> list[str]:
+    """path 의 2단계 (섹션.키) 중 코드가 읽지 않는 것. 섹션 통째 읽기('섹션.*')면 그 아래는 전부 읽힌 것으로 본다."""
+    read = code_read_keys() if read is None else read
+    data = tuning.load_file(path)
+    out: list[str] = []
+    for sec, body in data.items():
+        if f"{sec}.*" in read:
+            continue
+        keys = list(body) if isinstance(body, dict) else [None]
+        for k in keys:
+            name = f"{sec}.{k}" if k is not None else str(sec)
+            if name not in read:
+                out.append(name)
+    return sorted(out)
 
 
 def _flat(d: Any, prefix: str = "") -> dict[str, Any]:
@@ -53,7 +103,7 @@ def _flat(d: Any, prefix: str = "") -> dict[str, Any]:
 
 
 def _load(p: Path) -> dict:
-    return yaml.safe_load(p.read_text(encoding="utf-8")) or {}
+    return tuning.load_file(p)   # [M7-1] 중복 키·파싱 오류는 예외(조용한 덮어쓰기 금지)
 
 
 def check_one(name: str, spec: dict) -> list[str]:
@@ -159,7 +209,19 @@ def main() -> int:
 
     all_problems: list[str] = []
     for name, spec in intent.items():
-        all_problems += check_one(name, spec)
+        try:
+            all_problems += check_one(name, spec)
+        except tuning.TuningConfigError as ex:
+            all_problems.append(f"[{name}] ★설정 파일 오류(중복 키/파싱): {ex}")
+            continue
+        # [M7-1] 검사 4: 파일에 적힌 키 ⊆ 코드가 읽는 키(기본값·프로파일 둘 다) — tuning.yaml 계열만
+        #   (vision.yaml 은 vision_loader/agents 가 구조로 읽어 키 단위 대조 대상이 아니다)
+        if not str(spec["base"]).endswith("tuning.yaml"):
+            continue
+        read = code_read_keys()
+        for label, rel in (("기본값", spec["base"]), ("프로파일", spec["profile"])):
+            for k in unread_keys(_ROOT / rel, read):
+                all_problems.append(f"[{name}] ★읽히지 않는 키({label} {rel}): '{k}' — 코드 어디서도 읽지 않는다(오타·죽은 설정)")
 
     if all_problems:
         print(f"\n❌ 프로파일 드리프트 {len(all_problems)}건")

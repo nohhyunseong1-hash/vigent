@@ -170,6 +170,15 @@ onnxruntime:                # [Q9/Q10] ORT 세션 옵션 — ★기본 on(2026-0
   allow_spinning: false     # 스핀 허용 여부(이 기능의 목적이 끄는 것이라 기본 false)
 
 alerts:                     # [B5] 경보 전송 내구 큐(alert_queue.py — sqlite, 선기록 후전송)
+  # ── [W1] 통보 게이트 — [M7-1] 전역 기본값과 동일값(이전에는 이 블록이 없어 코드 기본값으로 돌았다) ──
+  notify: true
+  notify_cooldown_s: 300
+  backoff_factor: 2.0
+  backoff_max_s: 3600
+  quiet_reset_s: 1800
+  max_per_hour: 6
+  queue_max: 200
+  guard_bypass_text: "위험기계 방호구역 신체 진입 감지"
   max_attempts: 10          # 이 횟수 실패하면 데드레터(dead) 표시 — 조용히 사라지지 않게
   backoff_cap_s: 60         # 지수 백오프 상한(1,2,4,…60초). 순단 복구 후 순서대로 재전송된다
 
