@@ -189,7 +189,7 @@
         <div class="ttl">열화상 온도 감지</div>
         <label>최저(°C)<input type="number" id="thermMin" value="20" step="1"></label>
         <label>최고(°C)<input type="number" id="thermMax" value="120" step="1"></label>
-        <label>경보(°C)<input type="number" id="thermAlert" value="80" step="1"></label>
+        <label title="[M8-2] 과열 통보(/sensor/temperature)는 서버 미구현 — 화면 표시만">경보(°C) <span class="vt-dim" style="font-size:10px">통보 미구현</span><input type="number" id="thermAlert" value="80" step="1"></label>
         <div class="hint">열화상 이미지/영상을 업로드한 뒤 사용하세요. 카메라 범례의 최저·최고 온도를 입력하면 정확합니다. 화면을 클릭하면 그 지점 온도가 표시됩니다.</div>
       </div>
       <div id="dzAlert" class="dz-alert">위험구역 침입 감지! 즉시 확인하세요</div>
@@ -197,7 +197,7 @@
       <div id="axTools" class="ax-tools">
         <label title="개인정보 보호: 얼굴 영역 비식별화"><input type="checkbox" id="togBlur"> 얼굴 가림</label>
         <label data-ax="safety" title="이동 객체(사람·차량) 실시간 속도 표시 — 거리 보정 시 km/h"><input type="checkbox" id="togSpeed"> 속도 표시</label>
-        <label data-ax="safety" title="이 속도(km/h) 초과 시 텔레그램 경보(거리 보정 필요)">과속경보 <input type="number" id="speedAlert" value="20" min="1" style="width:46px;background:var(--surface2);border:1px solid var(--border);color:var(--text);border-radius:5px;padding:2px 4px;font-size:11px"> km/h</label>
+        <label data-ax="safety" title="[M8-2] 과속 통보(/alert/overspeed)는 서버 미구현 — 화면 ⚠ 표시만(거리 보정 필요)">과속경보 <span style="font-size:10px;opacity:.7">통보 미구현</span> <input type="number" id="speedAlert" value="20" min="1" style="width:46px;background:var(--surface2);border:1px solid var(--border);color:var(--text);border-radius:5px;padding:2px 4px;font-size:11px"> km/h</label>
         <label data-ax="safety" title="사람 동선 누적 히트맵"><input type="checkbox" id="togHeatmap"> 동선 히트맵</label>
       </div>
 

@@ -1081,29 +1081,9 @@ async function saveHandCropForTraining(hand, box, preds){
   const top=preds&&preds[0]?preds[0]:null;
   const label=top?translateMN(top.className).replace(/[^\w가-힣]+/g,'_'):'unknown';
   lastCropSaveAt[hand]=now;
-  try{
-    const resp=await fetch(API_BASE+'/dataset/small-object/crop',{
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({
-        image_base64:crop.image,
-        hand,
-        predicted_label:label,
-        confidence:top?top.probability:null,
-        source:'realtime_vision_hand_crop',
-        bbox:crop.bbox,
-        metadata:{raw_class:top?top.className:'',active_service:activeServiceMode}
-      })
-    });
-    if(resp.ok){
-      cropSaveCount++;
-      const el=document.getElementById('handCropStatus');
-      if(el) el.textContent=`학습용 손 크롭 저장: ${cropSaveCount}장 저장됨`;
-    }
-  }catch(e){
-    const el=document.getElementById('handCropStatus');
-    if(el) el.textContent='학습용 손 크롭 저장: 서버 연결 필요';
-  }
+  _unimplemented('/dataset/small-object/crop','학습용 손 크롭 저장('+label+')');   // [M8-2] 서버 라우트 없음
+  const el=document.getElementById('handCropStatus');
+  if(el) el.textContent='학습용 손 크롭 저장: 미구현(서버 라우트 없음)';
 }
 
 // ═══════════════════════════════════════════════════
@@ -1661,16 +1641,8 @@ function applyBpm(bpm, snr, source){
       body:JSON.stringify({text:`❤️ 심박수 ${rppg.lastBpm} bpm · ${z.label} (${source})`})}).catch(()=>{});
   }
 }
-async function refineBpmBackend(){           // 서비스 내장: 백엔드 scipy로 정밀 계산
-  const b=rppg.buf; if(b.length<64) return;
-  const dur=b[b.length-1].t-b[0].t; if(dur<3) return;
-  const fs=b.length/dur;
-  try{
-    const r=await fetch(API_BASE+'/vitals/rppg',{method:'POST',headers:{'content-type':'application/json'},
-      body:JSON.stringify({samples:b.map(p=>p.g), fs})});
-    const j=await r.json();
-    if(j&&j.success){ rppg.lastBackendOk=performance.now()/1000; applyBpm(j.bpm, j.quality, '정밀'); }
-  }catch(e){}
+async function refineBpmBackend(){           // [M8-2] /vitals/rppg 는 서버에서 제거됨(2026-08-12) — 미구현, 간이(JS) 추정만
+  _unimplemented('/vitals/rppg','심박 정밀 계산');
 }
 function hrZone(bpm){
   if(bpm<100) return {label:'저강도', cls:'ok'};
@@ -1858,11 +1830,18 @@ function captureIntrusionEvidence(frame){
     body:JSON.stringify({image_base64:img, overlay_base64:overlay, people:inZone, reasons, zone:'위험구역A', cam:camId, source:'browser', vlm_confirm:vlmOn})})
     .then(r=>r.json()).then(j=>{ if(j&&j.suppressed) console.info('[VIGENT] 🧠 VLM 오탐 필터 — 침입 알림 억제(증거는 저장)'); }).catch(()=>{});
 }
-// 위험구역 점유 상태를 서버에 푸시(아두이노 E-stop 폴링용)
-function pushZoneState(active){
-  try{ fetch(API_BASE+'/zone/state',{method:'POST',headers:{'content-type':'application/json'},
-    body:JSON.stringify({zone:'위험구역A',active:!!active})}); }catch(e){}
+// ═══ [CODE_REVIEW M8-2, 2026-09-06] 서버에 없는 기능 — "미구현" 으로 비활성 ═══
+//   서버 라우트가 없거나 스텁인 8경로를 부르지 않는다(신설 없음, 대표 결정). 화면에는 미구현 배지, 콘솔에는 사유 1회.
+//   /zone/state 는 서버 스텁({state:"idle"})이라 "E-stop 보조정지 신호" 는 미구현이다 — 문구를 지우고 호출도 하지 않는다.
+const UNIMPLEMENTED_SERVER_PATHS=['/llm/vision','/llm/status','/vision/capabilities','/vision/analyze-current',
+  '/sensor/temperature','/alert/overspeed','/vitals/rppg','/dataset/small-object/crop','/zone/state'];
+const _unimplShown=new Set();
+function _unimplemented(path, what){
+  if(!_unimplShown.has(path)){ _unimplShown.add(path); try{ console.info('[VIGENT] 미구현('+path+'): '+what+' — 서버 라우트 없음/스텁, 호출 생략'); }catch(_){} }
+  return null;
 }
+// 위험구역 점유 상태(구 E-stop 폴링용) — [M8-2] 서버 스텁이라 미구현: 호출하지 않는다
+function pushZoneState(active){ _unimplemented('/zone/state','E-stop 보조정지 신호(active='+(!!active)+')'); }
 // 키포인트(소스 좌표) → 정규화 캔버스 좌표(레터박스/미러 반영) — pointInPoly와 동일 좌표계
 function kpToNorm(kx,ky,W,H,scX,scY){
   const r=mediaRect(W,H); const flip=shouldFlipDisplay();
@@ -1915,8 +1894,7 @@ function zoneIntrusionSeverity(frame){
 let _zoneHbAt=0;
 function handleDangerZone(frame){
   const el=document.getElementById('dzAlert'), mute=document.getElementById('dzMute'), vc=document.getElementById('videoContainer');
-  const _now=Date.now();                              // 1.5초 하트비트: 현재 상태를 주기적으로 갱신(신선도)
-  if(_now-_zoneHbAt>1500){ _zoneHbAt=_now; pushZoneState(dzActive); }
+  // (구 1.5초 /zone/state 하트비트는 [M8-2] 서버 스텁이라 제거)
   const sev = dangerZones.length ? zoneIntrusionSeverity(frame) : 'none';
   if(sev==='danger'){ dzDangerConsec++; dzWarnConsec=0; }
   else if(sev==='warning'){ dzWarnConsec++; dzDangerConsec=0; }
@@ -1928,8 +1906,8 @@ function handleDangerZone(frame){
     if(el){ el.textContent='위험구역 침입 감지! 즉시 확인하세요'; el.classList.remove('warn'); el.classList.add('show'); }
     mute&&mute.classList.add('show'); vc&&vc.classList.remove('dz-warn'); vc&&vc.classList.add('dz-on');
     dzBeep(); dzAlarmTimer=setInterval(dzBeep,650);
-    try{ captureIntrusionEvidence(frame); }catch(e){}   // 증거 사진 + /zone/intrusion(저장·텔레그램)
-    pushZoneState(true);                                // E-stop 보조정지 신호
+    try{ captureIntrusionEvidence(frame); }catch(e){}   // 증거 사진 + /zone/intrusion(저장·통보는 서버 판단 [M8-1])
+    pushZoneState(true);                                // [M8-2] 미구현(서버 스텁) — 호출 생략
   } else if(dzDangerConsec===0 && dzActive){       // 위험 이탈 → 경보 해제
     dzActive=false;
     el&&el.classList.remove('show'); mute&&mute.classList.remove('show'); vc&&vc.classList.remove('dz-on');
@@ -2112,44 +2090,15 @@ function actionText(ar){
 async function loadVisionCapabilities(){
   const box=document.getElementById('visionTaskResult');
   if(!box) return;
-  box.textContent='기능 상태 확인 중...';
-  try{
-    const res=await fetch(API_BASE+'/vision/capabilities');
-    const data=await res.json();
-    if(!res.ok) throw new Error(data.detail||'기능 상태 조회 실패');
-    box.textContent=(data.capabilities||[]).map(c=>`${c.name} [${c.status}]\n- ${c.description}\n- 구현: ${c.current_implementation}`).join('\n\n');
-  }catch(e){
-    box.textContent='기능 상태 조회 실패: '+(e.message||e);
-  }
+  _unimplemented('/vision/capabilities','비전 기능 상태 조회');
+  box.textContent='미구현: 비전 기능 상태 조회(/vision/capabilities)는 서버에 없습니다.';
 }
 
 async function analyzeCurrentVisionFrame(){
   const box=document.getElementById('visionTaskResult');
   if(!box) return;
-  box.textContent='현재 카메라 프레임을 서버에서 분석 중...';
-  try{
-    const res=await fetch(API_BASE+'/vision/analyze-current');
-    const data=await res.json();
-    if(!res.ok) throw new Error(data.detail||'현재 프레임 분석 실패');
-    const tasks=data.tasks||{};
-    const lines=[
-      `사람 수: ${data.people_count}`,
-      `활동: ${data.activity}`,
-      `장면: ${(data.scene&&data.scene.label)||'unknown'} (${Math.round(((data.scene&&data.scene.confidence)||0)*100)}%)`,
-      '',
-      `객체 분류: ${(tasks.object_classification?.classes||[]).map(x=>x.class+' '+x.count).join(', ')||'없음'}`,
-      `객체 탐지/위치: ${tasks.object_detection_localization?.count||0}개`,
-      `객체 분할: ${tasks.object_segmentation?.count||0}개 (${tasks.object_segmentation?.mode||'proxy'})`,
-      `이미지 캡셔닝: ${tasks.image_captioning?.caption||'-'}`,
-      `객체 추적: ${tasks.object_tracking?.count||0}개`,
-      `행동 분류: ${(tasks.action_classification?.actions||[]).map(a=>'#'+(a.track_id||'-')+' '+a.action).join(', ')||'없음'}`,
-      '',
-      JSON.stringify(tasks,null,2)
-    ];
-    box.textContent=lines.join('\n');
-  }catch(e){
-    box.textContent='현재 프레임 분석 실패: '+(e.message||e)+'\n카메라가 켜져 있는지 확인하세요.';
-  }
+  _unimplemented('/vision/analyze-current','현재 프레임 서버 분석');
+  box.textContent='미구현: 현재 프레임 서버 분석(/vision/analyze-current)은 서버에 없습니다.';
 }
 
 function updateFaceUI(f){
@@ -3023,20 +2972,10 @@ function hasAnalyzableFrame(){
 //   서버 경유(analyzeWithServerVision)만 남긴다 — 그 서버 라우트 자체는 M8-2 에서 "미구현" 으로 표시.
 
 async function analyzeWithServerVision(base64, apiKey, prompt, provider){
-  const resp=await fetch(API_BASE+'/llm/vision',{
-    method:'POST',
-    headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({
-      provider,
-      api_key:apiKey,
-      image_base64:base64,
-      prompt,
-      model:''
-    })
-  });
-  const data=await resp.json().catch(()=>({}));
-  if(!resp.ok) throw new Error(data.detail||`서버 LLM 오류: ${resp.status}`);
-  return data.text||'분석 결과가 비어 있습니다.';
+  // [M8-2] /llm/vision 은 서버에 없다(항상 404 였음). 브라우저가 받은 API 키를 서버로 보내 클라우드에 프레임을 넘기는 구조는
+  //   F-12(영상 현장 외 불유출)와도 충돌 → 미구현으로 비활성. 안전 페이지에는 이 버튼 UI 자체가 없다(함수만 잔존).
+  _unimplemented('/llm/vision','LLM 화면 분석');
+  throw new Error('미구현: 서버 LLM 비전 분석(/llm/vision)은 제공되지 않습니다 — 클라우드 전송은 VIGENT_CLOUD_VLM 정책(F-12)에 따릅니다');
 }
 
 function applyLLMPrecisionResult(text, elapsed){
@@ -3067,8 +3006,10 @@ async function checkLLMStatus(){
   state.className='value yellow';
   setLLMStatus('analyzing','연결 상태 확인 중...');
   try{
-    const resp=await fetch(API_BASE+'/llm/status');
-    const data=await resp.json();
+    _unimplemented('/llm/status','LLM 연결 상태');
+    throw new Error('미구현: /llm/status 서버 라우트 없음');
+    // eslint-disable-next-line no-unreachable
+    const resp=null, data={};
     if(!resp.ok||!data.success) throw new Error(data.detail||'상태 확인 실패');
     const provider=selected==='gpt4o'?'openai':selected;
     const info=data.providers[provider]||{};
@@ -4305,12 +4246,11 @@ function drawThermal(W,H){
   ctx.restore();
   const alertT=parseFloat(document.getElementById('thermAlert').value);
   if(!isNaN(alertT) && maxT>=alertT){
-    ctx.save(); ctx.fillStyle='rgba(220,38,38,.92)'; ctx.fillRect(W/2-150,12,300,30);
-    ctx.fillStyle='#fff'; ctx.font='bold 14px Segoe UI'; ctx.textAlign='center'; ctx.fillText('과열 경보 '+maxT.toFixed(1)+'°C', W/2, 33); ctx.restore();
+    ctx.save(); ctx.fillStyle='rgba(220,38,38,.92)'; ctx.fillRect(W/2-190,12,380,30);
+    ctx.fillStyle='#fff'; ctx.font='bold 14px Segoe UI'; ctx.textAlign='center'; ctx.fillText('과열 경보 '+maxT.toFixed(1)+'°C (통보 미구현)', W/2, 33); ctx.restore();
     const now=Date.now();
     if(now-_thermLastAlert>30000){ _thermLastAlert=now;
-      fetch(API_BASE+'/sensor/temperature',{method:'POST',headers:{'content-type':'application/json'},
-        body:JSON.stringify({sensor:'thermal', celsius:+maxT.toFixed(1), site:'온도경보', threshold_c:alertT})}).catch(()=>{});
+      _unimplemented('/sensor/temperature','열화상 과열 통보 '+maxT.toFixed(1)+'°C');   // [M8-2] 서버 라우트 없음 — 예전엔 조용히 실패
     }
   }
 }
@@ -4327,20 +4267,11 @@ function initThermUI(){
 }
 
 // 디스패처: 매 프레임 호출(renderCoreFrameOverlays에서 try/catch로)
-// 과속 경보: 합성 스냅샷 + 속도 → 백엔드(텔레그램). 15초 쿨다운.
+// 과속 경보 — [M8-2] /alert/overspeed 서버 라우트가 없어 통보는 미구현(예전엔 조용히 실패). 화면 표시(⚠ 라벨)만 유지, 15초 쿨다운.
 let _ovrLastAlert=0;
 function captureOverspeed(frame, label, kmh){
   const now=Date.now(); if(now-_ovrLastAlert<15000) return; _ovrLastAlert=now;
-  const W=frame.W,H=frame.H; const oc=document.createElement('canvas'); oc.width=W; oc.height=H; const octx=oc.getContext('2d');
-  octx.fillStyle='#000'; octx.fillRect(0,0,W,H);
-  try{ const r=mediaRect(W,H);
-    if(shouldFlipDisplay()){ octx.save(); octx.translate(r.x+r.w,r.y); octx.scale(-1,1); octx.drawImage(videoEl,0,0,r.w,r.h); octx.restore(); }
-    else octx.drawImage(videoEl,r.x,r.y,r.w,r.h);
-  }catch(e){}
-  try{ octx.drawImage(canvas,0,0); }catch(e){}
-  let img=''; try{ img=oc.toDataURL('image/jpeg',0.7); }catch(e){}
-  fetch(API_BASE+'/alert/overspeed',{method:'POST',headers:{'content-type':'application/json'},
-    body:JSON.stringify({image_base64:img, kmh:Math.round(kmh), label:label, site:'과속경보'})}).catch(()=>{});
+  _unimplemented('/alert/overspeed','과속 통보 '+label+' '+Math.round(kmh)+'km/h');
 }
 // 이동 객체(사람·차량) 실시간 속도 라벨. 거리 보정 시 km/h, 미보정 시 '이동중'.
 function axDrawSpeed(frame){
