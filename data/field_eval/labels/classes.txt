@@ -1,7 +1,0 @@
-person
-Hardhat
-NO-Hardhat
-Safety-Vest
-NO-Safety-Vest
-Mask
-NO-Mask

@@ -22,6 +22,8 @@ from pathlib import Path
 
 _HERE = Path(__file__).resolve().parent
 _ROOT = _HERE.parent
+sys.path.insert(0, str(_ROOT / "vigent-core"))
+from data_paths import media  # noqa: E402  [M6-6] field_eval 은 저장소 밖(VIGENT_DATA_DIR)
 sys.path.insert(0, str(_HERE))
 
 try:
@@ -33,11 +35,11 @@ import cv2  # noqa: E402
 import numpy as np  # noqa: E402
 from v1_augmentation_preview import _side_by_side  # noqa: E402
 
-FRAMES_DIR = _ROOT / "data" / "field_eval" / "frames"
-LABELS_DIR = _ROOT / "data" / "field_eval" / "labels"
-CLASSES = [c.strip() for c in (_ROOT / "data" / "field_eval" / "classes.txt").read_text(encoding="utf-8").splitlines() if c.strip()]
-SPLIT = json.loads((_ROOT / "data" / "field_eval" / "dev_test_split.json").read_text(encoding="utf-8"))
-OUT_DIR = _ROOT / "data" / "field_eval" / "v1_augmentation_preview"
+FRAMES_DIR = media("field_eval") / "frames"
+LABELS_DIR = media("field_eval") / "labels"
+CLASSES = [c.strip() for c in (media("field_eval") / "classes.txt").read_text(encoding="utf-8").splitlines() if c.strip()]
+SPLIT = json.loads((media("field_eval") / "dev_test_split.json").read_text(encoding="utf-8"))
+OUT_DIR = media("field_eval") / "v1_augmentation_preview"
 
 CSS_ROOT = _ROOT / "data" / "datasets" / "css_safety" / "train"
 # data.yaml 클래스 순서: 0 Hardhat,1 Mask,2 NO-Hardhat,3 NO-Mask,4 NO-Safety Vest,5 Person,

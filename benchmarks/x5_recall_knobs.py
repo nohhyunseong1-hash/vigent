@@ -31,6 +31,7 @@ from pathlib import Path
 
 _ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(_ROOT / "vigent-core"))
+from data_paths import media  # noqa: E402  [M6-6] field_eval 은 저장소 밖(VIGENT_DATA_DIR)
 try:
     sys.stdout.reconfigure(encoding="utf-8")
 except Exception:  # noqa: BLE001
@@ -41,7 +42,7 @@ import vision_loader  # noqa: E402
 from agents.guard import GuardAgent  # noqa: E402
 from isolated_detect import detect_isolated  # noqa: E402
 
-_FE = _ROOT / "data" / "field_eval"
+_FE = media("field_eval")
 IOU_THR = 0.5
 # 평가 대상 — 표본이 의미 있는 클래스만(그 외는 "표본 부족"으로 비운다)
 CLASSES = ["person", "NO-Safety-Vest", "NO-Hardhat", "Hardhat"]

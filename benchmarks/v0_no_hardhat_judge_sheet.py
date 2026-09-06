@@ -15,6 +15,7 @@ _HERE = Path(__file__).resolve().parent
 _ROOT = _HERE.parent
 sys.path.insert(0, str(_HERE))
 sys.path.insert(0, str(_ROOT / "vigent-core"))
+from data_paths import media  # noqa: E402  [M6-6] field_eval 은 저장소 밖(VIGENT_DATA_DIR)
 
 try:
     sys.stdout.reconfigure(encoding="utf-8")
@@ -26,11 +27,11 @@ import cv2  # noqa: E402
 import numpy as np  # noqa: E402
 from isolated_detect import detect_isolated  # noqa: E402
 
-FRAMES_DIR = _ROOT / "data" / "field_eval" / "frames"
-LABELS_DIR = _ROOT / "data" / "field_eval" / "labels"
-OUT_PATH = _ROOT / "data" / "field_eval" / "s1_miss_montage" / "no_hardhat_judge_sheet.jpg"
-CLASSES = [c.strip() for c in (_ROOT / "data" / "field_eval" / "classes.txt").read_text(encoding="utf-8").splitlines() if c.strip()]
-SPLIT = json.loads((_ROOT / "data" / "field_eval" / "dev_test_split.json").read_text(encoding="utf-8"))
+FRAMES_DIR = media("field_eval") / "frames"
+LABELS_DIR = media("field_eval") / "labels"
+OUT_PATH = media("field_eval") / "s1_miss_montage" / "no_hardhat_judge_sheet.jpg"
+CLASSES = [c.strip() for c in (media("field_eval") / "classes.txt").read_text(encoding="utf-8").splitlines() if c.strip()]
+SPLIT = json.loads((media("field_eval") / "dev_test_split.json").read_text(encoding="utf-8"))
 IOU_MATCH = 0.50
 CROP_MARGIN = 0.30   # 판정용이라 여백을 조금 더 줌(목 주변까지 보이게)
 TILE = 200

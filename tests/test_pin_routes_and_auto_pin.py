@@ -63,6 +63,21 @@ class AutoPinSentAlerts(unittest.TestCase):
         self.assertEqual(pins.get("data/evidence/20260906/ev_a.jpg"), f"alert:{rid}")
         self.assertEqual(pins.get(f"data/recognition/events_{day}.jsonl"), f"alert:{rid}")
 
+    def test_isolate_alerts_alone_keeps_live_pin_file_untouched(self):
+        """[2026-09-06 실측 재발 방지] isolate_alerts() 만 쓴 테스트의 mark_sent 가 운영 pinned.json 을 건드리면 안 된다."""
+        live = Path(__file__).resolve().parent.parent / "data" / "retention" / "pinned.json"
+        before = live.read_bytes() if live.exists() else None
+        restore = isolate_alerts()
+        try:
+            self.assertNotEqual(data_engine._PINNED, live)
+            rid = q.enqueue("critical", "격리 확인", {"ts": time.time()})
+            q.mark_sent(rid)
+            self.assertTrue(data_engine.pinned_map(), "임시 pin 목록에는 기록돼야 한다")
+        finally:
+            restore()
+        after = live.read_bytes() if live.exists() else None
+        self.assertEqual(before, after, "운영 pinned.json 이 테스트로 바뀌었다")
+
     def test_medium_or_no_evidence_does_not_pin_evidence(self):
         rid = q.enqueue("medium", "기록 전용", {"evidence": "data/evidence/20260906/ev_b.jpg"})
         q.mark_sent(rid)

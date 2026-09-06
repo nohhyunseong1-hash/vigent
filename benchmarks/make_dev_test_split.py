@@ -20,14 +20,16 @@ from datetime import date
 from pathlib import Path
 
 _ROOT = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(_ROOT / "vigent-core"))
+from data_paths import media  # noqa: E402  [M6-6] field_eval 은 저장소 밖(VIGENT_DATA_DIR)
 
 try:
     sys.stdout.reconfigure(encoding="utf-8")
 except Exception:  # noqa: BLE001
     pass
 
-MANIFEST = _ROOT / "data" / "field_eval" / "frames_manifest.json"
-OUT = _ROOT / "data" / "field_eval" / "dev_test_split.json"
+MANIFEST = media("field_eval") / "frames_manifest.json"
+OUT = media("field_eval") / "dev_test_split.json"
 
 # 사용자 승인(2026-08-10, [P-0]) — person/NO-Hardhat/NO-Safety-Vest/사람없음 비율이 전체 test
 # 비율(32%)에 가장 고르게 맞는 조합으로 선정(benchmarks/dev_test_split.md 비교표 근거).

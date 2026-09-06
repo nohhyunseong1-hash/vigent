@@ -24,6 +24,7 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any
 
+import data_paths
 import tuning
 
 KST = timezone(timedelta(hours=9))
@@ -32,17 +33,36 @@ _ROOT = Path(__file__).resolve().parent.parent
 # 그룹별 데이터 루트 — data_engine.py·audit_store.py·tbm_store.py·agents/scribe.py 가 실제로
 # 쓰는 경로와 동일해야 한다(중복 정의, 이유: retention.py가 이 모듈들을 전부 import하면
 # 불필요한 결합이 생긴다 — 경로 상수만 복제).
+# ★[CODE_REVIEW M6-6, 2026-09-06 대표 결정] field_eval(현장 평가 프레임 530장)은 **저장소 밖**
+#   (VIGENT_DATA_DIR/field_eval, 기본 ../vigent_private_data/field_eval)에 두고 그룹 E(365일)로 관리한다.
+#   저장소 밖 그룹은 상태·후보 경로를 절대경로로 표기한다(_show/_abs).
 GROUP_DIRS: dict[str, Path] = {
     "evidence": _ROOT / "data" / "evidence",
     "recognition": _ROOT / "data" / "recognition",
     "audit": _ROOT / "data" / "audit",
     "tbm": _ROOT / "data" / "tbm",
     "risk_assessments": _ROOT / "data" / "risk_assessments",
+    "field_eval": data_paths.media("field_eval"),
 }
 GROUP_LABEL: dict[str, str] = {
     "evidence": "A(안전 증거)", "recognition": "A(안전 증거)",
     "audit": "B(감사·문서)", "tbm": "B(감사·문서)", "risk_assessments": "B(감사·문서)",
+    "field_eval": "E(평가 자료 — 저장소 밖 VIGENT_DATA_DIR)",
 }
+
+
+def _show(p: Path) -> str:
+    """상태·후보 표기: 저장소 안이면 _ROOT 상대경로(기존 계약), 밖(field_eval 등)이면 절대경로."""
+    try:
+        return str(p.relative_to(_ROOT))
+    except ValueError:
+        return str(p)
+
+
+def _abs(shown: str) -> Path:
+    """_show() 의 역 — 절대경로면 그대로, 상대경로면 _ROOT 기준."""
+    p = Path(shown)
+    return p if p.is_absolute() else _ROOT / p
 PINNABLE_GROUPS = {"evidence", "recognition"}   # pin 예외 그룹 — [M6-10] 발송 경보의 그날 인식 로그도 pin 대상
 
 STATUS_PATH = _ROOT / "data" / "retention_status.json"
@@ -196,7 +216,7 @@ def _pinned_paths() -> set[Path]:
 def scan_group(name: str, days: int | None) -> dict[str, Any]:
     """그룹 디렉터리를 스캔 — days 가 None 이면 삭제후보 계산 없이 크기만 낸다(가시성 전용)."""
     root = GROUP_DIRS[name]
-    info: dict[str, Any] = {"dir": str(root.relative_to(_ROOT)), "days": days,
+    info: dict[str, Any] = {"dir": _show(root), "days": days,
                              "exists": root.exists(), "total_bytes": 0, "file_count": 0,
                              "candidates": [], "oldest_age_days": None}
     if not root.exists():
@@ -218,7 +238,7 @@ def scan_group(name: str, days: int | None) -> dict[str, Any]:
         age_days = (now - st.st_mtime) / 86400
         oldest_age = max(oldest_age, age_days)
         if days is not None and age_days > days:
-            rel = str(fp.relative_to(_ROOT))
+            rel = _show(fp)
             try:
                 if fp.resolve() in pinned:
                     continue   # pin된 증거는 후보에서 제외 — 어떤 경로로도 삭제되지 않는다([M6-2] resolve 비교)
@@ -277,7 +297,7 @@ def sweep(execute: bool | None = None, only_group: str | None = None) -> dict[st
         if only_group and name != only_group:
             continue
         if not root.exists():
-            groups_out[name] = {"dir": str(root.relative_to(_ROOT)), "exists": False}
+            groups_out[name] = {"dir": _show(root), "exists": False}
             # [R2-fix] 미사용 그룹(디렉터리 자체가 없음)은 경고가 아니라 정보다 —
             #   매 스위프마다 같은 경고가 쌓이면 진짜 경고가 묻힌다.
             unused_groups.append(name)
@@ -297,7 +317,7 @@ def sweep(execute: bool | None = None, only_group: str | None = None) -> dict[st
         deleted: list[str] = []
         if will_delete and days is not None:
             for cand in info["candidates"]:
-                fp = _ROOT / cand["path"]
+                fp = _abs(cand["path"])
                 # [P1b] 화이트리스트 밖은 어떤 경우에도 삭제하지 않는다(되돌릴 수 없는 작업의 마지막 방어선)
                 if not is_path_allowed(fp):
                     warnings.append(f"{name}: 화이트리스트 밖이라 삭제 거부 {cand['path']}")

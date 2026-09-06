@@ -25,10 +25,16 @@ def isolate_alerts():
     """운영 alert_queue.db·전송기를 임시 상태로 바꾸고, 원복 함수를 돌려준다(addCleanup 용)."""
     import alert_notify
     import alert_queue
+    import data_engine
 
     tmp = tempfile.TemporaryDirectory(prefix="vigent_test_alerts_")
     saved_db = alert_queue._DB_PATH
     saved_sender = alert_queue._sender
+    # [M6-10 후속, 2026-09-06 실측] mark_sent(critical/high) 가 자동 pin 을 쓰므로 pin 목록도 격리한다 — 격리 전에는
+    #   임시 DB 의 행 id 로 만든 "alert:1" pin 이 운영 data/retention/pinned.json 에 남았다.
+    saved_pins = (data_engine._PINNED, data_engine._PINNED_LEGACY)
+    data_engine._PINNED = Path(tmp.name) / "retention" / "pinned.json"
+    data_engine._PINNED_LEGACY = Path(tmp.name) / "evidence" / "pinned.json"
     alert_queue.stop()
     alert_notify.stop()
     alert_queue._reset_for_test(Path(tmp.name) / "alert_queue.db")
@@ -40,6 +46,7 @@ def isolate_alerts():
         alert_notify.reset_for_test()
         alert_queue._reset_for_test(saved_db)
         alert_queue._sender = saved_sender
+        data_engine._PINNED, data_engine._PINNED_LEGACY = saved_pins
         tmp.cleanup()
 
     return _restore

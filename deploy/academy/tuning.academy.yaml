@@ -92,6 +92,7 @@ retention:                   # [Z-2] 디스크 보존 정책(scripts/retention_s
     audit: {days: 1095}           # B(감사·문서) — 근거(잠정): 산업안전보건법령상 위험성평가 기록 보존 의무(3년)
     tbm: {days: 1095}             # B(감사·문서) — audit과 동일 근거
     risk_assessments: {days: 1095} # B(감사·문서) — audit과 동일 근거
+    field_eval: {days: 365}       # E(평가 자료) — [M6-6] 전역과 동일(저장소 밖 VIGENT_DATA_DIR/field_eval)
   auto_sweep: true    # [드리프트 보충] 전역 기본값에서 상속
   sweep_initial_delay_s: 600    # [드리프트 보충] 전역 기본값에서 상속
   sweep_interval_s: 86400    # [드리프트 보충] 전역 기본값에서 상속

@@ -55,10 +55,10 @@ DEFAULT_GLOBAL_CAP = 300
 def _args() -> argparse.Namespace:
     p = argparse.ArgumentParser(description="재해 영상 평가용 프레임 스마트 추출(측정 전용)")
     p.add_argument("--input-dir", default=str(media("runs/rfdetr/accident")))
-    p.add_argument("--out-dir", default=str(_ROOT / "data" / "field_eval" / "frames"))
+    p.add_argument("--out-dir", default=str(media("field_eval") / "frames"))
     p.add_argument("--per-video-cap", type=int, default=DEFAULT_PER_VIDEO_CAP)
     p.add_argument("--global-cap", type=int, default=DEFAULT_GLOBAL_CAP)
-    p.add_argument("--montage-out", default=str(_ROOT / "data" / "field_eval" / "sample_montage.jpg"))
+    p.add_argument("--montage-out", default=str(media("field_eval") / "sample_montage.jpg"))
     p.add_argument("--summary-out", default=str(_HERE / "extract_eval_frames_summary.md"))
     return p.parse_args()
 

@@ -9,7 +9,8 @@
 
 존재 여부는 여기서 검사하지 않는다 — 호출측이 `require()` 나 `exists()` 로 확인하고, 없으면
 "어디에 무엇을 놓아야 하는지"를 안내한 뒤 종료한다(규칙 11: 0건 처리는 실패로 의심).
-런타임(vigent-core 서버)은 이 모듈을 쓰지 않는다 — 측정 전용.
+런타임(vigent-core 서버)에서는 retention(보존 그룹 field_eval)·privacy(보호 폴더)만 이 모듈로 위치를 얻는다
+([CODE_REVIEW M6-6]) — 그 외는 측정 전용.
 """
 from __future__ import annotations
 
