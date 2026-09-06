@@ -328,6 +328,47 @@
   ★**(2) 실카메라 10초 수신 프레임 수·None 비율·첫 프레임 지연(저지연 옵션 전/후)은 대표 답변 "아니오"(카메라 미사용)로 이번엔 미측정 → 5단계 현장 검증 항목**(스크립트 `--live <cam_id>` 로 즉시 실행 가능, 자격증명 미출력). READ 타임아웃 5s 는 정상 스트림에서 "5초 넘게 프레임 없음 → 재연결" 이라 hang 15s 보다 먼저 잡힌다(동작 변화 — 현장 검증 항목에 포함).
 - **M5-6** → 모듈 7. **M5-8·9** 문서만.
 - **용량 스펙(FINAL_SUMMARY 배포 사양 절에 명시, 대표 지시)**: `DETECT_LOCK` 직렬화, 풀세트 ~85ms → 2fps 기준 **PC 1대당 카메라 약 5대 포화(RTX 5070 Ti 기준)**. 카메라 대수 확장(배치 추론 또는 다중 프로세스)은 다음 단계 항목.
-## 6. 모듈 6 — 보존 스윕 (대기)
+## 6. 모듈 6 — 보존 스윕 (보고 2026-09-06, 수정 대기)
+
+**읽은 파일(전체)**: `retention.py` · `retention_scheduler.py` · `scripts/retention_sweep.py` · `data_engine.py`(pin·증거 경로) · `privacy.py` 저장 암호화 검사부 · `vlog.py` 회전 · `config/tuning.yaml retention` · `deploy/windows/install_service.ps1` 로그 회전 · 실측: `data/retention_status.json` · 디렉터리 크기 · 임시 디렉터리 시뮬레이션 2건.
+
+### 6-1. 무엇을 언제 지우는가
+
+| 대상 | 위치 | 삭제 주체 | 기준 | 설정 | 현 상태(2026-09-06 실측) |
+|---|---|---|---|---|---|
+| 증거 JPEG(얼굴 모자이크 적용본) | `data/evidence/<날짜>/` | `retention.sweep()` A그룹 | mtime > **30일**, pin 제외 | `retention.groups.evidence.days`(잠정값, 법률 검토 전) | 13,749개 945MB, 최고령 20.4일 → 약 10일 뒤 첫 후보 |
+| 인식 로그(JSONL, 일 1파일) | `data/recognition/events_YYYYMMDD.jsonl` | A그룹 | mtime > **30일**(파일 단위) | 〃 | 18개 6.6MB |
+| 감사·TBM·위험성평가서 | `data/{audit,tbm,risk_assessments}` | B그룹 | mtime > **1095일**(3년) | `groups.*.days` | 0 / 0 / 424개 |
+| go2rtc 로그 · legal 차단 로그 | `data/go2rtc.log` 등 | `rotate_if_large()` D그룹 | > 50MB 면 `.1` 로 1회 회전(기동 시점만) | `retention.ops_log_max_mb` | 4.9MB |
+| 앱 로그 | `logs/vigent.log`·`events.jsonl` | `vlog` RotatingFileHandler | 10MB × 5 / 10MB × 10 | 코드 고정 | 17.5MB |
+| 서비스 stdout/stderr | `logs/vigent.{out,err}.log` + `-*` 회전본 | NSSM `AppRotateBytes` | 256MB 크기 기준 — **개수 상한 없음**(크래시 루프에 8,139개) | `install_service.ps1` | 55개 |
+| 경보 큐 행(sent/dead) | `data/alert_queue.db` | **없음** | — | — | 87행(무한 누적) |
+| 학습 산출·데이터셋·현장 원본 | `data/runs`(2.0GB, 체크포인트) · `data/datasets`(645MB) · `data/field_eval`(55MB, jpg 530) | **없음**(정책 밖) | — | — | 개인영상 가능성: `field_eval` jpg(현장 촬영) |
+| 기동 실패 상태·PID·트랙 디버그 | `data/startup_failure.json` · `go2rtc.pid` · `track_debug.jsonl`(865KB, env 켤 때만) | 없음(작음) | — | — | — |
+
+**주기·안전장치**: 서버 내 스레드(`retention_scheduler`) 기동 10분 뒤 첫 실행, 이후 **24시간**마다. 전체 스위치 `enabled`(true) · `dry_run`(false) · 첫 실주기 보류(후보 ≥1건인 주기를 한 번 보여준 뒤에야 다음 주기부터 삭제) · 화이트리스트(그룹 디렉터리 자체) 밖 삭제 거부 · 삭제 감사 로그 `data/retention/deletion_YYYYMMDD.jsonl`. 수동 CLI `scripts/retention_sweep.py --execute` 는 보류를 우회(명시 지시).
+**개인정보 보존 기간 설정 여부**: 있음(A 30일·B 3년, tuning) — 단 코드 주석대로 **잠정값·법률 검토 전**이며 고객사별 조정 전제. 증거는 모자이크본만 저장(privacy P1a), 저장 폴더 암호화는 BitLocker/EFS **검사·노출만**(`/health privacy`).
+**삭제 실패 시 동작**: 파일별 `OSError` → `warnings` 에 기록(status.json → `/health disk_retention.warnings`), 다음 주기(24h) 재시도. 스윕 자체 예외는 스케줄러가 잡아 `failures`·`last_error` 로 노출(스레드 생존). 통보는 없음.
+
+### 6-2. 발견 사항
+
+| ID | 파일:줄 | 심각도 | 문제 | 근거 | 수정안 |
+|---|---|---|---|---|---|
+| **M6-1** | `retention.py:169-185` · `data_engine.py:27` | **높음** | **`pinned.json` 자체가 삭제 후보**가 된다 — pin 목록 파일이 `data/evidence/` 안에 있고 스캔이 `rglob("*")` 전체를 후보로 보며 pin 집합에는 자기 경로가 없다. 30일간 pin 변경이 없으면 목록 파일이 지워져 **모든 pin 이 풀리고** 다음 주기에 pin 했던 증거가 삭제된다 | 실측(임시 디렉터리 시뮬): 40일 된 `pinned.json` 이 후보 목록에 포함 | `scan_group` 에서 `pinned.json` 을 항상 제외(또는 pin 목록을 `data/evidence/` 밖으로 이동 — 이동은 기존 파일 마이그레이션 필요) |
+| **M6-2** | `retention.py:181-183` · `data_engine.py:68·81` | **높음(Windows)** | pin 비교가 **경로 구분자를 정규화하지 않는다**. Windows 에서 증거 상대경로는 `data\evidence\...`(실측 인식 로그)인데, pin 이 `/` 로 들어오면(브라우저 URL·수동 입력) 매칭 실패 → **pin 된 증거가 삭제**된다 | 실측(시뮬): `/` 로 pin 한 파일이 후보에 포함 | 양쪽 모두 `Path(...).as_posix()` 로 정규화해 비교(저장도 posix) |
+| **M6-3** | `data_engine.pin_evidence` | **중간** | pin 기능은 **호출부가 0건**(API·UI 없음, 테스트만) — "pin 하면 안 지워진다"는 안전장치가 운영에서 쓸 수 없다(규칙 11 유형: 절차·주석만 있고 장치 없음) | grep: `pin_evidence(` 호출 = data_engine 정의 + tests | `POST /recognition/pin` 류 라우트 + 대시보드 버튼(모듈 8) — 이번엔 라우트만 |
+| M6-4 | `alert_queue.py` | 중간 | sent/dead 행을 **영구 보관**(삭제 경로 없음) — 현장 1년이면 수만 행, `/health counts()` 는 전체 GROUP BY 라 느려짐. 데드레터 사유(`last_error`)에 메시지 원문 포함 | 실측 87행 | `retention.sweep()` 에 "큐 행 30일"(B그룹 아님·개인정보 아님이라 별도 키 `alert_queue_days`) 추가 |
+| M6-5 | `install_service.ps1:115-117` · `service_status.ps1` | 중간 | NSSM 회전본(`vigent.err-*`) **개수 상한 없음** — 크래시 루프가 8,139개(49.7MB) 만들었다. M4-5 로 루프 자체는 완화됐지만 정리 장치는 없음 | C4 실측 | 스윕에 `logs/` D그룹 추가: `vigent.{err,out}-*` 회전본 **최근 N개(50)만 유지**(크기 기준 아님) — 루프 흔적은 `service_status.ps1` 1h 검사가 먼저 잡음 |
+| M6-6 | `data/field_eval` · `data/runs` · `data/datasets` | 중간(개인정보) | 정책 밖 디렉터리에 현장 촬영 jpg 530장(`field_eval`) 과 2.7GB 학습 산출이 있다. `field_eval` 은 현장 원본일 수 있어 보존 기간·암호화 검사 대상에 없음 | 디렉터리 크기 실측 | `field_eval` 은 `privacy._protected_dirs` 와 보존 그룹(A, 30일 또는 별도 일수)에 편입할지 대표 판단 — 학습 산출(runs/datasets)은 개인정보 아님, 디스크 관점만(수동) |
+| M6-7 | `retention.py:158-187` | 낮음 | 스캔이 24시간마다 14k 파일 `rglob`+`stat` — 지금 945MB/13.7k 파일이면 문제없으나 10만 파일대에서 수십 초. 별도 스레드라 검출 영향은 없음 | — | 문서만(측정치 기록) |
+| M6-8 | `retention.sweep()` | 낮음 | 삭제 실패·디스크 부족 경고가 **/health 와 로그에만** 남고 통보 없음(M4-2 요약 통보에 합류 가능) | 코드 | M4-2 `system/alert_dead` 처럼 `system/retention_warning` 1일 1회 통보(모듈 4 배선 재사용) |
+| M6-9 | `retention_scheduler.py:73` | 낮음 | 첫 실행이 기동 10분 뒤·24h 주기 — 서비스가 매일 재기동되면(스케줄 재시작) 첫 10분 안에 죽는 경우 **영영 안 돈다**. `last_run` 08-26(11일 전)은 서버 미기동 때문이나 같은 지문 | status.json 실측 | `next_run_at` 을 status.json 에 남기고 기동 시 마지막 실행이 25h 넘었으면 초기 지연을 1분으로 단축 |
+
+### 6-3. 수정 계획(승인 대기)
+- **높음 M6-1·M6-2**(한 커밋): `pinned.json` 제외 + 경로 posix 정규화(저장·비교 양쪽). 선행 테스트: 40일 된 pinned.json 이 후보에 없다 / `\`·`/` 혼용 pin 이 모두 보호된다(임시 디렉터리).
+- **중간 M6-3**: pin/unpin 라우트(`POST /recognition/pin`, `DELETE`) — OpenAPI 경로 추가라 `baseline_openapi.json` 갱신 필요(게이트 "무변경" 예외를 커밋 메시지에 명시). UI 버튼은 모듈 8.
+- **중간 M6-4·M6-5**: 스윕에 큐 행(30일)·NSSM 회전본(최근 50개) 정리 추가 — 선행 테스트(임시 DB/디렉터리). 둘 다 개인정보 아님.
+- **중간 M6-6**: 대표 판단(field_eval 편입 여부).
+- **M6-7·8·9** 문서만(M6-9 는 모듈 7 기동 순서에서 재검토).
 ## 7. 모듈 7 — 설정·경로·기동 (대기)
 ## 8. 모듈 8 — 프론트 realtime_core.js 감시 화면 (대기)
