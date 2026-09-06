@@ -269,7 +269,15 @@ $env:RF_HOME = "C:\Users\1\Desktop\VIGENT\vigent-core\weights"
 
 기본 캐시가 `~/.cache/rtmlib` 이라 `RF_HOME` 과 똑같이 **계정별로 흩어진다**(서비스는
 LocalSystem 프로필). 배포는 `TORCH_HOME` 을 **`vigent-core\weights\rtm_cache`** 로 고정한다
-— `install_service.ps1` 이 자동 주입하고, 수동 기동은 직접 넣는다:
+— `install_service.ps1` 이 자동 주입하고, **`run.ps1` 도 미설정 시 같은 값을 채운다**([CODE_REVIEW M7-2]).
+
+> ★[CODE_REVIEW M7-2b, 2026-09-06] **조달은 `scripts\fetch_weights.py` 가 한다** — 매니페스트에 rtmlib 2파일이
+> `required` 로 등록돼 `rtm_cache\hub\checkpoints\` 에 내려받고 SHA256 을 대조한다(이전에는 "고정"만 하고 조달
+> 절차가 없어 오프라인 현장은 첫 사람 검출에서 다운로드를 시도했다). 실측(개발 PC, 2026-09-06): 2파일 155.7MB,
+> **14.4초**, 저장 경로 `vigent-core\weights\rtm_cache\hub\checkpoints\`. 오프라인 현장 점검은 `fetch_weights.py --check`
+> 통과 + **카메라를 물린 뒤 첫 사람 검출**까지 확인한다(deploy/SITE_CHECKLIST.md N-3).
+
+수동 기동(run.ps1 을 쓰지 않을 때)은 직접 넣는다:
 
 ```powershell
 $env:TORCH_HOME = "C:\Users\1\Desktop\VIGENT\vigent-core\weights\rtm_cache"

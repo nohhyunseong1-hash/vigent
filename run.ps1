@@ -8,6 +8,14 @@
 $Dir = Split-Path -Parent $MyInvocation.MyCommand.Path
 $Port = if ($env:VIGENT_PORT) { $env:VIGENT_PORT } else { "8010" }
 if (-not $env:VIGENT_HOST) { $env:VIGENT_HOST = "127.0.0.1" }
+# ★[CODE_REVIEW M7-2, 2026-09-06] 서비스(deploy/windows/install_service.ps1)와 같은 환경 4개 — **미설정 시에만** 채운다(셸에서 준 값 우선).
+#   개발에서 못 보는 캡처 경로(thread)·인코딩(UTF-8)·모델 캐시(RF_HOME/TORCH_HOME)가 현장에서만 도는 일을 없앤다.
+#   실측(2026-09-06): rf-detr 캐시는 ~/.roboflow 와 vigent-core\weights 양쪽에 동일(366,287,238B) → 전환 다운로드 0.
+#   rtmlib 포즈 캐시는 scripts\fetch_weights.py 가 weights\rtm_cache 로 조달한다(M7-2b).
+if (-not $env:VIGENT_CAPTURE_MODE) { $env:VIGENT_CAPTURE_MODE = "thread" }
+if (-not $env:PYTHONUTF8) { $env:PYTHONUTF8 = "1" }
+if (-not $env:RF_HOME) { $env:RF_HOME = Join-Path $Dir "vigent-core\weights" }
+if (-not $env:TORCH_HOME) { $env:TORCH_HOME = Join-Path $Dir "vigent-core\weights\rtm_cache" }
 
 # uvicorn/fastapi 가 설치된 파이썬 탐색: 프로젝트 .venv → py -3.11(정본) → PATH 의 python
 #   각 후보 = @(실행파일, 선행인자문자열). 검사는 숨은 창에서 돌리고 종료코드만 본다.

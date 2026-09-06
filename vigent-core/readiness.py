@@ -82,8 +82,12 @@ def required_weights_missing() -> list[str]:
         man = json.loads(man_path.read_text(encoding="utf-8"))
     except Exception:  # noqa: BLE001  매니페스트가 없으면 검사 자체를 건너뛴다(구배포 호환)
         return []
+    def _path(w: dict[str, Any]) -> Path:
+        # [CODE_REVIEW M7-2b] dest(weights/ 아래 하위 디렉터리) — rtmlib 포즈 캐시는 rtm_cache/hub/checkpoints/ 에 산다
+        dest = str(w.get("dest") or "").strip().strip("/\\")
+        return (wdir / dest / w["file"]) if dest else (wdir / w["file"])
     return [w["file"] for w in man.get("weights", [])
-            if w.get("required") and not (wdir / w["file"]).exists()]
+            if w.get("required") and not _path(w).exists()]
 
 
 def warmup(guard: Any, detectors: list[str] | None = None) -> dict[str, Any]:
