@@ -21,7 +21,7 @@ _HERE = Path(__file__).resolve().parent
 _ROOT = _HERE.parent
 sys.path.insert(0, str(_HERE))
 sys.path.insert(0, str(_ROOT / "vigent-core"))
-from data_paths import media  # noqa: E402  [M6-6] field_eval 은 저장소 밖(VIGENT_DATA_DIR)
+from data_paths import field_eval  # noqa: E402  [M6-6] field_eval 은 저장소 밖(VIGENT_DATA_DIR)
 
 import box_quality as bq  # noqa: E402
 from extract_eval_frames import NEAR_HEIGHT_FRAC, _person_size_bucket  # noqa: E402
@@ -31,9 +31,9 @@ try:
 except Exception:  # noqa: BLE001
     pass
 
-MANIFEST = media("field_eval") / "frames_manifest.json"
-FRAMES_DIR = media("field_eval") / "frames"
-BACKUP = media("field_eval") / "frames_manifest.pre_isolation_fix_backup.json"
+MANIFEST = field_eval("frames_manifest.json")
+FRAMES_DIR = field_eval("frames")
+BACKUP = field_eval("frames_manifest.pre_isolation_fix_backup.json")
 
 
 def main() -> None:

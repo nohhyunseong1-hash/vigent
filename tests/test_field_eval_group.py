@@ -66,11 +66,53 @@ class FieldEvalGroup(unittest.TestCase):
     def test_protected_dirs_include_field_eval(self):
         self.assertIn(data_paths.media("field_eval"), privacy._protected_dirs())
 
-    def test_no_repo_relative_references_and_dir_moved(self):
-        hits = sorted(p.name for p in (_REPO / "benchmarks").rglob("*.py")
-                      if '_ROOT / "data" / "field_eval"' in p.read_text(encoding="utf-8", errors="replace"))
-        self.assertEqual(hits, [], "field_eval 참조는 data_paths.media('field_eval') 로")
-        self.assertFalse((_REPO / "data" / "field_eval").exists(), "field_eval 은 저장소 data/ 밖(VIGENT_DATA_DIR)에 둔다")
+    def test_benchmarks_use_field_eval_router_and_repo_has_labels_only(self):
+        """[M6-6 정정] 이미지는 저장소 밖, 라벨(txt/json/md)은 저장소 data/field_eval 정본 — 스크립트는 data_paths.field_eval() 만 쓴다."""
+        bad = sorted(p.name for p in (_REPO / "benchmarks").rglob("*.py")
+                     if any(s in p.read_text(encoding="utf-8", errors="replace")
+                            for s in ('_ROOT / "data" / "field_eval"', 'media("field_eval")')))
+        self.assertEqual(bad, [], "field_eval 참조는 data_paths.field_eval(...) 로")
+        repo_fe = _REPO / "data" / "field_eval"
+        self.assertEqual([p.name for p in repo_fe.rglob("*.jpg")], [], "저장소 data/field_eval 에 이미지가 있으면 안 된다")
+        self.assertTrue(any((repo_fe / "labels").glob("*.txt")), "정답 라벨은 저장소가 정본(git 추적)")
+
+
+class FieldEvalRouting(unittest.TestCase):
+    """data_paths.field_eval(rel): 이미지(확장자·이미지 디렉터리) → VIGENT_DATA_DIR, 그 외 파일·labels* → 저장소."""
+
+    def setUp(self):
+        self.priv = data_paths.media("field_eval")
+        self.repo = _REPO / "data" / "field_eval"
+
+    def test_images_go_private_labels_go_repo(self):
+        fe = data_paths.field_eval
+        self.assertEqual(fe("frames"), self.priv / "frames")
+        self.assertEqual(fe("frames/a.jpg"), self.priv / "frames" / "a.jpg")
+        self.assertEqual(fe("labels"), self.repo / "labels")
+        self.assertEqual(fe("labels/a.txt"), self.repo / "labels" / "a.txt")
+        self.assertEqual(fe("classes.txt"), self.repo / "classes.txt")
+        self.assertEqual(fe("dev_test_split.json"), self.repo / "dev_test_split.json")
+        self.assertEqual(fe("labels_draft_preview"), self.priv / "labels_draft_preview")   # 미리보기 jpg 폴더
+        self.assertEqual(fe("labels_draft"), self.repo / "labels_draft")
+        self.assertEqual(fe("rest89/labels_backup_20260808"), self.repo / "rest89" / "labels_backup_20260808")
+
+    def test_mixed_dir_is_routed_per_child(self):
+        fe = data_paths.field_eval
+        out = fe("pilot20")
+        self.assertEqual(out / "images", self.priv / "pilot20" / "images")
+        self.assertEqual(out / "hints", self.priv / "pilot20" / "hints")
+        self.assertEqual(out / "labels", self.repo / "pilot20" / "labels")
+        self.assertEqual(out / "classes.txt", self.repo / "pilot20" / "classes.txt")
+        self.assertEqual(os.fspath(out), str(self.repo / "pilot20"))
+        root = fe()
+        self.assertEqual(root / "frames", self.priv / "frames")
+        self.assertEqual(root / "labels", self.repo / "labels")
+
+    def test_montage_dir_mixed_by_extension(self):
+        fe = data_paths.field_eval
+        self.assertEqual(fe("s1_miss_montage"), self.priv / "s1_miss_montage")
+        self.assertEqual(fe("s1_miss_montage/no_hardhat_judge_sheet.jpg"), self.priv / "s1_miss_montage" / "no_hardhat_judge_sheet.jpg")
+        self.assertEqual(fe("s1_miss_montage/no_hardhat_judge_sheet.json"), self.repo / "s1_miss_montage" / "no_hardhat_judge_sheet.json")
 
 
 if __name__ == "__main__":

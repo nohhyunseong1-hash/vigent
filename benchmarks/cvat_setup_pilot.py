@@ -50,8 +50,8 @@ except ImportError:
 
 _ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(_ROOT / "vigent-core"))
-from data_paths import media  # noqa: E402  [M6-6] field_eval 은 저장소 밖(VIGENT_DATA_DIR)
-_FE = media("field_eval")
+from data_paths import field_eval  # noqa: E402  [M6-6] field_eval 은 저장소 밖(VIGENT_DATA_DIR)
+_FE = field_eval()
 _PILOT = _FE / "pilot20"
 _REST89 = _FE / "rest89"
 _TASKS_JSON = _PILOT / ".cvat_tasks.json"

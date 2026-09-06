@@ -32,6 +32,52 @@ def media(rel: str) -> Path:
     return data_dir() / rel
 
 
+# ── [CODE_REVIEW M6-6 정정, 2026-09-06 대표 지시] 현장 평가 자료(field_eval)는 두 곳에 나뉜다 ──
+#   · 이미지(jpg 등, 얼굴이 찍힌 현장 프레임 = 개인영상정보) → 저장소 밖 VIGENT_DATA_DIR/field_eval
+#   · 라벨·정답지·매니페스트(txt/json/md — PII 아님, 평가 정답지로 버전 관리) → 저장소 data/field_eval (git 추적, 정본)
+#   스크립트는 field_eval("labels") / field_eval("frames") 처럼 상대경로만 말하고, 어느 쪽인지는 여기서 정한다.
+_FE_REPO = _REPO / "data" / "field_eval"
+_FE_IMAGE_EXT = {".jpg", ".jpeg", ".png", ".bmp", ".webp"}
+_FE_IMAGE_DIRS = {"frames", "images", "hints", "montages", "labels_draft_preview", "review_000633827",
+                  "s1_miss_montage", "v1_augmentation_preview"}
+
+
+class _FieldEvalRouter:
+    """아직 이미지/라벨이 갈리지 않은 디렉터리(예: '', 'pilot20', 'rest89') — `/` 로 내려가면서 결정한다."""
+    __slots__ = ("rel",)
+
+    def __init__(self, rel: str) -> None:
+        self.rel = rel
+
+    def __truediv__(self, part: object) -> "Path | _FieldEvalRouter":
+        return field_eval(f"{self.rel}/{part}" if self.rel else str(part))
+
+    def __fspath__(self) -> str:                 # 문자열로 쓰이면 라벨 쪽(저장소) 경로
+        return str(_FE_REPO / self.rel) if self.rel else str(_FE_REPO)
+
+    def __str__(self) -> str:
+        return self.__fspath__()
+
+    def __repr__(self) -> str:
+        return f"field_eval({self.rel!r}: 라벨={_FE_REPO / self.rel} · 이미지={media('field_eval') / self.rel})"
+
+
+def field_eval(rel: str = "") -> "Path | _FieldEvalRouter":
+    """field_eval 상대경로 → 실제 위치. 이미지 확장자/이미지 디렉터리(frames·images·hints·montages·preview…)는
+    저장소 밖(VIGENT_DATA_DIR), 그 외 파일과 labels* 디렉터리는 저장소 data/field_eval. 미확정 디렉터리는 라우터."""
+    r = str(rel).replace("\\", "/").strip("/")
+    parts = [p for p in r.split("/") if p]
+    if parts and Path(parts[-1]).suffix.lower() in _FE_IMAGE_EXT:
+        return media("field_eval") / r
+    if parts and Path(parts[-1]).suffix:            # 이미지 아닌 파일(txt/json/md/csv …) — 이미지 폴더 안이라도 저장소
+        return _FE_REPO / r
+    if any(p in _FE_IMAGE_DIRS for p in parts):
+        return media("field_eval") / r
+    if any(p.startswith("labels") for p in parts):  # labels · labels_draft · labels_backup_* (preview 는 위에서 이미지)
+        return _FE_REPO / r
+    return _FieldEvalRouter(r)
+
+
 def require(rel: str) -> Path:
     """존재하는 미디어 경로를 반환. 없으면 안내 메시지와 함께 FileNotFoundError."""
     p = media(rel)

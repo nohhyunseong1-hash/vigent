@@ -370,7 +370,7 @@
 - **M6-3·M6-10** ✅ `e7f7542`: `POST /recognition/pin`·`/unpin`(증거·인식 로그 아래만, 탈출 거부) + **자동 보존 규칙**: 발송(sent)된 critical/high 경보의 증거 JPEG·그날 `events_YYYYMMDD.jsonl` 을 사유 `alert:<id>` 로 pin(tuning `retention.auto_pin_sent_alerts`, 기본 true; 인식 로그도 pin 그룹 편입). 규모 62줄(≤100) → 같은 커밋. 테스트 5. UI 버튼은 모듈 8.
 - **OpenAPI** ✅ `a34edc4`: 기준선 재생성 — 추가 2경로 + `/alerts/test` 설명 1줄. 108 → 110.
 - **M6-4·M6-5** ✅ `54b0a27`: `alert_queue.prune(days=30)` — sent/dead 만(pending 불변), `config_error` 최신 1건 유지 · `retention.prune_rotated_logs(keep=50)` — `logs/vigent.{err,out}-*` 최신순 유지, logs/ 바로 아래만. 둘 다 `sweep()` 에 합류(dry_run·첫 주기 보류 그대로, status.json `alert_queue`·`logs` 항목). 테스트 5.
-- **M6-6**: ★대표 지시문이 "[확인: field_eval 530장을 평가용으로 계속 사용 → 보존 그룹 A + 보호 폴더 편입 / 사" 에서 **끊겨 있어** 결정을 적용하지 못했다 — 재확인 요청(편입 시: `retention.GROUP_DIRS["field_eval"]`·`privacy._protected_dirs` 추가 + 일수 결정).
+- **M6-6** ✅ `281fd81` + 정정 커밋: 대표 결정 = 이동 + 그룹 E(365일) + 보호 폴더. jpg 530장 → `VIGENT_DATA_DIR/field_eval`, 보존 그룹 `field_eval`(저장소 밖 그룹은 절대경로 표기), privacy 보호 폴더. **정정(대표 지시)**: git 추적 정답 라벨 116파일(txt·json·md)은 저장소 `data/field_eval` 로 복원·추적 유지(PII 아님, 평가 정답지로 버전 관리) — 사설 폴더는 jpg 만. 스크립트는 `data_paths.field_eval(rel)` 라우터(이미지 확장자·이미지 디렉터리 → 사설, 그 외 파일·labels* → 저장소) 로 25파일 92참조 통일, 컴파일·실경로 검증(frames 109·labels 110·pilot20 images 20/labels 21).
 - **M6-7·8·9** 문서만(M6-9 ↔ M4-5 상호 참조 기재). **R17** 증거 30일 잠정값 → FINAL_SUMMARY 결정 필요 항목.
 ## 7. 모듈 7 — 설정·경로·기동 (보고 2026-09-06, 수정 대기)
 
