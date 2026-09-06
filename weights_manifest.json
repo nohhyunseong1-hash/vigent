@@ -165,6 +165,22 @@
    "required": true,
    "verified_at": "2026-09-06",
    "note": "sha256·크기는 개발 PC 실사용 캐시 기준(위와 동일)."
+  },
+  {
+   "file": "go2rtc.exe",
+   "slot": "_bin",
+   "backend": "go2rtc",
+   "purpose": "[5단계 마무리, 2026-09-06] 카메라 확대뷰 WebRTC 변환기(routers/cameras.ensure_go2rtc 가 bin/go2rtc.exe 를 띄운다). 없으면 스냅샷 폴백으로 동작하므로 required=false — 그러나 현장 오프라인 조달 목록(SITE_CHECKLIST N-5)에는 포함한다. 버전 고정 URL + 압축 해제본 sha256 검증.",
+   "version": "v1.9.14 (win64)",
+   "sha256": "923d57252e8139a69c52e4acc1e399a640244a8ef457fd9b7267a25847d68f8c",
+   "size_bytes": 19737088,
+   "url": "https://github.com/AlexxIT/go2rtc/releases/download/v1.9.14/go2rtc_win64.zip",
+   "archive_member": "go2rtc.exe",
+   "root_dest": "bin",
+   "license": "MIT (AlexxIT/go2rtc)",
+   "required": false,
+   "verified_at": "2026-09-06",
+   "note": "sha256·크기는 2026-09-06 GitHub 릴리스 v1.9.14 go2rtc_win64.zip(7,378,736B) 을 받아 압축 해제한 go2rtc.exe 기준. Windows x64 전용 — 다른 OS 는 같은 릴리스의 해당 자산을 수동 조달."
   }
  ],
  "release_tag": "weights-v1",

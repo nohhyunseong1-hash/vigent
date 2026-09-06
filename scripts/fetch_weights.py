@@ -131,7 +131,11 @@ def resolve_url(entry: dict[str, Any], man: dict[str, Any]) -> str:
 
 def target_path(entry: dict[str, Any]) -> Path:
     """항목의 로컬 경로 — `dest`(weights/ 아래 하위 디렉터리)가 있으면 그 밑. [CODE_REVIEW M7-2b] rtmlib 포즈 캐시는
-    `rtm_cache/hub/checkpoints/`(= TORCH_HOME/hub/checkpoints, install_service.ps1·run.ps1 이 TORCH_HOME 을 그리로 고정)."""
+    `rtm_cache/hub/checkpoints/`(= TORCH_HOME/hub/checkpoints, install_service.ps1·run.ps1 이 TORCH_HOME 을 그리로 고정).
+    [5단계 마무리, 2026-09-06] `root_dest`(저장소 루트 기준 디렉터리)가 있으면 weights/ 밖 — go2rtc.exe 같은 바이너리는 `bin/`."""
+    root_dest = str(entry.get("root_dest") or "").strip().strip("/\\")
+    if root_dest:
+        return _ROOT / root_dest / entry["file"]
     dest = str(entry.get("dest") or "").strip().strip("/\\")
     return (_WEIGHTS / dest / entry["file"]) if dest else (_WEIGHTS / entry["file"])
 
