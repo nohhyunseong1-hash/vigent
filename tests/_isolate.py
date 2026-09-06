@@ -58,17 +58,20 @@ def isolate_data_dirs():
     tmp = tempfile.TemporaryDirectory(prefix="vigent_test_data_")
     root = Path(tmp.name)
     saved_de = (data_engine._ROOT, data_engine._EVIDENCE, data_engine._RECOG, data_engine._PINNED)
+    saved_legacy = data_engine._PINNED_LEGACY
     saved_sc = (_scribe._ROOT, _scribe._SAVE_DIR, _scribe._EVIDENCE_DIR)
     data_engine._ROOT = root
     data_engine._EVIDENCE = root / "data" / "evidence"
     data_engine._RECOG = root / "data" / "recognition"
-    data_engine._PINNED = data_engine._EVIDENCE / "pinned.json"
+    data_engine._PINNED = root / "data" / "retention" / "pinned.json"     # [M6-1] evidence 폴더 밖
+    data_engine._PINNED_LEGACY = data_engine._EVIDENCE / "pinned.json"
     _scribe._ROOT = root
     _scribe._SAVE_DIR = root / "data" / "risk_assessments"
     _scribe._EVIDENCE_DIR = (root / "data" / "evidence").resolve()
 
     def _restore() -> None:
         (data_engine._ROOT, data_engine._EVIDENCE, data_engine._RECOG, data_engine._PINNED) = saved_de
+        data_engine._PINNED_LEGACY = saved_legacy
         (_scribe._ROOT, _scribe._SAVE_DIR, _scribe._EVIDENCE_DIR) = saved_sc
         tmp.cleanup()
 

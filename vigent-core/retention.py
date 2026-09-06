@@ -147,10 +147,20 @@ def is_dry_run() -> bool:
     return bool(_retention_config().get("dry_run", True))
 
 
-def _pinned_paths() -> set[str]:
+PIN_FILE_NAME = "pinned.json"   # [M6-1] 어디에 있든 pin 목록 파일 자체는 절대 삭제 후보가 아니다
+
+
+def _pinned_paths() -> set[Path]:
+    """pin 된 파일의 **resolve() 된 절대경로** 집합 — [M6-2] `\\`·`/`·상대/절대 표기와 무관하게 비교한다."""
     try:
         import data_engine
-        return data_engine.pinned_paths()
+        out: set[Path] = set()
+        for rel in data_engine.pinned_paths():
+            try:
+                out.add((_ROOT / rel).resolve())
+            except OSError:
+                continue
+        return out
     except Exception:  # noqa: BLE001  pin 조회 실패는 "전부 미pin"으로 취급(삭제를 막는 방향 아님 —
         return set()   # 대신 sweep() 자체가 dry_run 기본이라 실수로 지워지지 않는다)
 
@@ -169,6 +179,8 @@ def scan_group(name: str, days: int | None) -> dict[str, Any]:
     for fp in root.rglob("*"):
         if not fp.is_file():
             continue
+        if fp.name == PIN_FILE_NAME:
+            continue   # [M6-1] pin 목록 파일 자체(구 위치 잔재 포함)는 크기 집계·후보 모두에서 제외
         try:
             st = fp.stat()
         except OSError:
@@ -179,8 +191,11 @@ def scan_group(name: str, days: int | None) -> dict[str, Any]:
         oldest_age = max(oldest_age, age_days)
         if days is not None and age_days > days:
             rel = str(fp.relative_to(_ROOT))
-            if rel in pinned:
-                continue   # pin된 증거는 후보에서 제외 — 어떤 경로로도 삭제되지 않는다
+            try:
+                if fp.resolve() in pinned:
+                    continue   # pin된 증거는 후보에서 제외 — 어떤 경로로도 삭제되지 않는다([M6-2] resolve 비교)
+            except OSError:
+                pass
             info["candidates"].append({"path": rel, "age_days": round(age_days, 1),
                                         "bytes": st.st_size})
     info["oldest_age_days"] = round(oldest_age, 1) if info["file_count"] else None

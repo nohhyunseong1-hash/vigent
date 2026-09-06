@@ -24,8 +24,12 @@ KST = timezone(timedelta(hours=9))
 _ROOT = Path(__file__).resolve().parent.parent
 _EVIDENCE = _ROOT / "data" / "evidence"
 _RECOG = _ROOT / "data" / "recognition"
-_PINNED = _EVIDENCE / "pinned.json"   # [Z-2] pin된 증거 목록 — retention.py 스위퍼가 참조,
-                                        # 어떤 보존기간 삭제 경로로도 지워지지 않음(테스트로 보장)
+# [Z-2] pin된 증거 목록 — retention.py 스위퍼가 참조, 어떤 보존기간 삭제 경로로도 지워지지 않음(테스트로 보장).
+# ★[CODE_REVIEW M6-1, 2026-09-06] 위치를 **evidence 폴더 밖**(data/retention/)으로 옮겼다 — 안에 두면 스윕이
+#   목록 파일 자체를 30일 뒤 지워 모든 pin 이 풀렸다(시뮬 실측). 구 위치(data/evidence/pinned.json)는 첫 접근에서
+#   1회 병합·이동한다. 형식: {상대경로(posix): 사유} — 구 형식(list)은 사유 "manual" 로 읽는다.
+_PINNED = _ROOT / "data" / "retention" / "pinned.json"
+_PINNED_LEGACY = _EVIDENCE / "pinned.json"
 
 # 데이터엔진이 다루는 위험 이벤트(규칙) 화이트리스트
 HAZARD_RULES = {"zone_intrusion", "ppe_missing", "guard_bypass",
@@ -68,29 +72,63 @@ def _save_frame(image_data_url: str, ts: datetime, rule: str, level: str) -> str
     return str((folder / fname).relative_to(_ROOT))
 
 
+def norm_rel(rel_path: str) -> str:
+    """[M6-2] 상대경로 정규화 — `\\`·`/` 혼용을 posix 로 통일(Windows 증거 경로는 `data\\evidence\\...` 로 기록된다)."""
+    return Path(str(rel_path).replace("\\", "/")).as_posix()
+
+
+def _read_pins(path: Path) -> dict[str, str]:
+    """pin 파일 → {posix 상대경로: 사유}. 구 형식(list)은 사유 "manual"."""
+    try:
+        raw = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return {}
+    if isinstance(raw, list):
+        return {norm_rel(p): "manual" for p in raw if isinstance(p, str)}
+    if isinstance(raw, dict):
+        return {norm_rel(k): str(v) for k, v in raw.items() if isinstance(k, str)}
+    return {}
+
+
+def _write_pins(pins: dict[str, str]) -> None:
+    _PINNED.parent.mkdir(parents=True, exist_ok=True)
+    _PINNED.write_text(json.dumps(dict(sorted(pins.items())), ensure_ascii=False, indent=2), encoding="utf-8")
+
+
+def pinned_map() -> dict[str, str]:
+    """{posix 상대경로: 사유}. 구 위치(data/evidence/pinned.json)가 남아 있으면 1회 병합 후 제거(마이그레이션)."""
+    pins = _read_pins(_PINNED)
+    if _PINNED_LEGACY.exists():
+        legacy = _read_pins(_PINNED_LEGACY)
+        if legacy:
+            pins = {**legacy, **pins}
+        try:
+            _write_pins(pins)
+            _PINNED_LEGACY.unlink()
+            _elog().info("pin 목록을 %s → %s 로 이동(마이그레이션 %d건)", _PINNED_LEGACY, _PINNED, len(legacy))
+        except OSError as ex:
+            _elog().warning("pin 목록 마이그레이션 실패(다음 접근에서 재시도): %s", ex)
+    return pins
+
+
 def pinned_paths() -> set[str]:
-    """pin된 증거 상대경로 집합(프로젝트 루트 기준). 읽기 실패는 빈 집합(삭제를 막는 방향이
+    """pin된 증거 상대경로 집합(posix, 프로젝트 루트 기준). 읽기 실패는 빈 집합(삭제를 막는 방향이
     아니게 안전하게 실패 — 단 이 함수를 부르는 retention.sweep()은 dry_run 기본이라 실수로
     지워지지 않는다)."""
-    try:
-        return set(json.loads(_PINNED.read_text(encoding="utf-8")))
-    except (OSError, json.JSONDecodeError):
-        return set()
+    return set(pinned_map().keys())
 
 
-def pin_evidence(rel_path: str) -> None:
-    """증거 파일(data/evidence/... 상대경로)을 보존 정책 삭제 대상에서 제외한다."""
-    paths = pinned_paths()
-    paths.add(rel_path)
-    _EVIDENCE.mkdir(parents=True, exist_ok=True)
-    _PINNED.write_text(json.dumps(sorted(paths), ensure_ascii=False, indent=2), encoding="utf-8")
+def pin_evidence(rel_path: str, reason: str = "manual") -> None:
+    """증거 파일(data/evidence/... 상대경로)을 보존 정책 삭제 대상에서 제외한다. 사유 예: manual · alert:<id>."""
+    pins = pinned_map()
+    pins[norm_rel(rel_path)] = str(reason or "manual")
+    _write_pins(pins)
 
 
 def unpin_evidence(rel_path: str) -> None:
-    paths = pinned_paths()
-    paths.discard(rel_path)
-    _EVIDENCE.mkdir(parents=True, exist_ok=True)
-    _PINNED.write_text(json.dumps(sorted(paths), ensure_ascii=False, indent=2), encoding="utf-8")
+    pins = pinned_map()
+    pins.pop(norm_rel(rel_path), None)
+    _write_pins(pins)
 
 
 def log_event(rule: str, level: str = "", score: float = 0.0,
