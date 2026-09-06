@@ -276,7 +276,47 @@
 - **치명 항목으로 등록(모듈 4에서 수정)**: ① 원격 채널이 하나도 설정되지 않은 등급은 큐에 넣지 않거나 즉시 종결(재시도 무의미) ② 재시도 상한·데드레터 도달 시 **운영자에게 알릴 수단이 없음**(데드레터 = 조용한 유실; 로그 ERROR 1줄뿐) ③ 401(토큰 무효) 같은 **설정 오류는 재시도 대상이 아니라 즉시 설정 경고**여야 함 ④ ★**테스트 스위트가 운영 DB(`data/alert_queue.db`)에 행을 쓴다** — `_process_frame` 통합 테스트가 실제 `alert_notify.submit`→dispatcher 경로를 탄다(#81·#82). notify.yaml 이 설정된 PC에서 테스트를 돌리면 **"[TESTCAM] 화재/연기 감지"가 실제 텔레그램으로 나간다**. 테스트에서 `alert_notify` sender·DB 경로를 강제 격리해야 함.
 - ✅ **15건 처리(대표 결정 2026-09-06)**: 전부 시험·테스트 행으로 확인 → `status=dead`, `last_error="audit 2026-09-06: 시험/테스트 행 폐기"`(삭제 아님, attempts 보존). 처리 후 집계 dead 50 · sent 37 · pending **0**. ④(테스트 격리)는 모듈 4를 기다리지 않고 즉시 수정(R14). 격리 전 1회 스위트 실행이 남긴 `data/evidence/20260906/ev_20260906_043204_zone_intrusion_high.jpg` · `data/risk_assessments/ra_20260906_043206.{html,json}`(테스트 산출, 검은 프레임·더미 평가서)은 **대표 판단으로 삭제**(자동 삭제 안 함).
 - ①②③은 모듈 4 치명 그대로.
-## 5. 모듈 5 — 카메라 입력·go2rtc (대기)
+## 5. 모듈 5 — 카메라 입력·go2rtc 연동 (보고 2026-09-06, 수정 대기)
+
+**읽은 파일(전체)**: `worker.py`(캡처 스레드 `_StreamCapture`·`_setup_run`·`_loop`·hang 감시·감독자·`WorkerManager`) · `routers/cameras.py` · `camera_registry.py` · `routers/tapo.py` · `config/go2rtc.yaml` · `starvation_guard.py`(슬롯 회수) · `main.py` startup/shutdown. 실측: `cv2 5.0.0`(백엔드 FFMPEG·MSMF·DSHOW·GSTREAMER 가용), env 확인.
+
+### 5-1. RTSP 끊김 → 재연결 흐름(한 줄씩)
+
+**thread 모드**(`VIGENT_CAPTURE_MODE=thread`, 서비스 기본 — `install_service.ps1`이 주입; 개발 `run.ps1`은 미설정 → **sync**):
+1. `_StreamCapture._open()` → `cv2.VideoCapture(src)`(FFmpeg, `OPENCV_FFMPEG_CAPTURE_OPTIONS`=tcp) — 연결 실패해도 객체는 생성됨(`isOpened` 미검사)
+2. `_run()` 루프: `grab()` 실패 → `read_fails += 1`, `dropped += 1`, 0.05s 대기
+3. 연속 5회(`_READ_FAIL_MAX`) → `reconnects += 1`, `cap.release()`, 백오프 1→2→4→**5s 상한**(`_RECONNECT_MAX`, B3) 대기 → `_open()` 재호출, `generation += 1`
+4. 성공 프레임: `grab` 드레인(≤60, 20ms 규칙) → `retrieve()` → 슬롯 `_frame/_ts` 갱신, 백오프 리셋
+5. `_loop`: `read_latest()` → None 이면 캡처 스레드 생존 확인(죽었으면 break → 감독자 재시작), 있으면 하트비트 `last_frame_ts=슬롯 시각`
+6. `_hang_watch`(1s 주기, 기동 유예 90s): `last_frame_ts` 15s 무진전 → `_restart_req` → `_loop` 종료 → `streamcap.stop()`(join **3s**) → 감독자가 새 `_loop`·새 `_StreamCapture` (hang 은 즉시, crash 는 백오프 ≤30s)
+7. 그래도 검출이 멈추면(`stale_detect`) `starvation_guard`: 60s → go2rtc 스트림 삭제(슬롯 회수) → 120s → 워커 재시작 → 3회 → `VIGENT_RESTART_CMD`
+
+**sync 모드**: `_loop` 안에서 `cap.read()` 직접 → 실패 5회 → release·백오프·`VideoCapture` 재생성(같은 규칙). 파일 소스는 끝나면 되감기.
+
+### 5-2. 프레임 None·손상 처리 / Windows 백엔드 / N대 구조
+
+- **None**: `retrieve()`·`read()` 실패는 `(False, None)` → 재연결 카운트. `_loop`에 `frame is None` 방어(`:1236`), `_process_frame`은 shape 를 그대로 신뢰(None 도달 불가). 손상 프레임(부분 디코드 아티팩트)은 정상 배열로 들어와 **별도 판별 없음** — 검출기가 그대로 본다(오검출 가능, 측정 안 됨).
+- **Windows 백엔드**: `cv2.VideoCapture(src)` 에 `apiPreference` **미지정**. RTSP/파일 문자열 → FFMPEG 자동 선택(정상). 웹캠 정수 인덱스 → Windows 기본 **MSMF**(느린 open·일부 장치 hang 사례) — `CAP_DSHOW` 지정 없음. 현장 주 입력은 RTSP 라 영향 낮음.
+- **N대 동시**: 카메라 1대 = `Worker` 1개 = 스레드 **4개**(감독자 `_run_supervised` · `_hang_watch` · `_pose_loop` · 캡처 `_StreamCapture`) + 프레임 참조 3개(`_last_frame`·캡처 슬롯·`_pose_input`). 추론은 `DETECT_LOCK`(RLock) 으로 **전 카메라 직렬화**(풀세트 ~85ms → 2fps 기준 약 5대에서 GPU 예산 포화, `capacity_probe` 계열 실측은 별도). `_PoseModel`·guard 는 싱글톤 공유(포즈는 N개 스레드가 같은 ONNX 세션을 동시에 호출 — ORT `run` 은 스레드 안전, 지연 로드 경합만 남음).
+
+### 5-3. 발견 사항
+
+| ID | 파일:줄 | 심각도 | 문제 | 근거 | 수정안 |
+|---|---|---|---|---|---|
+| M5-1 | `worker.py:64` vs `:613-614` | **중간** | 저지연 FFmpeg 옵션(`fflags;nobuffer\|flags;low_delay`, T-E2E 잔여지연 조치)이 **죽은 코드**. 모듈 import 시 `:64` 가 `OPENCV_FFMPEG_CAPTURE_OPTIONS` 를 먼저 `setdefault` 하므로 `_open()` 의 두 번째 `setdefault` 는 절대 적용되지 않는다 | 실측: env 비운 뒤 `import worker` → `rtsp_transport;tcp\|max_delay;500000`, 이어서 `_open` 식 setdefault → **불변** | 모듈 상단 한 곳으로 통일(값은 저지연 포함으로 — 원 의도). ★영상 지연 특성이 바뀌므로(규칙 6) 실카메라 재측정이 필요한데 이 PC 에는 RTSP 카메라가 없다 → 대표 판단(코드만 고치고 5단계 현장 검증 항목으로) |
+| M5-2 | `worker.py:615·1146·1221` · `routers/cameras.py:192` | **중간** | RTSP **연결·읽기 타임아웃 미설정** — 죽은 IP 는 FFmpeg 기본 ~30s 를 블로킹한다(전체 스위트 로그에 `Stream timeout triggered after 30093ms` 실측). thread 모드에서 `_open()` 30s 블로킹 중 hang 감시가 재시작 → `streamcap.stop()` join 3s 초과 → **옛 캡처 스레드가 최대 30s 더 살아 새 캡처와 공존**(daemon 이라 종료는 되나 카메라 세션 2개 → 슬롯 한도 2 인 카메라에서 go2rtc 와 경합). `/cameras/{cid}/test` 는 요청 스레드가 30s 멈춤 | 코드 + 스위트 로그 | `OPENCV_FFMPEG_CAPTURE_OPTIONS` 에 `timeout;5000000`(µs, RTSP 소켓 타임아웃 — FFmpeg 버전에 따라 `stimeout`) 추가 → 5s 안에 실패. `/cameras/{cid}/test` 는 스레드+타임아웃으로 감싸 응답 보장. M5-1 과 같은 커밋·같은 검증 조건 |
+| M5-3 | `routers/cameras.py:246-292` · `main.py _shutdown` | **중간** | `ensure_go2rtc()` 가 `Popen` 핸들을 버린다 → 서버 종료 시 go2rtc 를 정리하지 않음. 이전 인스턴스가 1984 를 잡고 있으면 새 서버는 "이미 실행 중"으로 재사용하는데, 런타임 yaml 은 **매 기동 템플릿으로 덮어써도 옛 프로세스는 다시 읽지 않는다**(등록 스트림 잔존). 1984 를 못 잡은 인스턴스는 고아로 남는다 | C4 실측: 고아 `go2rtc.exe` 2개(부모 종료됨) 발견·정리 | Popen 핸들을 모듈 전역에 보관, `_shutdown` 에서 우리가 띄운 것만 `terminate()`; 기동 시 포트 점유자가 우리 것이 아니면 경고 로그 |
+| M5-4 | `worker.py:615` | 낮음 | `VideoCapture` 반환 직후 `isOpened()` 미검사 — 실패도 정상 경로로 들어가 5회 grab 실패(0.25s)+백오프를 거쳐서야 재연결. 로그에 "열기 실패" 대신 "스트림 끊김"으로 찍혀 원인 구분이 안 됨 | 코드 | `isOpened()` False 면 즉시 재연결 분기 + 로그 문구 구분("열기 실패(주소·자격증명·네트워크)") |
+| M5-5 | `routers/cameras.py:35·46` vs `starvation_guard.py:54` | 낮음 | go2rtc API 주소가 `localhost`(cameras) / `127.0.0.1`(starvation) 혼용 — Windows 에서 `localhost` 는 `::1` 우선 해석, go2rtc 는 `127.0.0.1:1984` 만 리슨 → 첫 시도 거부 후 폴백(지연·간헐 실패 가능) | `config/go2rtc.yaml:20` | `127.0.0.1` 로 통일(1줄×2) |
+| M5-6 | `run.ps1` vs `install_service.ps1` | 낮음(모듈 7) | 개발 실행은 `VIGENT_CAPTURE_MODE` 미설정 → **sync**, 서비스는 **thread** — 개발에서 못 보는 캡처 경로가 현장에서 돈다 | `run.ps1:3-10` · `install_service.ps1:126` | `run.ps1` 도 `thread` 기본(모듈 7 설정 통일에서) |
+| M5-7 | `worker.py:329-338` (`_PoseModel.persons`) | 낮음 | 카메라 N대의 포즈 스레드가 같은 싱글톤을 **동시에 지연 로드**할 수 있다(락 없음) → 첫 프레임에 RTMPose 를 2회 로드하거나 부분 초기화 import 경합(M1-4 동류, CPU/ONNX 라 VRAM 영향은 없음) | 코드 | 로드에 `threading.Lock` |
+| M5-8 | `routers/cameras.py:192-194` | 낮음 | 연결 테스트가 `apiPreference` 없이 `VideoCapture` → 웹캠 인덱스는 MSMF. `CAP_DSHOW` 를 쓰면 open 이 빠르고 hang 사례가 적다는 통설이 있으나 **이 PC 에서 미측정** | — | 정수 소스에 한해 `cv2.CAP_DSHOW` 지정(측정 후) — 5단계 |
+| M5-9 | `worker.py` 전체 | 정보 | 손상 프레임(부분 디코드) 판별 없음. RTSP TCP 강제(:64)로 손실은 줄였고, 검출기가 아티팩트를 어떻게 보는지는 측정 없음 | — | 현 상태 유지(측정 항목으로 기록) |
+
+### 5-4. 수정 계획(승인 대기)
+- **중간 M5-1·M5-2**(한 커밋): FFmpeg 옵션 단일화(저지연 + RTSP 타임아웃 5s) + `isOpened` 검사(M5-4) + `/cameras/{cid}/test` 타임아웃. 선행 테스트: env 결과값·`_open` 실패 분기(모킹). ★실카메라 재측정은 이 PC 에서 불가 → **5단계 현장 검증 항목**으로 등록하고 코드만 반영할지 대표 판단.
+- **중간 M5-3**: go2rtc 핸들 보관·종료 시 정리 — 선행 테스트(모킹 Popen: 우리가 띄운 것만 terminate).
+- **낮음 M5-5·M5-7**: 1줄 통일·로드 락 — 로직 커밋에 포함. **M5-6** → 모듈 7. **M5-8·9** 문서만.
 ## 6. 모듈 6 — 보존 스윕 (대기)
 ## 7. 모듈 7 — 설정·경로·기동 (대기)
 ## 8. 모듈 8 — 프론트 realtime_core.js 감시 화면 (대기)
