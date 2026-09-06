@@ -1,7 +1,7 @@
 # VIGENT 저장소 감사·정리 최종 요약 (2026-09-06)
 
 > 브랜치 `audit/cleanup-20260906` · 시작 태그 `audit-before-cleanup`(= `e1ba0ab`) · 이 문서 최종 갱신 시점 HEAD `3685186`(5-2 통과·stage↔ID 정합) + 이 문서 커밋.
-> **main 병합·태그(v-audit-2026-09)·푸시는 대표 결정 사항**이며 아직 하지 않았다. 브랜치는 원격에 푸시되지 않았다(로컬만). **main 과의 관계(2026-09-06 실측)**: `git merge-base main HEAD` = `021ca7c` = 현재 main 선단(behind 0) → **fast-forward 가능, 충돌 0**(`git merge-tree --write-tree main HEAD` 정상 종료). 단, 감사 시작 태그 `e1ba0ab` 는 main 에 없고 `fix/review-bugs` 선단이므로 **병합 시 감사 커밋 67개 외에 `fix/review-bugs` 의 감사 전 커밋 314개(021ca7c..e1ba0ab)도 함께 main 에 들어간다**(합계 381).
+> **main 병합·태그(v-audit-2026-09)·푸시는 대표 결정 사항**이며 아직 하지 않았다. 브랜치는 원격에 푸시되지 않았다(로컬만). **main 과의 관계(2026-09-06 실측)**: `git merge-base main HEAD` = `021ca7c` = 현재 main 선단(behind 0) → **fast-forward 가능, 충돌 0**(`git merge-tree --write-tree main HEAD` 정상 종료). 단, 감사 시작 태그 `e1ba0ab` 는 main 에 없고 `fix/review-bugs` 선단이므로 **병합 시 감사 커밋 68개(이 문서 커밋 포함) 외에 `fix/review-bugs` 의 감사 전 커밋 314개(021ca7c..e1ba0ab)도 함께 main 에 들어간다**(합계 382).
 > 상세 근거: [AUDIT_REPORT.md](../AUDIT_REPORT.md)(1단계) · [CLEANUP_PLAN.md](../CLEANUP_PLAN.md)(2단계) · [CODE_REVIEW.md](../CODE_REVIEW.md)(4단계 모듈 1~8) · [audit/](../audit/)(실측 기록).
 
 ## 1. 한 문단 요약
@@ -138,7 +138,7 @@ D:\vigent_private_data\   저장소 밖 미디어(VIGENT_DATA_DIR): runs/·bench
 
 ## 10. 되돌리기
 
-- **감사 전 상태로**: 태그 `audit-before-cleanup`(= `e1ba0ab`). `git checkout audit-before-cleanup` 또는 새 브랜치 `git switch -c rollback audit-before-cleanup`. main 은 건드리지 않았으므로 main 자체가 감사 전 상태다.
+- **감사 전 상태로**: 태그 `audit-before-cleanup`(= `e1ba0ab`). `git checkout audit-before-cleanup` 또는 새 브랜치 `git switch -c rollback audit-before-cleanup`. main(`021ca7c`)은 건드리지 않았지만 **감사 전 상태(`e1ba0ab`)보다 314 커밋 앞선 시점**이라 "main = 감사 직전"은 아니다 — 되돌릴 기준점은 태그다.
 - **특정 커밋만 되돌리기**: 한 모듈 = 한 커밋 원칙이라 `git revert <해시>` 로 항목 단위 복원이 된다(해시는 CODE_REVIEW.md 각 모듈 "진행 현황" 표).
 - **사설 미디어**: `D:\vigent_private_data\`(runs/·benchmarks/results/·field_eval/) — 저장소 상대경로를 그대로 유지하므로 되돌릴 때는 같은 위치로 복사만 하면 된다(`VIGENT_DATA_DIR` 로 위치 변경 가능). 정답 라벨(txt/json/md)은 저장소 `data/field_eval` 이 정본.
 - **서비스 설정**: 감사 전 NSSM 설정 백업 `audit/vigent_service_backup_2026-09-06.{reg,txt,_nssm_dump.txt}`. 현재 서비스는 Stopped/Disabled.
