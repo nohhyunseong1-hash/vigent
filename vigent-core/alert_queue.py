@@ -237,6 +237,29 @@ def pending_count() -> int:
     return counts().get(PENDING, 0)
 
 
+def prune(days: int = 30, execute: bool = True) -> dict[str, Any]:
+    """[CODE_REVIEW M6-4] sent/dead 행을 days 지나면 지운다(pending 은 절대 안 지움). 예전엔 삭제 경로가 없어 영구 누적.
+    last_error 가 config_error 인 **최신 1건**은 진단 근거로 남긴다. execute=False 면 후보만 센다."""
+    db = _db()
+    cutoff = time.time() - float(days) * 86400.0
+    with _lock:
+        keep_row = db.execute(
+            "SELECT id FROM alerts WHERE status=? AND last_error LIKE 'config_error%' ORDER BY id DESC LIMIT 1",
+            (DEAD,)).fetchone()
+        keep_id = int(keep_row[0]) if keep_row else -1
+        cands = db.execute(
+            "SELECT COUNT(*) FROM alerts WHERE status IN (?, ?) AND created_at < ? AND id != ?",
+            (SENT, DEAD, cutoff, keep_id)).fetchone()[0]
+        deleted = 0
+        if execute and cands:
+            deleted = db.execute(
+                "DELETE FROM alerts WHERE status IN (?, ?) AND created_at < ? AND id != ?",
+                (SENT, DEAD, cutoff, keep_id)).rowcount
+            db.commit()
+    return {"days": int(days), "candidates": int(cands), "deleted": int(deleted),
+            "kept_config_error": keep_id if keep_id >= 0 else None}
+
+
 def dead_count() -> int:
     return counts().get(DEAD, 0)
 
