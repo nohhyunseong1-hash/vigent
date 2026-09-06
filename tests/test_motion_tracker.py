@@ -52,13 +52,29 @@ class RapidMotion(unittest.TestCase):
         self.assertNotIn("rapid_motion", _rules(out),
                          "다른 tid 를 같은 사람으로 이어붙여 급격동작을 오발화했다")
 
-    def test_tid_jump_beyond_match_is_new_track(self):
-        """★ByteTrack ID 재부여 방어(실측 multi_scene): 같은 tid 가 한 표본에 0.5 점프하면 '다른 사람'이다."""
+    def test_tid_jump_beyond_limit_is_new_track(self):
+        """★ByteTrack ID 재부여 방어(육안검증 multi_scene 19.0·19.5s): 같은 tid 가 한 표본에 0.3 점프하면 '다른 사람'."""
+        self.assertEqual(self.mt.TID_JUMP_MAX, 0.25)
         self.mt.update([_p(0.20, tid=1)], 0.0)
         self.mt.update([_p(0.20, tid=1)], 0.5)
-        out = self.mt.update([_p(0.70, tid=1)], 1.0)       # 0.50 ≥ MATCH(0.32) → 새 트랙
+        out = self.mt.update([_p(0.50, tid=1)], 1.0)       # 0.30 ≥ 0.25 → 새 트랙(재부여로 판단)
         self.assertNotIn("rapid_motion", _rules(out),
                          "tid 점프(ID 재부여)를 실제 이동으로 보고 급격동작을 오발화했다")
+
+    def test_tid_jump_gate_uses_scaled_distance(self):
+        """게이트 거리도 y×(h/w) 보정 — 세로형(h/w=1.78)에서 y 0.16 점프는 0.28 로 재부여다."""
+        self.mt.update([_p(0.5, 0.30, tid=1)], 0.0, aspect_hw=1.78)
+        self.mt.update([_p(0.5, 0.30, tid=1)], 0.5, aspect_hw=1.78)
+        out = self.mt.update([_p(0.5, 0.46, tid=1)], 1.0, aspect_hw=1.78)
+        self.assertNotIn("rapid_motion", _rules(out))
+
+    def test_window_tolerates_15fps_cadence(self):
+        """15fps 를 2fps 표본화하면 간격 0.533s → 두 표본 1.067s. 창(1.0s)에 여유가 없으면 실제 횡단을 놓친다
+        (육안검증: single_fast 5.85s·occlusion 10.13s 실제 이동을 신 동작이 놓쳤다)."""
+        self.mt.update([_p(0.20, tid=1)], 0.000)
+        self.mt.update([_p(0.32, tid=1)], 0.533)
+        out = self.mt.update([_p(0.44, tid=1)], 1.067)     # 총 0.24 > 0.15, 창 1.067 ≤ 1.0+0.1
+        self.assertIn("rapid_motion", _rules(out))
 
     def test_centroid_fallback_without_tid(self):
         """tid 가 없으면(추적 미확정·passthrough) 기존 중심점 매칭으로 동작한다."""

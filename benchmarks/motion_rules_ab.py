@@ -41,7 +41,7 @@ def _dets(frame: dict[str, Any], keep_tid: bool) -> list[dict[str, Any]]:
             continue
         x, y, bw, bh = d["box"]
         det = {"label": "person", "conf": d["score"], "bbox": [x / w, y / h, (x + bw) / w, (y + bh) / h]}
-        if keep_tid:
+        if keep_tid and d["tid"] >= 0:            # 캐시의 -1(미확정)은 운영에선 tid 없음(None)과 같다
             det["tid"] = d["tid"]
         out.append(det)
     return out
@@ -87,6 +87,8 @@ def run_one(name: str) -> dict[str, Any]:
                            "aspect_hw": round(aspect, 4)}
     for mode in ("legacy", "fixed"):
         mt = W.MotionTracker()
+        if mode == "legacy":
+            mt.RAPID_T_SLACK = 0.0                # 구 동작 재현: 창 여유 없음(tid 는 이미 지움 → 중심점 매칭)
         raw = {"rapid_motion": [], "immobility": []}
         last = {"rapid_motion": -1e9, "immobility": -1e9}
         events = {"rapid_motion": [], "immobility": []}
@@ -102,7 +104,7 @@ def run_one(name: str) -> dict[str, Any]:
                     events[r].append(round(ts, 2))
             if any(r == "rapid_motion" for r, *_ in fired):
                 for tr in mt._tracks:                       # 발화 트랙 특정(측정 전용 내부 접근)
-                    rec = [x for x in tr["hist"] if 0 <= ts - x[0] <= mt.RAPID_T]
+                    rec = [x for x in tr["hist"] if 0 <= ts - x[0] <= mt.RAPID_T + mt.RAPID_T_SLACK]
                     if len(rec) >= 2:
                         dx, dy = rec[-1][1] - rec[0][1], (rec[-1][2] - rec[0][2]) * ar
                         dist = (dx * dx + dy * dy) ** 0.5

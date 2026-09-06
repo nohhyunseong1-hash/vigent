@@ -468,6 +468,14 @@ class MotionTracker:
     IMMOBILE_SPREAD = 0.03  # 이동 범위(정규화) 이하면 정지로 간주
     RAPID_DIST = float(tuning.val("motion", "rapid_dist", 0.15))   # 급이동 거리(설정)
     RAPID_T = 1.0
+    # [M2-2 육안검증 2026-09-06] 창 여유. 15fps 카메라를 2fps 로 표본화하면 간격이 0.533s 라 두 표본이
+    #   1.067s 로 1.0s 창을 넘어, 실제로 가로질러 걸어간 사람(single_fast 5.85s·occlusion 10.13s)을
+    #   놓쳤다(구 동작은 파편 연결로 우연히 잡음). 워커 루프 지터도 같은 결함을 만든다.
+    RAPID_T_SLACK = 0.1
+    # [M2-2 육안검증] 같은 tid 가 한 표본(0.5s)에 이만큼(보정 거리, x 척도) 이상 점프하면 ByteTrack ID
+    #   재부여로 본다. 배경 작업자 간 재부여가 0.36~0.5/표본으로 관측됐고, 사람의 실제 급이동은
+    #   0.15~0.3/초(=0.075~0.15/표본)라 0.25 는 그 사이에 있다(MATCH=0.32 는 못 걸렀다 — 실측).
+    TID_JUMP_MAX = 0.25
     HIST_S = 60.0
 
     def __init__(self) -> None:
@@ -500,14 +508,16 @@ class MotionTracker:
                     if k not in used and tr.get("tid") == tid:
                         best = k
                         break
-                # ★타당성 게이트(실측 2026-09-06 multi_scene): ByteTrack 이 먼 사람에게 같은 tid 를
-                #   재부여하면(ID 점프, 한 표본에 0.45~0.64 이동) tid 만 믿을 때 급격동작이 오발화한다.
-                #   구 동작과 같은 한계(MATCH)를 넘는 점프는 "다른 사람" 으로 보고 새 트랙을 연다
-                #   (옛 트랙은 tid 를 떼어 만료되게 둔다). 사람의 실제 급이동(0.15~0.32)은 그대로 잡힌다.
+                # ★타당성 게이트(실측·육안검증 2026-09-06 multi_scene 19.0·19.5s): ByteTrack 이 다른 배경
+                #   작업자에게 같은 tid 를 재부여하면 tid 만 믿을 때 급격동작이 오발화한다. 한 표본의 보정
+                #   거리(y×h/w, 급격동작과 같은 척도)가 TID_JUMP_MAX 이상이면 "다른 사람" 으로 보고 새 트랙을
+                #   연다(옛 트랙은 tid 를 떼어 만료되게 둔다). 사람의 실제 급이동(≤0.15/표본)은 그대로 잡힌다.
                 if best is not None:
                     tr0 = self._tracks[best]
-                    if ((cx - tr0["cx"]) ** 2 + (cy - tr0["cy"]) ** 2) ** 0.5 >= self.MATCH:
+                    jump = ((cx - tr0["cx"]) ** 2 + ((cy - tr0["cy"]) * ar) ** 2) ** 0.5
+                    if jump >= self.TID_JUMP_MAX:
                         tr0["tid"] = None
+                        tr0["hist"] = []          # ★옛 이력을 비운다 — 남겨두면 분리 뒤에도 옛 표본으로 1초간 재발화(실측)
                         best = None
             else:                                                 # ② 폴백: tid 없는 트랙끼리 중심점
                 bd = 1e9
@@ -533,7 +543,7 @@ class MotionTracker:
         out: dict[str, tuple[str, str, str]] = {}
         for tr in self._tracks:
             h = tr["hist"]
-            rec = [x for x in h if 0 <= ts - x[0] <= self.RAPID_T]
+            rec = [x for x in h if 0 <= ts - x[0] <= self.RAPID_T + self.RAPID_T_SLACK]
             if len(rec) >= 2:
                 dx, dy = rec[-1][1] - rec[0][1], (rec[-1][2] - rec[0][2]) * ar   # [M2-3] y→x 척도
                 if (dx * dx + dy * dy) ** 0.5 > self.RAPID_DIST:
