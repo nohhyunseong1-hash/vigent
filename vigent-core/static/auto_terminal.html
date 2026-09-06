@@ -72,6 +72,8 @@
     var rows=events.map(function(e){
       var lv=e.level||'medium'; if(c[lv]!=null)c[lv]++;
       var ev=e.evidence_url?('<a class="ev" href="'+esc(e.evidence_url)+'" target="_blank">보기</a>'):'<span class="vt-dim">—</span>';
+      // [CODE_REVIEW M8-8·M6-3] 📌 보존/해제 — 증거를 보존 정책(자동 삭제)에서 제외. /recognition/pin|unpin
+      if(e.evidence) ev+=' <button class="vt-pin" data-path="'+esc(e.evidence)+'" data-act="'+(e.pinned?'unpin':'pin')+'" title="'+(e.pinned?'보존 해제':'보존(자동 삭제 제외)')+'" style="background:none;border:1px solid var(--vt-dim);color:inherit;cursor:pointer;font:inherit;padding:0 4px">'+(e.pinned?'📌해제':'📌보존')+'</button>';
       var ap=e.approved?'<span class="vt-ok">승인</span>':'<span class="vt-dim">대기</span>';
       return '<tr><td class="vt-num" style="white-space:nowrap">'+esc(e.date||'')+' '+esc(e.time||'')+'</td>'
         +'<td>'+tag(lv)+'</td>'
@@ -85,12 +87,22 @@
     $('c_crit').textContent=c.critical; $('c_high').textContent=c.high;
     $('c_med').textContent=c.medium; $('c_total').textContent=events.length;
   }
-  fetch('/safety/auto/feed?hours=168').then(function(r){return r.json();}).then(function(j){
-    var ev=(j&&j.events)||[]; render(ev.slice(0,100));
-  }).catch(function(){
-    $('src').textContent='연결 실패'; $('src').className='vt-warn';
-    $('rows').innerHTML='<tr><td colspan="8" class="vt-warn" style="padding:16px 10px">피드를 불러오지 못했습니다(서버 확인).</td></tr>';
+  function loadFeed(){
+    fetch('/safety/auto/feed?hours=168').then(function(r){return r.json();}).then(function(j){
+      var ev=(j&&j.events)||[]; render(ev.slice(0,100));
+    }).catch(function(){
+      $('src').textContent='연결 실패'; $('src').className='vt-warn';
+      $('rows').innerHTML='<tr><td colspan="8" class="vt-warn" style="padding:16px 10px">피드를 불러오지 못했습니다(서버 확인).</td></tr>';
+    });
+  }
+  $('rows').addEventListener('click', function(ev){            // [M8-8] 📌 보존/해제
+    var b=ev.target.closest('button.vt-pin'); if(!b) return;
+    fetch('/recognition/'+b.dataset.act,{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({path:b.dataset.path, reason:'console'})})
+      .then(function(r){return r.json();}).then(function(j){ if(j&&j.ok) loadFeed(); else alert('실패: '+(j&&j.detail||'')); })
+      .catch(function(e){ alert('오류: '+e); });
   });
+  loadFeed();
 })();
 </script>
 </body>

@@ -234,9 +234,11 @@ def safety_auto_feed(theme: str = DEFAULT_THEME, hours: float = 24, limit: int =
     copilot = bundle["agents"].get("Copilot")
     events = data_engine.list_events(limit=limit, hours=hours)
     audit_map = audit_store.by_event()
+    pins = data_engine.pinned_map()                    # [M8-8] 콘솔 📌 버튼 상태(증거 상대경로 → 사유)
     out, approved_n = [], 0
     for e in events:
         rule = e.get("rule", "")
+        ev_rel = data_engine.norm_rel(str(e.get("evidence") or "")) if e.get("evidence") else None
         law = ""
         if copilot and rule:
             cs = copilot.cite(rule).get("citations", []) or []
@@ -249,6 +251,8 @@ def safety_auto_feed(theme: str = DEFAULT_THEME, hours: float = 24, limit: int =
             "ts": e.get("ts"), "time": e.get("time"), "date": e.get("date"),
             "rule": rule, "level": e.get("level", ""), "site": e.get("site", ""),
             "evidence_url": evidence_url(e.get("evidence")),
+            "evidence": ev_rel,                        # [M8-8] pin/unpin 요청용 상대경로(data/evidence/...)
+            "pinned": bool(ev_rel and ev_rel in pins), # [M8-8] 보존 제외 상태
             "law": law,
             "advisory": _ADVISORY.get(rule, "안전관리자 확인 후 현장 상황에 맞는 조치"),
             "approved": bool(appr),
