@@ -395,6 +395,12 @@ def _notify_startup_failure(exc: BaseException) -> None:
     st["count"] = int(st.get("count", 0)) + 1
     st["last_failure_ts"] = now
     st["last_error"] = _strip_paths(f"{type(exc).__name__}: {exc}", 300)
+    # [5단계 5-2 4차 정정] stage↔이벤트 ID 대응: 여기(_startup 단계)는 stage="startup"·ID 1000, 런처(import 단계)는
+    #   stage="import"·ID 1001. 이전엔 stage 를 안 써서 런처가 남긴 stage="import"·last_stderr 가 그대로 남아
+    #   "stage=import 인데 ID 1000" 으로 읽혔다(4차 검증 실측). 런처 전용 필드(last_stderr)는 지운다.
+    st["stage"] = "startup"
+    st["event_id"] = 1000
+    st.pop("last_stderr", None)
     msg = (f"[VIGENT] 서버 기동 실패 {st['count']}회 — {st['last_error']} · /health 응답 없음. "
            f"서비스가 재시작을 반복할 수 있다(로그·가중치·RF_HOME 확인)")
     _log.error("★기동 실패(누적 %d회): %s", st["count"], st["last_error"])

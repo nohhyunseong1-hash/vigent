@@ -65,6 +65,7 @@ def record_failure(stage: str, error: str, stderr_tail: str = "", *, state_path:
     st["count"] = int(st.get("count", 0)) + 1
     st["last_failure_ts"] = time.time()
     st["stage"] = stage
+    st["event_id"] = EVENT_ID_IMPORT_FAIL          # stage↔ID 대응: import=1001(런처) · startup=1000(main._startup)
     st["last_error"] = error[:300]
     if stderr_tail:
         st["last_stderr"] = stderr_tail[-800:]

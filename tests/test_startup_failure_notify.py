@@ -59,6 +59,17 @@ class StartupFailureNotify(unittest.TestCase):
         main._notify_startup_failure(RuntimeError("boom"))
         self.assertEqual(len(self.sent), 2)
 
+    def test_stage_and_event_id_match_startup_layer(self):
+        """[5단계 5-2 4차 실측] 런처가 남긴 stage=import·last_stderr 위에 _startup 실패가 얹히면 stage 가 import 로
+        남아 "stage=import 인데 ID 1000" 으로 읽혔다. 계약: 이 경로는 stage="startup"·event_id=1000, 런처 전용 필드는 제거."""
+        self.state.write_text(json.dumps({"count": 1, "last_notify_ts": 0.0, "stage": "import", "event_id": 1001,
+                                          "last_stderr": "[VIGENT 보안 오류] ...", "event_log_ok": True}), encoding="utf-8")
+        main._notify_startup_failure(FileNotFoundError("[기동거부] rf-detr-nano.pth 없음"))
+        st = json.loads(self.state.read_text(encoding="utf-8"))
+        self.assertEqual((st["count"], st["stage"], st["event_id"]), (2, "startup", 1000))
+        self.assertNotIn("last_stderr", st, "런처 전용 필드가 남으면 원인을 잘못 읽는다")
+        self.assertIn("FileNotFoundError", st["last_error"])
+
     def test_startup_reraises_after_notifying(self):
         with mock.patch.object(main, "_load_theme", side_effect=FileNotFoundError("weights")):
             with self.assertRaises(FileNotFoundError):

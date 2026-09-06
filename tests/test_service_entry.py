@@ -33,7 +33,7 @@ class ServiceEntry(unittest.TestCase):
                                         state_path=self.state, event_writer=self.writer)
         self.assertEqual(code, 1)
         st = json.loads(self.state.read_text(encoding="utf-8"))
-        self.assertEqual((st["count"], st["stage"]), (1, "import"))
+        self.assertEqual((st["count"], st["stage"], st["event_id"]), (1, "import", 1001), "stage↔ID 대응: import=1001")
         self.assertIn("SystemExit(1)", st["last_error"])
         self.assertIn("VIGENT_REQUIRE_TOKEN", st["last_stderr"], "보안 게이트 안내문이 기록에 남아야 원인을 바로 안다")
         self.assertTrue(st["event_log_ok"])
