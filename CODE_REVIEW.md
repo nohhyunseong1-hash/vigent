@@ -362,13 +362,15 @@
 | M6-6 | `data/field_eval` · `data/runs` · `data/datasets` | 중간(개인정보) | 정책 밖 디렉터리에 현장 촬영 jpg 530장(`field_eval`) 과 2.7GB 학습 산출이 있다. `field_eval` 은 현장 원본일 수 있어 보존 기간·암호화 검사 대상에 없음 | 디렉터리 크기 실측 | `field_eval` 은 `privacy._protected_dirs` 와 보존 그룹(A, 30일 또는 별도 일수)에 편입할지 대표 판단 — 학습 산출(runs/datasets)은 개인정보 아님, 디스크 관점만(수동) |
 | M6-7 | `retention.py:158-187` | 낮음 | 스캔이 24시간마다 14k 파일 `rglob`+`stat` — 지금 945MB/13.7k 파일이면 문제없으나 10만 파일대에서 수십 초. 별도 스레드라 검출 영향은 없음 | — | 문서만(측정치 기록) |
 | M6-8 | `retention.sweep()` | 낮음 | 삭제 실패·디스크 부족 경고가 **/health 와 로그에만** 남고 통보 없음(M4-2 요약 통보에 합류 가능) | 코드 | M4-2 `system/alert_dead` 처럼 `system/retention_warning` 1일 1회 통보(모듈 4 배선 재사용) |
-| M6-9 | `retention_scheduler.py:73` | 낮음 | 첫 실행이 기동 10분 뒤·24h 주기 — 서비스가 매일 재기동되면(스케줄 재시작) 첫 10분 안에 죽는 경우 **영영 안 돈다**. `last_run` 08-26(11일 전)은 서버 미기동 때문이나 같은 지문 | status.json 실측 | `next_run_at` 을 status.json 에 남기고 기동 시 마지막 실행이 25h 넘었으면 초기 지연을 1분으로 단축 |
+| M6-9 | `retention_scheduler.py:73` | 낮음 | 첫 실행이 기동 10분 뒤·24h 주기 — 서비스가 매일 재기동되면(스케줄 재시작) 첫 10분 안에 죽는 경우 **영영 안 돈다**. `last_run` 08-26(11일 전)은 서버 미기동 때문이나 같은 지문. **★M4-5(크래시 루프 3주 미감지)와 같은 계열** — 프로세스가 10분을 못 넘기면 스윕도, 통보도 없다(서로 참조: §4-1 M4-5 ↔ 여기) | status.json 실측 | `next_run_at` 을 status.json 에 남기고 기동 시 마지막 실행이 25h 넘었으면 초기 지연을 1분으로 단축 — 모듈 7 기동 순서에서 재검토 |
+| **R17** | (FINAL_SUMMARY 결정 필요) | — | **증거 30일은 법률 검토 전 잠정값** — 산업재해 증거 보존 기간은 법률 자문 필요(대표 지시 2026-09-06). FINAL_SUMMARY "결정 필요" 항목에 명시 | tuning 주석 | — |
 
-### 6-3. 수정 계획(승인 대기)
-- **높음 M6-1·M6-2**(한 커밋): `pinned.json` 제외 + 경로 posix 정규화(저장·비교 양쪽). 선행 테스트: 40일 된 pinned.json 이 후보에 없다 / `\`·`/` 혼용 pin 이 모두 보호된다(임시 디렉터리).
-- **중간 M6-3**: pin/unpin 라우트(`POST /recognition/pin`, `DELETE`) — OpenAPI 경로 추가라 `baseline_openapi.json` 갱신 필요(게이트 "무변경" 예외를 커밋 메시지에 명시). UI 버튼은 모듈 8.
-- **중간 M6-4·M6-5**: 스윕에 큐 행(30일)·NSSM 회전본(최근 50개) 정리 추가 — 선행 테스트(임시 DB/디렉터리). 둘 다 개인정보 아님.
-- **중간 M6-6**: 대표 판단(field_eval 편입 여부).
-- **M6-7·8·9** 문서만(M6-9 는 모듈 7 기동 순서에서 재검토).
+### 6-3. 진행 현황(대표 승인·추가 지시 반영, 2026-09-06) — 커밋 4개
+- **M6-1·M6-2** ✅ `69045db`: pin 목록 → `data/retention/pinned.json`(스윕 그룹 밖), 구 위치 1회 병합·이동(구 형식 list 호환), 이름이 `pinned.json` 이면 어디서든 후보 제외, 비교는 `resolve()` 절대경로 집합·저장은 posix 정규화. 테스트 5 + 기존 2건 계약 갱신.
+- **M6-3·M6-10** ✅ `e7f7542`: `POST /recognition/pin`·`/unpin`(증거·인식 로그 아래만, 탈출 거부) + **자동 보존 규칙**: 발송(sent)된 critical/high 경보의 증거 JPEG·그날 `events_YYYYMMDD.jsonl` 을 사유 `alert:<id>` 로 pin(tuning `retention.auto_pin_sent_alerts`, 기본 true; 인식 로그도 pin 그룹 편입). 규모 62줄(≤100) → 같은 커밋. 테스트 5. UI 버튼은 모듈 8.
+- **OpenAPI** ✅ `a34edc4`: 기준선 재생성 — 추가 2경로 + `/alerts/test` 설명 1줄. 108 → 110.
+- **M6-4·M6-5** ✅ `54b0a27`: `alert_queue.prune(days=30)` — sent/dead 만(pending 불변), `config_error` 최신 1건 유지 · `retention.prune_rotated_logs(keep=50)` — `logs/vigent.{err,out}-*` 최신순 유지, logs/ 바로 아래만. 둘 다 `sweep()` 에 합류(dry_run·첫 주기 보류 그대로, status.json `alert_queue`·`logs` 항목). 테스트 5.
+- **M6-6**: ★대표 지시문이 "[확인: field_eval 530장을 평가용으로 계속 사용 → 보존 그룹 A + 보호 폴더 편입 / 사" 에서 **끊겨 있어** 결정을 적용하지 못했다 — 재확인 요청(편입 시: `retention.GROUP_DIRS["field_eval"]`·`privacy._protected_dirs` 추가 + 일수 결정).
+- **M6-7·8·9** 문서만(M6-9 ↔ M4-5 상호 참조 기재). **R17** 증거 30일 잠정값 → FINAL_SUMMARY 결정 필요 항목.
 ## 7. 모듈 7 — 설정·경로·기동 (대기)
 ## 8. 모듈 8 — 프론트 realtime_core.js 감시 화면 (대기)
