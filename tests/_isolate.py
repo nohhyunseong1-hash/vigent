@@ -14,6 +14,8 @@ PC 라면 **시험 문구가 실제 텔레그램으로 나간다.**
 """
 from __future__ import annotations
 
+import atexit
+import os
 import sys
 import tempfile
 from pathlib import Path
@@ -21,12 +23,103 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "vigent-core"))
 
 
+def isolate_logs():
+    """vlog 의 로그 디렉터리(logs/vigent.log · logs/events.jsonl)를 임시 디렉터리로 바꾼다. [5단계 마무리, 2026-09-06]
+
+    실측: test_machine_guard·test_bypass_paths_gated 가 /dispatch/relay 를 호출하며 vlog.log_event 로 운영
+    logs/events.jsonl 에 dispatch_relay 행 3개를 남겼다(21:27~21:28). 이벤트 로거는 첫 호출 때 파일 핸들러를 만들어
+    캐시하므로 캐시를 비우고, 루트 로거에 붙은 logs/ 아래 파일 핸들러도 임시 경로로 옮긴다. cleanup 이 전부 원복한다."""
+    import logging
+
+    import vlog
+
+    tmp = tempfile.TemporaryDirectory(prefix="vigent_test_logs_", ignore_cleanup_errors=True)
+    root_dir = Path(tmp.name)
+    saved_dir = vlog._LOG_DIR
+    saved_events = vlog._event_logger
+    swapped: dict[int, logging.Handler] = {}   # id(임시 핸들러) → 원래 핸들러
+
+    def _under(h: logging.Handler, d: Path) -> bool:
+        base = getattr(h, "baseFilename", "")
+        try:
+            return bool(base) and Path(base).resolve().is_relative_to(d.resolve())
+        except OSError:
+            return False
+
+    def _close(lg: logging.Logger | None) -> None:
+        if lg is None:
+            return
+        for h in list(lg.handlers):
+            lg.removeHandler(h)
+            try:
+                h.close()
+            except Exception:  # noqa: BLE001
+                pass
+
+    _close(saved_events)                     # 캐시된 events.jsonl 핸들러 분리(원복 때 다시 만든다)
+    vlog._event_logger = None
+    vlog._LOG_DIR = root_dir
+    root = logging.getLogger()
+    for h in list(root.handlers):            # 루트의 logs/vigent.log 파일 핸들러 → 임시 파일
+        if _under(h, saved_dir):
+            new = logging.FileHandler(root_dir / Path(getattr(h, "baseFilename")).name, encoding="utf-8")
+            new.setFormatter(h.formatter)
+            new.setLevel(h.level)
+            root.removeHandler(h)
+            root.addHandler(new)
+            swapped[id(new)] = h
+
+    def _restore() -> None:
+        _close(vlog._event_logger)
+        vlog._event_logger = None            # 다음 log_event 가 원래 경로에 새 핸들러를 만든다
+        vlog._LOG_DIR = saved_dir
+        for h in list(root.handlers):        # 임시 경로를 가리키는 핸들러는 전부 닫는다(격리 중 vlog.setup() 이 만든 것 포함)
+            if not _under(h, root_dir):
+                continue
+            root.removeHandler(h)
+            try:
+                h.close()
+            except Exception:  # noqa: BLE001
+                pass
+            old = swapped.pop(id(h), None)
+            if old is not None:
+                root.addHandler(old)
+            else:                            # 격리 중 setup() 이 만든 핸들러 → 같은 이름으로 원래 디렉터리에 다시
+                try:
+                    saved_dir.mkdir(parents=True, exist_ok=True)
+                    re = logging.FileHandler(saved_dir / Path(getattr(h, "baseFilename")).name, encoding="utf-8")
+                    re.setFormatter(h.formatter)
+                    re.setLevel(h.level)
+                    root.addHandler(re)
+                except Exception:  # noqa: BLE001
+                    pass
+        tmp.cleanup()
+
+    return _restore
+
+
+# ── 프로세스 전체 logs/ 격리 ─────────────────────────────────────────────────────────────────────
+#   실측(2026-09-06 전체 스위트 전후 data/+logs/ 해시 비교): 개별 격리만으로는 루트 로거의 logs/vigent.log 가 테스트 로그로
+#   10MB 회전(vigent.log·.1·.2 변경 3건)했다. unittest discover 는 모든 test 모듈을 먼저 import 한 뒤 실행하므로, 이 모듈이
+#   import 되는 순간(어느 test 모듈이든 _isolate 를 쓰면) 루트 파일 핸들러·이벤트 로거를 임시 경로로 돌려 두면 실행 단계의
+#   모든 테스트 로그가 운영 logs/ 를 건드리지 않는다. 프로세스 종료 때 원복(atexit). VIGENT_TEST_KEEP_LOGS=1 이면 끄기.
+_PROCESS_LOG_RESTORE = None
+if os.environ.get("VIGENT_TEST_KEEP_LOGS", "") != "1":
+    try:
+        _PROCESS_LOG_RESTORE = isolate_logs()
+        atexit.register(_PROCESS_LOG_RESTORE)
+    except Exception:  # noqa: BLE001  격리 실패가 테스트 자체를 막지는 않는다(해시 비교가 잡는다)
+        _PROCESS_LOG_RESTORE = None
+
+
 def isolate_alerts():
-    """운영 alert_queue.db·전송기를 임시 상태로 바꾸고, 원복 함수를 돌려준다(addCleanup 용)."""
+    """운영 alert_queue.db·전송기를 임시 상태로 바꾸고, 원복 함수를 돌려준다(addCleanup 용).
+    [5단계 마무리] logs/ 격리(isolate_logs)를 포함한다 — 경보·릴레이 경로는 vlog.log_event 로 events.jsonl 에도 쓴다."""
     import alert_notify
     import alert_queue
     import data_engine
 
+    restore_logs = isolate_logs()
     tmp = tempfile.TemporaryDirectory(prefix="vigent_test_alerts_")
     saved_db = alert_queue._DB_PATH
     saved_sender = alert_queue._sender
@@ -48,6 +141,7 @@ def isolate_alerts():
         alert_queue._sender = saved_sender
         data_engine._PINNED, data_engine._PINNED_LEGACY = saved_pins
         tmp.cleanup()
+        restore_logs()
 
     return _restore
 

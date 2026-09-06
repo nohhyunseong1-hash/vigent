@@ -19,10 +19,10 @@
 | 파일·항목 | 원인 | 조치 |
 |---|---|---|
 | `config/notify.yaml` | 개발 PC 에만 있음 → 큐 자격 테스트 2건이 이에 의존 | ✅ 테스트 수정(채널 존재 고정) — 5단계 커밋 |
-| GUI opencv 그림자(`cv2` 5.0.0) | 전이의존이 requirements 핀을 덮음 | 수동 절차 유지(DEPLOYMENT §3-1) + 이번 실측 기록. 자동화(설치 스크립트) 는 다음 단계 후보 |
+| GUI opencv 그림자(`cv2` 5.0.0) | 전이의존이 requirements 핀을 덮음 — 원인 특정(.venv 메타데이터): `supervision`(opencv-python>=4.5.5.64) · `trackers`(opencv-python>=4.8.0) · `rtmlib`(opencv-python, opencv-contrib-python) **하드 의존** | ✅ [5단계 마무리] ① `constraints.txt`(requirements 첫 줄 `-c`)가 GUI 빌드도 4.13.0.92 로 고정 → 임시 venv 실측: requirements 만 설치 시 **cv2 4.13.0**(GUI WIN32UI 동거, opencv 3종, pip 411s) ② `scripts/setup_env.py` 가 GUI 제거·headless 재설치·새 프로세스 검증 → **headless 1종 · GUI NONE**. 하드 의존이라 constraints 만으로 GUI 를 "제외"할 수는 없다(측정 결과 그대로) |
 | `vigent-core/weights/*` 13파일(938MB) | gitignore | ✅ `fetch_weights.py`(rtmlib 2종은 M7-2b 에서 편입) |
 | `ppe_rfdetr_v1.onnx`(onnx-cpu 백엔드 패리티 테스트) | 매니페스트에 없음(export 산출물) | 문서: export 절차·선택 항목. 테스트는 skip(정상) |
-| `bin/go2rtc.exe` | 저장소·개발 PC 모두 없음(`ensure_go2rtc` 는 미설치 시 경고 후 스냅샷 폴백) | 수동 절차: go2rtc 릴리스에서 받아 `bin/go2rtc.exe` 에 둠(DEPLOYMENT 에 기재) — 확대뷰 WebRTC 만 영향 |
+| `bin/go2rtc.exe` | 저장소에 없음(gitignore `bin/`; `ensure_go2rtc` 는 미설치 시 경고 후 스냅샷 폴백). ※정정: "개발 PC 에도 없음"은 오기 — 개발 PC 에는 2026-08-10 자 go2rtc.exe(v1.9.14 와 sha 동일)가 있었다 | ✅ [5단계 마무리] `weights_manifest.json` 에 편입: 버전 고정 URL(v1.9.14 win64 zip) + 압축 해제본 sha256 `923d5725…`(19,737,088B) 검증, `root_dest=bin`. `fetch_weights.py --all` 로 받음 — 실측: 기존 파일을 치우고 받아 sha 일치·바이트 동일. required=false(스냅샷 폴백), SITE_CHECKLIST N-5 에 항목 추가 |
 | `vigent-core/static/vendor/`(MediaPipe·TF.js 로컬 번들, `/safety-local` 폐쇄망용) | gitignore(144MB) · 개발 PC 에도 없음 · `bin/download-vendor.sh` 는 bash 스크립트 | 수동 절차(인터넷 있는 곳에서 1회). 시연 화면 전용이라 관제(`/hub`)에는 영향 없음 |
 | `.env` · `config/site.yaml` · `data/cameras.json` | 현장 입력값 | 없어도 기동·테스트 OK(설계대로). `.env.example`·`site.example.yaml` 로 안내 |
 | `node`(JS 구문 검사 테스트) | 선택 도구 | 없으면 skip(테스트가 명시) |
@@ -60,3 +60,19 @@ powershell -NoProfile -ExecutionPolicy Bypass -File D:\vigent_original\deploy\wi
 스크립트가 하는 일: 기존 상태·NSSM 설정 백업 → 중화(cameras·secrets·notify·.env → `*.audit_hold`, sha256) → `install_service.ps1` 재설치(py -3.11 · 60s/180s · 이벤트 소스 · env 7개) → /health 200(warnings=channels_not_configured, degraded 아님) → **의도적 기동 실패**(RF_HOME 오지정) → `startup_failure.json` count 증가·이벤트 ID 1000·연속 실패 간격 ≥ 60s 확인 → env 원복 → /health 200 → `service_status.ps1` 종료코드 0 → **finally**: 서비스 Start 타입·상태를 백업값(`nssm get Start`·Status)으로 원복하고 다시 읽어 대조 · 파일 원복(sha256 대조) · 보고서(예외·install 실패 시 err 꼬리 20줄 + startup_failure.json 즉시 출력). 기동 실패 유도 중 통보는 나가지 않는다(채널 중화, `notified_count` 로 확인).
 
 현재 서비스 상태(실측): `Stopped / Disabled`. `install_service.ps1` 은 5단계에서 `py -3.11` 전용으로 바뀌었다(M7-6).
+
+## 4. 테스트 격리 범위 확장 — logs/ (2026-09-06 마무리)
+
+- 발견: 5-2 4차 게이트(21:26~21:28) 중 `tests/test_machine_guard.py`·`tests/test_bypass_paths_gated.py` 가 `/dispatch/relay` 를 호출하며 `vlog.log_event` 로 운영 `logs/events.jsonl` 에 `dispatch_relay` 행 3개를 남겼다. 4단계 ④ 격리(`isolate_alerts`)는 alert_queue·pin·data/ 만 덮고 logs/ 는 범위 밖이었다.
+- 조치: `tests/_isolate.py` 에 `isolate_logs()`(vlog `_LOG_DIR`·이벤트 로거 캐시·루트 파일 핸들러를 임시 경로로, cleanup 원복) 추가 → `isolate_alerts()` 가 포함. 두 테스트 단독 실행 전후 `events.jsonl`·`vigent.log` sha256 **동일**(실측). 전체 스위트로 재면 루트 로거 일반 로그가 `vigent.log` 를 10MB 회전시켜(변경 3건) 남았으므로, `_isolate` **import 시점에 프로세스 전체** logs/ 를 임시 경로로 돌리고 atexit 에 원복(unittest discover 는 모든 모듈을 import 한 뒤 실행하므로 실행 단계 로그가 전부 격리됨).
+- 검증 도구: `scripts/tree_hash.py snapshot data logs` → 전체 스위트 → `compare`(4단계 ④ 의 수동 data/ 28,815파일 비교를 data/+logs/ 도구로). 결과는 §4-1.
+- **테스트 잔재 표시(삭제하지 않음)**: `logs/events.jsonl` 397~399행 — `ts 2026-09-06T21:27:30`(2행)·`2026-09-06T21:28:11`(1행), `type=dispatch_relay`, `event=guard_bypass` — 실제 현장 사건이 아니라 테스트가 남긴 행이다. 사고 감사 추적에서 이 3행은 제외한다.
+
+### 4-1. 전체 스위트 전후 data/ + logs/ 해시 비교(실측)
+
+| 회차 | 격리 상태 | 결과 |
+|---|---|---|
+| 1 | `isolate_logs` 를 두 테스트(`isolate_alerts` 경유)에만 적용 | 28,369 → 28,370 파일 — **추가 1 · 변경 2**(`logs/vigent.log` 10MB 회전: `.1`·`.2`) — data/ 는 변경 0 |
+| 2·3 | `_isolate` import 시점 프로세스 전체 logs/ 격리 + atexit 원복(격리 중 `vlog.setup()` 이 만든 핸들러도 원복 시 닫고 원래 경로로 재생성) | 28,370 → 28,370 파일 — **추가 0 · 삭제 0 · 변경 0**(2회 연속, 662 tests OK) |
+
+재현: `python scripts/tree_hash.py snapshot data logs -o before.json` → `python -m unittest discover -s tests` → `snapshot … -o after.json` → `compare before.json after.json`(종료코드 0 = 무변경).
