@@ -2152,17 +2152,16 @@ function updateFaceUI(f){
   const ok=f&&f.length>0;
   const fd=document.getElementById('faceDetected');
   fd.textContent=ok?'✅ 감지됨':'❌ 미감지'; fd.className='value '+(ok?'green':'');
-  if(!ok){['faceLandmarks','faceGender','faceAge','faceDirection','eyeBlink','mouthState','focusScore'].forEach(id=>{const e=document.getElementById(id);if(e)e.textContent='—';});document.getElementById('emotionBars').innerHTML='<div class="no-data"><span class="icon">😶</span>얼굴을 카메라에 비춰주세요</div>';return;}
-  document.getElementById('faceLandmarks').textContent=`${f.length}개`;
-  const dir=getFaceDir(f); document.getElementById('faceDirection').textContent=dir;
-  const g=estimateGender(f); if(g) document.getElementById('faceGender').textContent=`${g.icon} ${g.gender} (~${g.conf}%)`;
-  document.getElementById('faceAge').textContent=(estimateAge(f)||'—')+' (추정)';
+  const _set=(id,v)=>{const e=document.getElementById(id);if(e)e.textContent=v;};
+  if(!ok){['faceLandmarks','faceGender','faceAge','faceDirection','eyeBlink','mouthState','focusScore'].forEach(id=>_set(id,'—'));const _eb=document.getElementById('emotionBars');if(_eb)_eb.innerHTML='<div class="no-data"><span class="icon">😶</span>얼굴을 카메라에 비춰주세요</div>';return;}
+  _set('faceLandmarks',`${f.length}개`);
+  const dir=getFaceDir(f); _set('faceDirection',dir);
+  _set('faceGender','미추정(개인정보)'); _set('faceAge','미추정(개인정보)');   // [M8-4(b)] 성별·연령 추정 제거
   const earL=dist(f[159],f[145])/(dist(f[33],f[133])||1), earR=dist(f[386],f[374])/(dist(f[362],f[263])||1), ear=(earL+earR)/2;
-  document.getElementById('eyeBlink').textContent=ear<.15?'😴 감김':ear<.22?'😑 반감김':'👁 열림';
-  if(f[13]&&f[14]&&f[61]&&f[291]) document.getElementById('mouthState').textContent=dist(f[13],f[14])/(dist(f[61],f[291])||1)>.22?'👄 열림':'😶 닫힘';
-  document.getElementById('focusScore').textContent=dir==='정면'?(ear<.15?'😴 졸음 주의':'✅ 집중'):`⚠️ ${dir} 시선`;
-  const em=detectEmotion(f); const ec={'기쁨':'#10b981','중립':'#94a3b8','놀람':'#f59e0b','졸음':'#7c3aed'};
-  if(em) document.getElementById('emotionBars').innerHTML=Object.entries(em).map(([n,v])=>`<div class="emotion-bar"><div class="emotion-label">${n}</div><div class="emotion-track"><div class="emotion-fill" style="width:${v}%;background:${ec[n]||'#fff'}"></div></div><div class="emotion-val" style="color:${ec[n]}">${v}%</div></div>`).join('');
+  _set('eyeBlink',ear<.15?'😴 감김':ear<.22?'😑 반감김':'👁 열림');
+  if(f[13]&&f[14]&&f[61]&&f[291]) _set('mouthState',dist(f[13],f[14])/(dist(f[61],f[291])||1)>.22?'👄 열림':'😶 닫힘');
+  _set('focusScore',dir==='정면'?(ear<.15?'😴 졸음 주의':'✅ 집중'):`⚠️ ${dir} 시선`);
+  {const _eb=document.getElementById('emotionBars');if(_eb)_eb.innerHTML='<div class="no-data"><span class="icon">🙈</span>감정 추정 제거(개인정보) — [M8-4]</div>';}
   setDot('dotFace','active');
 }
 
@@ -2285,57 +2284,8 @@ function updatePpeUI(){
 }
 
 // 얼굴 분석 헬퍼
-function estimateGender(f){if(!f||f.length<400)return null;const fW=dist(f[234],f[454]),fH=dist(f[10],f[152]),jW=dist(f[172],f[397]);if(!fH||!fW)return null;let s=0;if(fW/fH>.72)s++;if(jW/fW>.75)s++;if(dist(f[70],f[63])/fW>.08)s++;return s>=2?{gender:'남성 추정',icon:'👨',conf:Math.round(50+Math.abs(s-1.5)/1.5*35)}:{gender:'여성 추정',icon:'👩',conf:Math.round(50+Math.abs(s-1.5)/1.5*35)};}
-function estimateAge(f){
-  if(!f||f.length<400||!f[10]||!f[152]) return null;
-  const faceH=dist(f[10],f[152]);
-  if(!faceH||faceH<0.01) return null;
-  const faceW=dist(f[234],f[454])||faceH;
-
-  // 1. 눈 높이 비율 — 어린이일수록 눈이 얼굴 대비 크다
-  const eyeH=((dist(f[159],f[145])||0)+(dist(f[386],f[374])||0))/2;
-  const eyeHRatio=eyeH/faceH;
-
-  // 2. 이마 비율 — 어린이일수록 이마가 크다 (눈썹~머리 꼭대기)
-  const browY=((f[105]?.y||0)+(f[334]?.y||0))/2;
-  const foreheadRatio=Math.abs(browY-(f[10]?.y||0))/faceH;
-
-  // 3. 코~턱 비율 — 어른일수록 하안면이 길다
-  const noseChinRatio=f[1]&&f[152]?dist(f[1],f[152])/faceH:0.33;
-
-  // 4. 얼굴 폭/높이 비율 — 어린이일수록 얼굴이 동그랗다
-  const aspectRatio=faceW/faceH;
-
-  // 5. 눈 간격 — 어린이일수록 눈 사이가 상대적으로 넓다
-  const eyeSpanRatio=f[33]&&f[263]?dist(f[33],f[263])/faceW:0.4;
-
-  // 점수화 (높을수록 어린아이)
-  let score=0;
-  if(eyeHRatio>0.070) score+=3;
-  else if(eyeHRatio>0.055) score+=2;
-  else if(eyeHRatio>0.042) score+=1;
-
-  if(foreheadRatio>0.34) score+=3;
-  else if(foreheadRatio>0.28) score+=2;
-  else if(foreheadRatio>0.22) score+=1;
-
-  if(noseChinRatio<0.28) score+=3;
-  else if(noseChinRatio<0.33) score+=2;
-  else if(noseChinRatio<0.38) score+=1;
-
-  if(aspectRatio>0.88) score+=2;
-  else if(aspectRatio>0.80) score+=1;
-
-  if(eyeSpanRatio>0.50) score+=2;
-  else if(eyeSpanRatio>0.44) score+=1;
-
-  // 분류 (최대 13점)
-  if(score>=9)  return '어린이 👶 (10세 미만)';
-  if(score>=6)  return '청소년 🧒 (10~19세)';
-  if(score>=3)  return '청장년 🧑 (20~40대)';
-  return '중장년 🧓 (50대 이상)';
-}
-function detectEmotion(f){if(!f||f.length<400||!f[13]||!f[14])return null;const mO=dist(f[13],f[14])/(dist(f[61],f[291])||1),earL=dist(f[159],f[145])/(dist(f[33],f[133])||1),earR=dist(f[386],f[374])/(dist(f[362],f[263])||1),ear=(earL+earR)/2,smS=((f[0]?.y||0)-((f[61]?.y||0)+(f[291]?.y||0))/2);let e={'기쁨':0,'중립':0,'놀람':0,'졸음':0};if(smS>.01)e['기쁨']=Math.min(100,Math.round(smS*2500));if(mO>.35)e['놀람']=Math.min(100,Math.round(mO*200));if(ear<.18)e['졸음']=Math.min(100,Math.round((.25-ear)*600));if(Object.values(e).reduce((a,b)=>a+b,0)<25)e['중립']=75;const t=Object.values(e).reduce((a,b)=>a+b,1);for(const k in e)e[k]=Math.round(e[k]/t*100);return e;}
+// [CODE_REVIEW M8-4(b), 2026-09-06] estimateGender · estimateAge · detectEmotion 삭제 — 얼굴 랜드마크로 성별·연령·감정을
+//   추정하는 것은 산업안전 감시 목적 밖의 민감정보 추정(개인정보). 시선 방향·눈 감김·집중도(졸음)는 안전 관련이라 유지.
 function getFaceDir(f){if(!f||f.length<400||!f[1]||!f[33]||!f[263])return'—';const dx=f[1].x-(f[33].x+f[263].x)/2,dy=f[1].y-(f[33].y+f[263].y)/2;if(Math.abs(dx)<.03&&Math.abs(dy)<.03)return'정면';if(dx<-.05)return'왼쪽';if(dx>.05)return'오른쪽';return dy<0?'위쪽':'아래쪽';}
 
 // ═══════════════════════════════════════════════════
@@ -2343,8 +2293,7 @@ function getFaceDir(f){if(!f||f.length<400||!f[1]||!f[33]||!f[263])return'—';c
 // ═══════════════════════════════════════════════════
 function buildCoreFrameState(results,W,H,VW,VH,rect,scX,scY,rawPose,smoothedPose,face,lHandLM,rHandLM){
   const action=smoothAction(recognizeAction(smoothedPose));
-  const genderInfo=face&&face.length>0?estimateGender(face):null;
-  const ageInfo=face&&face.length>0?estimateAge(face):null;
+  const genderInfo=null, ageInfo=null;   // [M8-4(b)] 성별·연령 추정 제거 — 필드는 호환용으로 null 유지
   const visibleObjects=latestObjects.filter(o=>o.gone===0);
   const specialActions=detectSpecialActions(lHandLM,rHandLM,smoothedPose,face,leftHeldObjects,rightHeldObjects);
   return {
@@ -3062,61 +3011,9 @@ function hasAnalyzableFrame(){
   return imageMode||videoMode;
 }
 
-async function analyzeWithClaude(base64, apiKey, prompt){
-  const resp=await fetch('https://api.anthropic.com/v1/messages',{
-    method:'POST',
-    headers:{
-      'x-api-key':apiKey,
-      'anthropic-version':'2023-06-01',
-      'anthropic-dangerous-direct-browser-access':'true',
-      'content-type':'application/json'
-    },
-    body:JSON.stringify({
-      model:'claude-3-5-sonnet-20241022',
-      max_tokens:1024,
-      messages:[{role:'user',content:[
-        {type:'image',source:{type:'base64',media_type:'image/jpeg',data:base64}},
-        {type:'text',text:prompt}
-      ]}]
-    })
-  });
-  if(!resp.ok) throw new Error(`Claude API 오류: ${resp.status} ${await resp.text()}`);
-  const d=await resp.json();
-  return d.content[0].text;
-}
-
-async function analyzeWithOpenAI(base64, apiKey, prompt){
-  const resp=await fetch('https://api.openai.com/v1/chat/completions',{
-    method:'POST',
-    headers:{'Authorization':'Bearer '+apiKey,'Content-Type':'application/json'},
-    body:JSON.stringify({
-      model:'gpt-4o',
-      max_tokens:1024,
-      messages:[{role:'user',content:[
-        {type:'image_url',image_url:{url:'data:image/jpeg;base64,'+base64}},
-        {type:'text',text:prompt}
-      ]}]
-    })
-  });
-  if(!resp.ok) throw new Error(`OpenAI API 오류: ${resp.status} ${await resp.text()}`);
-  const d=await resp.json();
-  return d.choices[0].message.content;
-}
-
-async function analyzeWithGemini(base64, apiKey, prompt){
-  const model='gemini-2.0-flash-lite';
-  const resp=await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`,{
-    method:'POST',
-    headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({contents:[{parts:[
-      {inline_data:{mime_type:'image/jpeg',data:base64}},
-      {text:prompt}
-    ]}]})
-  });
-  if(!resp.ok) throw new Error(`Gemini API 오류: ${resp.status} ${await resp.text()}`);
-  const d=await resp.json();
-  return d.candidates[0].content.parts[0].text;
-}
+// [CODE_REVIEW M8-4(b), 2026-09-06] 브라우저 → 클라우드(Anthropic·OpenAI·Gemini) 직접 호출 함수 3개 삭제.
+//   호출부 0 인 죽은 코드였지만 현장 프레임+API 키를 외부로 보내는 경로라 F-12(영상 현장 외 불유출) 원칙과 충돌.
+//   서버 경유(analyzeWithServerVision)만 남긴다 — 그 서버 라우트 자체는 M8-2 에서 "미구현" 으로 표시.
 
 async function analyzeWithServerVision(base64, apiKey, prompt, provider){
   const resp=await fetch(API_BASE+'/llm/vision',{
@@ -3961,10 +3858,7 @@ function generateNarrative(genderInfo, ageInfo, actionResult, specialActs, lHeld
   const countKo=['','한','두','세','네','다섯','여섯'];
   const cStr=personCount<=6?countKo[personCount]:personCount+'';
 
-  // 성별
-  let who='사람';
-  if(genderInfo){ who=genderInfo.gender.includes('남')?'남성':'여성'; }
-  const subject=personCount===1?`${who} ${cStr}명이`:`사람 ${cStr}명이`;
+  const subject=`사람 ${cStr}명이`;   // [M8-4(b)] 성별 표현 제거
 
   // 행동 — 특수행동 우선, 없으면 포즈 기반
   const spMap={
@@ -4020,7 +3914,6 @@ function generateNarrative(genderInfo, ageInfo, actionResult, specialActs, lHeld
 
   const sentence=`${subject} ${objStr}${actionStr}`;
   const subParts=[];
-  if(ageInfo) subParts.push(`연령대: ${ageInfo}`);
   if(specialActs.length>1) subParts.push(specialActs.slice(1).map(s=>s.icon+' '+s.text).join(' · '));
   return{sentence, sub:subParts.join(' | ')};
 }
@@ -4099,9 +3992,6 @@ function updateEasyScene(narr, genderInfo, ageInfo, ar, specialActs, lHeld, rHel
   const actionItems=[];
   const actionConfidence=ar.confidence?Math.round(ar.confidence*100):null;
   actionItems.push(`<div class="easy-next-item">${escapeHtml(ar.icon||'🧍')} 현재 행동: <strong>${escapeHtml(ar.action)}</strong>${actionConfidence?` · 안정도 ${actionConfidence}%`:''}</div>`);
-  if(genderInfo||ageInfo){
-    actionItems.push(`<div class="easy-next-item">인물 추정: ${escapeHtml(genderInfo?genderInfo.gender:'성별 미확인')}${genderInfo?` (${genderInfo.conf}%)`:''}${ageInfo?` · ${escapeHtml(ageInfo)}`:''}</div>`);
-  }
   if(specialActs.length){
     actionItems.push(...specialActs.slice(0,3).map(s=>`<div class="easy-next-item ${s.danger?'danger':'warn'}">${escapeHtml(s.icon)} ${escapeHtml(s.text)}</div>`));
   }
@@ -4138,8 +4028,8 @@ function updateSceneUI(genderInfo, ageInfo, ar, specialActs, lHeld, rHeld){
   // 인물 정보 행
   const pc=Math.max(detectedPersonCount,sm?1:0);
   document.getElementById('personCount').textContent=pc>0?`${pc}명 감지`:'감지 중...';
-  if(genderInfo){document.getElementById('narrativeGender').textContent=genderInfo.gender+` (추정 ${genderInfo.conf}%)`;}
-  if(ageInfo){document.getElementById('narrativeAge').textContent=ageInfo;}
+  {const _ng=document.getElementById('narrativeGender'), _na=document.getElementById('narrativeAge');   // [M8-4(b)] 성별·연령 추정 제거
+   if(_ng)_ng.textContent='미추정(개인정보)'; if(_na)_na.textContent='미추정(개인정보)';}
   document.getElementById('narrativeAction').textContent=`${ar.icon||''} ${ar.action}`;
 
   // 특수 행동

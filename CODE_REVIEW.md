@@ -451,7 +451,13 @@
 
 **정상 확인(수정 불필요)**: `/hub` 는 브라우저 추론 없이 워커 결과만 표시 · `/zone/intrusion` 은 M3-3 게이트 적용 · 브라우저 프레임은 로컬 서버(`/detect/frame` 계열)로만 전송(클라우드 직접 호출은 죽은 코드) · MediaPipe 실패 시 폴백 렌더에서도 침입 판정 실행(2559~2561) · 세그·포즈는 detect 호출에 통합(중복 인코딩 없음).
 
-### 8-3. 수정 계획(승인 대기)
+### 8-3. 진행 현황(대표 승인 2026-09-06 반영)
+- **M8-4(b)** ✅ (커밋 대기) 삭제 목록(realtime_core.js 4,507 → 4,397줄):
+  - 민감정보 추정: `estimateGender(f)`(얼굴 폭/턱 비율로 남녀 추정), `estimateAge(f)`(눈·이마·코턱 비율 5항목 점수 → 어린이/청소년/청장년/중장년), `detectEmotion(f)`(입·눈 개방도 → 기쁨/중립/놀람/졸음). 호출부 5곳(`updateFaceUI`·`buildCoreFrameState`·`generateNarrative`·`updateEasyScene`·`updateSceneUI`)은 "미추정(개인정보)" 고정 문구로 대체(패널 요소는 유지, 시선 방향·눈 감김·졸음 주의는 안전 관련이라 유지).
+  - 클라우드 직접 호출: `analyzeWithClaude`·`analyzeWithOpenAI`·`analyzeWithGemini`(`anthropic-dangerous-direct-browser-access` 헤더 포함) — 호출부 0 이었음.
+  - 게이트: `tests/test_frontend_privacy.py`(금지 심볼·도메인 정적 검사 + node `--check` 구문 검사, node 24.19 실측). (a) "안전 경로만 남기는 정리"는 다음 단계.
+
+### 8-4. 수정 계획(승인됨 — 순서 M8-3·5·6·7 → M8-1 → M8-2 → M8-8)
 - **높음 M8-1**(한 커밋): `/zone/intrusion` cam 필수 + 워커 소유 카메라면 기록만(통보 위임) — 선행 테스트(워커 있음/없음/cam 누락 400). 프론트는 `cam` 을 실어 보내도록 index.html·index_local.html 의 go2rtc 카메라 id 를 `window.VIGENT_CAM_ID` 로 노출.
 - **높음 M8-2**: 404 경로 8개 — LLM 분석·열화상 경보·과속 경보·E-stop 문구·비전 능력 조회 UI 제거 또는 "미구현" 표시(서버 라우트 신설 없음 → OpenAPI 무변경). 열화상·과속은 향후 필요하면 서버 라우트를 먼저 만든다.
 - **중간 M8-3·5·6·7**: 소규모 삭제·수정(각 20줄 내외), 한 커밋 가능.
