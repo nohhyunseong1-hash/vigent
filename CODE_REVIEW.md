@@ -420,4 +420,41 @@
 
 - 게이트: 매 커밋 ruff 0 · mypy 0 · unittest 589 → 595 → 602 → 610 → 616 OK · OpenAPI 무변경 · 프로파일 드리프트 없음.
 - 부수 발견·처리: M7-2b 매니페스트 편집 중 readiness `required_weights_missing` 이 `dest` 를 몰라 예열 테스트 4건이 "가중치 없음"으로 실패 → dest 인식 추가(실사고였다면 서비스가 기동 거부).
-## 8. 모듈 8 — 프론트 realtime_core.js 감시 화면 (대기)
+## 8. 모듈 8 — 프론트 realtime_core.js 감시 화면 (보고 2026-09-06, 수정 대기)
+
+**읽은 파일(전체)**: `vigent-core/static/realtime_core.js`(4,507줄 전부) · `themes/safety/index.html`(CDN판, `/safety`)·`index_local.html`(로컬 번들판, `/safety-local`)의 헤더·플래그·getUserMedia 가로채기(1~66·292·345~359·550) · `index_hub.html`(관제, `/hub`)의 영상·검출·구역 경로(150~445) · `routers/zone.py` 전체 · `routers/dispatch.py` · `agents/dispatcher.py:290~330`(relay) · `worker.py:1112~1135`(통보 submit) · `data_engine.list_events` · `templates/auto.html`·`static/auto_terminal.html`(증거 표시) · `routers/safety_core.py` 페이지 라우트(699~830).
+
+### 8-1. 브라우저 검출 경로 vs 서버 경로 — 어느 쪽이 정본인가
+
+| 화면 | 영상 입력 | 검출 | 위험구역 정의 | 통보·기록 | 판단 |
+|---|---|---|---|---|---|
+| **`/hub`** (index_hub.html, 관제) | go2rtc WebRTC → 실패 시 `/cameras/{id}/snapshot` | **브라우저 추론 없음** — `/cameras/{id}/detections` 폴링으로 워커 결과(tid 포함)만 표시(426~441행 주석: 같은 카메라를 워커가 검출하므로 자체 `/detect/frame` 은 DETECT_LOCK 경합 3.7 실측 545ms) | 카메라별 `/cameras/{cid}/zone` | 워커 → `alert_notify.submit(cam=카메라명)` + `data_engine.log_event` | **정본(운영)** |
+| **`/safety`·`/safety-local`** (index.html·index_local.html + realtime_core.js) | `getUserMedia` 를 **가로채** go2rtc(Tapo) 스트림을 주입(index.html:19~63), 실패 시 웹캠 | 브라우저 COCO-SSD(700ms)+MobileNet(900ms)+MediaPipe Holistic + 서버 `/detect/frame`(최소 100ms 간격·루프 150ms ≈ 6.6~9fps, 주 탐지)·`/ppe/analyze-frame`(2.5s)·`/segment/frame` | **localStorage `ax_danger_zones` 우선**, 없으면 전역 `/zone/danger`(config/danger_zone.json) — 워커의 카메라별 구역(F5, 전역 폴백 차단)과 **다른 정의** | 브라우저 `handleDangerZone` → 3프레임 연속 + 8s 쿨다운 → `POST /zone/intrusion`(합성 스냅샷) → `log_event` + `submit(cam="browser_zone:위험구역A")` | 구 AX/BODA 3테마 엔진의 **데모·시연 화면**. 판정·통보 권한을 가지면 안 된다 |
+
+**결론**: 서버 워커 경로가 정본이다. 브라우저 경로는 같은 카메라를 두 번째로 판정하는 **별도 정의(구역·임계·쿨다운 전부 다름)** 이며, 운영 화면(`/hub`)은 이미 브라우저 추론을 쓰지 않는다. `/safety` 계열은 시연 전용으로 격을 낮추고 통보·기록 경로를 서버 판단 아래에 두는 것이 맞다(M8-1).
+
+### 8-2. 발견 사항
+
+| ID | 파일:줄 | 심각도 | 문제 | 근거(실측) | 수정안 |
+|---|---|---|---|---|---|
+| **M8-1** | `realtime_core.js:1852·1926` · `zone.py:74` · `worker.py:1125` | **높음**(M3-8 확정) | **이중 통보**: 같은 카메라(go2rtc 가로채기)에서 브라우저는 `browser_zone:위험구역A`(payload 에 cam 없음 → 구역 이름), 워커는 `cam=<카메라명>` 으로 submit → 게이트 키가 달라 **둘 다 통보**되고 `log_event` 도 두 번(증거 2장). 타이밍도 다르다(브라우저 3프레임+8s, 워커 `zone.enter_s` 1.0s) | 코드 경로 대조. 실제 2건 발송은 현장 카메라 연결 시 확인(5단계) | (b) 권장: `/zone/intrusion` 에 `cam` 필수화 + 서버가 "등록 워커가 감시 중인 카메라" 면 **기록만 하고 통보는 워커에 위임**(응답 `gate="worker_owned"`); 워커 없는 카메라(웹캠 데모)만 브라우저 통보 허용. 선행 테스트 3건 |
+| **M8-2** | `realtime_core.js:3122·3166·2112·2126·4415·4445·1668·1084` · `zone.py:34~37` | **높음**(R2) | 서버에 **없는 경로 8개**를 부른다: `/llm/vision`·`/llm/status`·`/vision/capabilities`·`/vision/analyze-current`·`/sensor/temperature`·`/alert/overspeed`·`/vitals/rppg`·`/dataset/small-object/crop`. ① LLM 분석 버튼은 항상 "❌ 서버 LLM 오류: 404"(`runLLMAnalysis` 는 `analyzeWithServerVision` 만 호출) ② **열화상 과열 경보·과속 경보는 `.catch(()=>{})` 로 조용히 실패** — 화면엔 경보가 뜨는데 텔레그램은 없다(규칙 11 "지어낸 완료") ③ `/zone/state` 는 스텁(`{ok, state:"idle"}`)인데 UI 는 "E-stop 보조정지 신호" 라고 부른다 | 라우트 grep: 8경로 `@router` 0건 · `/zone/state` 스텁 본문 | 서버에 없는 기능은 **UI 에서 제거하거나 "미구현" 표시**(버튼·토글 숨김). `/llm/vision` 은 `scene_vlm`(VIGENT_CLOUD_VLM 게이트)로 배선하거나 버튼 제거 — 브라우저가 입력받은 API 키를 서버로 보내 클라우드 전송하는 구조는 F-12(프레임 불유출) 원칙과 충돌 → 제거 권장. E-stop 문구 삭제 |
+| M8-3 | `realtime_core.js:3065~3119` | 중간 | 브라우저 → `api.anthropic.com`·`api.openai.com`·`generativelanguage.googleapis.com` 직접 호출 함수 3개(`anthropic-dangerous-direct-browser-access` 헤더 포함) — **호출부 0** 인 죽은 코드지만 프레임+키를 외부로 보내는 코드가 남아 있다(F-12 위반 잠재·키 노출 경로) | 호출부 grep 0 | 삭제 |
+| M8-4 | `realtime_core.js` 전반 | 중간 | **삭제된 테마(Z-3) 잔재**: `SERVICE_META` fitness/office, 스쿼트 카운터·운동 분석, rPPG 심박(얼굴 ROI), 사무 자세, **성별·연령·감정 추정**(`estimateGender/estimateAge/detectEmotion` — 개인정보 민감 추정), 상업화 점검표·세션 리포트, 골프/요가/복싱 프롬프트, 열화상 — 함수 **28개**, `activeServiceMode` 분기 **33곳**(실측). 안전 단일 제품 결정과 불일치, 성별/연령/감정 추정은 개인정보 관점에서 제거 대상 | grep 집계 | 규모가 커서 대표 판단: (a) 안전 경로만 남기는 정리 커밋(위험: 회귀, 시연 화면 검증 필요) (b) 성별·연령·감정·클라우드 직접호출만 제거 (c) 문서만. 권장 (b) 지금 + (a) 는 모듈 8 후속 |
+| M8-5 | `realtime_core.js:801~824` | 중간 | 브라우저 PPE 휴리스틱: ImageNet 분류에 positive 키워드가 없으면 **예측이 하나라도 있으면 '미착용 의심'(conf ≥0.45)** 반환(819~822행) → 백엔드 PPE 결과가 없을 때 화면이 거의 항상 "미착용 의심" — 시연 신뢰 저하(통보는 안 나감, 화면 배지·리포트만) | 코드 | 브라우저 휴리스틱 제거, 백엔드(`/ppe/analyze-frame`·`/detect/frame` NO-* 클래스)만 표시 |
+| M8-6 | `realtime_core.js:1841~1849` | 중간 | 침입 증거가 **영상+오버레이(박스·스켈레톤·구역·라벨) 합성 캔버스**로 저장된다 → 증거 JPEG 에 그린 선이 들어감. 워커 증거는 원본(+모자이크) | 코드 | 원본 프레임만 전송(오버레이는 화면 전용). 서버 모자이크는 그대로 적용됨 |
+| M8-7 | `realtime_core.js:2382·2388` | 낮음 | 디버그 텔레메트리(`coord_mismatch`·`coord_event`)를 **안전 이벤트 로그**(`/recognition/log`)에 기록 | 실측: 인식 로그 23파일 25,433행 중 coord_* **0행**(카메라 전환·리사이즈 때만 발생) — 다만 **rule='t' 194행**(2026-08-24, note '정상', level low) 발견, 출처 미상(프론트·서버 grep 0) | 디버그는 console 만. `/recognition/log` 는 규칙 화이트리스트(guard 규칙명 + browser 규칙명)로 잡음 차단 |
+| M8-8 | `templates/auto.html:43~46` · `static/auto_terminal.html:74` | 중간(M6-3) | **pin/unpin 버튼 부재** — 자동처리 콘솔은 `evidence_url` 만 표시. `list_events` 레코드에 `evidence`(상대경로) 있음 | 코드 | 이벤트 행에 "📌 보존/해제" 버튼 → `POST /recognition/pin|unpin {path}`, pin 상태는 `pinned_map()` 을 이벤트 목록 응답에 실어 표시. HTML+JS ~30줄 |
+| M8-9 | `routers/dispatch.py:3·17` · `dispatcher.py:309` | 중간 | **`/dispatch/relay` 호출부 0** — 문서는 "guard_bypass(critical) 시 프론트가 호출"이지만 realtime_core.js·hub 어디에도 없고, 서버 `dispatcher.relay()` 호출부도 0(safety_manager 는 문자열 스텁). **실제 §8 보조 방호신호는 다른 경로로 산다**: 워커 guard_bypass → `submit(critical)` → `dispatch` → `on_severity.critical` 기본값 `["alarm","manager_call","safety_relay_signal"]`(dispatcher.py:131~132) → `relay.turn_on`(relay.enabled 일 때). notify.yaml 에는 `on_severity` 키가 없어 기본값 적용(값 미출력) | 코드·설정 키 확인 | `/dispatch/relay` 를 "수동 시험용" 으로 문서화하고 docstring 의 "프론트가 호출" 정정. 자동 경로는 5단계에서 relay.enabled=true 현장 시험 항목 |
+| M8-10 | `index.html:346` · `index_local.html:359` | 낮음 | 스크립트 캐시 버전 `?v=20260701-ppefix` 고정(2개월 전) — `_no_cache_dynamic` 미들웨어가 .js 를 no-store 로 내려 실제 영향은 없음 | 코드 | 버전 문자열 제거 또는 product_version 주입. 문서 |
+| M8-11 | `realtime_core.js:172~176·2692~2697` | 낮음 | 브라우저 페이지가 열려 있으면 `/detect/frame` 을 ≈6.6~9fps 로 호출(+PPE 2.5s) → 워커(2fps 풀세트)와 `DETECT_LOCK` 경합. 모듈 5 용량 스펙(카메라 ~5대)은 **브라우저 페이지 미포함** | index_hub 주석 실측 545ms | 용량 스펙에 "시연 페이지 동시 사용 시 −1대" 주석. FINAL_SUMMARY 용량 항목에 병기 |
+
+**정상 확인(수정 불필요)**: `/hub` 는 브라우저 추론 없이 워커 결과만 표시 · `/zone/intrusion` 은 M3-3 게이트 적용 · 브라우저 프레임은 로컬 서버(`/detect/frame` 계열)로만 전송(클라우드 직접 호출은 죽은 코드) · MediaPipe 실패 시 폴백 렌더에서도 침입 판정 실행(2559~2561) · 세그·포즈는 detect 호출에 통합(중복 인코딩 없음).
+
+### 8-3. 수정 계획(승인 대기)
+- **높음 M8-1**(한 커밋): `/zone/intrusion` cam 필수 + 워커 소유 카메라면 기록만(통보 위임) — 선행 테스트(워커 있음/없음/cam 누락 400). 프론트는 `cam` 을 실어 보내도록 index.html·index_local.html 의 go2rtc 카메라 id 를 `window.VIGENT_CAM_ID` 로 노출.
+- **높음 M8-2**: 404 경로 8개 — LLM 분석·열화상 경보·과속 경보·E-stop 문구·비전 능력 조회 UI 제거 또는 "미구현" 표시(서버 라우트 신설 없음 → OpenAPI 무변경). 열화상·과속은 향후 필요하면 서버 라우트를 먼저 만든다.
+- **중간 M8-3·5·6·7**: 소규모 삭제·수정(각 20줄 내외), 한 커밋 가능.
+- **중간 M8-4**: 규모 판단 요청 — (a)/(b)/(c).
+- **중간 M8-8**: pin 버튼(콘솔 2화면).
+- **중간 M8-9·낮음 M8-10·11**: 문서.
