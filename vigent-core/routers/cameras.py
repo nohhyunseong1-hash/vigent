@@ -243,22 +243,96 @@ def _lan_ip() -> str:
         return "127.0.0.1"
 
 
+# ── [CODE_REVIEW M5-3, 2026-09-06] go2rtc 수명 관리 ──────────────────────────────────────
+#   예전엔 Popen 핸들을 버려 서버 종료 후 go2rtc 가 고아로 남았고(C4 실측 2개), 다음 기동은 포트가 잡혀 있으면
+#   옛 프로세스를 그대로 썼다 — 런타임 yaml 은 매 기동 템플릿으로 덮어써도 옛 프로세스는 다시 읽지 않는다.
+#   이제 ①우리가 띄운 프로세스는 핸들 + data/go2rtc.pid 로 추적 ②포트 점유자가 우리 PID 파일의 살아 있는
+#   프로세스면 종료 후 재기동(yaml 재로드 대신) ③남의 프로세스면 손대지 않고 재사용 + 경고 ④서버 shutdown 에서
+#   우리 것만 종료. 테스트: tests/test_go2rtc_lifecycle.py(전부 모킹).
+import logging as _logging
+from pathlib import Path as _Path
+
+_LOG = _logging.getLogger("vigent.cameras")
+_G2_ROOT = _Path(__file__).resolve().parent.parent.parent      # 테스트가 임시 루트로 바꾼다
+_G2_PROC = None                                                 # 우리가 띄운 Popen 핸들(이 프로세스 수명)
+_G2_LOGF = None                                                 # go2rtc stdout/stderr 파일 핸들(예전엔 열고 닫지 않았다)
+_G2_PORT = 1984
+
+
+def _close_logf() -> None:
+    global _G2_LOGF
+    try:
+        if _G2_LOGF is not None:
+            _G2_LOGF.close()
+    except Exception:  # noqa: BLE001
+        pass
+    _G2_LOGF = None
+
+
+def _g2_pidfile() -> _Path:
+    return _G2_ROOT / "data" / "go2rtc.pid"
+
+
+def _g2_port_busy() -> bool:
+    import socket
+    try:
+        with socket.create_connection(("127.0.0.1", _G2_PORT), timeout=0.5):
+            return True
+    except Exception:  # noqa: BLE001
+        return False
+
+
+def _pid_alive(pid: int) -> bool:
+    """PID 가 살아 있는 go2rtc 인가. psutil 있으면 이름까지 대조, 없으면 tasklist(Windows)/ps.
+    ★os.kill(pid, 0) 은 Windows 에서 TerminateProcess 를 부르므로 절대 쓰지 않는다."""
+    try:
+        import psutil
+        p = psutil.Process(pid)
+        return p.is_running() and "go2rtc" in (p.name() or "").lower()
+    except Exception:  # noqa: BLE001  psutil 없음/권한 → 보수적으로 False(남의 것으로 간주)
+        return False
+
+
+def _terminate_pid(pid: int) -> bool:
+    try:
+        import psutil
+        p = psutil.Process(pid)
+        if "go2rtc" not in (p.name() or "").lower():
+            return False
+        p.terminate()
+        p.wait(timeout=5)
+        return True
+    except Exception:  # noqa: BLE001
+        return False
+
+
+def _read_pidfile() -> int | None:
+    try:
+        return int(_g2_pidfile().read_text(encoding="utf-8").strip())
+    except Exception:  # noqa: BLE001
+        return None
+
+
 def ensure_go2rtc() -> bool:
     """go2rtc(WebRTC 변환기)가 안 떠 있으면 백그라운드로 기동. 바이너리 없으면 조용히 건너뜀(스냅샷 폴백).
     서버 startup 에서 1회 호출 → 카메라 확대뷰 실시간 재생 준비. 실패해도 서버·검출은 무중단.
     GO2RTC_LAN_IP 를 주입 → go2rtc.yaml 이 WebRTC 후보에 실제 UDP 바인딩 주소를 광고(127.0.0.1
     후보만으론 실브라우저 ICE 가 UDP 바인딩 불일치로 실패)."""
+    global _G2_PROC, _G2_LOGF
     import os
-    import socket
-    from pathlib import Path
-    try:
-        with socket.create_connection(("127.0.0.1", 1984), timeout=0.5):
-            return True                                   # 이미 실행 중
-    except Exception:  # noqa: BLE001
-        pass
+    if _g2_port_busy():
+        old = _read_pidfile()
+        if old is not None and _pid_alive(old):
+            # 우리가 이전 서버 수명에서 띄운 go2rtc — 런타임 yaml 을 새로 쓰므로 재기동한다(재로드 API 대신)
+            _LOG.warning("go2rtc 옛 인스턴스(pid %d) 발견 — 종료 후 재기동(런타임 설정 갱신)", old)
+            _terminate_pid(old)
+        else:
+            _LOG.warning("포트 %d 를 다른 프로세스가 점유 중(우리 PID 파일 없음/불일치) — 손대지 않고 재사용. "
+                         "확대뷰 스트림 등록이 옛 설정을 볼 수 있다", _G2_PORT)
+            return True
     try:
         import subprocess
-        root = Path(__file__).resolve().parent.parent.parent
+        root = _G2_ROOT
         # [S3] Windows 배포는 bin/go2rtc.exe(확장자 필수 — 무확장자 파일은 CreateProcess가 실행
         #   파일로 인식 못 함). 확장자 없는 bin/go2rtc(맥/리눅스)도 계속 지원 — 존재하는 쪽을 쓴다.
         binp = root / "bin" / "go2rtc.exe"
@@ -284,12 +358,48 @@ def ensure_go2rtc() -> bool:
             rotate_if_large(go2rtc_log, tuning.val("retention", "ops_log_max_mb", 50))
         except Exception:  # noqa: BLE001  회전 실패해도 go2rtc 기동은 막지 않는다
             pass
-        logf = open(go2rtc_log, "ab")   # noqa: SIM115  Popen 수명 동안 유지(관측성 — WebRTC 진단)
-        subprocess.Popen([str(binp), "-config", str(runtime)], cwd=str(binp.parent),
-                         stdout=logf, stderr=logf, env=env)
+        _close_logf()
+        logf = open(go2rtc_log, "ab")   # noqa: SIM115  Popen 수명 동안 유지(관측성 — WebRTC 진단), stop_go2rtc 가 닫는다
+        _G2_LOGF = logf
+        proc = subprocess.Popen([str(binp), "-config", str(runtime)], cwd=str(binp.parent),
+                                stdout=logf, stderr=logf, env=env)
+        _G2_PROC = proc
+        try:
+            _g2_pidfile().write_text(str(proc.pid), encoding="utf-8")
+        except Exception:  # noqa: BLE001  PID 파일 실패해도 핸들은 남는다(이 수명 안에서는 정리 가능)
+            pass
+        _LOG.info("go2rtc 기동(pid %d)", proc.pid)
         return True
     except Exception:  # noqa: BLE001
         return False
+
+
+def stop_go2rtc() -> bool:
+    """서버 shutdown: **우리가 띄운** go2rtc 만 종료(핸들 → 없으면 PID 파일의 살아 있는 go2rtc). 남의 것은 무시."""
+    global _G2_PROC
+    done = False
+    p = _G2_PROC
+    if p is not None:
+        try:
+            if p.poll() is None:
+                p.terminate()
+                p.wait(timeout=5)
+            done = True
+        except Exception:  # noqa: BLE001
+            pass
+        _G2_PROC = None
+    else:
+        old = _read_pidfile()
+        if old is not None and _pid_alive(old):
+            done = _terminate_pid(old)
+    _close_logf()
+    try:
+        _g2_pidfile().unlink(missing_ok=True)
+    except Exception:  # noqa: BLE001
+        pass
+    if done:
+        _LOG.info("go2rtc 종료(우리가 띄운 인스턴스)")
+    return done
 
 
 def autostart_enabled() -> dict:

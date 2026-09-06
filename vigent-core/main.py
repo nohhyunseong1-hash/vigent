@@ -403,6 +403,10 @@ def _shutdown() -> None:
         _log.info("shutdown: 워커 정리 (%s)", stopped)
     except Exception:  # noqa: BLE001
         _log.warning("shutdown: 워커 정리 중 예외\n%s", traceback.format_exc())
+    try:   # [M5-3] 우리가 띄운 go2rtc 만 종료(고아 방지) — 남의 인스턴스는 손대지 않는다
+        _cameras_router.stop_go2rtc()
+    except Exception:  # noqa: BLE001
+        _log.warning("shutdown: go2rtc 정리 중 예외\n%s", traceback.format_exc())
 
 
 @app.on_event("startup")
