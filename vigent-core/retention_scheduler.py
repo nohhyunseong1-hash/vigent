@@ -21,6 +21,7 @@ from __future__ import annotations
 
 import threading
 import time
+from datetime import datetime
 from typing import Any
 
 import tuning
@@ -39,8 +40,31 @@ def interval_s() -> float:
     return max(60.0, float(tuning.val("retention", "sweep_interval_s", 86400.0)))
 
 
+def overdue() -> bool:
+    """[CODE_REVIEW M7-8·M6-9] 마지막 스윕(status.json last_run)이 주기 + 1h 보다 오래됐는가.
+    기록 없음(첫 설치)·파싱 실패는 False — 밀린 것이 확실할 때만 초기 지연을 줄인다."""
+    try:
+        import retention
+        st = retention.read_status() or {}
+        raw = st.get("last_run")
+        if not raw:
+            return False
+        last = datetime.fromisoformat(str(raw))
+        if last.tzinfo is None:
+            last = last.replace(tzinfo=retention.KST)
+        age = (datetime.now(retention.KST) - last).total_seconds()
+        return age > interval_s() + 3600.0
+    except Exception:  # noqa: BLE001  상태 파일 문제로 기동을 막지 않는다
+        return False
+
+
 def initial_delay_s() -> float:
-    """기동 후 첫 스윕까지 대기(초). 예열·워커 기동과 겹치지 않게 기본 10분."""
+    """기동 후 첫 스윕까지 대기(초). 예열·워커 기동과 겹치지 않게 기본 10분.
+
+    ★[M7-8] 마지막 실행이 밀려 있으면(overdue) sweep_overdue_delay_s(기본 60초)로 줄인다 — 프로세스가 10분을 못 넘기는
+    재기동 반복(M4-5 크래시 루프 계열)에서 스윕이 영영 안 도는 것을 막는다(status.json last_run 08-26, 11일 실측)."""
+    if overdue():
+        return max(0.0, float(tuning.val("retention", "sweep_overdue_delay_s", 60.0)))
     return max(0.0, float(tuning.val("retention", "sweep_initial_delay_s", 600.0)))
 
 
@@ -129,6 +153,7 @@ def status() -> dict[str, Any]:
         "failures": s["failures"],
         "next_run_in_s": round(nxt - time.time(), 1) if nxt else None,
         "last_error": s["last_error"],
+        "overdue": overdue(),          # [M7-8] 마지막 스윕이 주기+1h 넘게 밀려 있음(기동 시 초기 지연 60s 로 단축)
     }
 
 

@@ -1,0 +1,15 @@
+# VIGENT AI 에이전트(선택 모듈) 의존성 — [감사 C6, 2026-09-06] requirements-optional.txt 에서 분리.
+#   설치:  python -m pip install -r requirements-agents.txt   (배포 requirements 를 포함해서 설치)
+#   없으면: 감시 서버(감지→억제→텔레그램)는 그대로 돌고, 에이전트의 LLM 종합의견·RAG 의미검색만
+#           규칙 기반 폴백으로 동작한다(vigent-core/llm_provider.py · safety_rag.py — 전부 지연 import).
+#   ★키는 .env 에만(OPENAI_API_KEY · ANTHROPIC_API_KEY, 규칙 5). 로컬 VLM(mlx)은 Apple 전용이라
+#     requirements-optional.txt 에 남긴다 — Windows 대체 구현은 FINAL_SUMMARY 다음 단계 1순위.
+-r requirements.txt
+
+# ── 클라우드 LLM(종합의견 서술·사고분석 종합) — 키 있을 때만 호출 ──
+openai==2.44.0               # VIGENT_LLM_PROVIDER=openai(기본) + OPENAI_API_KEY
+anthropic==0.115.1           # VIGENT_LLM_PROVIDER=anthropic + ANTHROPIC_API_KEY
+
+# ── RAG 의미검색(안전규정·재해원인 검색 정확도↑) ──
+# 최초 1회 한국어 임베딩(jhgan/ko-sroberta-multitask ~400MB) 다운로드. 없으면 키워드(bigram) 폴백.
+sentence-transformers==5.6.0

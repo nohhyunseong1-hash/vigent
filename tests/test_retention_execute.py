@@ -132,9 +132,8 @@ class TestAgeBasedDeletion(_RetentionTest):
     def test_pinned_evidence_survives(self):
         """pin 된 증거는 기간이 지나도 삭제되지 않는다(기존 보장 유지)."""
         pinned = _touch_old(self.ev / "pinned.jpg", 100)
-        rel = str(pinned.relative_to(self.root))
         self._arm()
-        with self._cfg(), mock.patch.object(retention, "_pinned_paths", return_value={rel}):
+        with self._cfg(), mock.patch.object(retention, "_pinned_paths", return_value={pinned.resolve()}):   # [M6-2] resolve 집합
             retention.sweep()
         self.assertTrue(pinned.exists(), "pin 된 증거가 삭제됐다")
 

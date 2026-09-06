@@ -215,3 +215,21 @@ cipher /c D:\vigent_original\data\evidence   # 각 파일 앞 'E' 표시 확인
 ★**GPU 를 키운다고 대수가 늘지 않을 수 있다**: 8대 시점에도 GPU 메모리 18.8%·util 23% 로
 **GPU 는 놀고 있었다**. 병목은 CPU 디코드·추론 직렬화 쪽으로 보인다(원인 미확정 —
 capacity_report §5). 확장 계획은 CPU 코어 수·프로세스 분리를 함께 검토해야 한다.
+
+## N-5. 오프라인 가중치 — 인터넷 없는 현장은 설치 전에 **전부** 조달 **필수**
+
+> [CODE_REVIEW M7-2b, 2026-09-06] 서버 기동은 RF-DETR 캐시 부재를 즉시 거부하지만, 포즈(rtmlib)는 **첫 사람 검출
+> 시점**에 인터넷을 찾는다 — "서버가 떴다"로는 확인이 안 된다(2026-08-21 지게차 영상을 물리자마자 다운로드 관측).
+
+- [ ] `python scripts\fetch_weights.py --all` 실행 → "필수 가중치 전부 확인됨" (required 6종: RF-DETR 4 + rtmlib 2) + 선택 항목까지 — ★[5단계 마무리] `bin\go2rtc.exe`(확대뷰 WebRTC, v1.9.14 win64, sha256 검증)도 이 매니페스트로 받는다(없으면 스냅샷 폴백이라 required 는 아니지만 **오프라인 현장은 미리**)
+- [ ] `python scripts\fetch_weights.py --check --all` 로 재확인(다운로드 없이 SHA256 대조) → `bin\go2rtc.exe` 19,737,088B
+- [ ] 파이썬 환경은 `scripts\setup_env.py --weights` 로 만들었는지(opencv GUI 빌드 제거·cv2 4.13 headless 검증까지 자동) — 인터넷 없는 곳이면 pip 캐시/휠을 먼저 준비
+- [ ] `vigent-core\weights\rtm_cache\hub\checkpoints\` 에 `.onnx` 2파일(101MB + 54MB)이 있는지 확인
+- [ ] 서비스(`install_service.ps1`)·개발 런처(`run.ps1`) 모두 `RF_HOME`·`TORCH_HOME` 을 `vigent-core\weights` 계열로 잡는다 — 다른 값을 셸에 넣어 두지 않았는지 확인
+- [ ] ★**카메라를 물린 뒤 사람 1명이 지나가는 것까지 확인** — 로그에 `Downloading:` 이 찍히면 실패(캐시 경로 불일치)
+
+```powershell
+python scripts\fetch_weights.py --check
+Get-ChildItem vigent-core\weights\rtm_cache\hub\checkpoints
+Select-String -Path logs\vigent.err.log -Pattern "Downloading:" | Select-Object -Last 3   # 아무것도 안 나와야 정상
+```

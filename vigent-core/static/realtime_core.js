@@ -805,21 +805,22 @@ function ppeKeywordScore(preds, type){
   const negative=type==='helmet'
     ? /cap|baseball cap|hat|cowboy|sombrero|bonnet|hair|wig/
     : /shirt|t-shirt|sweatshirt|jacket|coat|suit|apron|cardigan|cloak/;
+  // [CODE_REVIEW M8-5, 2026-09-06] 브라우저 ImageNet 키워드 휴리스틱은 **참고 표시**일 뿐 서버 판정이 아니다.
+  //   예전엔 positive 키워드가 없으면 "예측이 하나라도 있으면 missing(conf≥0.45)" 을 돌려줘 화면이 거의 항상
+  //   미착용으로 보였다. 이제 단서가 없으면 unknown, 있으면 문구에 '참고(서버 판정 아님)' 를 붙이고 통보 경로(getPpeIssues)
+  //   에서는 서버 판정(ppe_yolo)만 쓴다.
   let best=null;
   for(const p of preds||[]){
     const name=(p.className||'').toLowerCase();
     const prob=p.probability||0;
     if(positive.test(name) && (!best||prob>best.confidence)){
-      best={state:'worn',label:type==='helmet'?'착용 추정':'착용 추정',confidence:prob,raw:p.className};
+      best={state:'worn',label:'착용 참고(서버 판정 아님)',confidence:prob,raw:p.className};
     }
     if(!best&&negative.test(name)&&prob>0.35){
-      best={state:'missing',label:'미착용 의심',confidence:prob,raw:p.className};
+      best={state:'missing',label:'미착용 참고(서버 판정 아님)',confidence:prob,raw:p.className};
     }
   }
-  if((preds||[]).length){
-    const top=preds[0]||{};
-    return {state:'missing',label:'미착용 의심',confidence:Math.max(0.45,top.probability||0),raw:top.className||'보호구 단서 없음'};
-  }
+  if(best) return best;
   return {state:'unknown',label:'확인 중',confidence:0,raw:''};
 }
 
@@ -1080,29 +1081,9 @@ async function saveHandCropForTraining(hand, box, preds){
   const top=preds&&preds[0]?preds[0]:null;
   const label=top?translateMN(top.className).replace(/[^\w가-힣]+/g,'_'):'unknown';
   lastCropSaveAt[hand]=now;
-  try{
-    const resp=await fetch(API_BASE+'/dataset/small-object/crop',{
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({
-        image_base64:crop.image,
-        hand,
-        predicted_label:label,
-        confidence:top?top.probability:null,
-        source:'realtime_vision_hand_crop',
-        bbox:crop.bbox,
-        metadata:{raw_class:top?top.className:'',active_service:activeServiceMode}
-      })
-    });
-    if(resp.ok){
-      cropSaveCount++;
-      const el=document.getElementById('handCropStatus');
-      if(el) el.textContent=`학습용 손 크롭 저장: ${cropSaveCount}장 저장됨`;
-    }
-  }catch(e){
-    const el=document.getElementById('handCropStatus');
-    if(el) el.textContent='학습용 손 크롭 저장: 서버 연결 필요';
-  }
+  _unimplemented('/dataset/small-object/crop','학습용 손 크롭 저장('+label+')');   // [M8-2] 서버 라우트 없음
+  const el=document.getElementById('handCropStatus');
+  if(el) el.textContent='학습용 손 크롭 저장: 미구현(서버 라우트 없음)';
 }
 
 // ═══════════════════════════════════════════════════
@@ -1660,16 +1641,8 @@ function applyBpm(bpm, snr, source){
       body:JSON.stringify({text:`❤️ 심박수 ${rppg.lastBpm} bpm · ${z.label} (${source})`})}).catch(()=>{});
   }
 }
-async function refineBpmBackend(){           // 서비스 내장: 백엔드 scipy로 정밀 계산
-  const b=rppg.buf; if(b.length<64) return;
-  const dur=b[b.length-1].t-b[0].t; if(dur<3) return;
-  const fs=b.length/dur;
-  try{
-    const r=await fetch(API_BASE+'/vitals/rppg',{method:'POST',headers:{'content-type':'application/json'},
-      body:JSON.stringify({samples:b.map(p=>p.g), fs})});
-    const j=await r.json();
-    if(j&&j.success){ rppg.lastBackendOk=performance.now()/1000; applyBpm(j.bpm, j.quality, '정밀'); }
-  }catch(e){}
+async function refineBpmBackend(){           // [M8-2] /vitals/rppg 는 서버에서 제거됨(2026-08-12) — 미구현, 간이(JS) 추정만
+  _unimplemented('/vitals/rppg','심박 정밀 계산');
 }
 function hrZone(bpm){
   if(bpm<100) return {label:'저강도', cls:'ok'};
@@ -1838,26 +1811,37 @@ function captureIntrusionEvidence(frame){
   if(fresh){ const cls=backendBoostDets.map(d=>String(d.class).toLowerCase().replace(/-/g,' '));
     if(cls.includes('no hardhat')||cls.includes('no helmet')) reasons.push('안전모 미착용');
     if(cls.includes('no safety vest')||cls.includes('no vest')) reasons.push('안전조끼 미착용'); }
-  // 합성 스냅샷(검은 배경 + 영상 + 오버레이 박스/구역) → 증거 사진
-  const oc=document.createElement('canvas'); oc.width=W; oc.height=H; const octx=oc.getContext('2d');
-  octx.fillStyle='#000'; octx.fillRect(0,0,W,H);
-  try{ const r=mediaRect(W,H);
-    if(shouldFlipDisplay()){ octx.save(); octx.translate(r.x+r.w,r.y); octx.scale(-1,1); octx.drawImage(videoEl,0,0,r.w,r.h); octx.restore(); }
-    else octx.drawImage(videoEl,r.x,r.y,r.w,r.h);
-  }catch(e){}
-  try{ octx.drawImage(canvas,0,0); }catch(e){}
-  let img; try{ img=oc.toDataURL('image/jpeg',0.7); }catch(e){ return; }
+  // [CODE_REVIEW M8-6, 2026-09-06] 증거는 **원본 프레임**(오버레이 없음, 미러 없음)만 보낸다 — 예전엔 영상+박스·스켈레톤·구역을
+  //   합성한 캔버스를 증거 JPEG 로 저장해 그린 선이 증거에 들어갔다. 오버레이는 별도 필드(overlay_base64)로 보내 서버가
+  //   따로 저장한다(증거 옆 *_overlay.png). 서버 모자이크(privacy)는 원본에 그대로 적용된다.
+  let img;
+  try{
+    const oc=document.createElement('canvas'); oc.width=videoEl.videoWidth||W; oc.height=videoEl.videoHeight||H;
+    oc.getContext('2d').drawImage(videoEl,0,0,oc.width,oc.height);
+    img=oc.toDataURL('image/jpeg',0.8);
+  }catch(e){ return; }
+  let overlay=null;
+  try{ overlay=canvas.toDataURL('image/png'); }catch(e){}
   dzCaptureAt=now;
   const vlmOn = !!document.getElementById('togVlmConfirm')?.checked;   // safety 화면에만 존재(없으면 false)
+  // [M8-1] cam: 페이지가 go2rtc 카메라를 가로채 쓰면 그 id(window.VIGENT_CAM_ID) — 서버가 "워커가 감시 중인 카메라" 를 판단한다.
+  const camId=(typeof window!=='undefined' && window.VIGENT_CAM_ID) || 'browser';
   fetch(API_BASE+'/zone/intrusion',{method:'POST',headers:{'content-type':'application/json'},
-    body:JSON.stringify({image_base64:img, people:inZone, reasons, zone:'위험구역A', vlm_confirm:vlmOn})})
+    body:JSON.stringify({image_base64:img, overlay_base64:overlay, people:inZone, reasons, zone:'위험구역A', cam:camId, source:'browser', vlm_confirm:vlmOn})})
     .then(r=>r.json()).then(j=>{ if(j&&j.suppressed) console.info('[VIGENT] 🧠 VLM 오탐 필터 — 침입 알림 억제(증거는 저장)'); }).catch(()=>{});
 }
-// 위험구역 점유 상태를 서버에 푸시(아두이노 E-stop 폴링용)
-function pushZoneState(active){
-  try{ fetch(API_BASE+'/zone/state',{method:'POST',headers:{'content-type':'application/json'},
-    body:JSON.stringify({zone:'위험구역A',active:!!active})}); }catch(e){}
+// ═══ [CODE_REVIEW M8-2, 2026-09-06] 서버에 없는 기능 — "미구현" 으로 비활성 ═══
+//   서버 라우트가 없거나 스텁인 8경로를 부르지 않는다(신설 없음, 대표 결정). 화면에는 미구현 배지, 콘솔에는 사유 1회.
+//   /zone/state 는 서버 스텁({state:"idle"})이라 "E-stop 보조정지 신호" 는 미구현이다 — 문구를 지우고 호출도 하지 않는다.
+const UNIMPLEMENTED_SERVER_PATHS=['/llm/vision','/llm/status','/vision/capabilities','/vision/analyze-current',
+  '/sensor/temperature','/alert/overspeed','/vitals/rppg','/dataset/small-object/crop','/zone/state'];
+const _unimplShown=new Set();
+function _unimplemented(path, what){
+  if(!_unimplShown.has(path)){ _unimplShown.add(path); try{ console.info('[VIGENT] 미구현('+path+'): '+what+' — 서버 라우트 없음/스텁, 호출 생략'); }catch(_){} }
+  return null;
 }
+// 위험구역 점유 상태(구 E-stop 폴링용) — [M8-2] 서버 스텁이라 미구현: 호출하지 않는다
+function pushZoneState(active){ _unimplemented('/zone/state','E-stop 보조정지 신호(active='+(!!active)+')'); }
 // 키포인트(소스 좌표) → 정규화 캔버스 좌표(레터박스/미러 반영) — pointInPoly와 동일 좌표계
 function kpToNorm(kx,ky,W,H,scX,scY){
   const r=mediaRect(W,H); const flip=shouldFlipDisplay();
@@ -1910,8 +1894,7 @@ function zoneIntrusionSeverity(frame){
 let _zoneHbAt=0;
 function handleDangerZone(frame){
   const el=document.getElementById('dzAlert'), mute=document.getElementById('dzMute'), vc=document.getElementById('videoContainer');
-  const _now=Date.now();                              // 1.5초 하트비트: 현재 상태를 주기적으로 갱신(신선도)
-  if(_now-_zoneHbAt>1500){ _zoneHbAt=_now; pushZoneState(dzActive); }
+  // (구 1.5초 /zone/state 하트비트는 [M8-2] 서버 스텁이라 제거)
   const sev = dangerZones.length ? zoneIntrusionSeverity(frame) : 'none';
   if(sev==='danger'){ dzDangerConsec++; dzWarnConsec=0; }
   else if(sev==='warning'){ dzWarnConsec++; dzDangerConsec=0; }
@@ -1923,8 +1906,8 @@ function handleDangerZone(frame){
     if(el){ el.textContent='위험구역 침입 감지! 즉시 확인하세요'; el.classList.remove('warn'); el.classList.add('show'); }
     mute&&mute.classList.add('show'); vc&&vc.classList.remove('dz-warn'); vc&&vc.classList.add('dz-on');
     dzBeep(); dzAlarmTimer=setInterval(dzBeep,650);
-    try{ captureIntrusionEvidence(frame); }catch(e){}   // 증거 사진 + /zone/intrusion(저장·텔레그램)
-    pushZoneState(true);                                // E-stop 보조정지 신호
+    try{ captureIntrusionEvidence(frame); }catch(e){}   // 증거 사진 + /zone/intrusion(저장·통보는 서버 판단 [M8-1])
+    pushZoneState(true);                                // [M8-2] 미구현(서버 스텁) — 호출 생략
   } else if(dzDangerConsec===0 && dzActive){       // 위험 이탈 → 경보 해제
     dzActive=false;
     el&&el.classList.remove('show'); mute&&mute.classList.remove('show'); vc&&vc.classList.remove('dz-on');
@@ -2107,44 +2090,15 @@ function actionText(ar){
 async function loadVisionCapabilities(){
   const box=document.getElementById('visionTaskResult');
   if(!box) return;
-  box.textContent='기능 상태 확인 중...';
-  try{
-    const res=await fetch(API_BASE+'/vision/capabilities');
-    const data=await res.json();
-    if(!res.ok) throw new Error(data.detail||'기능 상태 조회 실패');
-    box.textContent=(data.capabilities||[]).map(c=>`${c.name} [${c.status}]\n- ${c.description}\n- 구현: ${c.current_implementation}`).join('\n\n');
-  }catch(e){
-    box.textContent='기능 상태 조회 실패: '+(e.message||e);
-  }
+  _unimplemented('/vision/capabilities','비전 기능 상태 조회');
+  box.textContent='미구현: 비전 기능 상태 조회(/vision/capabilities)는 서버에 없습니다.';
 }
 
 async function analyzeCurrentVisionFrame(){
   const box=document.getElementById('visionTaskResult');
   if(!box) return;
-  box.textContent='현재 카메라 프레임을 서버에서 분석 중...';
-  try{
-    const res=await fetch(API_BASE+'/vision/analyze-current');
-    const data=await res.json();
-    if(!res.ok) throw new Error(data.detail||'현재 프레임 분석 실패');
-    const tasks=data.tasks||{};
-    const lines=[
-      `사람 수: ${data.people_count}`,
-      `활동: ${data.activity}`,
-      `장면: ${(data.scene&&data.scene.label)||'unknown'} (${Math.round(((data.scene&&data.scene.confidence)||0)*100)}%)`,
-      '',
-      `객체 분류: ${(tasks.object_classification?.classes||[]).map(x=>x.class+' '+x.count).join(', ')||'없음'}`,
-      `객체 탐지/위치: ${tasks.object_detection_localization?.count||0}개`,
-      `객체 분할: ${tasks.object_segmentation?.count||0}개 (${tasks.object_segmentation?.mode||'proxy'})`,
-      `이미지 캡셔닝: ${tasks.image_captioning?.caption||'-'}`,
-      `객체 추적: ${tasks.object_tracking?.count||0}개`,
-      `행동 분류: ${(tasks.action_classification?.actions||[]).map(a=>'#'+(a.track_id||'-')+' '+a.action).join(', ')||'없음'}`,
-      '',
-      JSON.stringify(tasks,null,2)
-    ];
-    box.textContent=lines.join('\n');
-  }catch(e){
-    box.textContent='현재 프레임 분석 실패: '+(e.message||e)+'\n카메라가 켜져 있는지 확인하세요.';
-  }
+  _unimplemented('/vision/analyze-current','현재 프레임 서버 분석');
+  box.textContent='미구현: 현재 프레임 서버 분석(/vision/analyze-current)은 서버에 없습니다.';
 }
 
 function updateFaceUI(f){
@@ -2152,17 +2106,16 @@ function updateFaceUI(f){
   const ok=f&&f.length>0;
   const fd=document.getElementById('faceDetected');
   fd.textContent=ok?'✅ 감지됨':'❌ 미감지'; fd.className='value '+(ok?'green':'');
-  if(!ok){['faceLandmarks','faceGender','faceAge','faceDirection','eyeBlink','mouthState','focusScore'].forEach(id=>{const e=document.getElementById(id);if(e)e.textContent='—';});document.getElementById('emotionBars').innerHTML='<div class="no-data"><span class="icon">😶</span>얼굴을 카메라에 비춰주세요</div>';return;}
-  document.getElementById('faceLandmarks').textContent=`${f.length}개`;
-  const dir=getFaceDir(f); document.getElementById('faceDirection').textContent=dir;
-  const g=estimateGender(f); if(g) document.getElementById('faceGender').textContent=`${g.icon} ${g.gender} (~${g.conf}%)`;
-  document.getElementById('faceAge').textContent=(estimateAge(f)||'—')+' (추정)';
+  const _set=(id,v)=>{const e=document.getElementById(id);if(e)e.textContent=v;};
+  if(!ok){['faceLandmarks','faceGender','faceAge','faceDirection','eyeBlink','mouthState','focusScore'].forEach(id=>_set(id,'—'));const _eb=document.getElementById('emotionBars');if(_eb)_eb.innerHTML='<div class="no-data"><span class="icon">😶</span>얼굴을 카메라에 비춰주세요</div>';return;}
+  _set('faceLandmarks',`${f.length}개`);
+  const dir=getFaceDir(f); _set('faceDirection',dir);
+  _set('faceGender','미추정(개인정보)'); _set('faceAge','미추정(개인정보)');   // [M8-4(b)] 성별·연령 추정 제거
   const earL=dist(f[159],f[145])/(dist(f[33],f[133])||1), earR=dist(f[386],f[374])/(dist(f[362],f[263])||1), ear=(earL+earR)/2;
-  document.getElementById('eyeBlink').textContent=ear<.15?'😴 감김':ear<.22?'😑 반감김':'👁 열림';
-  if(f[13]&&f[14]&&f[61]&&f[291]) document.getElementById('mouthState').textContent=dist(f[13],f[14])/(dist(f[61],f[291])||1)>.22?'👄 열림':'😶 닫힘';
-  document.getElementById('focusScore').textContent=dir==='정면'?(ear<.15?'😴 졸음 주의':'✅ 집중'):`⚠️ ${dir} 시선`;
-  const em=detectEmotion(f); const ec={'기쁨':'#10b981','중립':'#94a3b8','놀람':'#f59e0b','졸음':'#7c3aed'};
-  if(em) document.getElementById('emotionBars').innerHTML=Object.entries(em).map(([n,v])=>`<div class="emotion-bar"><div class="emotion-label">${n}</div><div class="emotion-track"><div class="emotion-fill" style="width:${v}%;background:${ec[n]||'#fff'}"></div></div><div class="emotion-val" style="color:${ec[n]}">${v}%</div></div>`).join('');
+  _set('eyeBlink',ear<.15?'😴 감김':ear<.22?'😑 반감김':'👁 열림');
+  if(f[13]&&f[14]&&f[61]&&f[291]) _set('mouthState',dist(f[13],f[14])/(dist(f[61],f[291])||1)>.22?'👄 열림':'😶 닫힘');
+  _set('focusScore',dir==='정면'?(ear<.15?'😴 졸음 주의':'✅ 집중'):`⚠️ ${dir} 시선`);
+  {const _eb=document.getElementById('emotionBars');if(_eb)_eb.innerHTML='<div class="no-data"><span class="icon">🙈</span>감정 추정 제거(개인정보) — [M8-4]</div>';}
   setDot('dotFace','active');
 }
 
@@ -2218,13 +2171,17 @@ function updateSafetyUI(ar,lm,objs){
   updatePpeUI();
 }
 
+// [M8-5] PPE 표시 문구: 서버 판정(ppe_yolo)만 '판정', 브라우저 ImageNet 키워드는 '참고(서버 판정 아님)'
+function _ppeSrv(){ return latestPpeStatus.source==='ppe_yolo'; }
+function _ppeMissTag(){ return _ppeSrv()?'미착용(서버 판정)':'미착용 참고(서버 판정 아님)'; }
 function getPpeIssues(){
   const issues=[];
   const h=latestPpeStatus.helmet, v=latestPpeStatus.vest;
   const fresh=Date.now()-(latestPpeStatus.updatedAt||0)<5000;
   if(!fresh) return issues;
-  if(h.state==='missing') issues.push({type:'warn',icon:'⛑',title:'안전모 미착용 의심',desc:`머리 영역 분류: ${h.raw||'보호모 단서 없음'}`});
-  if(v.state==='missing') issues.push({type:'warn',icon:'🦺',title:'안전조끼 미착용 의심',desc:`상체 영역 분류: ${v.raw||'조끼 단서 없음'}`});
+  if(latestPpeStatus.source!=='ppe_yolo') return issues;   // [M8-5] 브라우저 휴리스틱은 경고·점수·음성(통보 경로)에 쓰지 않는다
+  if(h.state==='missing') issues.push({type:'warn',icon:'⛑',title:'안전모 미착용(서버 판정)',desc:`머리 영역 분류: ${h.raw||'보호모 단서 없음'}`});
+  if(v.state==='missing') issues.push({type:'warn',icon:'🦺',title:'안전조끼 미착용(서버 판정)',desc:`상체 영역 분류: ${v.raw||'조끼 단서 없음'}`});
   return issues;
 }
 
@@ -2236,8 +2193,8 @@ function updatePpeUI(){
   const workerCount=Math.max(detectedPersonCount,sm?1:0);
   const statusText=(item)=>{
     if(!fresh||item.state==='unknown') return '확인 중';
-    if(item.state==='worn') return `착용 추정 ${Math.round(item.confidence*100)}%`;
-    return `미착용 의심 ${Math.round(item.confidence*100)}%`;
+    if(item.state==='worn') return `${_ppeSrv()?'착용(서버 판정)':'착용 참고(서버 판정 아님)'} ${Math.round(item.confidence*100)}%`;
+    return `${_ppeMissTag()} ${Math.round(item.confidence*100)}%`;
   };
   const workerEl=document.getElementById('ppeWorkerCount');
   if(workerEl) workerEl.textContent=workerCount>0?`${workerCount}명`:'미감지';
@@ -2268,12 +2225,12 @@ function updatePpeUI(){
     guide.textContent='카메라에 머리, 어깨, 상체가 함께 보이도록 맞춰주세요.';
   }else if(missing.length){
     card.className='simple-result danger'; guide.className='simple-guide danger';
-    title.textContent=`작업자 ${workerCount||'?'}명 · ${missing.join(', ')} 미착용 의심`;
+    title.textContent=`작업자 ${workerCount||'?'}명 · ${missing.join(', ')} ${_ppeMissTag()}`;
     desc.textContent='보호구 미착용 후보가 있어 관리자 확인이 필요합니다. 현재 판단은 경량 모델 기반 후보입니다.';
     guide.textContent='미착용이 맞다면 현재 장면 기록을 눌러 캡처 이미지와 함께 리포트에 남기세요.';
   }else if(worn.length){
     card.className='simple-result good'; guide.className='simple-guide';
-    title.textContent=`작업자 ${workerCount||'?'}명 · ${worn.join(', ')} 착용 추정`;
+    title.textContent=`작업자 ${workerCount||'?'}명 · ${worn.join(', ')} ${_ppeSrv()?'착용(서버 판정)':'착용 참고(서버 판정 아님)'}`;
     desc.textContent='보호구 착용 단서가 감지됐습니다. 조명과 각도를 유지하면 더 안정적으로 인식됩니다.';
     guide.textContent='전용 PPE 데이터로 학습하면 안전모/조끼 정확도를 더 높일 수 있습니다.';
   }else{
@@ -2285,57 +2242,8 @@ function updatePpeUI(){
 }
 
 // 얼굴 분석 헬퍼
-function estimateGender(f){if(!f||f.length<400)return null;const fW=dist(f[234],f[454]),fH=dist(f[10],f[152]),jW=dist(f[172],f[397]);if(!fH||!fW)return null;let s=0;if(fW/fH>.72)s++;if(jW/fW>.75)s++;if(dist(f[70],f[63])/fW>.08)s++;return s>=2?{gender:'남성 추정',icon:'👨',conf:Math.round(50+Math.abs(s-1.5)/1.5*35)}:{gender:'여성 추정',icon:'👩',conf:Math.round(50+Math.abs(s-1.5)/1.5*35)};}
-function estimateAge(f){
-  if(!f||f.length<400||!f[10]||!f[152]) return null;
-  const faceH=dist(f[10],f[152]);
-  if(!faceH||faceH<0.01) return null;
-  const faceW=dist(f[234],f[454])||faceH;
-
-  // 1. 눈 높이 비율 — 어린이일수록 눈이 얼굴 대비 크다
-  const eyeH=((dist(f[159],f[145])||0)+(dist(f[386],f[374])||0))/2;
-  const eyeHRatio=eyeH/faceH;
-
-  // 2. 이마 비율 — 어린이일수록 이마가 크다 (눈썹~머리 꼭대기)
-  const browY=((f[105]?.y||0)+(f[334]?.y||0))/2;
-  const foreheadRatio=Math.abs(browY-(f[10]?.y||0))/faceH;
-
-  // 3. 코~턱 비율 — 어른일수록 하안면이 길다
-  const noseChinRatio=f[1]&&f[152]?dist(f[1],f[152])/faceH:0.33;
-
-  // 4. 얼굴 폭/높이 비율 — 어린이일수록 얼굴이 동그랗다
-  const aspectRatio=faceW/faceH;
-
-  // 5. 눈 간격 — 어린이일수록 눈 사이가 상대적으로 넓다
-  const eyeSpanRatio=f[33]&&f[263]?dist(f[33],f[263])/faceW:0.4;
-
-  // 점수화 (높을수록 어린아이)
-  let score=0;
-  if(eyeHRatio>0.070) score+=3;
-  else if(eyeHRatio>0.055) score+=2;
-  else if(eyeHRatio>0.042) score+=1;
-
-  if(foreheadRatio>0.34) score+=3;
-  else if(foreheadRatio>0.28) score+=2;
-  else if(foreheadRatio>0.22) score+=1;
-
-  if(noseChinRatio<0.28) score+=3;
-  else if(noseChinRatio<0.33) score+=2;
-  else if(noseChinRatio<0.38) score+=1;
-
-  if(aspectRatio>0.88) score+=2;
-  else if(aspectRatio>0.80) score+=1;
-
-  if(eyeSpanRatio>0.50) score+=2;
-  else if(eyeSpanRatio>0.44) score+=1;
-
-  // 분류 (최대 13점)
-  if(score>=9)  return '어린이 👶 (10세 미만)';
-  if(score>=6)  return '청소년 🧒 (10~19세)';
-  if(score>=3)  return '청장년 🧑 (20~40대)';
-  return '중장년 🧓 (50대 이상)';
-}
-function detectEmotion(f){if(!f||f.length<400||!f[13]||!f[14])return null;const mO=dist(f[13],f[14])/(dist(f[61],f[291])||1),earL=dist(f[159],f[145])/(dist(f[33],f[133])||1),earR=dist(f[386],f[374])/(dist(f[362],f[263])||1),ear=(earL+earR)/2,smS=((f[0]?.y||0)-((f[61]?.y||0)+(f[291]?.y||0))/2);let e={'기쁨':0,'중립':0,'놀람':0,'졸음':0};if(smS>.01)e['기쁨']=Math.min(100,Math.round(smS*2500));if(mO>.35)e['놀람']=Math.min(100,Math.round(mO*200));if(ear<.18)e['졸음']=Math.min(100,Math.round((.25-ear)*600));if(Object.values(e).reduce((a,b)=>a+b,0)<25)e['중립']=75;const t=Object.values(e).reduce((a,b)=>a+b,1);for(const k in e)e[k]=Math.round(e[k]/t*100);return e;}
+// [CODE_REVIEW M8-4(b), 2026-09-06] estimateGender · estimateAge · detectEmotion 삭제 — 얼굴 랜드마크로 성별·연령·감정을
+//   추정하는 것은 산업안전 감시 목적 밖의 민감정보 추정(개인정보). 시선 방향·눈 감김·집중도(졸음)는 안전 관련이라 유지.
 function getFaceDir(f){if(!f||f.length<400||!f[1]||!f[33]||!f[263])return'—';const dx=f[1].x-(f[33].x+f[263].x)/2,dy=f[1].y-(f[33].y+f[263].y)/2;if(Math.abs(dx)<.03&&Math.abs(dy)<.03)return'정면';if(dx<-.05)return'왼쪽';if(dx>.05)return'오른쪽';return dy<0?'위쪽':'아래쪽';}
 
 // ═══════════════════════════════════════════════════
@@ -2343,8 +2251,7 @@ function getFaceDir(f){if(!f||f.length<400||!f[1]||!f[33]||!f[263])return'—';c
 // ═══════════════════════════════════════════════════
 function buildCoreFrameState(results,W,H,VW,VH,rect,scX,scY,rawPose,smoothedPose,face,lHandLM,rHandLM){
   const action=smoothAction(recognizeAction(smoothedPose));
-  const genderInfo=face&&face.length>0?estimateGender(face):null;
-  const ageInfo=face&&face.length>0?estimateAge(face):null;
+  const genderInfo=null, ageInfo=null;   // [M8-4(b)] 성별·연령 추정 제거 — 필드는 호환용으로 null 유지
   const visibleObjects=latestObjects.filter(o=>o.gone===0);
   const specialActions=detectSpecialActions(lHandLM,rHandLM,smoothedPose,face,leftHeldObjects,rightHeldObjects);
   return {
@@ -2378,14 +2285,12 @@ function _coordMismatchTelemetry(frame,nowVW,nowVH,nowW,nowH){
   if(!mism) return;
   const t=Date.now(); if(t-_coordMismLast<800) return; _coordMismLast=t;   // throttle(스팸 방지)
   const msg=`[coord-mismatch] captured VW×VH=${frame.VW}×${frame.VH} W×H=${frame.W}×${frame.H} → now VW×VH=${nowVW}×${nowVH} W×H=${nowW}×${nowH}`;
-  console.warn(msg);
-  try{ fetch('/recognition/log',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({rule:'coord_mismatch',level:'debug',note:msg})}); }catch(_){}
+  console.warn(msg);   // [CODE_REVIEW M8-7] 디버그는 콘솔만 — 안전 이벤트 로그(/recognition/log)에 섞지 않는다(서버도 규칙 화이트리스트)
 }
 // 카메라 기동/전환·리사이즈 등 기준값이 바뀌는 이벤트를 타임스탬프와 함께 기록(race 창 특정용).
 function _coordEvent(tag){
   const m=`[coord-event] ${tag} VW×VH=${videoEl.videoWidth}×${videoEl.videoHeight} canvas=${canvas.width}×${canvas.height} @${Date.now()}`;
-  console.info(m);
-  try{ fetch('/recognition/log',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({rule:'coord_event',level:'debug',note:m})}); }catch(_){}
+  console.info(m);   // [M8-7] 콘솔만
 }
 function renderCoreFrameOverlays(frame){
   // ★ race guard: 캐시된 frame.scX 사용 금지 — 렌더 시점 실제 videoWidth/canvas 로 스케일 재계산
@@ -3062,77 +2967,15 @@ function hasAnalyzableFrame(){
   return imageMode||videoMode;
 }
 
-async function analyzeWithClaude(base64, apiKey, prompt){
-  const resp=await fetch('https://api.anthropic.com/v1/messages',{
-    method:'POST',
-    headers:{
-      'x-api-key':apiKey,
-      'anthropic-version':'2023-06-01',
-      'anthropic-dangerous-direct-browser-access':'true',
-      'content-type':'application/json'
-    },
-    body:JSON.stringify({
-      model:'claude-3-5-sonnet-20241022',
-      max_tokens:1024,
-      messages:[{role:'user',content:[
-        {type:'image',source:{type:'base64',media_type:'image/jpeg',data:base64}},
-        {type:'text',text:prompt}
-      ]}]
-    })
-  });
-  if(!resp.ok) throw new Error(`Claude API 오류: ${resp.status} ${await resp.text()}`);
-  const d=await resp.json();
-  return d.content[0].text;
-}
-
-async function analyzeWithOpenAI(base64, apiKey, prompt){
-  const resp=await fetch('https://api.openai.com/v1/chat/completions',{
-    method:'POST',
-    headers:{'Authorization':'Bearer '+apiKey,'Content-Type':'application/json'},
-    body:JSON.stringify({
-      model:'gpt-4o',
-      max_tokens:1024,
-      messages:[{role:'user',content:[
-        {type:'image_url',image_url:{url:'data:image/jpeg;base64,'+base64}},
-        {type:'text',text:prompt}
-      ]}]
-    })
-  });
-  if(!resp.ok) throw new Error(`OpenAI API 오류: ${resp.status} ${await resp.text()}`);
-  const d=await resp.json();
-  return d.choices[0].message.content;
-}
-
-async function analyzeWithGemini(base64, apiKey, prompt){
-  const model='gemini-2.0-flash-lite';
-  const resp=await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`,{
-    method:'POST',
-    headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({contents:[{parts:[
-      {inline_data:{mime_type:'image/jpeg',data:base64}},
-      {text:prompt}
-    ]}]})
-  });
-  if(!resp.ok) throw new Error(`Gemini API 오류: ${resp.status} ${await resp.text()}`);
-  const d=await resp.json();
-  return d.candidates[0].content.parts[0].text;
-}
+// [CODE_REVIEW M8-4(b), 2026-09-06] 브라우저 → 클라우드(Anthropic·OpenAI·Gemini) 직접 호출 함수 3개 삭제.
+//   호출부 0 인 죽은 코드였지만 현장 프레임+API 키를 외부로 보내는 경로라 F-12(영상 현장 외 불유출) 원칙과 충돌.
+//   서버 경유(analyzeWithServerVision)만 남긴다 — 그 서버 라우트 자체는 M8-2 에서 "미구현" 으로 표시.
 
 async function analyzeWithServerVision(base64, apiKey, prompt, provider){
-  const resp=await fetch(API_BASE+'/llm/vision',{
-    method:'POST',
-    headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({
-      provider,
-      api_key:apiKey,
-      image_base64:base64,
-      prompt,
-      model:''
-    })
-  });
-  const data=await resp.json().catch(()=>({}));
-  if(!resp.ok) throw new Error(data.detail||`서버 LLM 오류: ${resp.status}`);
-  return data.text||'분석 결과가 비어 있습니다.';
+  // [M8-2] /llm/vision 은 서버에 없다(항상 404 였음). 브라우저가 받은 API 키를 서버로 보내 클라우드에 프레임을 넘기는 구조는
+  //   F-12(영상 현장 외 불유출)와도 충돌 → 미구현으로 비활성. 안전 페이지에는 이 버튼 UI 자체가 없다(함수만 잔존).
+  _unimplemented('/llm/vision','LLM 화면 분석');
+  throw new Error('미구현: 서버 LLM 비전 분석(/llm/vision)은 제공되지 않습니다 — 클라우드 전송은 VIGENT_CLOUD_VLM 정책(F-12)에 따릅니다');
 }
 
 function applyLLMPrecisionResult(text, elapsed){
@@ -3163,8 +3006,10 @@ async function checkLLMStatus(){
   state.className='value yellow';
   setLLMStatus('analyzing','연결 상태 확인 중...');
   try{
-    const resp=await fetch(API_BASE+'/llm/status');
-    const data=await resp.json();
+    _unimplemented('/llm/status','LLM 연결 상태');
+    throw new Error('미구현: /llm/status 서버 라우트 없음');
+    // eslint-disable-next-line no-unreachable
+    const resp=null, data={};
     if(!resp.ok||!data.success) throw new Error(data.detail||'상태 확인 실패');
     const provider=selected==='gpt4o'?'openai':selected;
     const info=data.providers[provider]||{};
@@ -3542,8 +3387,8 @@ function buildSafetyInsight(ar, lm, objects){
   if(danger.length){score-=12;problems.push(`위험 사물 ${danger.map(o=>translateClass(o.class)).join(', ')} 감지`);feedback.push('위험 도구 사용 구역과 보호구 착용 상태를 확인하세요.');}
   if(ppeIssues.length){score-=18;problems.push(ppeIssues.map(i=>i.title).join(' · '));feedback.push('안전모와 안전조끼 착용 여부를 현장에서 다시 확인하세요.');}
   if(personCount===0){score-=10;problems.push('작업자 감지가 불안정합니다');feedback.push('카메라 각도, 조명, 작업자 가림을 조정하세요.');}
-  const h=latestPpeStatus.helmet.state==='worn'?'안전모 착용':latestPpeStatus.helmet.state==='missing'?'안전모 미착용 의심':'안전모 확인 중';
-  const v=latestPpeStatus.vest.state==='worn'?'조끼 착용':latestPpeStatus.vest.state==='missing'?'조끼 미착용 의심':'조끼 확인 중';
+  const h=latestPpeStatus.helmet.state==='worn'?'안전모 착용':latestPpeStatus.helmet.state==='missing'?`안전모 ${_ppeMissTag()}`:'안전모 확인 중';
+  const v=latestPpeStatus.vest.state==='worn'?'조끼 착용':latestPpeStatus.vest.state==='missing'?`조끼 ${_ppeMissTag()}`:'조끼 확인 중';
   return {
     name:'BODA Safety 현장 알림',
     sub:'보호구, 위험구역, 위험 행동 후보를 관리자 관점으로 요약합니다.',
@@ -3961,10 +3806,7 @@ function generateNarrative(genderInfo, ageInfo, actionResult, specialActs, lHeld
   const countKo=['','한','두','세','네','다섯','여섯'];
   const cStr=personCount<=6?countKo[personCount]:personCount+'';
 
-  // 성별
-  let who='사람';
-  if(genderInfo){ who=genderInfo.gender.includes('남')?'남성':'여성'; }
-  const subject=personCount===1?`${who} ${cStr}명이`:`사람 ${cStr}명이`;
+  const subject=`사람 ${cStr}명이`;   // [M8-4(b)] 성별 표현 제거
 
   // 행동 — 특수행동 우선, 없으면 포즈 기반
   const spMap={
@@ -4020,7 +3862,6 @@ function generateNarrative(genderInfo, ageInfo, actionResult, specialActs, lHeld
 
   const sentence=`${subject} ${objStr}${actionStr}`;
   const subParts=[];
-  if(ageInfo) subParts.push(`연령대: ${ageInfo}`);
   if(specialActs.length>1) subParts.push(specialActs.slice(1).map(s=>s.icon+' '+s.text).join(' · '));
   return{sentence, sub:subParts.join(' | ')};
 }
@@ -4099,9 +3940,6 @@ function updateEasyScene(narr, genderInfo, ageInfo, ar, specialActs, lHeld, rHel
   const actionItems=[];
   const actionConfidence=ar.confidence?Math.round(ar.confidence*100):null;
   actionItems.push(`<div class="easy-next-item">${escapeHtml(ar.icon||'🧍')} 현재 행동: <strong>${escapeHtml(ar.action)}</strong>${actionConfidence?` · 안정도 ${actionConfidence}%`:''}</div>`);
-  if(genderInfo||ageInfo){
-    actionItems.push(`<div class="easy-next-item">인물 추정: ${escapeHtml(genderInfo?genderInfo.gender:'성별 미확인')}${genderInfo?` (${genderInfo.conf}%)`:''}${ageInfo?` · ${escapeHtml(ageInfo)}`:''}</div>`);
-  }
   if(specialActs.length){
     actionItems.push(...specialActs.slice(0,3).map(s=>`<div class="easy-next-item ${s.danger?'danger':'warn'}">${escapeHtml(s.icon)} ${escapeHtml(s.text)}</div>`));
   }
@@ -4138,8 +3976,8 @@ function updateSceneUI(genderInfo, ageInfo, ar, specialActs, lHeld, rHeld){
   // 인물 정보 행
   const pc=Math.max(detectedPersonCount,sm?1:0);
   document.getElementById('personCount').textContent=pc>0?`${pc}명 감지`:'감지 중...';
-  if(genderInfo){document.getElementById('narrativeGender').textContent=genderInfo.gender+` (추정 ${genderInfo.conf}%)`;}
-  if(ageInfo){document.getElementById('narrativeAge').textContent=ageInfo;}
+  {const _ng=document.getElementById('narrativeGender'), _na=document.getElementById('narrativeAge');   // [M8-4(b)] 성별·연령 추정 제거
+   if(_ng)_ng.textContent='미추정(개인정보)'; if(_na)_na.textContent='미추정(개인정보)';}
   document.getElementById('narrativeAction').textContent=`${ar.icon||''} ${ar.action}`;
 
   // 특수 행동
@@ -4408,12 +4246,11 @@ function drawThermal(W,H){
   ctx.restore();
   const alertT=parseFloat(document.getElementById('thermAlert').value);
   if(!isNaN(alertT) && maxT>=alertT){
-    ctx.save(); ctx.fillStyle='rgba(220,38,38,.92)'; ctx.fillRect(W/2-150,12,300,30);
-    ctx.fillStyle='#fff'; ctx.font='bold 14px Segoe UI'; ctx.textAlign='center'; ctx.fillText('과열 경보 '+maxT.toFixed(1)+'°C', W/2, 33); ctx.restore();
+    ctx.save(); ctx.fillStyle='rgba(220,38,38,.92)'; ctx.fillRect(W/2-190,12,380,30);
+    ctx.fillStyle='#fff'; ctx.font='bold 14px Segoe UI'; ctx.textAlign='center'; ctx.fillText('과열 경보 '+maxT.toFixed(1)+'°C (통보 미구현)', W/2, 33); ctx.restore();
     const now=Date.now();
     if(now-_thermLastAlert>30000){ _thermLastAlert=now;
-      fetch(API_BASE+'/sensor/temperature',{method:'POST',headers:{'content-type':'application/json'},
-        body:JSON.stringify({sensor:'thermal', celsius:+maxT.toFixed(1), site:'온도경보', threshold_c:alertT})}).catch(()=>{});
+      _unimplemented('/sensor/temperature','열화상 과열 통보 '+maxT.toFixed(1)+'°C');   // [M8-2] 서버 라우트 없음 — 예전엔 조용히 실패
     }
   }
 }
@@ -4430,20 +4267,11 @@ function initThermUI(){
 }
 
 // 디스패처: 매 프레임 호출(renderCoreFrameOverlays에서 try/catch로)
-// 과속 경보: 합성 스냅샷 + 속도 → 백엔드(텔레그램). 15초 쿨다운.
+// 과속 경보 — [M8-2] /alert/overspeed 서버 라우트가 없어 통보는 미구현(예전엔 조용히 실패). 화면 표시(⚠ 라벨)만 유지, 15초 쿨다운.
 let _ovrLastAlert=0;
 function captureOverspeed(frame, label, kmh){
   const now=Date.now(); if(now-_ovrLastAlert<15000) return; _ovrLastAlert=now;
-  const W=frame.W,H=frame.H; const oc=document.createElement('canvas'); oc.width=W; oc.height=H; const octx=oc.getContext('2d');
-  octx.fillStyle='#000'; octx.fillRect(0,0,W,H);
-  try{ const r=mediaRect(W,H);
-    if(shouldFlipDisplay()){ octx.save(); octx.translate(r.x+r.w,r.y); octx.scale(-1,1); octx.drawImage(videoEl,0,0,r.w,r.h); octx.restore(); }
-    else octx.drawImage(videoEl,r.x,r.y,r.w,r.h);
-  }catch(e){}
-  try{ octx.drawImage(canvas,0,0); }catch(e){}
-  let img=''; try{ img=oc.toDataURL('image/jpeg',0.7); }catch(e){}
-  fetch(API_BASE+'/alert/overspeed',{method:'POST',headers:{'content-type':'application/json'},
-    body:JSON.stringify({image_base64:img, kmh:Math.round(kmh), label:label, site:'과속경보'})}).catch(()=>{});
+  _unimplemented('/alert/overspeed','과속 통보 '+label+' '+Math.round(kmh)+'km/h');
 }
 // 이동 객체(사람·차량) 실시간 속도 라벨. 거리 보정 시 km/h, 미보정 시 '이동중'.
 function axDrawSpeed(frame){

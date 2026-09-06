@@ -89,7 +89,7 @@ class TestRetentionSweep(unittest.TestCase):
         _touch_old(old, age_days=100)
         rel = str(old.relative_to(retention._ROOT))
         data_engine.pin_evidence(rel)
-        self.assertIn(rel, data_engine.pinned_paths())
+        self.assertIn(data_engine.norm_rel(rel), data_engine.pinned_paths())   # [M6-2] 저장은 posix 정규화
         with mock.patch.object(retention, "_retention_config",
                                 return_value=self._config(True, True, {"evidence": 30})):
             result = retention.sweep(execute=True)

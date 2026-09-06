@@ -1,0 +1,91 @@
+# 5단계 5-1 깨끗한 환경 검증 — 새 클론 `D:\vigent_verify` (2026-09-06)
+
+> 방법: `git clone --branch audit/cleanup-20260906 D:\vigent_original D:\vigent_verify`(★브랜치가 원격에 아직 없어 **로컬 저장소에서 클론** — 추적 파일만 체크아웃되므로 "저장소에 없는 것" 검출 목적은 동일). `py -3.11 -m venv .venv` → `requirements.txt` 만 설치(agents/train 미설치). 이 PC 의 기존 작업 폴더·가중치·설정은 쓰지 않았다.
+
+## 1. 결과 요약
+
+| 단계 | 결과 | 실측 |
+|---|---|---|
+| 클론 | 추적 파일 1,064 · `data/`(field_eval 라벨 116·legal 2·datasets 1)·`vigent-core/weights/MANIFEST.md` 만 존재. `.env`·`config/notify.yaml`·`config/site.yaml`·`data/cameras.json` 없음(설계대로) | — |
+| venv + pip | Python 3.11.9 · `pip install -r requirements.txt` **exit 0 · 142초** · 패키지 76개 · `pip check` 이상 없음 · venv 1,410MB · 빌드(소스 컴파일) 필요 패키지 **0**(전부 휠) | 로그 verify_pip_install |
+| ★opencv 그림자 | requirements 만으로는 `cv2 == 5.0.0`(GUI `opencv-python`·`opencv-contrib-python` 5.0.0.93 이 `supervision`·`rtmlib`·`rfdetr` 전이의존으로 딸려와 headless 4.13.0.92 를 가림). DEPLOYMENT §3-1 수동 절차(GUI 제거 + headless 강제 재설치) 적용 후 `cv2 == 4.13.0` | 개발 PC 도 5.0.0 이었음 → 모듈 5 RTSP 실측은 5.0.0 기준 |
+| 가중치 | `fetch_weights.py --all` **13/13 OK · 938MB · 117초**(GitHub 릴리스 자산 API + Google Storage + OpenMMLab). `--check --all` 누락 0. required 6종(RF-DETR 4 + rtmlib 2) | 토큰은 GCM(`git credential fill`)에서 자동 |
+| 기동(카메라 0대·채널 미설정) | `run.ps1` → **/health 200 · 17.2초**(503 starting 2회 후) · `status=healthy` · `phase=ready` · `warnings=[channels_not_configured]` · `alerts.channels_configured=false` · cameras 0 · **degraded 아님**. 서버가 cameras.json·notify.yaml 을 만들지 않음(생성물: `data/alert_queue.db`·`data/config/machine_zone.json`·`data/retention/pinned.json`) | verify_health.json |
+| unittest (cv2 5.0.0) | 638 중 **2 실패** — `test_alert_queue.TestQueueEligibilityFollowsWiring` 2건: `_queue_enabled` 가 [M4] 이후 채널 설정을 요구하는데 테스트가 개발 PC 의 `config/notify.yaml` 에 기대고 있었다 → 테스트가 채널 존재를 고정하도록 수정 | 저장소 밖 의존 1건 발견·수정 |
+| unittest (headless 4.13, 수정 후) | **638 OK (skipped 1)** — skip = `test_rfdetr_onnx_parity`(`ppe_rfdetr_v1.onnx` 매니페스트 미포함, 문서화된 skip) | 90초 |
+
+## 1-2. 재실행(2026-09-06 23:3x~23:5x) — opencv constraints·setup_env·go2rtc 매니페스트 편입 후, 새 클론 `D:\vigent_verify2`(커밋 `3764280`)
+
+| 단계 | 결과 | 실측 |
+|---|---|---|
+| 클론 | 추적 파일 1,040 | `git clone --branch audit/cleanup-20260906 D:\vigent_original D:\vigent_verify2` |
+| `setup_env.py --weights` | **exit 0 · 322초** — pip(72패키지, venv 1,264MB) → opencv 정리 → `fetch_weights --all` 13/13 + `bin\go2rtc.exe` 다운로드·sha 일치(`923d5725…`) | 로그 rerun51_setup2 |
+| cv2 | **4.13.0 · GUI NONE · opencv 배포판 `opencv-contrib-python-headless 4.13.0.92` 1종**(수동 절차 없이) | `pip list`, `getBuildInformation` |
+| 기동(카메라 0대·.env 없음·채널 미설정) | 런처 `service_entry.py --host 127.0.0.1 --port 8012` → **/health 200 · 19.4초** · status=healthy · phase=ready · warnings=[channels_not_configured] · 예열 15.91s(CPU torch) | rerun51d |
+| go2rtc | 바이너리 존재·sha 일치. 기동 시 포트 1984 를 **이 PC 의 고아 go2rtc(PID 8556, 03:35 시작, `D:\vigent_original\bin`)** 가 점유 → "손대지 않고 재사용" 경로(설계대로). 클론 바이너리 자체 기동은 이 PC 에서 검증 불가 | 서버 로그 |
+| unittest | **662 OK (skipped=1)** · 124.5초 | rerun51_unittest |
+
+1회차와 달라진 점: 수동 opencv 정리 단계가 없어졌고(cv2 5.0.0 그림자 소멸), go2rtc 가 조달 목록에 들어갔다. 절차 스크립트 결함 2건(PowerShell `*>` 리다이렉트·`$ErrorActionPreference=Stop` 아래 pip stderr 가 NativeCommandError 로 승격, 런처 인자 상대경로)은 검증 스크립트 쪽 문제로 저장소 코드와 무관.
+
+## 2. "저장소에 없어서 실패·주의" 목록
+
+| 파일·항목 | 원인 | 조치 |
+|---|---|---|
+| `config/notify.yaml` | 개발 PC 에만 있음 → 큐 자격 테스트 2건이 이에 의존 | ✅ 테스트 수정(채널 존재 고정) — 5단계 커밋 |
+| GUI opencv 그림자(`cv2` 5.0.0) | 전이의존이 requirements 핀을 덮음 — 원인 특정(.venv 메타데이터): `supervision`(opencv-python>=4.5.5.64) · `trackers`(opencv-python>=4.8.0) · `rtmlib`(opencv-python, opencv-contrib-python) **하드 의존** | ✅ [5단계 마무리] ① `constraints.txt`(requirements 첫 줄 `-c`)가 GUI 빌드도 4.13.0.92 로 고정 → 임시 venv 실측: requirements 만 설치 시 **cv2 4.13.0**(GUI WIN32UI 동거, opencv 3종, pip 411s) ② `scripts/setup_env.py` 가 GUI 제거·headless 재설치·새 프로세스 검증 → **headless 1종 · GUI NONE**. 하드 의존이라 constraints 만으로 GUI 를 "제외"할 수는 없다(측정 결과 그대로) |
+| `vigent-core/weights/*` 13파일(938MB) | gitignore | ✅ `fetch_weights.py`(rtmlib 2종은 M7-2b 에서 편입) |
+| `ppe_rfdetr_v1.onnx`(onnx-cpu 백엔드 패리티 테스트) | 매니페스트에 없음(export 산출물) | 문서: export 절차·선택 항목. 테스트는 skip(정상) |
+| `bin/go2rtc.exe` | 저장소에 없음(gitignore `bin/`; `ensure_go2rtc` 는 미설치 시 경고 후 스냅샷 폴백). ※정정: "개발 PC 에도 없음"은 오기 — 개발 PC 에는 2026-08-10 자 go2rtc.exe(v1.9.14 와 sha 동일)가 있었다 | ✅ [5단계 마무리] `weights_manifest.json` 에 편입: 버전 고정 URL(v1.9.14 win64 zip) + 압축 해제본 sha256 `923d5725…`(19,737,088B) 검증, `root_dest=bin`. `fetch_weights.py --all` 로 받음 — 실측: 기존 파일을 치우고 받아 sha 일치·바이트 동일. required=false(스냅샷 폴백), SITE_CHECKLIST N-5 에 항목 추가 |
+| `vigent-core/static/vendor/`(MediaPipe·TF.js 로컬 번들, `/safety-local` 폐쇄망용) | gitignore(144MB) · 개발 PC 에도 없음 · `bin/download-vendor.sh` 는 bash 스크립트 | 수동 절차(인터넷 있는 곳에서 1회). 시연 화면 전용이라 관제(`/hub`)에는 영향 없음 |
+| `.env` · `config/site.yaml` · `data/cameras.json` | 현장 입력값 | 없어도 기동·테스트 OK(설계대로). `.env.example`·`site.example.yaml` 로 안내 |
+| `node`(JS 구문 검사 테스트) | 선택 도구 | 없으면 skip(테스트가 명시) |
+| 런처 콘솔 한글 | `run.ps1` 의 Write-Host 한글이 리다이렉트 시 깨짐(코드페이지) — 앱 로그(UTF-8)는 정상 | 낮음: `[Console]::OutputEncoding` 설정 후보(다음 단계) |
+
+## 3-1. 5-2 1차 실행 결과(대표, 19:53) — ❌ 실패 → 원인 확정·수정(2026-09-06 20:1x)
+
+- 관찰: 재설치·파라미터(60s/180s·env 7·이벤트 소스)는 성공, 서비스 시작 직후 **Paused** → /health code=0 → 검증 3·4 False, 원복 정상.
+- **원인(확정)**: `logs/vigent.err.log` 마지막 기록 = `[VIGENT 보안 오류] VIGENT_REQUIRE_TOKEN 설정됨 — 무인증 기동을 금지합니다`. 서비스 env `VIGENT_REQUIRE_TOKEN=1` 인데 검증 절차가 `.env`(토큰 출처)를 통째로 중화 → `main.py` 보안 게이트가 **import 시점** `SystemExit(1)` → `_startup` 이전이라 M4-5 흔적(이벤트 1000·startup_failure.json) 0 → NSSM 60s 재시작 대기(Paused) 반복. 의심 1(시스템 Python311 등록)은 이 PC 에 `.venv` 가 없어 그렇게 등록된 것이고 패키지 부재는 아니었다(같은 인터프리터로 638 테스트 통과).
+- 수정 4건: ① `install_service.ps1` — `.venv\Scripts\python.exe` 만(없으면 명시적 오류로 중단, 시스템 python 폴백 금지) + Application 을 얇은 런처 `deploy\windows\service_entry.py` 로 ② 런처가 import·인터프리터 단계 실패를 이벤트 **ID 1001**·`startup_failure.json`(stage=import·stderr 꼬리)에 기록하고 종료코드 반환 — 실측: 토큰 빈값 실험 exit 1, json 기록, 이벤트 1001 기록(비관리자 Write-EventLog 폴백) ③ `service_status.ps1` 이 무응답 시 err 로그 마지막 20줄 + startup_failure.json 출력 ④ 검증 스크립트: nssm stderr 흡수(NativeCommandError 제거), 서비스 Running 선확인(아니면 즉시 사유+err 꼬리), `.env` 는 키 값만 비운 임시본(토큰은 무작위 임시값) 사용, Application/.venv/런처 등록 검증(검증 2) 추가.
+- 이 PC 에 `.venv` 생성(py -3.11, requirements + opencv headless 정리; torch 는 CPU 휠 — GPU 서비스 운용 시 DEPLOYMENT §3 cu130 휠 교체 필요).
+
+## 3-1b. 5-2 2차(20:56)·3차(21:02) 실행 결과 — ❌ 검증 스크립트 결함 → 원인 확정·수정(2026-09-06 21:1x~)
+
+- **2차(20:56)**: 관리자 `-NoProfile` 세션에서 `Get-Command nssm` 이 Source 가 빈 개체를 돌려줘 `& $nssmPath` 가 BadExpression → `Resolve-Nssm`(동봉본 우선·winget Links·`-NssmPath`)을 install/uninstall/verify 3곳에 넣음(커밋 `f107418`).
+- **3차(21:02)**: nssm 경로·`.venv`·`.env` 임시본 생성은 정상. 서비스 시작 직후 **SERVICE_PAUSED** → install exit 1 → 검증 중단, 파일 원복 4/4 정상. 그러나 finally 가 서비스를 **Paused/Automatic** 으로 남김(대표가 수동 stop + SERVICE_DISABLED).
+- **원인 규명(코드 수정 전 실측)**
+  - `data/startup_failure.json`: `count=1 stage=import last_error=SystemExit(1)`, `last_stderr` = `[VIGENT 보안 오류] 외부 바인딩(VIGENT_HOST=0.0.0.0)에는 VIGENT_API_TOKEN 이 필수입니다`(21:03:15). 이벤트 로그 Application/VIGENT **ID 1001** 21:03:15 1건(20:13:47 것은 런처 실험). 회전된 `logs/vigent.err-20260906T120315.286.log`(296B)에 같은 문구. 즉 죽은 지점 = **main.py import 시 보안 게이트**, 토큰이 비어 있었다.
+  - 왜 비었나 — 임시 `.env` 를 만드는 줄 `@("머리글", "VIGENT_API_TOKEN=" + $tmpToken)` 은 PowerShell 에서 **쉼표가 + 보다 먼저 묶여** `@("머리글","VIGENT_API_TOKEN=") + $tmpToken` 이 된다 → 파일에 `VIGENT_API_TOKEN=` 빈 줄 + 다음 줄에 토큰 32자. 같은 코드로 재현해 `dotenv_values` 로 읽으니 `{'VIGENT_API_TOKEN': '', '<토큰>': None}` (실측). → 게이트 SystemExit(1) → NSSM exit 1 → 60s 재시작 대기(Paused).
+  - **LocalSystem 차이가 아니다**: NSSM 이벤트 로그상 21:03:15 exit 1 → 21:04:15 자동 재시작(그 사이 21:03:23 에 원본 `.env` 원복) → **LocalSystem 계정으로 예열 완료 11.28s·카메라 복원·Uvicorn 기동**까지 정상(현재 `vigent.err.log`), 21:04:29 대표의 STOP. 사용자 세션 재현: `nssm get` 으로 읽은 Application·AppParameters·AppDirectory·AppEnvironmentExtra 7개를 그대로 써 `service_entry.py --host 127.0.0.1 --port 8010` 실행 → **/health 200 healthy 17.2s**(원본 .env). 계정·프로필·권한 문제가 아니므로 psexec/schtasks SYSTEM 재현은 불필요.
+  - **결함 1(finally 무동작)의 원인**: 헬퍼 `function Nssm { param([string[]]$Args) … & $nssmPath @Args }` — 매개변수 이름이 `$Args` 면 `@Args` 는 **빈 자동 변수 `$args`** 를 스플래팅해 nssm 이 **인자 없이** 실행된다(최소 재현: `param($Args)+@Args → "[ ]"`, `param($Argv)+@Argv → "[ a b ]"`). 그래서 2·3차의 `nssm dump` 백업 파일이 사용법 배너였고, finally 의 `stop`·`set Start SERVICE_DISABLED` 도 무동작이었다. 비관리자 세션에서는 인자 없는 nssm 이 GUI 창을 띄우고 멈추는 것도 확인(프로세스 강제 종료).
+  - 부수 발견: `nssm set AppEnvironmentExtra` 에 줄바꿈으로 묶은 한 인자를 넘기던 검증 4·5 코드(헬퍼가 죽어 있어 한 번도 실행 안 됨) → 항목별 인자 배열로 고침. `nssm stop/restart … confirm` 의 `confirm` 은 usage 에 없는 인자라 제거.
+- **수정(커밋 예정, 테스트 `tests/test_verify_service_script.py` 8건으로 고정)**: ① 헬퍼 매개변수 `$Argv` + 빈 인자 호출 거부 ② 임시 `.env` 는 `Build-TempEnvLines` 로 줄 단위 생성 + **쓴 파일을 다시 읽어 `VIGENT_API_TOKEN=[a-z0-9]{32}` 줄이 정확히 1개**인지 확인(아니면 설치 전 중단, 규칙 11) ③ 백업 단계에서 `nssm get Start`·Status 를 저장하고 finally 의 `Restore-ServiceState` 가 그 값으로 되돌린 뒤 다시 읽어 일치 여부를 보고(불일치면 수동 명령 출력, 보고서 머리글 "원복(파일 sha256·서비스 상태)") ④ 예외·install 실패·Running 아님 경로에서 `Show-Diag` 가 err 로그 꼬리 20줄(**이 검증 시작 이후 회전본 포함** — NSSM 은 시작마다 err 로그를 회전한다)과 `startup_failure.json` 을 콘솔·보고서에 즉시 출력(값 마스킹).
+
+## 3-2. 5-2 서비스 재설치 검증 절차(관리자 재실행)
+
+이 세션의 PowerShell 은 관리자가 아니다(`IsInRole(Administrator) = False` 실측). NSSM 설치·이벤트 소스 등록·서비스 기동은 관리자 권한이 필요하므로 **전 절차를 자동화한 스크립트를 만들어 두었다**:
+
+```powershell
+# 관리자 PowerShell 에서(실행 정책이 막으면 -ExecutionPolicy Bypass 가 필요 — 3차까지 실측)
+powershell -NoProfile -ExecutionPolicy Bypass -File D:\vigent_original\deploy\windows\verify_service_reinstall.ps1 -HealthTimeoutSec 300
+# 결과: audit\service_reinstall_<시각>.md · 종료코드 0 = 통과 (-HealthTimeoutSec 300 은 이 PC 의 CPU torch .venv 예열 여유)
+```
+
+스크립트가 하는 일: 기존 상태·NSSM 설정 백업 → 중화(cameras·secrets·notify·.env → `*.audit_hold`, sha256) → `install_service.ps1` 재설치(py -3.11 · 60s/180s · 이벤트 소스 · env 7개) → /health 200(warnings=channels_not_configured, degraded 아님) → **의도적 기동 실패**(RF_HOME 오지정) → `startup_failure.json` count 증가·이벤트 ID 1000·연속 실패 간격 ≥ 60s 확인 → env 원복 → /health 200 → `service_status.ps1` 종료코드 0 → **finally**: 서비스 Start 타입·상태를 백업값(`nssm get Start`·Status)으로 원복하고 다시 읽어 대조 · 파일 원복(sha256 대조) · 보고서(예외·install 실패 시 err 꼬리 20줄 + startup_failure.json 즉시 출력). 기동 실패 유도 중 통보는 나가지 않는다(채널 중화, `notified_count` 로 확인).
+
+현재 서비스 상태(실측): `Stopped / Disabled`. `install_service.ps1` 은 5단계에서 `py -3.11` 전용으로 바뀌었다(M7-6).
+
+## 4. 테스트 격리 범위 확장 — logs/ (2026-09-06 마무리)
+
+- 발견: 5-2 4차 게이트(21:26~21:28) 중 `tests/test_machine_guard.py`·`tests/test_bypass_paths_gated.py` 가 `/dispatch/relay` 를 호출하며 `vlog.log_event` 로 운영 `logs/events.jsonl` 에 `dispatch_relay` 행 3개를 남겼다. 4단계 ④ 격리(`isolate_alerts`)는 alert_queue·pin·data/ 만 덮고 logs/ 는 범위 밖이었다.
+- 조치: `tests/_isolate.py` 에 `isolate_logs()`(vlog `_LOG_DIR`·이벤트 로거 캐시·루트 파일 핸들러를 임시 경로로, cleanup 원복) 추가 → `isolate_alerts()` 가 포함. 두 테스트 단독 실행 전후 `events.jsonl`·`vigent.log` sha256 **동일**(실측). 전체 스위트로 재면 루트 로거 일반 로그가 `vigent.log` 를 10MB 회전시켜(변경 3건) 남았으므로, `_isolate` **import 시점에 프로세스 전체** logs/ 를 임시 경로로 돌리고 atexit 에 원복(unittest discover 는 모든 모듈을 import 한 뒤 실행하므로 실행 단계 로그가 전부 격리됨).
+- 검증 도구: `scripts/tree_hash.py snapshot data logs` → 전체 스위트 → `compare`(4단계 ④ 의 수동 data/ 28,815파일 비교를 data/+logs/ 도구로). 결과는 §4-1.
+- **테스트 잔재 표시(삭제하지 않음)**: `logs/events.jsonl` 397~399행 — `ts 2026-09-06T21:27:30`(2행)·`2026-09-06T21:28:11`(1행), `type=dispatch_relay`, `event=guard_bypass` — 실제 현장 사건이 아니라 테스트가 남긴 행이다. 사고 감사 추적에서 이 3행은 제외한다.
+
+### 4-1. 전체 스위트 전후 data/ + logs/ 해시 비교(실측)
+
+| 회차 | 격리 상태 | 결과 |
+|---|---|---|
+| 1 | `isolate_logs` 를 두 테스트(`isolate_alerts` 경유)에만 적용 | 28,369 → 28,370 파일 — **추가 1 · 변경 2**(`logs/vigent.log` 10MB 회전: `.1`·`.2`) — data/ 는 변경 0 |
+| 2·3 | `_isolate` import 시점 프로세스 전체 logs/ 격리 + atexit 원복(격리 중 `vlog.setup()` 이 만든 핸들러도 원복 시 닫고 원래 경로로 재생성) | 28,370 → 28,370 파일 — **추가 0 · 삭제 0 · 변경 0**(2회 연속, 662 tests OK) |
+
+재현: `python scripts/tree_hash.py snapshot data logs -o before.json` → `python -m unittest discover -s tests` → `snapshot … -o after.json` → `compare before.json after.json`(종료코드 0 = 무변경).

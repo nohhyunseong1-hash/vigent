@@ -25,6 +25,7 @@ _HERE = Path(__file__).resolve().parent
 _ROOT = _HERE.parent
 sys.path.insert(0, str(_HERE))
 sys.path.insert(0, str(_ROOT / "vigent-core"))
+from data_paths import field_eval  # noqa: E402  [M6-6] field_eval 은 저장소 밖(VIGENT_DATA_DIR)
 
 import box_quality as bq  # noqa: E402
 
@@ -37,10 +38,10 @@ DRAFT_CONF = 0.10   # 초안 생성 전용(과다생성 의도) — Phase 3 채�
 IMGSZ = 640          # 실배포 검출 해상도와 동일(routers/detect.py live_imgsz 기본값)
 DETECTORS = ["person", "ppe"]
 
-FRAMES_DIR = _ROOT / "data" / "field_eval" / "frames"
-LABELS_DRAFT_DIR = _ROOT / "data" / "field_eval" / "labels_draft"
-PREVIEW_DIR = _ROOT / "data" / "field_eval" / "labels_draft_preview"
-CLASSES_PATH = _ROOT / "data" / "field_eval" / "classes.txt"
+FRAMES_DIR = field_eval("frames")
+LABELS_DRAFT_DIR = field_eval("labels_draft")
+PREVIEW_DIR = field_eval("labels_draft_preview")
+CLASSES_PATH = field_eval("classes.txt")
 
 _COLOR = {  # BGR, danger(NO-*)는 빨강 계열 — 라이브 UI 관례(isDanger=/^no-/i)와 동일 취지
     "person": (255, 180, 0), "Hardhat": (0, 200, 0), "NO-Hardhat": (0, 0, 255),

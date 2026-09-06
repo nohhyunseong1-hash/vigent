@@ -266,7 +266,13 @@ def _protected_dirs() -> list[Any]:
     """개인영상정보가 저장되는 폴더 목록(암호화 검사 대상)."""
     from pathlib import Path
     root = Path(__file__).resolve().parent.parent / "data"
-    return [root / n for n in ("evidence", "recognition", "audit", "tbm", "risk_assessments")]
+    dirs = [root / n for n in ("evidence", "recognition", "audit", "tbm", "risk_assessments")]
+    try:   # [CODE_REVIEW M6-6] 현장 평가 프레임(저장소 밖 VIGENT_DATA_DIR/field_eval)도 개인영상정보 — 보호 폴더 편입
+        import data_paths
+        dirs.append(data_paths.media("field_eval"))
+    except Exception:  # noqa: BLE001  경로 계산 실패가 암호화 검사 전체를 막지 않게
+        pass
+    return dirs
 
 
 def _efs_encrypted(path: Any) -> bool | None:

@@ -29,6 +29,7 @@ _HERE = Path(__file__).resolve().parent
 _ROOT = _HERE.parent
 sys.path.insert(0, str(_HERE))
 sys.path.insert(0, str(_ROOT / "vigent-core"))
+from data_paths import field_eval  # noqa: E402  [M6-6] field_eval 은 저장소 밖(VIGENT_DATA_DIR)
 
 try:
     sys.stdout.reconfigure(encoding="utf-8")
@@ -40,7 +41,7 @@ import env_guard  # noqa: E402
 import tuning  # noqa: E402
 from isolated_detect import detect_isolated  # noqa: E402
 
-_FE = _ROOT / "data" / "field_eval"
+_FE = field_eval()
 _FRAMES = _FE / "frames"
 _LABELS = _FE / "labels"
 _OUT_MD = _HERE / "person_conf_sweep.md"

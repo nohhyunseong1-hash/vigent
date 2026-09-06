@@ -6,7 +6,7 @@ YOLO(.pt) 로딩·추론은 guard.py 기존 코드와 동일(같은 predict 인�
 ■ 지위: 롤백 안전망. T10b 로 전 검출 슬롯(person/ppe/fire_smoke/forklift)이 RF-DETR 이관 완료되어
   이 경로는 배포에서 미사용. **현장 검증(T10c-V) 완료까지 존치**, 이후 제거 검토(제거 조건은 FINDINGS 백로그 등재).
 ■ 라이선스(copyleft 0 유지): `ultralytics`(AGPL-3.0)는 아래 **지연 import**이며 **배포 requirements 에 미포함**.
-  backend=yolo 는 측정/롤백 시에만 사용 가능하고 그때는 별도 설치(requirements-eval.txt) 필요.
+  backend=yolo 는 측정/롤백 시에만 사용 가능하고 그때는 별도 설치(requirements-train.txt, 구 requirements-eval.txt) 필요.
   → 배포물에 AGPL 코드·의존성 미포함 → **copyleft 0 유지**(이 파일 자체는 VIGENT 코드, AGPL 아님).
 ■ 롤백 절차: vision.yaml `backend.<slot>=yolo` 전환 + 측정 requirements 설치(ultralytics) + **서비스 재시작**
   (F-6 운영 리스크: tuning/설정 변경은 재시작 없이는 라이브 미반영).

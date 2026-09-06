@@ -49,7 +49,9 @@ except ImportError:
     raise SystemExit("requests 미설치 — `pip install requests` 후 다시 실행하세요.") from None
 
 _ROOT = Path(__file__).resolve().parent.parent
-_FE = _ROOT / "data" / "field_eval"
+sys.path.insert(0, str(_ROOT / "vigent-core"))
+from data_paths import field_eval  # noqa: E402  [M6-6] field_eval 은 저장소 밖(VIGENT_DATA_DIR)
+_FE = field_eval()
 _PILOT = _FE / "pilot20"
 _REST89 = _FE / "rest89"
 _TASKS_JSON = _PILOT / ".cvat_tasks.json"

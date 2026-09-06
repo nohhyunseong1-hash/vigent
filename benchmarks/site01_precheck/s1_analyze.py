@@ -11,7 +11,7 @@ import sys
 from collections import Counter, defaultdict
 from pathlib import Path
 
-RAW = Path("D:/vigent_original/runs/site01_eval/site1/raw_samples.json")
+RAW = Path(__file__).resolve().parents[2] / "runs/site01_eval/site1/raw_samples.json"   # [C5] 절대경로 제거(JSON 은 저장소에 남음)
 # ★파일 카메라는 검출 주기마다 1프레임을 순차로 읽는다(worker.py:919) → 30fps 영상은
 #   2fps 페이싱에서 1/15 배속. 영상시각 = 관찰시각 ÷ SPEED.
 SPEED = float(sys.argv[1]) if len(sys.argv) > 1 else 15.0

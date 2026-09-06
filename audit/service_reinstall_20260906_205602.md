@@ -1,0 +1,13 @@
+﻿# 서비스 재설치 검증 20260906_205602  결과: ❌ 미통과(아래 로그 확인) · 원복 sha256 일치  백업: service_nssm_dump_before_20260906_205602.txt / 사후: service_nssm_dump_after_20260906_205602.txt 
+- 20:56:02 기존 서비스 상태: Stopped/Disabled
+- 20:56:02 NSSM 설정 백업: service_nssm_dump_before_20260906_205602.txt
+- 20:56:02 중화: cameras.json → .audit_hold (sha256 E796CB578210…)
+- 20:56:02 중화: camera_secrets.json → .audit_hold (sha256 78B6556F462A…)
+- 20:56:02 중화: notify.yaml → .audit_hold (sha256 A34A16E76BC0…)
+- 20:56:02 중화: .env → .env.audit_hold (sha256 29D84F3B1385…), 임시본 키 2개(값 비움·토큰 임시값)
+- 20:56:02 install_service.ps1 실행(재설치)
+- 20:56:06 서비스 최종 상태: Stopped/Disabled (원래: Stopped/Disabled)
+- 20:56:06 원복: cameras.json sha256 일치=True
+- 20:56:06 원복: camera_secrets.json sha256 일치=True
+- 20:56:06 원복: notify.yaml sha256 일치=True
+- 20:56:06 원복: .env sha256 일치=True

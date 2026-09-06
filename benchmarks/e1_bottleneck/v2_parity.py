@@ -14,8 +14,9 @@ import os
 import sys
 from pathlib import Path
 
-ROOT = Path("D:/vigent_original")
+ROOT = Path(__file__).resolve().parents[2]   # [C5] 절대경로 제거
 sys.path.insert(0, str(ROOT / "vigent-core"))
+from data_paths import media  # noqa: E402  [C5] 미디어는 저장소 밖(VIGENT_DATA_DIR)
 import cv2  # noqa: E402
 from agents.guard import JUNK_LABELS, LABEL_NORMALIZE  # noqa: E402
 from detectors.rfdetr_adapter import RfdetrDetector  # noqa: E402
@@ -47,7 +48,7 @@ def iou(a: list[float], b: list[float]) -> float:
 
 def frames(n: int = 24) -> list:
     out = []
-    vids = sorted((ROOT / "runs/rfdetr/accident").glob("*.mp4"))[:6]
+    vids = sorted(media("runs/rfdetr/accident").glob("*.mp4"))[:6]
     per = max(1, n // max(1, len(vids)))
     for v in vids:
         cap = cv2.VideoCapture(str(v))

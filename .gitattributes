@@ -1,0 +1,28 @@
+# [감사 C8, 2026-09-06] 줄바꿈 정책 고정 — 그동안 CRLF 517 / LF 170 / 혼재 2 로 섞여 있었고
+#   core.autocrlf=true 에 의존해 커밋마다 "LF will be replaced by CRLF" 경고가 났다.
+#   원칙: 저장소(index)는 LF, 작업트리는 OS 기본. Windows 전용 스크립트만 CRLF 고정.
+* text=auto
+
+# Windows 배치·PowerShell 은 CRLF 로(cmd.exe 는 LF 배치에서 일부 구문이 깨진다)
+*.bat text eol=crlf
+*.cmd text eol=crlf
+*.ps1 text eol=crlf
+
+# 셸 스크립트·mac 런처는 LF 로(bash 는 CRLF 면 '\r: command not found')
+*.sh text eol=lf
+*.command text eol=lf
+
+# 바이너리 — 절대 변환하지 않는다
+*.jpg binary
+*.jpeg binary
+*.png binary
+*.mp4 binary
+*.mov binary
+*.avi binary
+*.pdf binary
+*.docx binary
+*.pth binary
+*.pt binary
+*.onnx binary
+*.exe binary
+*.ipynb text

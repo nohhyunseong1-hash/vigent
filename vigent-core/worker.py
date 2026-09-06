@@ -61,7 +61,34 @@ _CAP_BUFFERSIZE = int(os.environ.get("VIGENT_CAP_BUFFERSIZE") or tuning.val("sta
 #   워커가 프레임을 못 받아 guard.detect(RF-DETR) 자체가 안 돌아 검출 0 (2026-08 실측: Tapo UDP 재연결 7회,
 #   프레임나이 3~27s). go2rtc(TCP)는 같은 스트림 16fps·멈춤0 로 안정 → 워커도 TCP 로 맞춘다.
 #   파일·웹캠(int) 소스엔 무영향(옵션 무시). env 로 override 가능. cv2 VideoCapture(FFMPEG) 열기 전에 설정.
-os.environ.setdefault("OPENCV_FFMPEG_CAPTURE_OPTIONS", "rtsp_transport;tcp|max_delay;500000")
+# ★[CODE_REVIEW M5-1, 2026-09-06] 옵션은 **여기 한 곳**에서만 정한다. 예전엔 _StreamCapture._open() 이 저지연 옵션
+#   (fflags;nobuffer|flags;low_delay — T-E2E 잔여지연 조치)을 두 번째 setdefault 로 넣었는데, 이 줄이 먼저 실행돼
+#   그 옵션은 한 번도 적용되지 않았다(실측: env 비우고 import → 아래 값 그대로). 저지연 옵션이 프레임 드롭을
+#   늘리는지는 실카메라 10초 수신 프레임 수·None 비율로 5단계 현장 검증(이 PC 엔 RTSP 카메라 없음).
+_FFMPEG_CAPTURE_OPTIONS = "rtsp_transport;tcp|fflags;nobuffer|flags;low_delay|max_delay;500000"
+os.environ.setdefault("OPENCV_FFMPEG_CAPTURE_OPTIONS", _FFMPEG_CAPTURE_OPTIONS)
+# ★[CODE_REVIEW M5-2] RTSP 열기·읽기 타임아웃(ms). 실측(2026-09-06, cv2 5.0/FFmpeg 7.1, 죽은 IP 192.168.0.251):
+#   기본값 = VideoCapture() 가 **123.4초** 블로킹 · FFmpeg `timeout;5000000` 옵션 = 98.8초(무효) ·
+#   OpenCV CAP_PROP_OPEN_TIMEOUT_MSEC/READ_TIMEOUT_MSEC 5000 = **5.06초**. → OpenCV 속성으로 건다(FFmpeg 옵션 이름 무관).
+#   READ 타임아웃은 5초 넘게 프레임이 안 오면 read 가 False → 기존 재연결 경로(hang 15s 보다 먼저 잡힘).
+_RTSP_TIMEOUT_MS = int(os.environ.get("VIGENT_RTSP_TIMEOUT_MS") or tuning.val("stability", "rtsp_timeout_ms", 5000))
+
+
+def _open_capture(source: str):
+    """소스별 VideoCapture 생성 — 스트림(RTSP/HTTP)은 FFMPEG 백엔드 + 열기/읽기 타임아웃, 웹캠(정수)·파일은 기본 백엔드.
+    [M5-4] 열기 실패는 여기서 WARNING 으로 구분해 남긴다("끊김"이 아니라 "열기 실패")."""
+    if source.isdigit():
+        cap = cv2.VideoCapture(int(source))
+    elif Path(source).exists():
+        cap = cv2.VideoCapture(source)
+    else:
+        cap = cv2.VideoCapture(source, cv2.CAP_FFMPEG,
+                               [cv2.CAP_PROP_OPEN_TIMEOUT_MSEC, _RTSP_TIMEOUT_MS,
+                                cv2.CAP_PROP_READ_TIMEOUT_MSEC, _RTSP_TIMEOUT_MS])
+    if not cap.isOpened():
+        _WLOG.warning("캡처 열기 실패(%s) — 주소·자격증명·네트워크 확인(타임아웃 %dms). 재연결 경로로 진행",
+                      _mask_src(source), _RTSP_TIMEOUT_MS)
+    return cap
 _COOLDOWN_S = float(tuning.val("detect", "cooldown_s", 15.0))
 # ②: 증거 JPEG(무거운 후속) 전용 쿨다운 — 이벤트 '기록'은 _COOLDOWN_S 주기로 유지하되,
 #   증거 저장(인코딩+디스크)만 rule별로 이 주기까지 스로틀. 어떤 오발화도 서버를 포화 못 시킴.
@@ -69,6 +96,9 @@ _EVIDENCE_COOLDOWN_S = float(tuning.val("detect", "evidence_cooldown_s", 30.0))
 # 3.9 ①: 포즈(근골격) 추론은 검출(guard)과 주기 분리 — 고정 pose_fps 로만 실행.
 #   프레임당 포즈(CPU ~수백ms)가 focus 5fps 검출을 막던 문제(3.8). 기존 자세 캐던스(2fps)와 동일해 회귀 0.
 _POSE_MIN_INTERVAL = 1.0 / max(0.2, float(tuning.val("worker", "pose_fps", 2.0)))
+# [CODE_REVIEW M1-14] 풀세트 주기 판정의 지터 허용치(초) — 루프 간격이 _full_interval 보다 이만큼 짧게
+#   돌아도 "이번 프레임이 풀세트 차례"로 본다(0.06 = 2fps 기준 주기의 12%). 매직넘버를 이름으로 고정.
+_FULLSET_SLACK_S = 0.06
 
 
 def _point_in_poly(x: float, y: float, poly: list) -> bool:
@@ -267,10 +297,26 @@ def _derive(out: dict, zone: list, aspect_hw: float | None = None,
                         note = ("위험구역 내 작업자 감지(체류 확정)" if subj.startswith("t")
                                 else "위험구역 내 작업자 감지(체류 확정·추적미확정)")
                         fired.append(("zone_intrusion", "high", note, subj))
+                # ★[CODE_REVIEW M2-1, 2026-09-06] 퇴장이 확정된 주체는 정리한다. 예전엔 known·디바운서
+                #   상태에 넣기만 하고 지우지 않아 ByteTrack tid(단조 증가)가 켜둔 만큼 무한히 쌓이고
+                #   매 프레임 전수 순회했다(루프 내 메모리 누적). 조건: 이번 프레임에 안 보이고,
+                #   확정 아님 + raw 밖 상태가 exit_s 이상 유지(= 퇴장 확정). 재진입은 새 진입으로 발화.
+                for subj in list(known):
+                    if subj in inside_tids:
+                        continue
+                    st = debouncer.state(f"{cid}#{subj}")
+                    if st["confirmed"] or st["raw"]:
+                        continue
+                    if st["held_s"] is None or st["held_s"] >= debouncer._exit_s():
+                        known.discard(subj)
+                        debouncer.reset(f"{cid}#{subj}")
         elif raw_inside:                              # 디바운서 미주입 경로(하위호환)
             fired.append(("zone_intrusion", "high", "위험구역 내 작업자 감지", ""))
     if sig.get("ppe_missing"):
-        fired.append(("ppe_missing", "high", "보호구 미착용 감지", ""))
+        # [CODE_REVIEW M2-5] 어떤 항목이 빠졌는지 note 에 싣는다(guard signals.ppe_missing_labels). 없으면 기존 문구.
+        labels = [str(x) for x in (sig.get("ppe_missing_labels") or [])]
+        note = "보호구 미착용 감지" + (f"({', '.join(labels)})" if labels else "")
+        fired.append(("ppe_missing", "high", note, ""))
     if sig.get("fire_smoke"):
         fired.append(("fire_smoke", "critical", "화재/연기 감지", ""))
     # 동적 작업반경(협착) — 지게차·차량 근처에 사람 진입(거리 자동추정)
@@ -322,17 +368,22 @@ class _PoseModel:
     def __init__(self) -> None:
         self._m: Any = None            # RtmPoseDetector(지연 import) → Any
         self._failed = False
+        self._load_lock = threading.Lock()   # [M5-7] 카메라 N대의 포즈 스레드가 동시에 지연 로드하지 않게
 
     def persons(self, frame: "np.ndarray", boxes: list | None = None, min_kp: float = 0.3) -> "list[dict[str, Any]]":
         """boxes: 사람 픽셀 박스 [[x1,y1,x2,y2],..](guard.detect person 유래). None/[] → []."""
         if self._m is None and not self._failed:
-            try:
-                import sys
-                sys.path.insert(0, str(_ROOT / "vigent-core"))
-                from pose.rtmpose_adapter import RtmPoseDetector
-                self._m = RtmPoseDetector()
-            except Exception:  # noqa: BLE001  로드 실패 → 포즈 기능만 비활성(탐지 무중단)
-                self._failed = True
+            with self._load_lock:                       # [M5-7] 이중 로드·부분 초기화 import 경합 차단
+                if self._m is None and not self._failed:
+                    try:
+                        import sys
+                        core = str(_ROOT / "vigent-core")
+                        if core not in sys.path:        # M1-1 과 같은 멱등 삽입
+                            sys.path.insert(0, core)
+                        from pose.rtmpose_adapter import RtmPoseDetector
+                        self._m = RtmPoseDetector()
+                    except Exception:  # noqa: BLE001  로드 실패 → 포즈 기능만 비활성(탐지 무중단)
+                        self._failed = True
         if self._m is None or not boxes:
             return []
         try:
@@ -360,12 +411,16 @@ class ErgonomicsTracker:
     없으므로 중심점 매칭으로 사람별 상태를 잇는다(독립 트랙).
     임계값은 vision.yaml 에서 읽는다(하드코딩 금지). 키포인트 없음/에러 → [] 반환(무중단)."""
 
-    MATCH = 0.18            # 사람 프레임간 매칭 거리(대각선 정규화)
-    _MIN_INTERVAL = 0.5    # 평가 최소 간격(초): 저빈도 스로틀로 추가 포즈추론 비용 최소화
+    MATCH = 0.18            # 사람 프레임간 매칭 거리(대각선 정규화) — 코드 기본값(tuning worker.pose_match_dist 가 우선)
+    _MIN_INTERVAL = 0.5    # 평가 최소 간격(초): 저빈도 스로틀로 추가 포즈추론 비용 최소화 — tuning worker.pose_eval_min_s
 
     def __init__(self, theme: str = "safety") -> None:
         import ergonomics as _erg
         self._erg = _erg
+        # [CODE_REVIEW M7-7(b)] 하드코딩 상수 → tuning.yaml 기본값(값 동일, 동작 불변). 인스턴스 생성 시점에 읽는다.
+        self.match = float(tuning.val("worker", "pose_match_dist", self.MATCH))
+        self.min_interval = float(tuning.val("worker", "pose_eval_min_s", self._MIN_INTERVAL))
+        self.expire_s = float(tuning.val("motion", "track_expire_s", 3.0))   # 사람 트랙 소멸(모션·포즈 공통)
         cfg = _erg.load_ergonomics(theme)
         self._joints = cfg.get("joints", {}) if isinstance(cfg, dict) else {}
         try:
@@ -382,7 +437,7 @@ class ErgonomicsTracker:
         boxes: guard.detect person 박스(픽셀) — RTMPose top-down 입력."""
         if not self._enabled:
             return []
-        if ts - self._last_ts < self._MIN_INTERVAL:      # 저빈도 스로틀
+        if ts - self._last_ts < self.min_interval:       # 저빈도 스로틀
             return []
         self._last_ts = ts
         try:
@@ -414,7 +469,7 @@ class ErgonomicsTracker:
                 d = ((cx - tr["cx"]) ** 2 + (cy - tr["cy"]) ** 2) ** 0.5 / diag
                 if d < bd:
                     bd, best = d, k
-            if best is not None and bd < self.MATCH:
+            if best is not None and bd < self.match:
                 tr = self._tracks[best]
                 used.add(best)
             else:
@@ -428,13 +483,17 @@ class ErgonomicsTracker:
                 held = ts - tr["bad_since"]
                 if held >= self._hold_sec and not tr.get("fired"):   # 지속 확정 시 1회만
                     tr["fired"] = True
-                    level = {"warn": "중간", "bad": "높음"}.get(eff, a.get("level", "낮음"))
-                    note = f"{a['note']} · {held:.0f}초 지속"
+                    # ★[CODE_REVIEW M2-4, 2026-09 결정] 근골격은 **기록 전용, 통보 없음** — level="low"
+                    #   (`/safety/posture` 와 동일). 예전엔 한글 등급("중간"/"높음")이라 dispatcher.on_severity
+                    #   (critical/high/medium)에 안 걸려 어차피 log 전용이었는데, 그 사실이 코드에 드러나지
+                    #   않았다. 등급(warn/bad)은 note 에 남겨 평가·집계에 쓴다.
+                    level = "low"
+                    note = f"{a['note']} · {held:.0f}초 지속 · 등급 {eff}"
                     out.append(("ergonomic_risk", level, note))
             else:                                        # 자세 회복 → 상태 리셋
                 tr["bad_since"] = None
                 tr["fired"] = False
-        self._tracks = [tr for tr in self._tracks if ts - tr.get("ts", 0) < 3.0]
+        self._tracks = [tr for tr in self._tracks if ts - tr.get("ts", 0) < self.expire_s]
         return out
 
 
@@ -445,51 +504,123 @@ class MotionTracker:
     IMMOBILE_SPREAD = 0.03  # 이동 범위(정규화) 이하면 정지로 간주
     RAPID_DIST = float(tuning.val("motion", "rapid_dist", 0.15))   # 급이동 거리(설정)
     RAPID_T = 1.0
+    # [M2-2 육안검증 2026-09-06] 창 여유. 15fps 카메라를 2fps 로 표본화하면 간격이 0.533s 라 두 표본이
+    #   1.067s 로 1.0s 창을 넘어, 실제로 가로질러 걸어간 사람(single_fast 5.85s·occlusion 10.13s)을
+    #   놓쳤다(구 동작은 파편 연결로 우연히 잡음). 워커 루프 지터도 같은 결함을 만든다.
+    RAPID_T_SLACK = 0.1
+    # [M2-2 육안검증] 같은 tid 가 한 표본(0.5s)에 이만큼(보정 거리, x 척도) 이상 점프하면 ByteTrack ID
+    #   재부여로 본다. 배경 작업자 간 재부여가 0.36~0.5/표본으로 관측됐고, 사람의 실제 급이동은
+    #   0.15~0.3/초(=0.075~0.15/표본)라 0.25 는 그 사이에 있다(MATCH=0.32 는 못 걸렀다 — 실측).
+    TID_JUMP_MAX = 0.25
     HIST_S = 60.0
+    # [CODE_REVIEW M3-1, 대표 결정 (b) 2026-09-06] 카메라 흔들림(팬/틸트) 억제: 창 안에 트랙 ≥2 이고 **과반**이
+    #   임계 이상 이동했으며 그 이동 방향이 서로 같으면(평균 벡터와 코사인 ≥ CAMERA_COS) 그 표본의 급격동작을
+    #   억제하고 camera_motion 플래그를 남긴다(육안검증: multi_scene 2.5·13.x·18.5~20.0s 가 전부 카메라 팬/틸트).
+    #   고정 CCTV 전제 — PTZ 카메라 도입 시에는 (a) 전역 이동 보정(트랙 중위 이동 벡터 차감)이 필요하다(메모).
+    CAMERA_COS = 0.8
 
-    def __init__(self) -> None:
+    def __init__(self, immobile_s: float | None = None) -> None:
         self._tracks: list[dict] = []
+        # [M2-3] 프레임 세로/가로 비(h/w). worker 가 프레임마다 채운다(스텁 호환을 위해 인자 대신 속성).
+        #   None = 무보정(정사각 가정, 기존 동작).
+        self.aspect_hw: float | None = None
+        self.camera_motion = False            # [M3-1] 마지막 update 에서 카메라 이동으로 억제했는가(기록용 플래그)
+        # [CODE_REVIEW M7-7(b)] 하드코딩 상수 → tuning.yaml 기본값(값 동일, 동작 불변). 생성 시점에 읽는다.
+        #   대문자 클래스 속성은 코드 기본값(측정 스크립트·테스트 호환)이고, 판정은 아래 인스턴스 값을 쓴다.
+        self.match = float(tuning.val("motion", "match_dist", self.MATCH))
+        self.immobile_spread = float(tuning.val("motion", "immobile_spread", self.IMMOBILE_SPREAD))
+        self.immobile_min_samples = int(tuning.val("motion", "immobile_min_samples", 5))
+        self.rapid_t = float(tuning.val("motion", "rapid_window_s", self.RAPID_T))
+        self.hist_s = float(tuning.val("motion", "hist_s", self.HIST_S))
+        self.expire_s = float(tuning.val("motion", "track_expire_s", 3.0))
+        # [R15] 카메라별 무동작 임계 — 등록부 overrides.motion.immobile_s(앉아 작업 현장 등). 없으면 전역값.
+        base_immobile = float(tuning.val("motion", "immobile_s", self.IMMOBILE_S))
+        self.immobile_s = float(immobile_s) if immobile_s else base_immobile
 
-    def update(self, detections, ts) -> list[tuple[str, str, str]]:
+    def update(self, detections, ts, aspect_hw: float | None = None) -> list[tuple[str, str, str]]:
+        """[CODE_REVIEW M2-2, 2026-09-06] guard 가 주는 안정 tid 를 **우선** 사용한다.
+
+        예전엔 tid 를 무시하고 중심점 최근접(MATCH=0.32 = 화면 폭 1/3)으로만 사람을 이었다 →
+        A 가 나가고 옆에 B 가 나타나면 "같은 사람이 0.25 이동" 이 되어 급격동작이 오발화하고,
+        무동작 트랙은 옆 사람에게 이어져 리셋됐다. tid 가 없는 검출(추적 미확정·passthrough)만
+        기존 중심점 폴백을 쓴다(tid 없는 트랙끼리만 매칭). [M2-3] 급격동작 거리는 y 에 h/w 를 곱해
+        x(폭) 척도로 맞춘다(proximity._gap 과 동일 — 감사 E-1 동류). 무동작 퍼짐 판정은 불변."""
+        ar = aspect_hw if aspect_hw is not None else self.aspect_hw
+        ar = 1.0 if ar is None else max(1e-3, float(ar))
         persons = []
         for d in detections:
             if str(d.get("label", "")).lower() != "person":
                 continue
             bb = d.get("bbox", [0, 0, 0, 0])
-            persons.append(((bb[0] + bb[2]) / 2, (bb[1] + bb[3]) / 2))
+            persons.append(((bb[0] + bb[2]) / 2, (bb[1] + bb[3]) / 2, d.get("tid")))
         used = set()
-        for cx, cy in persons:
-            best, bd = None, 1e9
-            for k, tr in enumerate(self._tracks):
-                if k in used:
-                    continue
-                dd = ((cx - tr["cx"]) ** 2 + (cy - tr["cy"]) ** 2) ** 0.5
-                if dd < bd:
-                    bd, best = dd, k
-            if best is not None and bd < self.MATCH:
+        for cx, cy, tid in persons:
+            best = None
+            if tid is not None:                                   # ① tid 우선(정확 일치)
+                for k, tr in enumerate(self._tracks):
+                    if k not in used and tr.get("tid") == tid:
+                        best = k
+                        break
+                # ★타당성 게이트(실측·육안검증 2026-09-06 multi_scene 19.0·19.5s): ByteTrack 이 다른 배경
+                #   작업자에게 같은 tid 를 재부여하면 tid 만 믿을 때 급격동작이 오발화한다. 한 표본의 보정
+                #   거리(y×h/w, 급격동작과 같은 척도)가 TID_JUMP_MAX 이상이면 "다른 사람" 으로 보고 새 트랙을
+                #   연다(옛 트랙은 tid 를 떼어 만료되게 둔다). 사람의 실제 급이동(≤0.15/표본)은 그대로 잡힌다.
+                if best is not None:
+                    tr0 = self._tracks[best]
+                    jump = ((cx - tr0["cx"]) ** 2 + ((cy - tr0["cy"]) * ar) ** 2) ** 0.5
+                    if jump >= self.TID_JUMP_MAX:
+                        tr0["tid"] = None
+                        tr0["hist"] = []          # ★옛 이력을 비운다 — 남겨두면 분리 뒤에도 옛 표본으로 1초간 재발화(실측)
+                        best = None
+            else:                                                 # ② 폴백: tid 없는 트랙끼리 중심점
+                bd = 1e9
+                for k, tr in enumerate(self._tracks):
+                    if k in used or tr.get("tid") is not None:
+                        continue
+                    dd = ((cx - tr["cx"]) ** 2 + (cy - tr["cy"]) ** 2) ** 0.5
+                    if dd < bd:
+                        bd, best = dd, k
+                if best is not None and bd >= self.match:
+                    best = None
+            if best is not None:
                 tr = self._tracks[best]
                 used.add(best)
             else:
-                tr = {"hist": []}
+                tr = {"hist": [], "tid": tid}
                 self._tracks.append(tr)
                 used.add(len(self._tracks) - 1)
             tr["cx"], tr["cy"] = cx, cy
             tr["hist"].append((ts, cx, cy))
-            tr["hist"] = [h for h in tr["hist"] if ts - h[0] <= self.HIST_S]
-        self._tracks = [tr for tr in self._tracks if tr.get("hist") and ts - tr["hist"][-1][0] < 3.0]
+            tr["hist"] = [h for h in tr["hist"] if ts - h[0] <= self.hist_s]
+        self._tracks = [tr for tr in self._tracks if tr.get("hist") and ts - tr["hist"][-1][0] < self.expire_s]
         out: dict[str, tuple[str, str, str]] = {}
+        # [M3-1] 창 안 이동 벡터를 먼저 모아 "다수 트랙 동시·동방향 이동"(카메라 팬/틸트)을 판정한다.
+        vecs: list[tuple[float, float, float]] = []
         for tr in self._tracks:
-            h = tr["hist"]
-            rec = [x for x in h if 0 <= ts - x[0] <= self.RAPID_T]
+            rec = [x for x in tr["hist"] if 0 <= ts - x[0] <= self.rapid_t + self.RAPID_T_SLACK]
             if len(rec) >= 2:
-                dx, dy = rec[-1][1] - rec[0][1], rec[-1][2] - rec[0][2]
-                if (dx * dx + dy * dy) ** 0.5 > self.RAPID_DIST:
-                    out["rapid_motion"] = ("rapid_motion", "mid", "급격한 이동 감지 — 돌진·이상행동")
-            win = [x for x in h if ts - x[0] <= self.IMMOBILE_S]
-            if len(win) >= 5 and (ts - h[0][0]) >= self.IMMOBILE_S:   # 트랙이 충분히 오래 + 최근 정지
+                dx, dy = rec[-1][1] - rec[0][1], (rec[-1][2] - rec[0][2]) * ar   # [M2-3] y→x 척도
+                vecs.append((dx, dy, (dx * dx + dy * dy) ** 0.5))
+        self.camera_motion = False
+        if len(vecs) >= 2:
+            moving = [v for v in vecs if v[2] > self.RAPID_DIST]
+            if len(moving) * 2 > len(vecs):                          # 과반이 임계 이상 이동
+                mx = sum(v[0] for v in moving) / len(moving)
+                my = sum(v[1] for v in moving) / len(moving)
+                mn = (mx * mx + my * my) ** 0.5
+                if mn > 0:
+                    aligned = sum(1 for v in moving if (v[0] * mx + v[1] * my) / (v[2] * mn) >= self.CAMERA_COS)
+                    self.camera_motion = aligned * 2 > len(vecs)     # 과반이 같은 방향 → 카메라 이동
+        for dx, dy, dist in vecs:
+            if dist > self.RAPID_DIST and not self.camera_motion:
+                out["rapid_motion"] = ("rapid_motion", "mid", "급격한 이동 감지 — 돌진·이상행동")
+        for tr in self._tracks:                                       # 무동작(카메라 이동과 무관)
+            h = tr["hist"]
+            win = [x for x in h if ts - x[0] <= self.immobile_s]
+            if len(win) >= self.immobile_min_samples and (ts - h[0][0]) >= self.immobile_s:   # 충분히 오래 + 최근 정지
                 xs = [x[1] for x in win]
                 ys = [x[2] for x in win]
-                if max(max(xs) - min(xs), max(ys) - min(ys)) < self.IMMOBILE_SPREAD:
+                if max(max(xs) - min(xs), max(ys) - min(ys)) < self.immobile_spread:
                     out["immobility"] = ("immobility", "high", "장시간 무동작 — 쓰러짐·실신 의심")
         return list(out.values())
 
@@ -523,12 +654,9 @@ class _StreamCapture:
         self._thread.start()
 
     def _open(self):
-        # [T-E2E 잔여지연] FFmpeg RTSP 저지연 옵션 — 기본값은 리오더/지터 버퍼로 0.5~1s 고정
-        #   지연을 만든다(시계 촬영 실측: grab-드레인 후에도 상수 ~1.35s 잔존의 유력 성분).
-        #   nobuffer+low_delay+max_delay 0.5s 상한. setdefault 라 운영자가 환경변수로 덮어쓰기 가능.
-        os.environ.setdefault("OPENCV_FFMPEG_CAPTURE_OPTIONS",
-                              "rtsp_transport;tcp|fflags;nobuffer|flags;low_delay|max_delay;500000")
-        cap = cv2.VideoCapture(int(self.source) if self.source.isdigit() else self.source)
+        # [T-E2E 잔여지연] FFmpeg RTSP 저지연 옵션(nobuffer+low_delay+max_delay 0.5s)은 모듈 상단
+        #   _FFMPEG_CAPTURE_OPTIONS 한 곳에서 정한다([M5-1] — 여기 있던 두 번째 setdefault 는 죽은 코드였다).
+        cap = _open_capture(self.source)          # [M5-2·M5-4] 타임아웃 + 열기 실패 로그
         try:
             cap.set(cv2.CAP_PROP_BUFFERSIZE, _CAP_BUFFERSIZE)   # 보조(웹캠/V4L2 등 일부만 존중; FFmpeg/RTSP 는 무시될 수 있음)
         except Exception as _we:  # noqa: BLE001
@@ -643,6 +771,7 @@ class Worker:
         self._last_frame = None                              # 3.0: 최신 프레임(스냅샷/오버레이용, numpy 참조)
         self._last_dets: list = []                           # 3.0: 최신 검출(정규화 bbox) — 대시보드 오버레이
         self._last_pc = 0                                    # 최신 인원수
+        self._overrides: dict = {}                           # [R15] 카메라별 override(등록부 overrides) — start() 가 채움
         self._last_sig: dict = {}                            # 최신 파생신호(ppe_missing·fire 등)
         self._last_fired: list = []                          # 3.1b: 최신 발화 규칙명(zone_intrusion 등) — 대시보드 뱃지·전역경보
         self._last_det_ts = 0.0                              # 3.8: 최신 검출 갱신 시각(ms) — 확대뷰 ingest 간격 산출
@@ -667,11 +796,13 @@ class Worker:
             "frames": 0, "events": 0, "last_event": "", "error": ""}
 
     def start(self, guard, lock, source: str, name: str = "CAM", fps: float = 2.0,
-              detectors: list | None = None, zone: list | None = None) -> dict:
+              detectors: list | None = None, zone: list | None = None,
+              overrides: dict | None = None) -> dict:
         if self.state["running"]:
             return {"ok": False, "error": "이미 실행 중 — 먼저 중지하세요."}
         self._stop.clear()
         self._restart_req.clear()
+        self._overrides = dict(overrides or {})              # [R15] 카메라별 override(motion.immobile_s)
         # [S2-수정] state["source"]는 status()/⟶ /worker/status·/workers API로 그대로 노출된다 —
         #   스모크 테스트로 실제 응답에 원본 RTSP 자격증명이 그대로 찍히는 걸 발견(기존엔 마스킹
         #   안 됨). 워커 스레드(연결용)에는 원본 source를 그대로 넘기고, state에는 마스킹만 저장.
@@ -844,11 +975,12 @@ class Worker:
     fault_stop_detect = bool(os.environ.get("VIGENT_FAULT_STOP_DETECT"))
 
     def _process_frame(self, frame, t0, guard, lock, ctx: "_FrameCtx"):
-        if self.fault_stop_detect:      # [B2] 주입된 결함: 추론을 건너뛴다 → last_detect_ts 가 늙는다
-            return
         """단일 프레임 처리 — 수집·추론·트래커·발화·쿨다운·이벤트로깅(P2-13에서 _loop 에서 추출).
         프레임 단위 예외를 여기서 격리(한 프레임 실패가 루프를 죽이지 않음).
-        ctx.cooldown/last_collect 와 self.state 를 갱신한다. 동작은 추출 전과 동일."""
+        ctx.cooldown/last_collect 와 self.state 를 갱신한다. 동작은 추출 전과 동일.
+        ([CODE_REVIEW M1-8] 이 docstring 이 아래 if 문 뒤에 있어 실행 없는 문자열이었다 — 위치만 교정)"""
+        if self.fault_stop_detect:      # [B2] 주입된 결함: 추론을 건너뛴다 → last_detect_ts 가 늙는다
+            return
         try:                                        # 1단계: 프레임 단위 예외 격리 → 한 프레임 실패가 루프를 죽이지 않음
             if ctx.collect_on and (t0 - ctx.last_collect) >= ctx.collect_every:   # 학습용 프레임 수집
                 ctx.last_collect = t0
@@ -864,7 +996,7 @@ class Worker:
             #   person 전용은 단일 슬롯(~27ms)이라 focus 5fps 라도 GPU 예산이 5fps 풀세트(425ms/s)보다 낮다
             #   (focus 예산 ≈ 2×85[풀세트] + 5×27[person] = 305ms/s). focus 아니면 매 프레임 풀세트(기존과 동일).
             focus_active = self._interval < self._full_interval - 1e-6
-            do_full = (not focus_active) or (t0 - self._last_full_ts >= self._full_interval - 0.06)
+            do_full = (not focus_active) or (t0 - self._last_full_ts >= self._full_interval - _FULLSET_SLACK_S)
             _H, _W = frame.shape[:2]
             person_boxes: list = []
             out: dict = {}
@@ -950,10 +1082,19 @@ class Worker:
                     except Exception as _ze:  # noqa: BLE001  가산 레이어 — 실패해도 기존 검출 무중단
                         _WLOG.debug("worker 무시 예외 [zone-tile]: %s", _ze)
             # mtrack 은 3-튜플을 돌려주므로 subject 를 붙여 형식을 맞춘다(사람 단위 아님).
+            ctx.mtrack.aspect_hw = _H / _W if _W else None            # [M2-3] y 척도 보정용(속성 주입 — 스텁 호환)
             fired += [(r, lv, n, "") for r, lv, n in
                       ctx.mtrack.update(out.get("detections", []), t0)]   # 무동작·급이동
+            if getattr(ctx.mtrack, "camera_motion", False):            # [M3-1] 카메라 이동으로 억제한 표본 — 기록(플래그·카운터)
+                self.state["camera_motion_frames"] = self.state.get("camera_motion_frames", 0) + 1
+                self._last_sig = {**self._last_sig, "camera_motion": True}
             self._last_fired = [r[0] for r in fired]                # 3.1b: 이번 프레임 발화 규칙(뱃지·전역경보 근거)
             now = time.time()
+            # [CODE_REVIEW M3-4, 2026-09-06] 만료된 쿨다운 키 정리 — zone_intrusion 은 사람 단위 키(`rule|t<tid>`)라
+            #   지우지 않으면 운영 일수만큼 누적됐다(M2-1 동류). 만료 키는 더 이상 아무것도 억제하지 못하므로 제거해도
+            #   동작 불변. 증거 쿨다운(evidence_cd)은 규칙 단위(유한)라 그대로.
+            for _ck in [k for k, t in ctx.cooldown.items() if now - t >= _COOLDOWN_S]:
+                ctx.cooldown.pop(_ck, None)
             for rule, level, note, subject in fired:
                 # ★[D1-C] 쿨다운 키에 발화 주체를 넣는다 — A 때문에 걸린 쿨다운이
                 #   B의 진입을 가리지 않게. subject 가 ""(사람 단위 아님)면 기존과 동일.
@@ -1006,7 +1147,10 @@ class Worker:
         collect_on = os.environ.get("VIGENT_COLLECT", "0") == "1"
         collect_every = float(os.environ.get("VIGENT_COLLECT_EVERY", "30"))
         dataset_dir = _ROOT / "data" / "dataset" / "images"
-        mtrack = MotionTracker()                                       # 무동작·급이동 추적
+        # [R15] 카메라별 무동작 임계 override(등록부 overrides.motion.immobile_s) — 적용값을 state 에 노출(규칙 11).
+        _imm = (self._overrides.get("motion") or {}).get("immobile_s") if isinstance(self._overrides, dict) else None
+        mtrack = MotionTracker(immobile_s=_imm)                        # 무동작·급이동 추적
+        self.state["immobile_s"] = mtrack.immobile_s
         etrack = ErgonomicsTracker()                                   # 근골격계 부담자세 지속(가산)
         # ★[F5, 2026-08-21] 구역 결정 — **전역 폴백은 기본 차단**한다.
         #   이전 동작: 카메라별 구역이 없으면 조용히 전역 구역(config/danger_zone.json)을 썼다.
@@ -1049,7 +1193,7 @@ class Worker:
             self._streamcap = streamcap
             _WLOG.info("워커 '%s'(%s) 캡처 스레드 모드(최신 프레임 우선)", name, _mask_src(source))
         elif not is_image:
-            cap = cv2.VideoCapture(int(source) if source.isdigit() else source)
+            cap = _open_capture(source)              # [M5-2] 스트림이면 타임아웃 적용
             if is_stream:
                 try:
                     cap.set(cv2.CAP_PROP_BUFFERSIZE, _CAP_BUFFERSIZE)   # 보조(FFmpeg/RTSP 는 무시될 수 있음 → thread 모드 권장)
@@ -1124,7 +1268,7 @@ class Worker:
                                 while slept < rbackoff and not self._stop.is_set() and not self._restart_req.is_set():
                                     time.sleep(0.2)
                                     slept += 0.2
-                                cap = cv2.VideoCapture(int(source) if source.isdigit() else source)
+                                cap = _open_capture(source)          # [M5-2] 재연결도 타임아웃 적용
                                 try:
                                     cap.set(cv2.CAP_PROP_BUFFERSIZE, _CAP_BUFFERSIZE)   # 재연결 후에도 버퍼 최소화 유지
                                 except Exception as _we:  # noqa: BLE001
@@ -1188,7 +1332,8 @@ class WorkerManager:
         self.site = ""
 
     def start(self, guard, infer_lock, cam_id: str, source: str, name: str = "",
-              fps: float = 2.0, zone: list | None = None, detectors: list | None = None) -> dict:
+              fps: float = 2.0, zone: list | None = None, detectors: list | None = None,
+              overrides: dict | None = None) -> dict:
         with self._reg_lock:
             cur = self._workers.get(cam_id)
             if cur and cur.state["running"]:
@@ -1196,7 +1341,7 @@ class WorkerManager:
             w = Worker()
             self._workers[cam_id] = w
         return w.start(guard, infer_lock, source, name=name or cam_id, fps=fps,
-                       detectors=detectors, zone=zone)
+                       detectors=detectors, zone=zone, overrides=overrides)
 
     def stop(self, cam_id: str) -> dict:
         w = self._workers.get(cam_id)

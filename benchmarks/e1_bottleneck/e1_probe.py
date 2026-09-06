@@ -1,7 +1,7 @@
 # [E1] 가설별 실험 — 부하 단계마다 per-core CPU·단계별 소요시간·GPU 를 기록
 import json, subprocess, sys, time, urllib.request
 from pathlib import Path
-ROOT = Path("D:/vigent_original")
+ROOT = Path(__file__).resolve().parents[2]   # [C5] 절대경로 제거
 TOK = ""
 for line in (ROOT/".env").read_text(encoding="utf-8").splitlines():
     if line.startswith("VIGENT_API_TOKEN="): TOK = line.split("=",1)[1].strip()

@@ -3,7 +3,9 @@
 #   락 대기 / 락 안 추론 / 디코드 시간을 분리 계측한다.
 import json, sys, threading, time
 from pathlib import Path
-sys.path.insert(0, "D:/vigent_original/vigent-core")
+_REPO = Path(__file__).resolve().parents[2]   # [C5] 절대경로 제거
+sys.path.insert(0, str(_REPO / "vigent-core"))
+from data_paths import media  # noqa: E402  [C5] 미디어는 저장소 밖(VIGENT_DATA_DIR)
 import cv2, psutil, vision_loader
 from agents import build_agents
 
@@ -77,7 +79,7 @@ def run(n, videos, secs, fps=2.0):
 if __name__ == "__main__":
     mode = sys.argv[1] if len(sys.argv) > 1 else "hi"
     secs = float(sys.argv[2]) if len(sys.argv) > 2 else 60.0
-    d = Path("D:/vigent_original/runs/rfdetr") / ("accident" if mode=="hi" else "lowres")
+    d = media("runs/rfdetr") / ("accident" if mode=="hi" else "lowres")
     # ★hi/lo 가 같은 장면을 쓰도록 앞 7편만 사용(low1..low7 == accident[0:7], 1/9 픽셀)
     vids = sorted(str(p) for p in d.glob("*.mp4"))[:7]
     out = []

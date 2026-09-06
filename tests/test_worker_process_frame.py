@@ -17,6 +17,7 @@ sys.path.insert(0, str(ROOT / "vigent-core"))
 
 import data_engine  # noqa: E402
 import worker  # noqa: E402
+from _isolate import isolate_alerts  # noqa: E402
 
 
 def _ctx(detectors=None, zone=None, collect_on=False):
@@ -40,6 +41,7 @@ class _RaisingGuard:
 
 class TestProcessFrame(unittest.TestCase):
     def setUp(self):
+        self.addCleanup(isolate_alerts())     # [4단계 ④] TESTCAM 발화가 운영 큐·전송기에 닿지 않게
         self.frame = np.zeros((48, 64, 3), dtype=np.uint8)
         self.lock = threading.Lock()
         self.worker = worker.Worker()

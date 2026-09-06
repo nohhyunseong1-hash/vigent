@@ -33,6 +33,9 @@ import env_guard
 import numpy as np
 
 _ROOT = Path(__file__).resolve().parent.parent
+import sys  # noqa: E402
+sys.path.insert(0, str(_ROOT / "vigent-core"))
+from data_paths import field_eval  # noqa: E402  [M6-6] field_eval 은 저장소 밖(VIGENT_DATA_DIR)
 _OUT = _ROOT / "benchmarks" / "results" / "baseline_yolo.json"
 
 # 현장 평가셋 클래스 스킴(docs/labeling_guide.md §0). 순서가 라벨 txt 의 class id(0~6)를 정의한다.
@@ -74,8 +77,8 @@ _DATASETS = {
     # 그래서 같은 이미지·같은 라벨을 쓰되 gt_filter 로 클래스를 갈라 두 데이터셋으로 등록한다
     # (섞어서 재면 어느 모델의 성능인지 구분되지 않는다).
     "field_eval_person": {
-        "images": _ROOT / "data" / "field_eval" / "frames",
-        "labels": _ROOT / "data" / "field_eval" / "labels",
+        "images": field_eval("frames"),
+        "labels": field_eval("labels"),
         "gt_names": None,
         "data_yaml": None,
         "slot": "person",
@@ -83,8 +86,8 @@ _DATASETS = {
         "gt_filter": ["person"],               # 채점 대상 — 정답 201건
     },
     "field_eval_ppe": {
-        "images": _ROOT / "data" / "field_eval" / "frames",
-        "labels": _ROOT / "data" / "field_eval" / "labels",
+        "images": field_eval("frames"),
+        "labels": field_eval("labels"),
         "gt_names": None,
         "data_yaml": None,
         "slot": "ppe",
@@ -404,7 +407,7 @@ def main() -> None:
         if not args.dataset.startswith("field_eval"):
             print(f"[경고] --split은 field_eval_* 데이터셋 전용이라 --dataset={args.dataset}엔 무시됨")
         else:
-            split_path = _ROOT / "data" / "field_eval" / "dev_test_split.json"
+            split_path = field_eval("dev_test_split.json")
             split_data = json.loads(split_path.read_text(encoding="utf-8"))
             _SPLIT_FILES = set(split_data[args.split])
             print(f"[split={args.split}] {len(_SPLIT_FILES)}장으로 필터(dev_test_split.json)")

@@ -1,0 +1,1312 @@
+test_large_move_is_ema_max (test_adaptive_ema.TestAdaptiveEma.test_large_move_is_ema_max) ... ok
+test_mid_between (test_adaptive_ema.TestAdaptiveEma.test_mid_between) ... ok
+test_no_move_is_ema_min (test_adaptive_ema.TestAdaptiveEma.test_no_move_is_ema_min) ... ok
+test_backoff_grows_and_is_capped (test_alert_queue.TestBackoffAndDeadLetter.test_backoff_grows_and_is_capped) ... ok
+test_dead_is_not_retried (test_alert_queue.TestBackoffAndDeadLetter.test_dead_is_not_retried) ... 2026-09-06 04:07:01,460 [ERROR] vigent.alert_queue: 경보 데드레터(재시도 10회 초과) id=1: boom
+ok
+test_dead_letter_after_max_attempts (test_alert_queue.TestBackoffAndDeadLetter.test_dead_letter_after_max_attempts)
+재시도 한도를 넘으면 dead \u2014 조용히 사라지지 않고 표시로 남는다. ... 2026-09-06 04:07:01,537 [ERROR] vigent.alert_queue: 경보 데드레터(재시도 10회 초과) id=1: boom
+ok
+test_queue_does_not_duplicate_suppressed_alerts (test_alert_queue.TestCooldownIndependence.test_queue_does_not_duplicate_suppressed_alerts)
+쿨다운은 상류 필터, 큐는 하류 전달 보장 \u2014 쿨다운이 거른 건 큐에 들어오지 않는다. ... ok
+test_queue_survives_process_restart (test_alert_queue.TestDurability.test_queue_survives_process_restart)
+★프로세스 재시작 후에도 큐가 살아남아 이어서 전송된다. ... ok
+test_write_ahead_survives_crash_before_send (test_alert_queue.TestDurability.test_write_ahead_survives_crash_before_send)
+전송 시도 전에 죽어도 경보는 남는다(선기록 후전송). ... ok
+test_pending_makes_health_degraded (test_alert_queue.TestHealthIntegration.test_pending_makes_health_degraded)
+미전송이 1건이라도 있으면 /health 는 degraded 여야 한다. ... ok
+test_real_remote_failure_still_retries (test_alert_queue.TestLogOnlyLevelNotRetriedForever.test_real_remote_failure_still_retries)
+★반대로 원격 채널을 실제로 시도했다가 실패한 건은 **계속 재시도**해야 한다. ... ok
+test_relay_only_result_is_also_terminal (test_alert_queue.TestLogOnlyLevelNotRetriedForever.test_relay_only_result_is_also_terminal)
+safety_relay_signal 만 있는 결과도 원격 전송이 아니므로 종결 대상이다. ... 2026-09-06 04:07:01,741 [INFO] vigent.alert_queue: 원격 채널 없는 등급(critical) \u2014 로그 전달로 종결 처리(재시도 중단): 프레스 우회
+ok
+test_result_without_remote_channel_is_terminal (test_alert_queue.TestLogOnlyLevelNotRetriedForever.test_result_without_remote_channel_is_terminal)
+★로그 채널만 있는 결과는 '전달 완료'로 종결한다 \u2014 재시도하지 않는다. ... 2026-09-06 04:07:01,767 [INFO] vigent.alert_queue: 원격 채널 없는 등급(mid) \u2014 로그 전달로 종결 처리(재시도 중단): 급격한 이동 감지
+ok
+test_five_alerts_survive_outage_and_arrive_in_order (test_alert_queue.TestOutageAndRecovery.test_five_alerts_survive_outage_and_arrive_in_order)
+★지시 시나리오: 채널 끊김 중 5건 → 복구 → 5건 모두 순서대로 도착. ... ok
+test_success_path_marks_sent (test_alert_queue.TestOutageAndRecovery.test_success_path_marks_sent) ... ok
+test_follows_custom_wiring (test_alert_queue.TestQueueEligibilityFollowsWiring.test_follows_custom_wiring)
+현장에서 mid 에 원격을 배선하면 그때는 큐에 들어가야 한다. ... ok
+test_log_only_level_is_not_queued (test_alert_queue.TestQueueEligibilityFollowsWiring.test_log_only_level_is_not_queued) ... ok
+test_remote_levels_are_queued (test_alert_queue.TestQueueEligibilityFollowsWiring.test_remote_levels_are_queued) ... ok
+test_proximity_fires_only_on_transition (test_alert_wiring.TestDeriveWiring.test_proximity_fires_only_on_transition)
+_derive 는 now 를 넘기지 않으므로 실시계를 쓴다 \u2014 검출주기 0.5초를 흉내 낸다. ... ok
+test_rollback_path_fires_every_frame (test_alert_wiring.TestDeriveWiring.test_rollback_path_fires_every_frame)
+prox_debouncer=None → 구 동작(매 프레임 발화). ... ok
+test_de_escalation_does_not_bypass (test_alert_wiring.TestGateEscalation.test_de_escalation_does_not_bypass)
+등급이 내려가는 것은 예외가 아니다(억제 유지). ... ok
+test_escalation_bypasses_cooldown (test_alert_wiring.TestGateEscalation.test_escalation_bypasses_cooldown) ... ok
+test_korean_level_labels_rank (test_alert_wiring.TestGateEscalation.test_korean_level_labels_rank)
+저장소에 '높음'·'중간' 한글 등급이 섞여 있다 \u2014 순위 비교가 깨지면 안 된다. ... ok
+test_different_cameras_are_independent (test_alert_wiring.TestGateFire.test_different_cameras_are_independent) ... ok
+test_different_rules_are_independent (test_alert_wiring.TestGateFire.test_different_rules_are_independent)
+규칙이 다르면 서로의 쿨다운에 걸리지 않는다 \u2014 화재가 침입 때문에 막히면 안 된다. ... ok
+test_first_alert_notifies (test_alert_wiring.TestGateFire.test_first_alert_notifies) ... ok
+test_after_cooldown_notifies_again (test_alert_wiring.TestGateSuppress.test_after_cooldown_notifies_again)
+★첫 통보 뒤 쿨다운은 백오프로 600초가 된다 \u2014 301초에는 아직 억제, 601초에 통보. ... ok
+test_backoff_grows_then_caps (test_alert_wiring.TestGateSuppress.test_backoff_grows_then_caps)
+백오프는 2배씩 늘고 상한에서 멈춘다. ... ok
+test_backoff_resets_after_quiet (test_alert_wiring.TestGateSuppress.test_backoff_resets_after_quiet)
+★조용해지면 기본값 복귀 \u2014 옛 소동 때문에 새 위험이 늦게 알려지면 안 된다. ... ok
+test_hourly_cap_is_final_defense (test_alert_wiring.TestGateSuppress.test_hourly_cap_is_final_defense)
+시간당 상한 \u2014 등급 상승 예외로도 못 넘는 최종 방어선. ... ok
+test_hourly_window_rolls_off (test_alert_wiring.TestGateSuppress.test_hourly_window_rolls_off) ... ok
+test_m3_scenario_221_events_become_bounded (test_alert_wiring.TestGateSuppress.test_m3_scenario_221_events_become_bounded)
+★[M3] 재현 \u2014 이 테스트가 설계 결함을 잡아냈다. ... ok
+test_real_site_alerts_are_not_suppressed (test_alert_wiring.TestGateSuppress.test_real_site_alerts_are_not_suppressed)
+★★가장 중요한 계약: 드물게 오는 **진짜 경보는 하나도 억제되지 않는다.** ... ok
+test_repeat_within_cooldown_suppressed (test_alert_wiring.TestGateSuppress.test_repeat_within_cooldown_suppressed) ... ok
+test_suppressed_count_is_carried_into_next_message (test_alert_wiring.TestGateSuppress.test_suppressed_count_is_carried_into_next_message)
+★억제된 사실이 사라지면 안 된다 \u2014 다음 통보에 건수가 실린다. ... ok
+test_disabled_returns_not_queued (test_alert_wiring.TestNotifyRollback.test_disabled_returns_not_queued) ... ok
+test_exit_is_slower_than_enter (test_alert_wiring.TestProximityDebounce.test_exit_is_slower_than_enter)
+해제는 진입보다 느리다 \u2014 경계에서 깜빡여도 경보가 성급히 풀리지 않는다. ... ok
+test_single_frame_hit_does_not_confirm (test_alert_wiring.TestProximityDebounce.test_single_frame_hit_does_not_confirm)
+★단일 프레임 오검출은 경보가 되지 않는다(도입 목적). ... ok
+test_two_consecutive_detections_confirm (test_alert_wiring.TestProximityDebounce.test_two_consecutive_detections_confirm)
+검출주기 0.5초에서 연속 2회면 확정 \u2014 0.4초 임계의 의도. ... ok
+test_zone_path_unchanged_when_no_args (test_alert_wiring.TestProximityDebounce.test_zone_path_unchanged_when_no_args)
+★인자 없이 만들면 기존 config(zone.*)를 읽는다 \u2014 침입 동작 무변경. ... ok
+test_submit_is_fast_even_with_slow_sender (test_alert_wiring.TestSendFailureDoesNotBlockDetection.test_submit_is_fast_even_with_slow_sender)
+★느린 채널(2초)이 검출 루프를 멈추면 안 된다 \u2014 submit 은 즉시 반환한다. ... 2026-09-06 04:07:01,972 [INFO] vigent.alert_notify: 경보 통보 스레드 시작 \u2014 큐 200 · 반복억제 300s · 시간당 상한 10건
+ok
+test_submit_never_raises_when_sender_explodes (test_alert_wiring.TestSendFailureDoesNotBlockDetection.test_submit_never_raises_when_sender_explodes) ... 2026-09-06 04:07:03,973 [INFO] vigent.alert_notify: 경보 통보 스레드 시작 \u2014 큐 200 · 반복억제 300s · 시간당 상한 10건
+2026-09-06 04:07:03,974 [ERROR] vigent.alert_notify: 경보 전송 예외 \u2014 루프 유지
+Traceback (most recent call last):
+  File "D:\vigent_original\vigent-core\alert_notify.py", line 62, in _loop
+    res = _sender(level, message, meta) or {}
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\shgus\AppData\Local\Programs\Python\Python311\Lib\unittest\mock.py", line 1124, in __call__
+    return self._mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\shgus\AppData\Local\Programs\Python\Python311\Lib\unittest\mock.py", line 1128, in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\shgus\AppData\Local\Programs\Python\Python311\Lib\unittest\mock.py", line 1183, in _execute_mock_call
+    raise effect
+RuntimeError: 채널 폭발
+2026-09-06 04:07:04,024 [ERROR] vigent.alert_notify: 경보 전송 예외 \u2014 루프 유지
+Traceback (most recent call last):
+  File "D:\vigent_original\vigent-core\alert_notify.py", line 62, in _loop
+    res = _sender(level, message, meta) or {}
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\shgus\AppData\Local\Programs\Python\Python311\Lib\unittest\mock.py", line 1124, in __call__
+    return self._mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\shgus\AppData\Local\Programs\Python\Python311\Lib\unittest\mock.py", line 1128, in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\shgus\AppData\Local\Programs\Python\Python311\Lib\unittest\mock.py", line 1183, in _execute_mock_call
+    raise effect
+  File "D:\vigent_original\vigent-core\alert_notify.py", line 62, in _loop
+    res = _sender(level, message, meta) or {}
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\shgus\AppData\Local\Programs\Python\Python311\Lib\unittest\mock.py", line 1124, in __call__
+    return self._mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\shgus\AppData\Local\Programs\Python\Python311\Lib\unittest\mock.py", line 1128, in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\shgus\AppData\Local\Programs\Python\Python311\Lib\unittest\mock.py", line 1183, in _execute_mock_call
+    raise effect
+RuntimeError: 채널 폭발
+ok
+test_submit_survives_gate_exception (test_alert_wiring.TestSendFailureDoesNotBlockDetection.test_submit_survives_gate_exception) ... 2026-09-06 04:07:04,026 [ERROR] vigent.alert_notify: 경보 통보 제출 예외 \u2014 검출은 계속
+Traceback (most recent call last):
+  File "D:\vigent_original\vigent-core\alert_notify.py", line 119, in submit
+    d = alert_gate.decide(cam, rule, level)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\shgus\AppData\Local\Programs\Python\Python311\Lib\unittest\mock.py", line 1124, in __call__
+    return self._mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\shgus\AppData\Local\Programs\Python\Python311\Lib\unittest\mock.py", line 1128, in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\shgus\AppData\Local\Programs\Python\Python311\Lib\unittest\mock.py", line 1183, in _execute_mock_call
+    raise effect
+RuntimeError: 게이트 고장
+ok
+test_fired_risk_is_recorded_then_notified (test_alert_wiring.TestWorkerCallsNotify.test_fired_risk_is_recorded_then_notified) ... [ WARN:0@6.858] global net_impl_backend.cpp:345 cv::dnn::dnn5_v20260605::Net::Impl::setPreferableTarget Targets are not supported by the new graph engine for now
+ok
+test_notify_failure_does_not_break_frame_processing (test_alert_wiring.TestWorkerCallsNotify.test_notify_failure_does_not_break_frame_processing)
+★통보가 폭발해도 프레임 처리는 계속된다(검출 무중단). ... 2026-09-06 04:07:04,049 [ERROR] vigent.worker: 워커 'cam-t'(file.mp4) 프레임 처리 예외 \u2014 계속 진행
+Traceback (most recent call last):
+  File "D:\vigent_original\vigent-core\worker.py", line 984, in _process_frame
+    n = alert_notify.submit(
+        ^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\shgus\AppData\Local\Programs\Python\Python311\Lib\unittest\mock.py", line 1124, in __call__
+    return self._mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\shgus\AppData\Local\Programs\Python\Python311\Lib\unittest\mock.py", line 1128, in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\shgus\AppData\Local\Programs\Python\Python311\Lib\unittest\mock.py", line 1183, in _execute_mock_call
+    raise effect
+RuntimeError: 통보 폭발
+
+ok
+test_record_happens_before_notify (test_alert_wiring.TestWorkerCallsNotify.test_record_happens_before_notify)
+★순서 계약: 기록이 먼저다 \u2014 전송이 실패해도 증거·이벤트는 남아야 한다. ... ok
+test_suppressed_alert_is_counted (test_alert_wiring.TestWorkerCallsNotify.test_suppressed_alert_is_counted) ... ok
+test_additive_combination (test_analyst.TestAnalyst.test_additive_combination) ... ok
+test_dl_additive_increases_score (test_analyst.TestAnalyst.test_dl_additive_increases_score) ... ok
+test_guard_bypass_critical (test_analyst.TestAnalyst.test_guard_bypass_critical) ... ok
+test_ppe_missing_medium (test_analyst.TestAnalyst.test_ppe_missing_medium) ... ok
+test_safe_when_no_signal (test_analyst.TestAnalyst.test_safe_when_no_signal) ... ok
+test_zone_intrusion_high (test_analyst.TestAnalyst.test_zone_intrusion_high) ... ok
+test_baseline_report_is_flagged (test_baseline_freshness.StaleMetricsAreFlagged.test_baseline_report_is_flagged) ... ok
+test_proposal_has_correction_block (test_baseline_freshness.StaleMetricsAreFlagged.test_proposal_has_correction_block) ... ok
+test_rule_is_documented (test_baseline_freshness.StaleMetricsAreFlagged.test_rule_is_documented) ... ok
+test_tracker_change_forces_rebaseline (test_baseline_freshness.TrackerConfigIsPinned.test_tracker_change_forces_rebaseline) ... ok
+test_api_request_without_auth_still_gets_401_json (test_browser_session_auth.TestBrowserSessionAuth.test_api_request_without_auth_still_gets_401_json) ... 2026-09-06 04:07:04,093 [INFO] httpx2: HTTP Request: GET http://testserver/status "HTTP/1.1 401 Unauthorized"
+ok
+test_browser_page_without_auth_redirects_to_login (test_browser_session_auth.TestBrowserSessionAuth.test_browser_page_without_auth_redirects_to_login) ... 2026-09-06 04:07:04,095 [INFO] httpx2: HTTP Request: GET http://testserver/ "HTTP/1.1 303 See Other"
+ok
+test_correct_login_sets_session_cookie_and_grants_access (test_browser_session_auth.TestBrowserSessionAuth.test_correct_login_sets_session_cookie_and_grants_access) ... 2026-09-06 04:07:04,099 [INFO] httpx2: HTTP Request: POST http://testserver/login "HTTP/1.1 303 See Other"
+2026-09-06 04:07:04,154 [INFO] httpx2: HTTP Request: GET http://testserver/status "HTTP/1.1 200 OK"
+ok
+test_login_page_reachable_without_auth (test_browser_session_auth.TestBrowserSessionAuth.test_login_page_reachable_without_auth) ... 2026-09-06 04:07:04,158 [INFO] httpx2: HTTP Request: GET http://testserver/login "HTTP/1.1 200 OK"
+ok
+test_logout_invalidates_session (test_browser_session_auth.TestBrowserSessionAuth.test_logout_invalidates_session) ... 2026-09-06 04:07:04,160 [INFO] httpx2: HTTP Request: POST http://testserver/login "HTTP/1.1 303 See Other"
+2026-09-06 04:07:04,163 [INFO] httpx2: HTTP Request: GET http://testserver/ "HTTP/1.1 200 OK"
+2026-09-06 04:07:04,166 [INFO] httpx2: HTTP Request: POST http://testserver/logout "HTTP/1.1 303 See Other"
+2026-09-06 04:07:04,168 [INFO] httpx2: HTTP Request: GET http://testserver/status "HTTP/1.1 401 Unauthorized"
+ok
+test_open_redirect_blocked (test_browser_session_auth.TestBrowserSessionAuth.test_open_redirect_blocked) ... 2026-09-06 04:07:04,171 [INFO] httpx2: HTTP Request: GET http://testserver/login?next=%2F%2Fevil.example.com "HTTP/1.1 200 OK"
+ok
+test_repeated_failures_lock_out (test_browser_session_auth.TestBrowserSessionAuth.test_repeated_failures_lock_out) ... 2026-09-06 04:07:04,174 [INFO] httpx2: HTTP Request: POST http://testserver/login "HTTP/1.1 401 Unauthorized"
+2026-09-06 04:07:04,176 [INFO] httpx2: HTTP Request: POST http://testserver/login "HTTP/1.1 401 Unauthorized"
+2026-09-06 04:07:04,178 [INFO] httpx2: HTTP Request: POST http://testserver/login "HTTP/1.1 401 Unauthorized"
+2026-09-06 04:07:04,180 [INFO] httpx2: HTTP Request: POST http://testserver/login "HTTP/1.1 401 Unauthorized"
+2026-09-06 04:07:04,182 [INFO] httpx2: HTTP Request: POST http://testserver/login "HTTP/1.1 401 Unauthorized"
+2026-09-06 04:07:04,185 [INFO] httpx2: HTTP Request: POST http://testserver/login "HTTP/1.1 429 Too Many Requests"
+ok
+test_wrong_token_login_rejected_no_cookie (test_browser_session_auth.TestBrowserSessionAuth.test_wrong_token_login_rejected_no_cookie) ... 2026-09-06 04:07:04,187 [INFO] httpx2: HTTP Request: POST http://testserver/login "HTTP/1.1 401 Unauthorized"
+ok
+test_delete_route_uses_remove_not_stop (test_camera_delete_no_ghost.TestDeletedCameraLeavesNoGhost.test_delete_route_uses_remove_not_stop)
+라우트가 stop() 으로 되돌아가면 유령이 부활한다 \u2014 소스로 잠근다. ... ok
+test_remove_is_idempotent (test_camera_delete_no_ghost.TestDeletedCameraLeavesNoGhost.test_remove_is_idempotent) ... ok
+test_remove_stops_and_delists (test_camera_delete_no_ghost.TestDeletedCameraLeavesNoGhost.test_remove_stops_and_delists) ... ok
+test_remove_unknown_is_reported (test_camera_delete_no_ghost.TestDeletedCameraLeavesNoGhost.test_remove_unknown_is_reported) ... ok
+test_stop_keeps_entry_for_disable (test_camera_delete_no_ghost.TestDeletedCameraLeavesNoGhost.test_stop_keeps_entry_for_disable)
+★disable 은 항목이 남아야 한다 \u2014 '꺼져 있음'을 운영자가 봐야 하기 때문. ... ok
+test_body_ppe_kept_wall_ppe_dropped (test_cross_validate_ppe.TestCrossValidatePpe.test_body_ppe_kept_wall_ppe_dropped) ... ok
+test_no_person_discards_all_ppe (test_cross_validate_ppe.TestCrossValidatePpe.test_no_person_discards_all_ppe) ... ok
+test_non_ppe_untouched (test_cross_validate_ppe.TestCrossValidatePpe.test_non_ppe_untouched) ... ok
+test_aggregate_counts (test_data_engine_report.TestDataEngine.test_aggregate_counts) ... ok
+test_log_event_writes_record_and_frame (test_data_engine_report.TestDataEngine.test_log_event_writes_record_and_frame) ... ok
+test_log_without_image_is_ok (test_data_engine_report.TestDataEngine.test_log_without_image_is_ok) ... ok
+test_kosha_standard_form_in_html (test_data_engine_report.TestReport.test_kosha_standard_form_in_html) ... 2026-09-06 04:07:05,780 [INFO] vigent.guard: 검출 슬롯: slot=forklift backend=rfdetr weights=forklift_rfdetr_v1.pth sha=cd76eb56487bf1aa → LOADED
+2026-09-06 04:07:05,850 [INFO] vigent.guard: 검출 슬롯: slot=fire_smoke backend=rfdetr weights=fire_smoke_rfdetr_v1_e17.pth sha=b7425ce450f12cad → LOADED
+2026-09-06 04:07:05,921 [INFO] vigent.guard: 검출 슬롯: slot=ppe backend=rfdetr weights=ppe_rfdetr_v1.pth sha=3380fa7d4bb1be87 → LOADED
+2026-09-06 04:07:05,921 [INFO] vigent.guard: RF-DETR 사전학습 캐시 확인: C:\Users\shgus\.roboflow\models\rf-detr-nano.pth
+ok
+test_load_html_rejects_path_traversal (test_data_engine_report.TestReport.test_load_html_rejects_path_traversal) ... 2026-09-06 04:07:06,007 [INFO] vigent.guard: 검출 슬롯: slot=forklift backend=rfdetr weights=forklift_rfdetr_v1.pth sha=cd76eb56487bf1aa → LOADED
+2026-09-06 04:07:06,078 [INFO] vigent.guard: 검출 슬롯: slot=fire_smoke backend=rfdetr weights=fire_smoke_rfdetr_v1_e17.pth sha=b7425ce450f12cad → LOADED
+2026-09-06 04:07:06,149 [INFO] vigent.guard: 검출 슬롯: slot=ppe backend=rfdetr weights=ppe_rfdetr_v1.pth sha=3380fa7d4bb1be87 → LOADED
+2026-09-06 04:07:06,149 [INFO] vigent.guard: RF-DETR 사전학습 캐시 확인: C:\Users\shgus\.roboflow\models\rf-detr-nano.pth
+ok
+test_save_list_reopen (test_data_engine_report.TestReport.test_save_list_reopen) ... 2026-09-06 04:07:06,224 [INFO] vigent.guard: 검출 슬롯: slot=forklift backend=rfdetr weights=forklift_rfdetr_v1.pth sha=cd76eb56487bf1aa → LOADED
+2026-09-06 04:07:06,295 [INFO] vigent.guard: 검출 슬롯: slot=fire_smoke backend=rfdetr weights=fire_smoke_rfdetr_v1_e17.pth sha=b7425ce450f12cad → LOADED
+2026-09-06 04:07:06,368 [INFO] vigent.guard: 검출 슬롯: slot=ppe backend=rfdetr weights=ppe_rfdetr_v1.pth sha=3380fa7d4bb1be87 → LOADED
+2026-09-06 04:07:06,368 [INFO] vigent.guard: RF-DETR 사전학습 캐시 확인: C:\Users\shgus\.roboflow\models\rf-detr-nano.pth
+ok
+test_academy_profile (test_detector_visibility.TestDetectorVisibility.test_academy_profile)
+학원 프로파일: forklift 켬(1) · fire_smoke 끔(0). ... ok
+test_active_and_disabled_are_complementary (test_detector_visibility.TestDetectorVisibility.test_active_and_disabled_are_complementary)
+어떤 프로파일이든 active ∪ disabled = 알려진 슬롯 전체, 교집합은 공집합. ... ok
+test_both_off (test_detector_visibility.TestDetectorVisibility.test_both_off) ... ok
+test_both_on (test_detector_visibility.TestDetectorVisibility.test_both_on) ... ok
+test_every_disabled_slot_has_a_reason (test_detector_visibility.TestDetectorVisibility.test_every_disabled_slot_has_a_reason)
+사유 없는 제외 금지 \u2014 현장에서 '왜 꺼졌는지' 를 /health 만 보고 알아야 한다. ... ok
+test_global_default_profile (test_detector_visibility.TestDetectorVisibility.test_global_default_profile)
+전역 기본: fire_smoke 켬(1) · forklift 끔(0). ... ok
+test_academy_profile_visible_in_health (test_detector_visibility.TestHealthBodyMatchesProfile.test_academy_profile_visible_in_health) ... ok
+test_global_default_visible_in_health (test_detector_visibility.TestHealthBodyMatchesProfile.test_global_default_visible_in_health) ... ok
+test_health_matches_worker_single_source (test_detector_visibility.TestHealthBodyMatchesProfile.test_health_matches_worker_single_source)
+라우터 표시 == worker 계산. 둘이 갈라지면 실패한다. ... ok
+test_academy_profile_warms_forklift_not_fire_smoke (test_detector_visibility.TestWarmupMatchesProfile.test_academy_profile_warms_forklift_not_fire_smoke) ... 2026-09-06 04:07:11,921 [INFO] vigent.readiness: 예열 slot=person 0.0s
+2026-09-06 04:07:11,921 [INFO] vigent.readiness: 예열 slot=ppe 0.0s
+2026-09-06 04:07:11,921 [INFO] vigent.readiness: 예열 slot=forklift 0.0s
+2026-09-06 04:07:11,921 [INFO] vigent.readiness: ★예열 완료 0.00s (slots=person,ppe,forklift) \u2014 이제 워커 기동, 워치독 정상 적용
+ok
+test_global_default_warms_fire_smoke_not_forklift (test_detector_visibility.TestWarmupMatchesProfile.test_global_default_warms_fire_smoke_not_forklift) ... 2026-09-06 04:07:11,922 [INFO] vigent.readiness: 예열 slot=person 0.0s
+2026-09-06 04:07:11,922 [INFO] vigent.readiness: 예열 slot=ppe 0.0s
+2026-09-06 04:07:11,922 [INFO] vigent.readiness: 예열 slot=fire_smoke 0.0s
+2026-09-06 04:07:11,922 [INFO] vigent.readiness: ★예열 완료 0.00s (slots=person,ppe,fire_smoke) \u2014 이제 워커 기동, 워치독 정상 적용
+ok
+test_warmup_equals_active_detectors (test_detector_visibility.TestWarmupMatchesProfile.test_warmup_equals_active_detectors) ... 2026-09-06 04:07:11,922 [INFO] vigent.readiness: 예열 slot=person 0.0s
+2026-09-06 04:07:11,923 [INFO] vigent.readiness: 예열 slot=ppe 0.0s
+2026-09-06 04:07:11,923 [INFO] vigent.readiness: ★예열 완료 0.00s (slots=person,ppe) \u2014 이제 워커 기동, 워치독 정상 적용
+2026-09-06 04:07:11,923 [INFO] vigent.readiness: 예열 slot=person 0.0s
+2026-09-06 04:07:11,923 [INFO] vigent.readiness: 예열 slot=ppe 0.0s
+2026-09-06 04:07:11,923 [INFO] vigent.readiness: 예열 slot=forklift 0.0s
+2026-09-06 04:07:11,923 [INFO] vigent.readiness: ★예열 완료 0.00s (slots=person,ppe,forklift) \u2014 이제 워커 기동, 워치독 정상 적용
+2026-09-06 04:07:11,923 [INFO] vigent.readiness: 예열 slot=person 0.0s
+2026-09-06 04:07:11,923 [INFO] vigent.readiness: 예열 slot=ppe 0.0s
+2026-09-06 04:07:11,923 [INFO] vigent.readiness: 예열 slot=fire_smoke 0.0s
+2026-09-06 04:07:11,924 [INFO] vigent.readiness: ★예열 완료 0.00s (slots=person,ppe,fire_smoke) \u2014 이제 워커 기동, 워치독 정상 적용
+2026-09-06 04:07:11,924 [INFO] vigent.readiness: 예열 slot=person 0.0s
+2026-09-06 04:07:11,924 [INFO] vigent.readiness: 예열 slot=ppe 0.0s
+2026-09-06 04:07:11,924 [INFO] vigent.readiness: 예열 slot=fire_smoke 0.0s
+2026-09-06 04:07:11,924 [INFO] vigent.readiness: 예열 slot=forklift 0.0s
+2026-09-06 04:07:11,924 [INFO] vigent.readiness: ★예열 완료 0.00s (slots=person,ppe,fire_smoke,forklift) \u2014 이제 워커 기동, 워치독 정상 적용
+ok
+2026-09-06 04:07:12,000 [INFO] vigent.guard: 검출 슬롯: slot=forklift backend=rfdetr weights=forklift_rfdetr_v1.pth sha=cd76eb56487bf1aa → LOADED
+2026-09-06 04:07:12,071 [INFO] vigent.guard: 검출 슬롯: slot=fire_smoke backend=rfdetr weights=fire_smoke_rfdetr_v1_e17.pth sha=b7425ce450f12cad → LOADED
+2026-09-06 04:07:12,141 [INFO] vigent.guard: 검출 슬롯: slot=ppe backend=rfdetr weights=ppe_rfdetr_v1.pth sha=3380fa7d4bb1be87 → LOADED
+2026-09-06 04:07:12,141 [INFO] vigent.guard: RF-DETR 사전학습 캐시 확인: C:\Users\shgus\.roboflow\models\rf-detr-nano.pth
+2026-09-06 04:07:12,142 [INFO] vigent: 'VIGENT Safety' 로드 완료 (폴백 1개 / 비활성 0개)
+2026-09-06 04:07:12,166 [INFO] vigent: go2rtc 준비(확대뷰 실시간 재생 가능)
+2026-09-06 04:07:12,168 [INFO] vigent.starvation: 기아 감시 시작 \u2014 1단계 60s(슬롯 회수) / 2단계 120s(워커 재시작) / 3단계 3회 후 프로세스 재기동
+2026-09-06 04:07:12,168 [INFO] vigent.alert_queue: 경보 재시도 스레드 시작(주기 5s, 최대 10회, 백오프 상한 60s) \u2014 이월 pending 0건
+2026-09-06 04:07:12,169 [INFO] vigent.alert_notify: 경보 통보 스레드 시작 \u2014 큐 200 · 반복억제 300s · 시간당 상한 6건
+2026-09-06 04:07:12,170 [INFO] vigent.retention_sched: 보존 스윕 스레드 시작 \u2014 주기 24시간 · 첫 실행 10분 뒤
+test_capabilities_ok (test_endpoints_smoke.TestEndpointsSmoke.test_capabilities_ok) ... 2026-09-06 04:07:12,173 [INFO] httpx2: HTTP Request: GET http://testserver/system/capabilities "HTTP/1.1 200 OK"
+ok
+test_catchall_does_not_shadow_health (test_endpoints_smoke.TestEndpointsSmoke.test_catchall_does_not_shadow_health) ... 2026-09-06 04:07:12,177 [INFO] httpx2: HTTP Request: GET http://testserver/health "HTTP/1.1 200 OK"
+ok
+test_health_ok (test_endpoints_smoke.TestEndpointsSmoke.test_health_ok) ... 2026-09-06 04:07:12,179 [INFO] httpx2: HTTP Request: GET http://testserver/health "HTTP/1.1 200 OK"
+ok
+test_landing_pages (test_endpoints_smoke.TestEndpointsSmoke.test_landing_pages) ... 2026-09-06 04:07:12,183 [INFO] httpx2: HTTP Request: GET http://testserver/home "HTTP/1.1 200 OK"
+2026-09-06 04:07:12,185 [INFO] httpx2: HTTP Request: GET http://testserver/hub "HTTP/1.1 200 OK"
+ok
+test_removed_office_route_is_gone (test_endpoints_smoke.TestEndpointsSmoke.test_removed_office_route_is_gone) ... 2026-09-06 04:07:12,186 [INFO] httpx2: HTTP Request: GET http://testserver/office/trend "HTTP/1.1 404 Not Found"
+ok
+test_root_ok (test_endpoints_smoke.TestEndpointsSmoke.test_root_ok) ... 2026-09-06 04:07:12,187 [INFO] httpx2: HTTP Request: GET http://testserver/ "HTTP/1.1 200 OK"
+ok
+test_theme_page_via_catchall (test_endpoints_smoke.TestEndpointsSmoke.test_theme_page_via_catchall) ... 2026-09-06 04:07:12,255 [INFO] httpx2: HTTP Request: GET http://testserver/safety "HTTP/1.1 200 OK"
+ok
+test_theme_whitelist_rejects_invalid_names (test_endpoints_smoke.TestEndpointsSmoke.test_theme_whitelist_rejects_invalid_names) ... 2026-09-06 04:07:12,258 [INFO] httpx2: HTTP Request: GET http://testserver/SAFETY "HTTP/1.1 404 Not Found"
+2026-09-06 04:07:12,260 [INFO] httpx2: HTTP Request: GET http://testserver/safety;drop "HTTP/1.1 404 Not Found"
+2026-09-06 04:07:12,261 [INFO] httpx2: HTTP Request: GET http://testserver/safety.. "HTTP/1.1 404 Not Found"
+ok
+2026-09-06 04:07:12,261 [INFO] vigent: shutdown: 워커 정리 ({'ok': True, 'stopped': 0})
+test_disjoint_is_zero (test_eval_tracking.TestIou.test_disjoint_is_zero) ... ok
+test_identical_is_one (test_eval_tracking.TestIou.test_identical_is_one) ... ok
+test_empty_frames_do_not_crash (test_eval_tracking.TestMetrics.test_empty_frames_do_not_crash) ... ok
+test_fragment_counted_when_other_id_takes_place (test_eval_tracking.TestMetrics.test_fragment_counted_when_other_id_takes_place)
+사라진 자리에 **다른 id** 가 들어오면 단절로 센다. ... ok
+test_id_change_in_place_counts_as_switch (test_eval_tracking.TestMetrics.test_id_change_in_place_counts_as_switch)
+★같은 위치인데 id 가 바뀌면 스위치로 센다. ... ok
+test_person_counts (test_eval_tracking.TestMetrics.test_person_counts) ... ok
+test_reid_counted_when_same_id_returns (test_eval_tracking.TestMetrics.test_reid_counted_when_same_id_returns)
+공백 후 **같은 id** 로 복귀 → 재식별 성공. ... ok
+test_reid_rate_none_when_no_events (test_eval_tracking.TestMetrics.test_reid_rate_none_when_no_events)
+재식별·단절이 모두 0이면 비율은 None(0%로 오해하지 않게). ... ok
+test_stable_track_has_no_switch (test_eval_tracking.TestMetrics.test_stable_track_has_no_switch)
+같은 id 가 계속 같은 자리 → ID 스위치 0. ... ok
+test_ensure_core_on_path_is_idempotent (test_guard_logger_syspath.GuardLoggerSysPath.test_ensure_core_on_path_is_idempotent) ... ok
+test_fallback_to_logging_emits_warning (test_guard_logger_syspath.GuardLoggerSysPath.test_fallback_to_logging_emits_warning) ... ok
+test_logger_cached_and_backend_is_vlog (test_guard_logger_syspath.GuardLoggerSysPath.test_logger_cached_and_backend_is_vlog) ... ok
+test_repeated_calls_do_not_grow_syspath (test_guard_logger_syspath.GuardLoggerSysPath.test_repeated_calls_do_not_grow_syspath) ... ok
+test_bad_value_is_logged_and_defaulted_but_later_keys_still_apply (test_guard_tuning_partial_failure.TuningPartialFailure.test_bad_value_is_logged_and_defaulted_but_later_keys_still_apply) ... ok
+test_valid_config_has_no_warning (test_guard_tuning_partial_failure.TuningPartialFailure.test_valid_config_has_no_warning) ... 2026-09-06 04:07:12,879 [INFO] vigent.guard: 검출 슬롯: slot=forklift backend=rfdetr weights=forklift_rfdetr_v1.pth sha=cd76eb56487bf1aa → LOADED
+ImportWarning: The platform model downloads requires the 'plus' extras for the 'rfdetr' package. Install it with `pip install rfdetr[plus]` (or `pip install rfdetr_plus` if supported).
+DeprecationWarning: `torch.jit.script` is deprecated. Please switch to `torch.compile` or `torch.export`.
+2026-09-06 04:07:12,999 [INFO] vigent.guard: 검출 슬롯: slot=fire_smoke backend=rfdetr weights=fire_smoke_rfdetr_v1_e17.pth sha=b7425ce450f12cad → LOADED
+2026-09-06 04:07:13,115 [INFO] vigent.guard: 검출 슬롯: slot=ppe backend=rfdetr weights=ppe_rfdetr_v1.pth sha=3380fa7d4bb1be87 → LOADED
+2026-09-06 04:07:13,115 [INFO] vigent.guard: RF-DETR 사전학습 캐시 확인: C:\Users\shgus\.roboflow\models\rf-detr-nano.pth
+ok
+test_build_from_worker_manager_shape (test_health_detect_alive.TestBuild.test_build_from_worker_manager_shape) ... ok
+test_build_never_leaks_source (test_health_detect_alive.TestBuild.test_build_never_leaks_source)
+자격증명이 든 source 는 /health 로 새어나가면 안 된다. ... ok
+test_frames_fresh_but_never_detected_is_stale_detect (test_health_detect_alive.TestCameraStatus.test_frames_fresh_but_never_detected_is_stale_detect)
+★프레임은 계속 신선한데 추론이 한 번도 안 끝난 상태. ... ok
+test_no_detect_after_grace_with_stale_frame_is_stale_frame (test_health_detect_alive.TestCameraStatus.test_no_detect_after_grace_with_stale_frame_is_stale_frame)
+유예를 넘겼고 프레임도 안 들어오면 stale_frame \u2014 원인은 입력이지 추론이 아니다. ... ok
+test_ok (test_health_detect_alive.TestCameraStatus.test_ok) ... ok
+test_stale_detect_is_p0_fingerprint (test_health_detect_alive.TestCameraStatus.test_stale_detect_is_p0_fingerprint)
+★핵심: 프레임은 신선(0.5s)한데 검출만 늙음(412s) → stale_detect. ... ok
+test_stale_frame_when_input_dead (test_health_detect_alive.TestCameraStatus.test_stale_frame_when_input_dead)
+프레임 자체가 끊기면 stale_frame \u2014 원인이 카메라·네트워크 쪽임을 구분. ... ok
+test_starting_within_grace (test_health_detect_alive.TestCameraStatus.test_starting_within_grace)
+기동 직후(검출 이력 없음)는 유예 안에서 starting \u2014 재시작 유발 금지. ... ok
+test_stopped (test_health_detect_alive.TestCameraStatus.test_stopped) ... ok
+test_alert_backlog_degrades (test_health_detect_alive.TestOverall.test_alert_backlog_degrades)
+[B5 예약] 미전송 경보가 남아 있으면 degraded. ... ok
+test_degraded_when_one_of_two_dead (test_health_detect_alive.TestOverall.test_degraded_when_one_of_two_dead) ... ok
+test_healthy (test_health_detect_alive.TestOverall.test_healthy) ... ok
+test_no_cameras_is_healthy (test_health_detect_alive.TestOverall.test_no_cameras_is_healthy) ... ok
+test_stopped_cameras_do_not_make_it_unhealthy (test_health_detect_alive.TestOverall.test_stopped_cameras_do_not_make_it_unhealthy)
+중지된 카메라는 장애가 아니다(운영자가 껐을 수 있음). ... ok
+test_unhealthy_when_all_dead (test_health_detect_alive.TestOverall.test_unhealthy_when_all_dead) ... ok
+test_unhealthy_when_model_missing (test_health_detect_alive.TestOverall.test_unhealthy_when_model_missing) ... ok
+test_n1_is_immediate (test_hysteresis.TestHysteresis.test_n1_is_immediate) ... ok
+test_n2_needs_two_consecutive (test_hysteresis.TestHysteresis.test_n2_needs_two_consecutive) ... ok
+test_per_track_key_independent (test_hysteresis.TestHysteresis.test_per_track_key_independent) ... ok
+test_each_call_gets_a_fresh_unique_track_key (test_isolated_detect.IsolatedDetect.test_each_call_gets_a_fresh_unique_track_key)
+호출마다 고유 track_key 발급 확인 \u2014 재사용 실수 자체가 구조적으로 불가능한지. ... ok
+test_stale_box_does_not_leak_into_unrelated_next_image (test_isolated_detect.IsolatedDetect.test_stale_box_does_not_leak_into_unrelated_next_image)
+1번째 '이미지'에 person 있음 → 2번째 '이미지'는 완전히 무관(검출 0건) → detect_isolated ... ok
+test_already_has_charset_is_untouched (test_json_charset.TestJsonCharsetHeader.test_already_has_charset_is_untouched) ... ok
+test_json_subtype_covered (test_json_charset.TestJsonCharsetHeader.test_json_subtype_covered) ... ok
+test_non_json_untouched (test_json_charset.TestJsonCharsetHeader.test_non_json_untouched) ... ok
+test_plain_json_gets_charset (test_json_charset.TestJsonCharsetHeader.test_plain_json_gets_charset) ... ok
+test_middleware_sets_charset_on_real_response (test_json_charset.TestResponseIsDecodableAsCp949Trap.test_middleware_sets_charset_on_real_response) ... 2026-09-06 04:07:13,122 [INFO] httpx2: HTTP Request: GET http://testserver/k "HTTP/1.1 200 OK"
+2026-09-06 04:07:13,125 [INFO] httpx2: HTTP Request: GET http://testserver/h "HTTP/1.1 200 OK"
+ok
+test_default_text_is_site_neutral (test_machine_guard.TestGuardBypassText.test_default_text_is_site_neutral)
+★기본 문구에 특정 설비명(프레스·전단기)이 들어가면 안 된다. ... ok
+test_safety_boundary_unchanged (test_machine_guard.TestGuardBypassText.test_safety_boundary_unchanged)
+★문구를 바꿔도 §8 경계(1차 안전기능 아님) 표기는 그대로여야 한다. ... ok
+test_text_is_configurable_per_site (test_machine_guard.TestGuardBypassText.test_text_is_configurable_per_site)
+현장 문구를 tuning.yaml(alerts.guard_bypass_text)로 바꿀 수 있다. ... ok
+test_dispatch_relay_endpoint (test_machine_guard.TestMachineEndpoints.test_dispatch_relay_endpoint) ... 2026-09-06 04:07:13,217 [INFO] vigent.guard: 검출 슬롯: slot=forklift backend=rfdetr weights=forklift_rfdetr_v1.pth sha=cd76eb56487bf1aa → LOADED
+2026-09-06 04:07:13,304 [INFO] vigent.guard: 검출 슬롯: slot=fire_smoke backend=rfdetr weights=fire_smoke_rfdetr_v1_e17.pth sha=b7425ce450f12cad → LOADED
+2026-09-06 04:07:13,446 [INFO] vigent.guard: 검출 슬롯: slot=ppe backend=rfdetr weights=ppe_rfdetr_v1.pth sha=3380fa7d4bb1be87 → LOADED
+2026-09-06 04:07:13,446 [INFO] vigent.guard: RF-DETR 사전학습 캐시 확인: C:\Users\shgus\.roboflow\models\rf-detr-nano.pth
+2026-09-06 04:07:13,447 [INFO] vigent: 'VIGENT Safety' 로드 완료 (폴백 1개 / 비활성 0개)
+2026-09-06 04:07:13,468 [INFO] vigent: go2rtc 준비(확대뷰 실시간 재생 가능)
+DeprecationWarning: rfdetr.util.box_ops is deprecated since v1.6.0 and will be removed in v1.9.0; use rfdetr.utilities.box_ops instead.
+DeprecationWarning: rfdetr.util.logger is deprecated since v1.6.0 and will be removed in v1.9.0; use rfdetr.utilities.logger instead.
+FutureWarning: target=True is deprecated since `v0.8`; use `TargetMode.ARGS_REMAP` instead. Will be removed in `v1.0`.
+2026-09-06 04:07:15,044 [INFO] httpx2: HTTP Request: POST http://testserver/dispatch/relay "HTTP/1.1 200 OK"
+2026-09-06 04:07:15,045 [INFO] vigent: shutdown: 워커 정리 ({'ok': True, 'stopped': 0})
+ok
+test_machine_zone_roundtrip (test_machine_guard.TestMachineEndpoints.test_machine_zone_roundtrip) ... 2026-09-06 04:07:15,129 [INFO] vigent.guard: 검출 슬롯: slot=forklift backend=rfdetr weights=forklift_rfdetr_v1.pth sha=cd76eb56487bf1aa → LOADED
+2026-09-06 04:07:15,204 [INFO] vigent.guard: 검출 슬롯: slot=fire_smoke backend=rfdetr weights=fire_smoke_rfdetr_v1_e17.pth sha=b7425ce450f12cad → LOADED
+2026-09-06 04:07:15,279 [INFO] vigent.guard: 검출 슬롯: slot=ppe backend=rfdetr weights=ppe_rfdetr_v1.pth sha=3380fa7d4bb1be87 → LOADED
+2026-09-06 04:07:15,279 [INFO] vigent.guard: RF-DETR 사전학습 캐시 확인: C:\Users\shgus\.roboflow\models\rf-detr-nano.pth
+2026-09-06 04:07:15,280 [INFO] vigent: 'VIGENT Safety' 로드 완료 (폴백 1개 / 비활성 0개)
+2026-09-06 04:07:15,281 [INFO] vigent: go2rtc 준비(확대뷰 실시간 재생 가능)
+2026-09-06 04:07:15,286 [INFO] httpx2: HTTP Request: GET http://testserver/zone/machine "HTTP/1.1 200 OK"
+2026-09-06 04:07:15,289 [INFO] httpx2: HTTP Request: POST http://testserver/zone/machine "HTTP/1.1 200 OK"
+2026-09-06 04:07:15,291 [INFO] httpx2: HTTP Request: GET http://testserver/zone/machine "HTTP/1.1 200 OK"
+2026-09-06 04:07:15,294 [INFO] httpx2: HTTP Request: POST http://testserver/zone/machine "HTTP/1.1 200 OK"
+2026-09-06 04:07:15,294 [INFO] vigent: shutdown: 워커 정리 ({'ok': True, 'stopped': 0})
+ok
+test_guard_bypass_is_critical (test_machine_guard.TestMachineGuard.test_guard_bypass_is_critical) ... 2026-09-06 04:07:15,371 [INFO] vigent.guard: 검출 슬롯: slot=forklift backend=rfdetr weights=forklift_rfdetr_v1.pth sha=cd76eb56487bf1aa → LOADED
+2026-09-06 04:07:15,446 [INFO] vigent.guard: 검출 슬롯: slot=fire_smoke backend=rfdetr weights=fire_smoke_rfdetr_v1_e17.pth sha=b7425ce450f12cad → LOADED
+[2026-09-06 04:07:15] [INFO] rf-detr - File C:\Users\shgus\.roboflow\models\rf-detr-nano.pth already exists with correct MD5 hash.
+[2026-09-06 04:07:15] [WARNING] rf-detr - Using a different number of positional encodings than DINOv2, which means we're not loading DINOv2 backbone weights. This is not a problem if finetuning a pretrained RF-DETR model.
+[2026-09-06 04:07:15] [WARNING] rf-detr - Using patch size 16 instead of 14, which means we're not loading DINOv2 backbone weights. This is not a problem if finetuning a pretrained RF-DETR model.
+2026-09-06 04:07:15,521 [INFO] vigent.guard: 검출 슬롯: slot=ppe backend=rfdetr weights=ppe_rfdetr_v1.pth sha=3380fa7d4bb1be87 → LOADED
+2026-09-06 04:07:15,522 [INFO] vigent.guard: RF-DETR 사전학습 캐시 확인: C:\Users\shgus\.roboflow\models\rf-detr-nano.pth
+ok
+test_relay_is_supplementary_not_primary (test_machine_guard.TestMachineGuard.test_relay_is_supplementary_not_primary) ... 2026-09-06 04:07:15,602 [INFO] vigent.guard: 검출 슬롯: slot=forklift backend=rfdetr weights=forklift_rfdetr_v1.pth sha=cd76eb56487bf1aa → LOADED
+2026-09-06 04:07:15,678 [INFO] vigent.guard: 검출 슬롯: slot=fire_smoke backend=rfdetr weights=fire_smoke_rfdetr_v1_e17.pth sha=b7425ce450f12cad → LOADED
+2026-09-06 04:07:15,756 [INFO] vigent.guard: 검출 슬롯: slot=ppe backend=rfdetr weights=ppe_rfdetr_v1.pth sha=3380fa7d4bb1be87 → LOADED
+2026-09-06 04:07:15,757 [INFO] vigent.guard: RF-DETR 사전학습 캐시 확인: C:\Users\shgus\.roboflow\models\rf-detr-nano.pth
+ok
+test_vision_yaml_has_machine_zone (test_machine_guard.TestMachineGuard.test_vision_yaml_has_machine_zone) ... 2026-09-06 04:07:16,022 [INFO] vigent.guard: 검출 슬롯: slot=forklift backend=rfdetr weights=forklift_rfdetr_v1.pth sha=cd76eb56487bf1aa → LOADED
+2026-09-06 04:07:16,096 [INFO] vigent.guard: 검출 슬롯: slot=fire_smoke backend=rfdetr weights=fire_smoke_rfdetr_v1_e17.pth sha=b7425ce450f12cad → LOADED
+[2026-09-06 04:07:16] [INFO] rf-detr - File C:\Users\shgus\.roboflow\models\rf-detr-nano.pth already exists with correct MD5 hash.
+2026-09-06 04:07:16,170 [INFO] vigent.guard: 검출 슬롯: slot=ppe backend=rfdetr weights=ppe_rfdetr_v1.pth sha=3380fa7d4bb1be87 → LOADED
+2026-09-06 04:07:16,170 [INFO] vigent.guard: RF-DETR 사전학습 캐시 확인: C:\Users\shgus\.roboflow\models\rf-detr-nano.pth
+ok
+test_alert_backlog_degraded_passes (test_measurement_hygiene.TestDegradedCauseIsSeparated.test_alert_backlog_degraded_passes)
+카메라는 멀쩡한데 미전송 경보 때문에 degraded \u2014 합격이어야 한다. ... ok
+test_camera_degraded_fails (test_measurement_hygiene.TestDegradedCauseIsSeparated.test_camera_degraded_fails)
+카메라가 실제로 저하되면 불합격이어야 한다. ... ok
+test_cams_ok_ignores_stopped (test_measurement_hygiene.TestOfflineProbeIgnoresStopped.test_cams_ok_ignores_stopped) ... ok
+test_aggregate_excludes_stopped (test_measurement_hygiene.TestStoppedCameraDoesNotPoisonMetrics.test_aggregate_excludes_stopped) ... ok
+test_base_cycle_uses_real_camera_only (test_measurement_hygiene.TestStoppedCameraDoesNotPoisonMetrics.test_base_cycle_uses_real_camera_only) ... [2026-09-06 04:07:16] [WARNING] rf-detr - Pretrained weights at 'C:\\Users\\shgus\\.roboflow\\models\\rf-detr-nano.pth' loaded only partially \u2014 this typically produces lower accuracy. 1 model parameter(s) not in checkpoint (left at random init): [_kp_active_mask]. Check that the model configuration (encoder, hidden_dim, out_feature_indexes, projector_scale, ...) matches the architecture the checkpoint was trained with.
+ok
+test_stopped_camera_is_not_a_failure (test_measurement_hygiene.TestStoppedCameraDoesNotPoisonMetrics.test_stopped_camera_is_not_a_failure) ... DeprecationWarning: `torch.jit.trace` is deprecated. Please switch to `torch.compile` or `torch.export`.
+DeprecationWarning: `torch.jit.trace_method` is deprecated. Please switch to `torch.compile` or `torch.export`.
+[transformers] `loss_type=None` was set in the config but it is unrecognized. Using the default loss: `ForCausalLMLoss`.
+TracerWarning: Converting a tensor to a Python boolean might cause the trace to be incorrect. We can't record the data flow of Python values, so this value will be treated as a constant in the future. This means that the trace might not generalize to other inputs!
+[transformers] `use_return_dict` is deprecated! Use `return_dict` instead!
+TracerWarning: Converting a tensor to a Python boolean might cause the trace to be incorrect. We can't record the data flow of Python values, so this value will be treated as a constant in the future. This means that the trace might not generalize to other inputs!
+TracerWarning: Converting a tensor to a Python boolean might cause the trace to be incorrect. We can't record the data flow of Python values, so this value will be treated as a constant in the future. This means that the trace might not generalize to other inputs!
+TracerWarning: Converting a tensor to a Python boolean might cause the trace to be incorrect. We can't record the data flow of Python values, so this value will be treated as a constant in the future. This means that the trace might not generalize to other inputs!
+ok
+test_config_can_disable (test_ort_tune.TestDefaults.test_config_can_disable)
+★롤백 경로: tune_sessions: false 면 완전히 꺼진다(구 동작 복원). ... ok
+test_enabled_by_default (test_ort_tune.TestDefaults.test_enabled_by_default)
+설정이 없으면 켜져 있다 \u2014 2026-08-19 서비스 실측(2.10→1.55코어)으로 검증된 기본값. ... ok
+test_retune_is_noop_when_disabled (test_ort_tune.TestDefaults.test_retune_is_noop_when_disabled)
+꺼져 있으면 세션을 절대 건드리지 않는다(규칙6). ... ok
+test_bad_value_falls_back (test_ort_tune.TestEnabledPath.test_bad_value_falls_back) ... ok
+test_intra_threads_floor (test_ort_tune.TestEnabledPath.test_intra_threads_floor) ... ok
+test_options_built_when_enabled (test_ort_tune.TestEnabledPath.test_options_built_when_enabled) ... ok
+test_retune_survives_session_failure (test_ort_tune.TestEnabledPath.test_retune_survives_session_failure)
+세션 재구성이 실패해도 예외를 올리지 않고 기존 세션을 남긴다(무중단). ... 2026-09-06 04:07:17,317 [WARNING] vigent.ort_tune: ORT 세션 재구성 실패(기존 세션 유지): det.onnx
+Traceback (most recent call last):
+  File "D:\vigent_original\vigent-core\ort_tune.py", line 109, in retune
+    t.session = ort.InferenceSession(path_or_bytes=t.onnx_model, sess_options=so,
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\shgus\AppData\Local\Programs\Python\Python311\Lib\unittest\mock.py", line 1124, in __call__
+    return self._mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\shgus\AppData\Local\Programs\Python\Python311\Lib\unittest\mock.py", line 1128, in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\shgus\AppData\Local\Programs\Python\Python311\Lib\unittest\mock.py", line 1183, in _execute_mock_call
+    raise effect
+RuntimeError: 주입 실패
+2026-09-06 04:07:17,318 [WARNING] vigent.ort_tune: ORT 세션 재구성 실패(기존 세션 유지): pose.onnx
+Traceback (most recent call last):
+  File "D:\vigent_original\vigent-core\ort_tune.py", line 109, in retune
+    t.session = ort.InferenceSession(path_or_bytes=t.onnx_model, sess_options=so,
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\shgus\AppData\Local\Programs\Python\Python311\Lib\unittest\mock.py", line 1124, in __call__
+    return self._mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\shgus\AppData\Local\Programs\Python\Python311\Lib\unittest\mock.py", line 1128, in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\shgus\AppData\Local\Programs\Python\Python311\Lib\unittest\mock.py", line 1183, in _execute_mock_call
+    raise effect
+  File "D:\vigent_original\vigent-core\ort_tune.py", line 109, in retune
+    t.session = ort.InferenceSession(path_or_bytes=t.onnx_model, sess_options=so,
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\shgus\AppData\Local\Programs\Python\Python311\Lib\unittest\mock.py", line 1124, in __call__
+    return self._mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\shgus\AppData\Local\Programs\Python\Python311\Lib\unittest\mock.py", line 1128, in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\shgus\AppData\Local\Programs\Python\Python311\Lib\unittest\mock.py", line 1183, in _execute_mock_call
+    raise effect
+RuntimeError: 주입 실패
+ok
+test_finds_callable_tools (test_ort_tune.TestSessionDiscovery.test_finds_callable_tools)
+rtmlib 의 YOLOX·RTMPose 는 __call__ 이 있다 \u2014 callable 을 걸러내면 못 찾는다. ... ok
+test_no_sessions_on_plain_object (test_ort_tune.TestSessionDiscovery.test_no_sessions_on_plain_object) ... ok
+test_grid_off_by_default (test_passthrough_grid_key.DefaultsAreOff.test_grid_off_by_default) ... ok
+test_grid_off_means_tidless_ignored_when_tracks_exist (test_passthrough_grid_key.DefaultsAreOff.test_grid_off_means_tidless_ignored_when_tracks_exist)
+★off 면 기존 동작 그대로 \u2014 **트랙이 있을 때** tid 없는 검출은 판정에서 빠진다. ... ok
+test_grid_on_covers_that_gap (test_passthrough_grid_key.DefaultsAreOff.test_grid_on_covers_that_gap)
+★켜면 그 구멍이 메워진다 \u2014 같은 장면에서 tid 없는 사람도 잡힌다. ... ok
+test_passthrough_off_by_default (test_passthrough_grid_key.DefaultsAreOff.test_passthrough_off_by_default) ... 2026-09-06 04:07:17,407 [INFO] vigent.guard: 검출 슬롯: slot=forklift backend=rfdetr weights=forklift_rfdetr_v1.pth sha=cd76eb56487bf1aa → LOADED
+TracerWarning: Converting a tensor to a Python boolean might cause the trace to be incorrect. We can't record the data flow of Python values, so this value will be treated as a constant in the future. This means that the trace might not generalize to other inputs!
+2026-09-06 04:07:17,486 [INFO] vigent.guard: 검출 슬롯: slot=fire_smoke backend=rfdetr weights=fire_smoke_rfdetr_v1_e17.pth sha=b7425ce450f12cad → LOADED
+2026-09-06 04:07:17,562 [INFO] vigent.guard: 검출 슬롯: slot=ppe backend=rfdetr weights=ppe_rfdetr_v1.pth sha=3380fa7d4bb1be87 → LOADED
+2026-09-06 04:07:17,562 [INFO] vigent.guard: RF-DETR 사전학습 캐시 확인: C:\Users\shgus\.roboflow\models\rf-detr-nano.pth
+ok
+test_different_place_different_key (test_passthrough_grid_key.GridKeyBehaviour.test_different_place_different_key)
+다른 자리의 진입은 새 키 → 두 번째 사람이 가려지지 않는다. ... ok
+test_same_place_same_key (test_passthrough_grid_key.GridKeyBehaviour.test_same_place_same_key)
+★같은 자리에 머무는 대상은 같은 키 → 디바운스·쿨다운이 정상 작동한다. ... ok
+test_tid_still_wins (test_passthrough_grid_key.GridKeyBehaviour.test_tid_still_wins)
+계약 4 \u2014 tid 가 있으면 위치 키가 아니라 **tid 키**를 쓴다(D1-C 유지). ... ok
+test_dedup_code_is_present (test_passthrough_grid_key.PassthroughDedup.test_dedup_code_is_present) ... ok
+test_passthrough_boxes_have_no_tid (test_passthrough_grid_key.PassthroughDedup.test_passthrough_boxes_have_no_tid)
+되살린 박스는 tid 가 없어야 한다 \u2014 있으면 가짜 ID 로 D1-C 를 오염시킨다. ... ok
+test_containment_suppress_handles_mixed_detector_boxes (test_person_ensemble.PersonEnsembleWiring.test_containment_suppress_handles_mixed_detector_boxes)
+포함비 억제(1.9d)가 서로 다른 detector 출처의 person 박스에도 정상 동작하는지(큰 박스 안 ... ok
+test_ensemble_off_drops_ppe_origin_person_but_keeps_its_ppe_items (test_person_ensemble.PersonEnsembleWiring.test_ensemble_off_drops_ppe_origin_person_but_keeps_its_ppe_items) ... ok
+test_ensemble_on_merges_dup_and_keeps_unique_catch (test_person_ensemble.PersonEnsembleWiring.test_ensemble_on_merges_dup_and_keeps_unique_catch) ... ok
+test_tracking_stable_across_frames_both_flag_states (test_person_ensemble.PersonEnsembleWiring.test_tracking_stable_across_frames_both_flag_states)
+같은 track_key 로 5프레임 연속 호출해도 크래시 없이 person tid 가 안정적으로 부여되는지 ... ok
+test_default_keeps_all_three (test_ppe_required_config.DefaultUnchanged.test_default_keeps_all_three)
+★설정 없으면 기존 3종 \u2014 승인 없이 안전 기능이 좁아지면 안 된다. ... TracerWarning: Converting a tensor to a Python boolean might cause the trace to be incorrect. We can't record the data flow of Python values, so this value will be treated as a constant in the future. This means that the trace might not generalize to other inputs!
+2026-09-06 04:07:17,644 [INFO] vigent.guard: 검출 슬롯: slot=forklift backend=rfdetr weights=forklift_rfdetr_v1.pth sha=cd76eb56487bf1aa → LOADED
+TracerWarning: Converting a tensor to a Python boolean might cause the trace to be incorrect. We can't record the data flow of Python values, so this value will be treated as a constant in the future. This means that the trace might not generalize to other inputs!
+TracerWarning: Converting a tensor to a Python boolean might cause the trace to be incorrect. We can't record the data flow of Python values, so this value will be treated as a constant in the future. This means that the trace might not generalize to other inputs!
+TracerWarning: Converting a tensor to a Python boolean might cause the trace to be incorrect. We can't record the data flow of Python values, so this value will be treated as a constant in the future. This means that the trace might not generalize to other inputs!
+TracerWarning: Converting a tensor to a Python boolean might cause the trace to be incorrect. We can't record the data flow of Python values, so this value will be treated as a constant in the future. This means that the trace might not generalize to other inputs!
+TracerWarning: Converting a tensor to a Python boolean might cause the trace to be incorrect. We can't record the data flow of Python values, so this value will be treated as a constant in the future. This means that the trace might not generalize to other inputs!
+TracerWarning: Iterating over a tensor might cause the trace to be incorrect. Passing a tensor of different shape won't change the number of iterations executed (and might lead to errors or silently give incorrect results).
+TracerWarning: Iterating over a tensor might cause the trace to be incorrect. Passing a tensor of different shape won't change the number of iterations executed (and might lead to errors or silently give incorrect results).
+2026-09-06 04:07:17,731 [INFO] vigent.guard: 검출 슬롯: slot=fire_smoke backend=rfdetr weights=fire_smoke_rfdetr_v1_e17.pth sha=b7425ce450f12cad → LOADED
+2026-09-06 04:07:18,053 [INFO] vigent.guard: 검출 슬롯: slot=ppe backend=rfdetr weights=ppe_rfdetr_v1.pth sha=3380fa7d4bb1be87 → LOADED
+2026-09-06 04:07:18,053 [INFO] vigent.guard: RF-DETR 사전학습 캐시 확인: C:\Users\shgus\.roboflow\models\rf-detr-nano.pth
+ok
+test_module_constant_untouched (test_ppe_required_config.DefaultUnchanged.test_module_constant_untouched)
+모듈 상수는 그대로 \u2014 다른 소비자가 참조한다. ... ok
+test_all_invalid_cases_behave_identically (test_ppe_required_config.MisconfigurationIsSafe.test_all_invalid_cases_behave_identically)
+★세 경우(오타단독·빈목록·부분무효)의 처리가 **같아야** 한다 \u2014 심각도 통일. ... 2026-09-06 04:07:18,059 [ERROR] vigent.guard: ★설정 무효: ppe.required=['helemt'] 무효 \u2014 알 수 없는 라벨 ['helemt'] 포함. **설정 전체를 적용하지 않고 기본 ['NO-Hardhat', 'NO-Mask', 'NO-Safety-Vest'] 로 동작한다.** (일부만 골라 쓰면 의도한 감시 항목이 조용히 빠질 수 있다.) 가능한 값: ['NO-Hardhat', 'NO-Mask', 'NO-Safety-Vest']
+2026-09-06 04:07:18,156 [INFO] vigent.guard: 검출 슬롯: slot=forklift backend=rfdetr weights=forklift_rfdetr_v1.pth sha=cd76eb56487bf1aa → LOADED
+2026-09-06 04:07:18,286 [INFO] vigent.guard: 검출 슬롯: slot=fire_smoke backend=rfdetr weights=fire_smoke_rfdetr_v1_e17.pth sha=b7425ce450f12cad → LOADED
+2026-09-06 04:07:18,358 [INFO] vigent.guard: 검출 슬롯: slot=ppe backend=rfdetr weights=ppe_rfdetr_v1.pth sha=3380fa7d4bb1be87 → LOADED
+2026-09-06 04:07:18,359 [INFO] vigent.guard: RF-DETR 사전학습 캐시 확인: C:\Users\shgus\.roboflow\models\rf-detr-nano.pth
+2026-09-06 04:07:18,363 [ERROR] vigent.guard: ★설정 무효: ppe.required=['helemt'] 무효 \u2014 알 수 없는 라벨 ['helemt'] 포함. **설정 전체를 적용하지 않고 기본 ['NO-Hardhat', 'NO-Mask', 'NO-Safety-Vest'] 로 동작한다.** (일부만 골라 쓰면 의도한 감시 항목이 조용히 빠질 수 있다.) 가능한 값: ['NO-Hardhat', 'NO-Mask', 'NO-Safety-Vest']
+2026-09-06 04:07:18,436 [INFO] vigent.guard: 검출 슬롯: slot=forklift backend=rfdetr weights=forklift_rfdetr_v1.pth sha=cd76eb56487bf1aa → LOADED
+2026-09-06 04:07:18,508 [INFO] vigent.guard: 검출 슬롯: slot=fire_smoke backend=rfdetr weights=fire_smoke_rfdetr_v1_e17.pth sha=b7425ce450f12cad → LOADED
+2026-09-06 04:07:18,579 [INFO] vigent.guard: 검출 슬롯: slot=ppe backend=rfdetr weights=ppe_rfdetr_v1.pth sha=3380fa7d4bb1be87 → LOADED
+2026-09-06 04:07:18,580 [INFO] vigent.guard: RF-DETR 사전학습 캐시 확인: C:\Users\shgus\.roboflow\models\rf-detr-nano.pth
+2026-09-06 04:07:18,748 [ERROR] vigent.guard: ★설정 무효: ppe.required=[] 무효 \u2014 빈 목록. **설정 전체를 적용하지 않고 기본 ['NO-Hardhat', 'NO-Mask', 'NO-Safety-Vest'] 로 동작한다.** (일부만 골라 쓰면 의도한 감시 항목이 조용히 빠질 수 있다.) 가능한 값: ['NO-Hardhat', 'NO-Mask', 'NO-Safety-Vest']
+2026-09-06 04:07:18,850 [INFO] vigent.guard: 검출 슬롯: slot=forklift backend=rfdetr weights=forklift_rfdetr_v1.pth sha=cd76eb56487bf1aa → LOADED
+2026-09-06 04:07:18,922 [INFO] vigent.guard: 검출 슬롯: slot=fire_smoke backend=rfdetr weights=fire_smoke_rfdetr_v1_e17.pth sha=b7425ce450f12cad → LOADED
+2026-09-06 04:07:19,010 [INFO] vigent.guard: 검출 슬롯: slot=ppe backend=rfdetr weights=ppe_rfdetr_v1.pth sha=3380fa7d4bb1be87 → LOADED
+2026-09-06 04:07:19,011 [INFO] vigent.guard: RF-DETR 사전학습 캐시 확인: C:\Users\shgus\.roboflow\models\rf-detr-nano.pth
+2026-09-06 04:07:19,016 [ERROR] vigent.guard: ★설정 무효: ppe.required=[] 무효 \u2014 빈 목록. **설정 전체를 적용하지 않고 기본 ['NO-Hardhat', 'NO-Mask', 'NO-Safety-Vest'] 로 동작한다.** (일부만 골라 쓰면 의도한 감시 항목이 조용히 빠질 수 있다.) 가능한 값: ['NO-Hardhat', 'NO-Mask', 'NO-Safety-Vest']
+2026-09-06 04:07:19,091 [INFO] vigent.guard: 검출 슬롯: slot=forklift backend=rfdetr weights=forklift_rfdetr_v1.pth sha=cd76eb56487bf1aa → LOADED
+2026-09-06 04:07:19,163 [INFO] vigent.guard: 검출 슬롯: slot=fire_smoke backend=rfdetr weights=fire_smoke_rfdetr_v1_e17.pth sha=b7425ce450f12cad → LOADED
+2026-09-06 04:07:19,234 [INFO] vigent.guard: 검출 슬롯: slot=ppe backend=rfdetr weights=ppe_rfdetr_v1.pth sha=3380fa7d4bb1be87 → LOADED
+2026-09-06 04:07:19,235 [INFO] vigent.guard: RF-DETR 사전학습 캐시 확인: C:\Users\shgus\.roboflow\models\rf-detr-nano.pth
+2026-09-06 04:07:19,239 [ERROR] vigent.guard: ★설정 무효: ppe.required=['helemt', 'NO-Safety-Vest'] 무효 \u2014 알 수 없는 라벨 ['helemt'] 포함. **설정 전체를 적용하지 않고 기본 ['NO-Hardhat', 'NO-Mask', 'NO-Safety-Vest'] 로 동작한다.** (일부만 골라 쓰면 의도한 감시 항목이 조용히 빠질 수 있다.) 가능한 값: ['NO-Hardhat', 'NO-Mask', 'NO-Safety-Vest']
+2026-09-06 04:07:19,319 [INFO] vigent.guard: 검출 슬롯: slot=forklift backend=rfdetr weights=forklift_rfdetr_v1.pth sha=cd76eb56487bf1aa → LOADED
+2026-09-06 04:07:19,386 [INFO] vigent.readiness: 예열 slot=person 7.2s
+2026-09-06 04:07:19,397 [INFO] vigent.guard: 검출 슬롯: slot=fire_smoke backend=rfdetr weights=fire_smoke_rfdetr_v1_e17.pth sha=b7425ce450f12cad → LOADED
+2026-09-06 04:07:19,471 [INFO] vigent.guard: 검출 슬롯: slot=ppe backend=rfdetr weights=ppe_rfdetr_v1.pth sha=3380fa7d4bb1be87 → LOADED
+2026-09-06 04:07:19,472 [INFO] vigent.guard: RF-DETR 사전학습 캐시 확인: C:\Users\shgus\.roboflow\models\rf-detr-nano.pth
+2026-09-06 04:07:19,477 [ERROR] vigent.guard: ★설정 무효: ppe.required=['helemt', 'NO-Safety-Vest'] 무효 \u2014 알 수 없는 라벨 ['helemt'] 포함. **설정 전체를 적용하지 않고 기본 ['NO-Hardhat', 'NO-Mask', 'NO-Safety-Vest'] 로 동작한다.** (일부만 골라 쓰면 의도한 감시 항목이 조용히 빠질 수 있다.) 가능한 값: ['NO-Hardhat', 'NO-Mask', 'NO-Safety-Vest']
+2026-09-06 04:07:19,552 [INFO] vigent.guard: 검출 슬롯: slot=forklift backend=rfdetr weights=forklift_rfdetr_v1.pth sha=cd76eb56487bf1aa → LOADED
+2026-09-06 04:07:19,625 [INFO] vigent.guard: 검출 슬롯: slot=fire_smoke backend=rfdetr weights=fire_smoke_rfdetr_v1_e17.pth sha=b7425ce450f12cad → LOADED
+2026-09-06 04:07:19,698 [INFO] vigent.guard: 검출 슬롯: slot=ppe backend=rfdetr weights=ppe_rfdetr_v1.pth sha=3380fa7d4bb1be87 → LOADED
+2026-09-06 04:07:19,699 [INFO] vigent.guard: RF-DETR 사전학습 캐시 확인: C:\Users\shgus\.roboflow\models\rf-detr-nano.pth
+ok
+test_empty_list_is_not_silent (test_ppe_required_config.MisconfigurationIsSafe.test_empty_list_is_not_silent)
+빈 리스트도 마찬가지 \u2014 보호구 경보가 꺼지지도, 조용하지도 않는다. ... 2026-09-06 04:07:19,704 [ERROR] vigent.guard: ★설정 무효: ppe.required=[] 무효 \u2014 빈 목록. **설정 전체를 적용하지 않고 기본 ['NO-Hardhat', 'NO-Mask', 'NO-Safety-Vest'] 로 동작한다.** (일부만 골라 쓰면 의도한 감시 항목이 조용히 빠질 수 있다.) 가능한 값: ['NO-Hardhat', 'NO-Mask', 'NO-Safety-Vest']
+2026-09-06 04:07:19,784 [INFO] vigent.guard: 검출 슬롯: slot=forklift backend=rfdetr weights=forklift_rfdetr_v1.pth sha=cd76eb56487bf1aa → LOADED
+2026-09-06 04:07:19,858 [INFO] vigent.guard: 검출 슬롯: slot=fire_smoke backend=rfdetr weights=fire_smoke_rfdetr_v1_e17.pth sha=b7425ce450f12cad → LOADED
+[2026-09-06 04:07:19] [INFO] rf-detr - File C:\Users\shgus\.roboflow\models\rf-detr-nano.pth already exists with correct MD5 hash.
+[2026-09-06 04:07:19] [WARNING] rf-detr - Using a different number of positional encodings than DINOv2, which means we're not loading DINOv2 backbone weights. This is not a problem if finetuning a pretrained RF-DETR model.
+[2026-09-06 04:07:19] [WARNING] rf-detr - Using patch size 16 instead of 14, which means we're not loading DINOv2 backbone weights. This is not a problem if finetuning a pretrained RF-DETR model.
+2026-09-06 04:07:19,932 [INFO] vigent.guard: 검출 슬롯: slot=ppe backend=rfdetr weights=ppe_rfdetr_v1.pth sha=3380fa7d4bb1be87 → LOADED
+2026-09-06 04:07:19,932 [INFO] vigent.guard: RF-DETR 사전학습 캐시 확인: C:\Users\shgus\.roboflow\models\rf-detr-nano.pth
+ok
+test_partial_invalid_logs_error_not_just_warning (test_ppe_required_config.MisconfigurationIsSafe.test_partial_invalid_logs_error_not_just_warning)
+★부분 무효도 ERROR 다 \u2014 예전엔 WARN 뿐이라 신호가 약했다. ... ok
+test_partial_typo_invalidates_whole_config (test_ppe_required_config.MisconfigurationIsSafe.test_partial_typo_invalidates_whole_config)
+★[2026-08-28 재수정] 일부만 유효해도 **설정 전체를 무효**로 본다. ... 2026-09-06 04:07:20,168 [ERROR] vigent.guard: ★설정 무효: ppe.required=['helemt', 'NO-Safety-Vest'] 무효 \u2014 알 수 없는 라벨 ['helemt'] 포함. **설정 전체를 적용하지 않고 기본 ['NO-Hardhat', 'NO-Mask', 'NO-Safety-Vest'] 로 동작한다.** (일부만 골라 쓰면 의도한 감시 항목이 조용히 빠질 수 있다.) 가능한 값: ['NO-Hardhat', 'NO-Mask', 'NO-Safety-Vest']
+2026-09-06 04:07:20,243 [INFO] vigent.guard: 검출 슬롯: slot=forklift backend=rfdetr weights=forklift_rfdetr_v1.pth sha=cd76eb56487bf1aa → LOADED
+2026-09-06 04:07:20,317 [INFO] vigent.guard: 검출 슬롯: slot=fire_smoke backend=rfdetr weights=fire_smoke_rfdetr_v1_e17.pth sha=b7425ce450f12cad → LOADED
+2026-09-06 04:07:20,392 [INFO] vigent.guard: 검출 슬롯: slot=ppe backend=rfdetr weights=ppe_rfdetr_v1.pth sha=3380fa7d4bb1be87 → LOADED
+2026-09-06 04:07:20,393 [INFO] vigent.guard: RF-DETR 사전학습 캐시 확인: C:\Users\shgus\.roboflow\models\rf-detr-nano.pth
+ok
+test_unknown_label_falls_back_to_default (test_ppe_required_config.MisconfigurationIsSafe.test_unknown_label_falls_back_to_default) ... 2026-09-06 04:07:20,397 [ERROR] vigent.guard: ★설정 무효: ppe.required=['NO-Helmet', '오타'] 무효 \u2014 알 수 없는 라벨 ['NO-Helmet', '오타'] 포함. **설정 전체를 적용하지 않고 기본 ['NO-Hardhat', 'NO-Mask', 'NO-Safety-Vest'] 로 동작한다.** (일부만 골라 쓰면 의도한 감시 항목이 조용히 빠질 수 있다.) 가능한 값: ['NO-Hardhat', 'NO-Mask', 'NO-Safety-Vest']
+2026-09-06 04:07:20,473 [INFO] vigent.guard: 검출 슬롯: slot=forklift backend=rfdetr weights=forklift_rfdetr_v1.pth sha=cd76eb56487bf1aa → LOADED
+2026-09-06 04:07:20,548 [INFO] vigent.guard: 검출 슬롯: slot=fire_smoke backend=rfdetr weights=fire_smoke_rfdetr_v1_e17.pth sha=b7425ce450f12cad → LOADED
+2026-09-06 04:07:20,622 [INFO] vigent.guard: 검출 슬롯: slot=ppe backend=rfdetr weights=ppe_rfdetr_v1.pth sha=3380fa7d4bb1be87 → LOADED
+2026-09-06 04:07:20,623 [INFO] vigent.guard: RF-DETR 사전학습 캐시 확인: C:\Users\shgus\.roboflow\models\rf-detr-nano.pth
+ok
+test_unknown_label_is_not_silent (test_ppe_required_config.MisconfigurationIsSafe.test_unknown_label_is_not_silent)
+★핵심 \u2014 무시했다는 사실이 상태로 드러나야 한다. ... 2026-09-06 04:07:20,628 [ERROR] vigent.guard: ★설정 무효: ppe.required=['helemt'] 무효 \u2014 알 수 없는 라벨 ['helemt'] 포함. **설정 전체를 적용하지 않고 기본 ['NO-Hardhat', 'NO-Mask', 'NO-Safety-Vest'] 로 동작한다.** (일부만 골라 쓰면 의도한 감시 항목이 조용히 빠질 수 있다.) 가능한 값: ['NO-Hardhat', 'NO-Mask', 'NO-Safety-Vest']
+[2026-09-06 04:07:20] [INFO] rf-detr - File C:\Users\shgus\.roboflow\models\rf-detr-nano.pth already exists with correct MD5 hash.
+2026-09-06 04:07:20,703 [INFO] vigent.guard: 검출 슬롯: slot=forklift backend=rfdetr weights=forklift_rfdetr_v1.pth sha=cd76eb56487bf1aa → LOADED
+2026-09-06 04:07:20,782 [INFO] vigent.guard: 검출 슬롯: slot=fire_smoke backend=rfdetr weights=fire_smoke_rfdetr_v1_e17.pth sha=b7425ce450f12cad → LOADED
+2026-09-06 04:07:20,856 [INFO] vigent.guard: 검출 슬롯: slot=ppe backend=rfdetr weights=ppe_rfdetr_v1.pth sha=3380fa7d4bb1be87 → LOADED
+2026-09-06 04:07:20,856 [INFO] vigent.guard: RF-DETR 사전학습 캐시 확인: C:\Users\shgus\.roboflow\models\rf-detr-nano.pth
+ok
+test_unknown_label_logs_error (test_ppe_required_config.MisconfigurationIsSafe.test_unknown_label_logs_error)
+로그로도 남는다 \u2014 /health 를 안 보는 운영자를 위해. ... ok
+test_valid_config_has_no_warning (test_ppe_required_config.MisconfigurationIsSafe.test_valid_config_has_no_warning)
+정상 설정에서는 경고가 없어야 한다 \u2014 늑대소년이 되면 아무도 안 본다. ... 2026-09-06 04:07:21,159 [INFO] vigent.guard: 검출 슬롯: slot=forklift backend=rfdetr weights=forklift_rfdetr_v1.pth sha=cd76eb56487bf1aa → LOADED
+2026-09-06 04:07:21,236 [INFO] vigent.guard: 검출 슬롯: slot=fire_smoke backend=rfdetr weights=fire_smoke_rfdetr_v1_e17.pth sha=b7425ce450f12cad → LOADED
+[2026-09-06 04:07:21] [WARNING] rf-detr - Pretrained weights at 'C:\\Users\\shgus\\.roboflow\\models\\rf-detr-nano.pth' loaded only partially \u2014 this typically produces lower accuracy. 1 model parameter(s) not in checkpoint (left at random init): [_kp_active_mask]. Check that the model configuration (encoder, hidden_dim, out_feature_indexes, projector_scale, ...) matches the architecture the checkpoint was trained with.
+2026-09-06 04:07:21,319 [INFO] vigent.guard: 검출 슬롯: slot=ppe backend=rfdetr weights=ppe_rfdetr_v1.pth sha=3380fa7d4bb1be87 → LOADED
+2026-09-06 04:07:21,320 [INFO] vigent.guard: RF-DETR 사전학습 캐시 확인: C:\Users\shgus\.roboflow\models\rf-detr-nano.pth
+2026-09-06 04:07:21,608 [INFO] vigent.guard: 검출 슬롯: slot=forklift backend=rfdetr weights=forklift_rfdetr_v1.pth sha=cd76eb56487bf1aa → LOADED
+2026-09-06 04:07:21,698 [INFO] vigent.guard: 검출 슬롯: slot=fire_smoke backend=rfdetr weights=fire_smoke_rfdetr_v1_e17.pth sha=b7425ce450f12cad → LOADED
+2026-09-06 04:07:22,036 [INFO] vigent.guard: 검출 슬롯: slot=ppe backend=rfdetr weights=ppe_rfdetr_v1.pth sha=3380fa7d4bb1be87 → LOADED
+2026-09-06 04:07:22,037 [INFO] vigent.guard: RF-DETR 사전학습 캐시 확인: C:\Users\shgus\.roboflow\models\rf-detr-nano.pth
+ok
+test_can_drop_mask (test_ppe_required_config.NarrowingWorks.test_can_drop_mask)
+★현장 조치 \u2014 마스크를 빼면 그 경보가 사라진다. ... 2026-09-06 04:07:22,134 [INFO] vigent.guard: 검출 슬롯: slot=forklift backend=rfdetr weights=forklift_rfdetr_v1.pth sha=cd76eb56487bf1aa → LOADED
+2026-09-06 04:07:22,286 [INFO] vigent.guard: 검출 슬롯: slot=fire_smoke backend=rfdetr weights=fire_smoke_rfdetr_v1_e17.pth sha=b7425ce450f12cad → LOADED
+2026-09-06 04:07:22,358 [INFO] vigent.guard: 검출 슬롯: slot=ppe backend=rfdetr weights=ppe_rfdetr_v1.pth sha=3380fa7d4bb1be87 → LOADED
+2026-09-06 04:07:22,359 [INFO] vigent.guard: RF-DETR 사전학습 캐시 확인: C:\Users\shgus\.roboflow\models\rf-detr-nano.pth
+ok
+test_single_item (test_ppe_required_config.NarrowingWorks.test_single_item) ... 2026-09-06 04:07:22,436 [INFO] vigent.guard: 검출 슬롯: slot=forklift backend=rfdetr weights=forklift_rfdetr_v1.pth sha=cd76eb56487bf1aa → LOADED
+2026-09-06 04:07:22,509 [INFO] vigent.guard: 검출 슬롯: slot=fire_smoke backend=rfdetr weights=fire_smoke_rfdetr_v1_e17.pth sha=b7425ce450f12cad → LOADED
+2026-09-06 04:07:22,582 [INFO] vigent.guard: 검출 슬롯: slot=ppe backend=rfdetr weights=ppe_rfdetr_v1.pth sha=3380fa7d4bb1be87 → LOADED
+2026-09-06 04:07:22,582 [INFO] vigent.guard: RF-DETR 사전학습 캐시 확인: C:\Users\shgus\.roboflow\models\rf-detr-nano.pth
+ok
+test_signal_uses_instance_set (test_ppe_required_config.WiredIntoSignal.test_signal_uses_instance_set)
+모듈 상수가 아니라 인스턴스 설정을 봐야 현장 조정이 먹는다. ... ok
+test_hand_only_no_alert (test_press_zone.TestPressZone.test_hand_only_no_alert) ... ok
+test_head_in_zone_violates (test_press_zone.TestPressZone.test_head_in_zone_violates) ... ok
+test_low_conf_ignored (test_press_zone.TestPressZone.test_low_conf_ignored) ... ok
+test_lower_body_violates (test_press_zone.TestPressZone.test_lower_body_violates) ... ok
+test_multi_person_individual (test_press_zone.TestPressZone.test_multi_person_individual) ... ok
+test_no_zone_no_alert (test_press_zone.TestPressZone.test_no_zone_no_alert) ... ok
+test_upper_arm_segment_crossing (test_press_zone.TestPressZone.test_upper_arm_segment_crossing) ... ok
+test_disabled_by_config_returns_original (test_privacy_anonymize.TestAnonymize.test_disabled_by_config_returns_original) ... ok
+test_failure_returns_original_not_crash (test_privacy_anonymize.TestAnonymize.test_failure_returns_original_not_crash)
+비식별화가 실패해도 저장 자체를 막으면 안 된다(원본 반환 + 로그). ... 2026-09-06 04:07:22,586 [ERROR] vigent.privacy: 얼굴 비식별화 실패 \u2014 원본이 저장·전송된다
+Traceback (most recent call last):
+  File "D:\vigent_original\vigent-core\privacy.py", line 119, in anonymize_faces
+    _mosaic_region(out, int(hx1), int(y1), int(hx2), int(y1 + bh * _head_ratio()))
+  File "C:\Users\shgus\AppData\Local\Programs\Python\Python311\Lib\unittest\mock.py", line 1124, in __call__
+    return self._mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\shgus\AppData\Local\Programs\Python\Python311\Lib\unittest\mock.py", line 1128, in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\shgus\AppData\Local\Programs\Python\Python311\Lib\unittest\mock.py", line 1183, in _execute_mock_call
+    raise effect
+RuntimeError: boom
+ok
+test_head_region_is_mosaicked (test_privacy_anonymize.TestAnonymize.test_head_region_is_mosaicked)
+★person 박스 머리 영역의 픽셀 분산이 크게 감소해야 한다(= 뭉개졌다). ... ok
+test_no_person_no_change_outside_faces (test_privacy_anonymize.TestAnonymize.test_no_person_no_change_outside_faces)
+사람이 없으면(그리고 haar 도 못 찾으면) 원본과 동일해야 한다. ... ok
+test_original_frame_is_not_modified (test_privacy_anonymize.TestAnonymize.test_original_frame_is_not_modified)
+★★원본 불변 \u2014 실시간 검출 파이프라인이 보는 프레임은 절대 건드리지 않는다. ... ok
+test_pixel_boxes_also_supported (test_privacy_anonymize.TestAnonymize.test_pixel_boxes_also_supported)
+정규화(0~1)뿐 아니라 픽셀 좌표 박스도 처리한다. ... ok
+test_returns_new_array (test_privacy_anonymize.TestAnonymize.test_returns_new_array) ... ok
+test_status_shape (test_privacy_anonymize.TestAnonymize.test_status_shape) ... ok
+test_concurrent_mixed_sizes_never_returns_original (test_privacy_anonymize.TestConcurrentAnonymize.test_concurrent_mixed_sizes_never_returns_original)
+★크기가 다른 프레임을 동시에 넣어도 원본이 그대로 반환되면 안 된다. ... ok
+test_face_detector_failure_keeps_head_mosaic (test_privacy_anonymize.TestConcurrentAnonymize.test_face_detector_failure_keeps_head_mosaic)
+★얼굴검출기가 실패해도 person 박스 머리 모자이크는 살아남아야 한다. ... 2026-09-06 04:07:23,366 [WARNING] vigent.privacy: YuNet 얼굴검출 실패 \u2014 person 박스 모자이크는 유지된 채 저장된다
+ok
+test_frame_to_dataurl_anonymizes (test_privacy_anonymize.TestEvidencePathWired.test_frame_to_dataurl_anonymizes) ... ok
+test_all_encrypted_reports_true (test_privacy_anonymize.TestStorageEncryptionCheck.test_all_encrypted_reports_true) ... ok
+test_bitlocker_on_overrides_efs (test_privacy_anonymize.TestStorageEncryptionCheck.test_bitlocker_on_overrides_efs)
+볼륨이 BitLocker 로 보호되면 폴더 EFS 가 없어도 보호된 것으로 본다. ... ok
+test_no_dirs_is_unknown (test_privacy_anonymize.TestStorageEncryptionCheck.test_no_dirs_is_unknown)
+검사할 폴더가 아직 없으면 판정 불가(false 로 단정하지 않는다). ... ok
+test_result_has_no_secrets (test_privacy_anonymize.TestStorageEncryptionCheck.test_result_has_no_secrets) ... ok
+test_unencrypted_reports_false_not_unknown (test_privacy_anonymize.TestStorageEncryptionCheck.test_unencrypted_reports_false_not_unknown)
+★미암호화를 'unknown' 으로 얼버무리지 않는다 \u2014 보호되지 않는 상태는 false 로 드러낸다. ... ok
+test_alert_failure_never_propagates (test_privacy_failure_policy.FailureAlerting.test_alert_failure_never_propagates)
+★통보 실패가 검출·저장을 막으면 안 된다. ... ok
+test_alert_itself_is_throttled (test_privacy_failure_policy.FailureAlerting.test_alert_itself_is_throttled)
+★통보가 폭주하면 안 된다 \u2014 10분에 1회. ... ok
+test_below_threshold_does_not_alert (test_privacy_failure_policy.FailureAlerting.test_below_threshold_does_not_alert)
+★한두 건으로 통보하면 그것도 폭주다 \u2014 임계 미만은 조용히 센다. ... ok
+test_health_exposes_status_and_legal_tag (test_privacy_failure_policy.FailureAlerting.test_health_exposes_status_and_legal_tag)
+③ 법무 검토 대상 꼬리표. ... ok
+test_threshold_triggers_alert (test_privacy_failure_policy.FailureAlerting.test_threshold_triggers_alert) ... ok
+test_flag_is_consumed_once (test_privacy_failure_policy.RecordMarking.test_flag_is_consumed_once)
+플래그는 1회성 \u2014 다음 이벤트까지 딸려가면 정상 건이 오염된다. ... ok
+test_flag_is_thread_local (test_privacy_failure_policy.RecordMarking.test_flag_is_thread_local)
+★다른 스레드의 실패가 이 스레드 기록에 붙으면 안 된다. ... ok
+test_marked_only_when_failed (test_privacy_failure_policy.RecordMarking.test_marked_only_when_failed) ... ok
+test_worker_passes_flag_through (test_privacy_failure_policy.RecordMarking.test_worker_passes_flag_through)
+호출부 계약 \u2014 worker 가 실제로 privacy_failed 를 넘기는가. ... ok
+test_academy_keeps_safety_fixes_on (test_profile_drift.AcademySlotSafety.test_academy_keeps_safety_fixes_on)
+★학원 프로파일이 안전 수정을 꺼두지 않았는가 \u2014 값 자체를 직접 본다. ... ok
+test_forklift_entry_survives_because_backend_is_yolo (test_profile_drift.AcademySlotSafety.test_forklift_entry_survives_because_backend_is_yolo)
+★학원은 forklift 가 yolo 다 \u2014 detectors 항목이 없으면 검출이 조용히 죽는다. ... ok
+test_every_declared_difference_has_a_reason (test_profile_drift.ProfileDrift.test_every_declared_difference_has_a_reason)
+★'왜 바꿨는지' 없는 선언은 선언이 아니다 \u2014 나중에 아무도 못 되돌린다. ... ok
+test_no_drift (test_profile_drift.ProfileDrift.test_no_drift)
+★게이트 본체 \u2014 드리프트가 있으면 여기서 막힌다. ... ok
+test_script_exits_zero (test_profile_drift.ProfileDrift.test_script_exits_zero)
+스크립트 자체도 통과해야 한다(사람이 손으로 돌리는 경로). ... ok
+test_full_containment (test_proximity_driver.TestContainmentMath.test_full_containment) ... ok
+test_partial (test_proximity_driver.TestContainmentMath.test_partial) ... ok
+test_zero_containment (test_proximity_driver.TestContainmentMath.test_zero_containment) ... ok
+test_disable_via_threshold_above_one (test_proximity_driver.TestDriverExclusionInProximity.test_disable_via_threshold_above_one)
+롤백 경로: driver_containment > 1.0 이면 구 동작(운전자도 잡음). ... ok
+test_dismounted_person_counts_immediately (test_proximity_driver.TestDriverExclusionInProximity.test_dismounted_person_counts_immediately)
+★하차 직후(겹침 ~20% < 임계)는 즉시 보행자로 복귀 \u2014 협착 최고 위험 순간. ... ok
+test_driver_fully_contained_is_excluded (test_proximity_driver.TestDriverExclusionInProximity.test_driver_fully_contained_is_excluded)
+★탑승 운전자(포함률 1.0)는 거리 0 이어도 근접 쌍에서 제외된다. ... ok
+test_driver_still_paired_with_other_vehicle (test_proximity_driver.TestDriverExclusionInProximity.test_driver_still_paired_with_other_vehicle)
+탑승 제외는 '그 장비와의 쌍'만 \u2014 다른 장비가 접근하면 여전히 평가(보수적). ... ok
+test_mixed_scene_only_driver_excluded (test_proximity_driver.TestDriverExclusionInProximity.test_mixed_scene_only_driver_excluded)
+운전자+보행자 공존(실측 26s 장면): 보행자 쌍만 남는다. ... ok
+test_nearby_pedestrian_still_fires (test_proximity_driver.TestDriverExclusionInProximity.test_nearby_pedestrian_still_fires)
+장비 바로 옆(비포함) 보행자는 여전히 잡힌다 \u2014 제외가 과하면 안 된다. ... ok
+test_dismount_transition_frame_level (test_proximity_driver.TestOnboardHelperForZone.test_dismount_transition_frame_level)
+하차 시퀀스: 탑승 프레임 True → 분리 프레임 즉시 False(이월 상태 없음). ... ok
+test_onboard_false_for_walker (test_proximity_driver.TestOnboardHelperForZone.test_onboard_false_for_walker) ... ok
+test_onboard_false_when_disabled (test_proximity_driver.TestOnboardHelperForZone.test_onboard_false_when_disabled) ... ok
+test_onboard_false_without_vehicle (test_proximity_driver.TestOnboardHelperForZone.test_onboard_false_without_vehicle)
+장비 검출이 없으면 제외 없음 \u2014 기존 동작 그대로. ... ok
+test_onboard_true_for_driver (test_proximity_driver.TestOnboardHelperForZone.test_onboard_true_for_driver) ... ok
+test_missing_list_reads_manifest_required_only (test_readiness_warmup.TestRequiredWeightsGuard.test_missing_list_reads_manifest_required_only)
+선택(required=false) 파일이 없다고 기동을 막으면 안 된다. ... ok
+test_missing_required_weight_fails_warmup (test_readiness_warmup.TestRequiredWeightsGuard.test_missing_required_weight_fails_warmup) ... 2026-09-06 04:07:23,495 [ERROR] vigent.readiness: ★기동 중단 수준 오류 \u2014 필수 가중치 없음: ppe_rfdetr_v1.pth \u2014 `python scripts/fetch_weights.py` 를 실행해 조달하세요
+ok
+test_present_weights_allow_warmup (test_readiness_warmup.TestRequiredWeightsGuard.test_present_weights_allow_warmup) ... 2026-09-06 04:07:23,518 [INFO] vigent.readiness: 예열 slot=person 10.0s
+[2026-09-06 04:07:23] [INFO] rf-detr - File C:\Users\shgus\.roboflow\models\rf-detr-nano.pth already exists with correct MD5 hash.
+[2026-09-06 04:07:23] [WARNING] rf-detr - Using a different number of positional encodings than DINOv2, which means we're not loading DINOv2 backbone weights. This is not a problem if finetuning a pretrained RF-DETR model.
+[2026-09-06 04:07:23] [WARNING] rf-detr - Using patch size 16 instead of 14, which means we're not loading DINOv2 backbone weights. This is not a problem if finetuning a pretrained RF-DETR model.
+[2026-09-06 04:07:24] [INFO] rf-detr - File C:\Users\shgus\.roboflow\models\rf-detr-nano.pth already exists with correct MD5 hash.
+[2026-09-06 04:07:25] [WARNING] rf-detr - Pretrained weights at 'C:\\Users\\shgus\\.roboflow\\models\\rf-detr-nano.pth' loaded only partially \u2014 this typically produces lower accuracy. 1 model parameter(s) not in checkpoint (left at random init): [_kp_active_mask]. Check that the model configuration (encoder, hidden_dim, out_feature_indexes, projector_scale, ...) matches the architecture the checkpoint was trained with.
+2026-09-06 04:07:26,942 [INFO] vigent.readiness: 예열 slot=person 11.7s
+[2026-09-06 04:07:26] [WARNING] rf-detr - Using a different number of positional encodings than DINOv2, which means we're not loading DINOv2 backbone weights. This is not a problem if finetuning a pretrained RF-DETR model.
+[2026-09-06 04:07:26] [WARNING] rf-detr - Using patch size 16 instead of 14, which means we're not loading DINOv2 backbone weights. This is not a problem if finetuning a pretrained RF-DETR model.
+[2026-09-06 04:07:27] [WARNING] rf-detr - Checkpoint has 10 classes but model is configured for 90. Using checkpoint class count (10). Pass num_classes=10 to suppress this warning.
+[2026-09-06 04:07:27] [WARNING] rf-detr - load_pretrain_weights: args.num_queries absent; inferred ckpt_num_queries=300 from tensor rows 3900 ÷ ckpt_group_detr=13.
+2026-09-06 04:07:29,025 [INFO] vigent.readiness: 예열 slot=ppe 9.6s
+2026-09-06 04:07:29,025 [INFO] vigent.readiness: 예열 slot=person 5.5s
+2026-09-06 04:07:29,026 [INFO] vigent.readiness: ★예열 완료 5.53s (slots=person) \u2014 이제 워커 기동, 워치독 정상 적용
+ok
+test_on_ready_called_only_after_success (test_readiness_warmup.TestWarmup.test_on_ready_called_only_after_success)
+★워커는 예열이 끝난 뒤에만 붙어야 한다 \u2014 차가운 모델에 붙으면 첫 검출이 ... [2026-09-06 04:07:29] [WARNING] rf-detr - Using a different number of positional encodings than DINOv2, which means we're not loading DINOv2 backbone weights. This is not a problem if finetuning a pretrained RF-DETR model.
+[2026-09-06 04:07:29] [WARNING] rf-detr - Using patch size 16 instead of 14, which means we're not loading DINOv2 backbone weights. This is not a problem if finetuning a pretrained RF-DETR model.
+[2026-09-06 04:07:29] [WARNING] rf-detr - Checkpoint has 10 classes but model is configured for 90. Using checkpoint class count (10). Pass num_classes=10 to suppress this warning.
+[2026-09-06 04:07:29] [WARNING] rf-detr - load_pretrain_weights: args.num_queries absent; inferred ckpt_num_queries=300 from tensor rows 3900 ÷ ckpt_group_detr=13.
+2026-09-06 04:07:30,953 [INFO] vigent.readiness: 예열 slot=ppe 7.4s
+[2026-09-06 04:07:30] [WARNING] rf-detr - Using a different number of positional encodings than DINOv2, which means we're not loading DINOv2 backbone weights. This is not a problem if finetuning a pretrained RF-DETR model.
+[2026-09-06 04:07:30] [WARNING] rf-detr - Using patch size 16 instead of 14, which means we're not loading DINOv2 backbone weights. This is not a problem if finetuning a pretrained RF-DETR model.
+[2026-09-06 04:07:31] [WARNING] rf-detr - Checkpoint has 10 classes but model is configured for 90. Using checkpoint class count (10). Pass num_classes=10 to suppress this warning.
+[2026-09-06 04:07:31] [WARNING] rf-detr - load_pretrain_weights: args.num_queries absent; inferred ckpt_num_queries=300 from tensor rows 3900 ÷ ckpt_group_detr=13.
+2026-09-06 04:07:32,875 [INFO] vigent.readiness: 예열 slot=ppe 5.9s
+[2026-09-06 04:07:32] [WARNING] rf-detr - Using a different number of positional encodings than DINOv2, which means we're not loading DINOv2 backbone weights. This is not a problem if finetuning a pretrained RF-DETR model.
+[2026-09-06 04:07:32] [WARNING] rf-detr - Using patch size 16 instead of 14, which means we're not loading DINOv2 backbone weights. This is not a problem if finetuning a pretrained RF-DETR model.
+[2026-09-06 04:07:33] [WARNING] rf-detr - Checkpoint has 2 classes but model is configured for 90. Using checkpoint class count (2). Pass num_classes=2 to suppress this warning.
+[2026-09-06 04:07:33] [WARNING] rf-detr - load_pretrain_weights: args.num_queries absent; inferred ckpt_num_queries=300 from tensor rows 3900 ÷ ckpt_group_detr=13.
+2026-09-06 04:07:35,015 [INFO] vigent.readiness: 예열 slot=fire_smoke 6.0s
+2026-09-06 04:07:35,015 [INFO] vigent.readiness: 예열 slot=person 6.0s
+2026-09-06 04:07:35,015 [INFO] vigent.readiness: ★예열 완료 22.85s (slots=person,ppe,fire_smoke) \u2014 이제 워커 기동, 워치독 정상 적용
+2026-09-06 04:07:35,016 [INFO] vigent.readiness: ★예열 완료 5.99s (slots=person) \u2014 이제 워커 기동, 워치독 정상 적용
+ok
+test_on_ready_not_called_when_warmup_fails (test_readiness_warmup.TestWarmup.test_on_ready_not_called_when_warmup_fails) ... [2026-09-06 04:07:35] [WARNING] rf-detr - Using a different number of positional encodings than DINOv2, which means we're not loading DINOv2 backbone weights. This is not a problem if finetuning a pretrained RF-DETR model.
+[2026-09-06 04:07:35] [WARNING] rf-detr - Using patch size 16 instead of 14, which means we're not loading DINOv2 backbone weights. This is not a problem if finetuning a pretrained RF-DETR model.
+[2026-09-06 04:07:35] [WARNING] rf-detr - Checkpoint has 2 classes but model is configured for 90. Using checkpoint class count (2). Pass num_classes=2 to suppress this warning.
+[2026-09-06 04:07:35] [WARNING] rf-detr - load_pretrain_weights: args.num_queries absent; inferred ckpt_num_queries=300 from tensor rows 3900 ÷ ckpt_group_detr=13.
+2026-09-06 04:07:36,924 [INFO] vigent.readiness: 예열 slot=fire_smoke 6.0s
+2026-09-06 04:07:36,924 [INFO] vigent.readiness: ★예열 완료 23.45s (slots=person,ppe,fire_smoke) \u2014 이제 워커 기동, 워치독 정상 적용
+[2026-09-06 04:07:36] [WARNING] rf-detr - Using a different number of positional encodings than DINOv2, which means we're not loading DINOv2 backbone weights. This is not a problem if finetuning a pretrained RF-DETR model.
+[2026-09-06 04:07:36] [WARNING] rf-detr - Using patch size 16 instead of 14, which means we're not loading DINOv2 backbone weights. This is not a problem if finetuning a pretrained RF-DETR model.
+2026-09-06 04:07:37,070 [INFO] vigent: 카메라 자동복원 → {'test': 'started'}
+[2026-09-06 04:07:37] [WARNING] rf-detr - Checkpoint has 2 classes but model is configured for 90. Using checkpoint class count (2). Pass num_classes=2 to suppress this warning.
+[2026-09-06 04:07:37] [WARNING] rf-detr - load_pretrain_weights: args.num_queries absent; inferred ckpt_num_queries=300 from tensor rows 3900 ÷ ckpt_group_detr=13.
+2026-09-06 04:07:38,842 [INFO] vigent.readiness: 예열 slot=fire_smoke 6.0s
+2026-09-06 04:07:38,842 [ERROR] vigent.readiness: 예열 실패(3.8s): warmup boom \u2014 /health phase=failed 로 노출
+2026-09-06 04:07:38,843 [INFO] vigent.readiness: ★예열 완료 23.56s (slots=person,ppe,fire_smoke) \u2014 이제 워커 기동, 워치독 정상 적용
+2026-09-06 04:07:38,970 [INFO] vigent: 카메라 자동복원 → {'test': 'started'}
+FAIL
+test_snapshot_has_no_secrets (test_readiness_warmup.TestWarmup.test_snapshot_has_no_secrets) ... ok
+test_starts_in_starting_phase (test_readiness_warmup.TestWarmup.test_starts_in_starting_phase) ... ok
+test_warmup_failure_marks_failed_not_ready (test_readiness_warmup.TestWarmup.test_warmup_failure_marks_failed_not_ready) ... 2026-09-06 04:07:39,044 [ERROR] vigent.readiness: 예열 실패(0.0s): warmup boom \u2014 /health phase=failed 로 노출
+ok
+test_warmup_marks_ready_and_records_time (test_readiness_warmup.TestWarmup.test_warmup_marks_ready_and_records_time) ... 2026-09-06 04:07:39,044 [INFO] vigent.readiness: 예열 slot=person 0.0s
+2026-09-06 04:07:39,044 [INFO] vigent.readiness: ★예열 완료 0.00s (slots=person) \u2014 이제 워커 기동, 워치독 정상 적용
+ok
+test_warmup_runs_dummy_inference_per_slot (test_readiness_warmup.TestWarmup.test_warmup_runs_dummy_inference_per_slot)
+로드만이 아니라 슬롯마다 **실제 추론 1회**를 돌려야 커널이 예열된다. ... 2026-09-06 04:07:39,045 [INFO] vigent.readiness: 예열 slot=person 0.0s
+2026-09-06 04:07:39,045 [INFO] vigent.readiness: 예열 slot=ppe 0.0s
+2026-09-06 04:07:39,045 [INFO] vigent.readiness: 예열 slot=fire_smoke 0.0s
+2026-09-06 04:07:39,046 [INFO] vigent.readiness: ★예열 완료 0.00s (slots=person,ppe,fire_smoke) \u2014 이제 워커 기동, 워치독 정상 적용
+ok
+test_grace_and_timeout_are_config_driven (test_readiness_warmup.TestWatchdogGrace.test_grace_and_timeout_are_config_driven)
+회피용 환경변수(VIGENT_HANG_TIMEOUT=60)에 의존하지 않고 config 기본값으로 동작해야 한다. ... ok
+test_discord_webhook_path_is_removed (test_redact_secrets.TestRedactSecrets.test_discord_webhook_path_is_removed) ... ok
+test_multiple_secrets_in_one_message (test_redact_secrets.TestRedactSecrets.test_multiple_secrets_in_one_message) ... ok
+test_ordinary_message_unchanged (test_redact_secrets.TestRedactSecrets.test_ordinary_message_unchanged) ... ok
+test_querystring_secrets_are_removed (test_redact_secrets.TestRedactSecrets.test_querystring_secrets_are_removed) ... ok
+test_slack_webhook_path_is_removed (test_redact_secrets.TestRedactSecrets.test_slack_webhook_path_is_removed) ... ok
+test_telegram_token_in_url_is_removed (test_redact_secrets.TestRedactSecrets.test_telegram_token_in_url_is_removed) ... ok
+test_off_failed_should_degrade (test_relay.TestHealthIntegration.test_off_failed_should_degrade)
+OFF 실패 상태는 /health 가 degraded 로 올려야 한다(정상이 아니다). ... 2026-09-06 04:07:39,718 [WARNING] vigent.relay: 릴레이 ON (경보) \u2014 30초 뒤 자동 OFF
+2026-09-06 04:07:39,813 [ERROR] vigent.relay: ★릴레이 OFF 실패(RemoteDisconnected: Remote end closed connection without response) \u2014 물리 출력이 켜진 채로 남았을 수 있다. 현장 확인 필요
+ok
+test_disabled_does_nothing (test_relay.TestNormalSequence.test_disabled_does_nothing)
+relay.enabled=false(기본)면 아무 요청도 보내지 않는다. ... ok
+test_on_then_off (test_relay.TestNormalSequence.test_on_then_off)
+정상 ON → OFF 시퀀스가 릴레이에 그대로 전달된다. ... 2026-09-06 04:07:40,824 [WARNING] vigent.relay: 릴레이 ON (침입 감지) \u2014 30초 뒤 자동 OFF
+2026-09-06 04:07:40,826 [INFO] vigent.relay: 릴레이 OFF (해제)
+2026-09-06 04:07:40,867 [INFO] vigent: 카메라 자동복원 → {'test': 'started'}
+ok
+test_status_shape (test_relay.TestNormalSequence.test_status_shape) ... ok
+test_off_failure_sets_flag_and_surfaces (test_relay.TestOffFailureIsVisible.test_off_failure_sets_flag_and_surfaces)
+★OFF 최종 실패는 상태로 드러나야 한다 \u2014 사이렌이 켜진 채 남았을 수 있다. ... 2026-09-06 04:07:41,843 [WARNING] vigent.relay: 릴레이 ON (경보) \u2014 30초 뒤 자동 OFF
+2026-09-06 04:07:41,924 [ERROR] vigent.relay: ★릴레이 OFF 실패(RemoteDisconnected: Remote end closed connection without response) \u2014 물리 출력이 켜진 채로 남았을 수 있다. 현장 확인 필요
+ok
+test_successful_off_clears_flag (test_relay.TestOffFailureIsVisible.test_successful_off_clears_flag) ... 2026-09-06 04:07:42,436 [WARNING] vigent.relay: 릴레이 ON (경보) \u2014 30초 뒤 자동 OFF
+2026-09-06 04:07:42,515 [ERROR] vigent.relay: ★릴레이 OFF 실패(RemoteDisconnected: Remote end closed connection without response) \u2014 물리 출력이 켜진 채로 남았을 수 있다. 현장 확인 필요
+2026-09-06 04:07:42,517 [INFO] vigent.relay: 릴레이 OFF (재시도)
+ok
+test_auto_off_after_duration (test_relay.TestRetrigger.test_auto_off_after_duration)
+on_duration_s 뒤 자동 OFF 된다. ... 2026-09-06 04:07:43,027 [WARNING] vigent.relay: 릴레이 ON (자동해제 확인) \u2014 0초 뒤 자동 OFF
+2026-09-06 04:07:43,343 [INFO] vigent.relay: 릴레이 OFF (자동 해제(시간 만료))
+ok
+test_duplicate_alert_extends_not_duplicates (test_relay.TestRetrigger.test_duplicate_alert_extends_not_duplicates)
+중복 경보 시 ON 을 다시 보내되 **연장**으로 표시되고 on_count 는 안 늘어난다. ... 2026-09-06 04:07:43,847 [WARNING] vigent.relay: 릴레이 ON (1차) \u2014 30초 뒤 자동 OFF
+2026-09-06 04:07:43,849 [WARNING] vigent.relay: 릴레이 ON(연장) (2차) \u2014 30초 뒤 자동 OFF
+ok
+test_off_retries_more_than_on (test_relay.TestRetryAndRecovery.test_off_retries_more_than_on)
+★OFF 는 ON 보다 재시도 횟수가 많아야 한다(안 꺼지는 것이 최악). ... 2026-09-06 04:07:44,391 [ERROR] vigent.relay: 릴레이 ON 실패: 주입 실패
+2026-09-06 04:07:44,463 [ERROR] vigent.relay: ★릴레이 OFF 실패(주입 실패) \u2014 물리 출력이 켜진 채로 남았을 수 있다. 현장 확인 필요
+ok
+test_on_retries_until_server_recovers (test_relay.TestRetryAndRecovery.test_on_retries_until_server_recovers)
+ON 중 서버가 5xx 를 내다 복구되면 재시도로 성공한다. ... 2026-09-06 04:07:44,890 [WARNING] vigent.relay: 릴레이 ON (재시도) \u2014 30초 뒤 자동 OFF
+ok
+test_disabled_deletes_nothing_even_with_execute (test_retention.TestRetentionSweep.test_disabled_deletes_nothing_even_with_execute) ... ok
+test_dry_run_default_deletes_nothing (test_retention.TestRetentionSweep.test_dry_run_default_deletes_nothing) ... ok
+test_enabled_execute_deletes_old_unpinned_file (test_retention.TestRetentionSweep.test_enabled_execute_deletes_old_unpinned_file) ... ok
+test_low_disk_space_triggers_warning (test_retention.TestRetentionSweep.test_low_disk_space_triggers_warning) ... ok
+test_missing_group_dir_is_unused_not_crashes (test_retention.TestRetentionSweep.test_missing_group_dir_is_unused_not_crashes)
+[R2-fix, 2026-08-18] 미사용 그룹(디렉터리 없음)은 **경고가 아니라 unused_groups**. ... ok
+test_pinned_evidence_survives_execute (test_retention.TestRetentionSweep.test_pinned_evidence_survives_execute) ... ok
+test_status_written_and_readable (test_retention.TestRetentionSweep.test_status_written_and_readable) ... ok
+test_unpin_makes_file_deletable_again (test_retention.TestRetentionSweep.test_unpin_makes_file_deletable_again) ... ok
+test_missing_file_no_op (test_retention.TestRotateIfLarge.test_missing_file_no_op) ... ok
+test_no_rotate_when_under_cap (test_retention.TestRotateIfLarge.test_no_rotate_when_under_cap) ... ok
+test_rotates_when_over_cap (test_retention.TestRotateIfLarge.test_rotates_when_over_cap) ... ok
+test_disabled_deletes_nothing (test_retention_execute.TestAgeBasedDeletion.test_disabled_deletes_nothing) ... ok
+test_dry_run_true_deletes_nothing (test_retention_execute.TestAgeBasedDeletion.test_dry_run_true_deletes_nothing) ... ok
+test_only_expired_deleted (test_retention_execute.TestAgeBasedDeletion.test_only_expired_deleted)
+보존기간(30일) 초과분만 삭제되고 기간 내 파일은 남는다. ... ok
+test_pinned_evidence_survives (test_retention_execute.TestAgeBasedDeletion.test_pinned_evidence_survives)
+pin 된 증거는 기간이 지나도 삭제되지 않는다(기존 보장 유지). ... ok
+test_explicit_execute_still_bypasses (test_retention_execute.TestArmingRequiresCandidates.test_explicit_execute_still_bypasses)
+--execute 명시 실행은 후보 유무와 무관하게 즉시 삭제한다. ... ok
+test_hold_consumed_only_when_candidates_appear (test_retention_execute.TestArmingRequiresCandidates.test_hold_consumed_only_when_candidates_appear)
+후보가 처음 생긴 주기: 목록만·미삭제 → 그 다음 주기부터 삭제. ... 2026-09-06 04:07:45,465 [WARNING] vigent.retention: ★[첫 주기·삭제 보류] 실삭제가 처음 활성화됐습니다. 이번 주기는 목록만 남기고 **아무것도 지우지 않습니다**. 다음 주기부터 실제 삭제가 시작됩니다.
+2026-09-06 04:07:45,465 [WARNING] vigent.retention:   삭제 예정 총 1건 / 0.0 MB
+2026-09-06 04:07:45,465 [WARNING] vigent.retention:    - evidence: 1건 0.0 MB (보존 30일 초과)
+2026-09-06 04:07:45,465 [WARNING] vigent.retention:   목록을 확인한 뒤 문제가 없으면 다음 주기를 기다리면 됩니다. 중단하려면 config/tuning.yaml 의 retention.dry_run 을 true 로 되돌리세요.
+ok
+test_legacy_status_migrates_back_to_hold (test_retention_execute.TestArmingRequiresCandidates.test_legacy_status_migrates_back_to_hold)
+★구 형식(delete_armed 만 있고 armed_with_candidates 없음)은 보류로 되돌린다. ... 2026-09-06 04:07:45,477 [WARNING] vigent.retention: ★[첫 주기·삭제 보류] 실삭제가 처음 활성화됐습니다. 이번 주기는 목록만 남기고 **아무것도 지우지 않습니다**. 다음 주기부터 실제 삭제가 시작됩니다.
+2026-09-06 04:07:45,478 [WARNING] vigent.retention:   삭제 예정 총 1건 / 0.0 MB
+2026-09-06 04:07:45,478 [WARNING] vigent.retention:    - evidence: 1건 0.0 MB (보존 30일 초과)
+2026-09-06 04:07:45,478 [WARNING] vigent.retention:   목록을 확인한 뒤 문제가 없으면 다음 주기를 기다리면 됩니다. 중단하려면 config/tuning.yaml 의 retention.dry_run 을 true 로 되돌리세요.
+ok
+test_missing_dir_is_info_not_warning (test_retention_execute.TestArmingRequiresCandidates.test_missing_dir_is_info_not_warning)
+[R2-fix] 미사용 그룹(디렉터리 없음)은 경고가 아니라 unused_groups 로 분류된다. ... ok
+test_zero_candidate_cycles_keep_hold (test_retention_execute.TestArmingRequiresCandidates.test_zero_candidate_cycles_keep_hold)
+★후보 0건 주기를 여러 번 돌려도 보류가 유지된다. ... ok
+test_explicit_execute_bypasses_hold (test_retention_execute.TestFirstRunSafety.test_explicit_execute_bypasses_hold)
+운영자가 --execute 로 명시 실행하면 첫 주기 보류를 적용하지 않는다. ... ok
+test_first_cycle_deletes_nothing (test_retention_execute.TestFirstRunSafety.test_first_cycle_deletes_nothing)
+★dry_run 을 false 로 바꾼 첫 주기에는 아무것도 지우지 않는다(설정 경로). ... 2026-09-06 04:07:45,501 [WARNING] vigent.retention: ★[첫 주기·삭제 보류] 실삭제가 처음 활성화됐습니다. 이번 주기는 목록만 남기고 **아무것도 지우지 않습니다**. 다음 주기부터 실제 삭제가 시작됩니다.
+2026-09-06 04:07:45,502 [WARNING] vigent.retention:   삭제 예정 총 1건 / 0.0 MB
+2026-09-06 04:07:45,502 [WARNING] vigent.retention:    - evidence: 1건 0.0 MB (보존 30일 초과)
+2026-09-06 04:07:45,502 [WARNING] vigent.retention:   목록을 확인한 뒤 문제가 없으면 다음 주기를 기다리면 됩니다. 중단하려면 config/tuning.yaml 의 retention.dry_run 을 true 로 되돌리세요.
+ok
+test_second_cycle_deletes (test_retention_execute.TestFirstRunSafety.test_second_cycle_deletes)
+첫 주기 이후에는 실제로 삭제된다. ... 2026-09-06 04:07:45,505 [WARNING] vigent.retention: ★[첫 주기·삭제 보류] 실삭제가 처음 활성화됐습니다. 이번 주기는 목록만 남기고 **아무것도 지우지 않습니다**. 다음 주기부터 실제 삭제가 시작됩니다.
+2026-09-06 04:07:45,506 [WARNING] vigent.retention:   삭제 예정 총 1건 / 0.0 MB
+2026-09-06 04:07:45,506 [WARNING] vigent.retention:    - evidence: 1건 0.0 MB (보존 30일 초과)
+2026-09-06 04:07:45,506 [WARNING] vigent.retention:   목록을 확인한 뒤 문제가 없으면 다음 주기를 기다리면 됩니다. 중단하려면 config/tuning.yaml 의 retention.dry_run 을 true 로 되돌리세요.
+ok
+test_default_whitelist_is_group_dirs (test_retention_execute.TestPathWhitelist.test_default_whitelist_is_group_dirs)
+기본 화이트리스트는 선언된 그룹 디렉터리 자체 \u2014 data/ 하위 전부보다 좁아 더 안전하다. ... ok
+test_outside_whitelist_is_refused (test_retention_execute.TestPathWhitelist.test_outside_whitelist_is_refused)
+★화이트리스트 밖 경로는 삭제되지 않는다(되돌릴 수 없는 작업의 마지막 방어선). ... ok
+test_sweep_refuses_outside_paths (test_retention_execute.TestPathWhitelist.test_sweep_refuses_outside_paths)
+그룹 경로가 화이트리스트 밖으로 잘못 설정돼도 삭제하지 않고 경고만 남긴다. ... ok
+test_does_not_touch_detect_lock (test_retention_scheduler.TestFailureIsolation.test_does_not_touch_detect_lock)
+★검출 직렬화 락·모델을 잡지 않는다 \u2014 잡으면 스윕 동안 검출이 멈춘다. ... ok
+test_sweep_exception_does_not_kill_thread (test_retention_scheduler.TestFailureIsolation.test_sweep_exception_does_not_kill_thread)
+★스윕이 폭발해도 다음 주기가 온다 \u2014 한 번 죽으면 영영 안 돈다. ... 2026-09-06 04:07:45,525 [INFO] vigent.retention_sched: 보존 스윕 스레드 시작 \u2014 주기 0시간 · 첫 실행 0분 뒤
+2026-09-06 04:07:45,526 [ERROR] vigent.retention_sched: 보존 스윕 실패 \u2014 다음 주기에 재시도(서비스 영향 없음)
+Traceback (most recent call last):
+  File "D:\vigent_original\vigent-core\retention_scheduler.py", line 77, in _loop
+    _run_once()
+  File "D:\vigent_original\vigent-core\retention_scheduler.py", line 58, in _run_once
+    res = retention.sweep()
+          ^^^^^^^^^^^^^^^^^
+  File "C:\Users\shgus\AppData\Local\Programs\Python\Python311\Lib\unittest\mock.py", line 1124, in __call__
+    return self._mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\shgus\AppData\Local\Programs\Python\Python311\Lib\unittest\mock.py", line 1128, in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\shgus\AppData\Local\Programs\Python\Python311\Lib\unittest\mock.py", line 1183, in _execute_mock_call
+    raise effect
+OSError: disk failure
+ok
+test_thread_is_daemon (test_retention_scheduler.TestFailureIsolation.test_thread_is_daemon)
+계약 3 \u2014 데몬이라 종료를 막지 않는다. ... 2026-09-06 04:07:45,577 [INFO] vigent.retention_sched: 보존 스윕 스레드 시작 \u2014 주기 1시간 · 첫 실행 0분 뒤
+2026-09-06 04:07:45,577 [INFO] vigent.retention_sched: 보존 스윕 완료 \u2014 삭제 0건(0.0MB) · 대기 0건 · 소요 0.00s
+ok
+test_auto_sweep_false_does_not_start (test_retention_scheduler.TestRollbackAndStatus.test_auto_sweep_false_does_not_start)
+롤백: retention.auto_sweep=false 면 구 동작(수동 실행만). ... 2026-09-06 04:07:45,578 [INFO] vigent.retention_sched: 보존 스윕 자동 실행 꺼짐(retention.auto_sweep=false) \u2014 수동 실행만
+ok
+test_health_exposes_sweep_status (test_retention_scheduler.TestRollbackAndStatus.test_health_exposes_sweep_status) ... ok
+test_interval_has_floor (test_retention_scheduler.TestRollbackAndStatus.test_interval_has_floor)
+설정 실수로 0 을 넣어도 폭주하지 않는다(최소 60초). ... ok
+test_main_wires_scheduler (test_retention_scheduler.TestRollbackAndStatus.test_main_wires_scheduler)
+호출부 계약 \u2014 main 예열 배선에서 실제로 start() 를 부른다. ... ok
+test_start_is_idempotent (test_retention_scheduler.TestRollbackAndStatus.test_start_is_idempotent) ... 2026-09-06 04:07:45,579 [INFO] vigent.retention_sched: 보존 스윕 스레드 시작 \u2014 주기 24시간 · 첫 실행 60분 뒤
+ok
+test_status_exposes_liveness_and_next_run (test_retention_scheduler.TestRollbackAndStatus.test_status_exposes_liveness_and_next_run) ... 2026-09-06 04:07:45,580 [INFO] vigent.retention_sched: 보존 스윕 스레드 시작 \u2014 주기 24시간 · 첫 실행 60분 뒤
+ok
+test_calls_sweep_without_execute_argument (test_retention_scheduler.TestSweepCall.test_calls_sweep_without_execute_argument)
+★execute 를 넘기면 [P1b] 첫 주기 보류가 우회된다 \u2014 절대 넘기지 않는다. ... 2026-09-06 04:07:45,581 [INFO] vigent.retention_sched: 보존 스윕 완료 \u2014 삭제 0건(0.0MB) · 대기 3건 · 소요 0.10s
+ok
+test_counts_successful_run (test_retention_scheduler.TestSweepCall.test_counts_successful_run) ... 2026-09-06 04:07:45,581 [INFO] vigent.retention_sched: 보존 스윕 완료 \u2014 삭제 2건(0.0MB) · 대기 0건 · 소요 0.50s
+2026-09-06 04:07:45,581 [WARNING] vigent.retention_sched: 보존 스윕 경고: 디스크 여유공간 부족
+ok
+test_skips_when_retention_disabled (test_retention_scheduler.TestSweepCall.test_skips_when_retention_disabled)
+보존 정책 자체가 꺼져 있으면 스윕하지 않는다. ... 2026-09-06 04:07:45,582 [INFO] vigent.retention_sched: 보존 정책 비활성(retention.enabled=false) \u2014 스윕 건너뜀
+ok
+test_seed_has_no_coordinates (test_retention_scheduler.TestZoneSeedIsEmpty.test_seed_has_no_coordinates) ... ok
+test_torch_onnx_detection_parity (test_rfdetr_onnx_parity.TestRfdetrOnnxParity.test_torch_onnx_detection_parity) ... [2026-09-06 04:07:45] [WARNING] rf-detr - Using a different number of positional encodings than DINOv2, which means we're not loading DINOv2 backbone weights. This is not a problem if finetuning a pretrained RF-DETR model.
+[2026-09-06 04:07:45] [WARNING] rf-detr - Using patch size 16 instead of 14, which means we're not loading DINOv2 backbone weights. This is not a problem if finetuning a pretrained RF-DETR model.
+[2026-09-06 04:07:45] [WARNING] rf-detr - Checkpoint has 10 classes but model is configured for 90. Using checkpoint class count (10). Pass num_classes=10 to suppress this warning.
+[2026-09-06 04:07:45] [WARNING] rf-detr - load_pretrain_weights: args.num_queries absent; inferred ckpt_num_queries=300 from tensor rows 3900 ÷ ckpt_group_detr=13.
+2026-09-06 04:07:47,854 [INFO] vigent.rfdetr_adapter: RF-DETR ONNX 백엔드 사용(저가 CPU 배포): ppe_rfdetr_v1.onnx
+ok
+test_a_accident_alarm (test_rig_monitor.TestRigMonitor.test_a_accident_alarm)
+(a) 미동권상 후 작업자 미이탈 상태로 하물이 임계높이 초과 → ALARM. ... ok
+test_b_fall_alarm (test_rig_monitor.TestRigMonitor.test_b_fall_alarm)
+(b) 반경 내 낙상 → ALARM. ... ok
+test_c_new_person_during_hoist (test_rig_monitor.TestRigMonitor.test_c_new_person_during_hoist)
+(c) HOISTING 중 신규 인물 반경 진입 → ALARM. ... ok
+test_config_threshold_externalized (test_rig_monitor.TestRigMonitor.test_config_threshold_externalized)
+임계높이 외부화 확인 \u2014 alarm_height_m 를 높이면 같은 시나리오서 (a) 미발화. ... ok
+test_safe_no_alarm (test_rig_monitor.TestRigMonitor.test_safe_no_alarm)
+작업자 이탈 확인 후 본 인양 → CLEAR→HOISTING, 경보 없음. ... ok
+test_csv_parse_blank_load_h_is_none (test_rig_replay.TestBuildObs.test_csv_parse_blank_load_h_is_none) ... ok
+test_interp_linear (test_rig_replay.TestBuildObs.test_interp_linear) ... ok
+test_interp_none_segment (test_rig_replay.TestBuildObs.test_interp_none_segment) ... ok
+test_step_hold_n_in (test_rig_replay.TestBuildObs.test_step_hold_n_in) ... ok
+test_alarm_a_hoist_without_clearance (test_rig_replay.TestReplayScenarios.test_alarm_a_hoist_without_clearance) ... ok
+test_normal_cycle_no_alarm (test_rig_replay.TestReplayScenarios.test_normal_cycle_no_alarm) ... ok
+test_both_prefers_runtime (test_runtime_config.TestRuntimeConfig.test_both_prefers_runtime) ... ok
+test_neither_falls_back_to_seed_path (test_runtime_config.TestRuntimeConfig.test_neither_falls_back_to_seed_path) ... ok
+test_runtime_only_reads_runtime (test_runtime_config.TestRuntimeConfig.test_runtime_only_reads_runtime) ... ok
+test_runtime_path_is_under_data (test_runtime_config.TestRuntimeConfig.test_runtime_path_is_under_data) ... ok
+test_seed_only_reads_seed (test_runtime_config.TestRuntimeConfig.test_seed_only_reads_seed) ... ok
+test_evidence_failure_returns_none_not_raise (test_safety_review_fixes.TestRecordFailureDoesNotBlockAlert.test_evidence_failure_returns_none_not_raise)
+증거 저장 실패는 evidence=None 으로 흡수 \u2014 이벤트 자체는 살아남는다. ... 2026-09-06 04:07:47,945 [ERROR] vigent.data_engine: 증거 프레임 저장 실패(OSError) \u2014 이벤트 기록·알림은 계속한다: disk full
+2026-09-06 04:07:47,945 [ERROR] vigent.data_engine: ★이벤트 로그 기록 실패(OSError) \u2014 알림은 계속 보낸다(디스크·권한 확인 필요): disk full
+ok
+test_log_event_survives_disk_failure (test_safety_review_fixes.TestRecordFailureDoesNotBlockAlert.test_log_event_survives_disk_failure)
+★기록이 실패해도 예외를 올리지 않고 record 를 돌려준다(호출부의 통보가 이어진다). ... 2026-09-06 04:07:47,946 [ERROR] vigent.data_engine: ★이벤트 로그 기록 실패(OSError) \u2014 알림은 계속 보낸다(디스크·권한 확인 필요): No space left on device
+ok
+test_log_event_survives_write_failure (test_safety_review_fixes.TestRecordFailureDoesNotBlockAlert.test_log_event_survives_write_failure) ... 2026-09-06 04:07:47,947 [ERROR] vigent.data_engine: ★이벤트 로그 기록 실패(OSError) \u2014 알림은 계속 보낸다(디스크·권한 확인 필요): No space left on device
+ok
+test_normal_path_still_records (test_safety_review_fixes.TestRecordFailureDoesNotBlockAlert.test_normal_path_still_records)
+정상 경로는 그대로 \u2014 격리가 기록 자체를 죽이면 안 된다. ... ok
+test_worker_calls_notify_after_record (test_safety_review_fixes.TestRecordFailureDoesNotBlockAlert.test_worker_calls_notify_after_record)
+★통합 계약: 기록이 실패해도 워커는 통보를 호출한다. ... ok
+test_build_passes_slot_degraded_through (test_safety_review_fixes.TestSlotDegradedSurfaces.test_build_passes_slot_degraded_through) ... ok
+test_false_values_are_ignored (test_safety_review_fixes.TestSlotDegradedSurfaces.test_false_values_are_ignored)
+복구된 슬롯(False)은 정상으로 본다. ... ok
+test_health_router_wires_slot_degraded (test_safety_review_fixes.TestSlotDegradedSurfaces.test_health_router_wires_slot_degraded)
+호출부 계약 \u2014 라우터가 guard 에서 꺼내 build 로 넘기고 본문에도 싣는다. ... ok
+test_no_slot_info_keeps_old_behavior (test_safety_review_fixes.TestSlotDegradedSurfaces.test_no_slot_info_keeps_old_behavior)
+인자를 안 주면 기존 판정 그대로(하위호환). ... ok
+test_noncritical_slot_degraded_is_degraded (test_safety_review_fixes.TestSlotDegradedSurfaces.test_noncritical_slot_degraded_is_degraded)
+ppe·fire_smoke 저하는 기능 축소지 감시 실패는 아니다 → degraded. ... ok
+test_person_slot_degraded_is_unhealthy (test_safety_review_fixes.TestSlotDegradedSurfaces.test_person_slot_degraded_is_unhealthy)
+★person 은 모든 규칙의 입력 \u2014 죽으면 감시 목적 상실이라 unhealthy(503). ... ok
+test_camera_zone_is_used (test_safety_review_fixes.TestZoneFallbackBlocked.test_camera_zone_is_used)
+카메라별 구역이 있으면 그대로 쓴다(기존 동작 불변). ... ok
+test_fallback_on_but_no_global_file (test_safety_review_fixes.TestZoneFallbackBlocked.test_fallback_on_but_no_global_file)
+폴백을 켰는데 전역 파일도 비어 있으면 none 으로 정직하게 남는다. ... ok
+test_global_fallback_is_opt_in (test_safety_review_fixes.TestZoneFallbackBlocked.test_global_fallback_is_opt_in)
+★롤백 경로: zone.global_fallback=true 면 구 동작(전역 폴백) 복원. ... 2026-09-06 04:07:48,130 [WARNING] vigent.worker: 카메라 'cam' 구역 미설정 → **전역 구역** 사용(3점). 현장 좌표가 맞는지 확인할 것(zone.global_fallback=true)
+ok
+test_no_camera_zone_means_no_zone (test_safety_review_fixes.TestZoneFallbackBlocked.test_no_camera_zone_means_no_zone)
+★구역 미설정이면 전역 좌표를 쓰지 않는다(기본 동작). ... 2026-09-06 04:07:48,137 [WARNING] vigent.worker: 카메라 'cam' 위험구역 미설정 \u2014 **침입 판정을 하지 않는다**. 구역을 그리려면 /safety-hub 에서 카메라별로 설정하라.
+ok
+test_no_zone_never_fires_intrusion (test_safety_review_fixes.TestZoneFallbackBlocked.test_no_zone_never_fires_intrusion)
+구역이 없으면 침입 판정 자체가 성립하지 않는다. ... ok
+test_zone_source_reaches_health (test_safety_review_fixes.TestZoneFallbackBlocked.test_zone_source_reaches_health)
+운영자가 /health 로 '구역 미설정' 을 볼 수 있어야 한다. ... ok
+test_copilot_citation_has_source (test_scribe_copilot_dispatcher.TestStep4.test_copilot_citation_has_source) ... 2026-09-06 04:07:48,214 [INFO] vigent.guard: 검출 슬롯: slot=forklift backend=rfdetr weights=forklift_rfdetr_v1.pth sha=cd76eb56487bf1aa → LOADED
+2026-09-06 04:07:48,285 [INFO] vigent.guard: 검출 슬롯: slot=fire_smoke backend=rfdetr weights=fire_smoke_rfdetr_v1_e17.pth sha=b7425ce450f12cad → LOADED
+2026-09-06 04:07:48,355 [INFO] vigent.guard: 검출 슬롯: slot=ppe backend=rfdetr weights=ppe_rfdetr_v1.pth sha=3380fa7d4bb1be87 → LOADED
+2026-09-06 04:07:48,355 [INFO] vigent.guard: RF-DETR 사전학습 캐시 확인: C:\Users\shgus\.roboflow\models\rf-detr-nano.pth
+ok
+test_copilot_unknown_rule_fallback (test_scribe_copilot_dispatcher.TestStep4.test_copilot_unknown_rule_fallback) ... 2026-09-06 04:07:48,429 [INFO] vigent.guard: 검출 슬롯: slot=forklift backend=rfdetr weights=forklift_rfdetr_v1.pth sha=cd76eb56487bf1aa → LOADED
+2026-09-06 04:07:48,499 [INFO] vigent.guard: 검출 슬롯: slot=fire_smoke backend=rfdetr weights=fire_smoke_rfdetr_v1_e17.pth sha=b7425ce450f12cad → LOADED
+2026-09-06 04:07:48,569 [INFO] vigent.guard: 검출 슬롯: slot=ppe backend=rfdetr weights=ppe_rfdetr_v1.pth sha=3380fa7d4bb1be87 → LOADED
+2026-09-06 04:07:48,570 [INFO] vigent.guard: RF-DETR 사전학습 캐시 확인: C:\Users\shgus\.roboflow\models\rf-detr-nano.pth
+ok
+test_dispatcher_critical_relay_is_supplementary (test_scribe_copilot_dispatcher.TestStep4.test_dispatcher_critical_relay_is_supplementary) ... 2026-09-06 04:07:48,647 [INFO] vigent.guard: 검출 슬롯: slot=forklift backend=rfdetr weights=forklift_rfdetr_v1.pth sha=cd76eb56487bf1aa → LOADED
+2026-09-06 04:07:48,718 [INFO] vigent.guard: 검출 슬롯: slot=fire_smoke backend=rfdetr weights=fire_smoke_rfdetr_v1_e17.pth sha=b7425ce450f12cad → LOADED
+2026-09-06 04:07:48,795 [INFO] vigent.guard: 검출 슬롯: slot=ppe backend=rfdetr weights=ppe_rfdetr_v1.pth sha=3380fa7d4bb1be87 → LOADED
+2026-09-06 04:07:48,795 [INFO] vigent.guard: RF-DETR 사전학습 캐시 확인: C:\Users\shgus\.roboflow\models\rf-detr-nano.pth
+ok
+test_dispatcher_fallback_without_keys (test_scribe_copilot_dispatcher.TestStep4.test_dispatcher_fallback_without_keys) ... 2026-09-06 04:07:52,440 [INFO] vigent.guard: 검출 슬롯: slot=forklift backend=rfdetr weights=forklift_rfdetr_v1.pth sha=cd76eb56487bf1aa → LOADED
+2026-09-06 04:07:52,511 [INFO] vigent.guard: 검출 슬롯: slot=fire_smoke backend=rfdetr weights=fire_smoke_rfdetr_v1_e17.pth sha=b7425ce450f12cad → LOADED
+2026-09-06 04:07:52,580 [INFO] vigent.guard: 검출 슬롯: slot=ppe backend=rfdetr weights=ppe_rfdetr_v1.pth sha=3380fa7d4bb1be87 → LOADED
+2026-09-06 04:07:52,581 [INFO] vigent.guard: RF-DETR 사전학습 캐시 확인: C:\Users\shgus\.roboflow\models\rf-detr-nano.pth
+ok
+test_scribe_assessment_with_citations (test_scribe_copilot_dispatcher.TestStep4.test_scribe_assessment_with_citations) ... 2026-09-06 04:07:55,067 [INFO] vigent.guard: 검출 슬롯: slot=forklift backend=rfdetr weights=forklift_rfdetr_v1.pth sha=cd76eb56487bf1aa → LOADED
+2026-09-06 04:07:55,144 [INFO] vigent.guard: 검출 슬롯: slot=fire_smoke backend=rfdetr weights=fire_smoke_rfdetr_v1_e17.pth sha=b7425ce450f12cad → LOADED
+2026-09-06 04:07:55,222 [INFO] vigent.guard: 검출 슬롯: slot=ppe backend=rfdetr weights=ppe_rfdetr_v1.pth sha=3380fa7d4bb1be87 → LOADED
+2026-09-06 04:07:55,223 [INFO] vigent.guard: RF-DETR 사전학습 캐시 확인: C:\Users\shgus\.roboflow\models\rf-detr-nano.pth
+ok
+test_scribe_checklist_mode (test_scribe_copilot_dispatcher.TestStep4.test_scribe_checklist_mode) ... 2026-09-06 04:07:55,298 [INFO] vigent.guard: 검출 슬롯: slot=forklift backend=rfdetr weights=forklift_rfdetr_v1.pth sha=cd76eb56487bf1aa → LOADED
+2026-09-06 04:07:55,367 [INFO] vigent.guard: 검출 슬롯: slot=fire_smoke backend=rfdetr weights=fire_smoke_rfdetr_v1_e17.pth sha=b7425ce450f12cad → LOADED
+2026-09-06 04:07:55,438 [INFO] vigent.guard: 검출 슬롯: slot=ppe backend=rfdetr weights=ppe_rfdetr_v1.pth sha=3380fa7d4bb1be87 → LOADED
+2026-09-06 04:07:55,439 [INFO] vigent.guard: RF-DETR 사전학습 캐시 확인: C:\Users\shgus\.roboflow\models\rf-detr-nano.pth
+ok
+test_scribe_html_renders (test_scribe_copilot_dispatcher.TestStep4.test_scribe_html_renders) ... 2026-09-06 04:07:55,513 [INFO] vigent.guard: 검출 슬롯: slot=forklift backend=rfdetr weights=forklift_rfdetr_v1.pth sha=cd76eb56487bf1aa → LOADED
+2026-09-06 04:07:55,585 [INFO] vigent.guard: 검출 슬롯: slot=fire_smoke backend=rfdetr weights=fire_smoke_rfdetr_v1_e17.pth sha=b7425ce450f12cad → LOADED
+2026-09-06 04:07:55,662 [INFO] vigent.guard: 검출 슬롯: slot=ppe backend=rfdetr weights=ppe_rfdetr_v1.pth sha=3380fa7d4bb1be87 → LOADED
+2026-09-06 04:07:55,663 [INFO] vigent.guard: RF-DETR 사전학습 캐시 확인: C:\Users\shgus\.roboflow\models\rf-detr-nano.pth
+ok
+test_empty_and_none (test_scribe_path_traversal.TestScribePathTraversal.test_empty_and_none) ... ok
+test_legitimate_evidence_still_works (test_scribe_path_traversal.TestScribePathTraversal.test_legitimate_evidence_still_works)
+정상 data/evidence 경로는 여전히 동작(저하 없음). ... ok
+test_real_secret_not_leaked_in_output (test_scribe_path_traversal.TestScribePathTraversal.test_real_secret_not_leaked_in_output)
+실제 민감 파일(/etc/passwd)을 evidence 로 지정해도 그 내용이 결과에 안 섞인다. ... ok
+test_traversal_paths_blocked (test_scribe_path_traversal.TestScribePathTraversal.test_traversal_paths_blocked)
+탈출 경로는 전부 None \u2014 어떤 파일 내용도 반환하지 않는다. ... 2026-09-06 04:07:55,666 [WARNING] vigent.scribe: evidence 경로 격리 위반 차단(path traversal 의심): '../../../../etc/passwd'
+2026-09-06 04:07:55,666 [WARNING] vigent.scribe: evidence 경로 격리 위반 차단(path traversal 의심): '../../../../etc/passwd'
+2026-09-06 04:07:55,667 [WARNING] vigent.scribe: evidence 경로 격리 위반 차단(path traversal 의심): '../.env'
+2026-09-06 04:07:55,667 [WARNING] vigent.scribe: evidence 경로 격리 위반 차단(path traversal 의심): '../.env'
+2026-09-06 04:07:55,667 [WARNING] vigent.scribe: evidence 경로 격리 위반 차단(path traversal 의심): '../../.env'
+2026-09-06 04:07:55,667 [WARNING] vigent.scribe: evidence 경로 격리 위반 차단(path traversal 의심): '../../.env'
+2026-09-06 04:07:55,668 [WARNING] vigent.scribe: evidence 경로 격리 위반 차단(path traversal 의심): '/etc/passwd'
+2026-09-06 04:07:55,668 [WARNING] vigent.scribe: evidence 경로 격리 위반 차단(path traversal 의심): '/etc/passwd'
+2026-09-06 04:07:55,668 [WARNING] vigent.scribe: evidence 경로 격리 위반 차단(path traversal 의심): 'data/evidence/../../.env'
+2026-09-06 04:07:55,668 [WARNING] vigent.scribe: evidence 경로 격리 위반 차단(path traversal 의심): 'data/evidence/../../.env'
+2026-09-06 04:07:55,669 [WARNING] vigent.scribe: evidence 경로 격리 위반 차단(path traversal 의심): 'data/evidence/../../../etc/hosts'
+2026-09-06 04:07:55,669 [WARNING] vigent.scribe: evidence 경로 격리 위반 차단(path traversal 의심): 'data/evidence/../../../etc/hosts'
+ok
+test_health_exempt_from_token (test_security_gate.TestSecurityGate.test_health_exempt_from_token) ... 2026-09-06 04:07:55,674 [INFO] httpx2: HTTP Request: GET http://testserver/health "HTTP/1.1 200 OK"
+ok
+test_host_allowlist_allows_loopback_with_port (test_security_gate.TestSecurityGate.test_host_allowlist_allows_loopback_with_port) ... 2026-09-06 04:07:55,677 [INFO] httpx2: HTTP Request: GET http://testserver/health "HTTP/1.1 200 OK"
+ok
+test_host_allowlist_blocks_foreign (test_security_gate.TestSecurityGate.test_host_allowlist_blocks_foreign) ... 2026-09-06 04:07:55,679 [INFO] httpx2: HTTP Request: GET http://testserver/health "HTTP/1.1 403 Forbidden"
+ok
+test_host_check_skipped_when_none (test_security_gate.TestSecurityGate.test_host_check_skipped_when_none) ... 2026-09-06 04:07:55,682 [INFO] httpx2: HTTP Request: GET http://testserver/health "HTTP/1.1 200 OK"
+ok
+test_token_required_when_set (test_security_gate.TestSecurityGate.test_token_required_when_set) ... 2026-09-06 04:07:55,684 [INFO] httpx2: HTTP Request: GET http://testserver/status "HTTP/1.1 401 Unauthorized"
+2026-09-06 04:07:55,686 [INFO] httpx2: HTTP Request: GET http://testserver/status "HTTP/1.1 200 OK"
+ok
+test_token_wrong_bearer_rejected (test_security_gate.TestSecurityGate.test_token_wrong_bearer_rejected) ... 2026-09-06 04:07:55,688 [INFO] httpx2: HTTP Request: GET http://testserver/status "HTTP/1.1 401 Unauthorized"
+ok
+test_degraded_after_threshold_consecutive_failures (test_slot_degraded.SlotDegraded.test_degraded_after_threshold_consecutive_failures) ... ok
+test_error_logged_on_each_failure (test_slot_degraded.SlotDegraded.test_error_logged_on_each_failure) ... ok
+test_intermittent_failure_does_not_falsely_degrade (test_slot_degraded.SlotDegraded.test_intermittent_failure_does_not_falsely_degrade)
+연속이 아니라 성공/실패가 섞이면(예: 1회 실패 후 성공) 스트릭이 리셋돼 DEGRADED 안 됨. ... 2026-09-06 04:07:55,689 [ERROR] vigent.guard: 검출 실패(slot=person, 연속 1회): RuntimeError: boom \u2014 이 프레임은 해당 슬롯 결과 없이 진행
+2026-09-06 04:07:55,690 [ERROR] vigent.guard: 검출 실패(slot=person, 연속 1회): RuntimeError: boom \u2014 이 프레임은 해당 슬롯 결과 없이 진행
+2026-09-06 04:07:55,690 [ERROR] vigent.guard: 검출 실패(slot=person, 연속 1회): RuntimeError: boom \u2014 이 프레임은 해당 슬롯 결과 없이 진행
+ok
+test_recovers_after_success (test_slot_degraded.SlotDegraded.test_recovers_after_success) ... ok
+test_recovery_clears_predict_error_from_status (test_slot_degraded.SlotDegraded.test_recovery_clears_predict_error_from_status)
+[CODE_REVIEW M1-7] 복구 후 `load_errors`(→ /health slot_errors)에 옛 추론 오류가 남으면 ... ok
+test_degraded_after_threshold (test_slot_load_failure.LoadFailureDegrades.test_degraded_after_threshold)
+★연속 임계 도달 시 DEGRADED \u2014 수정 전에는 영원히 초록이었다. ... 2026-09-06 04:07:55,691 [ERROR] vigent.guard: 검출 슬롯 미가동(slot=person, 연속 1회): 모델 미로드(가중치 경로·backend 설정 확인) \u2014 이 프레임은 해당 슬롯 결과 없이 진행
+2026-09-06 04:07:55,691 [ERROR] vigent.guard: 검출 슬롯 미가동(slot=person, 연속 2회): 모델 미로드(가중치 경로·backend 설정 확인) \u2014 이 프레임은 해당 슬롯 결과 없이 진행
+2026-09-06 04:07:55,691 [ERROR] vigent.guard: 검출 슬롯 미가동(slot=person, 연속 3회): 모델 미로드(가중치 경로·backend 설정 확인) \u2014 이 프레임은 해당 슬롯 결과 없이 진행
+2026-09-06 04:07:55,691 [ERROR] vigent.guard: ★검출 슬롯 DEGRADED(로드 실패): slot=person 연속 3회(임계 3) \u2014 /health 확인. 로드 실패는 자동 복구되지 않는다(재시작 필요).
+ok
+test_error_logged_with_reason (test_slot_load_failure.LoadFailureDegrades.test_error_logged_with_reason)
+원인이 로그로 드러난다 \u2014 조용한 실패 금지. ... ok
+test_log_is_throttled_after_threshold (test_slot_load_failure.LoadFailureDegrades.test_log_is_throttled_after_threshold)
+★로그 폭주 방지 \u2014 로드 실패는 재시도가 없어 매 프레임 영구 발생한다. ... ok
+test_none_model_yields_no_detections (test_slot_load_failure.LoadFailureDegrades.test_none_model_yields_no_detections)
+전제 확인: 모델이 없으면 검출은 0건이다(=눈이 먼 상태). ... 2026-09-06 04:07:55,692 [ERROR] vigent.guard: 검출 슬롯 미가동(slot=person, 연속 1회): 모델 미로드(가중치 경로·backend 설정 확인) \u2014 이 프레임은 해당 슬롯 결과 없이 진행
+ok
+test_status_and_health_expose_it (test_slot_load_failure.LoadFailureDegrades.test_status_and_health_expose_it)
+status() 노출 + F1 배선을 타 person 은 unhealthy 가 된다. ... 2026-09-06 04:07:55,693 [ERROR] vigent.guard: 검출 슬롯 미가동(slot=person, 연속 1회): 모델 미로드(가중치 경로·backend 설정 확인) \u2014 이 프레임은 해당 슬롯 결과 없이 진행
+2026-09-06 04:07:55,693 [ERROR] vigent.guard: 검출 슬롯 미가동(slot=person, 연속 2회): 모델 미로드(가중치 경로·backend 설정 확인) \u2014 이 프레임은 해당 슬롯 결과 없이 진행
+2026-09-06 04:07:55,693 [ERROR] vigent.guard: 검출 슬롯 미가동(slot=person, 연속 3회): 모델 미로드(가중치 경로·backend 설정 확인) \u2014 이 프레임은 해당 슬롯 결과 없이 진행
+2026-09-06 04:07:55,693 [ERROR] vigent.guard: ★검출 슬롯 DEGRADED(로드 실패): slot=person 연속 3회(임계 3) \u2014 /health 확인. 로드 실패는 자동 복구되지 않는다(재시작 필요).
+ok
+test_disabled_slot_is_untouched (test_slot_load_failure.NoFalsePositives.test_disabled_slot_is_untouched)
+★꺼둔 슬롯(호출 안 한 슬롯)은 degraded 로 뜨지 않는다. ... 2026-09-06 04:07:55,693 [ERROR] vigent.guard: 검출 슬롯 미가동(slot=person, 연속 1회): 모델 미로드(가중치 경로·backend 설정 확인) \u2014 이 프레임은 해당 슬롯 결과 없이 진행
+2026-09-06 04:07:55,693 [ERROR] vigent.guard: 검출 슬롯 미가동(slot=person, 연속 2회): 모델 미로드(가중치 경로·backend 설정 확인) \u2014 이 프레임은 해당 슬롯 결과 없이 진행
+2026-09-06 04:07:55,693 [ERROR] vigent.guard: 검출 슬롯 미가동(slot=person, 연속 3회): 모델 미로드(가중치 경로·backend 설정 확인) \u2014 이 프레임은 해당 슬롯 결과 없이 진행
+2026-09-06 04:07:55,693 [ERROR] vigent.guard: ★검출 슬롯 DEGRADED(로드 실패): slot=person 연속 3회(임계 3) \u2014 /health 확인. 로드 실패는 자동 복구되지 않는다(재시작 필요).
+ok
+test_healthy_model_stays_green (test_slot_load_failure.NoFalsePositives.test_healthy_model_stays_green)
+★정상 모델은 계속 초록 \u2014 검출 0건이어도 '고장'이 아니다. ... ok
+test_mixed_one_dead_one_alive (test_slot_load_failure.NoFalsePositives.test_mixed_one_dead_one_alive)
+죽은 슬롯만 빨갛고 살아있는 슬롯은 그대로. ... 2026-09-06 04:07:55,694 [ERROR] vigent.guard: 검출 슬롯 미가동(slot=person, 연속 1회): 모델 미로드(가중치 경로·backend 설정 확인) \u2014 이 프레임은 해당 슬롯 결과 없이 진행
+2026-09-06 04:07:55,694 [ERROR] vigent.guard: 검출 슬롯 미가동(slot=person, 연속 2회): 모델 미로드(가중치 경로·backend 설정 확인) \u2014 이 프레임은 해당 슬롯 결과 없이 진행
+2026-09-06 04:07:55,694 [ERROR] vigent.guard: 검출 슬롯 미가동(slot=person, 연속 3회): 모델 미로드(가중치 경로·backend 설정 확인) \u2014 이 프레임은 해당 슬롯 결과 없이 진행
+2026-09-06 04:07:55,694 [ERROR] vigent.guard: ★검출 슬롯 DEGRADED(로드 실패): slot=person 연속 3회(임계 3) \u2014 /health 확인. 로드 실패는 자동 복구되지 않는다(재시작 필요).
+ok
+test_length_capped (test_slot_load_failure.PathStripping.test_length_capped) ... ok
+test_paths_reduced_to_filename (test_slot_load_failure.PathStripping.test_paths_reduced_to_filename) ... ok
+test_plain_message_untouched (test_slot_load_failure.PathStripping.test_plain_message_untouched) ... ok
+test_decrease_passes (test_soak_report.TestRssJudgment.test_decrease_passes)
+★감소는 PASS \u2014 메모리가 줄어드는 것은 누수의 반대다. ... ok
+test_growth_over_limit_fails (test_soak_report.TestRssJudgment.test_growth_over_limit_fails)
+증가가 상한(30MB/h)을 넘으면 FAIL. ... ok
+test_real_soak_data_passes (test_soak_report.TestRssJudgment.test_real_soak_data_passes)
+★실제 2026-08-17 소크 기록으로 PASS 가 나와야 한다(수동 재계산과 일치). ... ok
+test_short_run_defers (test_soak_report.TestRssJudgment.test_short_run_defers)
+2시간 미만은 판정 보류(짧은 구간 외삽은 무의미). ... ok
+test_step_drop_is_segmented_and_worst_segment_judged (test_soak_report.TestRssJudgment.test_step_drop_is_segmented_and_worst_segment_judged)
+★계단 낙차가 있으면 구간을 나누고 **최악(가장 큰 양의 기울기)** 구간으로 판정한다. ... ok
+test_reconnect_backoff_cap_lowered (test_starvation_guard.TestConfigWiring.test_reconnect_backoff_cap_lowered)
+백오프 상한 30→5초: 슬롯이 열려도 못 잡던 구조를 깨는 1차 방어. ... ok
+test_stability_vars_have_real_consumers (test_starvation_guard.TestConfigWiring.test_stability_vars_have_real_consumers)
+STABILITY.md 가 문서로만 설명하던 2차 워치독 설정 3종이 실제로 소비된다. ... ok
+test_escalate_after_max_fails (test_starvation_guard.TestEscalation.test_escalate_after_max_fails)
+3단계: 반복 실패 → 프로세스 재기동 승격. ... ok
+test_grab_slot_after_grace (test_starvation_guard.TestEscalation.test_grab_slot_after_grace)
+1단계: starve_grab_s 경과 → go2rtc 슬롯 회수(안전 검출 > 라이브 영상). ... ok
+test_healthy_camera_does_not_arm (test_starvation_guard.TestEscalation.test_healthy_camera_does_not_arm) ... ok
+test_recovery_clears_state (test_starvation_guard.TestEscalation.test_recovery_clears_state)
+검출이 살아나면 카운터가 초기화돼 다음 사건이 처음부터 판정된다. ... ok
+test_restart_worker_after_longer_stall (test_starvation_guard.TestEscalation.test_restart_worker_after_longer_stall)
+2단계: 슬롯 회수로도 안 살아나면 해당 카메라 워커만 재시작. ... ok
+test_stale_arms_but_does_not_act_immediately (test_starvation_guard.TestEscalation.test_stale_arms_but_does_not_act_immediately)
+감지 즉시 슬롯을 뺏으면 일시적 흔들림에도 확대뷰가 끊긴다 \u2014 유예가 있어야 한다. ... ok
+test_stale_frame_is_not_starvation (test_starvation_guard.TestEscalation.test_stale_frame_is_not_starvation)
+프레임 자체가 끊긴 건(카메라 전원 off) 슬롯 기아가 아니다 \u2014 슬롯을 뺏어봐야 소용없다. ... ok
+test_bytetrack_이_person_을_분리한다는_전제_확인 (test_track_debug_covers_person.TrackDebugCoversPerson.test_bytetrack_이_person_을_분리한다는_전제_확인)
+이 테스트의 근거 자체를 고정 \u2014 분리가 사라지면 전제가 바뀐 것이니 같이 검토한다. ... ok
+test_iou_트래커_안에는_계측이_없다 (test_track_debug_covers_person.TrackDebugCoversPerson.test_iou_트래커_안에는_계측이_없다)
+`_track_iou` 로 되돌리면 bytetrack 의 person 이 다시 빠진다 \u2014 금지. ... ok
+test_계측은_디스패처에서_호출된다 (test_track_debug_covers_person.TrackDebugCoversPerson.test_계측은_디스패처에서_호출된다)
+`_track` 이 _dbg_write 를 부른다 \u2014 여기서만 person 포함 fresh 를 볼 수 있다. ... ok
+test_기록_필드가_분석기_계약을_지킨다 (test_track_debug_covers_person.TrackDebugCoversPerson.test_기록_필드가_분석기_계약을_지킨다)
+benchmarks/b_passthru_2fps_check.py 가 읽는 필드(label·conf·bbox)를 계속 남긴다. ... ok
+test_shared_key_mixes_scenes (test_track_key_isolation.TrackKeyIsolation.test_shared_key_mixes_scenes)
+반례: track_key 를 안 주면(둘 다 browser) 두 장면이 한 풀에 공존 \u2014 3.6 이 고친 유령 증상. ... ok
+test_two_keys_do_not_cross_contaminate (test_track_key_isolation.TrackKeyIsolation.test_two_keys_do_not_cross_contaminate)
+고유 track_key 2개로 좌상단/우하단 장면을 교대 → 각 풀은 자기 장면 1트랙만(격리). ... ok
+test_actively_used_key_survives_while_idle_key_is_purged (test_track_key_ttl_sweep.TrackKeyTTLSweep.test_actively_used_key_survives_while_idle_key_is_purged)
+cam:live 는 계속 쓰이고 voice:abandoned 는 1회 후 방치 \u2014 TTL(100s) 지나면 후자만 정리. ... ok
+test_backstop_evicts_oldest_and_logs_warning_when_ttl_alone_is_not_enough (test_track_key_ttl_sweep.TrackKeyTTLSweep.test_backstop_evicts_oldest_and_logs_warning_when_ttl_alone_is_not_enough)
+MAX_TRACKED_KEYS=3, TTL=아주 김(스윕이 TTL로는 하나도 못 지움) → 5개 키 투입 시 ... ok
+test_cooldown_key_includes_subject (test_track_scoped_cooldown.CooldownIsPerPerson.test_cooldown_key_includes_subject) ... ok
+test_evidence_cooldown_stays_rule_scoped (test_track_scoped_cooldown.CooldownIsPerPerson.test_evidence_cooldown_stays_rule_scoped)
+★계약 3 \u2014 증거 JPEG 쿨다운은 **규칙 단위 그대로**여야 한다. ... ok
+test_gate_key_is_camera_not_track (test_track_scoped_cooldown.NotificationCountUnchanged.test_gate_key_is_camera_not_track)
+통보 게이트 키에 트랙이 들어가면 백오프가 무력화된다(B안 = 66배). ... ok
+test_many_tracks_still_yield_one_notification (test_track_scoped_cooldown.NotificationCountUnchanged.test_many_tracks_still_yield_one_notification)
+★재생 검증 고정 \u2014 사람이 10명 들어와도 **기록은 10건, 알림은 게이트가 묶는다**. ... ok
+test_leaving_and_returning_refires (test_track_scoped_cooldown.SecondPersonIsNotMasked.test_leaving_and_returning_refires)
+나갔다 다시 들어오면 새 진입이다(같은 사람이라도). ... ok
+test_no_track_id_falls_back_to_camera_scope (test_track_scoped_cooldown.SecondPersonIsNotMasked.test_no_track_id_falls_back_to_camera_scope)
+tid 가 없으면(추적 실패) 기존 카메라 단위 동작 \u2014 하위호환. ... ok
+test_same_person_staying_does_not_refire (test_track_scoped_cooldown.SecondPersonIsNotMasked.test_same_person_staying_does_not_refire)
+★같은 사람의 체류는 재발화하지 않는다 \u2014 이게 무너지면 매 프레임 폭주다. ... ok
+test_second_person_fires_while_first_stays_inside (test_track_scoped_cooldown.SecondPersonIsNotMasked.test_second_person_fires_while_first_stays_inside)
+★핵심 회귀 \u2014 A가 안에 있는 동안 B가 들어오면 발화해야 한다. ... ok
+test_hyphen_and_underscore_allowed (test_vision_loader_theme.TestThemeYamlPathWhitelist.test_hyphen_and_underscore_allowed) ... ok
+test_traversal_dots_rejected (test_vision_loader_theme.TestThemeYamlPathWhitelist.test_traversal_dots_rejected) ... ok
+test_uppercase_and_special_chars_rejected (test_vision_loader_theme.TestThemeYamlPathWhitelist.test_uppercase_and_special_chars_rejected) ... ok
+test_valid_theme_resolves (test_vision_loader_theme.TestThemeYamlPathWhitelist.test_valid_theme_resolves) ... ok
+test_danger_zone_flag (test_vlm_format_facts.TestFormatFacts.test_danger_zone_flag)
+in_danger_zone=True 경로도 예외 없이 실행. ... ok
+test_empty_returns_empty (test_vlm_format_facts.TestFormatFacts.test_empty_returns_empty) ... ok
+test_runs_and_returns_text (test_vlm_format_facts.TestFormatFacts.test_runs_and_returns_text)
+탐지 있음 → 사람 명수 + 기타 라벨 문자열(예외 없이). ... ok
+test_empty_text_returns_none (test_vlm_text_helper.TestVlmText.test_empty_text_returns_none) ... ok
+test_error_key_returns_none (test_vlm_text_helper.TestVlmText.test_error_key_returns_none) ... ok
+test_exception_returns_none (test_vlm_text_helper.TestVlmText.test_exception_returns_none) ... ok
+test_none_image_returns_none (test_vlm_text_helper.TestVlmText.test_none_image_returns_none) ... ok
+test_not_dict_returns_none (test_vlm_text_helper.TestVlmText.test_not_dict_returns_none) ... ok
+test_success_joined_fields (test_vlm_text_helper.TestVlmText.test_success_joined_fields)
+'raw' 없으면 비-'_' 값들을 join (parsed dict). ... ok
+test_success_raw (test_vlm_text_helper.TestVlmText.test_success_raw)
+dict{'raw': 텍스트} → 그 텍스트. ... ok
+test_every_warmup_detect_call_holds_lock (test_warmup_holds_detect_lock.WarmupHoldsDetectLock.test_every_warmup_detect_call_holds_lock) ... 2026-09-06 04:07:56,281 [INFO] vigent.readiness: 예열 slot=person 0.0s
+2026-09-06 04:07:56,281 [INFO] vigent.readiness: 예열 slot=ppe 0.0s
+2026-09-06 04:07:56,281 [INFO] vigent.readiness: ★예열 완료 0.00s (slots=person,ppe) \u2014 이제 워커 기동, 워치독 정상 적용
+ok
+test_lock_released_after_warmup (test_warmup_holds_detect_lock.WarmupHoldsDetectLock.test_lock_released_after_warmup)
+예열이 끝나면 락을 놓아야 한다 \u2014 워커·라우터가 영원히 기다리면 안 된다. ... 2026-09-06 04:07:56,281 [INFO] vigent.readiness: 예열 slot=person 0.0s
+2026-09-06 04:07:56,281 [INFO] vigent.readiness: ★예열 완료 0.00s (slots=person) \u2014 이제 워커 기동, 워치독 정상 적용
+ok
+test_default_config_allows_up_to_10mb (test_web_util_upload_limit.TestUploadSizeLimit.test_default_config_allows_up_to_10mb) ... ok
+test_invalid_data_url_still_returns_none (test_web_util_upload_limit.TestUploadSizeLimit.test_invalid_data_url_still_returns_none) ... ok
+test_normal_frame_decodes_unaffected (test_web_util_upload_limit.TestUploadSizeLimit.test_normal_frame_decodes_unaffected) ... ok
+test_oversized_payload_raises_413 (test_web_util_upload_limit.TestUploadSizeLimit.test_oversized_payload_raises_413) ... ok
+test_empty_and_none_safe (test_worker_credential_masking.TestScrubCredentials.test_empty_and_none_safe) ... ok
+test_leaves_plain_text_unchanged (test_worker_credential_masking.TestScrubCredentials.test_leaves_plain_text_unchanged) ... ok
+test_scrubs_credential_embedded_in_longer_message (test_worker_credential_masking.TestScrubCredentials.test_scrubs_credential_embedded_in_longer_message) ... ok
+test_start_stores_masked_source_in_state (test_worker_credential_masking.TestWorkerStartMasksSource.test_start_stores_masked_source_in_state) ... 2026-09-06 04:07:56,288 [WARNING] vigent.worker: 카메라 't' 위험구역 미설정 \u2014 **침입 판정을 하지 않는다**. 구역을 그리려면 /safety-hub 에서 카메라별로 설정하라.
+ok
+test_process_frame_exception_masks_credentials_in_state_error (test_worker_credential_masking.TestWorkerStateErrorMasking.test_process_frame_exception_masks_credentials_in_state_error) ... 2026-09-06 04:08:01,295 [ERROR] vigent.worker: 워커 'TESTCAM'(rtsp://***:***@192.168.1.50:554/stream1) 프레임 처리 예외 \u2014 계속 진행
+Traceback (most recent call last):
+  File "D:\vigent_original\vigent-core\worker.py", line 894, in _process_frame
+    out = guard.detect(frame, detectors=ctx.detectors, track_key="cam:" + str(ctx.name))
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\vigent_original\tests\test_worker_credential_masking.py", line 31, in detect
+    raise RuntimeError(f"Can't open stream: {_FAKE_CRED_URL}")
+RuntimeError: Can't open stream: rtsp://***:***@192.168.1.50:554/stream1
+
+ok
+test_delete_still_removes_worker (test_worker_lifecycle_guards.TestDeleteOrderClosesRace.test_delete_still_removes_worker) ... ok
+test_registry_delete_comes_before_worker_remove (test_worker_lifecycle_guards.TestDeleteOrderClosesRace.test_registry_delete_comes_before_worker_remove) ... ok
+test_remove_delists_but_stop_keeps (test_worker_lifecycle_guards.TestManagerRemoveStillWorks.test_remove_delists_but_stop_keeps) ... ok
+test_checks_registry_before_restart (test_worker_lifecycle_guards.TestStarvationDoesNotResurrect.test_checks_registry_before_restart) ... ok
+test_reaps_ghost_instead_of_restarting (test_worker_lifecycle_guards.TestStarvationDoesNotResurrect.test_reaps_ghost_instead_of_restarting) ... ok
+test_worker_start_upserts_registry (test_worker_lifecycle_guards.TestWorkerStartRegisters.test_worker_start_upserts_registry) ... ok
+test_cooldown_suppresses_repeat (test_worker_process_frame.TestProcessFrame.test_cooldown_suppresses_repeat) ... ok
+test_exception_isolated_not_propagated (test_worker_process_frame.TestProcessFrame.test_exception_isolated_not_propagated) ... 2026-09-06 04:08:01,298 [ERROR] vigent.worker: 워커 'TESTCAM'(test://src) 프레임 처리 예외 \u2014 계속 진행
+Traceback (most recent call last):
+  File "D:\vigent_original\vigent-core\worker.py", line 894, in _process_frame
+    out = guard.detect(frame, detectors=ctx.detectors, track_key="cam:" + str(ctx.name))
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\vigent_original\tests\test_worker_process_frame.py", line 38, in detect
+    raise RuntimeError("boom")
+RuntimeError: boom
+
+ok
+test_fire_smoke_fires_and_logs (test_worker_process_frame.TestProcessFrame.test_fire_smoke_fires_and_logs) ... ok
+test_no_signal_no_event (test_worker_process_frame.TestProcessFrame.test_no_signal_no_event) ... 2026-09-06 04:08:01,299 [ERROR] vigent.worker: 워커 'TESTCAM'(test://src) 프레임 처리 예외 \u2014 계속 진행
+Traceback (most recent call last):
+  File "D:\vigent_original\vigent-core\worker.py", line 894, in _process_frame
+    out = guard.detect(frame, detectors=ctx.detectors, track_key="cam:" + str(ctx.name))
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+TypeError: TestProcessFrame.test_no_signal_no_event.<locals>.<lambda>() got an unexpected keyword argument 'track_key'
+
+ok
+test_no_double_fire_when_derive_already_fired (test_worker_zone_tile.TestWorkerZoneTile.test_no_double_fire_when_derive_already_fired) ... ok
+test_off_no_tile_fire (test_worker_zone_tile.TestWorkerZoneTile.test_off_no_tile_fire) ... ok
+test_on_fires_zone_intrusion_via_tile (test_worker_zone_tile.TestWorkerZoneTile.test_on_fires_zone_intrusion_via_tile) ... ok
+test_ws_accepts_correct_token_via_header (test_ws_auth.TestWsAuth.test_ws_accepts_correct_token_via_header) ... ok
+test_ws_accepts_correct_token_via_query (test_ws_auth.TestWsAuth.test_ws_accepts_correct_token_via_query) ... ok
+test_ws_accepts_session_cookie (test_ws_auth.TestWsAuth.test_ws_accepts_session_cookie)
+[S3-후속1] 브라우저 JS는 헤더를 못 실으므로, 로그인으로 발급된 세션 쿠키만으로도 ... 2026-09-06 04:08:01,350 [INFO] httpx2: HTTP Request: POST http://testserver/login "HTTP/1.1 303 See Other"
+ok
+test_ws_rejects_missing_token_when_required (test_ws_auth.TestWsAuth.test_ws_rejects_missing_token_when_required) ... ok
+test_ws_rejects_wrong_token (test_ws_auth.TestWsAuth.test_ws_rejects_wrong_token) ... ok
+test_ws_unchanged_when_token_unset (test_ws_auth.TestWsAuth.test_ws_unchanged_when_token_unset) ... ok
+test_boundary_oscillation_fires_once (test_zone_debounce.TestDebouncer.test_boundary_oscillation_fires_once)
+★경계 왕복 → 1회만 발화. exit 유예 덕에 확정 상태가 유지돼 재발화가 없다. ... ok
+test_cameras_are_independent (test_zone_debounce.TestDebouncer.test_cameras_are_independent) ... ok
+test_dwell_fires_after_enter_s (test_zone_debounce.TestDebouncer.test_dwell_fires_after_enter_s)
+T초(기본 1.0) 체류 → 발화. ... ok
+test_exit_requires_sustained_absence (test_zone_debounce.TestDebouncer.test_exit_requires_sustained_absence)
+이탈도 유예가 있어야 한다 \u2014 잠깐 가려져 박스가 빠져도 즉시 해제되지 않는다. ... ok
+test_single_frame_graze_does_not_fire (test_zone_debounce.TestDebouncer.test_single_frame_graze_does_not_fire)
+★1프레임 스침 → 미발화. 이 테스트가 B6 의 존재 이유다. ... ok
+test_starts_outside_even_if_person_present_at_boot (test_zone_debounce.TestDebouncer.test_starts_outside_even_if_person_present_at_boot)
+기동 순간 구역 안에 사람이 있어도 유예 없이 발화하면 안 된다. ... ok
+test_fires_after_dwell (test_zone_debounce.TestDeriveIntegration.test_fires_after_dwell) ... ok
+test_legacy_path_still_fires_immediately (test_zone_debounce.TestDeriveIntegration.test_legacy_path_still_fires_immediately)
+디바운서 미주입(하위호환) 경로는 기존대로 즉시 발화 \u2014 기존 호출부 회귀 0. ... ok
+test_no_fire_on_single_frame (test_zone_debounce.TestDeriveIntegration.test_no_fire_on_single_frame) ... ok
+test_person_outside_zone_never_fires (test_zone_debounce.TestDeriveIntegration.test_person_outside_zone_never_fires) ... ok
+test_center_is_box_center (test_zone_debounce.TestRefPoint.test_center_is_box_center) ... ok
+test_default_matches_legacy_behavior (test_zone_debounce.TestRefPoint.test_default_matches_legacy_behavior)
+기본값은 기존 코드와 동일해야 한다 \u2014 (x1+x2)/2, y2. ... ok
+test_foot_is_bottom_center (test_zone_debounce.TestRefPoint.test_foot_is_bottom_center) ... ok
+test_edit_end_is_centralized (test_zone_edit_guard.TestAutoPinOnEdit.test_edit_end_is_centralized)
+편집 종료가 한 곳(endZoneEdit)으로 모여 있어야 상태가 새지 않는다. ... ok
+test_edit_start_sets_target_and_pin (test_zone_edit_guard.TestAutoPinOnEdit.test_edit_start_sets_target_and_pin) ... ok
+test_manual_switch_warns_before_discarding (test_zone_edit_guard.TestAutoPinOnEdit.test_manual_switch_warns_before_discarding)
+수동 전환은 점을 버리므로(사고는 아님) 말없이 버리지 않고 확인을 받는다. ... ok
+test_only_auto_pin_is_released (test_zone_edit_guard.TestAutoPinOnEdit.test_only_auto_pin_is_released)
+★사용자가 직접 켠 핀은 편집이 끝나도 유지돼야 한다. ... ok
+test_auto_switch_call_site_uses_guard (test_zone_edit_guard.TestAutoSwitchBlocked.test_auto_switch_call_site_uses_guard)
+호출부가 실제로 가드를 쓰는지 \u2014 함수만 있고 안 쓰면 의미가 없다. ... ok
+test_empty_spot_fallback_also_guarded (test_zone_edit_guard.TestAutoSwitchBlocked.test_empty_spot_fallback_also_guarded)
+대상이 비었을 때의 자동 선택도 편집 중에는 막아야 한다(같은 사고 경로). ... ok
+test_switch_allowed_when_idle (test_zone_edit_guard.TestAutoSwitchBlocked.test_switch_allowed_when_idle)
+평상시(편집 아님·핀 없음)에는 자동전환이 동작해야 한다 \u2014 기능을 죽이면 안 된다. ... ok
+test_switch_blocked_when_pinned (test_zone_edit_guard.TestAutoSwitchBlocked.test_switch_blocked_when_pinned) ... ok
+test_switch_blocked_while_editing (test_zone_edit_guard.TestAutoSwitchBlocked.test_switch_blocked_while_editing)
+★편집 중에는 차단 \u2014 이 사고의 본체. ... ok
+test_alert_during_edit_does_not_hijack_target (test_zone_edit_guard.TestIncidentScenario.test_alert_during_edit_does_not_hijack_target)
+zonelab 편집 중 test 카메라 경보 → 대상 유지 → 올바른 카메라에 저장. ... ok
+test_normal_operation_still_auto_switches (test_zone_edit_guard.TestIncidentScenario.test_normal_operation_still_auto_switches)
+★편집이 아닐 때는 경보 자동전환이 그대로 동작해야 한다(기능 저하 금지). ... ok
+test_without_guard_the_save_would_be_refused (test_zone_edit_guard.TestIncidentScenario.test_without_guard_the_save_would_be_refused)
+가드 ①이 뚫려 대상이 바뀌더라도, 가드 ③이 저장을 막는다(2중 방어 확인). ... ok
+test_no_canvas_click_zone_handler (test_zone_edit_guard.TestSafetyProZoneSaveDisabled.test_no_canvas_click_zone_handler)
+캔버스 클릭으로 점을 찍는 경로도 제거됐어야 한다. ... ok
+test_no_zone_save_buttons (test_zone_edit_guard.TestSafetyProZoneSaveDisabled.test_no_zone_save_buttons) ... ok
+test_no_zone_write_request (test_zone_edit_guard.TestSafetyProZoneSaveDisabled.test_no_zone_write_request)
+★구역 **쓰기** 요청이 이 화면에 남아 있으면 안 된다. ... ok
+test_points_to_correct_screen (test_zone_edit_guard.TestSafetyProZoneSaveDisabled.test_points_to_correct_screen) ... ok
+test_still_reads_and_shows_zone (test_zone_edit_guard.TestSafetyProZoneSaveDisabled.test_still_reads_and_shows_zone)
+표시 기능은 유지 \u2014 저장만 막는 것이 목적이다. ... ok
+test_allows_zero_points_for_clearing (test_zone_edit_guard.TestSaveTargetVerified.test_allows_zero_points_for_clearing)
+0점 저장은 '구역 삭제' 라는 정당한 조작이다 \u2014 막으면 안 된다. ... ok
+test_ok_when_target_matches (test_zone_edit_guard.TestSaveTargetVerified.test_ok_when_target_matches) ... ok
+test_refuses_one_or_two_points (test_zone_edit_guard.TestSaveTargetVerified.test_refuses_one_or_two_points)
+3점 미만은 판정에 안 쓰이므로(worker `len(zone)>=3`) 조용히 저장되면 안 된다. ... ok
+test_refuses_when_not_editing (test_zone_edit_guard.TestSaveTargetVerified.test_refuses_when_not_editing) ... ok
+test_refuses_when_target_changed (test_zone_edit_guard.TestSaveTargetVerified.test_refuses_when_target_changed)
+★대상이 바뀌었으면 저장 거부 \u2014 다른 카메라에 구역이 저장되는 것을 막는다. ... ok
+test_save_call_site_uses_check_and_verified_target (test_zone_edit_guard.TestSaveTargetVerified.test_save_call_site_uses_check_and_verified_target)
+호출부 계약: 검증을 거치고, 보낼 때 spotId 가 아니라 검증된 대상을 쓴다. ... ok
+test_foot_inside (test_zone_tile.TestFootInZone.test_foot_inside) ... ok
+test_foot_outside (test_zone_tile.TestFootInZone.test_foot_outside) ... ok
+test_conf_below_thr_filtered (test_zone_tile.TestZoneTileDetect.test_conf_below_thr_filtered) ... ok
+test_coordinate_mapping (test_zone_tile.TestZoneTileDetect.test_coordinate_mapping) ... ok
+test_degenerate_zone (test_zone_tile.TestZoneTileDetect.test_degenerate_zone) ... ok
+test_non_person_filtered (test_zone_tile.TestZoneTileDetect.test_non_person_filtered) ... ok
+test_tiny_height_filtered (test_zone_tile.TestZoneTileDetect.test_tiny_height_filtered) ... ok
+
+======================================================================
+FAIL: test_on_ready_not_called_when_warmup_fails (test_readiness_warmup.TestWarmup.test_on_ready_not_called_when_warmup_fails)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "D:\vigent_original\tests\test_readiness_warmup.py", line 86, in test_on_ready_not_called_when_warmup_fails
+    self.assertEqual(readiness.phase(), readiness.FAILED)
+AssertionError: 'ready' != 'failed'
+- ready
++ failed
+
+
+----------------------------------------------------------------------
+Ran 490 tests in 63.613s
+
+FAILED (failures=1)

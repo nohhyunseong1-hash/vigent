@@ -129,9 +129,20 @@ def resolve_url(entry: dict[str, Any], man: dict[str, Any]) -> str:
     return url
 
 
+def target_path(entry: dict[str, Any]) -> Path:
+    """항목의 로컬 경로 — `dest`(weights/ 아래 하위 디렉터리)가 있으면 그 밑. [CODE_REVIEW M7-2b] rtmlib 포즈 캐시는
+    `rtm_cache/hub/checkpoints/`(= TORCH_HOME/hub/checkpoints, install_service.ps1·run.ps1 이 TORCH_HOME 을 그리로 고정).
+    [5단계 마무리, 2026-09-06] `root_dest`(저장소 루트 기준 디렉터리)가 있으면 weights/ 밖 — go2rtc.exe 같은 바이너리는 `bin/`."""
+    root_dest = str(entry.get("root_dest") or "").strip().strip("/\\")
+    if root_dest:
+        return _ROOT / root_dest / entry["file"]
+    dest = str(entry.get("dest") or "").strip().strip("/\\")
+    return (_WEIGHTS / dest / entry["file"]) if dest else (_WEIGHTS / entry["file"])
+
+
 def verify(entry: dict[str, Any]) -> tuple[str, str]:
     """로컬 파일 상태 → (상태, 설명)."""
-    p = _WEIGHTS / entry["file"]
+    p = target_path(entry)
     if not p.exists():
         return MISSING, "파일 없음"
     size = p.stat().st_size
@@ -164,9 +175,10 @@ def download(entry: dict[str, Any], man: dict[str, Any]) -> tuple[bool, str]:
                 url = api_url
                 headers["Accept"] = "application/octet-stream"
             headers["Authorization"] = f"Bearer {tok}"
-    dst = _WEIGHTS / entry["file"]
+    dst = target_path(entry)
     tmp = dst.with_suffix(dst.suffix + ".part")
-    _WEIGHTS.mkdir(parents=True, exist_ok=True)
+    dst.parent.mkdir(parents=True, exist_ok=True)
+    member = str(entry.get("archive_member") or "")      # [M7-2b] zip 안의 파일 1개만 꺼낸다(rtmlib 은 end2end.onnx)
     try:
         print(f"    ↓ {url}")
         req = urllib.request.Request(url, headers=headers)
@@ -180,6 +192,21 @@ def download(entry: dict[str, Any], man: dict[str, Any]) -> tuple[bool, str]:
                 total += len(b)
                 print(f"\r      {total/1048576:,.0f} MB", end="", flush=True)
         print()
+        if member:
+            import zipfile
+            with zipfile.ZipFile(tmp) as z:
+                names = [n for n in z.namelist() if n.endswith(member)]
+                if len(names) != 1:
+                    raise RuntimeError(f"압축 안에 '{member}' 가 {len(names)}개(1개여야 함): {names[:3]}")
+                extracted = dst.with_suffix(dst.suffix + ".extract")
+                with z.open(names[0]) as src, extracted.open("wb") as out:
+                    while True:
+                        b = src.read(1 << 20)
+                        if not b:
+                            break
+                        out.write(b)
+            tmp.unlink(missing_ok=True)
+            tmp = extracted
     except urllib.error.HTTPError as e:
         tmp.unlink(missing_ok=True)
         hint = " (비공개 저장소면 접근 권한이 필요합니다)" if e.code in (401, 403, 404) else ""

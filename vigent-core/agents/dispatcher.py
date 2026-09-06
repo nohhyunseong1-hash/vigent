@@ -12,6 +12,7 @@
 """
 from __future__ import annotations
 
+import logging
 import os
 import re
 from pathlib import Path
@@ -27,6 +28,7 @@ import tuning
 from .base import BaseAgent
 
 _ROOT = Path(__file__).resolve().parent.parent.parent
+_LOG = logging.getLogger("vigent.dispatcher")   # [M4-1·M4-3] 전달 실패는 로그로도 드러낸다(토큰 미포함)
 
 
 def notify_cfg() -> dict[str, Any]:
@@ -91,6 +93,34 @@ def redact_secrets(s: str) -> str:
     return out
 
 
+# [CODE_REVIEW M4-1·M4-3, 2026-09-06] 전달 실패 통계(프로세스 전역) — /health 가 dispatcher.status() 로 읽는다.
+#   undeliverable: critical/high 가 발생했는데 원격 채널이 하나도 설정돼 있지 않아 **큐에 넣지 않고 폐기**한 건수
+#   last_config_error: 4xx(토큰·chat_id·URL 오류) — 재시도해도 영원히 실패하는 설정 오류. 토큰 값은 절대 담지 않는다.
+_DELIVERY: dict[str, Any] = {"undeliverable_count": 0, "undeliverable_last_ts": None, "last_config_error": None}
+# HTTP 코드 분류: 설정 오류(즉시 dead) vs 재시도(429 는 Retry-After 존중, 5xx·타임아웃·네트워크는 기존 백오프)
+_CONFIG_ERROR_CODES = (400, 401, 403, 404)
+_TELEGRAM_MAX_TEXT = 4000        # [M4-7] 텔레그램 sendMessage 본문 상한 4096 — 여유 두고 절단
+
+
+def reset_delivery_stats_for_test() -> None:
+    _DELIVERY.update(undeliverable_count=0, undeliverable_last_ts=None, last_config_error=None)
+
+
+def _classify_http(channel: str, r: Any) -> dict[str, Any]:
+    """requests 응답 → 결과 dict(sent/status + config_error/retry_after)."""
+    out: dict[str, Any] = {"channel": channel, "sent": bool(r.ok), "fallback": not r.ok, "status": r.status_code}
+    if r.status_code in _CONFIG_ERROR_CODES:
+        out["config_error"] = True
+    elif r.status_code == 429:
+        ra = (getattr(r, "headers", None) or {}).get("Retry-After")
+        try:
+            if ra is not None:
+                out["retry_after"] = max(0.0, float(ra))
+        except (TypeError, ValueError):
+            pass
+    return out
+
+
 class DispatcherAgent(BaseAgent):
     name = "Dispatcher"
     role = "연동: 텔레그램/이메일/웹훅 알림, 관리자 통보, (보조)방호 신호 — §8 경계 준수"
@@ -103,13 +133,26 @@ class DispatcherAgent(BaseAgent):
             "high": ["alarm", "manager_call"], "medium": ["log"],
         }
 
+    @staticmethod
+    def channels_configured(c: dict[str, Any] | None = None) -> bool:
+        """[M4-1] 원격 채널(텔레그램·이메일·웹훅) 중 하나라도 설정돼 있는가."""
+        c = c or notify_cfg()
+        return bool((c["telegram_token"] and c["telegram_chat"])
+                    or (c["smtp_host"] and c["smtp_user"] and c["email_to"])
+                    or c["webhook_url"])
+
     def status(self) -> dict[str, Any]:
         c = notify_cfg()
         return {"name": self.name, "role": self.role, "implemented": True,
                 "telegram": bool(c["telegram_token"] and c["telegram_chat"]),
                 "email": bool(c["smtp_host"] and c["smtp_user"] and c["email_to"]),
                 "webhook": bool(c["webhook_url"]),
-                "on_severity": self.on_severity}
+                "on_severity": self.on_severity,
+                # [M4-1·M4-3] 전달 상태 — 값에 토큰·URL 은 없다(채널명·HTTP 코드·시각만)
+                "channels_configured": self.channels_configured(c),
+                "undeliverable_count": _DELIVERY["undeliverable_count"],
+                "undeliverable_last_ts": _DELIVERY["undeliverable_last_ts"],
+                "last_config_error": _DELIVERY["last_config_error"]}
 
     def _send_telegram(self, text: str) -> dict[str, Any]:
         c = notify_cfg()
@@ -117,10 +160,12 @@ class DispatcherAgent(BaseAgent):
             return {"channel": "telegram", "sent": False, "fallback": True, "reason": "미설정"}
         if requests is None:
             return {"channel": "telegram", "sent": False, "fallback": True, "reason": "requests 미설치"}
+        if len(text) > _TELEGRAM_MAX_TEXT:                          # [M4-7] 4096자 초과는 400 → dead 로 흐르던 것
+            text = text[:_TELEGRAM_MAX_TEXT - 1] + "…"
         try:
             r = requests.post(f"https://api.telegram.org/bot{c['telegram_token']}/sendMessage",
                               json={"chat_id": c["telegram_chat"], "text": text}, timeout=6)
-            return {"channel": "telegram", "sent": r.ok, "fallback": not r.ok, "status": r.status_code}
+            return _classify_http("telegram", r)
         except Exception as ex:  # noqa: BLE001
             return {"channel": "telegram", "sent": False, "fallback": True, "reason": redact_secrets(str(ex))}
 
@@ -140,7 +185,11 @@ class DispatcherAgent(BaseAgent):
                 s.send_message(msg)
             return {"channel": "email", "sent": True, "fallback": False}
         except Exception as ex:  # noqa: BLE001
-            return {"channel": "email", "sent": False, "fallback": True, "reason": str(ex)}
+            out = {"channel": "email", "sent": False, "fallback": True, "reason": redact_secrets(str(ex))}
+            if type(ex).__name__ in ("SMTPAuthenticationError", "SMTPRecipientsRefused", "SMTPSenderRefused"):
+                out["config_error"] = True                            # [M4-3] 인증·수신자 오류 = 설정 오류
+                out["status"] = getattr(ex, "smtp_code", None)
+            return out
 
     def _send_webhook(self, payload: dict[str, Any]) -> dict[str, Any]:
         c = notify_cfg()
@@ -150,7 +199,7 @@ class DispatcherAgent(BaseAgent):
             return {"channel": "webhook", "sent": False, "fallback": True, "reason": "requests 미설치"}
         try:
             r = requests.post(c["webhook_url"], json=payload, timeout=6)
-            return {"channel": "webhook", "sent": r.ok, "fallback": not r.ok, "status": r.status_code}
+            return _classify_http("webhook", r)
         except Exception as ex:  # noqa: BLE001
             return {"channel": "webhook", "sent": False, "fallback": True, "reason": redact_secrets(str(ex))}
 
@@ -162,7 +211,16 @@ class DispatcherAgent(BaseAgent):
         (이전에는 1회 시도 후 실패하면 그대로 소실됐다 — 순단 중 위험 경보가 영구 유실.)
         """
         row_id = None
-        if self._queue_enabled(level):
+        if self._remote_level(level) and not self.channels_configured():
+            # ★[M4-1] 원격 채널이 하나도 없으면 큐에 넣지 않는다(재시도해도 영원히 실패 → pending→dead 로 /health 만
+            #   degraded 시키던 경로). 대신 **폐기 사실을 센다** — critical/high 가 있었는데 아무 데도 못 갔다는 것은
+            #   /health 가 degraded 로 드러내야 한다(개발 PC 의 "미설정 자체"는 경고만).
+            import time as _t
+            _DELIVERY["undeliverable_count"] += 1
+            _DELIVERY["undeliverable_last_ts"] = _t.time()
+            _LOG.error("★원격 채널 미설정 — %s 경보를 보낼 곳이 없다(폐기 %d건): %s",
+                       level, _DELIVERY["undeliverable_count"], str(message)[:80])
+        elif self._queue_enabled(level):
             try:
                 import alert_queue
                 row_id = alert_queue.enqueue(level, message, meta)
@@ -190,11 +248,21 @@ class DispatcherAgent(BaseAgent):
         **degraded** 로 떨어지는 원인이기도 했다(실측: rapid_motion 이 #19 dead·#24 pending).
         → 하드코딩을 버리고 **실제 배선(on_severity)에 원격 동작이 있는지**로 판단한다.
         """
+        return self._remote_level(level) and self.channels_configured()   # [M4-1] 채널이 있어야 큐 의미가 있다
+
+    def _remote_level(self, level: str) -> bool:
+        """이 등급의 배선(on_severity)에 원격 동작(alarm/manager_call)이 있는가."""
         actions = self.on_severity.get(level, ["log"])
         return any(a in actions for a in ("alarm", "manager_call"))
 
-    def _dispatch_now(self, level: str, message: str, meta: dict[str, Any] | None = None) -> dict[str, Any]:
-        """실제 채널 전송(재시도 없음). 큐가 이 함수를 재시도 때 다시 부른다."""
+    def _dispatch_now(self, level: str, message: str, meta: dict[str, Any] | None = None,
+                      remote_only: bool = False) -> dict[str, Any]:
+        """실제 채널 전송(재시도 없음). 큐가 이 함수를 재시도 때 다시 부른다.
+
+        remote_only ([CODE_REVIEW M4-4], 2026-09-06): **재시도 경로 전용** — 텔레그램·이메일·웹훅만 다시 보내고
+        relay(사이렌)·log 는 건드리지 않는다. 예전엔 재시도마다 relay.turn_on 이 다시 불려 채널 장애 시
+        critical 1건이 사이렌을 최대 10회 재트리거(ON 연장)했다. 물리 출력은 최초 dispatch 1회로 충분하다.
+        """
         actions = self.on_severity.get(level, ["log"])
         results: list[dict[str, Any]] = []
         text = f"[VIGENT-SAFETY] {level.upper()} · {message}"
@@ -202,6 +270,25 @@ class DispatcherAgent(BaseAgent):
             results.append(self._send_telegram(text))
             results.append(self._send_email(f"[VIGENT 안전경보] {level.upper()}", text))
             results.append(self._send_webhook({"level": level, "message": message, "meta": meta or {}}))
+        remote = ("telegram", "email", "webhook")
+        any_remote = any(r.get("sent") and r["channel"] in remote for r in results)
+        # [M4-3] 분류: 원격이 하나도 안 갔고 설정 오류(4xx)가 있으면 config_error(큐는 즉시 dead) · 429 는 retry_after
+        extra: dict[str, Any] = {}
+        if not any_remote:
+            bad = [r for r in results if r.get("config_error")]
+            if bad:
+                import time as _t
+                extra["config_error"] = True
+                _DELIVERY["last_config_error"] = {"ts": _t.time(), "channel": bad[0]["channel"],
+                                                  "status": bad[0].get("status")}
+                _LOG.error("★통보 설정 오류(%s HTTP %s) — 재시도하지 않는다. 토큰·chat_id·URL 을 확인하라",
+                           bad[0]["channel"], bad[0].get("status"))
+            ras = [float(r["retry_after"]) for r in results if r.get("retry_after") is not None]
+            if ras:
+                extra["retry_after"] = max(ras)
+        if remote_only:
+            return {"level": level, "actions": actions, "results": results,
+                    "delivered": any_remote, "fallback": not any_remote, "remote_only": True, **extra}
         if "safety_relay_signal" in actions:
             # [P3a] 실제 물리 출력(네트워크 릴레이) — 이전에는 로그 항목만 추가하고 sent:True 를
             #   반환해 "경보가 울렸다"고 표시되는데 아무 소리도 안 나는 상태였다(감사 🟠C7).
@@ -216,10 +303,8 @@ class DispatcherAgent(BaseAgent):
             except Exception as ex:  # noqa: BLE001  릴레이 실패가 다른 채널을 막지 않는다
                 results.append({"channel": "relay", "sent": False, "reason": str(ex)[:120]})
         results.append({"channel": "log", "sent": True, "text": text})
-        remote = ("telegram", "email", "webhook")
-        any_remote = any(r.get("sent") and r["channel"] in remote for r in results)
         return {"level": level, "actions": actions, "results": results,
-                "delivered": any_remote, "fallback": not any_remote}
+                "delivered": any_remote, "fallback": not any_remote, **extra}
 
     def relay(self, event: str = "guard_bypass", meta: dict[str, Any] | None = None) -> dict[str, Any]:
         """§8 '보조 방호신호'. 인증 안전회로에 추가 신호만. 1차 비상정지 대체 아님(§8.1).

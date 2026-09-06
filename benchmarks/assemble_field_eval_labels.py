@@ -34,7 +34,9 @@ except Exception:  # noqa: BLE001
     pass
 
 _ROOT = Path(__file__).resolve().parent.parent
-_FE = _ROOT / "data" / "field_eval"
+sys.path.insert(0, str(_ROOT / "vigent-core"))
+from data_paths import field_eval  # noqa: E402  [M6-6] field_eval 은 저장소 밖(VIGENT_DATA_DIR)
+_FE = field_eval()
 _SOURCES = [_FE / "pilot20" / "labels", _FE / "rest89" / "labels"]
 _FRAMES = _FE / "frames"
 _OUT = _FE / "labels"

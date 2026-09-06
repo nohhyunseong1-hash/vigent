@@ -21,7 +21,7 @@ from pathlib import Path
 import cv2
 import numpy as np
 
-ROOT = Path("D:/vigent_original")
+ROOT = Path(__file__).resolve().parents[2]   # [C5] 절대경로 제거
 BASE = "http://127.0.0.1:8010"
 OUT = ROOT / "runs" / "site01_eval"
 TOK = ""

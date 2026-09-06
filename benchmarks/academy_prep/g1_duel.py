@@ -12,7 +12,9 @@
 #   배경 장비는 원거리). 스팟 체크 프레임으로 이 가정 검증(비교 프레임 저장).
 import json, sys
 from pathlib import Path
-sys.path.insert(0, "D:/vigent_original/vigent-core")
+_REPO = Path(__file__).resolve().parents[2]   # [C5] 절대경로 제거
+sys.path.insert(0, str(_REPO / "vigent-core"))
+from data_paths import media  # noqa: E402  [C5] 미디어는 저장소 밖(VIGENT_DATA_DIR)
 import cv2
 from agents.guard import JUNK_LABELS, LABEL_NORMALIZE
 from detectors.rfdetr_adapter import RfdetrDetector
@@ -78,7 +80,7 @@ def sweep(rows, tag):
 if __name__ == "__main__":
     which = sys.argv[1]
     if which == "boda":
-        det = YoloDetector("D:/vigent_original/vigent-core/weights/forklift_boda_ax.pt",
+        det = YoloDetector(str(_REPO / "vigent-core/weights/forklift_boda_ax.pt"),
                            "cuda", 384, LABEL_NORMALIZE, JUNK_LABELS)
         rows = collect(det, {"forklift"}, "boda")
         b = sweep(rows, "boda_ax(YOLO)")

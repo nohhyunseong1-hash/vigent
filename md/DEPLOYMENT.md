@@ -15,7 +15,7 @@
 |---|---|---|
 | OS | **Windows 10/11 Pro 이상**(64bit) ★현장 필수 | Windows 11 **Home** 10.0.26200 — ⚠개발 PC 가 Home 이라 **저장 암호화(N-2)는 이 PC 에서 검증 불가**(EFS·BitLocker 미지원, 2026-08-19 실측). 현장 장비(Pro)에서 검증할 것 |
 | Python | **3.11.x** | 3.11.9 |
-| | ⚠**모순 주의**: 저장소 `.python-version` 은 `3.13.9`, `pyproject.toml` 은 `target-version="py313"` 이다. 어느 쪽이 정본인지 확정 필요(2026-08-20 제기). 3.11.9 로 전 의존성 설치·기동 실증됨 | |
+| | ✅[CODE_REVIEW M7-5, 2026-09-06 해소] `.python-version`=3.11.9 · `pyproject.toml` py311 · CI `python-version-file` — 전부 3.11 로 통일. 런처 `run.ps1` 은 `py -3.11` 우선(없으면 안내 후 종료). ⚠개발 PC 의 `py` 기본은 3.14 라 **버전 없는 `py`** 는 쓰지 않는다 | |
 | GPU | NVIDIA(선택이나 강력 권장) | RTX 5070 Ti, 드라이버 610.74 |
 | CUDA | torch 휠과 맞는 버전 | cu130 (torch 2.12.0+cu130) |
 | git | 최신 | 2.55.0 |
@@ -144,25 +144,36 @@ python -c "import torch; print(torch.__version__, torch.cuda.is_available())"
 2.12.0+cpu   False       ← CPU 폴백(동작은 하지만 느리다)
 ```
 
-### 3-1. ★opencv 정리 (필수 — 빠뜨리면 headless 가 가려진다)
+### 3-1. ★opencv 정리 — 설치 단계에서 자동(`scripts/setup_env.py`), 수동은 예비
 
-`supervision`·`rtmlib` 등이 **GUI opencv 를 전이의존으로 끌어온다**. 그대로 두면 배포가
-전제한 headless 대신 GUI 빌드의 `cv2` 가 쓰인다(같은 `cv2` 네임스페이스 충돌).
-`requirements.txt` 설치 **직후 반드시** 정리한다:
+`supervision`(opencv-python>=4.5.5.64)·`trackers`(opencv-python>=4.8.0)·`rtmlib`(opencv-python, opencv-contrib-python)
+가 **GUI 빌드 opencv 를 하드 의존으로 끌어온다**(`.venv` 메타데이터 실측 2026-09-06). 그대로 두면 배포가 전제한
+headless 대신 GUI 빌드의 `cv2` 가 쓰인다(같은 `cv2` 네임스페이스 충돌). 두 겹으로 막는다:
 
+1. **`constraints.txt`**(requirements.txt 첫 줄 `-c constraints.txt` 로 항상 동반): pip constraints 는 하드 의존을 제외하지는
+   못하지만 **버전은 고정**한다 → GUI 빌드도 headless 와 같은 `4.13.0.92` 로 못 박아 5.x 그림자를 차단. 그래서
+   `pip install -r requirements.txt` 만 해도 `cv2 == 4.13.0`(단, GUI 빌드 동거).
+2. **`scripts/setup_env.py`**(권장 설치 명령): pip 설치 → GUI 빌드 제거 → headless `--no-deps` 재설치 → **새 프로세스에서
+   `cv2 == 4.13.x · GUI 항목 없음` 확인**(실패 시 종료코드 1). `--weights` 를 붙이면 가중치·go2rtc 조달까지.
+
+```powershell
+py -3.11 -m venv .venv
+.\.venv\Scripts\python.exe scripts\setup_env.py --weights
+```
+
+수동(예비) — `opencv-contrib-python-headless` **하나만** 남아야 한다:
 ```powershell
 python -m pip uninstall -y opencv-python opencv-contrib-python
 python -m pip install --force-reinstall --no-deps opencv-contrib-python-headless==4.13.0.92
-```
-
-확인 — `opencv-contrib-python-headless` **하나만** 남아야 한다:
-```powershell
 python -m pip list | Select-String opencv
 ```
 
 > **실측(2026-08-20)**: 정리 전 `opencv-python 5.0.0.93` + `opencv-contrib-python 5.0.0.93` 이
 > 함께 깔려 headless(4.13.0.92)를 가렸다. ★**`ultralytics` 를 설치하면(학원 프로파일 등)
-> GUI opencv 가 다시 딸려오므로 그때도 이 정리를 반복해야 한다** — `deploy/academy/README_academy.md` 참고.
+> GUI opencv 가 다시 딸려오므로 그때도 `setup_env.py --no-install` 로 정리를 반복한다** — `deploy/academy/README_academy.md` 참고.
+> ★**cv2 4.13 휠은 FFmpeg 4.4(avformat 58.76)** 를 품는다 — FFmpeg `timeout` 옵션을 모르는 버전이라 그 옵션을 주면 RTSP 가
+> **즉시 열기 실패**한다(2026-09-06 실측 0.02s). 앱은 OpenCV 속성(CAP_PROP_OPEN/READ_TIMEOUT_MSEC)만 쓰므로 무관하며,
+> 죽은 IP 타임아웃은 4.13 에서도 **5.05s** 재검증됐다(`benchmarks/rtsp_capture_probe.py`).
 
 ---
 
@@ -180,14 +191,17 @@ python scripts\fetch_weights.py
 > 정본은 `scripts\fetch_weights.py` 하나이며 `weights_manifest.json` 도
 > 이쪽을 가리킨다(2026-08-20 학원 노트북 설치 시 확인).
 
-**성공하면 이렇게 보인다**
+**성공하면 이렇게 보인다**(★2026-09-06 새 클론 실측: `--all` 13종 938MB · **117초**, required 6종)
 ```
-가중치 디렉터리: D:\vigent_original\vigent-core\weights
-대상 3개 (required 만)
+가중치 디렉터리: D:\vigent_verify\vigent-core\weights
+대상 6개 (required 만)
 
+  [OK]   rf-detr-nano.pth  (필수) — 검증됨
   [OK]   ppe_rfdetr_v1.pth  (필수) — 검증됨
   [OK]   forklift_rfdetr_v1.pth  (필수) — 검증됨
   [OK]   fire_smoke_rfdetr_v1_e17.pth  (필수) — 검증됨
+  [OK]   yolox_m_8xb8-300e_humanart-c2c7a14a.onnx  (필수) — 검증됨
+  [OK]   rtmpose-m_simcc-body7_pt-body7_420e-256x192-e48f03d0_20230504.onnx  (필수) — 검증됨
 
 필수 가중치 전부 확인됨.
 ```
@@ -269,7 +283,15 @@ $env:RF_HOME = "C:\Users\1\Desktop\VIGENT\vigent-core\weights"
 
 기본 캐시가 `~/.cache/rtmlib` 이라 `RF_HOME` 과 똑같이 **계정별로 흩어진다**(서비스는
 LocalSystem 프로필). 배포는 `TORCH_HOME` 을 **`vigent-core\weights\rtm_cache`** 로 고정한다
-— `install_service.ps1` 이 자동 주입하고, 수동 기동은 직접 넣는다:
+— `install_service.ps1` 이 자동 주입하고, **`run.ps1` 도 미설정 시 같은 값을 채운다**([CODE_REVIEW M7-2]).
+
+> ★[CODE_REVIEW M7-2b, 2026-09-06] **조달은 `scripts\fetch_weights.py` 가 한다** — 매니페스트에 rtmlib 2파일이
+> `required` 로 등록돼 `rtm_cache\hub\checkpoints\` 에 내려받고 SHA256 을 대조한다(이전에는 "고정"만 하고 조달
+> 절차가 없어 오프라인 현장은 첫 사람 검출에서 다운로드를 시도했다). 실측(개발 PC, 2026-09-06): 2파일 155.7MB,
+> **14.4초**, 저장 경로 `vigent-core\weights\rtm_cache\hub\checkpoints\`. 오프라인 현장 점검은 `fetch_weights.py --check`
+> 통과 + **카메라를 물린 뒤 첫 사람 검출**까지 확인한다(deploy/SITE_CHECKLIST.md N-5).
+
+수동 기동(run.ps1 을 쓰지 않을 때)은 직접 넣는다:
 
 ```powershell
 $env:TORCH_HOME = "C:\Users\1\Desktop\VIGENT\vigent-core\weights\rtm_cache"
@@ -409,6 +431,55 @@ NSSM : ...\nssm.exe
 서비스 'VIGENT' 상태: Running
 로그 : D:\vigent_original\logs\vigent.out.log
 ```
+
+### 7-1. Windows 서비스 설치·재설치 절차 (★2026-09-06 감사 — 크래시 루프 사고 후 정리)
+
+> **사고**: 이 개발 PC의 서비스 `VIGENT`가 2026-08-17~09-06 **3주간 130초마다 재시작을 반복**(4,067회,
+> `logs/` 8,139파일 49.7MB)했는데 아무도 몰랐다. 원인은 `install_service.ps1`이 `RF_HOME`을 넣도록 고쳐진
+> (`a37538a`, 08-20) **이전에 설치된 서비스가 그대로 남아** LocalSystem 프로필(`\Windows\System32\config\systemprofile\
+> .roboflow\models`)에서 `rf-detr-nano.pth`를 못 찾아 기동 거부 → NSSM 재시작 → 반복. 기록: `audit/c4_smoke_2026-09-06.md` §3.
+> 개발 PC의 서비스는 **비활성화(SERVICE_DISABLED)** 했고, 설정 백업은 `audit/vigent_service_backup_2026-09-06*.txt`.
+
+**원칙**: 서비스는 **항상 최신 `install_service.ps1`로 (재)설치**한다. 스크립트가 바뀌면 `uninstall_service.ps1` → `install_service.ps1`.
+env를 `nssm set`으로 손으로 고치지 않는다(다음 재설치 때 되돌아간다).
+
+| 순서 | 명령(관리자 PowerShell) | 확인 |
+|---|---|---|
+| 1 | `cd D:\vigent_original\deploy\windows; .\uninstall_service.ps1` (기존 서비스가 있을 때) | `Get-Service VIGENT` → 없음 |
+| 2 | 가중치 조달: `python scripts\fetch_weights.py --all` (§4) | `vigent-core\weights\rf-detr-nano.pth` + rfdetr 3종 존재 |
+| 2-1 | ★`.venv` 준비(없으면 install 이 **중단**한다 — 시스템 python 폴백 금지, 5단계 5-2 정정): `py -3.11 -m venv .venv; .\.venv\Scripts\python.exe scripts\setup_env.py --weights`(pip + opencv 정리·검증 + 가중치·go2rtc, §3-1) + GPU 면 §3 CUDA 휠 | `setup_env.py` 종료코드 0 · `.venv\Scripts\python.exe -c "import uvicorn,fastapi"` OK |
+| 2-1★ | **torch 는 requirements.txt 그대로 깔면 CPU 휠이다**(PyPI 의 Windows `torch==2.12.0` 은 CPU 전용). 개발 PC(D:\vigent_original)의 `.venv` 는 2026-09-06 재설치 **검증용으로 만든 CPU torch** 라 예열이 느리다(검증 스크립트는 `-HealthTimeoutSec 300`). **실배포 서비스는 반드시 CUDA torch(cu130, 드라이버 580 미만이면 cu126)를 `.venv` 에 설치**한다(§3 명령, `requirements.txt` 의 torch 줄 주석 참조) | `.\.venv\Scripts\python.exe -c "import torch; print(torch.__version__, torch.cuda.is_available())"` → `2.12.0+cu130 True` |
+| 2-2 | `.env` 에 `VIGENT_API_TOKEN=<비밀토큰>`(서비스는 `VIGENT_REQUIRE_TOKEN=1` 이라 **토큰이 없으면 import 시점에 종료** — 2026-09-06 재설치 검증 1차 실패 원인) | `.env` 존재 |
+| 3 | `.\install_service.ps1` — Application = `.venv\Scripts\python.exe deploy\windows\service_entry.py`(런처) | "서비스 'VIGENT' 상태: Running" |
+| 4 | `.\service_status.ps1` 를 **예열 후(≥20초) 한 번 더** | `HTTP 200 · status=healthy/degraded · phase=ready` — 15초 넘게 503이면 §9-② |
+| 5 | **크래시 루프 검사**: `.\service_status.ps1` 종료코드 **4**(최근 1시간 `vigent.err-*` 회전 파일 ≥ 임계 10, `-CrashLoopThreshold` 조정) 또는 `Get-ChildItem logs\vigent.err-* \| Measure-Object` 가 몇 분 사이 계속 늘면 루프다 | 종료코드 0~2, 늘지 않음 |
+
+**`install_service.ps1`이 서비스에 넣는 환경변수(2026-09-06 현재, 스크립트 `$envLines`)** — 재설치 시 전부 자동 설정된다:
+
+| 변수 | 값 | 왜 필요한가 |
+|---|---|---|
+| `VIGENT_REQUIRE_TOKEN` | `1` | LAN 바인딩이라 전 라우트 Bearer 필수(`/health` 면제) |
+| `VIGENT_CAPTURE_MODE` | `thread` | 캡처 스레드 모드 |
+| `VIGENT_HOST` | `0.0.0.0` | uvicorn 바인드와 앱 인식 일치(불일치 시 LAN 403) |
+| `PYTHONUTF8` | `1` | 서비스 로그 한글 깨짐 방지 |
+| **`RF_HOME`** | `<루트>\vigent-core\weights` | ★RF-DETR 사전학습 캐시를 배포 폴더로 고정 — **없으면 LocalSystem 프로필을 보고 기동 거부(이번 사고)** |
+| `TORCH_HOME` | `<루트>\vigent-core\weights\rtm_cache` | RTMPose(rtmlib) 모델 캐시 고정(오프라인 현장) |
+| `VIGENT_RESTART_CMD` | `sc.exe stop VIGENT & sc.exe start VIGENT` | 기아 3단계(starvation_guard)가 소비 |
+
+비밀값(`VIGENT_API_TOKEN`·텔레그램·카메라 자격증명)은 서비스 env가 아니라 `.env`·`config/notify.yaml`·`data/camera_secrets.json`(전부 gitignore)에서 읽는다.
+
+**크래시 루프 재발 방지(4단계 CODE_REVIEW M4-5 + 5단계 5-2 정정, 2026-09-06 반영)** — "3주간 미감지"를 네 겹으로 막는다:
+0. **얇은 런처 `deploy\windows\service_entry.py`**(5단계): 서비스가 `-m uvicorn main:app` 대신 런처를 실행한다. `import main` 이 **import·인터프리터 단계**에서 죽으면(패키지 없음, 보안 게이트 `VIGENT_REQUIRE_TOKEN`+토큰 부재, 구문 오류…) — 이 단계는 아래 1번(`_startup`) 이전이라 흔적이 없었다 — 런처가 ① `data/startup_failure.json`(stage=import, stderr 꼬리) ② 이벤트 로그 Application/VIGENT **ID 1001** 에 남기고 종료코드를 그대로 돌려준다. 런처 자체가 못 뜨는 경우(파이썬 부재)는 `service_status.ps1` 이 `logs/vigent.err.log` 마지막 20줄을 보여 준다. 실측: 토큰 빈값 → exit 1 · json 기록 · 이벤트 1001(비관리자 Write-EventLog 폴백).
+1. **기동 실패 통보·기록**(`main._startup`): `_load_theme` 실패 시 ① `data/startup_failure.json`에 누적 횟수·마지막 통보 시각 ② **Windows 이벤트 로그** Application / 소스 `VIGENT` / ID 1000 에 ERROR 1줄(매 실패 — 텔레그램 설정 자체가 원인일 때 대비) ③ 원격 채널(notify.yaml/.env)이 있으면 텔레그램·이메일·웹훅 통보(첫 실패 즉시, 이후 **1시간 1회**) → 그 뒤 재raise(기동은 실패시킨다). 확인: `Get-EventLog -LogName Application -Source VIGENT -Newest 5`.
+   **stage ↔ 이벤트 ID 대응표**(`startup_failure.json` 의 `stage`·`event_id` 와 이벤트 로그 ID는 반드시 한 쌍이다 — 5-2 4차 검증 실측 정정: 예전엔 `_startup` 실패가 런처가 남긴 `stage=import` 를 덮어쓰지 않아 "stage=import 인데 ID 1000" 으로 읽혔다):
+
+   | 죽은 단계 | 기록 주체 | `stage` | 이벤트 ID | 전형적 원인 |
+   |---|---|---|---|---|
+   | `import main`·인터프리터 | 런처 `service_entry.py` | `import` | **1001** | 패키지 없음 · 보안 게이트(`VIGENT_REQUIRE_TOKEN`+토큰 부재) · 구문 오류 |
+   | `_startup()`(lifespan) | `main._notify_startup_failure` | `startup` | **1000** | 가중치·RF_HOME 부재(`[기동거부]`) · 테마 로드 실패 · 필수 서비스(alert_queue 등) 실패 |
+   | 런처 자체 못 뜸 | (기록 없음) | — | — | 파이썬 부재 → `service_status.ps1` 의 err 로그 20줄만 |
+2. **NSSM 파라미터**(`install_service.ps1`): `AppRestartDelay 60000`(재시작 지연 60s, 구 5s) · `AppThrottle 180000`(기동 후 180s 안에 죽으면 폭주로 보고 감속, 구 10s — 모델 로드 ~25s 뒤 실패하는 루프에 10s 스로틀은 무력했다). **재설치해야 적용**(현재 개발 PC 서비스는 SERVICE_DISABLED, 재설치는 5단계 검증 후 결정).
+3. **`service_status.ps1`**: 최근 1시간 `logs/vigent.err-*` 회전 파일 수를 항상 출력하고 임계(기본 10) 이상이면 **종료코드 4** + 빨간 안내(서버가 응답하지 않을 때도 동작). 작업 스케줄러 등에서 종료코드 ≥3 을 감시하면 된다.
 
 ### 방화벽 (다른 기기에서 접속할 경우만)
 

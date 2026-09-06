@@ -24,6 +24,7 @@ _HERE = Path(__file__).resolve().parent
 _ROOT = _HERE.parent
 sys.path.insert(0, str(_HERE))
 sys.path.insert(0, str(_ROOT / "vigent-core"))
+from data_paths import field_eval  # noqa: E402  [M6-6] field_eval 은 저장소 밖(VIGENT_DATA_DIR)
 
 try:
     sys.stdout.reconfigure(encoding="utf-8")
@@ -39,9 +40,9 @@ DRAFT_CONF = 0.10
 IMGSZ = 640
 DETECTORS = ["person", "ppe"]
 
-FRAMES_DIR = _ROOT / "data" / "field_eval" / "frames"
-CLASSES_PATH = _ROOT / "data" / "field_eval" / "classes.txt"
-_FE = _ROOT / "data" / "field_eval"
+FRAMES_DIR = field_eval("frames")
+CLASSES_PATH = field_eval("classes.txt")
+_FE = field_eval()
 OUT_DIR = _FE / "pilot20"  # 하위호환(기본값). --set 으로 바꾼다.
 
 PILOT_20 = [

@@ -37,7 +37,9 @@ except Exception:  # noqa: BLE001
     pass
 
 _ROOT = Path(__file__).resolve().parent.parent
-_FE = _ROOT / "data" / "field_eval"
+sys.path.insert(0, str(_ROOT / "vigent-core"))
+from data_paths import field_eval  # noqa: E402  [M6-6] field_eval 은 저장소 밖(VIGENT_DATA_DIR)
+_FE = field_eval()
 _RES = _ROOT / "benchmarks" / "results"
 _DRAFT89 = _FE / "rest89" / "labels_backup_20260808_002915"   # push89 로 올린 초안 320건(정확한 사본)
 _PILOT_LABELS = _FE / "pilot20" / "labels"

@@ -11,11 +11,14 @@
 from __future__ import annotations
 
 import shutil
+import sys
 from pathlib import Path
 
 import cv2
 
 _ROOT = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(_ROOT / "vigent-core"))
+from data_paths import media  # noqa: E402  [C5] 미디어는 저장소 밖(VIGENT_DATA_DIR)
 _OUT = _ROOT / "benchmarks" / "data" / "pose_frames"
 
 
@@ -32,8 +35,8 @@ def _evidence_jpgs() -> list[Path]:
 
 def _video_frames() -> list[tuple[str, Path, list[int]]]:
     return [
-        ("walk", _ROOT / "runs" / "rfdetr" / "test_walk.mp4", [0, 6, 12, 18, 24, 30, 36, 42]),
-        ("pipe", _ROOT / "runs" / "safety" / "pipeline_out.mp4", [0, 12, 24, 36]),
+        ("walk", media("runs/rfdetr/test_walk.mp4"), [0, 6, 12, 18, 24, 30, 36, 42]),
+        ("pipe", media("runs/safety/pipeline_out.mp4"), [0, 12, 24, 36]),
     ]
 
 

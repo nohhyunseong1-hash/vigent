@@ -10,7 +10,7 @@ rtsp://계정ID:비밀번호@카메라IP:554/stream1   (stream1=1080p, stream2=�
 
 ## VIGENT 연결
 1. .env 에 추가:  RTSP_URL=rtsp://계정:비번@IP:554/stream1   (.env 는 git 제외)
-2. 연결 테스트:   python3 vigent-core/ml/rtsp_test.py
+2. 연결 테스트:   python tools/rtsp_test.py   (2026-09-06 감사: vigent-core/ml/ → tools/ 이동)
    → ✅ 연결 성공! 해상도 1920x1080 · runs/rtsp/first_frame.jpg 저장
 
 ## 검증 결과 (2026-06-21)

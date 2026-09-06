@@ -237,7 +237,7 @@ class RfdetrDetector(BaseDetector):
         import cv2
         import numpy as np
         from PIL import Image
-        from rfdetr.util.coco_classes import COCO_CLASSES
+        from rfdetr.assets.coco_classes import COCO_CLASSES  # [M1-10] rfdetr.util.* 은 1.9.0 제거 예정
         # [Q-3] imgsz 는 로드 시점에 이미 고정됐다(RF-DETR optimize_for_inference() 제약, 클래스
         #   docstring 참고) — 호출별로 다시 바꿀 수 없다. 요청값이 로드된 해상도와 다르면(죽은
         #   매개변수로 조용히 버리지 않고) 경고를 낸다. 같은 값으로 반복 호출되는 게 보통이라(예:

@@ -28,6 +28,7 @@ _HERE = Path(__file__).resolve().parent
 _ROOT = _HERE.parent
 sys.path.insert(0, str(_HERE))
 sys.path.insert(0, str(_ROOT / "vigent-core"))
+from data_paths import field_eval  # noqa: E402  [M6-6] field_eval 은 저장소 밖(VIGENT_DATA_DIR)
 
 try:
     sys.stdout.reconfigure(encoding="utf-8")
@@ -42,12 +43,12 @@ from isolated_detect import detect_isolated  # noqa: E402
 CROP_MARGIN = 0.20     # 여백 20%(15~25% 범위 내 중간값, 사용자 지시)
 IOU_MATCH = 0.50        # GT 매칭(COCO 표준)
 IOU_MERGE = 0.50        # 1단계/2단계 병합 dedup 임계
-FRAMES_DIR = _ROOT / "data" / "field_eval" / "frames"
-LABELS_DIR = _ROOT / "data" / "field_eval" / "labels"
-MANIFEST = json.loads((_ROOT / "data" / "field_eval" / "frames_manifest.json").read_text(encoding="utf-8"))
+FRAMES_DIR = field_eval("frames")
+LABELS_DIR = field_eval("labels")
+MANIFEST = json.loads((field_eval("frames_manifest.json")).read_text(encoding="utf-8"))
 BUCKET_BY_FILE = {m["file"]: m["size_bucket"] for m in MANIFEST}
-SPLIT = json.loads((_ROOT / "data" / "field_eval" / "dev_test_split.json").read_text(encoding="utf-8"))
-CLASSES = [c.strip() for c in (_ROOT / "data" / "field_eval" / "classes.txt").read_text(encoding="utf-8").splitlines() if c.strip()]
+SPLIT = json.loads((field_eval("dev_test_split.json")).read_text(encoding="utf-8"))
+CLASSES = [c.strip() for c in (field_eval("classes.txt")).read_text(encoding="utf-8").splitlines() if c.strip()]
 PPE_CLASSES = [c for c in CLASSES if c != "person"]
 
 

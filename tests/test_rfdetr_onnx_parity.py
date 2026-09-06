@@ -30,7 +30,7 @@ from detectors.rfdetr_adapter import RfdetrDetector  # noqa: E402
 
 _PPE_PTH = ROOT / "vigent-core" / "weights" / "ppe_rfdetr_v1.pth"
 _PPE_ONNX = ROOT / "vigent-core" / "weights" / "ppe_rfdetr_v1.onnx"
-_TEST_IMAGE = ROOT / "vigent-core" / "demo_assets" / "demo1.jpg"
+_TEST_IMAGE = ROOT / "tests" / "fixtures" / "person_far.jpg"   # [C5] 얼굴 미식별 고정 표본(demo1.jpg 사본)
 _CONF = 0.35   # v1_field_baseline_report.md §0 — PPE 운용 임계
 
 # 좌표(정규화 0~1 bbox 기준)·신뢰도 오차 허용치 — backend 간 부동소수 연산 순서 차이로 인한

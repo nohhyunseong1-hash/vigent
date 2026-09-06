@@ -27,6 +27,7 @@ _HERE = Path(__file__).resolve().parent
 _ROOT = _HERE.parent
 sys.path.insert(0, str(_HERE))
 sys.path.insert(0, str(_ROOT / "vigent-core"))
+from data_paths import field_eval  # noqa: E402  [M6-6] field_eval 은 저장소 밖(VIGENT_DATA_DIR)
 
 try:
     sys.stdout.reconfigure(encoding="utf-8")
@@ -39,10 +40,10 @@ import env_guard  # noqa: E402
 from isolated_detect import detect_isolated  # noqa: E402
 
 IOU_MATCH = 0.50
-FRAMES_DIR = _ROOT / "data" / "field_eval" / "frames"
-LABELS_DIR = _ROOT / "data" / "field_eval" / "labels"
-SPLIT = json.loads((_ROOT / "data" / "field_eval" / "dev_test_split.json").read_text(encoding="utf-8"))
-CLASSES = [c.strip() for c in (_ROOT / "data" / "field_eval" / "classes.txt").read_text(encoding="utf-8").splitlines() if c.strip()]
+FRAMES_DIR = field_eval("frames")
+LABELS_DIR = field_eval("labels")
+SPLIT = json.loads((field_eval("dev_test_split.json")).read_text(encoding="utf-8"))
+CLASSES = [c.strip() for c in (field_eval("classes.txt")).read_text(encoding="utf-8").splitlines() if c.strip()]
 MISSING_LABELS = {"NO-Hardhat", "NO-Safety-Vest", "NO-Mask"}
 EXPAND = 0.15  # guard.PPE_PERSON_EXPAND 기본값과 동일(cross_validate_ppe 재현)
 

@@ -21,6 +21,7 @@ _HERE = Path(__file__).resolve().parent
 _ROOT = _HERE.parent
 sys.path.insert(0, str(_HERE))
 sys.path.insert(0, str(_ROOT / "vigent-core"))
+from data_paths import field_eval  # noqa: E402  [M6-6] field_eval 은 저장소 밖(VIGENT_DATA_DIR)
 
 try:
     sys.stdout.reconfigure(encoding="utf-8")
@@ -33,11 +34,11 @@ import numpy as np  # noqa: E402
 from isolated_detect import detect_isolated  # noqa: E402
 
 VIDEO = "KakaoTalk_20260807_000633827"
-FRAMES_DIR = _ROOT / "data" / "field_eval" / "frames"
-LABELS_DIR = _ROOT / "data" / "field_eval" / "labels"
-OUT_DIR = _ROOT / "data" / "field_eval" / "review_000633827"
-CLASSES = [c.strip() for c in (_ROOT / "data" / "field_eval" / "classes.txt").read_text(encoding="utf-8").splitlines() if c.strip()]
-SPLIT = json.loads((_ROOT / "data" / "field_eval" / "dev_test_split.json").read_text(encoding="utf-8"))
+FRAMES_DIR = field_eval("frames")
+LABELS_DIR = field_eval("labels")
+OUT_DIR = field_eval("review_000633827")
+CLASSES = [c.strip() for c in (field_eval("classes.txt")).read_text(encoding="utf-8").splitlines() if c.strip()]
+SPLIT = json.loads((field_eval("dev_test_split.json")).read_text(encoding="utf-8"))
 
 _COLOR = {
     "person": (255, 140, 0), "Hardhat": (0, 170, 0), "NO-Hardhat": (0, 0, 220),

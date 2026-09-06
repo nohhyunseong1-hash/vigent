@@ -1,0 +1,23 @@
+﻿D:\vigent_original\deploy\windows\nssm.exe install VIGENT D:\vigent_original\.venv\Scripts\python.exe
+D:\vigent_original\deploy\windows\nssm.exe set VIGENT AppParameters "D:\vigent_original\deploy\windows\service_entry.py --host 127.0.0.1 --port 8010"
+D:\vigent_original\deploy\windows\nssm.exe set VIGENT AppDirectory D:\vigent_original\vigent-core
+D:\vigent_original\deploy\windows\nssm.exe set VIGENT AppExit Default Restart
+D:\vigent_original\deploy\windows\nssm.exe set VIGENT AppEnvironmentExtra :VIGENT_REQUIRE_TOKEN=1
+D:\vigent_original\deploy\windows\nssm.exe set VIGENT AppEnvironmentExtra +VIGENT_CAPTURE_MODE=thread
+D:\vigent_original\deploy\windows\nssm.exe set VIGENT AppEnvironmentExtra +VIGENT_HOST=0.0.0.0
+D:\vigent_original\deploy\windows\nssm.exe set VIGENT AppEnvironmentExtra +PYTHONUTF8=1
+D:\vigent_original\deploy\windows\nssm.exe set VIGENT AppEnvironmentExtra +RF_HOME=D:\vigent_original\vigent-core\weights
+D:\vigent_original\deploy\windows\nssm.exe set VIGENT AppEnvironmentExtra +TORCH_HOME=D:\vigent_original\vigent-core\weights\rtm_cache
+D:\vigent_original\deploy\windows\nssm.exe set VIGENT AppEnvironmentExtra ^"+VIGENT_RESTART_CMD=sc.exe stop VIGENT ^& sc.exe start VIGENT^"
+D:\vigent_original\deploy\windows\nssm.exe set VIGENT AppRestartDelay 60000
+D:\vigent_original\deploy\windows\nssm.exe set VIGENT AppStdout D:\vigent_original\logs\vigent.out.log
+D:\vigent_original\deploy\windows\nssm.exe set VIGENT AppStderr D:\vigent_original\logs\vigent.err.log
+D:\vigent_original\deploy\windows\nssm.exe set VIGENT AppThrottle 180000
+D:\vigent_original\deploy\windows\nssm.exe set VIGENT AppRotateFiles 1
+D:\vigent_original\deploy\windows\nssm.exe set VIGENT AppRotateOnline 1
+D:\vigent_original\deploy\windows\nssm.exe set VIGENT AppRotateBytes 268435456
+D:\vigent_original\deploy\windows\nssm.exe set VIGENT Description "RTSP 移대찓??湲곕컲 ?곗뾽?덉쟾 寃異??щ엺쨌PPE쨌?붿옱/?곌린). /health 濡?寃異??앹〈 ?뺤씤."
+D:\vigent_original\deploy\windows\nssm.exe set VIGENT DisplayName "VIGENT ?곗뾽?덉쟾 鍮꾩쟾 ?쒕쾭"
+D:\vigent_original\deploy\windows\nssm.exe set VIGENT ObjectName LocalSystem
+D:\vigent_original\deploy\windows\nssm.exe set VIGENT Start SERVICE_DISABLED
+D:\vigent_original\deploy\windows\nssm.exe set VIGENT Type SERVICE_WIN32_OWN_PROCESS

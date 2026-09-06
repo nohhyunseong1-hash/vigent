@@ -48,6 +48,10 @@
       ? '<span class="ok">✅ '+esc(e.approver||'안전관리자')+' 승인됨'+(e.ra_aid?' · <a href="/safety/risk-assessment/'+esc(e.ra_aid)+'" target="_blank">평가서 열기 ↗</a>':'')+'</span>'
       : '<button class="btn primary" data-i="'+i+'" data-act="risk_assessment">위험성평가 승인·생성</button>'+
         '<button class="btn" data-i="'+i+'" data-act="acknowledge">조치 확인</button>';
+    // [CODE_REVIEW M8-8·M6-3] 📌 보존/해제 — 증거를 보존 정책(자동 삭제)에서 제외한다. POST /recognition/pin|unpin {path}
+    const pinBtn = e.evidence
+      ? '<button class="btn" data-i="'+i+'" data-act="'+(e.pinned?'unpin':'pin')+'" title="'+(e.pinned?'보존 해제 → 다음 스윕부터 보존 일수 규칙 적용':'보존 정책(자동 삭제)에서 제외 — 사람이 해제하기 전까지 유지')+'">'+(e.pinned?'📌 보존 해제':'📌 보존')+'</button>'
+      : '';
     return '<div class="ev" id="ev'+i+'">'+
       '<div class="hd"><span class="rule">'+esc(e.rule||'이벤트')+'</span>'+
         '<span><span class="lv '+lvClass(e.level)+'">'+esc((e.level||'').toUpperCase()||'-')+'</span> '+
@@ -55,7 +59,7 @@
       '<div class="pipe">'+pipe+'</div>'+
       (e.law?'<div class="meta"><b>관련 법령</b> '+esc(e.law)+'</div>':'')+
       '<div class="meta"><b>권고 조치</b> '+esc(e.advisory)+'</div>'+ img +
-      '<div class="acts">'+acts+'</div></div>';
+      '<div class="acts">'+acts+pinBtn+'</div></div>';
   }
   function render(){
     const s = DATA.summary||{};
@@ -82,8 +86,18 @@
       else { alert('승인 실패'); btns.forEach(b=>b.disabled=false); }
     }catch(err){ alert('오류: '+err); btns.forEach(b=>b.disabled=false); }
   }
+  async function togglePin(i, action){                 // [M8-8] action: pin | unpin
+    const e = DATA.events[i]; if(!e || !e.evidence) return;
+    try{
+      const r = await fetch('/recognition/'+action,{method:'POST',headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({path:e.evidence, reason:'console'})});
+      const j = await r.json();
+      if(j && j.ok) load(); else alert((action==='pin'?'보존':'해제')+' 실패: '+(j.detail||''));
+    }catch(err){ alert('오류: '+err); }
+  }
   document.getElementById('feed').addEventListener('click', ev=>{
     const b = ev.target.closest('button[data-act]'); if(!b) return;
+    if(b.dataset.act==='pin' || b.dataset.act==='unpin'){ togglePin(parseInt(b.dataset.i,10), b.dataset.act); return; }
     approve(parseInt(b.dataset.i,10), b.dataset.act);
   });
   load();

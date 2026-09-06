@@ -14,6 +14,7 @@ sys.path.insert(0, str(ROOT / "vigent-core"))
 
 import camera_registry  # noqa: E402
 import worker  # noqa: E402
+from _isolate import isolate_alerts  # noqa: E402
 
 _FAKE_CRED_URL = "rtsp://admin:s3cr3tPW@192.168.1.50:554/stream1"
 
@@ -50,6 +51,7 @@ class TestScrubCredentials(unittest.TestCase):
 
 class TestWorkerStateErrorMasking(unittest.TestCase):
     def setUp(self):
+        self.addCleanup(isolate_alerts())     # [4단계 ④] TESTCAM 행이 운영 큐에 남지 않게(#82)
         self.frame = np.zeros((48, 64, 3), dtype=np.uint8)
         self.lock = threading.Lock()
         self.worker = worker.Worker()

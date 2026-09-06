@@ -8,6 +8,9 @@ PPE 처럼 다중 클래스 셋은 클래스별로 GT/예측을 매칭해야 한
 
 사용: python tools/ml/ppe_eval.py --set data/datasets/css_safety/test
 ⚠ 모델·원본 불변(읽기만). 라벨 신뢰성(완전·정확)에 점수가 좌우됨.
+※ 2026-09-06 감사: 동명의 구 `tools/ppe_eval.py`(ultralytics YOLO .val(), AGPL, mac 절대경로의
+   존재하지 않는 best.pt 참조)를 삭제하고 이 파일을 단일본으로 확정. 옛 파일의 mAP50-95 는
+   ultralytics 전용이라 흡수하지 않음(배포 검출기는 RF-DETR). 복구: git show d2fea51:tools/ppe_eval.py
 """
 from __future__ import annotations
 

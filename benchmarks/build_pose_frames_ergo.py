@@ -22,6 +22,7 @@ _ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(_ROOT / "benchmarks"))
 sys.path.insert(0, str(_ROOT / "vigent-core"))
 from pose_parity import _persons_yolo   # noqa: E402  선별용(판정 아님)
+from data_paths import media  # noqa: E402  [C5] 미디어는 저장소 밖(VIGENT_DATA_DIR)
 
 _OUT = _ROOT / "benchmarks" / "data" / "pose_frames_ergo"
 _EXCL = _ROOT / "benchmarks" / "data" / "pose_frames_ergo_excluded"   # 다인 배제분(다인 리스크 검증용)
@@ -77,7 +78,7 @@ def _classify(img):
 def _candidates():
     ev = sorted((_ROOT / "data" / "evidence").rglob("*.jpg"))
     yield from (("img", p, None) for p in ev)
-    for vp in sorted((_ROOT / "runs").rglob("*.mp4")):
+    for vp in sorted(media("runs").rglob("*.mp4")):
         cap = cv2.VideoCapture(str(vp))
         total = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
         cap.release()

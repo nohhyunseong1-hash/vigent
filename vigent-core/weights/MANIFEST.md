@@ -119,6 +119,8 @@ person 슬롯은 `vision.yaml` 에 `rfdetr_weights.person` 항목이 없다(COCO
 | `fire_smoke_boda.pt` | fire_smoke(yolo 폴백) | ★[2026-08-19] 검증 완료 — SHA `95ecffe9…` 일치 |
 | `yolo11m.pt` / `yolo11s.pt` | person(fallback) | 이 환경에 있음(`/health` 확인됨, SHA256 미기록 — 필요시 추가) |
 | `yolov8n-pose.pt` | pose(레거시 이름, 실제 백엔드 RTMPose) | 미확인 |
+| `rtm_cache/hub/checkpoints/yolox_m_8xb8-300e_humanart-c2c7a14a.onnx` | pose — RTMPose(rtmlib balanced) 사람 검출기, [M7-2b] fetch_weights 조달(required) | 2026-09-06 실측 101,400,344B sha 3dea6513… |
+| `rtm_cache/hub/checkpoints/rtmpose-m_simcc-body7_pt-body7_420e-256x192-e48f03d0_20230504.onnx` | pose — RTMPose-m 자세 추정기, [M7-2b] fetch_weights 조달(required) | 2026-09-06 실측 54,330,655B sha 5c0a4bf6… |
 
 ## Release 전달 자산 (Mac→데스크탑 이관, git 미추적 → GitHub Releases)
 

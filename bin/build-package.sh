@@ -76,7 +76,7 @@ cat > "$OUT/실행안내.txt" <<EOF
 VIGENT '$THEME' 전용 설치본
   1) pip install -r requirements.txt   (현장 PC 1회)
   2) VIGENT_${THEME}_시작.command  더블클릭 → 브라우저에서 /$THEME 관제 화면
-  · 무인 헤드리스: config/site.example.yaml → site.yaml 수정 후 bin/vigent-edge.command
+  · 무인 헤드리스: config/site.example.yaml → site.yaml 수정 후 bin/vigent-serve.sh (구 bin/vigent-edge.command 는 _archive/macos/launchers/ 로 격리, 2026-09-06)
   · 비밀키(.env)는 포함돼 있지 않음 — 필요 시 .env.example 복사해 입력
 EOF
 

@@ -31,6 +31,7 @@ sys.path.insert(0, str(_ROOT / "vigent-core"))
 
 import box_quality as bq  # noqa: E402
 from isolated_detect import detect_isolated  # noqa: E402
+from data_paths import field_eval, media  # noqa: E402  [C5] 미디어는 저장소 밖(VIGENT_DATA_DIR)
 
 try:
     sys.stdout.reconfigure(encoding="utf-8")
@@ -53,11 +54,11 @@ DEFAULT_GLOBAL_CAP = 300
 
 def _args() -> argparse.Namespace:
     p = argparse.ArgumentParser(description="재해 영상 평가용 프레임 스마트 추출(측정 전용)")
-    p.add_argument("--input-dir", default=str(_ROOT / "runs" / "rfdetr" / "accident"))
-    p.add_argument("--out-dir", default=str(_ROOT / "data" / "field_eval" / "frames"))
+    p.add_argument("--input-dir", default=str(media("runs/rfdetr/accident")))
+    p.add_argument("--out-dir", default=str(field_eval("frames")))
     p.add_argument("--per-video-cap", type=int, default=DEFAULT_PER_VIDEO_CAP)
     p.add_argument("--global-cap", type=int, default=DEFAULT_GLOBAL_CAP)
-    p.add_argument("--montage-out", default=str(_ROOT / "data" / "field_eval" / "sample_montage.jpg"))
+    p.add_argument("--montage-out", default=str(field_eval("sample_montage.jpg")))
     p.add_argument("--summary-out", default=str(_HERE / "extract_eval_frames_summary.md"))
     return p.parse_args()
 

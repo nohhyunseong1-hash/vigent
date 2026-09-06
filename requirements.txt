@@ -1,7 +1,10 @@
 # VIGENT 배포 의존성 (C-S2) — 서버 기동 + 핵심 안전검출에 필요한 최소 폐포.
 #   설치:  python3 -m pip install -r requirements.txt
 #   (진입점 재귀 import 추적 + pip 설치버전 실측으로 확정. 지어낸 버전 아님.)
-#   선택 기능(VLM·RAG·클라우드LLM)은 requirements-optional.txt, 측정은 requirements-eval.txt 로 분리.
+#   선택 기능: 에이전트(LLM·RAG)=requirements-agents.txt · Apple VLM/보조=requirements-optional.txt ·
+#   학습·측정=requirements-train.txt (구 requirements-eval.txt, [C6] 2026-09-06).
+#   권장 설치: python scripts/setup_env.py  (아래 설치 + opencv GUI 빌드 제거 + cv2 검증까지 한 번에)
+-c constraints.txt
 
 # ── 웹서버 / 기본 ────────────────────────────────
 fastapi==0.137.2
@@ -14,10 +17,10 @@ requests==2.33.0              # dispatcher 텔레그램/웹훅 전송 (P0-2a: PY
 
 # ── 영상 / 수치 ──────────────────────────────────
 # 배포는 headless(서버에 GUI 불필요). 개발 환경은 opencv-python(GUI)로 별도 설치 가능.
-# ⚠️ supervision·ultralytics·trackers·rtmlib 가 GUI opencv 를 전이의존으로 끌어와 headless 를
-#    가린다. 설치 후 반드시:  pip uninstall -y opencv-python opencv-contrib-python
-#    && pip install --force-reinstall --no-deps opencv-contrib-python-headless==4.13.0.92
-#    (Dockerfile 은 이 정리를 자동 수행 → cv2 를 headless 하나로 고정). 클린 venv 실증됨.
+# ⚠️ supervision·trackers·rtmlib 가 GUI opencv 를 **하드 의존**으로 끌어와 headless 를 가린다(새 클론 실측: cv2 5.0.0).
+#    ① constraints.txt 가 GUI 빌드 버전을 headless 와 같은 4.13.0.92 로 고정(5.x 그림자 차단 — requirements 만 설치해도 cv2 4.13)
+#    ② scripts/setup_env.py 가 설치 뒤 GUI 빌드를 제거하고 headless 를 --no-deps 재설치해 cv2 를 headless 하나로 만든다
+#    (수동이면: pip uninstall -y opencv-python opencv-contrib-python && pip install --force-reinstall --no-deps opencv-contrib-python-headless==4.13.0.92)
 numpy==2.4.6
 opencv-contrib-python-headless==4.13.0.92
 Pillow==12.3.0               # P0-2a 보안 업그레이드(PYSEC-2026-2249~2874 12건)
@@ -31,6 +34,9 @@ Pillow==12.3.0               # P0-2a 보안 업그레이드(PYSEC-2026-2249~2874
 #    CPU 빌드로 조용히 되돌아가니 주의.
 # ⚠️ setuptools: 환경에는 83.0.0(PYSEC-2026-3447 해소, P0-2a) 설치. 단 torch 2.12 가 setuptools<82 를
 #    선언(pkg_resources 제거 이슈) → 여기 핀하지 않음(핀하면 pip 충돌). torch 업그레이드(CVE-2025-3000) 시 함께 재정리.
+# ★torch: PyPI 의 Windows 휠은 **CPU 전용**이다. GPU 서비스는 설치 후 CUDA 휠로 교체한다(md/DEPLOYMENT.md §3):
+#   python -m pip install --index-url https://download.pytorch.org/whl/cu130 torch==2.12.0+cu130 torchvision==0.27.0+cu130
+#   (드라이버 580 미만: cu126). 개발 PC 의 .venv 는 검증용 CPU torch(2026-09-06 5단계).
 torch==2.12.0                # ★ 보류(P0-2b): CVE-2025-3000 조사 중, MPS 크래시(F-14) 이력으로 별도 합의 후 업그레이드
 torchvision==0.27.0
 rfdetr==1.8.0
@@ -59,7 +65,7 @@ onnx==1.22.0                 # [C-3, 2026-08-12] detect.backend=onnx-cpu 서빙 
 #    완료(config/tuning.yaml detect.backend, md/DEPLOYMENT.md §5.2). torch/torchvision/numpy
 #    보호 절차 동일 적용, 실측 불변 확인(2026-08-11).
 # ultralytics(AGPL): 배포 제거 완료(A-4, T10b — person/ppe/fire_smoke/forklift 전부 RF-DETR 이관).
-#   YOLO baseline 측정용으로만 requirements-eval.txt 에 잔존. 라이브 경로 ultralytics 0건(런타임 실증).
+#   YOLO baseline 측정·학습용으로만 requirements-train.txt 에 잔존. 라이브 경로 ultralytics 0건(런타임 실증).
 
 # ── 포즈: RTMPose(rtmlib, Apache) — 낙상·근골격(T10c) ──
 rtmlib==0.0.15

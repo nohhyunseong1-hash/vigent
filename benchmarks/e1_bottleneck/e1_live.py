@@ -9,7 +9,7 @@ import json, subprocess, sys, time, urllib.request
 from pathlib import Path
 import psutil
 
-ROOT = Path("D:/vigent_original")
+ROOT = Path(__file__).resolve().parents[2]   # [C5] 절대경로 제거
 BASE = "http://127.0.0.1:8010"
 TOK = ""
 for line in (ROOT/".env").read_text(encoding="utf-8").splitlines():

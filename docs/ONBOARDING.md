@@ -13,7 +13,7 @@
 1. **테마 = 코드가 아니라 설정.** 신규 테마는 `themes/<name>/vision.yaml` + 프론트 1개로 추가하고 코어 로직은 건드리지 않는다. 현재 완성·유일 테마는 **safety**([Z-3, 2026-08-10] office/sports 스캐폴드는 제품 방향을 산업안전 CCTV로 확정하며 영구 삭제 — git 히스토리로 복구 가능).
 2. **절대 저하 없음 = 가산식 + 폴백.** 딥러닝 신호는 규칙 점수에 가산만 하고, 모델이 없거나 실패하면 휴리스틱으로 자동 폴백한다. 그래서 코드 전반에 `except Exception: # noqa: BLE001` → 폴백 패턴이 많다(버그가 아니라 의도).
 
-**기술 스택(실측):** Python(문서상 3.11, 실제 검증 3.13) · FastAPI 0.137 · RF-DETR(객체탐지) · rtmlib/onnxruntime(포즈) · Qwen2.5-VL 로컬 VLM(mlx-vlm) · OpenAI/Anthropic LLM · sentence-transformers(한국어 법령 RAG) · OpenCV(headless). 프론트는 순수 HTML/JS + CDN(MediaPipe·TF.js).
+**기술 스택(실측):** Python 3.11.9(정본 — 개발 PC·학원 노트북·CI 동일, [M7-5] 2026-09-06 통일) · FastAPI 0.137 · RF-DETR(객체탐지) · rtmlib/onnxruntime(포즈) · Qwen2.5-VL 로컬 VLM(mlx-vlm) · OpenAI/Anthropic LLM · sentence-transformers(한국어 법령 RAG) · OpenCV(headless). 프론트는 순수 HTML/JS + CDN(MediaPipe·TF.js).
 
 > ⚠️ **안전 경계(코드·문서·UI에 항상 명시):** 비전 ML은 확률적이라 인증 안전기능을 대체하지 못한다. VIGENT는 **보조·감시 계층**으로 신호만 제공한다. 프레스/전단기 비상정지의 1차 책임은 인증 하드웨어(Type 4 방호장치, 안전 PLC)에 있다.
 
@@ -22,8 +22,8 @@
 ## 2. 로컬 개발 환경 설정 (따라 하기)
 
 ### 2.1 사전 조건
-- Python **3.13.9 고정**(`.python-version`). 정본 인터프리터는 `/opt/anaconda3/bin/python3`. 시스템 기본 `python3`가 3.9이면 의존성 설치·테스트가 실패하니 반드시 정본 경로를 쓴다(README 참조).
-- macOS/Linux. (배포는 Docker, 개발은 아래 방식 권장.)
+- Python **3.11.x 정본**(`.python-version` = 3.11.9 · `pyproject.toml` py311 · CI 도 `.python-version` 을 읽는다 — [CODE_REVIEW M7-5]). Windows 는 `py -3.11`, 런처(`run.ps1`)도 3.11 을 우선 탐색한다. ★이 절의 예전 서술("3.13.9 고정·`/opt/anaconda3`")은 맥 시절 잔재로 2026-09-06 정정.
+- Windows 10/11 이 1차 대상(현장·개발 모두). macOS/Linux 는 `run.sh` 로 동작하나 검증 빈도가 낮다.
 
 ### 2.2 설치
 ```bash
@@ -32,13 +32,14 @@ cd ~/Desktop/VIGENT
 # (권장) 가상환경
 python3.11 -m venv .venv && source .venv/bin/activate
 
-# 배포 최소 의존성
-pip install -r requirements.txt
+# 배포 최소 의존성 — 한 번에(pip 설치 + opencv GUI 빌드 제거 + cv2 4.13 headless 검증 + 가중치·go2rtc 조달)
+python scripts/setup_env.py --weights
 
-# ⚠️ opencv 단일화(중요): supervision·rtmlib 등이 GUI opencv 를 전이의존으로 끌어와
-#    headless 를 가린다. 설치 후 반드시 정리:
-pip uninstall -y opencv-python opencv-contrib-python
-pip install --force-reinstall --no-deps opencv-contrib-python-headless==4.13.0.92
+# 위 스크립트가 하는 일(수동으로 할 때): requirements.txt 는 첫 줄 `-c constraints.txt` 로 opencv 4종을 4.13.0.92 에 고정하지만,
+#   supervision·trackers·rtmlib 가 GUI opencv 를 **하드 의존**으로 끌어와 headless 를 가린다(constraints 로는 제외 불가). 설치 후 정리:
+#   pip install -r requirements.txt
+#   pip uninstall -y opencv-python opencv-contrib-python
+#   pip install --force-reinstall --no-deps opencv-contrib-python-headless==4.13.0.92
 
 # 선택 기능(로컬 VLM·RAG·클라우드 LLM)이 필요하면
 pip install -r requirements-optional.txt
@@ -70,9 +71,9 @@ VIGENT_HOST=0.0.0.0 VIGENT_API_TOKEN=<비밀> ./run.sh
 브라우저에서 `http://127.0.0.1:8010/home` 접속. 헬스체크는 `GET /health`.
 
 ### 2.6 테스트
-```bash
-# 반드시 의존성이 설치된 파이썬으로! (시스템 3.9로 돌리면 import 실패)
-/opt/anaconda3/bin/python3 -m unittest discover -s tests    # 35 tests 통과가 정상
+```powershell
+# 반드시 의존성이 설치된 3.11 로! (py 기본이 3.14 인 PC 가 있다 — 버전 없는 `py` 금지, [M7-5])
+py -3.11 -m unittest discover -s tests    # 통과 수는 README §4 의 최신 실측을 따른다(2026-09-06: 600+)
 ```
 
 ---
@@ -117,6 +118,10 @@ guard.detect person 박스 → RTMPose/yolov8n-pose → COCO-17 키포인트
 - **워커:** `POST /worker/start` · `/workers/start-all` · `GET /workers`
 - **사건분석:** `POST /safety/incident/analyze`
 - **설정/알림:** `GET,POST /site/config` · `/notify/config` · `POST /alerts/test`
+  - ★[CODE_REVIEW M3-2·M3-3, 2026-09-06] 브라우저·센서·수동 경보 경로(`/zone/intrusion`·`/safety/sensor`·`/safety/brain/inspect`·`/dispatch/relay`)는
+    `alert_notify.submit` 으로 **통보 게이트**(쿨다운·백오프·시간당 상한, 출처별 키)를 탄다. 응답의 `phone_sent`·`alert_sent`·`alerted`·`delivered`
+    는 **"통보 큐 적재 여부"**(실제 발송은 비동기, 결과는 `/health alerts`·큐)이며, `gate` 에 게이트 판정 사유가 실린다. 센서는 임계 **진입 전이**에서만 통보(지속 초과는 기록만).
+    `/alerts/test` 만 의도된 게이트 우회(채널 연결 시험).
 - **시스템:** `GET /health` · `/system/capabilities` · `/home` · `/hub`
 
 ---
@@ -194,3 +199,43 @@ CODE_REVIEW.md §5의 조치 목록(P0~P2)이 완료됐다. 코드를 바꾸면 
 
 - **린터/타입 관례:** `except Exception: # noqa: BLE001`, 영문 식별자 + 한국어 주석 관례 유지. ruff format 훅은 보류(밀집 스타일).
 - **남은 후속 작업:** P0~P2 완료 후 미룬 항목은 [P3_BACKLOG.md](P3_BACKLOG.md)에 우선순위·리스크와 함께 정리돼 있다.
+
+## 7. 부록 — 환경변수 목록 ([CODE_REVIEW M7-10], 2026-09-06 코드 grep 기준 43개 + 스크립트·런처용)
+
+> 원칙: **tuning.yaml 이 정본**이고, 환경변수는 "재기동 없이 잠깐 덮어쓰기"·"서비스 주입"용이다. 같은 값을 두 곳에 두지 않는다.
+> ★`.env` 는 앱이 import 시점에 읽는다 — 그러나 `VIGENT_HOST`/`VIGENT_PORT` 는 런처가 uvicorn 인자로 쓰므로 **셸 환경변수로만** 유효하다([M7-4]).
+
+| 변수 | 읽는 곳 | 뜻 · 기본값 |
+|---|---|---|
+| `VIGENT_API_TOKEN` | main.py | Bearer 토큰. 외부 바인딩이면 필수(없으면 기동 거부) |
+| `VIGENT_HOST` / `VIGENT_PORT` | run.ps1·run.sh → uvicorn, main.py(루프백 판정) | 바인딩 주소·포트. 기본 127.0.0.1:8010. 서비스는 install_service 가 0.0.0.0 주입 |
+| `VIGENT_REQUIRE_TOKEN` | main.py | 1 이면 로컬이라도 무토큰 기동 거부(서비스 기본) |
+| `VIGENT_ALLOWED_HOSTS` | main.py | Host 헤더 허용목록(콤마). 미지정: 루프백만 / 외부 바인딩은 검사 생략 |
+| `VIGENT_EDGE` | main.py | 1 이면 site.yaml 카메라를 예열 후 자동 시작(헤드리스) |
+| `VIGENT_THEME` | app_state | 테마명(기본 safety, 단일) |
+| `VIGENT_CAPTURE_MODE` | worker | `thread`(캡처 스레드, 최신 프레임 우선) / `sync`. 서비스·run.ps1 기본 thread([M7-2]) |
+| `VIGENT_CAP_BUFFERSIZE` | worker | sync 모드 cv2 버퍼(기본 tuning stability.cap_buffersize=1) |
+| `VIGENT_RTSP_TIMEOUT_MS` | worker | RTSP 열기/읽기 타임아웃(기본 5000, [M5-2]) |
+| `VIGENT_READ_FAIL_MAX` / `VIGENT_RECONNECT_MAX` | worker | 연속 읽기 실패 임계 / 재연결 백오프 상한(초) — tuning stability.* 우선 권장 |
+| `VIGENT_HANG_TIMEOUT` / `VIGENT_STARTUP_GRACE` | worker | 무진전 판정(초) / 기동 유예(초) — ★회피값 금지(B4 근본 해소) |
+| `VIGENT_STARVE_GRAB_S` / `VIGENT_HANG_RESTART_S` / `VIGENT_HEALTH_FAILS` / `VIGENT_RESTART_CMD` | starvation_guard | 기아 1·2·3단계 임계와 프로세스 재기동 명령(서비스가 주입) |
+| `VIGENT_ALLOW_FALLBACK` | guard | 1 이면 커스텀 가중치 부재 시 COCO 폴백 허용(CI 전용, 현장 금지) |
+| `VIGENT_ALLOW_PRETRAIN_DOWNLOAD` | guard | 1 이면 RF-DETR 베이스 캐시 부재 시 다운로드 허용(오프라인 현장 금지) |
+| `VIGENT_DETECT_DEVICE` | device | `cpu`/`cuda`/`mps` 강제 |
+| `VIGENT_DETECT_BACKEND` | guard | `torch`/`onnx-cpu`(tuning detect.backend 우선 덮기) |
+| `VIGENT_INCLUDE_FORKLIFT` / `VIGENT_INCLUDE_FIRE_SMOKE` | worker | 검출기 목록 포함 여부(tuning detect.include_* 덮기) |
+| `VIGENT_ORT_TUNE` | ort_tune | 1 이면 ORT 세션 옵션 튜닝(tuning onnxruntime.tune_sessions 덮기) |
+| `VIGENT_ALERT_NOTIFY` | alert_gate | 0 이면 통보 끔(기록만) — tuning alerts.notify 덮기 |
+| `VIGENT_ALERT_DB` | alert_queue | 경보 큐 sqlite 경로(기본 data/alert_queue.db, 테스트 격리용) |
+| `VIGENT_RADIUS_M` / `VIGENT_CROWD` | worker | 협착 반경(m) / 군집 인원 — tuning proximity.radius_m·crowd.threshold 덮기 |
+| `VIGENT_ZONE_TILE` / `VIGENT_ZONE_TILE_EVERY` / `VIGENT_ZONE_GRID` | worker·zone_tile | 구역 타일 재검출 on/주기 / 격자키 분할(tuning zone.grid_cells) |
+| `VIGENT_TRACK_DEBUG` | guard | 1 이면 프레임마다 트랙 JSONL 계측 기록(측정 전용) |
+| `VIGENT_COLLECT` / `VIGENT_COLLECT_EVERY` | worker | 1 이면 학습용 프레임 수집(초 간격, 기본 30) |
+| `VIGENT_FAULT_STOP_DETECT` | worker | 설정 시 검출 정지 고장 주입(기아 방어 시험 전용) |
+| `VIGENT_LOG_DIR` / `VIGENT_LOG_LEVEL` | vlog | 로그 폴더(기본 logs/) / 레벨(기본 INFO) |
+| `VIGENT_DATA_DIR` | data_paths·retention·privacy | 저장소 밖 미디어·평가 자료 루트(기본 ../vigent_private_data) |
+| `VIGENT_DEV_SYMLINK` | main.py | 1 이면 /static 심링크 추적 허용(개발 워크트리 전용) |
+| `VIGENT_CLOUD_VLM` | scene_vlm·ppe_check | 1 을 명시해야 프레임이 클라우드 VLM 으로 나간다(F-12) |
+| `VIGENT_LLM_PROVIDER` / `VIGENT_LLM_MODEL` / `VIGENT_LLM_MAX_TOKENS` | llm_provider | 텍스트 LLM 공급자·모델·토큰(키가 없으면 규칙 기반 폴백) |
+| `RF_HOME` / `TORCH_HOME` / `PYTHONUTF8` | rfdetr·rtmlib·파이썬 | 모델 캐시 위치·콘솔 인코딩 — 서비스·run.ps1 이 `vigent-core/weights` 계열로 고정 |
+| `VIGENT_GITHUB_TOKEN` / `VIGENT_WEIGHTS_BASE_URL` | scripts/fetch_weights.py | 비공개 릴리스 토큰 / 사내 미러 |

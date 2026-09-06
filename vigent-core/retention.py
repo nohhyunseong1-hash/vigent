@@ -24,6 +24,7 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any
 
+import data_paths
 import tuning
 
 KST = timezone(timedelta(hours=9))
@@ -32,21 +33,68 @@ _ROOT = Path(__file__).resolve().parent.parent
 # 그룹별 데이터 루트 — data_engine.py·audit_store.py·tbm_store.py·agents/scribe.py 가 실제로
 # 쓰는 경로와 동일해야 한다(중복 정의, 이유: retention.py가 이 모듈들을 전부 import하면
 # 불필요한 결합이 생긴다 — 경로 상수만 복제).
+# ★[CODE_REVIEW M6-6, 2026-09-06 대표 결정] field_eval(현장 평가 프레임 530장)은 **저장소 밖**
+#   (VIGENT_DATA_DIR/field_eval, 기본 ../vigent_private_data/field_eval)에 두고 그룹 E(365일)로 관리한다.
+#   저장소 밖 그룹은 상태·후보 경로를 절대경로로 표기한다(_show/_abs).
 GROUP_DIRS: dict[str, Path] = {
     "evidence": _ROOT / "data" / "evidence",
     "recognition": _ROOT / "data" / "recognition",
     "audit": _ROOT / "data" / "audit",
     "tbm": _ROOT / "data" / "tbm",
     "risk_assessments": _ROOT / "data" / "risk_assessments",
+    "field_eval": data_paths.media("field_eval"),
 }
 GROUP_LABEL: dict[str, str] = {
     "evidence": "A(안전 증거)", "recognition": "A(안전 증거)",
     "audit": "B(감사·문서)", "tbm": "B(감사·문서)", "risk_assessments": "B(감사·문서)",
+    "field_eval": "E(평가 자료 — 저장소 밖 VIGENT_DATA_DIR)",
 }
-PINNABLE_GROUPS = {"evidence"}   # pin 예외가 적용되는 그룹(A의 증거 이미지만)
+
+
+def _show(p: Path) -> str:
+    """상태·후보 표기: 저장소 안이면 _ROOT 상대경로(기존 계약), 밖(field_eval 등)이면 절대경로."""
+    try:
+        return str(p.relative_to(_ROOT))
+    except ValueError:
+        return str(p)
+
+
+def _abs(shown: str) -> Path:
+    """_show() 의 역 — 절대경로면 그대로, 상대경로면 _ROOT 기준."""
+    p = Path(shown)
+    return p if p.is_absolute() else _ROOT / p
+PINNABLE_GROUPS = {"evidence", "recognition"}   # pin 예외 그룹 — [M6-10] 발송 경보의 그날 인식 로그도 pin 대상
 
 STATUS_PATH = _ROOT / "data" / "retention_status.json"
 DELETION_LOG_DIR = _ROOT / "data" / "retention"
+# [CODE_REVIEW M6-5] NSSM 서비스 회전본(logs/vigent.err-*·vigent.out-*) — 개수 상한이 없어 크래시 루프에 8,139개가
+#   쌓였다. 최근 N개만 유지(개인정보 아님, D그룹 성격). 현재 로그(vigent.err.log)·앱 로그(vigent.log)는 대상 아님.
+LOG_DIR = _ROOT / "logs"
+ROTATED_LOG_PATTERNS = ("vigent.err-*", "vigent.out-*")
+
+
+def prune_rotated_logs(keep: int | None = None, execute: bool = False) -> dict[str, Any]:
+    """회전 로그를 mtime 최신순으로 keep 개만 남기고 나머지를 지운다(execute=False 면 후보만 센다)."""
+    keep = int(_retention_config().get("logs_keep_rotated", 50)) if keep is None else int(keep)
+    out: dict[str, Any] = {"dir": str(LOG_DIR), "keep": keep, "total": 0, "candidates": 0, "deleted": 0, "errors": []}
+    if keep < 1 or not LOG_DIR.exists():
+        return out
+    for pat in ROTATED_LOG_PATTERNS:
+        files = [p for p in LOG_DIR.glob(pat) if p.is_file()]
+        out["total"] += len(files)
+        files.sort(key=lambda p: p.stat().st_mtime, reverse=True)
+        for p in files[keep:]:
+            out["candidates"] += 1
+            if not execute:
+                continue
+            try:
+                if p.resolve().parent != LOG_DIR.resolve():   # 화이트리스트: logs/ 바로 아래만
+                    continue
+                p.unlink()
+                out["deleted"] += 1
+            except OSError as ex:
+                out["errors"].append(f"{p.name}: {ex}")
+    return out
 
 # 디스크 여유공간 경고 임계값 — 근거: 이벤트 1건당 evidence+recognition 합쳐 수백KB 수준
 # (실측 기준 §docs/ops_disk_sizing.md)이라, 5GB면 최소 수만 건의 신규 이벤트를 받을 여유가
@@ -147,10 +195,20 @@ def is_dry_run() -> bool:
     return bool(_retention_config().get("dry_run", True))
 
 
-def _pinned_paths() -> set[str]:
+PIN_FILE_NAME = "pinned.json"   # [M6-1] 어디에 있든 pin 목록 파일 자체는 절대 삭제 후보가 아니다
+
+
+def _pinned_paths() -> set[Path]:
+    """pin 된 파일의 **resolve() 된 절대경로** 집합 — [M6-2] `\\`·`/`·상대/절대 표기와 무관하게 비교한다."""
     try:
         import data_engine
-        return data_engine.pinned_paths()
+        out: set[Path] = set()
+        for rel in data_engine.pinned_paths():
+            try:
+                out.add((_ROOT / rel).resolve())
+            except OSError:
+                continue
+        return out
     except Exception:  # noqa: BLE001  pin 조회 실패는 "전부 미pin"으로 취급(삭제를 막는 방향 아님 —
         return set()   # 대신 sweep() 자체가 dry_run 기본이라 실수로 지워지지 않는다)
 
@@ -158,7 +216,7 @@ def _pinned_paths() -> set[str]:
 def scan_group(name: str, days: int | None) -> dict[str, Any]:
     """그룹 디렉터리를 스캔 — days 가 None 이면 삭제후보 계산 없이 크기만 낸다(가시성 전용)."""
     root = GROUP_DIRS[name]
-    info: dict[str, Any] = {"dir": str(root.relative_to(_ROOT)), "days": days,
+    info: dict[str, Any] = {"dir": _show(root), "days": days,
                              "exists": root.exists(), "total_bytes": 0, "file_count": 0,
                              "candidates": [], "oldest_age_days": None}
     if not root.exists():
@@ -169,6 +227,8 @@ def scan_group(name: str, days: int | None) -> dict[str, Any]:
     for fp in root.rglob("*"):
         if not fp.is_file():
             continue
+        if fp.name == PIN_FILE_NAME:
+            continue   # [M6-1] pin 목록 파일 자체(구 위치 잔재 포함)는 크기 집계·후보 모두에서 제외
         try:
             st = fp.stat()
         except OSError:
@@ -178,9 +238,12 @@ def scan_group(name: str, days: int | None) -> dict[str, Any]:
         age_days = (now - st.st_mtime) / 86400
         oldest_age = max(oldest_age, age_days)
         if days is not None and age_days > days:
-            rel = str(fp.relative_to(_ROOT))
-            if rel in pinned:
-                continue   # pin된 증거는 후보에서 제외 — 어떤 경로로도 삭제되지 않는다
+            rel = _show(fp)
+            try:
+                if fp.resolve() in pinned:
+                    continue   # pin된 증거는 후보에서 제외 — 어떤 경로로도 삭제되지 않는다([M6-2] resolve 비교)
+            except OSError:
+                pass
             info["candidates"].append({"path": rel, "age_days": round(age_days, 1),
                                         "bytes": st.st_size})
     info["oldest_age_days"] = round(oldest_age, 1) if info["file_count"] else None
@@ -234,7 +297,7 @@ def sweep(execute: bool | None = None, only_group: str | None = None) -> dict[st
         if only_group and name != only_group:
             continue
         if not root.exists():
-            groups_out[name] = {"dir": str(root.relative_to(_ROOT)), "exists": False}
+            groups_out[name] = {"dir": _show(root), "exists": False}
             # [R2-fix] 미사용 그룹(디렉터리 자체가 없음)은 경고가 아니라 정보다 —
             #   매 스위프마다 같은 경고가 쌓이면 진짜 경고가 묻힌다.
             unused_groups.append(name)
@@ -254,7 +317,7 @@ def sweep(execute: bool | None = None, only_group: str | None = None) -> dict[st
         deleted: list[str] = []
         if will_delete and days is not None:
             for cand in info["candidates"]:
-                fp = _ROOT / cand["path"]
+                fp = _abs(cand["path"])
                 # [P1b] 화이트리스트 밖은 어떤 경우에도 삭제하지 않는다(되돌릴 수 없는 작업의 마지막 방어선)
                 if not is_path_allowed(fp):
                     warnings.append(f"{name}: 화이트리스트 밖이라 삭제 거부 {cand['path']}")
@@ -273,6 +336,22 @@ def sweep(execute: bool | None = None, only_group: str | None = None) -> dict[st
         info["deleted"] = deleted
 
     _write_deletion_audit(deletion_entries)
+
+    # [M6-4·M6-5] 개인정보가 아닌 운영 데이터 정리 — 경보 큐 행(30일, 최신 config_error 1건 유지)·NSSM 회전본(최근 50개).
+    #   only_group 지정 시(그룹 단독 실행)는 건너뛴다. 삭제 여부는 위와 같은 will_delete 를 따른다(첫 주기 보류 포함).
+    queue_out: dict[str, Any] = {}
+    logs_out: dict[str, Any] = {}
+    if not only_group:
+        try:
+            import alert_queue
+            queue_out = alert_queue.prune(days=int(_retention_config().get("alert_queue_days", 30)),
+                                          execute=will_delete)
+        except Exception as ex:  # noqa: BLE001
+            queue_out = {"error": f"{type(ex).__name__}: {ex}"}
+            warnings.append(f"alert_queue 정리 실패: {type(ex).__name__}: {ex}")
+        logs_out = prune_rotated_logs(execute=will_delete)
+        for e in logs_out.get("errors") or []:
+            warnings.append(f"logs: 삭제 실패 {e}")
 
     # [P1b] 첫 주기: 실제로 지우지 않고 '지워질 예정' 목록을 로그로 남긴다.
     if first_run_notice:
@@ -318,6 +397,8 @@ def sweep(execute: bool | None = None, only_group: str | None = None) -> dict[st
         "disk_free_bytes": free,
         "warnings": warnings,
         "groups": groups_out,
+        "alert_queue": queue_out,      # [M6-4] {days, candidates, deleted, kept_config_error}
+        "logs": logs_out,              # [M6-5] {keep, total, candidates, deleted}
     }
     STATUS_PATH.parent.mkdir(parents=True, exist_ok=True)
     STATUS_PATH.write_text(json.dumps(status, ensure_ascii=False, indent=2), encoding="utf-8")

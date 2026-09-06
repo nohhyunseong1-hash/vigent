@@ -29,6 +29,7 @@ sys.path.insert(0, str(_HERE))
 sys.path.insert(0, str(_ROOT / "vigent-core"))
 
 import box_quality as bq  # noqa: E402
+from data_paths import media  # noqa: E402  [C5] 미디어는 저장소 밖(VIGENT_DATA_DIR)
 
 try:
     sys.stdout.reconfigure(encoding="utf-8")
@@ -36,8 +37,8 @@ except Exception:  # noqa: BLE001
     pass
 
 VIDEOS = [
-    ("test_fast", _ROOT / "runs" / "rfdetr" / "test_fast.mp4"),
-    ("test_walk", _ROOT / "runs" / "rfdetr" / "test_walk.mp4"),
+    ("test_fast", media("runs/rfdetr/test_fast.mp4")),
+    ("test_walk", media("runs/rfdetr/test_walk.mp4")),
 ]
 DECISION_SCENARIO = "d400"
 

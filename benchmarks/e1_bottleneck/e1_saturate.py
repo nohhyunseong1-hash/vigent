@@ -2,7 +2,9 @@
 #   fps 제한을 풀고(가능한 한 빨리) N을 늘려, 시스템이 실제로 낼 수 있는 검출 처리량을 잰다.
 import json, subprocess, sys, threading, time
 from pathlib import Path
-sys.path.insert(0, "D:/vigent_original/vigent-core")
+_REPO = Path(__file__).resolve().parents[2]   # [C5] 절대경로 제거
+sys.path.insert(0, str(_REPO / "vigent-core"))
+from data_paths import media  # noqa: E402  [C5] 미디어는 저장소 밖(VIGENT_DATA_DIR)
 import cv2, numpy as np, psutil, vision_loader
 from agents import build_agents
 
@@ -63,7 +65,7 @@ def run(n, vids, secs):
 
 if __name__=="__main__":
     secs=float(sys.argv[1]) if len(sys.argv)>1 else 45.0
-    vids=sorted(str(p) for p in Path("D:/vigent_original/runs/rfdetr/accident").glob("*.mp4"))[:7]
+    vids=sorted(str(p) for p in media("runs/rfdetr/accident").glob("*.mp4"))[:7]
     out=[]
     for n in (1,2,4,7):
         r=run(n,vids,secs); out.append(r)

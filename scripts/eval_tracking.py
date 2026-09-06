@@ -37,7 +37,9 @@ except Exception:  # noqa: BLE001
 
 _ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(_ROOT / "vigent-core"))
+from data_paths import media  # noqa: E402  [C5] 미디어는 저장소 밖(VIGENT_DATA_DIR)
 
+# 저장소 기준 상대경로 — 실제 위치는 media() 가 VIGENT_DATA_DIR 아래로 해석한다([C5])
 DEFAULT_VIDEOS = [
     "runs/rfdetr/refset/multi_cross.mp4",     # 다인 교차
     "runs/rfdetr/refset/occlusion.mp4",       # 가림
@@ -143,7 +145,8 @@ def main() -> int:
     ap.add_argument("--out", default="benchmarks/eval_tracking_result.json")
     a = ap.parse_args()
 
-    videos = [Path(_ROOT / v) for v in (a.video or DEFAULT_VIDEOS)]
+    # [C5] --video 는 절대경로면 그대로, 상대경로면 미디어 루트(VIGENT_DATA_DIR) 아래로 해석
+    videos = [Path(v) if Path(v).is_absolute() else media(v) for v in (a.video or DEFAULT_VIDEOS)]
     videos = [v for v in videos if v.exists()]
     if not videos:
         print("평가할 영상이 없습니다.")

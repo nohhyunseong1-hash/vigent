@@ -26,6 +26,7 @@ sys.path.insert(0, str(_HERE))
 sys.path.insert(0, str(_ROOT / "vigent-core"))
 
 import box_quality as bq  # noqa: E402
+from data_paths import media  # noqa: E402  [C5] 미디어는 저장소 밖(VIGENT_DATA_DIR)
 
 try:
     sys.stdout.reconfigure(encoding="utf-8")
@@ -255,9 +256,9 @@ def _report_clip(label: str, cache_name: str, video_path: Path) -> dict[str, Any
 
 def main() -> None:
     clips = [
-        ("multi_scene(다인, 20.7s)", "multi_scene", _ROOT / "runs" / "rfdetr" / "multi_scene.mp4"),
-        ("mac_single_move 조밀(24fps)", "mac_single_move", _ROOT / "runs" / "rfdetr" / "refset" / "mac_single_move.mp4.mp4"),
-        ("mac_single_move 성김(~208ms)", "mac_single_move_sparse5", _ROOT / "runs" / "rfdetr" / "refset" / "mac_single_move.mp4.mp4"),
+        ("multi_scene(다인, 20.7s)", "multi_scene", media("runs/rfdetr/multi_scene.mp4")),
+        ("mac_single_move 조밀(24fps)", "mac_single_move", media("runs/rfdetr/refset/mac_single_move.mp4.mp4")),
+        ("mac_single_move 성김(~208ms)", "mac_single_move_sparse5", media("runs/rfdetr/refset/mac_single_move.mp4.mp4")),
     ]
     results = [_report_clip(label, name, video) for label, name, video in clips]
 

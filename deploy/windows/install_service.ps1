@@ -35,7 +35,8 @@ param(
   [string]$ServiceName = "VIGENT",
   [int]$Port = 8010,
   [string]$Bind = "0.0.0.0",
-  [long]$LogMaxBytes = 268435456
+  [long]$LogMaxBytes = 268435456,
+  [string]$NssmPath = ""            # 호출자가 이미 찾은 nssm.exe(검증 스크립트가 넘김). 비우면 자동 탐색
 )
 
 $ErrorActionPreference = "Stop"
@@ -55,31 +56,46 @@ $LogDir = Join-Path $Root "logs"
 if (-not (Test-Path $Core)) { Write-Error "vigent-core 를 찾을 수 없습니다: $Core"; exit 1 }
 if (-not (Test-Path $LogDir)) { New-Item -ItemType Directory $LogDir | Out-Null }
 
-# python: 프로젝트 venv 우선, 없으면 시스템 python
+# python: **프로젝트 .venv 만** 쓴다(시스템 python·py 런처 폴백 금지 — [5단계 5-2 정정, 2026-09-06]).
+#   실사고: .venv 가 없어 시스템 Python311 로 등록됐다. 서비스가 쓰는 인터프리터는 "저장소 안의 .venv" 로 고정해야
+#   개발자 PC 의 PATH·py 기본값(3.14 실측)에 흔들리지 않는다. 없으면 만들라고 안내하고 중단한다.
 $Py = Join-Path $Root ".venv\Scripts\python.exe"
 if (-not (Test-Path $Py)) {
-  $cmd = Get-Command python -ErrorAction SilentlyContinue
-  if (-not $cmd) { Write-Error "python 을 찾을 수 없습니다. .venv 를 만들거나 python 을 PATH 에 두세요."; exit 1 }
-  $Py = $cmd.Source
+  Write-Error (".venv 가 없습니다: " + $Py + "`n  만들기: py -3.11 -m venv .venv ; .\.venv\Scripts\python.exe -m pip install -r requirements.txt`n" +
+               "  그다음 DEPLOYMENT §3-1 opencv 정리(headless 강제) · GPU 면 §3 CUDA 휠. 시스템 python 으로는 등록하지 않습니다.")
+  exit 1
 }
+$probe = & $Py -c "import sys, uvicorn, fastapi; sys.exit(0 if sys.version_info[:2] == (3, 11) else 3)" 2>$null; $probeCode = $LASTEXITCODE
+if ($probeCode -ne 0) { Write-Error (".venv 파이썬($Py)이 3.11 이 아니거나 uvicorn/fastapi 가 없습니다(code " + $probeCode + "). .\.venv\Scripts\python.exe -m pip install -r requirements.txt"); exit 1 }
 Write-Host "루트 : $Root"
 Write-Host "파이썬: $Py"
 
 # ── 2. NSSM 확인 ───────────────────────────────────────────────────────
-$nssm = Get-Command nssm -ErrorAction SilentlyContinue
-if (-not $nssm) {
-  $local = Join-Path $PSScriptRoot "nssm.exe"
-  if (Test-Path $local) { $nssmPath = $local }
-  else {
-    Write-Host ""
-    Write-Host "NSSM 이 없습니다. 아래 중 하나로 설치한 뒤 다시 실행하세요:" -ForegroundColor Yellow
-    Write-Host "  1) https://nssm.cc/download 에서 받아 win64\nssm.exe 를 이 폴더에 복사"
-    Write-Host "     → $PSScriptRoot\nssm.exe"
-    Write-Host "  2) winget install NSSM.NSSM"
-    Write-Host "  3) choco install nssm"
-    exit 2
+# ── NSSM 탐색(5단계 5-2 2차 실패 정정, 2026-09-06): 저장소 동봉본 우선 → Get-Command(Source/Path) → winget Links. 빈 값은 거부 ──
+#   실사고: 관리자 -NoProfile 세션에서 Get-Command nssm 이 Source 가 빈 개체를 돌려줘 `& $nssmPath` 가 "잘못된 개체" 로 죽었다.
+function Resolve-Nssm([string]$Preferred) {
+  $cands = @()
+  if ($Preferred) { $cands += $Preferred }
+  $here = $PSScriptRoot; if (-not $here) { $here = Split-Path -Parent $MyInvocation.ScriptName }   # 함수 안에서는 MyCommand.Path 가 비어 있다
+  $cands += (Join-Path $here "nssm.exe")
+  $c = Get-Command nssm -ErrorAction SilentlyContinue
+  if ($c) { if ($c.Source) { $cands += $c.Source }; if ($c.Path) { $cands += $c.Path } }
+  if ($env:LOCALAPPDATA) { $cands += (Join-Path $env:LOCALAPPDATA "Microsoft\WinGet\Links\nssm.exe") }
+  foreach ($p in $cands) {
+    $ok = $false; try { $ok = ($p -and (Test-Path -LiteralPath $p -PathType Leaf -ErrorAction SilentlyContinue)) } catch { $ok = $false }   # 잘못된 경로 문자열도 후보 하나로만 취급
+    if ($ok) { return (Resolve-Path -LiteralPath $p).Path }
   }
-} else { $nssmPath = $nssm.Source }
+  return $null
+}
+$nssmPath = Resolve-Nssm $NssmPath
+if (-not $nssmPath) {
+  Write-Host ""
+  Write-Host "NSSM 을 찾지 못했습니다. 아래 중 하나로 준비한 뒤 다시 실행하세요:" -ForegroundColor Yellow
+  Write-Host "  1) https://nssm.cc/download 에서 받아 win64\nssm.exe 를 이 폴더에 복사(저장소에는 동봉본이 있어야 정상)"
+  Write-Host ("     → " + (Split-Path -Parent $MyInvocation.MyCommand.Path) + "\nssm.exe")
+  Write-Host "  2) winget install NSSM.NSSM   3) -NssmPath <경로> 로 직접 지정"
+  exit 2
+}
 Write-Host "NSSM : $nssmPath"
 
 # ── 3. 기존 서비스 정리(있으면) ────────────────────────────────────────
@@ -92,8 +108,21 @@ if ($existing) {
   Start-Sleep -Seconds 2
 }
 
+# ── 3.5 [CODE_REVIEW M4-5(a)] Windows 이벤트 로그 소스 등록(관리자 컨텍스트에서 1회) ─────────────
+#   기동 실패 시 main._startup 이 Application/VIGENT/ID 1000 에 ERROR 를 남긴다. 소스가 등록돼 있어야
+#   비관리자 세션(run.ps1 개발 실행)에서도 Write-EventLog 가 통한다. 이미 있으면 건너뜀.
+try {
+  if (-not [System.Diagnostics.EventLog]::SourceExists("VIGENT")) {
+    New-EventLog -LogName Application -Source VIGENT
+    Write-Host "이벤트 로그 소스 'VIGENT' 등록(Application)"
+  } else { Write-Host "이벤트 로그 소스 'VIGENT' 이미 등록됨" }
+} catch { Write-Host "이벤트 로그 소스 등록 실패(무시, 서비스 계정의 eventcreate 가 자동 등록): $($_.Exception.Message)" -ForegroundColor Yellow }
+
 # ── 4. 서비스 생성 ─────────────────────────────────────────────────────
-$appArgs = "-m uvicorn main:app --host $Bind --port $Port"
+# ★[5단계 5-2 정정] 서비스는 얇은 런처(deploy\windows\service_entry.py)를 거친다 — import·인터프리터 단계 실패도
+#   이벤트 로그(ID 1001)·data\startup_failure.json 에 남는다(예전 `-m uvicorn main:app` 은 그 단계 실패가 무흔적).
+$Entry = Join-Path $PSScriptRoot "service_entry.py"
+$appArgs = ("`"" + $Entry + "`" --host $Bind --port $Port")
 & $nssmPath install $ServiceName $Py $appArgs
 & $nssmPath set $ServiceName AppDirectory $Core
 & $nssmPath set $ServiceName DisplayName "VIGENT 산업안전 비전 서버"
@@ -102,10 +131,15 @@ $appArgs = "-m uvicorn main:app --host $Bind --port $Port"
 # 시작 유형: 지연 자동 — 부팅 직후 네트워크·GPU 드라이버가 준비된 뒤 기동
 & $nssmPath set $ServiceName Start SERVICE_DELAYED_AUTO_START
 
-# 실패 시 재시작(5초 지연). AppExit Default Restart = 어떤 종료코드든 재시작
+# 실패 시 재시작. AppExit Default Restart = 어떤 종료코드든 재시작
+# ★[CODE_REVIEW M4-5(b), 2026-09-06] 크래시 루프 완화 — 실사고: 기동 실패(가중치 부재)가 130초 주기로 3주·4,067회
+#   반복됐는데 AppThrottle 10s 는 "10초 안에 죽을 때"만 감속해 무력했다. 모델 로드(~25s)+실패까지가 10초를 넘기 때문.
+#   → AppThrottle 를 기동 시간보다 길게(180s) 두어 "기동 후 3분 안에 죽으면 폭주"로 보고 감속하고,
+#     재시작 지연을 60s 로 늘려 루프 자체를 완만하게 한다(정상 크래시 복구는 1분 지연을 감수).
+#   기동 실패 자체는 main._startup 이 통보·이벤트로그(Application/VIGENT ID 1000)로 드러낸다(M4-5(a)).
 & $nssmPath set $ServiceName AppExit Default Restart
-& $nssmPath set $ServiceName AppRestartDelay 5000
-& $nssmPath set $ServiceName AppThrottle 10000       # 10초 안에 죽으면 폭주로 보고 감속
+& $nssmPath set $ServiceName AppRestartDelay 60000    # 재시작 지연 60초(구 5초)
+& $nssmPath set $ServiceName AppThrottle 180000       # 기동 후 180초 안에 죽으면 폭주로 보고 감속(구 10초)
 
 # 로그: stdout/stderr 파일 + 크기 기반 로테이션(온라인 로테이션 = 서비스 중지 없이)
 $outLog = Join-Path $LogDir "vigent.out.log"

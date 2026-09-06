@@ -96,3 +96,20 @@ data/evidence/
 reports/*.pdf
 reports/*.png
 reports/현장테스트_보고서_*.html
+
+# ── [감사 C5, 2026-09-06] 영상·이미지는 저장소에 두지 않는다 ──
+#   사고 영상·얼굴 이미지·고객사 설비 사진 98파일을 저장소 밖 `../vigent_private_data/`
+#   (또는 VIGENT_DATA_DIR)로 옮겼다. 벤치 스크립트는 vigent-core/data_paths.py 로 위치를 얻는다.
+#   예외 = 얼굴 미식별 테스트 표본·UI 목업·데모 자산·공개 데이터셋 표본 2장만.
+*.mp4
+*.avi
+*.mov
+*.jpg
+*.jpeg
+*.png
+!tests/fixtures/**
+!docs/team/*.png
+!vigent-core/demo_assets/*.jpg
+!benchmarks/results/fire_smoke_diag/*.jpg
+# 사업계획서 편집본 복구용 Polaris Office 캐시(개인 문서) — 커밋 금지
+docs/복구_폴라리스캐시/

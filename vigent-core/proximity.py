@@ -19,6 +19,13 @@ VEHICLE_REF_M = {**_DEFAULT_REF, **(tuning.section("proximity").get("vehicle_ref
 DEFAULT_RADIUS_M = float(tuning.val("proximity", "radius_m", 3.0))
 
 
+def vehicle_size_limits() -> tuple[float, float]:
+    """[CODE_REVIEW M7-7(b)] 장비 박스 오탐 필터 — (최대 폭, 최대 면적, 정규화). 화면 거의 전체를 덮는 박스만 제외한다.
+    코드 기본값 0.9/0.7 을 tuning proximity.vehicle_max_w / vehicle_max_area 로 옮겼다(값 동일, 동작 불변)."""
+    return (float(tuning.val("proximity", "vehicle_max_w", 0.9)),
+            float(tuning.val("proximity", "vehicle_max_area", 0.7)))
+
+
 def driver_containment() -> float:
     """[G5] 운전자 판정 포함률 임계 — person 박스가 장비 박스에 이 비율 이상 포함되면 '탑승'.
 
@@ -74,6 +81,7 @@ def detect(detections, radius_m: float = DEFAULT_RADIUS_M,
       없으면 1.0(무보정) — 회귀 없음(기존과 동일). 안전상 세로거리 과대→미탐이므로 넣는 게 좋다.
     반환: 반경 내 (장비-사람) 쌍 [{vehicle, distance_m, person_bbox}], 가까운 순."""
     ar = 1.0 if aspect_hw is None else max(1e-3, float(aspect_hw))
+    max_w, max_area = vehicle_size_limits()
     vehicles, persons = [], []
     for d in detections:
         cls = str(d.get("label") or d.get("class") or "").lower()
@@ -84,7 +92,7 @@ def detect(detections, radius_m: float = DEFAULT_RADIUS_M,
             vw, vh = bb[2] - bb[0], bb[3] - bb[1]
             # 명백한 오탐(화면 거의 전체)만 제외. 가까운 장비는 박스가 커도 정상이므로 살린다
             # (안전상 '놓침'이 '헛알람'보다 위험 → 보수적으로 살리는 쪽).
-            if vw > 0.9 or vw * vh > 0.7:
+            if vw > max_w or vw * vh > max_area:
                 continue
             vehicles.append((cls, bb))
         elif cls == "person":

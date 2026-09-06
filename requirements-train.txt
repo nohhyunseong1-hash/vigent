@@ -1,0 +1,21 @@
+# VIGENT 학습·재학습·정확도 측정 전용 의존성 — [감사 C6, 2026-09-06] 구 requirements-eval.txt 흡수.
+#   설치:  python -m pip install -r requirements-train.txt   (배포 requirements 를 포함해서 설치)
+#   배포/측정 분리 원칙: 배포본(Dockerfile·서비스)에는 아래를 넣지 않는다. 학습 워크스테이션 전용.
+#   대상 스크립트: training/ (rfdetr_train·train_*·eval/) · tools/ml/ · benchmarks/run_eval.py 등.
+#   ★학습 도구는 장기적으로 별도 저장소 분리 대상(FINAL_SUMMARY 기술 부채).
+-r requirements.txt
+
+# ── 평가(mAP) ──
+pycocotools==2.0.11          # COCOeval(mAP)
+faster-coco-eval==1.7.2      # RF-DETR 학습/평가 가속 eval
+
+# ── RF-DETR 재학습(.train()) ──
+# ⚠ `rfdetr[train]` 은 pytorch_lightning·peft·torchmetrics·albumentations·roboflow 등을 끌어오며
+#    torch/torchvision 을 다른 버전으로 바꿀 수 있다. 반드시 설치 전후 `torch.__version__`·
+#    `torch.cuda.is_available()` 이 그대로인지 확인할 것(requirements.txt 의 [X-3b] 주석, 2026-08-10 실측).
+#    이 데스크탑(RTX 5070 Ti/sm_120)은 torch==2.12.0+cu130 이어야 GPU 동작.
+# rfdetr[train]==1.8.0       # 필요 시 주석 해제 — 위 torch 보호 절차와 함께
+
+# ── YOLO baseline 측정·구 YOLO 학습 스크립트(training/train_fire·forklift·ppe·train_safety) ──
+# A-4 완료(T10b): ultralytics 는 배포 requirements 에서 제거됨. copyleft 배포 0.
+ultralytics==8.3.253         # AGPL-3.0 — 측정·학습에만 사용, 배포 아님.

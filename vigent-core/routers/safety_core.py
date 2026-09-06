@@ -180,13 +180,19 @@ def report_safety(theme: str = DEFAULT_THEME, hours: float = 24, vlm: bool = Fal
 def risk_assessment_list(theme: str = DEFAULT_THEME):
     """저장된 위험성평가서 목록(최신순)."""
     bundle = STATE.get(theme) or _load_theme(theme)
-    return {"items": bundle["agents"]["Scribe"].list_saved()}
+    scribe = bundle["agents"].get("Scribe")
+    if scribe is None:   # [2026-09-06] LLM 에이전트는 선택 모듈 — 미로드면 503(코어 무관)
+        raise HTTPException(status_code=503, detail="Scribe 미로드")
+    return {"items": scribe.list_saved()}
 
 @router.get("/safety/risk-assessment/{aid}", response_class=HTMLResponse)
 def risk_assessment_open(aid: str, theme: str = DEFAULT_THEME):
     """저장된 위험성평가서 다시열기(HTML)."""
     bundle = STATE.get(theme) or _load_theme(theme)
-    page = bundle["agents"]["Scribe"].load_html(aid)
+    scribe = bundle["agents"].get("Scribe")
+    if scribe is None:
+        raise HTTPException(status_code=503, detail="Scribe 미로드")
+    page = scribe.load_html(aid)
     if page is None:
         raise HTTPException(status_code=404, detail="평가서 없음")
     return page
@@ -195,7 +201,10 @@ def risk_assessment_open(aid: str, theme: str = DEFAULT_THEME):
 def safety_reports(theme: str = DEFAULT_THEME):
     """저장된 평가서 목록 화면 + '지금 생성' 버튼."""
     bundle = STATE.get(theme) or _load_theme(theme)
-    items = bundle["agents"]["Scribe"].list_saved()
+    scribe = bundle["agents"].get("Scribe")
+    if scribe is None:
+        raise HTTPException(status_code=503, detail="Scribe 미로드")
+    items = scribe.list_saved()
     rows = "".join(
         f"""<tr><td>{i['generated_at']}</td><td>{i['site']}</td>
         <td style="text-align:center">{i['총항목']}</td>
@@ -225,9 +234,11 @@ def safety_auto_feed(theme: str = DEFAULT_THEME, hours: float = 24, limit: int =
     copilot = bundle["agents"].get("Copilot")
     events = data_engine.list_events(limit=limit, hours=hours)
     audit_map = audit_store.by_event()
+    pins = data_engine.pinned_map()                    # [M8-8] 콘솔 📌 버튼 상태(증거 상대경로 → 사유)
     out, approved_n = [], 0
     for e in events:
         rule = e.get("rule", "")
+        ev_rel = data_engine.norm_rel(str(e.get("evidence") or "")) if e.get("evidence") else None
         law = ""
         if copilot and rule:
             cs = copilot.cite(rule).get("citations", []) or []
@@ -240,6 +251,8 @@ def safety_auto_feed(theme: str = DEFAULT_THEME, hours: float = 24, limit: int =
             "ts": e.get("ts"), "time": e.get("time"), "date": e.get("date"),
             "rule": rule, "level": e.get("level", ""), "site": e.get("site", ""),
             "evidence_url": evidence_url(e.get("evidence")),
+            "evidence": ev_rel,                        # [M8-8] pin/unpin 요청용 상대경로(data/evidence/...)
+            "pinned": bool(ev_rel and ev_rel in pins), # [M8-8] 보존 제외 상태
             "law": law,
             "advisory": _ADVISORY.get(rule, "안전관리자 확인 후 현장 상황에 맞는 조치"),
             "approved": bool(appr),
@@ -488,6 +501,10 @@ def safety_voice_scene(payload: dict = Body(...), theme: str = DEFAULT_THEME):
         dets = []
     return liveguide.build_guidance(dets, bool(payload.get("use_vlm")), image_bgr=img)
 
+# [M3-2] 센서별 임계 상태(초과 중인가) — "진입 전이"에서만 통보하기 위한 메모리 상태(재기동 시 초기화 = 다음 초과가 전이).
+_SENSOR_DANGER: dict[str, bool] = {}
+
+
 @router.post("/safety/sensor")
 def safety_sensor(payload: dict = Body(...), theme: str = DEFAULT_THEME):
     """IoT 센서 값 수신 → 임계 초과 시 위험 기록 + 알림.
@@ -513,20 +530,31 @@ def safety_sensor(payload: dict = Body(...), theme: str = DEFAULT_THEME):
     rule, danger_fn, msg_t = spec[stype]
     danger = bool(danger_fn(value))
     result = {"ok": True, "type": stype, "value": value, "danger": danger, "rule": rule}
+    # ★[CODE_REVIEW M3-2, 2026-09-06] 예전엔 임계 초과 POST **마다** dispatcher.dispatch("critical") 을 직접
+    #   불러 통보+relay 가 센서 주기마다 반복됐다(억제 관문 0). 이제 ①기록은 매 POST(G7 유지) ②통보·relay 는
+    #   "임계 진입 **전이**"에서만 1회 — alert_notify.submit(출처 키 sensor:<종류>, edge=True: 쿨다운 건너뜀·
+    #   시간당 상한 유지) ③임계 아래로 내려갔다 다시 넘으면 새 전이. 응답 alert_sent 는 "통보 큐 적재" 의미.
+    key = f"{stype}|{site}"
+    was_danger = _SENSOR_DANGER.get(key, False)
+    _SENSOR_DANGER[key] = danger
+    result["transition"] = bool(danger and not was_danger)
     if danger:
         msg = msg_t.format(v=value) + " — 위험 임계 초과"
         try:
             data_engine.log_event(rule, level="critical", score=value, site=site, note=msg)
         except Exception:  # noqa: BLE001
             pass
-        try:
-            bundle = STATE.get(theme) or _load_theme(theme)
-            disp = bundle["agents"].get("Dispatcher")
-            if disp:
-                r = disp.dispatch("critical", f"[{site}] {msg}", {"sensor": stype, "value": value})
-                result["alert_sent"] = bool(r.get("sent")) if isinstance(r, dict) else None
-        except Exception:  # noqa: BLE001
-            pass
+        result["alert_sent"] = False
+        if result["transition"]:
+            try:
+                import alert_notify
+                n = alert_notify.submit(cam=f"sensor:{stype}", rule=rule, level="critical",
+                                        message=f"[{site}] {msg}", meta={"sensor": stype, "value": value},
+                                        edge=True)
+                result["alert_sent"] = bool(n.get("queued"))
+                result["gate"] = n.get("reason")
+            except Exception:  # noqa: BLE001
+                pass
         result["message"] = msg
     return result
 
@@ -636,14 +664,15 @@ def safety_brain_inspect(payload: dict = Body(...), theme: str = DEFAULT_THEME):
                                               else ("data:image/jpeg;base64," + raw) if raw else None))
         logged = True
     if payload.get("alert") and res["risk"] == "high":
-        bundle = STATE.get(theme) or _load_theme(theme)
-        disp = bundle["agents"].get("Dispatcher")
-        if disp:
-            try:
-                disp.dispatch("high", res["summary"])
-                alerted = True
-            except Exception:  # noqa: BLE001
-                pass
+        # [CODE_REVIEW M3-3] dispatcher 직접 호출(게이트 우회) → alert_notify.submit(출처 키 brain). alerted = 큐 적재.
+        try:
+            import alert_notify
+            n = alert_notify.submit(cam="brain", rule="safety_measure_missing", level="high",
+                                    message=res["summary"], meta={"site": payload.get("site", "현장")})
+            alerted = bool(n.get("queued"))
+            res["gate"] = n.get("reason")
+        except Exception:  # noqa: BLE001
+            pass
     res["logged"], res["alerted"] = logged, alerted
     return res
 
@@ -718,7 +747,11 @@ def notify_config_post(payload: dict = Body(...)):
 
 @router.post("/alerts/test")
 def alerts_test(payload: dict = Body(default={}), theme: str = DEFAULT_THEME):
-    """Dispatcher 경보 테스트. payload={level, message}. 키 없으면 폴백(로그)로 동작."""
+    """Dispatcher 경보 테스트. payload={level, message}. 키 없으면 폴백(로그)로 동작.
+
+    ★[CODE_REVIEW M3-3] **의도된 게이트 우회 경로** — alert_gate(쿨다운·백오프·시간당 상한)를 거치지 않고
+    dispatcher.dispatch 를 직접 부른다. 설정 콘솔의 "채널 연결 시험" 전용이며 자동 발화 경로에서 쓰지 말 것.
+    (큐에는 남으므로 채널 미설정이면 pending→dead 로 흐른다 — 모듈 4 ①.)"""
     bundle = STATE.get(theme) or _load_theme(theme)
     dispatcher = bundle["agents"].get("Dispatcher")
     return dispatcher.dispatch(payload.get("level", "high"),

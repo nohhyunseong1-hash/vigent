@@ -2,13 +2,15 @@
 #   지게차는 화면 상단(y<0.35) 고정 위치에 실재 — 그 영역 검출 = 정탐 후보, 그 외 = 오탐.
 import json, sys
 from pathlib import Path
-sys.path.insert(0, "D:/vigent_original/vigent-core")
+_REPO = Path(__file__).resolve().parents[2]   # [C5] 절대경로 제거
+sys.path.insert(0, str(_REPO / "vigent-core"))
+from data_paths import media  # noqa: E402  [C5] 미디어는 저장소 밖(VIGENT_DATA_DIR)
 import cv2
 from agents.guard import JUNK_LABELS, LABEL_NORMALIZE
 from detectors.rfdetr_adapter import RfdetrDetector
 
-VID = Path("D:/vigent_original/runs/rfdetr/accident/KakaoTalk_20260807_000632301.mp4")
-det = RfdetrDetector("D:/vigent_original/vigent-core/weights/forklift_rfdetr_v1.pth",
+VID = media("runs/rfdetr/accident/KakaoTalk_20260807_000632301.mp4")
+det = RfdetrDetector(str(_REPO / "vigent-core/weights/forklift_rfdetr_v1.pth"),
                      LABEL_NORMALIZE, JUNK_LABELS, resolution=384)
 cap = cv2.VideoCapture(str(VID))
 n = int(cap.get(7))

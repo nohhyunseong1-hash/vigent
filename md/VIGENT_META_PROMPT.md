@@ -204,11 +204,11 @@ PPE 모델로 미착용 직접 감지, 포즈 기반 근골격계 부담자세 �
 원본 루트: `~/Desktop/사업계획서/AX안전`
 - **YOLO 가중치**: `runs/detect/` — PPE `construction_ppe_v30/weights/best.pt`(25클래스, 미착용 직접 감지), 화재 `.../fire_detector/weights/best.pt`, 지게차 `forklift_boda_ax/weights/best.pt`. 없으면 yolov8s 폴백.
 - **자세 TF 분류기**: `backend/ml/artifacts/` + `posture_model.py`·`pose_features.py`(COCO 키포인트 4만+ 학습). (`fall_model.py`는 2026-08 낙상 기능 제거로 vigent-core에서 삭제됨 — 원본 MVP 폴더엔 남아있을 수 있으나 이관 대상 아님)
-- **운동 폼 모델·학습 스크립트**: `form_model.py`, `train_*_classifier.py`, `ingest_*`, `retrain.py`.
+- **운동 폼 모델·학습 스크립트**: `form_model.py`, `train_*_classifier.py`, `ingest_*`, `retrain.py`. (★2026-09-06 감사: office/sports 잔재로 `_archive/themes/fitness/` 격리)
 - **베이스 가중치**: `yolov8s.pt`, `yolov8n-pose.pt`, `yolov8s-seg.pt`.
 - **데이터셋**: `data/external/`, `data/data_engine/`, `data/scene/`, `data/openimages/`.
-- **에이전트 로직**: `safety_agent.py`(위험성평가 build/save), `fitness_agent.py`, `hazard_detector.py`, `evaluator.py`, `tracker.py`, `zones.py`, `scene_classifier.py`, `report_builder.py`, `vitals.py`(rPPG).
-- **설정**: `config/settings.yaml`(`*_model_path` 슬롯), `danger_zone.json`/`zones.json`, `safety_dataset.yaml`, `notify.example.yaml`.
+- **에이전트 로직**: `safety_agent.py`(위험성평가 build/save), `fitness_agent.py`, `hazard_detector.py`, `evaluator.py`, `tracker.py`, `zones.py`, `scene_classifier.py`, `report_builder.py`, `vitals.py`(rPPG). (★2026-09-06 감사: BODA 계열 전부 `_archive/themes/boda/` 격리 — 코어 import 0건)
+- **설정**: `config/settings.yaml`(`*_model_path` 슬롯 — ★2026-09-06 감사: 읽는 코드 0건이라 `_archive/config/` 격리. 현행 모델 경로는 `themes/safety/vision.yaml`), `danger_zone.json`/`zones.json`, `safety_dataset.yaml`, `notify.example.yaml`.
 - **테마 임계값**: `realtime_core.js`의 `SERVICE_META`(테마별 pipeline·metrics·thresholds) → `vision.yaml`로 마이그레이션.
 > 모델 경로는 설정으로 주입, 파일 없으면 폴백 유지.
 

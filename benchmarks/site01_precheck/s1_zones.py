@@ -2,8 +2,11 @@
 import numpy as np, cv2
 from pathlib import Path
 from PIL import Image, ImageDraw, ImageFont
-SRC = Path("D:/vigent_original/runs/site01_eval/site1")
-OUT = Path("D:/vigent_original/runs/site01_eval/zone_candidates")
+import sys
+sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "vigent-core"))
+from data_paths import media  # noqa: E402  [C5] 미디어는 저장소 밖(VIGENT_DATA_DIR)
+SRC = media("runs/site01_eval/site1")            # 고객사 설비 스틸 — 저장소 밖
+OUT = media("runs/site01_eval/zone_candidates")
 OUT.mkdir(parents=True, exist_ok=True)
 FONT = ImageFont.truetype("C:/Windows/Fonts/malgunbd.ttf", 17)
 FONT_S = ImageFont.truetype("C:/Windows/Fonts/malgun.ttf", 13)

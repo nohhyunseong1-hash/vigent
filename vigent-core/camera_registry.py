@@ -63,10 +63,35 @@ def get(cid: str) -> dict | None:
         return _find(_load(_PUB).get("cameras", []), cid)
 
 
+_OVERRIDE_KEYS = {("motion", "immobile_s")}   # [R15] 카메라별 override 허용 키 — 지금은 무동작 임계 1개(일반화는 다음 단계)
+
+
+def normalize_overrides(raw: Any) -> dict[str, Any]:
+    """[CODE_REVIEW M7-7(b)·R15] 카메라별 override 정규화 — 허용 키만 남기고 값 검증(양수 float). 그 외 키는 버린다.
+    빈 dict = 해제. 잘못된 값은 ValueError(라우트가 400 으로 바꾼다)."""
+    out: dict[str, Any] = {}
+    if not isinstance(raw, dict):
+        return out
+    for sec, key in _OVERRIDE_KEYS:
+        body = raw.get(sec)
+        if not isinstance(body, dict) or key not in body:
+            continue
+        try:
+            v = float(body[key])
+        except (TypeError, ValueError):
+            raise ValueError(f"overrides.{sec}.{key} 는 숫자여야 한다: {body[key]!r}") from None
+        if v <= 0:
+            raise ValueError(f"overrides.{sec}.{key} 는 0 보다 커야 한다: {v}")
+        out.setdefault(sec, {})[key] = v
+    return out
+
+
 def upsert(cid: str, name: str | None = None, source: str | None = None,
            enabled: bool | None = None, fps: float | None = None,
-           zone: Any = None) -> dict[str, Any]:
-    """등록/수정. source 지정 시 원본은 secrets, 공개엔 마스킹 저장."""
+           zone: Any = None, overrides: Any = None) -> dict[str, Any]:
+    """등록/수정. source 지정 시 원본은 secrets, 공개엔 마스킹 저장.
+    overrides: [R15] 카메라별 설정 override({"motion": {"immobile_s": 90}}), None=유지, {}=해제."""
+    norm_over = normalize_overrides(overrides) if overrides is not None else None
     with _LOCK:
         pub = _load(_PUB)
         cams = pub.setdefault("cameras", [])
@@ -84,6 +109,8 @@ def upsert(cid: str, name: str | None = None, source: str | None = None,
             c["zone"] = zone
         if enabled is not None:
             c["enabled"] = bool(enabled)
+        if norm_over is not None:
+            c["overrides"] = norm_over
         if source is not None:
             sec[cid] = source                          # 원본 → secrets(gitignore)
             c["source"] = mask_source(source)          # 공개 = 마스킹

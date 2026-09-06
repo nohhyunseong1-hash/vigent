@@ -21,6 +21,7 @@ _HERE = Path(__file__).resolve().parent
 _ROOT = _HERE.parent
 sys.path.insert(0, str(_HERE))
 sys.path.insert(0, str(_ROOT / "vigent-core"))
+from data_paths import field_eval  # noqa: E402  [M6-6] field_eval 은 저장소 밖(VIGENT_DATA_DIR)
 
 try:
     sys.stdout.reconfigure(encoding="utf-8")
@@ -32,13 +33,13 @@ import cv2  # noqa: E402
 from isolated_detect import detect_isolated  # noqa: E402
 from scipy.stats import beta  # noqa: E402
 
-FRAMES_DIR = _ROOT / "data" / "field_eval" / "frames"
-LABELS_DIR = _ROOT / "data" / "field_eval" / "labels"
-CLASSES = [c.strip() for c in (_ROOT / "data" / "field_eval" / "classes.txt").read_text(encoding="utf-8").splitlines() if c.strip()]
+FRAMES_DIR = field_eval("frames")
+LABELS_DIR = field_eval("labels")
+CLASSES = [c.strip() for c in (field_eval("classes.txt")).read_text(encoding="utf-8").splitlines() if c.strip()]
 PPE_CLASSES = [c for c in CLASSES if c != "person"]
-SPLIT = json.loads((_ROOT / "data" / "field_eval" / "dev_test_split.json").read_text(encoding="utf-8"))
-AMBIGUOUS = json.loads((_ROOT / "data" / "field_eval" / "ambiguous_no_hardhat.json").read_text(encoding="utf-8"))
-OCCLUSION = json.loads((_ROOT / "data" / "field_eval" / "person_occlusion_subset.json").read_text(encoding="utf-8"))
+SPLIT = json.loads((field_eval("dev_test_split.json")).read_text(encoding="utf-8"))
+AMBIGUOUS = json.loads((field_eval("ambiguous_no_hardhat.json")).read_text(encoding="utf-8"))
+OCCLUSION = json.loads((field_eval("person_occlusion_subset.json")).read_text(encoding="utf-8"))
 IOU_MATCH = 0.50
 
 RUN_DIR = _ROOT / "data" / "runs" / "x4_train_full_ppe_v2"

@@ -101,7 +101,7 @@
 ---
 
 ## 부록 — 근거 링크
-- 성숙도/한계: [P3_BACKLOG.md](P3_BACKLOG.md)(B1~B9), [benchmarks/FINDINGS.md](../benchmarks/FINDINGS.md)(F-7~F-14), [benchmarks/rig_fall/](../benchmarks/rig_fall/)(B8 실측).
+- 성숙도/한계: [P3_BACKLOG.md](P3_BACKLOG.md)(B1~B9), [benchmarks/FINDINGS.md](../benchmarks/FINDINGS.md)(F-7~F-14), benchmarks/rig_fall/(B8 실측 — ★2026-09-06 감사에서 삭제, 커밋 `16f1a41`에서 `git checkout 16f1a41 -- benchmarks/rig_fall` 로 복구 가능).
 - 안정성: [STABILITY.md](STABILITY.md), [audit/soak_2026-07-08_*.md](../audit/)(real1h 합격·realsmoke 불합격).
 - 보안/코드: [CODE_REVIEW.md](CODE_REVIEW.md)(§3 보안), [ONBOARDING.md](ONBOARDING.md)(§6 게이트).
 - 안전경계: [CLAUDE.md](../CLAUDE.md)(기능안전·개인정보 경계).

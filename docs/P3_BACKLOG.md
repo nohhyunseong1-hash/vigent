@@ -143,7 +143,7 @@
    - 역산 가이드(초안, 실측 보정 전제): 작업자 실키 ~1.7m 를 120px 로 담으려면 세로화각당 픽셀밀도 ≈ 70px/m 이상. 1080p(1080세로)면 세로 실시야 ≤ ~15m, 720p 면 ≤ ~10m 안에 작업역이 들어오도록 **설치 거리·초점거리(화각)** 를 잡는다. → 광역 조망용이 아니라 **rig 작업역 전용 근접 카메라**(별도 채널) 필요.
    - 검증: 도입 후 이 B8 측정 스크립트(아래 보존 자산)로 pose 산출률·낙상 recall 재측정.
 
-**보존한 회귀 자산** → [benchmarks/rig_fall/](../benchmarks/rig_fall/) (스크립트 4종 + 결과 JSON 3종 + README):
+**보존한 회귀 자산** → benchmarks/rig_fall/ (스크립트 4종 + 결과 JSON 3종 + README — ★2026-09-06 감사에서 삭제: 낙상 기능은 `ddbbb6d`에서 제거됐고 검증 영상도 로컬 전용이라 재현 불가. 커밋 `16f1a41`에서 복구 가능):
 - b8_lowthr / b8_measure3(오탐·타일링·YOLO) / b8_confirm(pose·aspect) / b8_temporal(정적-지속 스윕).
 - `footage/크레인재해.MP4`·`.obs.csv` 는 대용량/주석이라 gitignore(로컬 관리). 재현법은 benchmarks README 참조.
 

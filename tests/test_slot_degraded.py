@@ -86,6 +86,18 @@ class SlotDegraded(unittest.TestCase):
         self.assertTrue(any("복구" in line for line in cm.output), f"복구 로그 없음: {cm.output}")
         self.assertEqual(g.status()["slot_degraded"], {}, "복구 후 status()에 계속 남아있음")
 
+    def test_recovery_clears_predict_error_from_status(self):
+        """[CODE_REVIEW M1-7] 복구 후 `load_errors`(→ /health slot_errors)에 옛 추론 오류가 남으면
+        운영자는 복구된 슬롯을 계속 고장으로 읽는다. 복구 시 predict 계열 오류는 지워야 한다."""
+        g = _guard(n_fail=3)
+        for _ in range(3):
+            with self.assertLogs("vigent.guard", level="ERROR"):
+                g.detect(_FAKE_IMG, detectors=["person"], track_key="t:clr")
+        self.assertIn("person", g.status()["load_errors"], "실패 중에는 오류가 노출돼야 한다")
+        with self.assertLogs("vigent.guard", level="INFO"):
+            g.detect(_FAKE_IMG, detectors=["person"], track_key="t:clr")   # 복구
+        self.assertNotIn("person", g.status()["load_errors"], "복구됐는데 옛 오류 문자열이 남아 있다")
+
     def test_intermittent_failure_does_not_falsely_degrade(self):
         """연속이 아니라 성공/실패가 섞이면(예: 1회 실패 후 성공) 스트릭이 리셋돼 DEGRADED 안 됨."""
         class _AlternatingModel:

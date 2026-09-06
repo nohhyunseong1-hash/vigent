@@ -39,6 +39,7 @@ sys.path.insert(0, str(_ROOT / "vigent-core"))
 import box_quality as bq  # noqa: E402
 import env_guard  # noqa: E402
 import web_util  # noqa: E402
+from data_paths import media  # noqa: E402  [C5] 미디어는 저장소 밖(VIGENT_DATA_DIR)
 
 try:
     sys.stdout.reconfigure(encoding="utf-8")
@@ -58,7 +59,7 @@ def _percentile(xs: list[float], p: float) -> float:
 
 def _build_payload_b64() -> str:
     import cv2
-    cap = cv2.VideoCapture(str(_ROOT / "runs" / "rfdetr" / "multi_scene.mp4"))
+    cap = cv2.VideoCapture(str(media("runs/rfdetr/multi_scene.mp4")))
     ok, img = cap.read()
     cap.release()
     if not ok:
