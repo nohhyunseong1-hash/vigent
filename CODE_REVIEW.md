@@ -219,12 +219,45 @@
 | M3-8 | `realtime_core.js:1911-1934` + 워커 | 낮음(모듈 8 확인) | 같은 카메라를 브라우저 라이브뷰와 서버 워커가 동시에 감시하면 **이중 통보**(브라우저 3프레임+8s / 워커 1.0s+15s+게이트) | 코드 | 브라우저 통보를 서버 게이트에 합류(M3-3)시키면 자연 해소 |
 | M3-9 | `worker.py _derive` | 정보 | rapid/immobility/crowd 는 디바운스 없이 15s 쿨다운만. crowd 는 매 15s 재기록(mid → log 전용) | 코드 | 현 상태 유지(통보 안 됨). 카메라 흔들림(M3-1)만 처리 |
 
-### 3-4. 수정 계획(승인 대기)
-- **높음 M3-2** + **중간 M3-3**: `dispatch` 직접 호출 3곳(`/safety/sensor`·zone.py·safety_core:652)을 `alert_notify.submit` 으로 통일(게이트 키 = 출처+규칙). 선행 테스트: 센서 임계 초과 POST 10회 → 통보 1회(기록 10회). 응답 계약(`alert_sent`·`phone_sent`)은 "큐 적재 여부" 로 의미가 바뀜 → 응답 키 유지·값 의미를 문서화(OpenAPI 스키마 불변).
-- **중간 M3-4**: 쿨다운 키 정리 — 선행 테스트 후 수정.
-- **중간 M3-1**: 카메라 흔들림 억제 — 설계 선택(전역 이동 보정 vs 다수 동시 이동 억제) 대표 결정 후 구현·재측정(multi_scene 2.5·13.x·19.x 소멸, multi_cross·occlusion 실이동 유지가 검증 기준).
-- **M3-5** → 모듈 4. **M3-6·7·8·9** 문서만(M3-8 은 모듈 8에서 확인).
-## 4. 모듈 4 — 통보(dispatcher·텔레그램·기동 실패 알림) (대기)
+### 3-4. 진행 현황(대표 승인 2026-09-06) — 커밋 3개
+- **M3-4** ✅ `d36e2ee`: 만료 쿨다운 키 정리(테스트 3, 300명 시뮬 상한 ≤ 창 크기).
+- **M3-2·M3-3** ✅ `d3feafe`: 우회 4경로 → `alert_notify.submit`(출처 키 `sensor:<종류>`·`browser_zone:<cam>`·`brain`·`manual`, critical 상승 예외 유지). 센서는 **임계 진입 전이**에서만 통보(`edge=True`: 쿨다운 건너뜀·시간당 상한 유지), 지속 초과는 기록만, 정상 복귀 후 재초과 = 새 전이. 테스트 6(10회 초과 → 통보 1·기록 10 / 초과→정상→초과 → 통보 2 / 키 분리 / 브라우저 3→1 / relay 2→1 / `/alerts/test` 우회 유지). 응답 키 의미("큐 적재") `docs/ONBOARDING.md` 한 줄. `/alerts/test` 는 **의도된 게이트 우회**(코드 주석).
+- **M3-1 (b)** ✅ (다음 커밋): `CAMERA_COS=0.8` — 창 안 트랙 ≥2·과반이 임계 이상 이동·평균 벡터와 코사인 ≥0.8 이면 그 표본 억제 + `camera_motion` 플래그(워커 `state.camera_motion_frames`·`_last_sig`). 단위 테스트 5(동방향 2트랙 억제 / 1개만 이동 발화 / 반대 방향 발화 / 단일 트랙 불변 / 3중 과반). **재측정(영상 5개)**:
+
+  | 영상 | 급격동작 프레임 발화 구→신 | 15s 이벤트 시각 s | 카메라 억제 표본(신) |
+  |---|---|---|---|
+  | multi_scene | 7→6 | [9.0]→[2.5, 18.5] | **0** |
+  | multi_cross | 6→6 | [3.73]→[5.32] | 0 |
+  | occlusion | 2→7 | [4.79]→[4.26] | 0 |
+  | single_fast | 7→16 | [5.85]→[4.78] | 0 |
+  | single_move | 0→0 | []→[] | 0 |
+
+  ★**검증 기준 미충족을 그대로 보고한다**: multi_scene 2.5·13.5·18.5~20.0s 발화가 소멸하지 않았다(억제 0). 표본별 이동 벡터 실측(신 동작): 2.5s = tid0 (+0.01, **+0.17**) · tid1 (+0.01, +0.07) · tid2 (+0.02, **−0.09**) → 과반이 임계 미달·방향 불일치; 13.0/13.5s = 창 안 트랙 **1개**(규칙 적용 불가, ≥2 필요); 19.0s = 트랙 1개; 19.5/20.0s = tid1 (+0.06, +0.17) · tid9 (**−0.22**, −0.04) · tid17 (0, +0.24) → 방향 불일치. 즉 이 영상은 **휴대폰 손떨림+실제 보행이 섞인 장면**이라 "다수 트랙 동시·동방향 이동"이 성립하지 않는다 — (b)는 고정 CCTV 의 진동·바람 흔들림(전 트랙 동일 이동)을 위한 억제이며 이 클립의 발화는 (b)로 잡을 수 없다. multi_cross·occlusion·single_fast 의 실이동 발화는 유지(억제 0) = 회귀 없음. **결론**: (b) 구현·테스트 완료, 고정 CCTV 전제에서 유효. multi_scene 잔여 발화는 손떨림 영상의 한계로 기록. **PTZ 카메라 도입 시 (a) 전역 이동 보정(트랙 중위 이동 벡터 차감) 필요 — 메모.**
+- **M3-5** → 모듈 4(§4 M4-4). **M3-6·7·8·9** 문서만. **M3-8(브라우저+워커 이중 통보)은 모듈 8에서 반드시 다룬다.**
+## 4. 모듈 4 — 통보(dispatcher·텔레그램·큐·재시도·기동 실패 알림) (보고 2026-09-06, 수정 대기)
+
+**읽은 파일(전체)**: `agents/dispatcher.py` · `alert_queue.py` · `alert_notify.py` · `alert_gate.py` · `relay.py` · `starvation_guard.py` · `main.py` 기동·안전망(274~390) · `readiness.py` · `deploy/windows/{install_service,service_status,uninstall_service}.ps1` · `audit/c4_smoke §3`(크래시 루프 실측) · `data/alert_queue.db`(실측).
+
+### 4-1. 등록 항목 통합표(치명 ①②③ · M3-5 · 서비스 크래시 미감지)
+
+| ID | 출처 | 심각도 | 문제 | 근거 | 수정안 |
+|---|---|---|---|---|---|
+| **M4-1** (①) | §4-0 | **치명** | 원격 채널이 **하나도 설정되지 않아도** critical/high 는 큐에 적재 → 재시도 10회 → dead. 그동안 `/health` degraded, 데드레터는 로그 1줄 | `dispatcher._queue_enabled`(`:183-194`)는 등급만 봄 · `alert_queue.try_send`(`:177`) 종결 조건은 "원격 시도 흔적 없음"만 · 실측 pending 15 → dead 50 | `_queue_enabled` 에 **채널 설정 여부**(`notify_cfg()` 중 telegram/email/webhook 하나라도 있음) 추가. 미설정이면 큐 미적재 + `dispatcher.status()`·`/health` 에 `channels_configured=false` 경고(현재는 telegram/email/webhook bool 만) |
+| **M4-2** (②) | §4-0 | **치명** | 재시도 상한 도달(dead) = **조용한 유실**. 운영자에게 알릴 수단 0(`_LOG.error` 1줄). `/health alerts.dead` 수치만 있고 임계·경고 없음 | `alert_queue.mark_failed`(`:101-104`) · `routers/system.py:149` | dead 발생 시 ①`/health` 를 **degraded**(dead>0 & 최근 1h) ②설정된 채널이 살아 있으면 "데드레터 N건" 요약 통보 1회/시간(게이트 키 `system/alert_dead`) ③`service_status.ps1` 에 dead 수 출력 |
+| **M4-3** (③) | §4-0 | **치명** | 텔레그램 **401/403/400**(토큰·chat_id 오류)을 네트워크 실패와 같이 재시도(10회 후 dead). 설정 오류는 재시도해도 영원히 실패 | dead 35건 중 31건 telegram 401(08-18~26) · `_send_telegram` 은 `status` 만 반환 | `_dispatch_now` 결과에 `config_error=True`(4xx) 표시 → `try_send` 는 즉시 dead + `reason="config_error"` + `dispatcher.status()` 에 `last_config_error`(시각·채널·상태코드, 토큰 제외) → `/health llm/notify` 처럼 노출. 설정 콘솔 시험(`/alerts/test`)에서 즉시 보이게 |
+| **M4-4** (M3-5) | §3 | **중간** | 재시도 경로 `try_send → _dispatch_now` 가 **relay.turn_on 도 재호출** → 채널 장애 시 critical 1건이 사이렌을 최대 10회 재트리거(ON 연장) | `dispatcher.py:205-215` · `alert_queue.py:169` | `_dispatch_now(level, msg, meta, remote_only=False)`: 재시도(`alert_queue.set_sender`)는 `remote_only=True` 로 relay·log 채널 제외 |
+| **M4-5** (R1) | audit/c4_smoke §3 | **치명** | **서비스 크래시 루프 3주 미감지**(4,067회 재시작, 130s 주기). 기동 실패(`_load_theme` → guard `FileNotFoundError`)는 uvicorn "startup failed" 로 프로세스 종료 → NSSM 재시작만 반복. 어디에도 **기동 실패 알림**이 없고, `/health` 는 프로세스가 없어 응답 자체가 없음(`service_status.ps1` 종료코드 3 — 사람이 돌려야 봄) | `main.py:323-327`(예외 처리 없음) · `install_service.ps1:105-108`(AppExit Restart·Delay 5s·Throttle 10s — 130s 주기는 스로틀 대상 아님) · 로그 8,145개 | (a) `_startup` 에서 `_load_theme` 실패를 잡아 **한 번만** 기동 실패 통보(`notify_cfg()` 직접 읽어 최소 전송, `data/startup_failure.json` 에 횟수·마지막 통보 시각 기록 → 1시간 1회 상한) 후 **재raise**(기동은 실패시킨다 — 조용히 뜨지 않음) (b) NSSM: `AppThrottle` 를 기동 시간보다 길게(예: 180000ms) 두어 "기동 후 3분 안에 죽으면 스로틀", `AppExit` 재시작 지연을 60s 로 — 무한 130s 루프를 완만하게 (c) `service_status.ps1`: `logs/vigent.err-*` 회전 파일 **최근 1h 개수** 출력·임계 초과 시 종료코드 4 (d) `md/DEPLOYMENT.md §7-1` 에 재설치 후 `service_status.ps1` 확인 절차 |
+| M4-6 | `alert_notify._loop` · `dispatcher._dispatch_now` | 중간 | 전송 스레드가 **채널 3개를 순차·동기**로 부름(텔레그램 6s + 이메일 8s + 웹훅 6s = 최대 20s/건). 네트워크 장애 시 처리량 3건/분 → 큐 200 초과분 **최고령 폐기**(`alert_notify.py:132-142`) — 폐기가 stats 에만 남음 | 코드 | 채널별 타임아웃 합을 줄이거나(텔레그램 우선, 나머지 병렬) 폐기 시 WARNING 로그 + `/health alerts.dropped` 노출 |
+| M4-7 | `dispatcher._send_telegram` | 낮음 | 텔레그램 본문 4096자 제한 미처리(긴 note 는 400) → M4-3 경로로 dead | 코드 | 4000자 절단 |
+| M4-8 | `dispatcher.notify_cfg` | 낮음 | 전송 3채널마다 `notify.yaml` 을 다시 읽음(1건당 3회 파일 IO) | 코드 | 1건당 1회로(동작 무변경) |
+| M4-9 | `starvation_guard._escalate` | 낮음 | 3단계 프로세스 재기동이 `subprocess.Popen(shell=True)` 로 `VIGENT_RESTART_CMD` 실행 — 서비스 계정에서 `sc stop/start` 권한 필요, 실패는 로그만 | 코드 · `install_service.ps1:151` | 재기동 명령 실패도 M4-2 데드레터 통보와 같은 채널로 |
+| M4-10 | `relay.turn_off` 실패 | 정보 | OFF 최종 실패는 `/health degraded` 로 드러남(P3a) — 정상. 단 통보는 없음 | `routers/system.py:161` | M4-2 요약 통보에 `relay.off_failed` 포함 |
+
+### 4-2. 수정 계획(승인 대기)
+- **치명 M4-1·M4-2·M4-3**: 한 커밋(dispatcher·alert_queue·system.py). 선행 테스트: 채널 미설정 → 큐 0건·status 경고 / 401 → 즉시 dead + config_error 노출 / dead 발생 → `/health degraded` + 요약 통보 1회.
+- **중간 M4-4**: 재시도 `remote_only` — 선행 테스트(재시도 3회에 relay 1회).
+- **치명 M4-5**: (a) 코드(`main._startup` 실패 통보·상한) + (c) `service_status.ps1` 회전 파일 검사는 이번에; (b) NSSM 파라미터는 `install_service.ps1` 수정 + `md/DEPLOYMENT.md §7-1` 반영(서비스 재설치는 대표 판단 — 현재 SERVICE_DISABLED).
+- **M4-6** 중간: 폐기 로그·노출만 이번에, 병렬 전송은 백로그. **M4-7·8·9·10** 문서만.
 
 ### 4-0. ★예약(치명) — `data/alert_queue.db` pending 15건 실측(2026-09-06, 읽기 전용·발송 0)
 
