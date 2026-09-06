@@ -61,7 +61,7 @@ def _start(cid: str):
         raise HTTPException(status_code=400, detail="source 미등록")
     res = _w.manager.start(_guard(), _DETECT_LOCK, cid, src,
                            name=c.get("name") or cid, fps=float(c.get("fps", 2.0)),
-                           zone=c.get("zone"))
+                           zone=c.get("zone"), overrides=c.get("overrides"))   # [R15] 카메라별 override
     _g2_register(cid)
     return res
 
@@ -81,12 +81,17 @@ def cameras_list():
 
 @router.post("/cameras")
 def cameras_add(payload: dict = Body(...)):
-    """등록/수정. payload={id, name?, source(rtsp/파일/웹캠번호), fps?, zone?, enabled?}. source 는 마스킹 저장."""
+    """등록/수정. payload={id, name?, source(rtsp/파일/웹캠번호), fps?, zone?, enabled?, overrides?}. source 는 마스킹 저장.
+    overrides: [R15] 카메라별 설정 — 지금은 {"motion": {"immobile_s": 초}} 1키(앉아 작업 현장의 무동작 오경보 방지). {} 로 해제."""
     cid = str(payload.get("id") or "").strip()
     if not cid:
         raise HTTPException(status_code=400, detail="id 필요")
-    c = _reg.upsert(cid, name=payload.get("name"), source=payload.get("source"),
-                    fps=payload.get("fps"), zone=payload.get("zone"), enabled=payload.get("enabled"))
+    try:
+        c = _reg.upsert(cid, name=payload.get("name"), source=payload.get("source"),
+                        fps=payload.get("fps"), zone=payload.get("zone"), enabled=payload.get("enabled"),
+                        overrides=payload.get("overrides"))
+    except ValueError as ex:
+        raise HTTPException(status_code=400, detail=str(ex)) from None
     worker = _start(cid) if c.get("enabled") else None
     return {"ok": True, "camera": c, "worker": worker}
 

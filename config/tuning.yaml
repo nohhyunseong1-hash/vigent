@@ -49,6 +49,9 @@ proximity:                  # 협착(작업반경) 감지
     # 경계(0.2~0.6)는 2프레임뿐(benchmarks/forklift_duel_2026-08-19.md G5).
     # 하차로 박스가 분리되면 즉시 보행자로 복귀(프레임 단위 판정 — 제외 과잉 없음).
     # 1.0 초과로 설정하면 비활성(구 동작 복원).
+  # [CODE_REVIEW M7-7(b)] 장비 박스 오탐 필터 — 화면 거의 전체를 덮는 박스만 제외(코드 상수를 같은 값으로 옮김)
+  vehicle_max_w: 0.9        # 정규화 폭이 이보다 크면 오탐으로 보고 제외
+  vehicle_max_area: 0.7     # 정규화 면적이 이보다 크면 제외
   vehicle_ref_m:            # 장비 실제 가로폭(m) — 거리 추정 기준자(장비 모델 맞춰 조정)
     forklift: 2.5
     truck: 6.0
@@ -59,7 +62,16 @@ proximity:                  # 협착(작업반경) 감지
 
 motion:                     # 무동작·급이동
   immobile_s: 45            # 이 시간(초) 이상 안 움직이면 쓰러짐 의심
+    # ★[R15, 2026-09-06] 카메라별로 다르게 두려면(앉아 작업 현장 등) 카메라 등록부의 overrides 를 쓴다:
+    #   POST /cameras {"id": "cam1", "overrides": {"motion": {"immobile_s": 120}}} — 적용값은 워커 상태 immobile_s 로 확인.
   rapid_dist: 0.15          # 짧은 시간 이만큼 이동하면 급이동(돌진)
+  # ── [CODE_REVIEW M7-7(b), 2026-09-06] 아래 5개는 코드에 박혀 있던 값을 **같은 값**으로 옮긴 것(동작 불변) ──
+  rapid_window_s: 1.0       # 급이동 판정 창(초). 표본 간격 여유(+0.1s)는 코드 상수(RAPID_T_SLACK)
+  immobile_spread: 0.03     # 창 안 이동 범위(정규화) 이하면 정지로 간주
+  immobile_min_samples: 5   # 무동작 판정에 필요한 창 안 최소 표본 수
+  match_dist: 0.32          # tid 없는 트랙의 중심점 매칭 거리(정규화). tid 가 있으면 tid 우선(M2-2)
+  hist_s: 60                # 트랙 이력 보관(초)
+  track_expire_s: 3.0       # 이 시간 동안 안 보이면 트랙 소멸(모션·포즈 공통)
 
 crowd:
   threshold: 6              # 인원 이 수 이상 몰리면 군집 위험
@@ -157,6 +169,9 @@ hub:                        # 대시보드 확대뷰
 worker:                     # 워커 루프
   pose_fps: 2               # 포즈(ergo) 추론 주기 — 검출과 분리(3.9·3.10). 기존 자세 캐던스 유지.
   fullset_fps: 2            # 3.12 ②: 풀세트(person+ppe+fire) 검출 주기 — 이벤트·PPE·화재 캐던스(안전 불변).
+  # [CODE_REVIEW M7-7(b)] 근골격(포즈) 트래커 상수 — 코드 값을 같은 값으로 옮김(동작 불변)
+  pose_match_dist: 0.18     # 사람 프레임간 매칭 거리(대각선 정규화)
+  pose_eval_min_s: 0.5      # 자세 평가 최소 간격(초) — 3초 지속 판정엔 충분, 포즈 추론 비용 억제
 
 vlm:                        # VLM(보호구 점검 등) 속도·정확도
   ppe_max_tokens: 128       # 답변 토큰(작을수록 빠름·길면 정확)

@@ -15,10 +15,18 @@ proximity:                  # 협착(작업반경) 감지
     excavator: 6.0
   enter_s: 0.4    # [드리프트 보충] 전역 기본값에서 상속
   exit_s: 1.0    # [드리프트 보충] 전역 기본값에서 상속
+  vehicle_max_area: 0.7    # [드리프트 보충] 전역 기본값에서 상속
+  vehicle_max_w: 0.9    # [드리프트 보충] 전역 기본값에서 상속
 
 motion:                     # 무동작·급이동
   immobile_s: 45            # 이 시간(초) 이상 안 움직이면 쓰러짐 의심
   rapid_dist: 0.15          # 짧은 시간 이만큼 이동하면 급이동(돌진)
+  hist_s: 60    # [드리프트 보충] 전역 기본값에서 상속
+  immobile_min_samples: 5    # [드리프트 보충] 전역 기본값에서 상속
+  immobile_spread: 0.03    # [드리프트 보충] 전역 기본값에서 상속
+  match_dist: 0.32    # [드리프트 보충] 전역 기본값에서 상속
+  rapid_window_s: 1.0    # [드리프트 보충] 전역 기본값에서 상속
+  track_expire_s: 3.0    # [드리프트 보충] 전역 기본값에서 상속
 
 crowd:
   threshold: 6              # 인원 이 수 이상 몰리면 군집 위험
@@ -113,6 +121,8 @@ hub:                        # 대시보드 확대뷰
 worker:                     # 워커 루프
   pose_fps: 2               # 포즈(ergo) 추론 주기 — 검출과 분리(3.9·3.10). 기존 자세 캐던스 유지.
   fullset_fps: 2            # 3.12 ②: 풀세트(person+ppe+fire) 검출 주기 — 이벤트·PPE·화재 캐던스(안전 불변).
+  pose_eval_min_s: 0.5    # [드리프트 보충] 전역 기본값에서 상속
+  pose_match_dist: 0.18    # [드리프트 보충] 전역 기본값에서 상속
 
 vlm:                        # VLM(보호구 점검 등) 속도·정확도
   ppe_max_tokens: 128       # 답변 토큰(작을수록 빠름·길면 정확)

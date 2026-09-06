@@ -411,12 +411,16 @@ class ErgonomicsTracker:
     없으므로 중심점 매칭으로 사람별 상태를 잇는다(독립 트랙).
     임계값은 vision.yaml 에서 읽는다(하드코딩 금지). 키포인트 없음/에러 → [] 반환(무중단)."""
 
-    MATCH = 0.18            # 사람 프레임간 매칭 거리(대각선 정규화)
-    _MIN_INTERVAL = 0.5    # 평가 최소 간격(초): 저빈도 스로틀로 추가 포즈추론 비용 최소화
+    MATCH = 0.18            # 사람 프레임간 매칭 거리(대각선 정규화) — 코드 기본값(tuning worker.pose_match_dist 가 우선)
+    _MIN_INTERVAL = 0.5    # 평가 최소 간격(초): 저빈도 스로틀로 추가 포즈추론 비용 최소화 — tuning worker.pose_eval_min_s
 
     def __init__(self, theme: str = "safety") -> None:
         import ergonomics as _erg
         self._erg = _erg
+        # [CODE_REVIEW M7-7(b)] 하드코딩 상수 → tuning.yaml 기본값(값 동일, 동작 불변). 인스턴스 생성 시점에 읽는다.
+        self.match = float(tuning.val("worker", "pose_match_dist", self.MATCH))
+        self.min_interval = float(tuning.val("worker", "pose_eval_min_s", self._MIN_INTERVAL))
+        self.expire_s = float(tuning.val("motion", "track_expire_s", 3.0))   # 사람 트랙 소멸(모션·포즈 공통)
         cfg = _erg.load_ergonomics(theme)
         self._joints = cfg.get("joints", {}) if isinstance(cfg, dict) else {}
         try:
@@ -433,7 +437,7 @@ class ErgonomicsTracker:
         boxes: guard.detect person 박스(픽셀) — RTMPose top-down 입력."""
         if not self._enabled:
             return []
-        if ts - self._last_ts < self._MIN_INTERVAL:      # 저빈도 스로틀
+        if ts - self._last_ts < self.min_interval:       # 저빈도 스로틀
             return []
         self._last_ts = ts
         try:
@@ -465,7 +469,7 @@ class ErgonomicsTracker:
                 d = ((cx - tr["cx"]) ** 2 + (cy - tr["cy"]) ** 2) ** 0.5 / diag
                 if d < bd:
                     bd, best = d, k
-            if best is not None and bd < self.MATCH:
+            if best is not None and bd < self.match:
                 tr = self._tracks[best]
                 used.add(best)
             else:
@@ -489,7 +493,7 @@ class ErgonomicsTracker:
             else:                                        # 자세 회복 → 상태 리셋
                 tr["bad_since"] = None
                 tr["fired"] = False
-        self._tracks = [tr for tr in self._tracks if ts - tr.get("ts", 0) < 3.0]
+        self._tracks = [tr for tr in self._tracks if ts - tr.get("ts", 0) < self.expire_s]
         return out
 
 
@@ -515,12 +519,23 @@ class MotionTracker:
     #   고정 CCTV 전제 — PTZ 카메라 도입 시에는 (a) 전역 이동 보정(트랙 중위 이동 벡터 차감)이 필요하다(메모).
     CAMERA_COS = 0.8
 
-    def __init__(self) -> None:
+    def __init__(self, immobile_s: float | None = None) -> None:
         self._tracks: list[dict] = []
         # [M2-3] 프레임 세로/가로 비(h/w). worker 가 프레임마다 채운다(스텁 호환을 위해 인자 대신 속성).
         #   None = 무보정(정사각 가정, 기존 동작).
         self.aspect_hw: float | None = None
         self.camera_motion = False            # [M3-1] 마지막 update 에서 카메라 이동으로 억제했는가(기록용 플래그)
+        # [CODE_REVIEW M7-7(b)] 하드코딩 상수 → tuning.yaml 기본값(값 동일, 동작 불변). 생성 시점에 읽는다.
+        #   대문자 클래스 속성은 코드 기본값(측정 스크립트·테스트 호환)이고, 판정은 아래 인스턴스 값을 쓴다.
+        self.match = float(tuning.val("motion", "match_dist", self.MATCH))
+        self.immobile_spread = float(tuning.val("motion", "immobile_spread", self.IMMOBILE_SPREAD))
+        self.immobile_min_samples = int(tuning.val("motion", "immobile_min_samples", 5))
+        self.rapid_t = float(tuning.val("motion", "rapid_window_s", self.RAPID_T))
+        self.hist_s = float(tuning.val("motion", "hist_s", self.HIST_S))
+        self.expire_s = float(tuning.val("motion", "track_expire_s", 3.0))
+        # [R15] 카메라별 무동작 임계 — 등록부 overrides.motion.immobile_s(앉아 작업 현장 등). 없으면 전역값.
+        base_immobile = float(tuning.val("motion", "immobile_s", self.IMMOBILE_S))
+        self.immobile_s = float(immobile_s) if immobile_s else base_immobile
 
     def update(self, detections, ts, aspect_hw: float | None = None) -> list[tuple[str, str, str]]:
         """[CODE_REVIEW M2-2, 2026-09-06] guard 가 주는 안정 tid 를 **우선** 사용한다.
@@ -565,7 +580,7 @@ class MotionTracker:
                     dd = ((cx - tr["cx"]) ** 2 + (cy - tr["cy"]) ** 2) ** 0.5
                     if dd < bd:
                         bd, best = dd, k
-                if best is not None and bd >= self.MATCH:
+                if best is not None and bd >= self.match:
                     best = None
             if best is not None:
                 tr = self._tracks[best]
@@ -576,13 +591,13 @@ class MotionTracker:
                 used.add(len(self._tracks) - 1)
             tr["cx"], tr["cy"] = cx, cy
             tr["hist"].append((ts, cx, cy))
-            tr["hist"] = [h for h in tr["hist"] if ts - h[0] <= self.HIST_S]
-        self._tracks = [tr for tr in self._tracks if tr.get("hist") and ts - tr["hist"][-1][0] < 3.0]
+            tr["hist"] = [h for h in tr["hist"] if ts - h[0] <= self.hist_s]
+        self._tracks = [tr for tr in self._tracks if tr.get("hist") and ts - tr["hist"][-1][0] < self.expire_s]
         out: dict[str, tuple[str, str, str]] = {}
         # [M3-1] 창 안 이동 벡터를 먼저 모아 "다수 트랙 동시·동방향 이동"(카메라 팬/틸트)을 판정한다.
         vecs: list[tuple[float, float, float]] = []
         for tr in self._tracks:
-            rec = [x for x in tr["hist"] if 0 <= ts - x[0] <= self.RAPID_T + self.RAPID_T_SLACK]
+            rec = [x for x in tr["hist"] if 0 <= ts - x[0] <= self.rapid_t + self.RAPID_T_SLACK]
             if len(rec) >= 2:
                 dx, dy = rec[-1][1] - rec[0][1], (rec[-1][2] - rec[0][2]) * ar   # [M2-3] y→x 척도
                 vecs.append((dx, dy, (dx * dx + dy * dy) ** 0.5))
@@ -601,11 +616,11 @@ class MotionTracker:
                 out["rapid_motion"] = ("rapid_motion", "mid", "급격한 이동 감지 — 돌진·이상행동")
         for tr in self._tracks:                                       # 무동작(카메라 이동과 무관)
             h = tr["hist"]
-            win = [x for x in h if ts - x[0] <= self.IMMOBILE_S]
-            if len(win) >= 5 and (ts - h[0][0]) >= self.IMMOBILE_S:   # 트랙이 충분히 오래 + 최근 정지
+            win = [x for x in h if ts - x[0] <= self.immobile_s]
+            if len(win) >= self.immobile_min_samples and (ts - h[0][0]) >= self.immobile_s:   # 충분히 오래 + 최근 정지
                 xs = [x[1] for x in win]
                 ys = [x[2] for x in win]
-                if max(max(xs) - min(xs), max(ys) - min(ys)) < self.IMMOBILE_SPREAD:
+                if max(max(xs) - min(xs), max(ys) - min(ys)) < self.immobile_spread:
                     out["immobility"] = ("immobility", "high", "장시간 무동작 — 쓰러짐·실신 의심")
         return list(out.values())
 
@@ -756,6 +771,7 @@ class Worker:
         self._last_frame = None                              # 3.0: 최신 프레임(스냅샷/오버레이용, numpy 참조)
         self._last_dets: list = []                           # 3.0: 최신 검출(정규화 bbox) — 대시보드 오버레이
         self._last_pc = 0                                    # 최신 인원수
+        self._overrides: dict = {}                           # [R15] 카메라별 override(등록부 overrides) — start() 가 채움
         self._last_sig: dict = {}                            # 최신 파생신호(ppe_missing·fire 등)
         self._last_fired: list = []                          # 3.1b: 최신 발화 규칙명(zone_intrusion 등) — 대시보드 뱃지·전역경보
         self._last_det_ts = 0.0                              # 3.8: 최신 검출 갱신 시각(ms) — 확대뷰 ingest 간격 산출
@@ -780,11 +796,13 @@ class Worker:
             "frames": 0, "events": 0, "last_event": "", "error": ""}
 
     def start(self, guard, lock, source: str, name: str = "CAM", fps: float = 2.0,
-              detectors: list | None = None, zone: list | None = None) -> dict:
+              detectors: list | None = None, zone: list | None = None,
+              overrides: dict | None = None) -> dict:
         if self.state["running"]:
             return {"ok": False, "error": "이미 실행 중 — 먼저 중지하세요."}
         self._stop.clear()
         self._restart_req.clear()
+        self._overrides = dict(overrides or {})              # [R15] 카메라별 override(motion.immobile_s)
         # [S2-수정] state["source"]는 status()/⟶ /worker/status·/workers API로 그대로 노출된다 —
         #   스모크 테스트로 실제 응답에 원본 RTSP 자격증명이 그대로 찍히는 걸 발견(기존엔 마스킹
         #   안 됨). 워커 스레드(연결용)에는 원본 source를 그대로 넘기고, state에는 마스킹만 저장.
@@ -1129,7 +1147,10 @@ class Worker:
         collect_on = os.environ.get("VIGENT_COLLECT", "0") == "1"
         collect_every = float(os.environ.get("VIGENT_COLLECT_EVERY", "30"))
         dataset_dir = _ROOT / "data" / "dataset" / "images"
-        mtrack = MotionTracker()                                       # 무동작·급이동 추적
+        # [R15] 카메라별 무동작 임계 override(등록부 overrides.motion.immobile_s) — 적용값을 state 에 노출(규칙 11).
+        _imm = (self._overrides.get("motion") or {}).get("immobile_s") if isinstance(self._overrides, dict) else None
+        mtrack = MotionTracker(immobile_s=_imm)                        # 무동작·급이동 추적
+        self.state["immobile_s"] = mtrack.immobile_s
         etrack = ErgonomicsTracker()                                   # 근골격계 부담자세 지속(가산)
         # ★[F5, 2026-08-21] 구역 결정 — **전역 폴백은 기본 차단**한다.
         #   이전 동작: 카메라별 구역이 없으면 조용히 전역 구역(config/danger_zone.json)을 썼다.
@@ -1311,7 +1332,8 @@ class WorkerManager:
         self.site = ""
 
     def start(self, guard, infer_lock, cam_id: str, source: str, name: str = "",
-              fps: float = 2.0, zone: list | None = None, detectors: list | None = None) -> dict:
+              fps: float = 2.0, zone: list | None = None, detectors: list | None = None,
+              overrides: dict | None = None) -> dict:
         with self._reg_lock:
             cur = self._workers.get(cam_id)
             if cur and cur.state["running"]:
@@ -1319,7 +1341,7 @@ class WorkerManager:
             w = Worker()
             self._workers[cam_id] = w
         return w.start(guard, infer_lock, source, name=name or cam_id, fps=fps,
-                       detectors=detectors, zone=zone)
+                       detectors=detectors, zone=zone, overrides=overrides)
 
     def stop(self, cam_id: str) -> dict:
         w = self._workers.get(cam_id)
