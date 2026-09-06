@@ -1,23 +1,24 @@
 # VIGENT 저장소 감사·정리 최종 요약 (2026-09-06)
 
-> 브랜치 `audit/cleanup-20260906` · 시작 태그 `audit-before-cleanup`(= `e1ba0ab`) · 이 문서 작성 시점 HEAD `ee5ef18` + 이 문서 커밋.
-> **main 병합·태그(v-audit-2026-09)는 대표 결정 사항**이며 아직 하지 않았다. 브랜치는 원격에 푸시되지 않았다(로컬만).
+> 브랜치 `audit/cleanup-20260906` · 시작 태그 `audit-before-cleanup`(= `e1ba0ab`) · 이 문서 최종 갱신 시점 HEAD `3685186`(5-2 통과·stage↔ID 정합) + 이 문서 커밋.
+> **main 병합·태그(v-audit-2026-09)·푸시는 대표 결정 사항**이며 아직 하지 않았다. 브랜치는 원격에 푸시되지 않았다(로컬만). **main 과의 관계(2026-09-06 실측)**: `git merge-base main HEAD` = `021ca7c` = 현재 main 선단(behind 0) → **fast-forward 가능, 충돌 0**(`git merge-tree --write-tree main HEAD` 정상 종료). 단, 감사 시작 태그 `e1ba0ab` 는 main 에 없고 `fix/review-bugs` 선단이므로 **병합 시 감사 커밋 67개 외에 `fix/review-bugs` 의 감사 전 커밋 314개(021ca7c..e1ba0ab)도 함께 main 에 들어간다**(합계 381).
 > 상세 근거: [AUDIT_REPORT.md](../AUDIT_REPORT.md)(1단계) · [CLEANUP_PLAN.md](../CLEANUP_PLAN.md)(2단계) · [CODE_REVIEW.md](../CODE_REVIEW.md)(4단계 모듈 1~8) · [audit/](../audit/)(실측 기록).
 
 ## 1. 한 문단 요약
 
-VIGENT 는 공장 CCTV 영상에서 사람·보호구·화재·위험구역 침입 같은 위험을 자동으로 찾아 담당자 휴대폰(텔레그램)으로 알리는 Windows 프로그램이다. 이번 작업은 "지금 저장소에 있는 코드가 실제로 현장에서 믿고 돌릴 수 있는 상태인가"를 한 번에 점검한 것이다. 저장소에 섞여 있던 얼굴이 찍힌 사진·영상(98파일 + 평가 프레임 530장)을 저장소 밖으로 빼고, 지워진 옛 기능(사무·운동 테마) 잔재를 격리하고, 감지·경보·저장·기동에 관한 코드 8개 영역을 줄 단위로 읽어 문제 100여 건을 찾아 그중 치명·높음 16건을 전부 고쳤다. 대표적으로 "서비스가 3주 동안 4,067번 죽고 다시 켜지는데 아무도 몰랐던 문제", "카메라 IP가 죽으면 123초씩 멈추던 문제(→ 5초)", "설정 파일에 같은 이름의 블록이 두 번 있어 8개 설정이 조용히 무시되던 문제", "같은 침입을 브라우저와 서버가 두 번 통보하던 문제"를 고쳤다. 테스트는 481개에서 638개로 늘었고, 아무것도 없는 새 PC에 설치하는 것을 실제로 해 봐서(새 클론) 638개가 전부 통과함을 확인했다. 남은 큰 결정 4가지(증거 보존 기간 법률 자문, 지게차 감지 대체 경로, 저장소 이력 재작성, 에이전트 통합 설계)는 §6 에 정리했다.
+VIGENT 는 공장 CCTV 영상에서 사람·보호구·화재·위험구역 침입 같은 위험을 자동으로 찾아 담당자 휴대폰(텔레그램)으로 알리는 Windows 프로그램이다. 이번 작업은 "지금 저장소에 있는 코드가 실제로 현장에서 믿고 돌릴 수 있는 상태인가"를 한 번에 점검한 것이다. 저장소에 섞여 있던 얼굴이 찍힌 사진·영상(98파일 + 평가 프레임 530장)을 저장소 밖으로 빼고, 지워진 옛 기능(사무·운동 테마) 잔재를 격리하고, 감지·경보·저장·기동에 관한 코드 8개 영역을 줄 단위로 읽어 문제 100여 건을 찾아 그중 치명·높음 16건을 전부 고쳤다. 대표적으로 "서비스가 3주 동안 4,067번 죽고 다시 켜지는데 아무도 몰랐던 문제", "카메라 IP가 죽으면 123초씩 멈추던 문제(→ 5초)", "설정 파일에 같은 이름의 블록이 두 번 있어 8개 설정이 조용히 무시되던 문제", "같은 침입을 브라우저와 서버가 두 번 통보하던 문제"를 고쳤다. 테스트는 481개에서 653개로 늘었고, 아무것도 없는 새 PC에 설치하는 것을 실제로 해 봐서(새 클론, 당시 638개) 전부 통과함을 확인했으며, Windows 서비스로 다시 설치해 "기동 → 고의로 죽임 → 60초 간격 재시작·이벤트 로그 → 복구"까지 4번째 시도에서 통과시켰다(앞선 3번의 실패는 모두 검증 절차 자체의 결함이었고 §8 에 교훈으로 남겼다). 남은 큰 결정 4가지(증거 보존 기간 법률 자문, 지게차 감지 대체 경로, 저장소 이력 재작성, 에이전트 통합 설계)는 §6 에 정리했다.
 
 ## 2. 변경 전/후 수치
 
 | 항목 | 전(`e1ba0ab`, 2026-09-06 감사 시작) | 후(HEAD) | 근거 |
 |---|---|---|---|
-| 커밋 | — | **60**(3단계 `[감사]` 11 · 4단계 `[CODE_REVIEW]` 48 · 5단계 1) | `git log e1ba0ab..HEAD` |
-| 추적 파일 수 | 1,054 | 1,064 | `git ls-tree -r` |
+| 커밋 | — | **68**(3단계 `[감사]` 11 · 4단계 `[CODE_REVIEW]` 48 · 5단계 9 — 이 문서 커밋 포함) | `git rev-list --count e1ba0ab..HEAD` |
+| 추적 파일 수 | 1,054 | 1,031(5-3 정리에서 로그 사본 51 → zip 1) | `git ls-tree -r HEAD` |
 | 추적 파일 용량(blob 합) | 58.9MB | **22.9MB** | 영상·이미지 98파일 + 평가 jpg 530장 → 저장소 밖 |
-| 변경 규모 | — | 424 files, +13,071 / −3,575 | `git diff --shortstat` |
-| 테스트 | 481(4단계 시작 실측; 감사 전 README 문구는 34) | **638**(새 클론에서도 638 OK, skip 1) | [audit/verify_clean_clone](../audit/verify_clean_clone_2026-09-06.md) |
-| 테스트 파일 | 61 | 92 | `tests/test_*.py` |
+| 변경 규모 | — | 393 files, +12,214 / −3,602 | `git diff --shortstat e1ba0ab HEAD` |
+| 테스트 | 481(4단계 시작 실측; 감사 전 README 문구는 34) | **653**(새 클론 실측 시점 638 OK, skip 1 · 이후 5-2 정정 테스트 +15) | [audit/verify_clean_clone](../audit/verify_clean_clone_2026-09-06.md) · 게이트 로그 |
+| 테스트 파일 | 61 | 94 | `tests/test_*.py` |
+| 서비스 재설치 검증(5-2) | 미검증(서비스 Disabled, 크래시 루프 이력) | **통과**(검증 2~5 True · 원복 일치, 4차 22:44) | [audit/service_reinstall_20260906_224451.md](../audit/service_reinstall_20260906_224451.md) |
 | 의존성 파일 | requirements.txt · -optional · -eval | requirements.txt(서빙) · **-agents**(LLM·RAG) · **-train**(학습·측정) · -optional | 3단계 C6 |
 | 치명·높음 | 등록 항목 R1·R2·R14 치명 3 + 모듈 발견 높음 13 | **16/16 수정 커밋됨** | CODE_REVIEW §0·각 모듈 표 |
 | Python 정본 | 문서 3.13/3.11 혼재, CI 3.13 | **3.11.9 단일**(CI·런처·문서·서비스) | M7-5·6 |
@@ -36,7 +37,7 @@ vigent_original/
   config/             현장 설정 시드: tuning.yaml(임계값 정본) · go2rtc.yaml · *.example.yaml(복사해서 쓰는 견본)
   deploy/             windows/(서비스 설치·상태·재설치 검증 스크립트) · academy/(학원 현장 프로파일) · SITE_CHECKLIST.md
   scripts/            운영 도구: fetch_weights(가중치 조달) · check_openapi_diff·check_profile_drift(게이트)
-  tests/              단위 테스트 92파일 638건(카메라·GPU 없이 실행)
+  tests/              단위 테스트 94파일 653건(카메라·GPU 없이 실행)
   benchmarks/ eval/   측정 스크립트·리포트(숫자 근거). 학습은 training/, 유틸은 tools/
   data/               런타임 산출물(gitignore) + 추적 대상인 평가 정답 라벨(data/field_eval/labels)
   docs/ md/           운영·온보딩·정책 문서(DEPLOYMENT·ONBOARDING·disk_retention_policy 등)
@@ -71,7 +72,8 @@ D:\vigent_private_data\   저장소 밖 미디어(VIGENT_DATA_DIR): runs/·bench
 | 카메라 대수 | **PC 1대당 약 5대 포화**(추론이 `DETECT_LOCK` 으로 직렬화, 풀세트 ~85ms, 2fps 기준) — 한계 7대 실측(8대에서 p95 116→309ms). **시연 페이지(`/safety`) 동시 사용 시 여유 −1대** | CODE_REVIEW §5 용량 스펙 · M8-11 |
 | 병목 | CPU(카메라당 1.55 환산코어). GPU 는 VRAM 4GB 면 충분 | benchmarks/capacity_report |
 | 오프라인 조달 목록 | ① `python scripts\fetch_weights.py`(필수 6: RF-DETR 4 + rtmlib 2 · 전체 13종 938MB/117초) ② `bin\go2rtc.exe`(확대뷰 WebRTC, 없으면 스냅샷 폴백) ③ `vigent-core\static\vendor`(시연 화면 폐쇄망 번들, 선택) ④ NSSM(서비스 등록) ⑤ Python 3.11 설치본 ⑥ pip 캐시/휠(인터넷 없는 곳이면 미리) — **opencv 는 requirements 설치 후 GUI 빌드 제거 절차 필수**(§9) | audit/verify_clean_clone §2 |
-| 기동 시간 | 새 클론·카메라 0대 기준 /health 200 까지 17.2초(예열 포함) | audit/verify_clean_clone |
+| 기동 시간 | 새 클론·카메라 0대·GPU(cu130) 기준 /health 200 까지 17.2초(예열 포함). 개발 PC 서비스(.venv **CPU torch**, LocalSystem)는 설치 후 3분 11초 — 현장은 CUDA 휠 교체 필수(§8-2) | audit/verify_clean_clone · service_reinstall_224451 |
+| 5-1 실행 이력 | 새 클론 검증은 **2026-09-06 19:06~19:14 1회**(위 §2 수치의 근거). opencv 는 **constraints 파일이 아니라 수동 절차**(§9 5번)로 정리했고 `bin/go2rtc.exe` 는 **저장소에 동봉하지 않았다**(수동 조달, 없으면 스냅샷 폴백) — 이 둘을 반영한 재실행은 하지 않았다 | audit/verify_clean_clone §1·§2 |
 | 경보 채널 | 텔레그램·웹훅(config/notify.yaml, .env). 미설정이면 /health warnings 로만 표시(degraded 아님) | M4-1 |
 
 ## 6. 결정 필요 항목(대표)
@@ -86,21 +88,40 @@ D:\vigent_private_data\   저장소 밖 미디어(VIGENT_DATA_DIR): runs/·bench
 - **1순위**: ① Windows 로컬 VLM 대체 구현(현재 로컬 VLM 은 Apple mlx 전용 → RTX 5070 Ti/CUDA 13 기반, 클라우드 전송 없이 오탐 확정) ② forklift 협착 대체 경로(§6-2).
 - **2순위**: 카메라 확장(배치 추론 또는 카메라별 프로세스 분리로 5대 한계 돌파) · 카메라별 설정 override 일반화(R15 는 무동작 1키만) · M8-4(a) 시연 화면에서 삭제 테마 잔재(fitness/office·rPPG·상업화 점검표 등 함수 22개) 정리.
 - **3순위**: 학습 도구(training/·benchmarks 일부)를 별도 저장소로 · PTZ 카메라용 전역 이동 보정(M3-1 (a)) · opencv 정리 자동화 · 런처 콘솔 인코딩.
-- 5단계 미완: 서비스 재설치 검증(§8) · 실카메라 항목.
+- 5단계 미완: 실카메라·현장 하드웨어 항목 6건(§8-2)만 남았다. 서비스 재설치 검증은 통과(§8-1). 학원 프로파일(`deploy/academy`) 적용 노트북의 드리프트 게이트·기동 확인은 현장 방문 시 함께.
 
-## 8. 현장 검증 체크리스트(5단계에서 못 한 것 + 등록 항목)
+## 8. 서비스 재설치 검증 결과(5-2 통과) + 남은 현장 검증 항목
 
-현장 필수 조건(고정 IP·저장 암호화·릴레이·카메라 대수·오프라인 가중치)은 [deploy/SITE_CHECKLIST.md](../deploy/SITE_CHECKLIST.md) N-1~N-5 를 따른다. 아래는 그 밖의 **코드 리뷰에서 등록된 검증 항목**이다.
+### 8-1. 5-2 통과 — 2026-09-06 22:44~22:53, 관리자 PowerShell, 보고서 [audit/service_reinstall_20260906_224451.md](../audit/service_reinstall_20260906_224451.md)
 
-- [ ] **서비스 재설치 검증** — 관리자 PowerShell 에서 `deploy\windows\verify_service_reinstall.ps1` 실행 → 보고서 `audit\service_reinstall_*.md` 통과. 1차(19:53) 실패 원인은 `.env` 중화로 보안 게이트가 import 시점에 종료된 것(흔적 0) → 얇은 런처 `service_entry.py`(이벤트 ID 1001·startup_failure.json stage=import)·`.venv` 전용 등록·검증 스크립트 수정 후 재실행 대기([audit/verify_clean_clone §3](../audit/verify_clean_clone_2026-09-06.md)). 2차(20:56)는 관리자 `-NoProfile` 세션의 nssm 경로 해석 실패, 3차(21:02)는 검증 스크립트 자체 결함 2건(임시 `.env` 토큰 줄 분리 → 보안 게이트 종료 · 헬퍼 `$Args` 스플래팅 무동작 → finally 원복 실패)이었고, 서비스 명령줄은 LocalSystem·사용자 세션 모두 정상 기동 실측(§3-1b). 재실행: `powershell -NoProfile -ExecutionPolicy Bypass -File D:\vigent_original\deploy\windows\verify_service_reinstall.ps1 -HealthTimeoutSec 300`. 통과 기준: 검증 2(.venv+런처 등록)·3(Running·/health 200·channels_not_configured 만)·4(실패 기록·이벤트 1000/1001·간격 ≥60s)·5(복구·status exit 0) 전부 True + 원복 sha256 4/4.
-- [ ] **실카메라 10초 수신** — 프레임 None 비율, 저지연 옵션(`nobuffer/low_delay/max_delay`) 전후 지연 비교(M5-1 (2)).
+| 검증 | 내용 | 실측 |
+|---|---|---|
+| 2 | 서비스 Application = `.venv\Scripts\python.exe`, 인자 = 런처 `service_entry.py --host 127.0.0.1 --port 8010`, AppRestartDelay 60000·AppThrottle 180000, env 7개, 이벤트 소스 VIGENT 등록 | **True** |
+| 3 | Running → `/health` 200 · status=healthy · phase=ready · warnings=[channels_not_configured] (degraded 아님) | **True**(설치 후 3분 11초 — CPU torch .venv 예열) |
+| 4 | RF_HOME 오지정 → 기동 실패 3회 기록(count 2→4) · 연속 실패 간격 최소 **62.2s**(AppRestartDelay 60s) · 이벤트 로그 ID 1000 3건(LocalSystem 의 eventcreate 동작 확인) | **True** |
+| 5 | env 원복 → 재시작 → `/health` 200 healthy → `service_status.ps1` 종료코드 0 | **True** |
+| 원복 | 서비스 격리(Disabled→stop) → cameras/secrets/notify/.env sha256 4/4 일치 → 서비스 Stopped/SERVICE_DISABLED(백업값과 일치) | **일치** |
+
+검증 4 에서 `startup_failure.json` 이 `stage=import` 로 남았는데 이벤트는 ID 1000 이었다 — `_startup` 단계 기록이 런처가 남긴 `stage`/`last_stderr` 를 덮어쓰지 않던 것. 이제 `stage=startup`·`event_id=1000`, 런처는 `stage=import`·`event_id=1001` 로 한 쌍이고 대응표는 [DEPLOYMENT §7 재발 방지 1번](../md/DEPLOYMENT.md)에 있다(테스트 1건).
+
+**실패 3회의 원인과 교훈** — 전부 검증 절차·스크립트의 결함이었고 서비스 코드·LocalSystem 계정 문제는 아니었다(상세 [audit/verify_clean_clone §3-1·§3-1b](../audit/verify_clean_clone_2026-09-06.md)).
+
+| 회차 | 원인 | 교훈·장치 |
+|---|---|---|
+| 1차 19:53 | 검증이 `.env` 를 통째로 치웠는데 서비스 env 는 `VIGENT_REQUIRE_TOKEN=1` → `main.py` 보안 게이트가 **import 시점** SystemExit(1) → `_startup` 이전이라 흔적 0, NSSM Paused 반복 | **.env 처리**: 키 값만 비운 임시본(토큰은 무작위) + 얇은 런처가 import 단계 실패를 ID 1001·`startup_failure.json` 에 남김 + `.venv` 전용 등록(시스템 python 폴백 금지) |
+| 2차 20:56 | 관리자 `-NoProfile` 세션에서 `Get-Command nssm` 이 Source 가 빈 개체를 돌려줘 `& $nssmPath` 가 죽음 | **nssm 탐색**: 저장소 동봉본 → Get-Command → winget Links 순으로 실제 파일만 채택(`Resolve-Nssm`, 3 스크립트 공통) |
+| 3차 21:02 | ① 임시 `.env` 를 `@("머리글", "VIGENT_API_TOKEN=" + $tok)` 로 만들어 **쉼표가 + 보다 먼저 묶여** 토큰이 다음 줄로 → dotenv 빈 토큰 → 게이트 종료 ② 헬퍼 `param($Args)` + `@Args` 가 **빈 자동 변수**를 스플래팅 → nssm 이 인자 없이 실행 → finally 의 stop/Disabled 무동작(Paused/Automatic 잔류) → NSSM 60s 자동 재시작이 **원복된 원본 설정으로 14초 기동**(창 내 생성물 0 실측) | **PowerShell 배열**: 결합은 괄호로, 줄 단위 생성 + 쓴 파일을 다시 읽어 토큰 줄 1개 확인(규칙 11) · 매개변수 이름 `$Argv`, 빈 인자 호출 거부. **finally 원복**: install 실패·예외 즉시 격리(Disabled→stop) → 파일 원복 → `nssm get Start`·Status 백업값으로 복원 후 다시 읽어 대조 · 실패 시 err 꼬리 20줄(회전본 포함)·`startup_failure.json` 즉시 출력. `tests/test_verify_service_script.py` 9건으로 고정 |
+
+### 8-2. 남은 현장 검증 항목(실카메라·현장 하드웨어가 있어야 하는 것만)
+
+현장 필수 조건(고정 IP·저장 암호화·릴레이·카메라 대수·오프라인 가중치)은 [deploy/SITE_CHECKLIST.md](../deploy/SITE_CHECKLIST.md) N-1~N-5 를 따른다.
+
+- [ ] **실카메라 10초 수신** — 프레임 None 비율, 저지연 옵션(`nobuffer/low_delay/max_delay`) 전후 지연 비교(M5-1 (2)). 모듈 5 의 타임아웃 실측(5.05s)은 cv2 5.0.0 기준이므로 headless 4.13 에서 같이 잰다.
 - [ ] **READ 5초 재연결** — 카메라 전원 차단 → 5초 타임아웃 → 재연결 동작(M5-2).
-- [ ] **오프라인 첫 사람 검출** — 카메라 물린 뒤 사람 1명 통과 시 로그에 `Downloading:` 이 없어야 함(rtmlib 캐시, N-5).
-- [ ] **브라우저+워커 이중 통보 실카메라 확인** — `/safety?cam=tapo` 열어 둔 채 침입 1회 → 텔레그램 1건·증거 브라우저 1장(M8-1).
 - [ ] **릴레이 자동 경로** — `relay.enabled=true` 현장에서 guard_bypass 발화 → `safety_relay_signal` 로 릴레이 ON(M8-9).
-- [ ] **eventcreate 서비스 계정** — LocalSystem 에서 이벤트 소스 자동 등록 여부(개발 PC 비관리자는 Access denied 실측).
-- [ ] **opencv headless 4.13 에서 RTSP 타임아웃 실측** — 모듈 5 실측(5.05s)은 cv2 5.0.0 기준.
-- [ ] **학원 프로파일 적용 후 드리프트 게이트·기동** — `deploy/academy` 로 덮은 노트북에서 `check_profile_drift.py` 와 /health.
+- [ ] **브라우저+워커 이중 통보 실카메라 확인** — `/safety?cam=tapo` 열어 둔 채 침입 1회 → 텔레그램 1건·증거 브라우저 1장(M8-1).
+- [ ] **rtm_cache 오프라인 첫 사람 검출** — 인터넷 없는 현장에서 사람 1명 통과 시 로그에 `Downloading:` 이 없어야 함(rtmlib 캐시 `TORCH_HOME=weights\rtm_cache`, N-5).
+- [ ] **CUDA torch 설치** — 현장 PC 의 `.venv` 는 requirements 기본(CPU 휠)이 아니라 [DEPLOYMENT §3](../md/DEPLOYMENT.md) 의 cu13 휠로 교체 후 `/health` 로 device 가 cuda 인지 확인. (개발 PC 의 `.venv` 는 검증용 CPU torch — 위 5-2 예열이 3분인 이유.)
 
 ## 9. Windows 개발 환경 체크리스트(새 개발자용)
 
@@ -111,7 +132,7 @@ D:\vigent_private_data\   저장소 밖 미디어(VIGENT_DATA_DIR): runs/·bench
 5. **★opencv 정리(필수)**: `python -m pip uninstall -y opencv-python opencv-contrib-python` → `python -m pip install --force-reinstall --no-deps opencv-contrib-python-headless==4.13.0.92` → `python -c "import cv2; print(cv2.__version__)"` 가 `4.13.0` 이어야 한다(새 클론 실측: 이 절차 없이는 5.0.0).
 6. 가중치: `python scripts\fetch_weights.py --all`(938MB, 약 2분). 비공개 릴리스라 GitHub 로그인(GCM) 또는 `GITHUB_TOKEN` 필요.
 7. 기동: `.\run.ps1` → `http://127.0.0.1:8010/health` 가 17초쯤 뒤 200(status healthy, warnings channels_not_configured 는 정상). 관제 화면 `/hub`, 시연 `/safety`.
-8. 게이트(변경 후 반드시): `ruff check vigent-core tests` → 0 · `python -m mypy` → 0 · `py -3.11 -m unittest discover -s tests` → 638 OK · `python scripts\check_openapi_diff.py` → 무변경 · `python scripts\check_profile_drift.py` → 드리프트 없음.
+8. 게이트(변경 후 반드시): `ruff check vigent-core tests` → 0 · `python -m mypy` → 0 · `py -3.11 -m unittest discover -s tests` → 653 OK(PowerShell 이 있는 PC 에서는 검증 스크립트 실행 테스트 2건 포함, CI ubuntu 는 skip) · `python scripts\check_openapi_diff.py` → 무변경 · `python scripts\check_profile_drift.py` → 드리프트 없음. 위 1~7 은 새 클론에서 1회 실증(2026-09-06 19:06~19:14, §5 "5-1 실행 이력") — 5번 opencv 정리는 자동화(constraints)되지 않았으니 빠뜨리면 `cv2 == 5.0.0` 이 된다.
 9. 선택: `bin\go2rtc.exe`(확대뷰 WebRTC) · node(JS 구문 검사 테스트) · `.env`(텔레그램 토큰, `.env.example` 참조; HOST/PORT 는 셸 환경변수로만).
 10. 규칙: 카메라·현장 미디어는 `D:\vigent_private_data\`(`VIGENT_DATA_DIR`)에만, 커밋 전 `git branch --show-current` 확인, 비밀값은 코드·문서·채팅에 쓰지 않는다([CLAUDE.md](../CLAUDE.md)).
 

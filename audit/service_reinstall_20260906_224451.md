@@ -1,0 +1,33 @@
+﻿# 서비스 재설치 검증 20260906_224451  결과: ✅ 통과 · 원복(파일 sha256·서비스 상태) 일치  백업: service_nssm_dump_before_20260906_224451.txt / 사후: service_nssm_dump_after_20260906_224451.txt 
+- 22:44:51 기존 서비스 상태: Stopped/Disabled (nssm Start=SERVICE_DISABLED)
+- 22:44:51 NSSM 설정 백업: service_nssm_dump_before_20260906_224451.txt
+- 22:44:51 중화: cameras.json → .audit_hold (sha256 E796CB578210…)
+- 22:44:51 중화: camera_secrets.json → .audit_hold (sha256 78B6556F462A…)
+- 22:44:51 중화: notify.yaml → .audit_hold (sha256 A34A16E76BC0…)
+- 22:44:51 중화: .env → .env.audit_hold (sha256 29D84F3B1385…), 임시본 키 2개(값 비움·토큰 임시값)
+- 22:44:51 임시 .env 자가검증: VIGENT_API_TOKEN 줄 1개(32자) 확인
+- 22:44:51 install_service.ps1 실행(재설치)
+- 22:48:02 서비스 Application: D:\vigent_original\.venv\Scripts\python.exe | 인자: D:\vigent_original\deploy\windows\service_entry.py --host 127.0.0.1 --port 8010
+- 22:48:02 검증 2: .venv 파이썬 + 런처 등록 → True
+- 22:48:02 AppRestartDelay=60000ms AppThrottle=180000ms
+- 22:48:02 env 7개: VIGENT_REQUIRE_TOKEN, VIGENT_CAPTURE_MODE, VIGENT_HOST, PYTHONUTF8, RF_HOME, TORCH_HOME, VIGENT_RESTART_CMD
+- 22:48:02 이벤트 소스 VIGENT 등록: True
+- 22:48:03 /health code=200 status=healthy phase=ready warnings=[channels_not_configured]
+- 22:48:03 검증 3: Running · /health 200 · degraded 아님 · channels_not_configured 만 → True
+- 22:48:03 startup_failure.json: count=1 stage=import event_log_ok=True
+- 22:48:03 기동 실패 유도: RF_HOME → D:\__vigent_bad_rf_home 후 재시작
+- 22:48:12 기동 실패 #2 기록(stage=import event_log_ok=True notified_count=) 서비스=Paused
+- 22:49:12 기동 실패 #3 기록(stage=import event_log_ok=True notified_count=) 서비스=Paused
+- 22:50:12 기동 실패 #4 기록(stage=import event_log_ok=True notified_count=) 서비스=Paused
+- 22:50:12 연속 실패 간격 최소: 62.2s (기대 ≥ 60s)
+- 22:50:13 이벤트 로그 Application/VIGENT (유도 후): ID1000=3 ID1001=0
+- 22:50:13 검증 4: 실패 기록 · 이벤트 1000/1001 · 간격 ≥ 60s → True
+- 22:53:14 복구 /health code=200 status=healthy
+- 22:53:14 service_status.ps1 종료코드: 0 (기대 0)
+- 22:53:14 검증 5: 복구 Running · /health 200 · status exit 0 → True
+- 22:53:16 서비스 격리(원복 전): Stopped / nssm Start=SERVICE_DISABLED
+- 22:53:16 원복: cameras.json sha256 일치=True
+- 22:53:16 원복: camera_secrets.json sha256 일치=True
+- 22:53:16 원복: notify.yaml sha256 일치=True
+- 22:53:16 원복: .env sha256 일치=True
+- 22:53:16 서비스 원복: Stopped/Disabled nssm Start=SERVICE_DISABLED → 기대 Stopped/SERVICE_DISABLED 일치=True (원래: Stopped/Disabled)
