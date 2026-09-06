@@ -407,11 +407,17 @@
 
 **정상 확인(수정 불필요)**: `runtime_config`(config/ 시드 읽기 전용·data/config 런타임 쓰기) · `vision_loader` 테마명 화이트리스트·가중치 폴백 해석 · `tuning.val` env 우선 규칙 · `security.json` 웹훅 목적지 화이트리스트 · `vlog` 10MB×5 회전(+NSSM stdout 회전, 모듈 6 정리와 분리) · `data_paths` 저장소 밖 미디어 · `VIGENT Safety 시작.bat` /health 대기 90s · `check_profile_drift` 가 게이트에 있음(단, M7-1 처럼 **파싱 전** 문제는 못 잡음).
 
-### 7-3. 수정 계획(승인 대기)
-- **높음 M7-1**(한 커밋): 중복 최상위 키 거부 테스트(base+academy) → 두 블록 병합 → academy 8키 추가. 값 불변이므로 동작 변화 0(테스트로 `alert_gate` 가 파일값을 읽음을 확인).
-- **중간 M7-2**(+M5-6·R7): `run.ps1` 미설정 시 주입 4개 — 테스트는 스크립트 정적 검사. 문서 `deploy/windows/README.md`·README 에 "개발도 weights/ 캐시" 명시.
-- **중간 M7-2b**: `fetch_weights.py` 에 rtmlib 2파일 조달 + `--check` — URL·크기는 rtmlib 소스에서 확인 후 매니페스트에 기재(다운로드 실측 필요 → 승인 시 1회 수행, 156MB).
-- **중간 M7-3**: 기동 try 분리 + 폴백 조건 축소 — 선행 테스트(모킹).
-- **중간 M7-7**: 규모가 커서 대표 판단 — (a) 전부 (b) R15 카메라별 1키 + yaml 기본값 기재만 (c) 문서만.
-- **낮음 M7-4·5·6·8·9·10·11**: 문서·CI 1줄·소규모 코드. M7-6 은 5단계 재설치와 함께.
+### 7-3. 진행 현황(대표 승인 2026-09-06 반영) — 커밋 6개
+
+| 커밋 | 항목 | 내용(실측) |
+|---|---|---|
+| `5ba2c31` | **M7-1** | 엄격 로더(중복 키·파싱 오류 → `TuningConfigError` = 기동 실패) · `alerts:` 두 블록 병합(값 불변) · 드리프트 게이트 검사 4 "파일 키 ⊆ 코드가 읽는 키"(정적 수집: 읽기 키 90, 섹션 통째 relay·retention, 미읽기 0) · academy 는 현행 safety 프로파일(08-19~08-28)로 확인 → 8키 추가. 테스트 8 |
+| `7c0ca90` | **M7-2·2b** | `run.ps1` 미설정 시 4개 주입(서비스 동일 값, BOM/CRLF 유지) · rtmlib 2파일을 매니페스트 required 로(dest `rtm_cache/hub/checkpoints`, zip 1개 추출) · readiness 도 dest 인식 · **다운로드 실측 155.7MB / 14.4s** · SITE_CHECKLIST N-3 신설. 테스트 6 |
+| `5cf638b` | **M7-3·11** | `_required`(예열·경보 큐·통보: 실패 → M4-5 경로 후 재raise) / `_optional`(go2rtc·기아·보존: `STARTUP_WARNINGS` → /health warnings) · 콜드 워커 즉시 시작 폴백 제거 · lifespan 전환 · 종료 시 4개 스레드 정리. 테스트 7 + 텍스트 계약 1 갱신 |
+| `3114a12` | **M7-7(b)·R15** | 상수 7개(10키)를 tuning.yaml 에 같은 값으로 기재하고 트래커·proximity 가 생성/호출 시점에 읽음 · 등록부 `overrides.motion.immobile_s` 1키(검증·400·워커 state 노출). 테스트 8 |
+| `4111dbd` | **M7-5·6·8·9 + 문서 M7-4·10** | CI `python-version-file` · ONBOARDING §1·§2.1·§2.6·DEPLOYMENT 표 3.11 통일 · `run.ps1` 3.11 전용(bare python 후보 제거, 3.11 검사, 없으면 안내 후 종료; run.bat·시작.bat 은 run.ps1 경유) · M7-8 `overdue()` → 초기 지연 60s(`sweep_overdue_delay_s`) + status.overdue · M7-9 미기재 읽기 키 14개 주석 기재 · `.env.example` HOST/PORT 무효 명시 · ONBOARDING §7 환경변수 표 43개 |
+| — | **M7-6 서비스 파이썬** | `install_service.ps1` 후보 변경은 5단계 재설치와 함께(문서만) |
+
+- 게이트: 매 커밋 ruff 0 · mypy 0 · unittest 589 → 595 → 602 → 610 → 616 OK · OpenAPI 무변경 · 프로파일 드리프트 없음.
+- 부수 발견·처리: M7-2b 매니페스트 편집 중 readiness `required_weights_missing` 이 `dest` 를 몰라 예열 테스트 4건이 "가중치 없음"으로 실패 → dest 인식 추가(실사고였다면 서비스가 기동 거부).
 ## 8. 모듈 8 — 프론트 realtime_core.js 감시 화면 (대기)
