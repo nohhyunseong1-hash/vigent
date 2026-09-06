@@ -365,8 +365,9 @@ def _startup() -> None:
         import alert_queue
         _dispatcher = bundle["agents"].get("Dispatcher")
         if _dispatcher is not None:
+            # [CODE_REVIEW M4-4] 재시도는 원격 채널만 — relay(사이렌)·log 를 재트리거하지 않는다.
             alert_queue.set_sender(
-                lambda lvl, msg, meta: _dispatcher._dispatch_now(lvl, msg, meta))
+                lambda lvl, msg, meta: _dispatcher._dispatch_now(lvl, msg, meta, remote_only=True))
         alert_queue.start()
         # ★[W1] 워커 검출 → 알림 전송 배선. 워커는 큐에 넣기만 하고 이 스레드가 보낸다
         #   (동기 호출 시 채널 타임아웃 6~8초가 검출 루프를 멈춘다 — 규칙6 저하 금지).

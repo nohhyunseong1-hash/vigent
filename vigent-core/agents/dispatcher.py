@@ -193,8 +193,14 @@ class DispatcherAgent(BaseAgent):
         actions = self.on_severity.get(level, ["log"])
         return any(a in actions for a in ("alarm", "manager_call"))
 
-    def _dispatch_now(self, level: str, message: str, meta: dict[str, Any] | None = None) -> dict[str, Any]:
-        """실제 채널 전송(재시도 없음). 큐가 이 함수를 재시도 때 다시 부른다."""
+    def _dispatch_now(self, level: str, message: str, meta: dict[str, Any] | None = None,
+                      remote_only: bool = False) -> dict[str, Any]:
+        """실제 채널 전송(재시도 없음). 큐가 이 함수를 재시도 때 다시 부른다.
+
+        remote_only ([CODE_REVIEW M4-4], 2026-09-06): **재시도 경로 전용** — 텔레그램·이메일·웹훅만 다시 보내고
+        relay(사이렌)·log 는 건드리지 않는다. 예전엔 재시도마다 relay.turn_on 이 다시 불려 채널 장애 시
+        critical 1건이 사이렌을 최대 10회 재트리거(ON 연장)했다. 물리 출력은 최초 dispatch 1회로 충분하다.
+        """
         actions = self.on_severity.get(level, ["log"])
         results: list[dict[str, Any]] = []
         text = f"[VIGENT-SAFETY] {level.upper()} · {message}"
@@ -202,6 +208,11 @@ class DispatcherAgent(BaseAgent):
             results.append(self._send_telegram(text))
             results.append(self._send_email(f"[VIGENT 안전경보] {level.upper()}", text))
             results.append(self._send_webhook({"level": level, "message": message, "meta": meta or {}}))
+        if remote_only:
+            remote = ("telegram", "email", "webhook")
+            any_remote = any(r.get("sent") and r["channel"] in remote for r in results)
+            return {"level": level, "actions": actions, "results": results,
+                    "delivered": any_remote, "fallback": not any_remote, "remote_only": True}
         if "safety_relay_signal" in actions:
             # [P3a] 실제 물리 출력(네트워크 릴레이) — 이전에는 로그 항목만 추가하고 sent:True 를
             #   반환해 "경보가 울렸다"고 표시되는데 아무 소리도 안 나는 상태였다(감사 🟠C7).
