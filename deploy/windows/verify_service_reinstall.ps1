@@ -14,9 +14,10 @@
     4) 의도적 기동 실패: AppEnvironmentExtra 의 RF_HOME 을 없는 폴더로 → 재시작 → data/startup_failure.json count 증가 ·
        이벤트 로그(Application/VIGENT ID 1000 또는 1001) · 연속 실패 간격 ≥ 60s(AppRestartDelay)
     5) 정상 복구: env 원복 → 재시작 → Running → /health 200 → service_status.ps1 종료코드 0
-    6) finally: 서비스 Start 타입·상태를 0)에서 백업한 값(nssm get Start · Get-Service)으로 원복 — 설정 파일 원복과 같은 등급 ·
-       중화 파일 원복(sha256 대조) · 보고서 작성. 예외·install 실패 시 err 로그 꼬리 20줄(회전본 포함)과 startup_failure.json 을
-       콘솔·보고서에 즉시 출력
+    6) install 실패·예외 즉시 **서비스 격리**(nssm set Start SERVICE_DISABLED → stop) — NSSM 60s 자동 재시작이 원복된 원본 설정으로
+       뜨는 창(3차 실사고 21:04:15~29)을 남기지 않는다 → finally: 격리(재확인) → 중화 파일 원복(sha256 대조) → 서비스 Start 타입·상태를
+       0)에서 백업한 값(nssm get Start · Get-Service)으로 원복 — 설정 파일 원복과 같은 등급 → 보고서 작성.
+       예외·install 실패 시 err 로그 꼬리 20줄(회전본 포함)과 startup_failure.json 을 콘솔·보고서에 즉시 출력
 
   실사고(2026-09-06, 5-2 3차): ① 헬퍼 매개변수 이름이 $Args 라 `@Args` 가 빈 자동 변수를 스플래팅 → nssm 이 인자 없이 실행되어
      dump 는 사용법 배너, finally 의 stop/set Start 는 무동작(서비스가 Paused/Automatic 으로 남음) ② 임시 .env 를
@@ -176,6 +177,15 @@ function Restore-ServiceState() {   # 서비스 Start 타입·상태를 백업�
   if (-not $match) { Log ("★서비스 원복 불일치 — 수동: nssm set " + $ServiceName + " Start " + $target + " ; nssm " + $(if ($wantRunning) { "start" } else { "stop" }) + " " + $ServiceName) }
   return $match
 }
+function Quarantine-Service([string]$why) {   # install 실패·예외 직후, 그리고 finally 첫 단계: 파일 원복보다 먼저 서비스가 다시 뜨지 못하게
+  if (-not (Get-Service -Name $ServiceName -ErrorAction SilentlyContinue)) { return }
+  try { Nssm @("set", $ServiceName, "Start", "SERVICE_DISABLED") | Out-Null } catch { Log ("★격리 set Start 실패: " + $_) }   # 먼저 Disabled — stop 뒤 재기동 경로 차단
+  try { Nssm @("stop", $ServiceName) | Out-Null } catch { Log ("★격리 stop 실패: " + $_) }
+  $tw = Get-Date; while ((((Get-Date) - $tw).TotalSeconds -lt 20) -and ((SvcStatus) -ne "Stopped")) { Start-Sleep -Seconds 2 }
+  if ((SvcStatus) -ne "Stopped") { try { Stop-Service -Name $ServiceName -Force -ErrorAction Stop } catch { Log ("★격리 Stop-Service 실패: " + $_) } }
+  $st = "?"; try { $st = (Nssm @("get", $ServiceName, "Start")).Trim() } catch {}
+  Log ("서비스 격리(" + $why + "): " + (SvcStatus) + " / nssm Start=" + $st)
+}
 $dump0 = Join-Path $AuditDir ("service_nssm_dump_before_" + $Stamp + ".txt")
 if ($svc0) { (Nssm @("dump", $ServiceName)) | Out-File -Encoding utf8 $dump0; Log ("NSSM 설정 백업: " + (Split-Path -Leaf $dump0)) }
 
@@ -210,7 +220,7 @@ try {
   # ── 2. 재설치 ───────────────────────────────────────────────────────
   Log "install_service.ps1 실행(재설치)"
   & (Join-Path $Here "install_service.ps1") -ServiceName $ServiceName -Port $Port -Bind "127.0.0.1" -NssmPath $nssmPath
-  if ($LASTEXITCODE -ne 0) { throw ("install_service.ps1 실패(exit " + $LASTEXITCODE + ") — 위 출력 확인") }
+  if ($LASTEXITCODE -ne 0) { Quarantine-Service ("install exit " + $LASTEXITCODE); throw ("install_service.ps1 실패(exit " + $LASTEXITCODE + ") — 위 출력 확인") }
   $appExe = Nssm @("get", $ServiceName, "Application"); $appParams = Nssm @("get", $ServiceName, "AppParameters")
   Log ("서비스 Application: " + $appExe.Trim() + " | 인자: " + $appParams.Trim())
   $venvOk = ($appExe.Trim().ToLower() -eq $VenvPy.ToLower()) -and ($appParams -match "service_entry\.py")
@@ -287,16 +297,15 @@ try {
 }
 catch {
   Log ("★예외로 중단: " + $_)
+  try { Quarantine-Service "예외" } catch { Log ("★격리 예외: " + $_) }
   if ($_.ScriptStackTrace) { $Lines.Add("    " + (("" + $_.ScriptStackTrace) -replace "`r?`n", " ⏎ ")) }
   Show-Diag "예외"
 }
 finally {
   # ── 6. 원복 ─────────────────────────────────────────────────────────
   $restoreOk = $true
-  $svcRestoreOk = $false
-  try { $svcRestoreOk = Restore-ServiceState } catch { Log ("★서비스 원복 예외: " + $_) }
-  if (-not $svcRestoreOk) { $restoreOk = $false }
-  foreach ($f in $held) {
+  try { Quarantine-Service "원복 전" } catch { Log ("★격리 예외: " + $_) }   # 1) 파일 원복 동안 서비스가 뜨지 못하게
+  foreach ($f in $held) {   # 2) 파일 원복
     if (Test-Path $f) { Log ("★서버가 중화 중 파일을 생성함: " + (Split-Path -Leaf $f) + " — " + (Split-Path -Leaf $f) + ".audit_generated 로 보관"); Move-Item -Force $f ($f + ".audit_generated") }
     Move-Item -Force ($f + ".audit_hold") $f
     $same = ((Sha256 $f) -eq $sha0[$f]); if (-not $same) { $restoreOk = $false }
@@ -308,6 +317,9 @@ finally {
     $same = ((Sha256 $envFile) -eq $sha0[$envFile]); if (-not $same) { $restoreOk = $false }
     Log ("원복: .env sha256 일치=" + $same)
   } else { Remove-Item -Force $envFile -ErrorAction SilentlyContinue; Log "원복: 임시 .env 제거(원본 없었음)" }
+  $svcRestoreOk = $false   # 3) 파일이 돌아온 뒤에야 서비스 Start 타입·상태를 백업값으로
+  try { $svcRestoreOk = Restore-ServiceState } catch { Log ("★서비스 원복 예외: " + $_) }
+  if (-not $svcRestoreOk) { $restoreOk = $false }
   $dump1 = Join-Path $AuditDir ("service_nssm_dump_after_" + $Stamp + ".txt")
   try { (Nssm @("dump", $ServiceName)) | Out-File -Encoding utf8 $dump1 } catch {}
   $hdr = @("# 서비스 재설치 검증 " + $Stamp, "", "결과: " + $(if ($ok) { "✅ 통과" } else { "❌ 미통과(아래 로그 확인)" }) + " · 원복(파일 sha256·서비스 상태) " + $(if ($restoreOk) { "일치" } else { "★불일치" }), "",

@@ -66,9 +66,28 @@ class VerifyScriptStatic(unittest.TestCase):
         t = _text()
         self.assertIn("function Restore-ServiceState()", t)
         self.assertIn('$nssmStart0 = (Nssm @("get", $ServiceName, "Start")).Trim()', t, "Start 타입은 백업값으로 되돌린다")
-        self.assertNotIn('Nssm @("set", $ServiceName, "Start", "SERVICE_DISABLED")', t, "하드코딩 DISABLED 금지")
+        hard = 'Nssm @("set", $ServiceName, "Start", "SERVICE_DISABLED")'
+        self.assertNotIn(hard, _function("Restore-ServiceState"), "원복은 백업값으로 — 하드코딩 DISABLED 금지")
+        self.assertNotIn(hard, t[t.index("\nfinally {"):], "finally 직접 호출 금지(격리 함수 경유만)")
         self.assertIn("$svcRestoreOk = Restore-ServiceState", t)
         self.assertIn("if (-not $svcRestoreOk) { $restoreOk = $false }", t, "서비스 원복 실패는 파일 원복 실패와 같은 등급")
+
+    def test_quarantine_before_file_restore(self):
+        """install 실패·예외 직후 격리(Disabled → stop), finally 는 격리 → 파일 원복 → 백업값 원복 순서 — NSSM 60s 자동 재시작이
+        원복된 원본 설정으로 뜨는 창(3차 실사고 21:04:15~29)을 남기지 않는다."""
+        t = _text()
+        q = _function("Quarantine-Service")
+        self.assertLess(q.index('"Start", "SERVICE_DISABLED"'), q.index('@("stop", $ServiceName)'), "Disabled 를 먼저, stop 은 그 뒤")
+        self.assertIn('Quarantine-Service ("install exit " + $LASTEXITCODE); throw', t, "install 실패 즉시 격리 후 throw")
+        self.assertIn('try { Quarantine-Service "예외" }', t)
+        fin = t[t.index("\nfinally {"):]
+        i_q = fin.index('Quarantine-Service "원복 전"')
+        i_files = fin.index('Move-Item -Force ($f + ".audit_hold") $f')
+        i_env = fin.index('Move-Item -Force ($envFile + ".audit_hold") $envFile')
+        i_restore = fin.index("$svcRestoreOk = Restore-ServiceState")
+        self.assertLess(i_q, i_files)
+        self.assertLess(i_files, i_env)
+        self.assertLess(i_env, i_restore, "서비스 Start 타입·상태 원복은 파일이 돌아온 뒤")
 
     def test_diag_on_failure_paths(self):
         t = _text()

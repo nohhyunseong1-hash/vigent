@@ -48,7 +48,7 @@ Invoke-RestMethod http://127.0.0.1:8010/health | ConvertTo-Json -Depth 3
 
 ### 4. 테스트
 ```powershell
-py -3.11 -m unittest discover -s tests    # 651 tests OK 가 정상(2026-09-06 5단계 5-2 정정 실측 · 시작 시점 481)
+py -3.11 -m unittest discover -s tests    # 652 tests OK 가 정상(2026-09-06 5단계 5-2 정정 실측 · 시작 시점 481)
 ```
 
 ---
