@@ -9,7 +9,7 @@
 import json
 
 import data_engine
-from fastapi import APIRouter, Body, Response
+from fastapi import APIRouter, Body, HTTPException, Response
 
 router = APIRouter()
 
@@ -38,3 +38,32 @@ def recognition_log_download():
 @router.post("/recognition/note")
 def stub_recognition_note(payload: dict = Body(default={})):
     return {"ok": True}
+
+
+_PIN_ALLOWED_PREFIXES = ("data/evidence/", "data/recognition/")
+
+
+def _pin_target(payload: dict) -> str:
+    """[CODE_REVIEW M6-3] pin 대상 상대경로 검증 — 증거·인식 로그 아래만 허용(경로 탈출·임의 파일 pin 차단)."""
+    rel = data_engine.norm_rel(str(payload.get("path") or ""))
+    if not rel or ".." in rel.split("/") or rel.startswith("/") or ":" in rel.split("/")[0]:
+        raise HTTPException(status_code=400, detail="path 는 data/evidence/… 또는 data/recognition/… 상대경로여야 한다")
+    if not rel.startswith(_PIN_ALLOWED_PREFIXES):
+        raise HTTPException(status_code=400, detail="pin 은 증거(data/evidence)·인식 로그(data/recognition)만 가능")
+    return rel
+
+
+@router.post("/recognition/pin")
+def recognition_pin(payload: dict = Body(...)):
+    """[M6-3] 증거·인식 로그 파일을 보존 스윕에서 제외(pin). payload={path, reason?}. 사람이 unpin 하기 전까지 유지."""
+    rel = _pin_target(payload)
+    data_engine.pin_evidence(rel, reason=str(payload.get("reason") or "manual"))
+    return {"ok": True, "path": rel, "pinned": data_engine.pinned_map()}
+
+
+@router.post("/recognition/unpin")
+def recognition_unpin(payload: dict = Body(...)):
+    """[M6-3] pin 해제 — 다음 스윕부터 보존 일수 규칙을 다시 적용한다."""
+    rel = _pin_target(payload)
+    data_engine.unpin_evidence(rel)
+    return {"ok": True, "path": rel, "pinned": data_engine.pinned_map()}

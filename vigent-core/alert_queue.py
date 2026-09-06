@@ -97,6 +97,37 @@ def mark_sent(row_id: int) -> None:
     with _lock:
         db.execute("UPDATE alerts SET status=?, sent_at=? WHERE id=?", (SENT, time.time(), row_id))
         db.commit()
+    _auto_pin_sent(row_id)
+
+
+# [CODE_REVIEW M6-10, 대표 결정 2026-09-06] 자동 보존: critical/high 경보가 **실제 발송(sent)** 된 사건의 증거 JPEG 와
+#   그날 인식 로그(events_YYYYMMDD.jsonl)를 자동 pin(사유 "alert:<id>") — 사람이 unpin 하기 전까지 30일 스윕 제외.
+#   발송된 경보는 "사건"이므로 증거가 정책 일수에 지워지면 안 된다. tuning retention.auto_pin_sent_alerts(기본 true).
+_AUTO_PIN_LEVELS = ("critical", "high")
+
+
+def _auto_pin_sent(row_id: int) -> None:
+    try:
+        if not bool(tuning.val("retention", "auto_pin_sent_alerts", True)):
+            return
+        db = _db()
+        with _lock:
+            row = db.execute("SELECT level, meta, created_at FROM alerts WHERE id=?", (row_id,)).fetchone()
+        if not row or str(row[0]).lower() not in _AUTO_PIN_LEVELS:
+            return
+        meta = json.loads(row[1] or "{}")
+        import datetime as _dt
+
+        import data_engine
+        reason = f"alert:{row_id}"
+        ev = meta.get("evidence")
+        if ev:
+            data_engine.pin_evidence(str(ev), reason=reason)
+        ts = float(meta.get("ts") or row[2] or time.time())
+        day = _dt.datetime.fromtimestamp(ts, data_engine.KST).strftime("%Y%m%d")
+        data_engine.pin_evidence(f"data/recognition/events_{day}.jsonl", reason=reason)
+    except Exception:  # noqa: BLE001  자동 pin 실패가 전송 기록을 막으면 안 된다
+        _LOG.warning("발송 경보 자동 pin 실패 id=%s", row_id, exc_info=True)
 
 
 def mark_failed(row_id: int, err: str, delay: float | None = None) -> None:

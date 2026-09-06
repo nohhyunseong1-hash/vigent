@@ -43,7 +43,7 @@ GROUP_LABEL: dict[str, str] = {
     "evidence": "A(안전 증거)", "recognition": "A(안전 증거)",
     "audit": "B(감사·문서)", "tbm": "B(감사·문서)", "risk_assessments": "B(감사·문서)",
 }
-PINNABLE_GROUPS = {"evidence"}   # pin 예외가 적용되는 그룹(A의 증거 이미지만)
+PINNABLE_GROUPS = {"evidence", "recognition"}   # pin 예외 그룹 — [M6-10] 발송 경보의 그날 인식 로그도 pin 대상
 
 STATUS_PATH = _ROOT / "data" / "retention_status.json"
 DELETION_LOG_DIR = _ROOT / "data" / "retention"
