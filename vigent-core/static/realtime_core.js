@@ -805,21 +805,22 @@ function ppeKeywordScore(preds, type){
   const negative=type==='helmet'
     ? /cap|baseball cap|hat|cowboy|sombrero|bonnet|hair|wig/
     : /shirt|t-shirt|sweatshirt|jacket|coat|suit|apron|cardigan|cloak/;
+  // [CODE_REVIEW M8-5, 2026-09-06] 브라우저 ImageNet 키워드 휴리스틱은 **참고 표시**일 뿐 서버 판정이 아니다.
+  //   예전엔 positive 키워드가 없으면 "예측이 하나라도 있으면 missing(conf≥0.45)" 을 돌려줘 화면이 거의 항상
+  //   미착용으로 보였다. 이제 단서가 없으면 unknown, 있으면 문구에 '참고(서버 판정 아님)' 를 붙이고 통보 경로(getPpeIssues)
+  //   에서는 서버 판정(ppe_yolo)만 쓴다.
   let best=null;
   for(const p of preds||[]){
     const name=(p.className||'').toLowerCase();
     const prob=p.probability||0;
     if(positive.test(name) && (!best||prob>best.confidence)){
-      best={state:'worn',label:type==='helmet'?'착용 추정':'착용 추정',confidence:prob,raw:p.className};
+      best={state:'worn',label:'착용 참고(서버 판정 아님)',confidence:prob,raw:p.className};
     }
     if(!best&&negative.test(name)&&prob>0.35){
-      best={state:'missing',label:'미착용 의심',confidence:prob,raw:p.className};
+      best={state:'missing',label:'미착용 참고(서버 판정 아님)',confidence:prob,raw:p.className};
     }
   }
-  if((preds||[]).length){
-    const top=preds[0]||{};
-    return {state:'missing',label:'미착용 의심',confidence:Math.max(0.45,top.probability||0),raw:top.className||'보호구 단서 없음'};
-  }
+  if(best) return best;
   return {state:'unknown',label:'확인 중',confidence:0,raw:''};
 }
 
@@ -1838,19 +1839,23 @@ function captureIntrusionEvidence(frame){
   if(fresh){ const cls=backendBoostDets.map(d=>String(d.class).toLowerCase().replace(/-/g,' '));
     if(cls.includes('no hardhat')||cls.includes('no helmet')) reasons.push('안전모 미착용');
     if(cls.includes('no safety vest')||cls.includes('no vest')) reasons.push('안전조끼 미착용'); }
-  // 합성 스냅샷(검은 배경 + 영상 + 오버레이 박스/구역) → 증거 사진
-  const oc=document.createElement('canvas'); oc.width=W; oc.height=H; const octx=oc.getContext('2d');
-  octx.fillStyle='#000'; octx.fillRect(0,0,W,H);
-  try{ const r=mediaRect(W,H);
-    if(shouldFlipDisplay()){ octx.save(); octx.translate(r.x+r.w,r.y); octx.scale(-1,1); octx.drawImage(videoEl,0,0,r.w,r.h); octx.restore(); }
-    else octx.drawImage(videoEl,r.x,r.y,r.w,r.h);
-  }catch(e){}
-  try{ octx.drawImage(canvas,0,0); }catch(e){}
-  let img; try{ img=oc.toDataURL('image/jpeg',0.7); }catch(e){ return; }
+  // [CODE_REVIEW M8-6, 2026-09-06] 증거는 **원본 프레임**(오버레이 없음, 미러 없음)만 보낸다 — 예전엔 영상+박스·스켈레톤·구역을
+  //   합성한 캔버스를 증거 JPEG 로 저장해 그린 선이 증거에 들어갔다. 오버레이는 별도 필드(overlay_base64)로 보내 서버가
+  //   따로 저장한다(증거 옆 *_overlay.png). 서버 모자이크(privacy)는 원본에 그대로 적용된다.
+  let img;
+  try{
+    const oc=document.createElement('canvas'); oc.width=videoEl.videoWidth||W; oc.height=videoEl.videoHeight||H;
+    oc.getContext('2d').drawImage(videoEl,0,0,oc.width,oc.height);
+    img=oc.toDataURL('image/jpeg',0.8);
+  }catch(e){ return; }
+  let overlay=null;
+  try{ overlay=canvas.toDataURL('image/png'); }catch(e){}
   dzCaptureAt=now;
   const vlmOn = !!document.getElementById('togVlmConfirm')?.checked;   // safety 화면에만 존재(없으면 false)
+  // [M8-1] cam: 페이지가 go2rtc 카메라를 가로채 쓰면 그 id(window.VIGENT_CAM_ID) — 서버가 "워커가 감시 중인 카메라" 를 판단한다.
+  const camId=(typeof window!=='undefined' && window.VIGENT_CAM_ID) || 'browser';
   fetch(API_BASE+'/zone/intrusion',{method:'POST',headers:{'content-type':'application/json'},
-    body:JSON.stringify({image_base64:img, people:inZone, reasons, zone:'위험구역A', vlm_confirm:vlmOn})})
+    body:JSON.stringify({image_base64:img, overlay_base64:overlay, people:inZone, reasons, zone:'위험구역A', cam:camId, source:'browser', vlm_confirm:vlmOn})})
     .then(r=>r.json()).then(j=>{ if(j&&j.suppressed) console.info('[VIGENT] 🧠 VLM 오탐 필터 — 침입 알림 억제(증거는 저장)'); }).catch(()=>{});
 }
 // 위험구역 점유 상태를 서버에 푸시(아두이노 E-stop 폴링용)
@@ -2217,13 +2222,17 @@ function updateSafetyUI(ar,lm,objs){
   updatePpeUI();
 }
 
+// [M8-5] PPE 표시 문구: 서버 판정(ppe_yolo)만 '판정', 브라우저 ImageNet 키워드는 '참고(서버 판정 아님)'
+function _ppeSrv(){ return latestPpeStatus.source==='ppe_yolo'; }
+function _ppeMissTag(){ return _ppeSrv()?'미착용(서버 판정)':'미착용 참고(서버 판정 아님)'; }
 function getPpeIssues(){
   const issues=[];
   const h=latestPpeStatus.helmet, v=latestPpeStatus.vest;
   const fresh=Date.now()-(latestPpeStatus.updatedAt||0)<5000;
   if(!fresh) return issues;
-  if(h.state==='missing') issues.push({type:'warn',icon:'⛑',title:'안전모 미착용 의심',desc:`머리 영역 분류: ${h.raw||'보호모 단서 없음'}`});
-  if(v.state==='missing') issues.push({type:'warn',icon:'🦺',title:'안전조끼 미착용 의심',desc:`상체 영역 분류: ${v.raw||'조끼 단서 없음'}`});
+  if(latestPpeStatus.source!=='ppe_yolo') return issues;   // [M8-5] 브라우저 휴리스틱은 경고·점수·음성(통보 경로)에 쓰지 않는다
+  if(h.state==='missing') issues.push({type:'warn',icon:'⛑',title:'안전모 미착용(서버 판정)',desc:`머리 영역 분류: ${h.raw||'보호모 단서 없음'}`});
+  if(v.state==='missing') issues.push({type:'warn',icon:'🦺',title:'안전조끼 미착용(서버 판정)',desc:`상체 영역 분류: ${v.raw||'조끼 단서 없음'}`});
   return issues;
 }
 
@@ -2235,8 +2244,8 @@ function updatePpeUI(){
   const workerCount=Math.max(detectedPersonCount,sm?1:0);
   const statusText=(item)=>{
     if(!fresh||item.state==='unknown') return '확인 중';
-    if(item.state==='worn') return `착용 추정 ${Math.round(item.confidence*100)}%`;
-    return `미착용 의심 ${Math.round(item.confidence*100)}%`;
+    if(item.state==='worn') return `${_ppeSrv()?'착용(서버 판정)':'착용 참고(서버 판정 아님)'} ${Math.round(item.confidence*100)}%`;
+    return `${_ppeMissTag()} ${Math.round(item.confidence*100)}%`;
   };
   const workerEl=document.getElementById('ppeWorkerCount');
   if(workerEl) workerEl.textContent=workerCount>0?`${workerCount}명`:'미감지';
@@ -2267,12 +2276,12 @@ function updatePpeUI(){
     guide.textContent='카메라에 머리, 어깨, 상체가 함께 보이도록 맞춰주세요.';
   }else if(missing.length){
     card.className='simple-result danger'; guide.className='simple-guide danger';
-    title.textContent=`작업자 ${workerCount||'?'}명 · ${missing.join(', ')} 미착용 의심`;
+    title.textContent=`작업자 ${workerCount||'?'}명 · ${missing.join(', ')} ${_ppeMissTag()}`;
     desc.textContent='보호구 미착용 후보가 있어 관리자 확인이 필요합니다. 현재 판단은 경량 모델 기반 후보입니다.';
     guide.textContent='미착용이 맞다면 현재 장면 기록을 눌러 캡처 이미지와 함께 리포트에 남기세요.';
   }else if(worn.length){
     card.className='simple-result good'; guide.className='simple-guide';
-    title.textContent=`작업자 ${workerCount||'?'}명 · ${worn.join(', ')} 착용 추정`;
+    title.textContent=`작업자 ${workerCount||'?'}명 · ${worn.join(', ')} ${_ppeSrv()?'착용(서버 판정)':'착용 참고(서버 판정 아님)'}`;
     desc.textContent='보호구 착용 단서가 감지됐습니다. 조명과 각도를 유지하면 더 안정적으로 인식됩니다.';
     guide.textContent='전용 PPE 데이터로 학습하면 안전모/조끼 정확도를 더 높일 수 있습니다.';
   }else{
@@ -2327,14 +2336,12 @@ function _coordMismatchTelemetry(frame,nowVW,nowVH,nowW,nowH){
   if(!mism) return;
   const t=Date.now(); if(t-_coordMismLast<800) return; _coordMismLast=t;   // throttle(스팸 방지)
   const msg=`[coord-mismatch] captured VW×VH=${frame.VW}×${frame.VH} W×H=${frame.W}×${frame.H} → now VW×VH=${nowVW}×${nowVH} W×H=${nowW}×${nowH}`;
-  console.warn(msg);
-  try{ fetch('/recognition/log',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({rule:'coord_mismatch',level:'debug',note:msg})}); }catch(_){}
+  console.warn(msg);   // [CODE_REVIEW M8-7] 디버그는 콘솔만 — 안전 이벤트 로그(/recognition/log)에 섞지 않는다(서버도 규칙 화이트리스트)
 }
 // 카메라 기동/전환·리사이즈 등 기준값이 바뀌는 이벤트를 타임스탬프와 함께 기록(race 창 특정용).
 function _coordEvent(tag){
   const m=`[coord-event] ${tag} VW×VH=${videoEl.videoWidth}×${videoEl.videoHeight} canvas=${canvas.width}×${canvas.height} @${Date.now()}`;
-  console.info(m);
-  try{ fetch('/recognition/log',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({rule:'coord_event',level:'debug',note:m})}); }catch(_){}
+  console.info(m);   // [M8-7] 콘솔만
 }
 function renderCoreFrameOverlays(frame){
   // ★ race guard: 캐시된 frame.scX 사용 금지 — 렌더 시점 실제 videoWidth/canvas 로 스케일 재계산
@@ -3439,8 +3446,8 @@ function buildSafetyInsight(ar, lm, objects){
   if(danger.length){score-=12;problems.push(`위험 사물 ${danger.map(o=>translateClass(o.class)).join(', ')} 감지`);feedback.push('위험 도구 사용 구역과 보호구 착용 상태를 확인하세요.');}
   if(ppeIssues.length){score-=18;problems.push(ppeIssues.map(i=>i.title).join(' · '));feedback.push('안전모와 안전조끼 착용 여부를 현장에서 다시 확인하세요.');}
   if(personCount===0){score-=10;problems.push('작업자 감지가 불안정합니다');feedback.push('카메라 각도, 조명, 작업자 가림을 조정하세요.');}
-  const h=latestPpeStatus.helmet.state==='worn'?'안전모 착용':latestPpeStatus.helmet.state==='missing'?'안전모 미착용 의심':'안전모 확인 중';
-  const v=latestPpeStatus.vest.state==='worn'?'조끼 착용':latestPpeStatus.vest.state==='missing'?'조끼 미착용 의심':'조끼 확인 중';
+  const h=latestPpeStatus.helmet.state==='worn'?'안전모 착용':latestPpeStatus.helmet.state==='missing'?`안전모 ${_ppeMissTag()}`:'안전모 확인 중';
+  const v=latestPpeStatus.vest.state==='worn'?'조끼 착용':latestPpeStatus.vest.state==='missing'?`조끼 ${_ppeMissTag()}`:'조끼 확인 중';
   return {
     name:'BODA Safety 현장 알림',
     sub:'보호구, 위험구역, 위험 행동 후보를 관리자 관점으로 요약합니다.',

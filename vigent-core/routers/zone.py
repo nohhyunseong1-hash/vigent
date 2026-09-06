@@ -52,8 +52,11 @@ def zone_intrusion_alert(payload: dict = Body(default={}), theme: str = DEFAULT_
     img_url = (img if (img or "").startswith("data:") else "data:image/jpeg;base64," + img) if img else None
     decoded = decode_data_url(img_url) if img_url else None
     rec = data_engine.log_event(rule="zone_intrusion", level="high",
-                                site=zone_name, note=", ".join(reasons), image_data_url=img_url)
+                                site=zone_name, note=", ".join(reasons), image_data_url=img_url,
+                                source=str(payload.get("source") or "browser"))   # [M8-7] 출처 꼬리표
     saved = rec.get("evidence")
+    # [CODE_REVIEW M8-6] 증거 JPEG 는 원본 프레임만. 브라우저 오버레이(박스·구역)는 별도 파일(*_overlay.png)로.
+    overlay_saved = data_engine.save_overlay(saved, payload.get("overlay_base64"))
 
     # CNN→VLM 하이브리드 확정(opt-in: vlm_confirm). 고신뢰 오탐만 푸시 억제(증거·기록은 유지).
     vlm_conf, suppressed = None, False
@@ -78,4 +81,5 @@ def zone_intrusion_alert(payload: dict = Body(default={}), theme: str = DEFAULT_
             "phone_sent": queued,                              # 통보 큐 적재 여부(비동기 발송)
             "fallback": not queued,                            # 미적재(억제·미배선)
             "gate": gate,
-            "evidence": saved}
+            "evidence": saved,
+            "overlay": overlay_saved}                          # [M8-6] 오버레이 별도 파일(없으면 None)

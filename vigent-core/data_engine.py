@@ -131,10 +131,29 @@ def unpin_evidence(rel_path: str) -> None:
     _write_pins(pins)
 
 
+def save_overlay(evidence_rel: str | None, overlay_data_url: str | None) -> str | None:
+    """[CODE_REVIEW M8-6] 브라우저 오버레이(박스·스켈레톤·구역 PNG)를 증거 **옆에 별도 파일**로 저장한다.
+    증거 JPEG 자체는 원본 프레임만 담는다(증거 무결성). 반환: 상대경로(실패·미지정 None). 오버레이는 증거가 아니라
+    자동 pin 대상이 아니며 보존 일수는 증거와 같은 폴더 규칙을 따른다."""
+    if not evidence_rel or not overlay_data_url:
+        return None
+    try:
+        b64 = overlay_data_url.split(",", 1)[1] if overlay_data_url.startswith("data:") else overlay_data_url
+        raw = base64.b64decode(b64)
+        p = _ROOT / evidence_rel
+        out = p.with_name(p.stem + "_overlay.png")
+        out.write_bytes(raw)
+        return norm_rel(str(out.relative_to(_ROOT)))
+    except (ValueError, OSError, IndexError) as ex:
+        _elog().warning("오버레이 저장 실패(무시, 증거는 유지): %s", ex)
+        return None
+
+
 def log_event(rule: str, level: str = "", score: float = 0.0,
               site: str = "", note: str = "",
               image_data_url: str | None = None,
-              privacy_failed: bool = False) -> dict[str, Any]:
+              privacy_failed: bool = False,
+              source: str | None = None) -> dict[str, Any]:
     """위험 이벤트 1건 기록(+증거 프레임). 항상 결과를 반환(예외로 죽지 않음).
 
     ★[D4-②, 2026-08-24] `privacy_failed=True` 면 그 증거 이미지는 **얼굴 모자이크가
@@ -152,6 +171,8 @@ def log_event(rule: str, level: str = "", score: float = 0.0,
     }
     if privacy_failed:                 # [D4-②] 원본이 저장된 건만 표시(선별 삭제용 꼬리표)
         record["privacy_failed"] = True
+    if source:                         # [M8-7·M8-1] 출처 꼬리표(browser 등). 워커 기록은 없음(정본)
+        record["source"] = str(source)
     # ★[F2] docstring 의 "예외로 죽지 않음" 을 실제로 보장한다 — 이전에는 mkdir·open 이
     #   try 밖이라 디스크 풀에서 예외가 올라갔고, **기록 실패가 알림 실패로 전이**됐다.
     #   기록이 실패해도 record 는 정상 반환해 호출부의 통보 경로가 이어지게 한다.

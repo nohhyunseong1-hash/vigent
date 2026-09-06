@@ -480,7 +480,7 @@
       if(now-_ppeBadSince>=2000 && now>=_ppeCool){          // 2초 지속 + 30초 쿨다운
         _ppeCool=now+30000;
         await fetch('/recognition/log',{method:'POST',headers:{'Content-Type':'application/json'},
-          body:JSON.stringify({rule:'ppe_missing',level:'high',site:'현장',note:'보호구 미착용 감지',image:sharedFrame()})});
+          body:JSON.stringify({rule:'ppe_missing',source:'browser',level:'high',site:'현장',note:'보호구 미착용 감지',image:sharedFrame()})});
         console.info('[VIGENT] 🦺 보호구 미착용 기록');
       }
     }catch(e){}
@@ -497,7 +497,7 @@
       if(now-_fireSince>=2000 && now>=_fireCool){
         _fireCool=now+30000;
         await fetch('/recognition/log',{method:'POST',headers:{'Content-Type':'application/json'},
-          body:JSON.stringify({rule:'fire_smoke',level:'critical',site:'현장',note:'화재/연기 감지',image:sharedFrame()})});
+          body:JSON.stringify({rule:'fire_smoke',source:'browser',level:'critical',site:'현장',note:'화재/연기 감지',image:sharedFrame()})});
         console.warn('[VIGENT] 🔥 화재/연기 기록');
       }
     }catch(e){}
@@ -515,7 +515,7 @@
         _proxCool=now+30000;
         const h=px[0];
         await fetch('/recognition/log',{method:'POST',headers:{'Content-Type':'application/json'},
-          body:JSON.stringify({rule:'proximity_hazard',level:'high',site:'현장',
+          body:JSON.stringify({rule:'proximity_hazard',source:'browser',level:'high',site:'현장',
             note:h.vehicle+' 작업반경 침입 — 사람 약 '+h.distance_m+'m',image:sharedFrame()})});
         console.warn('[VIGENT] 🚧 작업반경 침입(협착) 기록:', h.vehicle, h.distance_m+'m');
       }
