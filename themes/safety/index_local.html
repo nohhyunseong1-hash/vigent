@@ -24,7 +24,11 @@
      go2rtc 연결 실패 시 자동으로 웹캠 폴백 → 저하 없음. -->
 <script>
 (function(){
-  if(new URLSearchParams(location.search).get('cam')!=='tapo') return;
+  // [CODE_REVIEW M8-1] 브라우저가 쓰는 카메라 id — 서버가 "워커가 이미 감시 중인 카메라" 인지 판단해 이중 통보를 막는다.
+  //   ?cam=tapo 면 go2rtc 스트림 이름(?src= 있으면 그 이름, 기본 'tapo'), 아니면 로컬 웹캠('browser-webcam').
+  const _q=new URLSearchParams(location.search);
+  window.VIGENT_CAM_ID = _q.get('cam')==='tapo' ? (_q.get('src')||'tapo') : 'browser-webcam';
+  if(_q.get('cam')!=='tapo') return;
   // go2rtc 를 VIGENT 서버(같은 출처)가 중계 → CORS 없음
   const JS='/tapo/video-rtc.js';
   const WS=`${location.protocol==='https:'?'wss':'ws'}://${location.host}/tapo/ws`;
