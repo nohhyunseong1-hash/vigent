@@ -122,6 +122,30 @@
   | single_move | 7/84f | 0→0 | []→[] | 0→0 | 0 |
 
   사라진 발화(구에만): single_fast 5.8·6.4·8.0·13.3·13.8s(d 0.22~0.30, tid 없음=파편 트랙 사이 "가짜 이동"), occlusion 10.1s, multi_scene 12.5s(둘째). 생긴 발화(신에만): multi_scene 2.5s(tid …000, d 0.17, S1 카메라 급이동 구간)·9.5·13.0·13.5·19.x s(tid …001·009·015·017, d 0.18~0.73, S5 다인 교차). **해석은 추측/미검증(육안 미확인)**: 구 동작은 스왑(11·22회)으로 궤적이 끊겨 실제 이동량이 작게 계산됐고, 신 동작은 같은 사람의 1초 이동량이 온전히 잡힌다. 무동작은 영상이 ≤20s라 전부 0(임계 45s) — 무동작 회귀는 단위 테스트로만 확인.
+- **M2-2 육안 검증(대표 지시, 2026-09-06)** — 발화 시각 전후 1초(2fps 표본 5장)에 박스·tid 를 그려 `D:\vigent_private_data\_audit_tmp\`에서 직접 판독(판독 후 폴더 삭제, 산출물에 이미지 없음):
+
+  | 영상·시각 | tid | 같은 사람? | 실제 이동? | 판정 |
+  |---|---|---|---|---|
+  | multi_scene 2.5s | …000 | 예(우측 작업자, 연속 5프레임 동일 복장) | 프레임 내 이동 있음 — **카메라 팬**(휴대폰 촬영, S1 "카메라 급이동" 구간)+보행 | 실이동이나 카메라 기여 큼 → **카메라 흔들림 억제 항목(M3)** |
+  | multi_scene 9.5s | …001 | 예(철근 운반 작업자) | 예(오른쪽으로 걸어감 + 카메라 추종) | 정상 발화 |
+  | multi_scene 13.0s | …001 | 예(12.0s 는 같은 사람의 하반신만 잡힘 — 동일 신발·하의) | 카메라 **틸트**로 프레임 내 위치가 크게 변함(사람 이동은 작음) | 카메라 기여 → M3 |
+  | multi_scene 13.5s | …001 | 예 | 카메라 팬(소) | M3 |
+  | multi_scene 19.0s | …015 | **아니오**(18.5s 중앙 상단 배경 작업자 → 19.0s 좌상단 다른 배경 작업자; 카메라는 반대 방향으로 팬) | — | **ID 재부여** → 게이트 조정 |
+  | multi_scene 19.5s | …009 (d 0.73) | **아니오**(우상단 → 중앙 → 좌상단, 서로 다른 배경 작업자 3명) | — | **ID 재부여** → 게이트 조정 |
+  | single_fast 5.85s(구만 발화) | (구 tid 없음 / 신 tid …030) | 예 — 작은 남자(…030)가 큰 남자 뒤로 좌→우 횡단 | **예**(실제 횡단) | ★신 동작 **미탐** — 원인: 15fps 표본 간격 0.533s × 2 = 1.067s > 창 1.0s(가림으로 1표본 결손) |
+  | occlusion 10.13s(구만 발화) | (구 tid 없음 / 신 …024) | 예 — 화이트보드 뒤에서 걸어 나옴(9.05→10.12s, x 0.2→0.65) | **예** | ★신 동작 **미탐** — 같은 원인 |
+
+  → 조치: ① 재부여 게이트를 **보정 거리 0.25/표본**(`TID_JUMP_MAX`, y×h/w 포함)으로 — 배경 작업자 재부여는 0.36~0.5/표본, 사람의 실제 급이동은 ≤0.15/표본. 분리된 옛 트랙은 **이력을 비움**(남기면 옛 표본으로 1초간 재발화 — 재측정 중 실측). ② 창 여유 `RAPID_T_SLACK=0.1s`(15fps 표본 2스텝 1.067s 수용). 테스트 13(+3). **재측정**(구 동작 = tid 제거·여유 0):
+
+  | 영상 | 급격동작 프레임 발화 구→신 | 15s 쿨다운 이벤트 시각(s) 구→신 | 구 ID 스왑 |
+  |---|---|---|---|
+  | multi_scene | 7→6 | [9.0]→[2.5, 18.5] | 11 |
+  | multi_cross | 6→6 | [3.73]→[5.32] | 5 |
+  | occlusion | 2→7 | [4.79]→[4.26] | 3 |
+  | single_fast | 7→16 | [5.85]→[4.78] | 22 |
+  | single_move | 0→0 | []→[] | 0 |
+
+  재부여 발화(19.0s tid15·19.5s tid9 d0.45~0.73) **소멸**. 미탐 2건(single_fast 5.8s tid30 d0.25 · occlusion 10.1s tid24 d0.18) **회수**. 15fps 영상의 프레임 발화 증가(2→7·7→16)는 여유 덕에 3표본 창이 성립해 같은 사람의 연속 이동(multi_cross tid20 0.18~0.39·occlusion tid24 0.16~0.31 = 육안상 실제 보행/횡단)을 매 표본 잡는 것 — 15s 쿨다운 이벤트 수는 전부 불변. multi_scene 잔여 신 발화(2.5·13.5·18.5~20.0s, d 0.15~0.25)는 전부 **카메라 팬/틸트 구간** → **M3 등록: 카메라 흔들림 억제(전역 이동 보정 또는 다수 트랙 동시 이동 시 억제)**. **M2-2 육안 검증 완료(종결)**.
 - **M2-4·M2-5** ✅ `59f259d`: 근골격 `level="low"` 기록 전용 명시(R9 답: 기록 O·통보 X) · `ppe_missing_labels` 신호 + note.
 - **M2-6·M2-7** 문서만(M2-7 → R15 중간 등록). 하드코딩 상수 7개는 모듈 7에서 설정 모듈로.
 
@@ -147,7 +171,59 @@
 | 통보 게이트 | 300s·×2.0·상한 3600s·조용 1800s·시간당 6 | tuning `alerts.*` | O(모듈 3) |
 | 구역 타일 재검출 | thr 0.1·최소 높이 15px·확대 2.0 | `zone_tile.py:31` | ✗(env `VIGENT_ZONE_TILE`) |
 
-## 3. 모듈 3 — 오경보 억제 (대기)
+## 3. 모듈 3 — 오경보 억제 (보고 2026-09-06, 수정 대기)
+
+**읽은 파일(전체)**: `alert_gate.py` · `alert_notify.py` · `alert_queue.py` · `agents/dispatcher.py` · `vlm_confirm.py` · `zone_debounce.py` · `routers/{dispatch,zone}.py` · `routers/safety_core.py`(`/safety/sensor`·`/alerts/test`·brain 통보) · `privacy.py` 실패 통보 · `main.py` 배선(362~380) · `static/realtime_core.js` 1822~1934(브라우저 침입 경보 경로).
+
+### 3-1. 한 경보가 규칙 발화 → 최종 통보까지 통과하는 관문(워커 경로, 순서대로)
+
+| # | 관문 | 임계·시간 상수 | 위치 |
+|---|---|---|---|
+| G1 | 검출 임계(슬롯별 conf, ppe/fire 클래스별 후필터) | person 0.35 · ppe 0.55 · fire 0.70(tuning `detect.conf.*`) | `guard.py detect()` |
+| G2 | 후처리(NMS 0.55 · 포함비 0.70 · PPE↔person 교차게이트 0.15 확장 · 차량 중복) | 고정 | `guard.py:1017~1026` |
+| G3 | 신호 히스테리시스(카메라 키 단위 연속 프레임) | ppe 3 · fire 2(tuning `detect.hysteresis_frames`) | `guard.py _hysteresis` |
+| G4 | 규칙 판정 디바운스 | zone 진입 1.0s/이탈 1.0s(**사람 단위**) · proximity 0.4s/1.0s(카메라 단위) · **rapid/immobility/crowd 는 없음**(매 프레임) | `worker.py _derive` · `zone_debounce.py` |
+| G5 | 규칙 쿨다운(기록 단계) | 15s, 키 `rule\|subject`(zone 만 사람 단위) | `worker.py:1009~1013` |
+| G6 | 증거 JPEG 쿨다운(기록은 유지, 이미지만) | 30s 규칙 단위 | `worker.py:1020` |
+| G7 | 기록 `data_engine.log_event` | 억제 없음(항상 기록) | `data_engine.py` |
+| G8 | 통보 배선 스위치 | tuning `alerts.notify`(env `VIGENT_ALERT_NOTIFY`) | `alert_gate.enabled()` |
+| G9 | 통보 게이트(카메라+규칙 단위) | ① 시간당 상한 6 → ② 등급 상승이면 쿨다운 무시 → ③ 쿨다운 300s × 2.0 백오프(상한 3600s, 1800s 조용하면 리셋) | `alert_gate.decide()` |
+| G10 | 전송 대기열 | 200건, 가득 차면 **가장 오래된 것 폐기** | `alert_notify.submit()` |
+| G11 | 등급 → 채널 배선 | `on_severity`: critical=alarm+manager_call+relay · high=alarm+manager_call · medium/mid/low=log 만 → 원격 채널 없는 등급은 큐에 안 넣음 | `dispatcher._queue_enabled` |
+| G12 | 실제 전송(텔레그램 6s·이메일 8s·웹훅 6s 타임아웃, critical 은 relay ON) → `delivered`=원격 1개 이상 성공 | — | `dispatcher._dispatch_now` |
+| G13 | 실패 재시도 | 5s 주기 · 지수 백오프 ≤60s · 10회 → dead | `alert_queue` |
+
+### 3-2. 관문을 건너뛰는 경로(우회)
+
+| 경로 | 건너뛰는 관문 | 호출부 | 비고 |
+|---|---|---|---|
+| `POST /zone/intrusion` → `dispatcher.dispatch("high")` | G3~G10 전부(서버 측 억제 0) | 브라우저 `realtime_core.js:1852`(브라우저 자체 검출: 3프레임 연속 + **8s 쿨다운**만, `:1824`) | 탭 N개 = 통보 N배. `vlm_confirm` 옵션(mlx 전용)은 여기만 배선 |
+| `POST /safety/sensor` → `dispatch("critical")` | 전부 | 외부 센서가 주기적 POST | ★임계 초과가 지속되면 **POST 주기마다** critical 통보 + relay ON |
+| `POST /safety/brain…`(`safety_core.py:652`) → `dispatch("high")` | 전부 | 프론트 `alert=true` | 억제 0 |
+| `POST /dispatch/relay` → `dispatcher.relay()` → critical | 전부 | 정적 JS 에 호출부 **없음**(그 외 위치 미확인 → 모듈 8) | 큐 #75~#87 의 출처 |
+| `POST /alerts/test` → `dispatch(level, message)` | 전부 | 설정 콘솔 시험 버튼(`setup_console.py:210`) | 의도된 시험 경로 |
+| `privacy._note_failure` → `alert_notify.submit` | (G9 적용, cam="privacy") | 자체 10분 1회 제한 | 정상 |
+| `alert_queue` 재시도 → `_dispatch_now` | G9~G11(이미 통과) | 재시도 스레드 | ★**재시도마다 relay.turn_on 재호출** |
+
+### 3-3. 발견 사항
+
+| ID | 파일:줄 | 심각도 | 문제 | 근거 | 수정안 |
+|---|---|---|---|---|---|
+| M3-1 | `worker.py MotionTracker` | **중간**(대표 등록) | 급격동작이 **카메라 팬/틸트**에 발화(육안검증 multi_scene 2.5·13.0·13.5·18.5~20.0s — 같은 사람, 카메라 기여) | §2-4 육안 표 | 전역 이동 보정(모든 트랙의 중위 이동 벡터를 빼고 판정) 또는 다수 트랙(≥2 또는 과반) 동시 이동 시 억제. 고정 CCTV 에선 드물지만 진동·바람 흔들림에도 해당 |
+| M3-2 | `routers/safety_core.py:525-538` (`/safety/sensor`) | **높음** | 센서 임계 초과가 지속되면 **POST 마다** critical 기록 + 통보 + relay ON — 억제 관문 0. 센서는 주기(초 단위)로 보내는 장치라 폭주 구조 | 코드 | `alert_notify.submit(cam=f"sensor:{stype}", rule=rule, level="critical", …)` 로 통일해 G9 를 타게. 기록은 유지 |
+| M3-3 | `routers/zone.py:70` · `safety_core.py:652` · `routers/dispatch.py:28` | **중간** | 브라우저·수동 경로가 `dispatcher.dispatch` 를 **직접** 호출 → 카메라·규칙 단위 백오프·시간당 상한(G9) 미적용. 브라우저 경로는 8s 쿨다운만이라 탭 수·재접속마다 곱 | 코드 · `realtime_core.js:1824` | 세 호출부를 `alert_notify.submit(cam=<브라우저 세션/센서>, rule=…)`로 통일(게이트 키 = 규칙+출처). `/alerts/test` 는 의도된 시험 경로라 제외 |
+| M3-4 | `worker.py:1009-1013` (`ctx.cooldown`) | **중간**(M2-1 동류) | 쿨다운 키 `zone_intrusion\|t<tid>`가 사람마다 생기고 **지워지지 않음** → 운영 일수만큼 누적 | 코드(`ctx.cooldown[ck] = now`, pop 없음) | 프레임마다(또는 60s 마다) `now - ts > _COOLDOWN_S` 인 키 제거. 테스트: 300명 진입 시뮬 후 크기 상한 |
+| M3-5 | `agents/dispatcher.py:205-215` + `alert_queue.try_send` | **중간**(모듈 4 이관) | 원격 채널 실패로 재시도될 때 `_dispatch_now` 가 **relay.turn_on 도 다시** 부른다 → 채널 미설정/장애 시 critical 1건이 사이렌을 최대 10회 재트리거(ON 연장) | 코드 | 재시도 경로는 원격 채널만(relay·log 제외) 또는 `_dispatch_now(..., remote_only=True)` |
+| M3-6 | `alert_gate.py:113` | 낮음 | 등급 상승 예외 후 `last_rank` 갱신 → high→critical→high→critical 이 번갈아 오면 매번 쿨다운 무시(시간당 상한 6이 최종 방어) | 코드 | 상승 예외에도 최소 간격(예: 60s) 부여 |
+| M3-7 | `vlm_confirm.py` · `routers/zone.py:60` | 낮음(FINAL_SUMMARY 연결) | "CNN→VLM 하이브리드 확정"은 **브라우저 `/zone/intrusion` 옵션에만** 배선, 워커 경로 미배선 + mlx 전용(Windows 무효) | 코드 | Windows VLM 대체 구현 시 워커 경로 2차 확정으로 설계 |
+| M3-8 | `realtime_core.js:1911-1934` + 워커 | 낮음(모듈 8 확인) | 같은 카메라를 브라우저 라이브뷰와 서버 워커가 동시에 감시하면 **이중 통보**(브라우저 3프레임+8s / 워커 1.0s+15s+게이트) | 코드 | 브라우저 통보를 서버 게이트에 합류(M3-3)시키면 자연 해소 |
+| M3-9 | `worker.py _derive` | 정보 | rapid/immobility/crowd 는 디바운스 없이 15s 쿨다운만. crowd 는 매 15s 재기록(mid → log 전용) | 코드 | 현 상태 유지(통보 안 됨). 카메라 흔들림(M3-1)만 처리 |
+
+### 3-4. 수정 계획(승인 대기)
+- **높음 M3-2** + **중간 M3-3**: `dispatch` 직접 호출 3곳(`/safety/sensor`·zone.py·safety_core:652)을 `alert_notify.submit` 으로 통일(게이트 키 = 출처+규칙). 선행 테스트: 센서 임계 초과 POST 10회 → 통보 1회(기록 10회). 응답 계약(`alert_sent`·`phone_sent`)은 "큐 적재 여부" 로 의미가 바뀜 → 응답 키 유지·값 의미를 문서화(OpenAPI 스키마 불변).
+- **중간 M3-4**: 쿨다운 키 정리 — 선행 테스트 후 수정.
+- **중간 M3-1**: 카메라 흔들림 억제 — 설계 선택(전역 이동 보정 vs 다수 동시 이동 억제) 대표 결정 후 구현·재측정(multi_scene 2.5·13.x·19.x 소멸, multi_cross·occlusion 실이동 유지가 검증 기준).
+- **M3-5** → 모듈 4. **M3-6·7·8·9** 문서만(M3-8 은 모듈 8에서 확인).
 ## 4. 모듈 4 — 통보(dispatcher·텔레그램·기동 실패 알림) (대기)
 
 ### 4-0. ★예약(치명) — `data/alert_queue.db` pending 15건 실측(2026-09-06, 읽기 전용·발송 0)
