@@ -92,6 +92,16 @@ if ($existing) {
   Start-Sleep -Seconds 2
 }
 
+# ── 3.5 [CODE_REVIEW M4-5(a)] Windows 이벤트 로그 소스 등록(관리자 컨텍스트에서 1회) ─────────────
+#   기동 실패 시 main._startup 이 Application/VIGENT/ID 1000 에 ERROR 를 남긴다. 소스가 등록돼 있어야
+#   비관리자 세션(run.ps1 개발 실행)에서도 Write-EventLog 가 통한다. 이미 있으면 건너뜀.
+try {
+  if (-not [System.Diagnostics.EventLog]::SourceExists("VIGENT")) {
+    New-EventLog -LogName Application -Source VIGENT
+    Write-Host "이벤트 로그 소스 'VIGENT' 등록(Application)"
+  } else { Write-Host "이벤트 로그 소스 'VIGENT' 이미 등록됨" }
+} catch { Write-Host "이벤트 로그 소스 등록 실패(무시, 서비스 계정의 eventcreate 가 자동 등록): $($_.Exception.Message)" -ForegroundColor Yellow }
+
 # ── 4. 서비스 생성 ─────────────────────────────────────────────────────
 $appArgs = "-m uvicorn main:app --host $Bind --port $Port"
 & $nssmPath install $ServiceName $Py $appArgs
@@ -102,10 +112,15 @@ $appArgs = "-m uvicorn main:app --host $Bind --port $Port"
 # 시작 유형: 지연 자동 — 부팅 직후 네트워크·GPU 드라이버가 준비된 뒤 기동
 & $nssmPath set $ServiceName Start SERVICE_DELAYED_AUTO_START
 
-# 실패 시 재시작(5초 지연). AppExit Default Restart = 어떤 종료코드든 재시작
+# 실패 시 재시작. AppExit Default Restart = 어떤 종료코드든 재시작
+# ★[CODE_REVIEW M4-5(b), 2026-09-06] 크래시 루프 완화 — 실사고: 기동 실패(가중치 부재)가 130초 주기로 3주·4,067회
+#   반복됐는데 AppThrottle 10s 는 "10초 안에 죽을 때"만 감속해 무력했다. 모델 로드(~25s)+실패까지가 10초를 넘기 때문.
+#   → AppThrottle 를 기동 시간보다 길게(180s) 두어 "기동 후 3분 안에 죽으면 폭주"로 보고 감속하고,
+#     재시작 지연을 60s 로 늘려 루프 자체를 완만하게 한다(정상 크래시 복구는 1분 지연을 감수).
+#   기동 실패 자체는 main._startup 이 통보·이벤트로그(Application/VIGENT ID 1000)로 드러낸다(M4-5(a)).
 & $nssmPath set $ServiceName AppExit Default Restart
-& $nssmPath set $ServiceName AppRestartDelay 5000
-& $nssmPath set $ServiceName AppThrottle 10000       # 10초 안에 죽으면 폭주로 보고 감속
+& $nssmPath set $ServiceName AppRestartDelay 60000    # 재시작 지연 60초(구 5초)
+& $nssmPath set $ServiceName AppThrottle 180000       # 기동 후 180초 안에 죽으면 폭주로 보고 감속(구 10초)
 
 # 로그: stdout/stderr 파일 + 크기 기반 로테이션(온라인 로테이션 = 서비스 중지 없이)
 $outLog = Join-Path $LogDir "vigent.out.log"

@@ -309,6 +309,91 @@ def _install_safety_nets() -> None:
         pass
 
 
+# ── [CODE_REVIEW M4-5(a), 2026-09-06] 기동 실패를 조용히 넘기지 않는다 ──
+#   실사고: guard 가 가중치 부재로 FileNotFoundError → uvicorn "startup failed" 종료 → NSSM 이 130초마다 재시작을
+#   3주·4,067회 반복했는데 아무 알림이 없었다(/health 는 프로세스가 없어 응답 자체가 없다).
+#   여기서는 ①data/startup_failure.json 에 누적 횟수·마지막 통보 시각 ②Windows 이벤트 로그(Application/VIGENT) 1줄
+#   ③원격 채널이 있으면 1시간 1회 통보 — 그 뒤 **재raise** 해 기동은 실패시킨다(조용히 뜨는 것이 더 위험).
+_STARTUP_FAIL_STATE = _ROOT / "data" / "startup_failure.json"
+_STARTUP_NOTIFY_EVERY_S = 3600.0
+
+
+def _write_windows_event(msg: str) -> bool:
+    """Windows 이벤트 로그(Application, 소스 VIGENT, ID 1000)에 ERROR 1줄. 비Windows·실패는 False(무해).
+
+    1차 `eventcreate`(소스 자동 등록 — 관리자/LocalSystem 서비스에서 동작), 2차 `Write-EventLog`(소스가
+    `install_service.ps1` 로 미리 등록돼 있으면 비관리자 세션에서도 동작). 결과는 startup_failure.json 의
+    event_log_ok 로 남아 "이벤트 로그가 실제로 남았는지" 확인할 수 있다(규칙 11).
+    ※ 2026-09-06 개발 PC(비관리자)에서 eventcreate 는 "Access is denied" 실측 — 서비스 계정 경로는 미검증.
+    """
+    if os.name != "nt":
+        return False
+    import subprocess
+    text = msg[:900]
+    try:
+        r = subprocess.run(["eventcreate", "/T", "ERROR", "/ID", "1000", "/L", "APPLICATION", "/SO", "VIGENT",
+                            "/D", text], capture_output=True, timeout=10)
+        if r.returncode == 0:
+            return True
+    except Exception:  # noqa: BLE001
+        pass
+    try:
+        safe = text.replace("'", "''")
+        r = subprocess.run(["powershell", "-NoProfile", "-NonInteractive", "-Command",
+                            f"Write-EventLog -LogName Application -Source VIGENT -EntryType Error -EventId 1000 "
+                            f"-Message '{safe}'"], capture_output=True, timeout=15)
+        return r.returncode == 0
+    except Exception:  # noqa: BLE001
+        return False
+
+
+def _send_startup_alert(msg: str) -> bool:
+    """원격 채널(notify.yaml/.env)로 기동 실패 통보 — Guard 가 없어도 동작하도록 Dispatcher 를 단독 생성.
+    relay·log 는 제외(remote_only). 채널 미설정이면 False."""
+    try:
+        from agents.dispatcher import DispatcherAgent
+
+        class _Cfg:
+            raw: dict = {}
+        d = DispatcherAgent(_Cfg())
+        if not d.channels_configured():
+            return False
+        res = d._dispatch_now("critical", msg, {"kind": "startup_failure"}, remote_only=True)
+        return bool(res.get("delivered"))
+    except Exception:  # noqa: BLE001
+        return False
+
+
+def _notify_startup_failure(exc: BaseException) -> None:
+    """기동 실패 1회 처리: 상태 파일 갱신 + 이벤트 로그(매회) + 통보(첫 실패 즉시, 이후 1시간 1회)."""
+    import json
+    import time as _t
+
+    from routers.system import _strip_paths
+    now = _t.time()
+    st: dict = {"count": 0, "last_notify_ts": 0.0}
+    try:
+        st.update(json.loads(_STARTUP_FAIL_STATE.read_text(encoding="utf-8")))
+    except Exception:  # noqa: BLE001  없거나 깨졌으면 새로 시작
+        pass
+    st["count"] = int(st.get("count", 0)) + 1
+    st["last_failure_ts"] = now
+    st["last_error"] = _strip_paths(f"{type(exc).__name__}: {exc}", 300)
+    msg = (f"[VIGENT] 서버 기동 실패 {st['count']}회 — {st['last_error']} · /health 응답 없음. "
+           f"서비스가 재시작을 반복할 수 있다(로그·가중치·RF_HOME 확인)")
+    _log.error("★기동 실패(누적 %d회): %s", st["count"], st["last_error"])
+    st["event_log_ok"] = _write_windows_event(msg)
+    if now - float(st.get("last_notify_ts", 0.0)) >= _STARTUP_NOTIFY_EVERY_S:
+        if _send_startup_alert(msg):
+            st["last_notify_ts"] = now
+            st["notified_count"] = int(st.get("notified_count", 0)) + 1
+    try:
+        _STARTUP_FAIL_STATE.parent.mkdir(parents=True, exist_ok=True)
+        _STARTUP_FAIL_STATE.write_text(json.dumps(st, ensure_ascii=False, indent=1), encoding="utf-8")
+    except Exception:  # noqa: BLE001  상태 파일을 못 써도 기동 실패 처리는 계속
+        pass
+
+
 @app.on_event("shutdown")
 def _shutdown() -> None:
     """graceful shutdown(SIGTERM/SIGINT 시 uvicorn 이 트리거) — 워커 정리·리소스 해제."""
@@ -323,7 +408,11 @@ def _shutdown() -> None:
 @app.on_event("startup")
 def _startup() -> None:
     _install_safety_nets()          # 1단계: 프로세스 레벨 예외 안전망 설치
-    bundle = _load_theme(DEFAULT_THEME)
+    try:
+        bundle = _load_theme(DEFAULT_THEME)
+    except Exception as ex:  # noqa: BLE001  [M4-5(a)] 기록·통보 뒤 재raise — 기동은 실패시킨다
+        _notify_startup_failure(ex)
+        raise
     cfg = bundle["config"]
     s = cfg.summary()
     _log.info("'%s' 로드 완료 (폴백 %s개 / 비활성 %s개)",

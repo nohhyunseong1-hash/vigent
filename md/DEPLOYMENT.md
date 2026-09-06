@@ -427,7 +427,7 @@ env를 `nssm set`으로 손으로 고치지 않는다(다음 재설치 때 되�
 | 2 | 가중치 조달: `python scripts\fetch_weights.py --all` (§4) | `vigent-core\weights\rf-detr-nano.pth` + rfdetr 3종 존재 |
 | 3 | `.\install_service.ps1` | "서비스 'VIGENT' 상태: Running" |
 | 4 | `.\service_status.ps1` 를 **예열 후(≥20초) 한 번 더** | `HTTP 200 · status=healthy/degraded · phase=ready` — 15초 넘게 503이면 §9-② |
-| 5 | **크래시 루프 검사**: `Get-ChildItem logs\vigent.err-* \| Measure-Object` 가 몇 분 사이 계속 늘면 루프다 | 늘지 않음 |
+| 5 | **크래시 루프 검사**: `.\service_status.ps1` 종료코드 **4**(최근 1시간 `vigent.err-*` 회전 파일 ≥ 임계 10, `-CrashLoopThreshold` 조정) 또는 `Get-ChildItem logs\vigent.err-* \| Measure-Object` 가 몇 분 사이 계속 늘면 루프다 | 종료코드 0~2, 늘지 않음 |
 
 **`install_service.ps1`이 서비스에 넣는 환경변수(2026-09-06 현재, 스크립트 `$envLines`)** — 재설치 시 전부 자동 설정된다:
 
@@ -443,7 +443,10 @@ env를 `nssm set`으로 손으로 고치지 않는다(다음 재설치 때 되�
 
 비밀값(`VIGENT_API_TOKEN`·텔레그램·카메라 자격증명)은 서비스 env가 아니라 `.env`·`config/notify.yaml`·`data/camera_secrets.json`(전부 gitignore)에서 읽는다.
 
-> 4단계 개선 검토(대표 지시): 기동 실패 시 **알림**(텔레그램 또는 Windows 이벤트 로그) 또는 **NSSM 재시작 제한**(`AppThrottle`/`AppExit` 조정)으로 "3주간 미감지"가 재발하지 않게 한다.
+**크래시 루프 재발 방지(4단계 CODE_REVIEW M4-5, 2026-09-06 반영)** — "3주간 미감지"를 세 겹으로 막는다:
+1. **기동 실패 통보·기록**(`main._startup`): `_load_theme` 실패 시 ① `data/startup_failure.json`에 누적 횟수·마지막 통보 시각 ② **Windows 이벤트 로그** Application / 소스 `VIGENT` / ID 1000 에 ERROR 1줄(매 실패 — 텔레그램 설정 자체가 원인일 때 대비) ③ 원격 채널(notify.yaml/.env)이 있으면 텔레그램·이메일·웹훅 통보(첫 실패 즉시, 이후 **1시간 1회**) → 그 뒤 재raise(기동은 실패시킨다). 확인: `Get-EventLog -LogName Application -Source VIGENT -Newest 5`.
+2. **NSSM 파라미터**(`install_service.ps1`): `AppRestartDelay 60000`(재시작 지연 60s, 구 5s) · `AppThrottle 180000`(기동 후 180s 안에 죽으면 폭주로 보고 감속, 구 10s — 모델 로드 ~25s 뒤 실패하는 루프에 10s 스로틀은 무력했다). **재설치해야 적용**(현재 개발 PC 서비스는 SERVICE_DISABLED, 재설치는 5단계 검증 후 결정).
+3. **`service_status.ps1`**: 최근 1시간 `logs/vigent.err-*` 회전 파일 수를 항상 출력하고 임계(기본 10) 이상이면 **종료코드 4** + 빨간 안내(서버가 응답하지 않을 때도 동작). 작업 스케줄러 등에서 종료코드 ≥3 을 감시하면 된다.
 
 ### 방화벽 (다른 기기에서 접속할 경우만)
 
