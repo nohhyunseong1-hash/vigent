@@ -1331,6 +1331,84 @@
         }
       }
     },
+    "/recognition/pin": {
+      "post": {
+        "summary": "Recognition Pin",
+        "description": "[M6-3] 증거·인식 로그 파일을 보존 스윕에서 제외(pin). payload={path, reason?}. 사람이 unpin 하기 전까지 유지.",
+        "operationId": "recognition_pin_recognition_pin_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": true,
+                "type": "object",
+                "title": "Payload"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/recognition/unpin": {
+      "post": {
+        "summary": "Recognition Unpin",
+        "description": "[M6-3] pin 해제 — 다음 스윕부터 보존 일수 규칙을 다시 적용한다.",
+        "operationId": "recognition_unpin_recognition_unpin_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": true,
+                "type": "object",
+                "title": "Payload"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/dispatch/relay": {
       "post": {
         "summary": "Dispatch Relay",
@@ -3477,7 +3555,7 @@
     "/alerts/test": {
       "post": {
         "summary": "Alerts Test",
-        "description": "Dispatcher 경보 테스트. payload={level, message}. 키 없으면 폴백(로그)로 동작.",
+        "description": "Dispatcher 경보 테스트. payload={level, message}. 키 없으면 폴백(로그)로 동작.\n\n★[CODE_REVIEW M3-3] **의도된 게이트 우회 경로** — alert_gate(쿨다운·백오프·시간당 상한)를 거치지 않고\ndispatcher.dispatch 를 직접 부른다. 설정 콘솔의 \"채널 연결 시험\" 전용이며 자동 발화 경로에서 쓰지 말 것.\n(큐에는 남으므로 채널 미설정이면 pending→dead 로 흐른다 — 모듈 4 ①.)",
         "operationId": "alerts_test_alerts_test_post",
         "parameters": [
           {
