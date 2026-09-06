@@ -43,9 +43,25 @@ $Report = Join-Path $AuditDir ("service_reinstall_" + $Stamp + ".md")
 $Lines = New-Object System.Collections.Generic.List[string]
 function Log([string]$s) { $t = (Get-Date -Format "HH:mm:ss"); Write-Host ("[" + $t + "] " + $s); $Lines.Add("- " + $t + " " + $s) }
 
-$nssm = Get-Command nssm -ErrorAction SilentlyContinue
-$nssmPath = if ($nssm) { $nssm.Source } else { Join-Path $Here "nssm.exe" }
-if (-not (Test-Path $nssmPath)) { Write-Error "NSSM 을 찾을 수 없습니다: $nssmPath"; exit 2 }
+# ── NSSM 탐색(5단계 5-2 2차 실패 정정, 2026-09-06): 저장소 동봉본 우선 → Get-Command(Source/Path) → winget Links. 빈 값은 거부 ──
+#   실사고: 관리자 -NoProfile 세션에서 Get-Command nssm 이 Source 가 빈 개체를 돌려줘 `& $nssmPath` 가 "잘못된 개체" 로 죽었다.
+function Resolve-Nssm([string]$Preferred) {
+  $cands = @()
+  if ($Preferred) { $cands += $Preferred }
+  $here = $PSScriptRoot; if (-not $here) { $here = Split-Path -Parent $MyInvocation.ScriptName }   # 함수 안에서는 MyCommand.Path 가 비어 있다
+  $cands += (Join-Path $here "nssm.exe")
+  $c = Get-Command nssm -ErrorAction SilentlyContinue
+  if ($c) { if ($c.Source) { $cands += $c.Source }; if ($c.Path) { $cands += $c.Path } }
+  if ($env:LOCALAPPDATA) { $cands += (Join-Path $env:LOCALAPPDATA "Microsoft\WinGet\Links\nssm.exe") }
+  foreach ($p in $cands) {
+    $ok = $false; try { $ok = ($p -and (Test-Path -LiteralPath $p -PathType Leaf -ErrorAction SilentlyContinue)) } catch { $ok = $false }   # 잘못된 경로 문자열도 후보 하나로만 취급
+    if ($ok) { return (Resolve-Path -LiteralPath $p).Path }
+  }
+  return $null
+}
+$nssmPath = Resolve-Nssm ""
+if (-not $nssmPath) { Write-Error "NSSM 을 찾을 수 없습니다(동봉본 deploy\windows\nssm.exe 확인)"; exit 2 }
+Write-Host ("NSSM: " + $nssmPath)
 $VenvPy = Join-Path $Root ".venv\Scripts\python.exe"
 if (-not (Test-Path $VenvPy)) { Write-Error (".venv 가 없습니다(" + $VenvPy + "). py -3.11 -m venv .venv ; .\.venv\Scripts\python.exe -m pip install -r requirements.txt 후 재실행"); exit 1 }
 
@@ -121,7 +137,8 @@ try {
 
   # ── 2. 재설치 ───────────────────────────────────────────────────────
   Log "install_service.ps1 실행(재설치)"
-  & (Join-Path $Here "install_service.ps1") -ServiceName $ServiceName -Port $Port -Bind "127.0.0.1"
+  & (Join-Path $Here "install_service.ps1") -ServiceName $ServiceName -Port $Port -Bind "127.0.0.1" -NssmPath $nssmPath
+  if ($LASTEXITCODE -ne 0) { throw ("install_service.ps1 실패(exit " + $LASTEXITCODE + ") — 위 출력 확인") }
   $appExe = Nssm @("get", $ServiceName, "Application"); $appParams = Nssm @("get", $ServiceName, "AppParameters")
   Log ("서비스 Application: " + $appExe.Trim() + " | 인자: " + $appParams.Trim())
   $venvOk = ($appExe.Trim().ToLower() -eq $VenvPy.ToLower()) -and ($appParams -match "service_entry\.py")
