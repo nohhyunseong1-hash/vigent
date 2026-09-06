@@ -61,7 +61,34 @@ _CAP_BUFFERSIZE = int(os.environ.get("VIGENT_CAP_BUFFERSIZE") or tuning.val("sta
 #   워커가 프레임을 못 받아 guard.detect(RF-DETR) 자체가 안 돌아 검출 0 (2026-08 실측: Tapo UDP 재연결 7회,
 #   프레임나이 3~27s). go2rtc(TCP)는 같은 스트림 16fps·멈춤0 로 안정 → 워커도 TCP 로 맞춘다.
 #   파일·웹캠(int) 소스엔 무영향(옵션 무시). env 로 override 가능. cv2 VideoCapture(FFMPEG) 열기 전에 설정.
-os.environ.setdefault("OPENCV_FFMPEG_CAPTURE_OPTIONS", "rtsp_transport;tcp|max_delay;500000")
+# ★[CODE_REVIEW M5-1, 2026-09-06] 옵션은 **여기 한 곳**에서만 정한다. 예전엔 _StreamCapture._open() 이 저지연 옵션
+#   (fflags;nobuffer|flags;low_delay — T-E2E 잔여지연 조치)을 두 번째 setdefault 로 넣었는데, 이 줄이 먼저 실행돼
+#   그 옵션은 한 번도 적용되지 않았다(실측: env 비우고 import → 아래 값 그대로). 저지연 옵션이 프레임 드롭을
+#   늘리는지는 실카메라 10초 수신 프레임 수·None 비율로 5단계 현장 검증(이 PC 엔 RTSP 카메라 없음).
+_FFMPEG_CAPTURE_OPTIONS = "rtsp_transport;tcp|fflags;nobuffer|flags;low_delay|max_delay;500000"
+os.environ.setdefault("OPENCV_FFMPEG_CAPTURE_OPTIONS", _FFMPEG_CAPTURE_OPTIONS)
+# ★[CODE_REVIEW M5-2] RTSP 열기·읽기 타임아웃(ms). 실측(2026-09-06, cv2 5.0/FFmpeg 7.1, 죽은 IP 192.168.0.251):
+#   기본값 = VideoCapture() 가 **123.4초** 블로킹 · FFmpeg `timeout;5000000` 옵션 = 98.8초(무효) ·
+#   OpenCV CAP_PROP_OPEN_TIMEOUT_MSEC/READ_TIMEOUT_MSEC 5000 = **5.06초**. → OpenCV 속성으로 건다(FFmpeg 옵션 이름 무관).
+#   READ 타임아웃은 5초 넘게 프레임이 안 오면 read 가 False → 기존 재연결 경로(hang 15s 보다 먼저 잡힘).
+_RTSP_TIMEOUT_MS = int(os.environ.get("VIGENT_RTSP_TIMEOUT_MS") or tuning.val("stability", "rtsp_timeout_ms", 5000))
+
+
+def _open_capture(source: str):
+    """소스별 VideoCapture 생성 — 스트림(RTSP/HTTP)은 FFMPEG 백엔드 + 열기/읽기 타임아웃, 웹캠(정수)·파일은 기본 백엔드.
+    [M5-4] 열기 실패는 여기서 WARNING 으로 구분해 남긴다("끊김"이 아니라 "열기 실패")."""
+    if source.isdigit():
+        cap = cv2.VideoCapture(int(source))
+    elif Path(source).exists():
+        cap = cv2.VideoCapture(source)
+    else:
+        cap = cv2.VideoCapture(source, cv2.CAP_FFMPEG,
+                               [cv2.CAP_PROP_OPEN_TIMEOUT_MSEC, _RTSP_TIMEOUT_MS,
+                                cv2.CAP_PROP_READ_TIMEOUT_MSEC, _RTSP_TIMEOUT_MS])
+    if not cap.isOpened():
+        _WLOG.warning("캡처 열기 실패(%s) — 주소·자격증명·네트워크 확인(타임아웃 %dms). 재연결 경로로 진행",
+                      _mask_src(source), _RTSP_TIMEOUT_MS)
+    return cap
 _COOLDOWN_S = float(tuning.val("detect", "cooldown_s", 15.0))
 # ②: 증거 JPEG(무거운 후속) 전용 쿨다운 — 이벤트 '기록'은 _COOLDOWN_S 주기로 유지하되,
 #   증거 저장(인코딩+디스크)만 rule별로 이 주기까지 스로틀. 어떤 오발화도 서버를 포화 못 시킴.
@@ -341,17 +368,22 @@ class _PoseModel:
     def __init__(self) -> None:
         self._m: Any = None            # RtmPoseDetector(지연 import) → Any
         self._failed = False
+        self._load_lock = threading.Lock()   # [M5-7] 카메라 N대의 포즈 스레드가 동시에 지연 로드하지 않게
 
     def persons(self, frame: "np.ndarray", boxes: list | None = None, min_kp: float = 0.3) -> "list[dict[str, Any]]":
         """boxes: 사람 픽셀 박스 [[x1,y1,x2,y2],..](guard.detect person 유래). None/[] → []."""
         if self._m is None and not self._failed:
-            try:
-                import sys
-                sys.path.insert(0, str(_ROOT / "vigent-core"))
-                from pose.rtmpose_adapter import RtmPoseDetector
-                self._m = RtmPoseDetector()
-            except Exception:  # noqa: BLE001  로드 실패 → 포즈 기능만 비활성(탐지 무중단)
-                self._failed = True
+            with self._load_lock:                       # [M5-7] 이중 로드·부분 초기화 import 경합 차단
+                if self._m is None and not self._failed:
+                    try:
+                        import sys
+                        core = str(_ROOT / "vigent-core")
+                        if core not in sys.path:        # M1-1 과 같은 멱등 삽입
+                            sys.path.insert(0, core)
+                        from pose.rtmpose_adapter import RtmPoseDetector
+                        self._m = RtmPoseDetector()
+                    except Exception:  # noqa: BLE001  로드 실패 → 포즈 기능만 비활성(탐지 무중단)
+                        self._failed = True
         if self._m is None or not boxes:
             return []
         try:
@@ -607,12 +639,9 @@ class _StreamCapture:
         self._thread.start()
 
     def _open(self):
-        # [T-E2E 잔여지연] FFmpeg RTSP 저지연 옵션 — 기본값은 리오더/지터 버퍼로 0.5~1s 고정
-        #   지연을 만든다(시계 촬영 실측: grab-드레인 후에도 상수 ~1.35s 잔존의 유력 성분).
-        #   nobuffer+low_delay+max_delay 0.5s 상한. setdefault 라 운영자가 환경변수로 덮어쓰기 가능.
-        os.environ.setdefault("OPENCV_FFMPEG_CAPTURE_OPTIONS",
-                              "rtsp_transport;tcp|fflags;nobuffer|flags;low_delay|max_delay;500000")
-        cap = cv2.VideoCapture(int(self.source) if self.source.isdigit() else self.source)
+        # [T-E2E 잔여지연] FFmpeg RTSP 저지연 옵션(nobuffer+low_delay+max_delay 0.5s)은 모듈 상단
+        #   _FFMPEG_CAPTURE_OPTIONS 한 곳에서 정한다([M5-1] — 여기 있던 두 번째 setdefault 는 죽은 코드였다).
+        cap = _open_capture(self.source)          # [M5-2·M5-4] 타임아웃 + 열기 실패 로그
         try:
             cap.set(cv2.CAP_PROP_BUFFERSIZE, _CAP_BUFFERSIZE)   # 보조(웹캠/V4L2 등 일부만 존중; FFmpeg/RTSP 는 무시될 수 있음)
         except Exception as _we:  # noqa: BLE001
@@ -1143,7 +1172,7 @@ class Worker:
             self._streamcap = streamcap
             _WLOG.info("워커 '%s'(%s) 캡처 스레드 모드(최신 프레임 우선)", name, _mask_src(source))
         elif not is_image:
-            cap = cv2.VideoCapture(int(source) if source.isdigit() else source)
+            cap = _open_capture(source)              # [M5-2] 스트림이면 타임아웃 적용
             if is_stream:
                 try:
                     cap.set(cv2.CAP_PROP_BUFFERSIZE, _CAP_BUFFERSIZE)   # 보조(FFmpeg/RTSP 는 무시될 수 있음 → thread 모드 권장)
@@ -1218,7 +1247,7 @@ class Worker:
                                 while slept < rbackoff and not self._stop.is_set() and not self._restart_req.is_set():
                                     time.sleep(0.2)
                                     slept += 0.2
-                                cap = cv2.VideoCapture(int(source) if source.isdigit() else source)
+                                cap = _open_capture(source)          # [M5-2] 재연결도 타임아웃 적용
                                 try:
                                     cap.set(cv2.CAP_PROP_BUFFERSIZE, _CAP_BUFFERSIZE)   # 재연결 후에도 버퍼 최소화 유지
                                 except Exception as _we:  # noqa: BLE001

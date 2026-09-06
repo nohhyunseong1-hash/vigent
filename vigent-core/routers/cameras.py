@@ -32,7 +32,7 @@ def _g2_register(cid: str) -> None:
         src = _reg.source_of(cid)
         if not src:
             return
-        url = "http://localhost:1984/api/streams?" + urllib.parse.urlencode({"name": cid, "src": src})
+        url = "http://127.0.0.1:1984/api/streams?" + urllib.parse.urlencode({"name": cid, "src": src})
         urllib.request.urlopen(urllib.request.Request(url, method="PUT"), timeout=3)
     except Exception:  # noqa: BLE001  go2rtc 미실행/실패 — WebRTC 없이 폴백
         pass
@@ -43,7 +43,7 @@ def _g2_unregister(cid: str) -> None:
     try:
         import urllib.parse
         import urllib.request
-        url = "http://localhost:1984/api/streams?" + urllib.parse.urlencode({"src": cid})
+        url = "http://127.0.0.1:1984/api/streams?" + urllib.parse.urlencode({"src": cid})
         urllib.request.urlopen(urllib.request.Request(url, method="DELETE"), timeout=3)
     except Exception:  # noqa: BLE001
         pass
@@ -184,14 +184,30 @@ def cameras_snapshot(cid: str):
 def cameras_test(cid: str):
     """연결 테스트 — source 에서 1프레임 잡기 성공 여부(+스냅샷 미리보기). 자격증명은 응답에 노출 안 함."""
     import base64
+    import threading
 
     import cv2
+    import worker as _w
     src = _reg.source_of(cid)
     if not src:
         raise HTTPException(status_code=404, detail="source 미등록")
-    cap = cv2.VideoCapture(int(src) if str(src).isdigit() else src)
-    ok, fr = cap.read()
-    cap.release()
+    # [CODE_REVIEW M5-2] 예전엔 요청 스레드가 죽은 주소에 최대 123s(실측) 멈췄다. 워커와 같은 타임아웃 상수로
+    #   열기·읽기를 걸고, 그래도 넘기면 응답을 먼저 돌려준다(캡처 스레드는 타임아웃 후 스스로 끝난다).
+    box: dict = {}
+
+    def _grab() -> None:
+        cap = _w._open_capture(str(src))
+        try:
+            ok, fr = cap.read()
+            box["ok"], box["fr"] = bool(ok), fr
+        finally:
+            cap.release()
+    t = threading.Thread(target=_grab, daemon=True)
+    t.start()
+    t.join(timeout=_w._RTSP_TIMEOUT_MS / 1000.0 * 2 + 1.0)      # 열기 + 읽기 타임아웃 합 + 여유
+    if t.is_alive():
+        return {"ok": False, "error": f"연결 시간 초과({_w._RTSP_TIMEOUT_MS}ms) — 주소·네트워크 확인"}
+    ok, fr = box.get("ok"), box.get("fr")
     if not ok or fr is None:
         return {"ok": False, "error": "프레임을 못 잡음(연결 실패/경로 오류)"}
     # [P1a] 연결테스트 미리보기도 응답으로 나가는 이미지다(person 박스 없음 → haar 만)
