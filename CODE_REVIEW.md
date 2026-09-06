@@ -15,15 +15,15 @@
 | R4 | 높음 | W1 rf-detr `_kp_active_mask` 부분 로드 경고(3슬롯 공통) | c4_smoke §2 W1 | 1 | ★**정정 → 낮음(영향 없음)**. §1 M1-2 실측 근거 |
 | R5 | 중간 | forklift 설계상 비활성(F-7)로 `/health status=degraded` | c4_smoke §1·§6 | 1 | ★**정정 → 사유 오판**. degraded 실제 사유는 미전송 경보 pending 15건(§1 M1-3). 후속은 모듈 4 |
 | R6 | 중간 | 골든 스크립트 `--help` 부작용(파일 생성) | AUDIT §9-e | agents 자산 → 코드 무수정, 문서 기재만 | 대기 |
-| R7 | 중간 | W5 개발 런처 `RF_HOME` 기본값이 사용자 프로필(`~/.roboflow/models`) — 저장소 `vigent-core/weights` 고정 여부 | c4_smoke §2 W5 | 7 | 대기 |
+| R7 | 중간 | W5 개발 런처 `RF_HOME` 기본값이 사용자 프로필(`~/.roboflow/models`) — 저장소 `vigent-core/weights` 고정 여부 | c4_smoke §2 W5 | 7 | 모듈 7 보고 → M7-2(양쪽 캐시 동일 크기 실측, 전환 비용 0) |
 | R8 | 보류 | `safety_manager.py` UI 연결 여부 | CLEANUP_PLAN §6 | (agents 범위 밖) | 보류 유지 |
 | R9 | 보류 | ergo 4파일(`ml/ergonomics.py` 등) — 포즈 스레드는 살아 있음(`worker.py:1069`), 경보·저장까지 이어지는지 | AUDIT §4 | 2(규칙) | 대기 |
 | R10 | 낮음 | W2 rf-detr `num_classes` 미전달 경고 | c4_smoke §2 W2 | 1 | §1 M1-9 |
-| R11 | 낮음 | CI Python 3.13 vs `.python-version` 3.11.9 | AUDIT §2-2 | 7 | 대기 |
+| R11 | 낮음 | CI Python 3.13 vs `.python-version` 3.11.9 | AUDIT §2-2 | 7 | 모듈 7 보고 → M7-5(ONBOARDING 3.13.9/anaconda 잔재 포함) |
 | R12 | 낮음 | C1 unittest 1회 flaky(이름 미포착, 이후 8회 연속 OK) | 3단계 | 게이트 공통 | ★**이름 포착·원인·수정(2026-09-06 run3)**: `test_readiness_warmup.TestWarmup.test_on_ready_not_called_when_warmup_fails`('ready' != 'failed'). 로그 `audit/unittest_flaky_2026-09-06_run3.log`. 원인 = `test_endpoints_smoke`가 TestClient startup 으로 띄운 **실모델 예열 스레드**("vigent-warmup", 20초+)가 자기 모듈이 끝난 뒤에도 살아 전역 readiness 상태에 READY 를 덮어씀(테스트 격리 결함, 제품 결함 아님). 단독 실행 3/3 통과. 수정: 해당 모듈 setUp 에서 잔존 예열 스레드 join. C1 때 실패가 같은 테스트였는지는 **미확인**(당시 이름 미포착) |
 | R13 | 낮음 | `training/train_merged.py`·`train_monitor.py` mac 경로·mps 기본값 | C3 | (training 범위 밖) | 문서 기재만 |
 | R14 | **치명** | 테스트 스위트가 운영 `data/`(alert_queue.db·evidence·recognition·risk_assessments)에 쓴다 — notify.yaml 설정 PC 에서는 시험 문구가 실제 텔레그램으로 발송 가능 | §4-0 ④ 실측 | 테스트 격리 | ✅ **수정 완료**(커밋 `[CODE_REVIEW ④]`): `tests/_isolate.py` + 9개 모듈 적용. 검증 = data/ 28,815파일 sha256 전후 비교 **추가 0·변경 0**(격리 전엔 +3 파일·1 변경) |
-| R15 | 중간 | 카메라별 무동작 임계값(45s/0.03) 설정화 — 앉아 작업 현장 오경보 방지(M2-7) | §2 M2-7 | 7(설정) | 대표 등록 2026-09-06. 하드코딩 상수 7개(§2-3)와 함께 모듈 7에서 설정 모듈로 |
+| R15 | 중간 | 카메라별 무동작 임계값(45s/0.03) 설정화 — 앉아 작업 현장 오경보 방지(M2-7) | §2 M2-7 | 7(설정) | 모듈 7 보고 → M7-7(카메라별 override 구조 없음 확인, 규모 판단 요청) |
 | R16 | **FINAL_SUMMARY 1순위군** | 중장비 협착 규칙이 forklift 를 장비로 못 본다(F-7 슬롯 비활성 → COCO car/truck/bus/motorcycle 만) — "forklift 슬롯 활성화 또는 대체 감지 경로"를 Windows VLM 대체와 같은 1순위군으로 | §2-1 협착 행 | (범위 밖) | FINAL_SUMMARY 에 기재 |
 
 ---
@@ -372,5 +372,46 @@
 - **M6-4·M6-5** ✅ `54b0a27`: `alert_queue.prune(days=30)` — sent/dead 만(pending 불변), `config_error` 최신 1건 유지 · `retention.prune_rotated_logs(keep=50)` — `logs/vigent.{err,out}-*` 최신순 유지, logs/ 바로 아래만. 둘 다 `sweep()` 에 합류(dry_run·첫 주기 보류 그대로, status.json `alert_queue`·`logs` 항목). 테스트 5.
 - **M6-6**: ★대표 지시문이 "[확인: field_eval 530장을 평가용으로 계속 사용 → 보존 그룹 A + 보호 폴더 편입 / 사" 에서 **끊겨 있어** 결정을 적용하지 못했다 — 재확인 요청(편입 시: `retention.GROUP_DIRS["field_eval"]`·`privacy._protected_dirs` 추가 + 일수 결정).
 - **M6-7·8·9** 문서만(M6-9 ↔ M4-5 상호 참조 기재). **R17** 증거 30일 잠정값 → FINAL_SUMMARY 결정 필요 항목.
-## 7. 모듈 7 — 설정·경로·기동 (대기)
+## 7. 모듈 7 — 설정·경로·기동 (보고 2026-09-06, 수정 대기)
+
+**읽은 파일(전체)**: `run.ps1` · `run.bat` · `VIGENT Safety 시작.bat` · `run.sh` · `deploy/windows/install_service.ps1` · `.github/workflows/ci.yml` · `vigent-core/main.py`(1~185 import·보안 게이트, 186~272 미들웨어, 274~483 안전망·기동실패·startup/shutdown, 486~559 정적 마운트) · `tuning.py` · `app_state.py` · `runtime_config.py` · `data_paths.py` · `vision_loader.py` · `vlog.py` · `starvation_guard.py` · `retention_scheduler.py` · `readiness.start_background` · `config/tuning.yaml`(전체) · `config/security.json` · `config/site.example.yaml` · `.env.example` · `deploy/academy/profile_intent.yaml`(앞부분) · `scripts/check_profile_drift.py`(비교 방식) · `guard.py:565~605`(RF_HOME·사전학습 검사) · `worker.py:38~101`(env/tuning 상수)·`1160~1182`(캡처 모드).
+
+### 7-1. 기동 순서(확인)
+
+| 단계 | 시점 | 내용 | 실패 시 |
+|---|---|---|---|
+| 0 | import | `.env` 로드(`main.py:33-37`, override 안 함) → `sys.path` 보정 → 라우터 import → **보안 게이트**(`main.py:162-185`: 외부 바인딩+무토큰 → `SystemExit(1)`) → 미들웨어 3개 → `/static`·`/evidence` 마운트 | 프로세스 종료(uvicorn 이전) |
+| 1 | startup | `_install_safety_nets()`(스레드·메인·asyncio 훅) | — |
+| 2 | startup | `_load_theme()` = vision.yaml 해석 + **에이전트 생성(guard 모델 로드·RF-DETR 사전학습 캐시 검사 `guard.py:584-605`)** | [M4-5] 상태파일·이벤트로그·통보 후 **재raise**(기동 실패) |
+| 3 | startup | go2rtc 기동(`ensure_go2rtc`, M5-3) | 경고만(스냅샷 폴백) |
+| 4 | startup | `readiness.start_background(on_ready=_start_workers_after_warmup)` — 예열 스레드, 성공 시 카메라 자동복원 + `VIGENT_EDGE` 자동시작 | 예외 시 아래 M7-3 |
+| 5 | startup | `starvation_guard.start()` → `alert_queue.set_sender(remote_only)`+`start()` → `alert_notify.set_sender`+`start()` → `retention_scheduler.start()`(첫 실행 10분 뒤) | 같은 try 블록 — M7-3 |
+| 종료 | shutdown | `manager.stop_all()` → `stop_go2rtc()`(M5-3). alert_queue·alert_notify·retention·starvation 스레드는 **정리 호출 없음**(데몬 스레드 종료) | 경고만 |
+
+### 7-2. 발견 사항
+
+| ID | 파일:줄 | 심각도 | 문제 | 근거(실측) | 수정안 |
+|---|---|---|---|---|---|
+| **M7-1** | `config/tuning.yaml:4` · `:224` | **높음** | 최상위 `alerts:` 키가 **2번** 선언돼 있다. PyYAML `safe_load` 는 뒤 블록으로 덮어쓴다 → 4행 블록의 **8개 키(notify·notify_cooldown_s·backoff_factor·backoff_max_s·quiet_reset_s·max_per_hour·queue_max·guard_bypass_text)는 파일에 적혀 있지만 어떤 코드도 읽지 못한다**. 오늘은 코드 기본값(`alert_gate.py:54-76`·`alert_notify.py:40`·`dispatch.py:33`·`dispatcher.py:317`)이 파일값과 같아 동작 차이 0 이지만, 현장에서 이 8개를 바꾸면(예: 프레스 공장 문구·시간당 상한) **조용히 무시**된다 — 파일 1행의 약속("이 파일만 고치면 됨") 위반. 학원 프로파일은 4행 블록 자체가 없고(`tuning.academy.yaml:171` 만) 드리프트 게이트는 **파싱 결과**를 비교하므로 잡지 못했다 | 파싱 실측: `alerts == {max_attempts: 10, backoff_cap_s: 60}`(base·academy 동일). 도입: `758c270`(08-17 B5, 224행 블록) → `63cb7a1`(08-20 W1, 4행 블록 추가) — 17일 잠복. 키 대조 스크립트: 코드가 읽는 (섹션.키) 70 / yaml 65, 이 8개만 "파일엔 있는데 파싱 결과에 없음" | ① 게이트 테스트: 최상위 중복 키를 거부하는 로더로 base+academy 검사 ② 두 블록 병합(값 불변) ③ academy 프로파일에 8키 추가(드리프트 게이트 통과) |
+| M7-2 | `run.ps1` ↔ `install_service.ps1:139-167` | 중간 | 개발 런처와 서비스의 환경변수 **4개 불일치**: `VIGENT_CAPTURE_MODE`(sync↔thread, M5-6) · `PYTHONUTF8`(없음↔1) · `RF_HOME`(`~/.roboflow/models`↔`weights/`, R7) · `TORCH_HOME`(rtmlib 기본↔`weights/rtm_cache`). 개발에서 못 보는 캡처 경로·인코딩·캐시가 현장에서 돈다 | 개발 PC 실측: `rf-detr-nano.pth` 가 `~/.roboflow/models` 와 `vigent-core/weights` **양쪽에 각 366,287,238 bytes(동일)** → 개발을 weights/ 로 돌려도 추가 다운로드 0. rtmlib 캐시는 `~/.cache/rtmlib/hub` 만 있고 `weights/rtm_cache` **없음** → 서비스 첫 검출 시 156MB 다운로드 경로(사전 조달 여부 M7-2b) | `run.ps1` 이 4개를 **미설정 시에만** 서비스와 같은 값으로 주입(셸에서 준 값은 우선). 테스트: PowerShell 파서로 `run.ps1` 이 4개 이름을 설정하는지 검사 |
+| M7-2b | `install_service.ps1:159-165` · `scripts/fetch_weights.py` · `weights/MANIFEST.md:121` | 중간 | 서비스는 포즈(rtmlib) 캐시를 `weights/rtm_cache` 로 고정하지만 **조달 절차가 없다**: `fetch_weights.py` 에 rtmlib 항목 0건(grep), MANIFEST 는 pose 를 "미확인". 인터넷 없는 현장에서 서비스는 뜨지만 **첫 사람 검출에서 156MB 다운로드를 시도**한다(`install_service.ps1:160-164` 주석이 스스로 인정하는 경로) | 개발 PC: `weights/rtm_cache` 없음 · `~/.cache/rtmlib/hub` 있음 | `fetch_weights.py` 매니페스트에 rtmlib 2파일(yolox_m·rtmpose-m) 추가 + `--check` 가 `rtm_cache` 존재를 검사. 5단계 오프라인 검증 항목에 "카메라 물린 뒤 첫 검출" 추가(2026-08-21 재발 방지) |
+| M7-3 | `main.py:450-482` | 중간 | 기동 try 블록이 거칠다: 예열 스레드 기동(4) 뒤 5단계 중 하나라도 예외면 except 가 `_start_workers_after_warmup()` 을 **즉시(콜드 모델)** 호출 → B4 가 막았던 "콜드 로드 hang → 재시작 폭주" 경로 부활 + 예열 완료 시 `on_ready` 가 **또** 호출(워커는 `manager.start` "이미 실행 중" 거부로 중복 없음, `worker.py:1317`) + 예외 지점 뒤의 배선(alert_notify·retention)이 건너뛰어져 **검출은 도는데 통보 없는** 상태가 WARNING 1줄로만 남는다 | 코드 구조(`try` 1개에 5개 서비스). 실사고 없음 | 서비스별 독립 try(각각 로그) + 워커 즉시 시작 폴백은 `readiness.start_background` 실패 시에만. 테스트: `alert_queue.start` 가 예외를 던져도 `alert_notify.start`·`retention_scheduler.start` 가 호출되고 워커 즉시 시작이 일어나지 않는다(모킹) |
+| M7-4 | `main.py:33-37` · `run.ps1:9-10` · `.env.example:22-23` | 낮음 | `.env` 의 `VIGENT_HOST`/`VIGENT_PORT` 는 **효과가 없다**: `run.ps1:10` 이 VIGENT_HOST 를 항상 먼저 설정(`load_dotenv` 는 기존 env 를 덮지 않음), PORT 는 `run.ps1` 이 셸 env 만 읽어 uvicorn 인자로 준다. `.env.example` 은 VIGENT_HOST 를 `.env` 항목으로 안내. 토큰·REQUIRE_TOKEN·ALLOWED_HOSTS 는 `.env` 로 정상 동작(import 시 로드 후 `main.py:162·175·198` 읽음) | 코드 순서 | 문서 정정(`.env.example`: HOST/PORT 는 셸 환경변수만) 또는 `run.ps1` 이 `.env` 의 두 키를 읽음. 후자는 파서 추가 — 전자 권장 |
+| M7-5 | `ci.yml:21-24` · `docs/ONBOARDING.md:16·25` | 낮음(R11) | CI 는 **Python 3.13**, `.python-version`=3.11.9·`pyproject` py311·README 3.11 — 스텝 이름 "(.python-version 정합)" 이 거짓. ONBOARDING §2.1 은 "3.13.9 고정·`/opt/anaconda3`"(mac 시절) → 문서 3중 불일치 | 개발 PC 실측: `python`=3.11.9 · `py -3.11`=3.11.9 · **py 기본(*)=3.14** · 3.13 없음 → CI 가 검증하는 인터프리터를 로컬 어디서도 못 돌린다. opencv: requirements `4.13.0.92 headless` vs 개발 PC `cv2 5.0.0` → M5 RTSP 타임아웃 실측(5.05s)은 5.0.0 기준, 4.13 미검증(5단계) | CI `python-version-file: .python-version` · ONBOARDING §2.1 정정 · opencv 버전 차이를 5단계 검증 항목에 추가 |
+| M7-6 | `install_service.ps1:59-64` | 낮음 | 서비스 파이썬 선택 = `.venv` → PATH `python`(런처 `py -3.11` 아님). PATH 가 3.14 로 바뀌면 서비스가 미검증 인터프리터로 뜬다(`run.ps1` 은 `py -3.11` 정본 우선) | `py -0`: 3.14 가 기본 | 후보에 `py -3.11` 추가(run.ps1 과 동일 순서). 서비스 재설치는 5단계 뒤 |
+| M7-7 | `proximity.py:87` · `worker.py:500·502·605` · `MATCH`·`HIST_S`·`_MIN_INTERVAL` · `camera_registry.py:76-90` | 중간(R15·§2-3) | 하드코딩 상수 7개(장비 크기 필터 0.9/0.7 · IMMOBILE_SPREAD 0.03 · 무동작 최소 샘플 5 · RAPID_T 1.0 · 매칭 0.32/0.18 · 이력 60s/소멸 3.0s · 자세 평가 0.5s) + **카메라별 override 구조 없음**(등록부 공개 필드 id·name·enabled·fps·zone·source·has_creds 뿐) → R15(앉아 작업 현장 무동작 45s 카메라별) 불가 | 코드 | ① `tuning.yaml` 에 코드 기본값과 **같은 값**으로 키 추가(동작 불변): `motion.immobile_spread/immobile_min_samples/rapid_window_s`, `proximity.vehicle_max_w/vehicle_max_area`, `track.match_dist/pose_match_dist`, `worker.pose_eval_min_s` ② R15: 등록부에 `overrides: {motion: {immobile_s}}` 1키만(워커가 `MotionTracker` 생성 시 반영) ③ academy 프로파일 동기(드리프트 게이트). 규모: 코드 ~60줄 + yaml + 테스트 |
+| M7-8 | `retention_scheduler.py:42-44·73` | 낮음(M6-9) | 초기 지연 600s 고정 — 재기동이 잦으면 영영 안 돈다 | `status.json` 에 `last_run` 있음(`retention.py:360`) | 기동 시 `last_run` 이 `sweep_interval_s + 1h` 보다 오래됐으면 초기 지연 60s(설정 `sweep_overdue_delay_s`). ~25줄 + 테스트 |
+| M7-9 | `config/tuning.yaml` | 낮음 | 코드가 읽지만 yaml 에 **없는** 키 11개(코드 기본값·미문서): `detect.evidence_cooldown_s/include_fire_smoke/include_forklift/pose_interleave`, `ppe.required`, `press.confirm_frames/kp_conf`, `privacy.face_conf`, `retention.auto_pin_sent_alerts/alert_queue_days/logs_keep_rotated`(모듈 6 추가분), `stability.cap_buffersize/rtsp_timeout_ms`(모듈 5), `zone.grid_cells` | 키 대조 스크립트 | 주석 형태로 기본값 기재(주석은 드리프트 게이트 무관). 문서만 |
+| M7-10 | 환경변수 | 낮음 | 코어가 읽는 `VIGENT_*` **43개** 중 문서(.env.example·README·DEPLOYMENT·ONBOARDING·STABILITY)에 있는 것 **23개** → 미문서 20개(`VIGENT_ALERT_DB`·`LOG_DIR`·`LOG_LEVEL`·`THEME`·`DATA_DIR`·`DETECT_DEVICE`·`DETECT_BACKEND`·`ALERT_NOTIFY`·`RADIUS_M`·`CROWD`·`COLLECT`·`COLLECT_EVERY`·`TRACK_DEBUG`·`ZONE_GRID`·`STARTUP_GRACE`·`RTSP_TIMEOUT_MS`·`INCLUDE_FORKLIFT`·`INCLUDE_FIRE_SMOKE`·`ORT_TUNE`·`FAULT_STOP_DETECT`·`DEV_SYMLINK`·`LLM_MODEL`·`LLM_MAX_TOKENS`) | grep 집계 | `docs/ONBOARDING.md` 에 표 1개. 문서만 |
+| M7-11 | `main.py:397·412` · `_shutdown` | 낮음 | `@app.on_event` 는 FastAPI 0.137 에서 deprecated(lifespan 권장) — 동작은 함. `_shutdown` 이 alert_queue·alert_notify·retention·starvation 스레드를 정리하지 않음(sqlite 쓰기 도중 종료 가능, 재기동 시 이월되므로 손실은 없음) | 코드 | lifespan 전환은 라우트 무변경이나 별도 작업 — 백로그. `_shutdown` 에 `alert_queue.stop()`·`alert_notify.stop()` 추가는 10줄 |
+
+**정상 확인(수정 불필요)**: `runtime_config`(config/ 시드 읽기 전용·data/config 런타임 쓰기) · `vision_loader` 테마명 화이트리스트·가중치 폴백 해석 · `tuning.val` env 우선 규칙 · `security.json` 웹훅 목적지 화이트리스트 · `vlog` 10MB×5 회전(+NSSM stdout 회전, 모듈 6 정리와 분리) · `data_paths` 저장소 밖 미디어 · `VIGENT Safety 시작.bat` /health 대기 90s · `check_profile_drift` 가 게이트에 있음(단, M7-1 처럼 **파싱 전** 문제는 못 잡음).
+
+### 7-3. 수정 계획(승인 대기)
+- **높음 M7-1**(한 커밋): 중복 최상위 키 거부 테스트(base+academy) → 두 블록 병합 → academy 8키 추가. 값 불변이므로 동작 변화 0(테스트로 `alert_gate` 가 파일값을 읽음을 확인).
+- **중간 M7-2**(+M5-6·R7): `run.ps1` 미설정 시 주입 4개 — 테스트는 스크립트 정적 검사. 문서 `deploy/windows/README.md`·README 에 "개발도 weights/ 캐시" 명시.
+- **중간 M7-2b**: `fetch_weights.py` 에 rtmlib 2파일 조달 + `--check` — URL·크기는 rtmlib 소스에서 확인 후 매니페스트에 기재(다운로드 실측 필요 → 승인 시 1회 수행, 156MB).
+- **중간 M7-3**: 기동 try 분리 + 폴백 조건 축소 — 선행 테스트(모킹).
+- **중간 M7-7**: 규모가 커서 대표 판단 — (a) 전부 (b) R15 카메라별 1키 + yaml 기본값 기재만 (c) 문서만.
+- **낮음 M7-4·5·6·8·9·10·11**: 문서·CI 1줄·소규모 코드. M7-6 은 5단계 재설치와 함께.
 ## 8. 모듈 8 — 프론트 realtime_core.js 감시 화면 (대기)

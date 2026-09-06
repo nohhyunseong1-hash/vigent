@@ -1,0 +1,38 @@
+코드 읽기 키: 70 / yaml 정의 키: 65
+[A] 코드가 읽지만 yaml 파싱 결과에 없음:
+   alerts.backoff_factor <- alert_gate.py
+   alerts.backoff_max_s <- alert_gate.py
+   alerts.guard_bypass_text <- dispatch.py, dispatcher.py
+   alerts.max_per_hour <- alert_gate.py
+   alerts.notify <- alert_gate.py
+   alerts.notify_cooldown_s <- alert_gate.py
+   alerts.queue_max <- alert_notify.py
+   alerts.quiet_reset_s <- alert_gate.py
+   detect.evidence_cooldown_s <- worker.py
+   detect.include_fire_smoke <- worker.py
+   detect.include_forklift <- worker.py
+   detect.pose_interleave <- detect.py
+   ppe.required <- guard.py
+   press.confirm_frames <- detect.py
+   press.kp_conf <- detect.py
+   privacy.face_conf <- privacy.py
+   retention.auto_pin_sent_alerts <- alert_queue.py
+   stability.cap_buffersize <- worker.py
+   stability.rtsp_timeout_ms <- worker.py
+   zone.grid_cells <- worker.py
+[B] yaml 에 있지만 val/section.get 으로 직접 읽는 코드 없음:
+   detect.imgsz
+   detect.person_ensemble
+   detect.stale_max_misses
+   relay.backoff_cap_s
+   relay.method
+   relay.off_attempts
+   relay.off_timeout_s
+   relay.on_attempts
+   relay.on_duration_s
+   relay.timeout_s
+   relay.url
+   retention.dry_run
+   retention.groups
+   track.algo
+   track.bytetrack_min_frames
