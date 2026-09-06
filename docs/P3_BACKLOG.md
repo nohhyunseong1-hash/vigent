@@ -734,3 +734,16 @@
   또는 ③외부 공개 정답지(css_safety — 단 ppe_rfdetr_v1 이 그 train 으로 학습돼 in-domain 누출 주의).
 - **착수 시점**: 학원 방문에서 원본 영상을 확보하면 가능. 개인정보 처리 절차 병행 필요.
 - **상태**: 기록만. 구현하지 않음.
+
+## B-go2rtc-orphan. 서버가 비정상 종료되면 go2rtc 가 고아로 남는다 (2026-09-06, 5단계 마무리 후속 — M5-3 범위 밖)
+
+- **실측**: 2026-09-06 03:35 에 `D:igent_originalin\go2rtc.exe -config data\go2rtc.runtime.yaml` 로 뜬 go2rtc(PID 8556)가
+  부모 python(PID 31768) 소멸 뒤에도 포트 1984 를 쥔 채 20시간 살아 있었다(23:5x 기록 후 수동 종료). 그 사이 뜬 서버들은 모두
+  "포트 1984 를 다른 프로세스가 점유 중 — 손대지 않고 재사용" 경로로 갔다(런타임 yaml 갱신이 반영되지 않는 창).
+- **원인 경로**: go2rtc 종료는 `main._shutdown → routers/cameras.stop_go2rtc()`(lifespan) **한 곳**뿐이다. M5-3 은 "우리가 띄운 것만 종료"를
+  정확히 했지만, lifespan 이 돌지 않는 종료 — `taskkill /F`·`Stop-Process -Force`·크래시·`run.ps1`/`run.bat`/`시작.bat` 창을 그냥 닫음 —
+  에서는 아무도 go2rtc 를 정리하지 않는다(런처 3종에 종료 훅·trap 없음, 실측 grep 0).
+- **제안**: Windows **Job Object(JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE)** 에 go2rtc 를 넣어 부모 프로세스 소멸과 수명을 묶는다
+  (ctypes ~40줄, `ensure_go2rtc` 의 Popen 직후 AssignProcessToJobObject). 보조로 `ensure_go2rtc` 기동 시 PID 파일의 프로세스가
+  **우리 바이너리 경로**이면 "재사용" 대신 재기동(현재는 PID 파일 불일치면 무조건 재사용).
+- **상태**: 기록만. 구현하지 않음(테스트: Job 핸들 닫힘 → 자식 종료 실측 필요).
