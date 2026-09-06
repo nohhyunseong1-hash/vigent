@@ -18,12 +18,14 @@
 
 .EXAMPLE
   cd deploy\windows ; .\verify_service_reinstall.ps1
+  .\verify_service_reinstall.ps1 -HealthTimeoutSec 300    # 개발 PC(.venv 가 CPU torch)처럼 예열이 느린 경우
 #>
 [CmdletBinding()]
 param(
   [string]$ServiceName = "VIGENT",
   [int]$Port = 8010,
-  [int]$FailWatchSec = 240
+  [int]$FailWatchSec = 240,
+  [int]$HealthTimeoutSec = 150      # /health 200 대기(초). CPU torch .venv(개발 PC 검증용)는 예열이 느려 300 권장
 )
 
 $ErrorActionPreference = "Stop"
@@ -137,7 +139,7 @@ try {
     Log ("★서비스가 Running 이 아님: " + (SvcStatus) + " — err 로그: " + (ErrTail))
     $fs = ReadFailState; if ($fs) { Log ("startup_failure.json: stage=" + $fs.stage + " count=" + $fs.count + " last_error=" + $fs.last_error) }
   } else {
-    $h = WaitHealth 150
+    $h = WaitHealth $HealthTimeoutSec
     $warn = ""; $status = ""
     if ($h.body) { $status = "" + $h.body.status; $warn = ("" + ($h.body.warnings -join ",")) }
     Log ("/health code=" + $h.code + " status=" + $status + " phase=" + ("" + $h.body.phase) + " warnings=[" + $warn + "]")
@@ -181,7 +183,7 @@ try {
   Nssm @("restart", $ServiceName, "confirm") | Out-Null
   $recovOk = $false; $statusExit = -1
   if (WaitRunning 40) {
-    $h2 = WaitHealth 150
+    $h2 = WaitHealth $HealthTimeoutSec
     Log ("복구 /health code=" + $h2.code + " status=" + ("" + $h2.body.status))
     $old = $ErrorActionPreference; $ErrorActionPreference = "Continue"
     & (Join-Path $Here "service_status.ps1") -ServiceName $ServiceName -Port $Port | Out-Null

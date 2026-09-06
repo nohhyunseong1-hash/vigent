@@ -437,6 +437,7 @@ env를 `nssm set`으로 손으로 고치지 않는다(다음 재설치 때 되�
 | 1 | `cd D:\vigent_original\deploy\windows; .\uninstall_service.ps1` (기존 서비스가 있을 때) | `Get-Service VIGENT` → 없음 |
 | 2 | 가중치 조달: `python scripts\fetch_weights.py --all` (§4) | `vigent-core\weights\rf-detr-nano.pth` + rfdetr 3종 존재 |
 | 2-1 | ★`.venv` 준비(없으면 install 이 **중단**한다 — 시스템 python 폴백 금지, 5단계 5-2 정정): `py -3.11 -m venv .venv; .\.venv\Scripts\python.exe -m pip install -r requirements.txt` + §3-1 opencv 정리 + GPU 면 §3 CUDA 휠 | `.venv\Scripts\python.exe -c "import uvicorn,fastapi"` OK |
+| 2-1★ | **torch 는 requirements.txt 그대로 깔면 CPU 휠이다**(PyPI 의 Windows `torch==2.12.0` 은 CPU 전용). 개발 PC(D:\vigent_original)의 `.venv` 는 2026-09-06 재설치 **검증용으로 만든 CPU torch** 라 예열이 느리다(검증 스크립트는 `-HealthTimeoutSec 300`). **실배포 서비스는 반드시 CUDA torch(cu130, 드라이버 580 미만이면 cu126)를 `.venv` 에 설치**한다(§3 명령, `requirements.txt` 의 torch 줄 주석 참조) | `.\.venv\Scripts\python.exe -c "import torch; print(torch.__version__, torch.cuda.is_available())"` → `2.12.0+cu130 True` |
 | 2-2 | `.env` 에 `VIGENT_API_TOKEN=<비밀토큰>`(서비스는 `VIGENT_REQUIRE_TOKEN=1` 이라 **토큰이 없으면 import 시점에 종료** — 2026-09-06 재설치 검증 1차 실패 원인) | `.env` 존재 |
 | 3 | `.\install_service.ps1` — Application = `.venv\Scripts\python.exe deploy\windows\service_entry.py`(런처) | "서비스 'VIGENT' 상태: Running" |
 | 4 | `.\service_status.ps1` 를 **예열 후(≥20초) 한 번 더** | `HTTP 200 · status=healthy/degraded · phase=ready` — 15초 넘게 503이면 §9-② |
