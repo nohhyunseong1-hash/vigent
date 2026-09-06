@@ -1019,6 +1019,11 @@ class Worker:
                       ctx.mtrack.update(out.get("detections", []), t0)]   # 무동작·급이동
             self._last_fired = [r[0] for r in fired]                # 3.1b: 이번 프레임 발화 규칙(뱃지·전역경보 근거)
             now = time.time()
+            # [CODE_REVIEW M3-4, 2026-09-06] 만료된 쿨다운 키 정리 — zone_intrusion 은 사람 단위 키(`rule|t<tid>`)라
+            #   지우지 않으면 운영 일수만큼 누적됐다(M2-1 동류). 만료 키는 더 이상 아무것도 억제하지 못하므로 제거해도
+            #   동작 불변. 증거 쿨다운(evidence_cd)은 규칙 단위(유한)라 그대로.
+            for _ck in [k for k, t in ctx.cooldown.items() if now - t >= _COOLDOWN_S]:
+                ctx.cooldown.pop(_ck, None)
             for rule, level, note, subject in fired:
                 # ★[D1-C] 쿨다운 키에 발화 주체를 넣는다 — A 때문에 걸린 쿨다운이
                 #   B의 진입을 가리지 않게. subject 가 ""(사람 단위 아님)면 기존과 동일.
