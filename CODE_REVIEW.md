@@ -313,10 +313,21 @@
 | M5-8 | `routers/cameras.py:192-194` | 낮음 | 연결 테스트가 `apiPreference` 없이 `VideoCapture` → 웹캠 인덱스는 MSMF. `CAP_DSHOW` 를 쓰면 open 이 빠르고 hang 사례가 적다는 통설이 있으나 **이 PC 에서 미측정** | — | 정수 소스에 한해 `cv2.CAP_DSHOW` 지정(측정 후) — 5단계 |
 | M5-9 | `worker.py` 전체 | 정보 | 손상 프레임(부분 디코드) 판별 없음. RTSP TCP 강제(:64)로 손실은 줄였고, 검출기가 아티팩트를 어떻게 보는지는 측정 없음 | — | 현 상태 유지(측정 항목으로 기록) |
 
-### 5-4. 수정 계획(승인 대기)
-- **중간 M5-1·M5-2**(한 커밋): FFmpeg 옵션 단일화(저지연 + RTSP 타임아웃 5s) + `isOpened` 검사(M5-4) + `/cameras/{cid}/test` 타임아웃. 선행 테스트: env 결과값·`_open` 실패 분기(모킹). ★실카메라 재측정은 이 PC 에서 불가 → **5단계 현장 검증 항목**으로 등록하고 코드만 반영할지 대표 판단.
-- **중간 M5-3**: go2rtc 핸들 보관·종료 시 정리 — 선행 테스트(모킹 Popen: 우리가 띄운 것만 terminate).
-- **낮음 M5-5·M5-7**: 1줄 통일·로드 락 — 로직 커밋에 포함. **M5-6** → 모듈 7. **M5-8·9** 문서만.
+### 5-4. 진행 현황(대표 승인 2026-09-06) — 커밋 2개
+- **M5-3** ✅ `22e6a39`: go2rtc 핸들 + `data/go2rtc.pid` 추적, 우리 옛 인스턴스면 종료 후 재기동(yaml 재로드 대신), 남의 것이면 무접촉+경고, `_shutdown` 에서 우리 것만 종료, 로그 파일 핸들도 닫음(예전엔 미해제). 테스트 5(모킹).
+- **M5-1·M5-2·M5-4·M5-5·M5-7** ✅ (커밋 대기). **실측(캡처 전용 독립 스크립트 `benchmarks/rtsp_capture_probe.py`, 서버·워커·경보 미사용, 옵션마다 새 프로세스)**:
+
+  | 케이스(죽은 IP 192.168.0.251, ping 무응답 확인) | opened | 실패까지 |
+  |---|---|---|
+  | 구(`rtsp_transport;tcp\|max_delay;500000`) | False | **123.45 s** |
+  | 신 FFmpeg 옵션(`…\|timeout;5000000`, FFmpeg 7.1 = avformat 61.7) | False | 98.81 s (**무효**) |
+  | 신 + OpenCV `CAP_PROP_OPEN/READ_TIMEOUT_MSEC=5000` | False | **5.06 s** |
+  | 워커 코드 경로 `worker._open_capture()` 직접(수정 후) | False | **5.05 s** (OpenCV 로그 "Stream timeout triggered after 5043ms") |
+
+  → 원래 가정(30s)보다 훨씬 나빴다(cv2 5.0 은 기본 열기 타임아웃이 없음). FFmpeg 옵션 이름(`timeout`/`stimeout`)은 **연결 실패에 효과가 없어** OpenCV 속성으로 걸었다(`_RTSP_TIMEOUT_MS=5000`, env `VIGENT_RTSP_TIMEOUT_MS`/tuning `stability.rtsp_timeout_ms`). 스트림은 `CAP_FFMPEG`+타임아웃, 웹캠(정수)·파일은 기본 백엔드. `/cameras/{cid}/test` 는 같은 상수로 스레드 타임아웃(열기+읽기+1s). FFmpeg 옵션은 모듈 상단 한 곳(`_FFMPEG_CAPTURE_OPTIONS`, 저지연 포함)으로 단일화 — `_open()` 의 죽은 setdefault 제거. `isOpened()` 실패는 "열기 실패" WARNING(자격증명 마스킹). go2rtc 주소 `127.0.0.1` 통일(cameras 2·tapo 4). `_PoseModel` 지연 로드 락. 테스트 6.
+  ★**(2) 실카메라 10초 수신 프레임 수·None 비율·첫 프레임 지연(저지연 옵션 전/후)은 대표 답변 "아니오"(카메라 미사용)로 이번엔 미측정 → 5단계 현장 검증 항목**(스크립트 `--live <cam_id>` 로 즉시 실행 가능, 자격증명 미출력). READ 타임아웃 5s 는 정상 스트림에서 "5초 넘게 프레임 없음 → 재연결" 이라 hang 15s 보다 먼저 잡힌다(동작 변화 — 현장 검증 항목에 포함).
+- **M5-6** → 모듈 7. **M5-8·9** 문서만.
+- **용량 스펙(FINAL_SUMMARY 배포 사양 절에 명시, 대표 지시)**: `DETECT_LOCK` 직렬화, 풀세트 ~85ms → 2fps 기준 **PC 1대당 카메라 약 5대 포화(RTX 5070 Ti 기준)**. 카메라 대수 확장(배치 추론 또는 다중 프로세스)은 다음 단계 항목.
 ## 6. 모듈 6 — 보존 스윕 (대기)
 ## 7. 모듈 7 — 설정·경로·기동 (대기)
 ## 8. 모듈 8 — 프론트 realtime_core.js 감시 화면 (대기)
