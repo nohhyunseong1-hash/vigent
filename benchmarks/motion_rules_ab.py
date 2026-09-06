@@ -93,10 +93,15 @@ def run_one(name: str) -> dict[str, Any]:
         last = {"rapid_motion": -1e9, "immobility": -1e9}
         events = {"rapid_motion": [], "immobility": []}
         detail: list[str] = []          # 급격동작 발화별 (시각, tid, 이동량) — 어떤 발화가 사라지고 생겼는지
+        cam_sup: list[float] = []       # [M3-1] 카메라 이동으로 억제된 표본 시각
         ar = aspect if mode == "fixed" else 1.0
         for ts, f in samples:
             dets = _dets(f, keep_tid=(mode == "fixed"))
+            if mode == "legacy":
+                mt.CAMERA_COS = 2.0         # 구 동작 재현: 카메라 억제 없음(코사인 ≥2 는 불가능)
             fired = mt.update(dets, ts, aspect_hw=(aspect if mode == "fixed" else None))
+            if getattr(mt, "camera_motion", False):
+                cam_sup.append(round(ts, 2))
             for r, _lv, _n in fired:
                 raw[r].append(round(ts, 2))
                 if ts - last[r] >= COOLDOWN_S:
@@ -111,15 +116,15 @@ def run_one(name: str) -> dict[str, Any]:
                         if dist > mt.RAPID_DIST:
                             detail.append(f"{ts:.1f}s tid={tr.get('tid')} d={dist:.2f}")
         res[mode] = {"rapid_raw": len(raw["rapid_motion"]), "rapid_events": events["rapid_motion"],
-                     "rapid_raw_ts": raw["rapid_motion"], "rapid_detail": detail,
+                     "rapid_raw_ts": raw["rapid_motion"], "rapid_detail": detail, "camera_suppressed": cam_sup,
                      "immob_raw": len(raw["immobility"]), "immob_events": events["immobility"]}
     res["legacy_swaps"] = _legacy_swaps([(ts, _dets(f, True)) for ts, f in samples], W.MotionTracker.MATCH)
     return res
 
 
 def main() -> None:
-    print("| 영상 | 표본(2fps) | 급격동작 프레임발화 구→신 | 급격동작 이벤트(15s 쿨다운) 구→신 · 시각(초) | 무동작 구→신 | 구 동작 ID 스왑 |")
-    print("|---|---|---|---|---|---|")
+    print("| 영상 | 표본(2fps) | 급격동작 프레임발화 구→신 | 급격동작 이벤트(15s 쿨다운) 구→신 · 시각(초) | 무동작 구→신 | 구 동작 ID 스왑 | 카메라 이동 억제 표본(신) |")
+    print("|---|---|---|---|---|---|---|")
     for name in VIDEOS:
         if not (CACHE / f"{name}.json").exists():
             continue
@@ -127,7 +132,7 @@ def main() -> None:
         lg, fx = r["legacy"], r["fixed"]
         print(f"| {name} | {r['samples']}/{r['frames']}f | {lg['rapid_raw']}→{fx['rapid_raw']} "
               f"| {len(lg['rapid_events'])}→{len(fx['rapid_events'])} · 구 {lg['rapid_events']} / 신 {fx['rapid_events']} "
-              f"| {lg['immob_raw']}→{fx['immob_raw']} | {r['legacy_swaps']} |")
+              f"| {lg['immob_raw']}→{fx['immob_raw']} | {r['legacy_swaps']} | {len(fx['camera_suppressed'])} {fx['camera_suppressed']} |")
     print("\n발화 상세(프레임 단위, 시각·tid·이동량 — 구 동작은 tid 없이 매칭하므로 tid=None):")
     for name in VIDEOS:
         if not (CACHE / f"{name}.json").exists():

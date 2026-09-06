@@ -477,12 +477,18 @@ class MotionTracker:
     #   0.15~0.3/초(=0.075~0.15/표본)라 0.25 는 그 사이에 있다(MATCH=0.32 는 못 걸렀다 — 실측).
     TID_JUMP_MAX = 0.25
     HIST_S = 60.0
+    # [CODE_REVIEW M3-1, 대표 결정 (b) 2026-09-06] 카메라 흔들림(팬/틸트) 억제: 창 안에 트랙 ≥2 이고 **과반**이
+    #   임계 이상 이동했으며 그 이동 방향이 서로 같으면(평균 벡터와 코사인 ≥ CAMERA_COS) 그 표본의 급격동작을
+    #   억제하고 camera_motion 플래그를 남긴다(육안검증: multi_scene 2.5·13.x·18.5~20.0s 가 전부 카메라 팬/틸트).
+    #   고정 CCTV 전제 — PTZ 카메라 도입 시에는 (a) 전역 이동 보정(트랙 중위 이동 벡터 차감)이 필요하다(메모).
+    CAMERA_COS = 0.8
 
     def __init__(self) -> None:
         self._tracks: list[dict] = []
         # [M2-3] 프레임 세로/가로 비(h/w). worker 가 프레임마다 채운다(스텁 호환을 위해 인자 대신 속성).
         #   None = 무보정(정사각 가정, 기존 동작).
         self.aspect_hw: float | None = None
+        self.camera_motion = False            # [M3-1] 마지막 update 에서 카메라 이동으로 억제했는가(기록용 플래그)
 
     def update(self, detections, ts, aspect_hw: float | None = None) -> list[tuple[str, str, str]]:
         """[CODE_REVIEW M2-2, 2026-09-06] guard 가 주는 안정 tid 를 **우선** 사용한다.
@@ -541,13 +547,28 @@ class MotionTracker:
             tr["hist"] = [h for h in tr["hist"] if ts - h[0] <= self.HIST_S]
         self._tracks = [tr for tr in self._tracks if tr.get("hist") and ts - tr["hist"][-1][0] < 3.0]
         out: dict[str, tuple[str, str, str]] = {}
+        # [M3-1] 창 안 이동 벡터를 먼저 모아 "다수 트랙 동시·동방향 이동"(카메라 팬/틸트)을 판정한다.
+        vecs: list[tuple[float, float, float]] = []
         for tr in self._tracks:
-            h = tr["hist"]
-            rec = [x for x in h if 0 <= ts - x[0] <= self.RAPID_T + self.RAPID_T_SLACK]
+            rec = [x for x in tr["hist"] if 0 <= ts - x[0] <= self.RAPID_T + self.RAPID_T_SLACK]
             if len(rec) >= 2:
                 dx, dy = rec[-1][1] - rec[0][1], (rec[-1][2] - rec[0][2]) * ar   # [M2-3] y→x 척도
-                if (dx * dx + dy * dy) ** 0.5 > self.RAPID_DIST:
-                    out["rapid_motion"] = ("rapid_motion", "mid", "급격한 이동 감지 — 돌진·이상행동")
+                vecs.append((dx, dy, (dx * dx + dy * dy) ** 0.5))
+        self.camera_motion = False
+        if len(vecs) >= 2:
+            moving = [v for v in vecs if v[2] > self.RAPID_DIST]
+            if len(moving) * 2 > len(vecs):                          # 과반이 임계 이상 이동
+                mx = sum(v[0] for v in moving) / len(moving)
+                my = sum(v[1] for v in moving) / len(moving)
+                mn = (mx * mx + my * my) ** 0.5
+                if mn > 0:
+                    aligned = sum(1 for v in moving if (v[0] * mx + v[1] * my) / (v[2] * mn) >= self.CAMERA_COS)
+                    self.camera_motion = aligned * 2 > len(vecs)     # 과반이 같은 방향 → 카메라 이동
+        for dx, dy, dist in vecs:
+            if dist > self.RAPID_DIST and not self.camera_motion:
+                out["rapid_motion"] = ("rapid_motion", "mid", "급격한 이동 감지 — 돌진·이상행동")
+        for tr in self._tracks:                                       # 무동작(카메라 이동과 무관)
+            h = tr["hist"]
             win = [x for x in h if ts - x[0] <= self.IMMOBILE_S]
             if len(win) >= 5 and (ts - h[0][0]) >= self.IMMOBILE_S:   # 트랙이 충분히 오래 + 최근 정지
                 xs = [x[1] for x in win]
@@ -1017,6 +1038,9 @@ class Worker:
             ctx.mtrack.aspect_hw = _H / _W if _W else None            # [M2-3] y 척도 보정용(속성 주입 — 스텁 호환)
             fired += [(r, lv, n, "") for r, lv, n in
                       ctx.mtrack.update(out.get("detections", []), t0)]   # 무동작·급이동
+            if getattr(ctx.mtrack, "camera_motion", False):            # [M3-1] 카메라 이동으로 억제한 표본 — 기록(플래그·카운터)
+                self.state["camera_motion_frames"] = self.state.get("camera_motion_frames", 0) + 1
+                self._last_sig = {**self._last_sig, "camera_motion": True}
             self._last_fired = [r[0] for r in fired]                # 3.1b: 이번 프레임 발화 규칙(뱃지·전역경보 근거)
             now = time.time()
             # [CODE_REVIEW M3-4, 2026-09-06] 만료된 쿨다운 키 정리 — zone_intrusion 은 사람 단위 키(`rule|t<tid>`)라
