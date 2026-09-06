@@ -64,13 +64,18 @@ def zone_intrusion_alert(payload: dict = Body(default={}), theme: str = DEFAULT_
             msg += f" · VLM 위험확률 {vlm_conf['risk']}% → {vlm_conf['verdict']}: {vlm_conf['reason']}"
         suppressed = bool(vlm_conf.get("suppress"))
 
-    if suppressed:
-        result = {"delivered": False, "suppressed": True, "fallback": False}
-    elif dispatcher:
-        result = dispatcher.dispatch("high", msg)
-    else:
-        result = {"delivered": False, "fallback": True}
+    # ★[CODE_REVIEW M3-3, 2026-09-06] 예전엔 dispatcher.dispatch("high") 직접 호출 — 브라우저 8s 쿨다운 외에 서버 측
+    #   억제가 없어 탭 수·재접속마다 통보가 곱해졌다. 이제 alert_notify.submit(출처 키 browser_zone:<cam>) 로
+    #   통보 게이트(쿨다운·백오프·시간당 상한)를 탄다. 기록·증거·VLM 억제는 그대로.
+    #   응답 phone_sent 는 "통보 큐 적재 여부"(실제 발송은 비동기) — fallback 은 미적재.
+    queued, gate = False, "suppressed_by_vlm" if suppressed else "no_dispatcher"
+    if not suppressed and dispatcher:
+        import alert_notify
+        n = alert_notify.submit(cam=f"browser_zone:{payload.get('cam') or zone_name}", rule="zone_intrusion",
+                                level="high", message=msg, meta={"evidence": saved, "people": people})
+        queued, gate = bool(n.get("queued")), str(n.get("reason"))
     return {"ok": True, "message": msg, "vlm_confirm": vlm_conf, "suppressed": suppressed,
-            "phone_sent": bool(result.get("delivered")),      # 텔레그램/웹훅 실제 발송 여부
-            "fallback": result.get("fallback", True),         # 키 없으면 True(로그만)
+            "phone_sent": queued,                              # 통보 큐 적재 여부(비동기 발송)
+            "fallback": not queued,                            # 미적재(억제·미배선)
+            "gate": gate,
             "evidence": saved}

@@ -80,11 +80,14 @@ def rank(level: str) -> int:
     return LEVEL_RANK.get(str(level or "").strip().lower(), 0)
 
 
-def decide(cam: str, rule: str, level: str, now: float | None = None) -> dict[str, Any]:
+def decide(cam: str, rule: str, level: str, now: float | None = None,
+           edge: bool = False) -> dict[str, Any]:
     """이 발화를 통보할 것인가.
 
     반환: {"notify": bool, "suppressed": int, "reason": str}
       suppressed = 직전 통보 이후 억제된 건수(통보할 때만 의미 있음 — 메시지에 싣는다)
+    edge: [CODE_REVIEW M3-2] "상태 전이" 발화(센서 임계 진입 등 — 호출측이 이미 전이에서만 1회 부른다).
+      쿨다운·백오프는 건너뛰되 **시간당 상한은 그대로** 적용한다(최종 방어선은 우회 불가).
     """
     now = time.time() if now is None else now
     key = (str(cam), str(rule))
@@ -113,7 +116,7 @@ def decide(cam: str, rule: str, level: str, now: float | None = None) -> dict[st
         escalated = r > s["last_rank"] and s["last_rank"] >= 0
         held = now - s["last_notify"]
         cd = min(float(s["cd"]), backoff_max_s())
-        if s["last_notify"] > 0 and held < cd and not escalated:
+        if s["last_notify"] > 0 and held < cd and not escalated and not edge:
             s["suppressed"] += 1
             return {"notify": False, "suppressed": s["suppressed"], "reason": "cooldown"}
 
@@ -125,7 +128,7 @@ def decide(cam: str, rule: str, level: str, now: float | None = None) -> dict[st
         # ★통보할 때마다 다음 쿨다운을 늘린다 — 반복되는 원인일수록 점점 뜸해진다.
         s["cd"] = min(cd * backoff_factor(), backoff_max_s())
         return {"notify": True, "suppressed": sup, "next_cooldown_s": round(s["cd"], 1),
-                "reason": "escalated" if escalated else "ok"}
+                "reason": "escalated" if escalated else ("edge" if edge else "ok")}
 
 
 def annotate(message: str, suppressed: int) -> str:

@@ -107,16 +107,19 @@ def stop(join_s: float = 2.0) -> None:
 
 
 def submit(cam: str, rule: str, level: str, message: str,
-           meta: dict[str, Any] | None = None) -> dict[str, Any]:
+           meta: dict[str, Any] | None = None, *, edge: bool = False) -> dict[str, Any]:
     """위험 발화 1건을 통보 대기열에 넣는다. **절대 블로킹하지 않고 예외도 올리지 않는다.**
 
     반환: {"queued": bool, "suppressed": int, "reason": str}
+    cam 은 **출처 키**다 — 워커는 카메라명, 우회 경로는 `sensor:<종류>`·`browser_zone:<cam>`·`brain`·`manual`
+    ([CODE_REVIEW M3-2·M3-3]: 출처별로 게이트 예산(시간당 상한·백오프)을 나눠 영상 경보와 섞이지 않게).
+    edge=True 는 상태 전이 발화(쿨다운 건너뜀, 시간당 상한은 유지) — alert_gate.decide 참조.
     """
     _stats["submitted"] += 1
     try:
         if not alert_gate.enabled():
             return {"queued": False, "suppressed": 0, "reason": "disabled"}
-        d = alert_gate.decide(cam, rule, level)
+        d = alert_gate.decide(cam, rule, level, edge=edge)
         if not d["notify"]:
             _stats["suppressed"] += 1
             return {"queued": False, "suppressed": d["suppressed"], "reason": d["reason"]}

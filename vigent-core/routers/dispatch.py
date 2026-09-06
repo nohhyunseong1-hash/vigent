@@ -25,7 +25,18 @@ def dispatch_relay(payload: dict = Body(default={}), theme: str = DEFAULT_THEME)
     bundle = STATE.get(theme) or _load_theme(theme)
     dispatcher = bundle["agents"].get("Dispatcher")
     _event = payload.get("event", "guard_bypass")
-    result = dispatcher.relay(_event, payload.get("meta"))
+    # ★[CODE_REVIEW M3-3, 2026-09-06] 예전엔 dispatcher.relay() → dispatch("critical") 직접 호출(게이트 우회).
+    #   이제 alert_notify.submit(출처 키 manual) 로 통보 게이트를 탄다 — critical 등급 상승 예외는 게이트가 유지.
+    #   응답 형태는 relay() 와 호환(relay·event·is_primary_safety·boundary), delivered 는 "큐 적재" 의미.
+    import alert_notify
+    import tuning
+    text = str(tuning.val("alerts", "guard_bypass_text", "위험기계 방호구역 신체 진입 감지")).strip()
+    n = alert_notify.submit(cam="manual", rule=str(_event), level="critical",
+                            message=f"{_event}: {text}", meta=payload.get("meta") or {})
+    result = {"relay": "auxiliary_signal", "event": _event, "is_primary_safety": False,
+              "boundary": "§8.1 — 비전은 보조·감시 계층. 1차 정지는 인증 하드웨어 책임.",
+              "delivered": bool(n.get("queued")), "queued": bool(n.get("queued")), "gate": n.get("reason"),
+              "dispatcher": dispatcher is not None}
     import datetime as _dt  # 구조화 이벤트 로그(C-S1, D3 감사추적)
     vlog.log_event({"ts": _dt.datetime.now().isoformat(timespec="seconds"),
                     "type": "dispatch_relay", "event": _event, "theme": theme, "result": result})

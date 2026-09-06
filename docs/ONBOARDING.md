@@ -117,6 +117,10 @@ guard.detect person 박스 → RTMPose/yolov8n-pose → COCO-17 키포인트
 - **워커:** `POST /worker/start` · `/workers/start-all` · `GET /workers`
 - **사건분석:** `POST /safety/incident/analyze`
 - **설정/알림:** `GET,POST /site/config` · `/notify/config` · `POST /alerts/test`
+  - ★[CODE_REVIEW M3-2·M3-3, 2026-09-06] 브라우저·센서·수동 경보 경로(`/zone/intrusion`·`/safety/sensor`·`/safety/brain/inspect`·`/dispatch/relay`)는
+    `alert_notify.submit` 으로 **통보 게이트**(쿨다운·백오프·시간당 상한, 출처별 키)를 탄다. 응답의 `phone_sent`·`alert_sent`·`alerted`·`delivered`
+    는 **"통보 큐 적재 여부"**(실제 발송은 비동기, 결과는 `/health alerts`·큐)이며, `gate` 에 게이트 판정 사유가 실린다. 센서는 임계 **진입 전이**에서만 통보(지속 초과는 기록만).
+    `/alerts/test` 만 의도된 게이트 우회(채널 연결 시험).
 - **시스템:** `GET /health` · `/system/capabilities` · `/home` · `/hub`
 
 ---
