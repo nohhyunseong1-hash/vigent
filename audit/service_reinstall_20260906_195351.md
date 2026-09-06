@@ -1,0 +1,24 @@
+﻿# 서비스 재설치 검증 20260906_195351  결과: ❌ 미통과(아래 로그 확인) · 원복 sha256 일치  백업: service_nssm_dump_before_20260906_195351.txt / 사후: service_nssm_dump_after_20260906_195351.txt 
+- 19:53:51 기존 서비스 상태: Stopped/Disabled
+- 19:53:52 NSSM 설정 백업: service_nssm_dump_before_20260906_195351.txt
+- 19:53:52 중화: cameras.json → .audit_hold (sha256 E796CB578210…)
+- 19:53:52 중화: camera_secrets.json → .audit_hold (sha256 78B6556F462A…)
+- 19:53:52 중화: notify.yaml → .audit_hold (sha256 A34A16E76BC0…)
+- 19:53:52 중화: .env → .audit_hold (sha256 29D84F3B1385…)
+- 19:53:52 install_service.ps1 실행(재설치)
+- 19:54:03 서비스 Application: C:\Users\shgus\AppData\Local\Programs\Python\Python311\python.exe
+- 19:54:03 AppRestartDelay=60000ms AppThrottle=180000ms
+- 19:54:03 env 7개: VIGENT_REQUIRE_TOKEN, VIGENT_CAPTURE_MODE, VIGENT_HOST, PYTHONUTF8, RF_HOME, TORCH_HOME, VIGENT_RESTART_CMD
+- 19:54:03 이벤트 소스 VIGENT 등록: True
+- 19:56:37 /health code=0 status= phase= warnings=[]
+- 19:56:37 검증 3: /health 200 · degraded 아님 · channels_not_configured 만 → False
+- 19:56:37 startup_failure.json: (없음 — 정상 기동)
+- 19:56:37 기동 실패 유도: RF_HOME → D:\__vigent_bad_rf_home 후 재시작
+- 20:00:38 연속 실패 간격 최소: (2회 미만 관측 — 창 240s)
+- 20:00:38 이벤트 로그 Application/VIGENT ID 1000 (유도 후): 0건
+- 20:00:38 검증 4: 실패 기록 · 이벤트 1000 · 간격 ≥ 60s → False
+- 20:00:42 서비스 최종 상태: Stopped/Disabled (원래: Stopped/Disabled)
+- 20:00:42 원복: cameras.json sha256 일치=True
+- 20:00:42 원복: camera_secrets.json sha256 일치=True
+- 20:00:42 원복: notify.yaml sha256 일치=True
+- 20:00:42 원복: .env sha256 일치=True

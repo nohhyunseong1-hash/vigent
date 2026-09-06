@@ -55,20 +55,17 @@ $LogDir = Join-Path $Root "logs"
 if (-not (Test-Path $Core)) { Write-Error "vigent-core 를 찾을 수 없습니다: $Core"; exit 1 }
 if (-not (Test-Path $LogDir)) { New-Item -ItemType Directory $LogDir | Out-Null }
 
-# python: 프로젝트 .venv(3.11) 우선, 없으면 **py -3.11 이 가리키는 실행파일**(정본). bare python(PATH) 은 쓰지 않는다.
-#   ★[CODE_REVIEW M7-6, 2026-09-06] 개발 PC 실측: py 런처 기본이 3.14 → PATH python 이 바뀌면 서비스가 미검증 인터프리터로 뜬다.
+# python: **프로젝트 .venv 만** 쓴다(시스템 python·py 런처 폴백 금지 — [5단계 5-2 정정, 2026-09-06]).
+#   실사고: .venv 가 없어 시스템 Python311 로 등록됐다. 서비스가 쓰는 인터프리터는 "저장소 안의 .venv" 로 고정해야
+#   개발자 PC 의 PATH·py 기본값(3.14 실측)에 흔들리지 않는다. 없으면 만들라고 안내하고 중단한다.
 $Py = Join-Path $Root ".venv\Scripts\python.exe"
-if (Test-Path $Py) {
-  $v = & $Py -c "import sys; print('%d.%d' % sys.version_info[:2])" 2>$null
-  if ($v -ne "3.11") { Write-Warning ".venv 파이썬이 3.11 이 아닙니다($v) — py -3.11 로 대체합니다"; $Py = $null }
-} else { $Py = $null }
-if (-not $Py) {
-  if (-not (Get-Command py -ErrorAction SilentlyContinue)) { Write-Error "py 런처가 없습니다. Python 3.11.x(python.org)를 설치하세요."; exit 1 }
-  $Py = & py -3.11 -c "import sys; print(sys.executable)" 2>$null
-  if (-not $Py) { Write-Error "Python 3.11 이 없습니다(py -3.11 실패). 3.11.x 를 설치한 뒤 py -3.11 -m pip install -r requirements.txt"; exit 1 }
+if (-not (Test-Path $Py)) {
+  Write-Error (".venv 가 없습니다: " + $Py + "`n  만들기: py -3.11 -m venv .venv ; .\.venv\Scripts\python.exe -m pip install -r requirements.txt`n" +
+               "  그다음 DEPLOYMENT §3-1 opencv 정리(headless 강제) · GPU 면 §3 CUDA 휠. 시스템 python 으로는 등록하지 않습니다.")
+  exit 1
 }
 $probe = & $Py -c "import sys, uvicorn, fastapi; sys.exit(0 if sys.version_info[:2] == (3, 11) else 3)" 2>$null; $probeCode = $LASTEXITCODE
-if ($probeCode -ne 0) { Write-Error "선택된 파이썬($Py)에 uvicorn/fastapi 가 없거나 3.11 이 아닙니다(code $probeCode). py -3.11 -m pip install -r requirements.txt"; exit 1 }
+if ($probeCode -ne 0) { Write-Error (".venv 파이썬($Py)이 3.11 이 아니거나 uvicorn/fastapi 가 없습니다(code " + $probeCode + "). .\.venv\Scripts\python.exe -m pip install -r requirements.txt"); exit 1 }
 Write-Host "루트 : $Root"
 Write-Host "파이썬: $Py"
 
@@ -110,7 +107,10 @@ try {
 } catch { Write-Host "이벤트 로그 소스 등록 실패(무시, 서비스 계정의 eventcreate 가 자동 등록): $($_.Exception.Message)" -ForegroundColor Yellow }
 
 # ── 4. 서비스 생성 ─────────────────────────────────────────────────────
-$appArgs = "-m uvicorn main:app --host $Bind --port $Port"
+# ★[5단계 5-2 정정] 서비스는 얇은 런처(deploy\windows\service_entry.py)를 거친다 — import·인터프리터 단계 실패도
+#   이벤트 로그(ID 1001)·data\startup_failure.json 에 남는다(예전 `-m uvicorn main:app` 은 그 단계 실패가 무흔적).
+$Entry = Join-Path $PSScriptRoot "service_entry.py"
+$appArgs = ("`"" + $Entry + "`" --host $Bind --port $Port")
 & $nssmPath install $ServiceName $Py $appArgs
 & $nssmPath set $ServiceName AppDirectory $Core
 & $nssmPath set $ServiceName DisplayName "VIGENT 산업안전 비전 서버"

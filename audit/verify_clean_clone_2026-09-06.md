@@ -28,7 +28,14 @@
 | `node`(JS 구문 검사 테스트) | 선택 도구 | 없으면 skip(테스트가 명시) |
 | 런처 콘솔 한글 | `run.ps1` 의 Write-Host 한글이 리다이렉트 시 깨짐(코드페이지) — 앱 로그(UTF-8)는 정상 | 낮음: `[Console]::OutputEncoding` 설정 후보(다음 단계) |
 
-## 3. 5-2 서비스 재설치 검증 — ★이 세션에서 실행 불가(비관리자)
+## 3-1. 5-2 1차 실행 결과(대표, 19:53) — ❌ 실패 → 원인 확정·수정(2026-09-06 20:1x)
+
+- 관찰: 재설치·파라미터(60s/180s·env 7·이벤트 소스)는 성공, 서비스 시작 직후 **Paused** → /health code=0 → 검증 3·4 False, 원복 정상.
+- **원인(확정)**: `logs/vigent.err.log` 마지막 기록 = `[VIGENT 보안 오류] VIGENT_REQUIRE_TOKEN 설정됨 — 무인증 기동을 금지합니다`. 서비스 env `VIGENT_REQUIRE_TOKEN=1` 인데 검증 절차가 `.env`(토큰 출처)를 통째로 중화 → `main.py` 보안 게이트가 **import 시점** `SystemExit(1)` → `_startup` 이전이라 M4-5 흔적(이벤트 1000·startup_failure.json) 0 → NSSM 60s 재시작 대기(Paused) 반복. 의심 1(시스템 Python311 등록)은 이 PC 에 `.venv` 가 없어 그렇게 등록된 것이고 패키지 부재는 아니었다(같은 인터프리터로 638 테스트 통과).
+- 수정 4건: ① `install_service.ps1` — `.venv\Scripts\python.exe` 만(없으면 명시적 오류로 중단, 시스템 python 폴백 금지) + Application 을 얇은 런처 `deploy\windows\service_entry.py` 로 ② 런처가 import·인터프리터 단계 실패를 이벤트 **ID 1001**·`startup_failure.json`(stage=import·stderr 꼬리)에 기록하고 종료코드 반환 — 실측: 토큰 빈값 실험 exit 1, json 기록, 이벤트 1001 기록(비관리자 Write-EventLog 폴백) ③ `service_status.ps1` 이 무응답 시 err 로그 마지막 20줄 + startup_failure.json 출력 ④ 검증 스크립트: nssm stderr 흡수(NativeCommandError 제거), 서비스 Running 선확인(아니면 즉시 사유+err 꼬리), `.env` 는 키 값만 비운 임시본(토큰은 무작위 임시값) 사용, Application/.venv/런처 등록 검증(검증 2) 추가.
+- 이 PC 에 `.venv` 생성(py -3.11, requirements + opencv headless 정리; torch 는 CPU 휠 — GPU 서비스 운용 시 DEPLOYMENT §3 cu130 휠 교체 필요).
+
+## 3-2. 5-2 서비스 재설치 검증 절차(관리자 재실행)
 
 이 세션의 PowerShell 은 관리자가 아니다(`IsInRole(Administrator) = False` 실측). NSSM 설치·이벤트 소스 등록·서비스 기동은 관리자 권한이 필요하므로 **전 절차를 자동화한 스크립트를 만들어 두었다**:
 

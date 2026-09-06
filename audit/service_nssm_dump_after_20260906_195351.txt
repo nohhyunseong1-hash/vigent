@@ -1,0 +1,17 @@
+﻿C:\Users\shgus\AppData\Local\Microsoft\WinGet\Packages\NSSM.NSSM_Microsoft.Winget.Source_8wekyb3d8bbwe\nssm-2.24-101-g897c7ad\win64\nssm.exe install VIGENT C:\Users\shgus\AppData\Local\Programs\Python\Python311\python.exe
+C:\Users\shgus\AppData\Local\Microsoft\WinGet\Packages\NSSM.NSSM_Microsoft.Winget.Source_8wekyb3d8bbwe\nssm-2.24-101-g897c7ad\win64\nssm.exe set VIGENT AppParameters "-m uvicorn main:app --host 127.0.0.1 --port 8010"
+C:\Users\shgus\AppData\Local\Microsoft\WinGet\Packages\NSSM.NSSM_Microsoft.Winget.Source_8wekyb3d8bbwe\nssm-2.24-101-g897c7ad\win64\nssm.exe set VIGENT AppDirectory D:\vigent_original\vigent-core
+C:\Users\shgus\AppData\Local\Microsoft\WinGet\Packages\NSSM.NSSM_Microsoft.Winget.Source_8wekyb3d8bbwe\nssm-2.24-101-g897c7ad\win64\nssm.exe set VIGENT AppExit Default Restart
+C:\Users\shgus\AppData\Local\Microsoft\WinGet\Packages\NSSM.NSSM_Microsoft.Winget.Source_8wekyb3d8bbwe\nssm-2.24-101-g897c7ad\win64\nssm.exe set VIGENT AppEnvironmentExtra :VIGENT_REQUIRE_TOKEN=1
+C:\Users\shgus\AppData\Local\Microsoft\WinGet\Packages\NSSM.NSSM_Microsoft.Winget.Source_8wekyb3d8bbwe\nssm-2.24-101-g897c7ad\win64\nssm.exe set VIGENT AppRestartDelay 60000
+C:\Users\shgus\AppData\Local\Microsoft\WinGet\Packages\NSSM.NSSM_Microsoft.Winget.Source_8wekyb3d8bbwe\nssm-2.24-101-g897c7ad\win64\nssm.exe set VIGENT AppStdout D:\vigent_original\logs\vigent.out.log
+C:\Users\shgus\AppData\Local\Microsoft\WinGet\Packages\NSSM.NSSM_Microsoft.Winget.Source_8wekyb3d8bbwe\nssm-2.24-101-g897c7ad\win64\nssm.exe set VIGENT AppStderr D:\vigent_original\logs\vigent.err.log
+C:\Users\shgus\AppData\Local\Microsoft\WinGet\Packages\NSSM.NSSM_Microsoft.Winget.Source_8wekyb3d8bbwe\nssm-2.24-101-g897c7ad\win64\nssm.exe set VIGENT AppThrottle 180000
+C:\Users\shgus\AppData\Local\Microsoft\WinGet\Packages\NSSM.NSSM_Microsoft.Winget.Source_8wekyb3d8bbwe\nssm-2.24-101-g897c7ad\win64\nssm.exe set VIGENT AppRotateFiles 1
+C:\Users\shgus\AppData\Local\Microsoft\WinGet\Packages\NSSM.NSSM_Microsoft.Winget.Source_8wekyb3d8bbwe\nssm-2.24-101-g897c7ad\win64\nssm.exe set VIGENT AppRotateOnline 1
+C:\Users\shgus\AppData\Local\Microsoft\WinGet\Packages\NSSM.NSSM_Microsoft.Winget.Source_8wekyb3d8bbwe\nssm-2.24-101-g897c7ad\win64\nssm.exe set VIGENT AppRotateBytes 268435456
+C:\Users\shgus\AppData\Local\Microsoft\WinGet\Packages\NSSM.NSSM_Microsoft.Winget.Source_8wekyb3d8bbwe\nssm-2.24-101-g897c7ad\win64\nssm.exe set VIGENT Description "RTSP 移대찓??湲곕컲 ?곗뾽?덉쟾 寃異??щ엺쨌PPE쨌?붿옱/?곌린). /health 濡?寃異??앹〈 ?뺤씤."
+C:\Users\shgus\AppData\Local\Microsoft\WinGet\Packages\NSSM.NSSM_Microsoft.Winget.Source_8wekyb3d8bbwe\nssm-2.24-101-g897c7ad\win64\nssm.exe set VIGENT DisplayName "VIGENT ?곗뾽?덉쟾 鍮꾩쟾 ?쒕쾭"
+C:\Users\shgus\AppData\Local\Microsoft\WinGet\Packages\NSSM.NSSM_Microsoft.Winget.Source_8wekyb3d8bbwe\nssm-2.24-101-g897c7ad\win64\nssm.exe set VIGENT ObjectName LocalSystem
+C:\Users\shgus\AppData\Local\Microsoft\WinGet\Packages\NSSM.NSSM_Microsoft.Winget.Source_8wekyb3d8bbwe\nssm-2.24-101-g897c7ad\win64\nssm.exe set VIGENT Start SERVICE_DISABLED
+C:\Users\shgus\AppData\Local\Microsoft\WinGet\Packages\NSSM.NSSM_Microsoft.Winget.Source_8wekyb3d8bbwe\nssm-2.24-101-g897c7ad\win64\nssm.exe set VIGENT Type SERVICE_WIN32_OWN_PROCESS

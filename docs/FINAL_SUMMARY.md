@@ -92,7 +92,7 @@ D:\vigent_private_data\   저장소 밖 미디어(VIGENT_DATA_DIR): runs/·bench
 
 현장 필수 조건(고정 IP·저장 암호화·릴레이·카메라 대수·오프라인 가중치)은 [deploy/SITE_CHECKLIST.md](../deploy/SITE_CHECKLIST.md) N-1~N-5 를 따른다. 아래는 그 밖의 **코드 리뷰에서 등록된 검증 항목**이다.
 
-- [ ] **서비스 재설치 검증** — 관리자 PowerShell 에서 `deploy\windows\verify_service_reinstall.ps1` 실행 → 보고서 `audit\service_reinstall_*.md` 통과(이 세션은 비관리자라 실행 못 함). 확인 포인트: 이벤트 로그 Application/VIGENT ID 1000 · 재시작 간격 ≥60s · `service_status.ps1` 종료코드 0 · Stopped/Disabled 원복.
+- [ ] **서비스 재설치 검증** — 관리자 PowerShell 에서 `deploy\windows\verify_service_reinstall.ps1` 실행 → 보고서 `audit\service_reinstall_*.md` 통과. 1차(19:53) 실패 원인은 `.env` 중화로 보안 게이트가 import 시점에 종료된 것(흔적 0) → 얇은 런처 `service_entry.py`(이벤트 ID 1001·startup_failure.json stage=import)·`.venv` 전용 등록·검증 스크립트 수정 후 재실행 대기([audit/verify_clean_clone §3](../audit/verify_clean_clone_2026-09-06.md)). 통과 기준: 검증 2(.venv+런처 등록)·3(Running·/health 200·channels_not_configured 만)·4(실패 기록·이벤트 1000/1001·간격 ≥60s)·5(복구·status exit 0) 전부 True + 원복 sha256 4/4.
 - [ ] **실카메라 10초 수신** — 프레임 None 비율, 저지연 옵션(`nobuffer/low_delay/max_delay`) 전후 지연 비교(M5-1 (2)).
 - [ ] **READ 5초 재연결** — 카메라 전원 차단 → 5초 타임아웃 → 재연결 동작(M5-2).
 - [ ] **오프라인 첫 사람 검출** — 카메라 물린 뒤 사람 1명 통과 시 로그에 `Downloading:` 이 없어야 함(rtmlib 캐시, N-5).

@@ -436,7 +436,9 @@ env를 `nssm set`으로 손으로 고치지 않는다(다음 재설치 때 되�
 |---|---|---|
 | 1 | `cd D:\vigent_original\deploy\windows; .\uninstall_service.ps1` (기존 서비스가 있을 때) | `Get-Service VIGENT` → 없음 |
 | 2 | 가중치 조달: `python scripts\fetch_weights.py --all` (§4) | `vigent-core\weights\rf-detr-nano.pth` + rfdetr 3종 존재 |
-| 3 | `.\install_service.ps1` | "서비스 'VIGENT' 상태: Running" |
+| 2-1 | ★`.venv` 준비(없으면 install 이 **중단**한다 — 시스템 python 폴백 금지, 5단계 5-2 정정): `py -3.11 -m venv .venv; .\.venv\Scripts\python.exe -m pip install -r requirements.txt` + §3-1 opencv 정리 + GPU 면 §3 CUDA 휠 | `.venv\Scripts\python.exe -c "import uvicorn,fastapi"` OK |
+| 2-2 | `.env` 에 `VIGENT_API_TOKEN=<비밀토큰>`(서비스는 `VIGENT_REQUIRE_TOKEN=1` 이라 **토큰이 없으면 import 시점에 종료** — 2026-09-06 재설치 검증 1차 실패 원인) | `.env` 존재 |
+| 3 | `.\install_service.ps1` — Application = `.venv\Scripts\python.exe deploy\windows\service_entry.py`(런처) | "서비스 'VIGENT' 상태: Running" |
 | 4 | `.\service_status.ps1` 를 **예열 후(≥20초) 한 번 더** | `HTTP 200 · status=healthy/degraded · phase=ready` — 15초 넘게 503이면 §9-② |
 | 5 | **크래시 루프 검사**: `.\service_status.ps1` 종료코드 **4**(최근 1시간 `vigent.err-*` 회전 파일 ≥ 임계 10, `-CrashLoopThreshold` 조정) 또는 `Get-ChildItem logs\vigent.err-* \| Measure-Object` 가 몇 분 사이 계속 늘면 루프다 | 종료코드 0~2, 늘지 않음 |
 
@@ -454,7 +456,8 @@ env를 `nssm set`으로 손으로 고치지 않는다(다음 재설치 때 되�
 
 비밀값(`VIGENT_API_TOKEN`·텔레그램·카메라 자격증명)은 서비스 env가 아니라 `.env`·`config/notify.yaml`·`data/camera_secrets.json`(전부 gitignore)에서 읽는다.
 
-**크래시 루프 재발 방지(4단계 CODE_REVIEW M4-5, 2026-09-06 반영)** — "3주간 미감지"를 세 겹으로 막는다:
+**크래시 루프 재발 방지(4단계 CODE_REVIEW M4-5 + 5단계 5-2 정정, 2026-09-06 반영)** — "3주간 미감지"를 네 겹으로 막는다:
+0. **얇은 런처 `deploy\windows\service_entry.py`**(5단계): 서비스가 `-m uvicorn main:app` 대신 런처를 실행한다. `import main` 이 **import·인터프리터 단계**에서 죽으면(패키지 없음, 보안 게이트 `VIGENT_REQUIRE_TOKEN`+토큰 부재, 구문 오류…) — 이 단계는 아래 1번(`_startup`) 이전이라 흔적이 없었다 — 런처가 ① `data/startup_failure.json`(stage=import, stderr 꼬리) ② 이벤트 로그 Application/VIGENT **ID 1001** 에 남기고 종료코드를 그대로 돌려준다. 런처 자체가 못 뜨는 경우(파이썬 부재)는 `service_status.ps1` 이 `logs/vigent.err.log` 마지막 20줄을 보여 준다. 실측: 토큰 빈값 → exit 1 · json 기록 · 이벤트 1001(비관리자 Write-EventLog 폴백).
 1. **기동 실패 통보·기록**(`main._startup`): `_load_theme` 실패 시 ① `data/startup_failure.json`에 누적 횟수·마지막 통보 시각 ② **Windows 이벤트 로그** Application / 소스 `VIGENT` / ID 1000 에 ERROR 1줄(매 실패 — 텔레그램 설정 자체가 원인일 때 대비) ③ 원격 채널(notify.yaml/.env)이 있으면 텔레그램·이메일·웹훅 통보(첫 실패 즉시, 이후 **1시간 1회**) → 그 뒤 재raise(기동은 실패시킨다). 확인: `Get-EventLog -LogName Application -Source VIGENT -Newest 5`.
 2. **NSSM 파라미터**(`install_service.ps1`): `AppRestartDelay 60000`(재시작 지연 60s, 구 5s) · `AppThrottle 180000`(기동 후 180s 안에 죽으면 폭주로 보고 감속, 구 10s — 모델 로드 ~25s 뒤 실패하는 루프에 10s 스로틀은 무력했다). **재설치해야 적용**(현재 개발 PC 서비스는 SERVICE_DISABLED, 재설치는 5단계 검증 후 결정).
 3. **`service_status.ps1`**: 최근 1시간 `logs/vigent.err-*` 회전 파일 수를 항상 출력하고 임계(기본 10) 이상이면 **종료코드 4** + 빨간 안내(서버가 응답하지 않을 때도 동작). 작업 스케줄러 등에서 종료코드 ≥3 을 감시하면 된다.

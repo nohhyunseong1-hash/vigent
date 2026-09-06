@@ -21,6 +21,17 @@ if (-not $LogDir) {
   $LogDir = Join-Path $here "..\..\logs"
 }
 
+# [5단계 5-2 정정, 2026-09-06] 런처(service_entry.py) 자체가 못 뜨는 경우(파이썬 부재·구문 오류)는 NSSM AppStderr 만 남는다 →
+#   서비스가 Running 이 아니거나 /health 응답이 없으면 logs\vigent.err.log 마지막 20줄을 그대로 보여 준다.
+function Show-ErrTail([string]$why) {
+  $errLog = Join-Path $LogDir "vigent.err.log"
+  Write-Host ("── " + $why + " — " + $errLog + " 마지막 20줄 ──") -ForegroundColor Yellow
+  if (Test-Path $errLog) { Get-Content -Tail 20 -Encoding UTF8 $errLog | ForEach-Object { Write-Host ("  | " + $_) } }
+  else { Write-Host "  (err 로그 없음)" }
+  $sf = Join-Path $LogDir "..\data\startup_failure.json"
+  if (Test-Path $sf) { Write-Host ("  startup_failure.json: " + (Get-Content -Raw $sf)) }
+}
+
 $svc = Get-Service -Name $ServiceName -ErrorAction SilentlyContinue
 $svcState = if ($svc) { $svc.Status } else { "미등록" }
 
@@ -58,6 +69,7 @@ try {
     if ($raw) { try { $h = $raw | ConvertFrom-Json } catch { $h = $null } } else { $h = $null }
   } else {
     Write-Host "서비스=$svcState | HTTP 연결 실패 — /health 응답 없음 (서버 미기동·포트 불일치·방화벽)$rotStr" -ForegroundColor Red
+    Show-ErrTail ("서비스 " + $svcState + " · /health 무응답")
     if ($crashLoop) { exit 4 }
     exit 3
   }
