@@ -253,11 +253,12 @@
 | M4-9 | `starvation_guard._escalate` | 낮음 | 3단계 프로세스 재기동이 `subprocess.Popen(shell=True)` 로 `VIGENT_RESTART_CMD` 실행 — 서비스 계정에서 `sc stop/start` 권한 필요, 실패는 로그만 | 코드 · `install_service.ps1:151` | 재기동 명령 실패도 M4-2 데드레터 통보와 같은 채널로 |
 | M4-10 | `relay.turn_off` 실패 | 정보 | OFF 최종 실패는 `/health degraded` 로 드러남(P3a) — 정상. 단 통보는 없음 | `routers/system.py:161` | M4-2 요약 통보에 `relay.off_failed` 포함 |
 
-### 4-2. 수정 계획(승인 대기)
-- **치명 M4-1·M4-2·M4-3**: 한 커밋(dispatcher·alert_queue·system.py). 선행 테스트: 채널 미설정 → 큐 0건·status 경고 / 401 → 즉시 dead + config_error 노출 / dead 발생 → `/health degraded` + 요약 통보 1회.
-- **중간 M4-4**: 재시도 `remote_only` — 선행 테스트(재시도 3회에 relay 1회).
-- **치명 M4-5**: (a) 코드(`main._startup` 실패 통보·상한) + (c) `service_status.ps1` 회전 파일 검사는 이번에; (b) NSSM 파라미터는 `install_service.ps1` 수정 + `md/DEPLOYMENT.md §7-1` 반영(서비스 재설치는 대표 판단 — 현재 SERVICE_DISABLED).
-- **M4-6** 중간: 폐기 로그·노출만 이번에, 병렬 전송은 백로그. **M4-7·8·9·10** 문서만.
+### 4-2. 진행 현황(대표 승인·조정 3건 반영, 2026-09-06) — 커밋 4개
+- **M4-4** ✅ `be5aa2b`: `_dispatch_now(remote_only=True)` — 재시도는 원격 채널만(relay·log 제외). 테스트 3(최초 1 + 재시도 3 → relay 1회).
+- **M4-1·M4-2·M4-3·M4-7** ✅ `bb7ddef`: 채널 미설정 → 큐 미적재 + `undeliverable` 집계(`/health` 는 미설정 자체를 `warnings["channels_not_configured"]` 로만, critical/high 폐기가 있을 때만 degraded + `alerts.undeliverable`) · HTTP 400/401/403/404(+SMTP 인증·수신자) = `config_error` → 즉시 dead + `last_config_error`(채널·코드·시각, 토큰 제외) + `warnings["notify_config_error"]` · 429 = Retry-After 존중(없으면 기존 백오프) · 5xx/타임아웃/네트워크 = 기존 · dead → 살아 있는 채널로 요약 통보 1시간 1회(`system/alert_dead`, 재귀 금지) + `alerts.dead_1h`(신규 `dead_at` 열, 구 DB ALTER) → degraded · `service_status.ps1` 에 pending/dead_1h/undeliverable·채널 미설정·설정 오류·warnings 출력 · 텔레그램 4000자 절단. 테스트 10.
+- **M4-6** ✅ (커밋 대기): 대기열 가득 → 최고령 폐기 시 WARNING(누적 수·폐기 메시지 요지) + `/health alerts.{dropped, queue_depth, notify_thread_alive}` + `warnings["notify_queue_dropped"]`(status 불변 — 최신 경보는 살아 있음). 테스트 2. 병렬 전송은 백로그.
+- **M4-5** ✅ (커밋 대기): (a) `main._startup`: `_load_theme` 실패 → `data/startup_failure.json`(누적 횟수·마지막 통보) + **Windows 이벤트 로그** Application/VIGENT/ID 1000(매 실패; `eventcreate` → 실패 시 `Write-EventLog` 폴백) + 원격 채널 있으면 통보(첫 실패 즉시, 이후 1시간 1회, `remote_only`) → 재raise. 테스트 4. ★실측: 비관리자 개발 세션에서 `eventcreate` 는 "Access is denied" — 서비스(LocalSystem) 경로는 **미검증**(재설치 후 5단계에서 확인). 그래서 `install_service.ps1` 이 소스를 미리 등록(`New-EventLog`, 관리자)하고 결과는 상태 파일 `event_log_ok` 로 남긴다. (b) `install_service.ps1`: `AppRestartDelay 60000`·`AppThrottle 180000`(구 5s/10s — 130s 주기 루프에 무력했던 이유 주석) + `md/DEPLOYMENT.md §7-1` 재발 방지 3겹 기재. **서비스 재설치는 5단계 검증 후 결정**(현재 SERVICE_DISABLED). (c) `service_status.ps1`: 최근 1시간 `vigent.err-*` 회전 파일 수 상시 출력, 임계(기본 10, `-CrashLoopThreshold`) 이상이면 **종료코드 4**(서버 무응답 시에도 동작). 실행 검증: 서비스 정지 상태 exit 3, 임계 0 으로 강제 시 exit 4. BOM·CRLF 유지·파싱 OK.
+- **M4-8·9·10** 문서만.
 
 ### 4-0. ★예약(치명) — `data/alert_queue.db` pending 15건 실측(2026-09-06, 읽기 전용·발송 0)
 
