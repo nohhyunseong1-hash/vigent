@@ -3,6 +3,8 @@
 #   (진입점 재귀 import 추적 + pip 설치버전 실측으로 확정. 지어낸 버전 아님.)
 #   선택 기능: 에이전트(LLM·RAG)=requirements-agents.txt · Apple VLM/보조=requirements-optional.txt ·
 #   학습·측정=requirements-train.txt (구 requirements-eval.txt, [C6] 2026-09-06).
+#   권장 설치: python scripts/setup_env.py  (아래 설치 + opencv GUI 빌드 제거 + cv2 검증까지 한 번에)
+-c constraints.txt
 
 # ── 웹서버 / 기본 ────────────────────────────────
 fastapi==0.137.2
@@ -15,10 +17,10 @@ requests==2.33.0              # dispatcher 텔레그램/웹훅 전송 (P0-2a: PY
 
 # ── 영상 / 수치 ──────────────────────────────────
 # 배포는 headless(서버에 GUI 불필요). 개발 환경은 opencv-python(GUI)로 별도 설치 가능.
-# ⚠️ supervision·ultralytics·trackers·rtmlib 가 GUI opencv 를 전이의존으로 끌어와 headless 를
-#    가린다. 설치 후 반드시:  pip uninstall -y opencv-python opencv-contrib-python
-#    && pip install --force-reinstall --no-deps opencv-contrib-python-headless==4.13.0.92
-#    (Dockerfile 은 이 정리를 자동 수행 → cv2 를 headless 하나로 고정). 클린 venv 실증됨.
+# ⚠️ supervision·trackers·rtmlib 가 GUI opencv 를 **하드 의존**으로 끌어와 headless 를 가린다(새 클론 실측: cv2 5.0.0).
+#    ① constraints.txt 가 GUI 빌드 버전을 headless 와 같은 4.13.0.92 로 고정(5.x 그림자 차단 — requirements 만 설치해도 cv2 4.13)
+#    ② scripts/setup_env.py 가 설치 뒤 GUI 빌드를 제거하고 headless 를 --no-deps 재설치해 cv2 를 headless 하나로 만든다
+#    (수동이면: pip uninstall -y opencv-python opencv-contrib-python && pip install --force-reinstall --no-deps opencv-contrib-python-headless==4.13.0.92)
 numpy==2.4.6
 opencv-contrib-python-headless==4.13.0.92
 Pillow==12.3.0               # P0-2a 보안 업그레이드(PYSEC-2026-2249~2874 12건)

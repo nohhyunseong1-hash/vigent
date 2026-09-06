@@ -32,13 +32,14 @@ cd ~/Desktop/VIGENT
 # (권장) 가상환경
 python3.11 -m venv .venv && source .venv/bin/activate
 
-# 배포 최소 의존성
-pip install -r requirements.txt
+# 배포 최소 의존성 — 한 번에(pip 설치 + opencv GUI 빌드 제거 + cv2 4.13 headless 검증 + 가중치·go2rtc 조달)
+python scripts/setup_env.py --weights
 
-# ⚠️ opencv 단일화(중요): supervision·rtmlib 등이 GUI opencv 를 전이의존으로 끌어와
-#    headless 를 가린다. 설치 후 반드시 정리:
-pip uninstall -y opencv-python opencv-contrib-python
-pip install --force-reinstall --no-deps opencv-contrib-python-headless==4.13.0.92
+# 위 스크립트가 하는 일(수동으로 할 때): requirements.txt 는 첫 줄 `-c constraints.txt` 로 opencv 4종을 4.13.0.92 에 고정하지만,
+#   supervision·trackers·rtmlib 가 GUI opencv 를 **하드 의존**으로 끌어와 headless 를 가린다(constraints 로는 제외 불가). 설치 후 정리:
+#   pip install -r requirements.txt
+#   pip uninstall -y opencv-python opencv-contrib-python
+#   pip install --force-reinstall --no-deps opencv-contrib-python-headless==4.13.0.92
 
 # 선택 기능(로컬 VLM·RAG·클라우드 LLM)이 필요하면
 pip install -r requirements-optional.txt

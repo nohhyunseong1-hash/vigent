@@ -17,7 +17,12 @@ import sys
 import time
 
 OLD = "rtsp_transport;tcp|max_delay;500000"                                        # 수정 전(worker.py:64)
-NEW = "rtsp_transport;tcp|fflags;nobuffer|flags;low_delay|max_delay;500000|timeout;5000000"   # 수정 후
+# 수정 후 = worker._FFMPEG_CAPTURE_OPTIONS 와 동일(타임아웃은 FFmpeg 옵션이 아니라 OpenCV 속성으로 건다).
+# ★[5단계 마무리 실측, 2026-09-06] 예전 NEW 에 있던 `timeout;5000000` 은 cv2 4.13 휠의 FFmpeg 4.4(avformat 58.76)가
+#   모르는 옵션이라 VideoCapture 가 **0.02s 만에 "can't create capture"** — 죽은 IP 뿐 아니라 살아 있는 카메라도 못 연다.
+#   (cv2 5.0/FFmpeg 7.1 에서는 무시돼 98.8s.) 앱(worker.py)은 이 옵션을 쓰지 않으며, 4.13 재검증: 옵션만 30.1s ·
+#   옵션+OpenCV 속성(앱 경로) **5.05s** · 구 옵션+속성 5.05s.
+NEW = "rtsp_transport;tcp|fflags;nobuffer|flags;low_delay|max_delay;500000"
 
 
 def _mask(u: str) -> str:

@@ -144,25 +144,36 @@ python -c "import torch; print(torch.__version__, torch.cuda.is_available())"
 2.12.0+cpu   False       ← CPU 폴백(동작은 하지만 느리다)
 ```
 
-### 3-1. ★opencv 정리 (필수 — 빠뜨리면 headless 가 가려진다)
+### 3-1. ★opencv 정리 — 설치 단계에서 자동(`scripts/setup_env.py`), 수동은 예비
 
-`supervision`·`rtmlib` 등이 **GUI opencv 를 전이의존으로 끌어온다**. 그대로 두면 배포가
-전제한 headless 대신 GUI 빌드의 `cv2` 가 쓰인다(같은 `cv2` 네임스페이스 충돌).
-`requirements.txt` 설치 **직후 반드시** 정리한다:
+`supervision`(opencv-python>=4.5.5.64)·`trackers`(opencv-python>=4.8.0)·`rtmlib`(opencv-python, opencv-contrib-python)
+가 **GUI 빌드 opencv 를 하드 의존으로 끌어온다**(`.venv` 메타데이터 실측 2026-09-06). 그대로 두면 배포가 전제한
+headless 대신 GUI 빌드의 `cv2` 가 쓰인다(같은 `cv2` 네임스페이스 충돌). 두 겹으로 막는다:
 
+1. **`constraints.txt`**(requirements.txt 첫 줄 `-c constraints.txt` 로 항상 동반): pip constraints 는 하드 의존을 제외하지는
+   못하지만 **버전은 고정**한다 → GUI 빌드도 headless 와 같은 `4.13.0.92` 로 못 박아 5.x 그림자를 차단. 그래서
+   `pip install -r requirements.txt` 만 해도 `cv2 == 4.13.0`(단, GUI 빌드 동거).
+2. **`scripts/setup_env.py`**(권장 설치 명령): pip 설치 → GUI 빌드 제거 → headless `--no-deps` 재설치 → **새 프로세스에서
+   `cv2 == 4.13.x · GUI 항목 없음` 확인**(실패 시 종료코드 1). `--weights` 를 붙이면 가중치·go2rtc 조달까지.
+
+```powershell
+py -3.11 -m venv .venv
+.\.venv\Scripts\python.exe scripts\setup_env.py --weights
+```
+
+수동(예비) — `opencv-contrib-python-headless` **하나만** 남아야 한다:
 ```powershell
 python -m pip uninstall -y opencv-python opencv-contrib-python
 python -m pip install --force-reinstall --no-deps opencv-contrib-python-headless==4.13.0.92
-```
-
-확인 — `opencv-contrib-python-headless` **하나만** 남아야 한다:
-```powershell
 python -m pip list | Select-String opencv
 ```
 
 > **실측(2026-08-20)**: 정리 전 `opencv-python 5.0.0.93` + `opencv-contrib-python 5.0.0.93` 이
 > 함께 깔려 headless(4.13.0.92)를 가렸다. ★**`ultralytics` 를 설치하면(학원 프로파일 등)
-> GUI opencv 가 다시 딸려오므로 그때도 이 정리를 반복해야 한다** — `deploy/academy/README_academy.md` 참고.
+> GUI opencv 가 다시 딸려오므로 그때도 `setup_env.py --no-install` 로 정리를 반복한다** — `deploy/academy/README_academy.md` 참고.
+> ★**cv2 4.13 휠은 FFmpeg 4.4(avformat 58.76)** 를 품는다 — FFmpeg `timeout` 옵션을 모르는 버전이라 그 옵션을 주면 RTSP 가
+> **즉시 열기 실패**한다(2026-09-06 실측 0.02s). 앱은 OpenCV 속성(CAP_PROP_OPEN/READ_TIMEOUT_MSEC)만 쓰므로 무관하며,
+> 죽은 IP 타임아웃은 4.13 에서도 **5.05s** 재검증됐다(`benchmarks/rtsp_capture_probe.py`).
 
 ---
 
@@ -436,7 +447,7 @@ env를 `nssm set`으로 손으로 고치지 않는다(다음 재설치 때 되�
 |---|---|---|
 | 1 | `cd D:\vigent_original\deploy\windows; .\uninstall_service.ps1` (기존 서비스가 있을 때) | `Get-Service VIGENT` → 없음 |
 | 2 | 가중치 조달: `python scripts\fetch_weights.py --all` (§4) | `vigent-core\weights\rf-detr-nano.pth` + rfdetr 3종 존재 |
-| 2-1 | ★`.venv` 준비(없으면 install 이 **중단**한다 — 시스템 python 폴백 금지, 5단계 5-2 정정): `py -3.11 -m venv .venv; .\.venv\Scripts\python.exe -m pip install -r requirements.txt` + §3-1 opencv 정리 + GPU 면 §3 CUDA 휠 | `.venv\Scripts\python.exe -c "import uvicorn,fastapi"` OK |
+| 2-1 | ★`.venv` 준비(없으면 install 이 **중단**한다 — 시스템 python 폴백 금지, 5단계 5-2 정정): `py -3.11 -m venv .venv; .\.venv\Scripts\python.exe scripts\setup_env.py --weights`(pip + opencv 정리·검증 + 가중치·go2rtc, §3-1) + GPU 면 §3 CUDA 휠 | `setup_env.py` 종료코드 0 · `.venv\Scripts\python.exe -c "import uvicorn,fastapi"` OK |
 | 2-1★ | **torch 는 requirements.txt 그대로 깔면 CPU 휠이다**(PyPI 의 Windows `torch==2.12.0` 은 CPU 전용). 개발 PC(D:\vigent_original)의 `.venv` 는 2026-09-06 재설치 **검증용으로 만든 CPU torch** 라 예열이 느리다(검증 스크립트는 `-HealthTimeoutSec 300`). **실배포 서비스는 반드시 CUDA torch(cu130, 드라이버 580 미만이면 cu126)를 `.venv` 에 설치**한다(§3 명령, `requirements.txt` 의 torch 줄 주석 참조) | `.\.venv\Scripts\python.exe -c "import torch; print(torch.__version__, torch.cuda.is_available())"` → `2.12.0+cu130 True` |
 | 2-2 | `.env` 에 `VIGENT_API_TOKEN=<비밀토큰>`(서비스는 `VIGENT_REQUIRE_TOKEN=1` 이라 **토큰이 없으면 import 시점에 종료** — 2026-09-06 재설치 검증 1차 실패 원인) | `.env` 존재 |
 | 3 | `.\install_service.ps1` — Application = `.venv\Scripts\python.exe deploy\windows\service_entry.py`(런처) | "서비스 'VIGENT' 상태: Running" |

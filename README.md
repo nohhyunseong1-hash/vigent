@@ -21,7 +21,7 @@ python3 --version         # mac/Linux
 
 ### 2. 의존성 설치
 ```powershell
-py -3.11 -m pip install -r requirements.txt           # 감시 서버(필수)
+py -3.11 scripts\setup_env.py --weights              # 감시 서버(필수): requirements(+constraints) 설치 → opencv GUI 제거·cv2 4.13 headless 검증 → 가중치·go2rtc 조달
 # 선택 — 기능별 분리([C6])
 py -3.11 -m pip install -r requirements-agents.txt    # 에이전트 LLM·RAG (키는 .env: OPENAI_API_KEY 등)
 py -3.11 -m pip install -r requirements-train.txt     # 학습·측정 (ultralytics 포함 — 배포 아님)

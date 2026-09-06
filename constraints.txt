@@ -1,0 +1,11 @@
+# VIGENT pip 제약(constraints) — requirements.txt 첫 줄 `-c constraints.txt` 로 항상 함께 적용된다. [5단계 마무리, 2026-09-06]
+#
+# 왜: supervision(opencv-python>=4.5.5.64)·trackers(opencv-python>=4.8.0)·rtmlib(opencv-python, opencv-contrib-python)
+#     이 GUI 빌드 opencv 를 **하드 의존**으로 끌어온다(.venv 메타데이터 실측). 그래서 requirements 의 headless 4.13 핀만으로는
+#     새 venv 에서 GUI 5.0.0.93 이 딸려와 cv2 == 5.0.0 이 됐다(새 클론 실측 2026-09-06 19:1x). pip constraints 는 하드 의존을
+#     "제외"하지는 못하지만 **버전은 고정**할 수 있다 → GUI 빌드도 headless 와 같은 4.13.0.92 로 못 박아 5.x 그림자를 차단한다.
+#     GUI 빌드 자체를 걷어내 headless 하나로 만드는 것은 scripts/setup_env.py(설치 단계 자동)가 한다.
+opencv-python==4.13.0.92
+opencv-contrib-python==4.13.0.92
+opencv-python-headless==4.13.0.92
+opencv-contrib-python-headless==4.13.0.92
