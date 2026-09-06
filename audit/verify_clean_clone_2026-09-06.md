@@ -14,6 +14,19 @@
 | unittest (cv2 5.0.0) | 638 중 **2 실패** — `test_alert_queue.TestQueueEligibilityFollowsWiring` 2건: `_queue_enabled` 가 [M4] 이후 채널 설정을 요구하는데 테스트가 개발 PC 의 `config/notify.yaml` 에 기대고 있었다 → 테스트가 채널 존재를 고정하도록 수정 | 저장소 밖 의존 1건 발견·수정 |
 | unittest (headless 4.13, 수정 후) | **638 OK (skipped 1)** — skip = `test_rfdetr_onnx_parity`(`ppe_rfdetr_v1.onnx` 매니페스트 미포함, 문서화된 skip) | 90초 |
 
+## 1-2. 재실행(2026-09-06 23:3x~23:5x) — opencv constraints·setup_env·go2rtc 매니페스트 편입 후, 새 클론 `D:\vigent_verify2`(커밋 `3764280`)
+
+| 단계 | 결과 | 실측 |
+|---|---|---|
+| 클론 | 추적 파일 1,040 | `git clone --branch audit/cleanup-20260906 D:\vigent_original D:\vigent_verify2` |
+| `setup_env.py --weights` | **exit 0 · 322초** — pip(72패키지, venv 1,264MB) → opencv 정리 → `fetch_weights --all` 13/13 + `bin\go2rtc.exe` 다운로드·sha 일치(`923d5725…`) | 로그 rerun51_setup2 |
+| cv2 | **4.13.0 · GUI NONE · opencv 배포판 `opencv-contrib-python-headless 4.13.0.92` 1종**(수동 절차 없이) | `pip list`, `getBuildInformation` |
+| 기동(카메라 0대·.env 없음·채널 미설정) | 런처 `service_entry.py --host 127.0.0.1 --port 8012` → **/health 200 · 19.4초** · status=healthy · phase=ready · warnings=[channels_not_configured] · 예열 15.91s(CPU torch) | rerun51d |
+| go2rtc | 바이너리 존재·sha 일치. 기동 시 포트 1984 를 **이 PC 의 고아 go2rtc(PID 8556, 03:35 시작, `D:\vigent_original\bin`)** 가 점유 → "손대지 않고 재사용" 경로(설계대로). 클론 바이너리 자체 기동은 이 PC 에서 검증 불가 | 서버 로그 |
+| unittest | **662 OK (skipped=1)** · 124.5초 | rerun51_unittest |
+
+1회차와 달라진 점: 수동 opencv 정리 단계가 없어졌고(cv2 5.0.0 그림자 소멸), go2rtc 가 조달 목록에 들어갔다. 절차 스크립트 결함 2건(PowerShell `*>` 리다이렉트·`$ErrorActionPreference=Stop` 아래 pip stderr 가 NativeCommandError 로 승격, 런처 인자 상대경로)은 검증 스크립트 쪽 문제로 저장소 코드와 무관.
+
 ## 2. "저장소에 없어서 실패·주의" 목록
 
 | 파일·항목 | 원인 | 조치 |

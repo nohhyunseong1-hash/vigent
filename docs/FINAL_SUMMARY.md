@@ -1,23 +1,24 @@
 # VIGENT 저장소 감사·정리 최종 요약 (2026-09-06)
 
-> 브랜치 `audit/cleanup-20260906` · 시작 태그 `audit-before-cleanup`(= `e1ba0ab`) · 이 문서 최종 갱신 시점 HEAD `3685186`(5-2 통과·stage↔ID 정합) + 이 문서 커밋.
+> 브랜치 `audit/cleanup-20260906` · 시작 태그 `audit-before-cleanup`(= `e1ba0ab`) · 이 문서 최종 갱신 시점 HEAD `3764280`(5-2 통과 · stage↔ID 정합 · 마무리 3건: opencv constraints/setup_env · go2rtc 매니페스트 · logs/ 격리) + 이 문서 커밋.
 > **main 병합·태그(v-audit-2026-09)·푸시는 대표 결정 사항**이며 아직 하지 않았다. 브랜치는 원격에 푸시되지 않았다(로컬만). **main 과의 관계(2026-09-06 실측)**: `git merge-base main HEAD` = `021ca7c` = 현재 main 선단(behind 0) → **fast-forward 가능, 충돌 0**(`git merge-tree --write-tree main HEAD` 정상 종료). 단, 감사 시작 태그 `e1ba0ab` 는 main 에 없고 `fix/review-bugs` 선단이므로 **병합 시 감사 커밋 68개(이 문서 커밋 포함) 외에 `fix/review-bugs` 의 감사 전 커밋 314개(021ca7c..e1ba0ab)도 함께 main 에 들어간다**(합계 382).
 > 상세 근거: [AUDIT_REPORT.md](../AUDIT_REPORT.md)(1단계) · [CLEANUP_PLAN.md](../CLEANUP_PLAN.md)(2단계) · [CODE_REVIEW.md](../CODE_REVIEW.md)(4단계 모듈 1~8) · [audit/](../audit/)(실측 기록).
 
 ## 1. 한 문단 요약
 
-VIGENT 는 공장 CCTV 영상에서 사람·보호구·화재·위험구역 침입 같은 위험을 자동으로 찾아 담당자 휴대폰(텔레그램)으로 알리는 Windows 프로그램이다. 이번 작업은 "지금 저장소에 있는 코드가 실제로 현장에서 믿고 돌릴 수 있는 상태인가"를 한 번에 점검한 것이다. 저장소에 섞여 있던 얼굴이 찍힌 사진·영상(98파일 + 평가 프레임 530장)을 저장소 밖으로 빼고, 지워진 옛 기능(사무·운동 테마) 잔재를 격리하고, 감지·경보·저장·기동에 관한 코드 8개 영역을 줄 단위로 읽어 문제 100여 건을 찾아 그중 치명·높음 16건을 전부 고쳤다. 대표적으로 "서비스가 3주 동안 4,067번 죽고 다시 켜지는데 아무도 몰랐던 문제", "카메라 IP가 죽으면 123초씩 멈추던 문제(→ 5초)", "설정 파일에 같은 이름의 블록이 두 번 있어 8개 설정이 조용히 무시되던 문제", "같은 침입을 브라우저와 서버가 두 번 통보하던 문제"를 고쳤다. 테스트는 481개에서 653개로 늘었고, 아무것도 없는 새 PC에 설치하는 것을 실제로 해 봐서(새 클론, 당시 638개) 전부 통과함을 확인했으며, Windows 서비스로 다시 설치해 "기동 → 고의로 죽임 → 60초 간격 재시작·이벤트 로그 → 복구"까지 4번째 시도에서 통과시켰다(앞선 3번의 실패는 모두 검증 절차 자체의 결함이었고 §8 에 교훈으로 남겼다). 남은 큰 결정 4가지(증거 보존 기간 법률 자문, 지게차 감지 대체 경로, 저장소 이력 재작성, 에이전트 통합 설계)는 §6 에 정리했다.
+VIGENT 는 공장 CCTV 영상에서 사람·보호구·화재·위험구역 침입 같은 위험을 자동으로 찾아 담당자 휴대폰(텔레그램)으로 알리는 Windows 프로그램이다. 이번 작업은 "지금 저장소에 있는 코드가 실제로 현장에서 믿고 돌릴 수 있는 상태인가"를 한 번에 점검한 것이다. 저장소에 섞여 있던 얼굴이 찍힌 사진·영상(98파일 + 평가 프레임 530장)을 저장소 밖으로 빼고, 지워진 옛 기능(사무·운동 테마) 잔재를 격리하고, 감지·경보·저장·기동에 관한 코드 8개 영역을 줄 단위로 읽어 문제 100여 건을 찾아 그중 치명·높음 16건을 전부 고쳤다. 대표적으로 "서비스가 3주 동안 4,067번 죽고 다시 켜지는데 아무도 몰랐던 문제", "카메라 IP가 죽으면 123초씩 멈추던 문제(→ 5초)", "설정 파일에 같은 이름의 블록이 두 번 있어 8개 설정이 조용히 무시되던 문제", "같은 침입을 브라우저와 서버가 두 번 통보하던 문제"를 고쳤다. 테스트는 481개에서 662개로 늘었고, 아무것도 없는 새 PC에 설치하는 것을 실제로 해 봐서(새 클론, 설치 스크립트 한 번으로 의존성·가중치·go2rtc 조달까지) 662개 전부 통과함을 확인했으며, Windows 서비스로 다시 설치해 "기동 → 고의로 죽임 → 60초 간격 재시작·이벤트 로그 → 복구"까지 4번째 시도에서 통과시켰다(앞선 3번의 실패는 모두 검증 절차 자체의 결함이었고 §8 에 교훈으로 남겼다). 남은 큰 결정 4가지(증거 보존 기간 법률 자문, 지게차 감지 대체 경로, 저장소 이력 재작성, 에이전트 통합 설계)는 §6 에 정리했다.
 
 ## 2. 변경 전/후 수치
 
 | 항목 | 전(`e1ba0ab`, 2026-09-06 감사 시작) | 후(HEAD) | 근거 |
 |---|---|---|---|
-| 커밋 | — | **68**(3단계 `[감사]` 11 · 4단계 `[CODE_REVIEW]` 48 · 5단계 9 — 이 문서 커밋 포함) | `git rev-list --count e1ba0ab..HEAD` |
-| 추적 파일 수 | 1,054 | 1,031(5-3 정리에서 로그 사본 51 → zip 1) | `git ls-tree -r HEAD` |
-| 추적 파일 용량(blob 합) | 58.9MB | **22.9MB** | 영상·이미지 98파일 + 평가 jpg 530장 → 저장소 밖 |
-| 변경 규모 | — | 393 files, +12,214 / −3,602 | `git diff --shortstat e1ba0ab HEAD` |
-| 테스트 | 481(4단계 시작 실측; 감사 전 README 문구는 34) | **653**(새 클론 실측 시점 638 OK, skip 1 · 이후 5-2 정정 테스트 +15) | [audit/verify_clean_clone](../audit/verify_clean_clone_2026-09-06.md) · 게이트 로그 |
-| 테스트 파일 | 61 | 94 | `tests/test_*.py` |
+| 커밋 | — | **73**(3단계 `[감사]` 11 · 4단계 `[CODE_REVIEW]` 48 · 5단계 14 — 이 문서 커밋 포함) | `git rev-list --count e1ba0ab..HEAD` |
+| 추적 파일 수 | 1,054 | 1,040(5-3 정리에서 로그 사본 51 → zip 1, 마무리에서 constraints·setup_env·tree_hash·테스트 +9) | `git ls-tree -r HEAD` |
+| 추적 파일 용량(blob 합) | 58.9MB | **23.0MB** | 영상·이미지 98파일 + 평가 jpg 530장 → 저장소 밖 |
+| 변경 규모 | — | 402 files, +12,857 / −3,620 | `git diff --shortstat e1ba0ab HEAD` |
+| 테스트 | 481(4단계 시작 실측; 감사 전 README 문구는 34) | **662**(새 클론 재실행 2026-09-06 23:4x 에서 662 OK, skip 1) | [audit/verify_clean_clone](../audit/verify_clean_clone_2026-09-06.md) §1-2 |
+| 테스트 파일 | 61 | 97 | `tests/test_*.py` |
+| 테스트 오염 | data/ 에 시험 경보·증거 생성(R14) | data/ + logs/ 28,370파일 해시 전후 **추가 0·삭제 0·변경 0**(2회 연속) | `scripts/tree_hash.py` · audit §4-1 |
 | 서비스 재설치 검증(5-2) | 미검증(서비스 Disabled, 크래시 루프 이력) | **통과**(검증 2~5 True · 원복 일치, 4차 22:44) | [audit/service_reinstall_20260906_224451.md](../audit/service_reinstall_20260906_224451.md) |
 | 의존성 파일 | requirements.txt · -optional · -eval | requirements.txt(서빙) · **-agents**(LLM·RAG) · **-train**(학습·측정) · -optional | 3단계 C6 |
 | 치명·높음 | 등록 항목 R1·R2·R14 치명 3 + 모듈 발견 높음 13 | **16/16 수정 커밋됨** | CODE_REVIEW §0·각 모듈 표 |
@@ -37,7 +38,7 @@ vigent_original/
   config/             현장 설정 시드: tuning.yaml(임계값 정본) · go2rtc.yaml · *.example.yaml(복사해서 쓰는 견본)
   deploy/             windows/(서비스 설치·상태·재설치 검증 스크립트) · academy/(학원 현장 프로파일) · SITE_CHECKLIST.md
   scripts/            운영 도구: fetch_weights(가중치 조달) · check_openapi_diff·check_profile_drift(게이트)
-  tests/              단위 테스트 94파일 653건(카메라·GPU 없이 실행)
+  tests/              단위 테스트 97파일 662건(카메라·GPU 없이 실행, data/·logs/ 무접촉 — _isolate.py)
   benchmarks/ eval/   측정 스크립트·리포트(숫자 근거). 학습은 training/, 유틸은 tools/
   data/               런타임 산출물(gitignore) + 추적 대상인 평가 정답 라벨(data/field_eval/labels)
   docs/ md/           운영·온보딩·정책 문서(DEPLOYMENT·ONBOARDING·disk_retention_policy 등)
@@ -71,9 +72,9 @@ D:\vigent_private_data\   저장소 밖 미디어(VIGENT_DATA_DIR): runs/·bench
 | GPU | NVIDIA 권장. 개발 PC RTX 5070 Ti(cu130) · 현장 노트북 GTX 1650 Ti 4GB(cu126)로 실증. GPU 없이도 동작(CPU, 느림) | DEPLOYMENT §0 |
 | 카메라 대수 | **PC 1대당 약 5대 포화**(추론이 `DETECT_LOCK` 으로 직렬화, 풀세트 ~85ms, 2fps 기준) — 한계 7대 실측(8대에서 p95 116→309ms). **시연 페이지(`/safety`) 동시 사용 시 여유 −1대** | CODE_REVIEW §5 용량 스펙 · M8-11 |
 | 병목 | CPU(카메라당 1.55 환산코어). GPU 는 VRAM 4GB 면 충분 | benchmarks/capacity_report |
-| 오프라인 조달 목록 | ① `python scripts\fetch_weights.py`(필수 6: RF-DETR 4 + rtmlib 2 · 전체 13종 938MB/117초) ② `bin\go2rtc.exe`(확대뷰 WebRTC, 없으면 스냅샷 폴백) ③ `vigent-core\static\vendor`(시연 화면 폐쇄망 번들, 선택) ④ NSSM(서비스 등록) ⑤ Python 3.11 설치본 ⑥ pip 캐시/휠(인터넷 없는 곳이면 미리) — **opencv 는 requirements 설치 후 GUI 빌드 제거 절차 필수**(§9) | audit/verify_clean_clone §2 |
-| 기동 시간 | 새 클론·카메라 0대·GPU(cu130) 기준 /health 200 까지 17.2초(예열 포함). 개발 PC 서비스(.venv **CPU torch**, LocalSystem)는 설치 후 3분 11초 — 현장은 CUDA 휠 교체 필수(§8-2) | audit/verify_clean_clone · service_reinstall_224451 |
-| 5-1 실행 이력 | 새 클론 검증은 **2026-09-06 19:06~19:14 1회**(위 §2 수치의 근거). opencv 는 **constraints 파일이 아니라 수동 절차**(§9 5번)로 정리했고 `bin/go2rtc.exe` 는 **저장소에 동봉하지 않았다**(수동 조달, 없으면 스냅샷 폴백) — 이 둘을 반영한 재실행은 하지 않았다 | audit/verify_clean_clone §1·§2 |
+| 오프라인 조달 목록 | ① `python scripts\setup_env.py --weights` 한 번 = pip(+`constraints.txt`) → opencv GUI 빌드 제거·cv2 4.13 headless 검증 → `fetch_weights.py --all`(필수 6: RF-DETR 4 + rtmlib 2 · 전체 13종 938MB + **`bin\go2rtc.exe` v1.9.14 sha256 검증**, 새 클론 실측 322초) ② `vigent-core\static\vendor`(시연 화면 폐쇄망 번들, 선택) ③ NSSM(저장소 동봉 `deploy\windows\nssm.exe`) ④ Python 3.11 설치본 ⑤ pip 캐시/휠(인터넷 없는 곳이면 미리) | audit/verify_clean_clone §1-2·§2 |
+| 기동 시간 | 새 클론(requirements 기본 = **CPU torch**)·카메라 0대 기준 /health 200 까지 **19.4초**(예열 15.9초, status healthy · phase ready · warnings channels_not_configured 만) — 재실행 실측. 1회차(19:1x, GPU cu130 venv)는 17.2초. 개발 PC 서비스(.venv CPU torch, LocalSystem)는 설치 후 3분 11초(재설치 직후 첫 기동) — 현장은 CUDA 휠 교체 필수(§8-2) | audit/verify_clean_clone §1-2 · service_reinstall_224451 |
+| 5-1 실행 이력 | 1회차 2026-09-06 19:06~19:14(수동 opencv 정리·go2rtc 없음) → **재실행 23:3x~23:5x**(`D:\vigent_verify2`, 커밋 `3764280`): 클론 1,040파일 → `setup_env.py --weights` **322초**(pip 72패키지·venv 1,264MB · 가중치 13 + go2rtc) → cv2 **4.13.0 headless(GUI NONE, opencv 1종)** → 기동(§"기동 시간") → **662 OK(skip 1)** 117.8초 | audit/verify_clean_clone §1-2 |
 | 경보 채널 | 텔레그램·웹훅(config/notify.yaml, .env). 미설정이면 /health warnings 로만 표시(degraded 아님) | M4-1 |
 
 ## 6. 결정 필요 항목(대표)
@@ -128,11 +129,11 @@ D:\vigent_private_data\   저장소 밖 미디어(VIGENT_DATA_DIR): runs/·bench
 1. Git for Windows 설치 → `git clone https://github.com/nohhyunseong1-hash/vigent.git D:\vigent_original`(비공개: GCM 로그인 창). 브랜치 `audit/cleanup-20260906`.
 2. Python **3.11.x**(python.org) 설치 → `py -3.11 --version` 확인. `py` 기본이 3.14 인 PC 가 있으니 항상 `py -3.11`.
 3. `py -3.11 -m venv .venv` → `.\.venv\Scripts\Activate.ps1`(실행정책 오류 시 `Set-ExecutionPolicy -Scope Process Bypass`).
-4. `python -m pip install -r requirements.txt`(약 2.5분, 1.4GB). GPU 면 [DEPLOYMENT §3](../md/DEPLOYMENT.md) 의 CUDA 휠로 torch 교체.
-5. **★opencv 정리(필수)**: `python -m pip uninstall -y opencv-python opencv-contrib-python` → `python -m pip install --force-reinstall --no-deps opencv-contrib-python-headless==4.13.0.92` → `python -c "import cv2; print(cv2.__version__)"` 가 `4.13.0` 이어야 한다(새 클론 실측: 이 절차 없이는 5.0.0).
-6. 가중치: `python scripts\fetch_weights.py --all`(938MB, 약 2분). 비공개 릴리스라 GitHub 로그인(GCM) 또는 `GITHUB_TOKEN` 필요.
+4. `.\.venv\Scripts\python.exe scripts\setup_env.py --weights`(새 클론 실측 322초, venv 1.26GB) — pip 설치(`requirements.txt` 첫 줄 `-c constraints.txt` 가 opencv 4종을 4.13.0.92 로 고정) → opencv GUI 빌드 제거 + headless 재설치 → **새 프로세스에서 `cv2 4.13.0 · GUI NONE` 확인**(실패 시 종료코드 1) → `fetch_weights.py --all`(가중치 13종 938MB + `bin\go2rtc.exe`). 비공개 릴리스라 GitHub 로그인(GCM) 또는 `GITHUB_TOKEN` 필요. GPU 면 그 뒤 [DEPLOYMENT §3](../md/DEPLOYMENT.md) 의 CUDA 휠로 torch 교체.
+5. (왜 스크립트인가) supervision·trackers·rtmlib 가 GUI opencv 를 **하드 의존**으로 끌어와 constraints 만으로는 제외할 수 없다 — requirements 만 설치하면 cv2 4.13 이지만 GUI 빌드가 동거한다(임시 venv 실측). `ultralytics` 등을 추가 설치했으면 `setup_env.py --no-install` 로 정리를 반복한다.
+6. 검증: `.\.venv\Scripts\python.exe -m pip list | Select-String opencv` 가 `opencv-contrib-python-headless 4.13.0.92` **한 줄**, `python scripts\fetch_weights.py --check --all` 누락 0.
 7. 기동: `.\run.ps1` → `http://127.0.0.1:8010/health` 가 17초쯤 뒤 200(status healthy, warnings channels_not_configured 는 정상). 관제 화면 `/hub`, 시연 `/safety`.
-8. 게이트(변경 후 반드시): `ruff check vigent-core tests` → 0 · `python -m mypy` → 0 · `py -3.11 -m unittest discover -s tests` → 653 OK(PowerShell 이 있는 PC 에서는 검증 스크립트 실행 테스트 2건 포함, CI ubuntu 는 skip) · `python scripts\check_openapi_diff.py` → 무변경 · `python scripts\check_profile_drift.py` → 드리프트 없음. 위 1~7 은 새 클론에서 1회 실증(2026-09-06 19:06~19:14, §5 "5-1 실행 이력") — 5번 opencv 정리는 자동화(constraints)되지 않았으니 빠뜨리면 `cv2 == 5.0.0` 이 된다.
+8. 게이트(변경 후 반드시): `ruff check vigent-core tests` → 0 · `python -m mypy` → 0 · `py -3.11 -m unittest discover -s tests` → 662 OK(PowerShell 이 있는 PC 에서는 검증 스크립트 실행 테스트 2건 포함, CI ubuntu 는 skip; 테스트는 운영 data/·logs/ 를 건드리지 않는다 — 의심되면 `scripts\tree_hash.py` 로 전후 비교) · `python scripts\check_openapi_diff.py` → 무변경 · `python scripts\check_profile_drift.py` → 드리프트 없음. 위 1~7 은 새 클론에서 실증(2026-09-06 재실행, §5 "5-1 실행 이력").
 9. 선택: `bin\go2rtc.exe`(확대뷰 WebRTC) · node(JS 구문 검사 테스트) · `.env`(텔레그램 토큰, `.env.example` 참조; HOST/PORT 는 셸 환경변수로만).
 10. 규칙: 카메라·현장 미디어는 `D:\vigent_private_data\`(`VIGENT_DATA_DIR`)에만, 커밋 전 `git branch --show-current` 확인, 비밀값은 코드·문서·채팅에 쓰지 않는다([CLAUDE.md](../CLAUDE.md)).
 
