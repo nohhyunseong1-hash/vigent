@@ -181,7 +181,8 @@ class TestRollbackAndStatus(unittest.TestCase):
         src = (Path(__file__).resolve().parent.parent
                / "vigent-core" / "main.py").read_text(encoding="utf-8")
         self.assertIn("import retention_scheduler", src)
-        self.assertIn("retention_scheduler.start()", src)
+        # [M7-3] 선택 서비스로 배선 — 실패해도 기동은 계속되고 /health warnings 에 남는다(동작 검증은 test_startup_services)
+        self.assertIn('_optional("retention_scheduler", retention_scheduler.start)', src)
 
     def test_health_exposes_sweep_status(self):
         src = (Path(__file__).resolve().parent.parent

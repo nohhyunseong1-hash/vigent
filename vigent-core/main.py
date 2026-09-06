@@ -23,6 +23,7 @@ import sys
 import threading
 import traceback
 from pathlib import Path
+from typing import Any
 from urllib.parse import quote
 
 from fastapi import FastAPI, Request
@@ -43,6 +44,7 @@ if str(_HERE) not in sys.path:
     sys.path.insert(0, str(_HERE))
 
 
+import app_state as _app_state  # noqa: E402  [M7-3] STARTUP_WARNINGS
 import auth_session  # noqa: E402  [S3-후속1] 브라우저 세션(로그인 쿠키)
 import vlog  # noqa: E402  로깅 인프라(C-S1)
 
@@ -79,7 +81,21 @@ _log = vlog.get("vigent")               # print 대체 — 콘솔+파일 로테�
 # ─────────────────────────────────────────────────────────────
 # DEFAULT_THEME 는 app_state.py 로 분리(P1-7) — 위 import 에서 가져온다.
 
-app = FastAPI(title="VIGENT Core", version=product_version())
+from contextlib import asynccontextmanager  # noqa: E402
+
+
+@asynccontextmanager
+async def _lifespan(_app: FastAPI):
+    """[CODE_REVIEW M7-11] on_event(deprecated) → lifespan. 본문은 아래 _startup()/_shutdown() — 동작 동일,
+    종료 시 큐·통보·보존·기아 스레드 정리가 추가됐다."""
+    _startup()
+    try:
+        yield
+    finally:
+        _shutdown()
+
+
+app = FastAPI(title="VIGENT Core", version=product_version(), lifespan=_lifespan)
 
 
 # ── [S3-후속1] 브라우저 로그인(세션 쿠키) — routers/safety_core.py 의 '/{theme}' catch-all
@@ -394,9 +410,8 @@ def _notify_startup_failure(exc: BaseException) -> None:
         pass
 
 
-@app.on_event("shutdown")
 def _shutdown() -> None:
-    """graceful shutdown(SIGTERM/SIGINT 시 uvicorn 이 트리거) — 워커 정리·리소스 해제."""
+    """graceful shutdown(SIGTERM/SIGINT 시 uvicorn 이 lifespan 종료로 트리거) — 워커·go2rtc·배경 스레드 정리."""
     try:
         import worker as _w
         stopped = _w.manager.stop_all() if hasattr(_w.manager, "stop_all") else "(stop_all 없음)"
@@ -407,10 +422,45 @@ def _shutdown() -> None:
         _cameras_router.stop_go2rtc()
     except Exception:  # noqa: BLE001
         _log.warning("shutdown: go2rtc 정리 중 예외\n%s", traceback.format_exc())
+    # [CODE_REVIEW M7-11] 배경 스레드 정리 — 통보 대기열(메모리)·큐(sqlite 쓰기 중 종료 방지)·보존·기아 감시.
+    #   데몬 스레드라 안 불러도 프로세스는 끝나지만, 큐 행 갱신 도중에 잘리는 창을 없앤다.
+    import alert_notify
+    import alert_queue
+    import retention_scheduler
+    import starvation_guard
+    for name, fn in (("alert_notify", alert_notify.stop), ("alert_queue", alert_queue.stop),
+                     ("retention_scheduler", retention_scheduler.stop), ("starvation_guard", starvation_guard.stop)):
+        try:
+            fn()
+        except Exception:  # noqa: BLE001
+            _log.warning("shutdown: %s 정리 중 예외\n%s", name, traceback.format_exc())
 
 
-@app.on_event("startup")
+def _required(name: str, fn: Any) -> None:
+    """[CODE_REVIEW M7-3] 필수 기동 서비스 — 실패하면 M4-5 경로(상태파일·이벤트로그·통보) 뒤 재raise = 기동 실패.
+    "검출은 도는데 통보가 없는" 반쪽 기동을 허용하지 않는다."""
+    try:
+        fn()
+    except Exception as ex:  # noqa: BLE001
+        _log.error("★필수 기동 서비스 실패: %s\n%s", name, traceback.format_exc())
+        _notify_startup_failure(ex)
+        raise
+
+
+def _optional(name: str, fn: Any) -> None:
+    """[CODE_REVIEW M7-3] 선택 기동 서비스 — 실패해도 계속 기동하되 STARTUP_WARNINGS(→ /health warnings)에 남긴다."""
+    try:
+        fn()
+    except Exception as ex:  # noqa: BLE001
+        msg = f"startup:{name}: {type(ex).__name__}: {ex}"
+        _app_state.STARTUP_WARNINGS.append(msg)
+        _log.warning("선택 기동 서비스 실패(계속 기동): %s\n%s", msg, traceback.format_exc())
+
+
 def _startup() -> None:
+    """기동 순서(각 서비스 독립 try — [M7-3] 하나가 죽어도 뒤가 건너뛰어지거나 워커가 콜드로 붙지 않는다):
+      1 안전망 → 2 테마 로드(필수) → 3 go2rtc(선택) → 4 예열 스레드(필수, 성공 시 워커 자동복원) →
+      5 기아 감시(선택) → 6 경보 큐(필수) → 7 통보 스레드(필수) → 8 보존 스윕(선택)."""
     _install_safety_nets()          # 1단계: 프로세스 레벨 예외 안전망 설치
     try:
         bundle = _load_theme(DEFAULT_THEME)
@@ -421,12 +471,13 @@ def _startup() -> None:
     s = cfg.summary()
     _log.info("'%s' 로드 완료 (폴백 %s개 / 비활성 %s개)",
               cfg.display_name, s['fallback_count'], s['disabled_count'])
+    _app_state.STARTUP_WARNINGS.clear()
+
     # 3.1c: WebRTC 변환기(go2rtc) 자동기동 — 확대뷰 실시간 재생 준비(미설치·실패 시 스냅샷 폴백).
-    try:
+    def _go2rtc() -> None:
         if _cameras_router.ensure_go2rtc():
             _log.info("go2rtc 준비(확대뷰 실시간 재생 가능)")
-    except Exception:  # noqa: BLE001  go2rtc 실패해도 서버·검출 무중단
-        _log.warning("go2rtc 기동 예외(무시, 스냅샷 폴백)")
+    _optional("go2rtc", _go2rtc)
     # [B4] 워커 기동은 **모델 예열이 끝난 뒤**로 미룬다.
     #   예열 전에 붙이면 워커의 첫 검출이 콜드 로드(실측 12.5s)를 떠안아 hang 워치독(15s)을
     #   넘기고, 죽이면 로드를 처음부터 다시 해 무한 재시작에 빠진다(2026-08-13 실측 45회).
@@ -447,39 +498,45 @@ def _startup() -> None:
             except Exception as ex:  # noqa: BLE001  자동시작 실패해도 서버는 뜬다
                 _log.error("[EDGE] 자동시작 실패: %s: %s", type(ex).__name__, ex)
 
-    try:
-        import readiness
-        readiness.start_background(bundle["agents"].get("Guard"),
-                                   on_ready=_start_workers_after_warmup)
-        # [B3] 검출 기아 2차 방어 — stale_detect 지속 시 go2rtc 슬롯 회수 → 워커 재시작 → 승격
-        import starvation_guard
-        starvation_guard.start()
-        # [B5] 경보 재시도 스레드 — 미전송 경보를 지수 백오프로 재전송(프로세스 재시작 후에도 이월)
-        import alert_queue
-        _dispatcher = bundle["agents"].get("Dispatcher")
+    import alert_notify
+    import alert_queue
+    import readiness
+    import retention_scheduler
+    import starvation_guard
+    _guard = bundle["agents"].get("Guard")
+    _dispatcher = bundle["agents"].get("Dispatcher")
+
+    # 4. 예열(필수) — 성공 콜백에서만 워커를 붙인다. ★[M7-3] 예전의 "예외 시 워커 즉시(콜드) 시작" 폴백은 없앴다:
+    #    B4 가 막은 콜드 로드 hang → 재시작 폭주 경로를 되살리는 데다, 예열 스레드도 on_ready 를 또 부르기 때문.
+    _required("readiness", lambda: readiness.start_background(_guard, on_ready=_start_workers_after_warmup))
+    # 5. [B3] 검출 기아 2차 방어(선택) — stale_detect 지속 시 go2rtc 슬롯 회수 → 워커 재시작 → 승격
+    _optional("starvation_guard", starvation_guard.start)
+
+    # 6. [B5] 경보 재시도 스레드(필수) — 미전송 경보를 지수 백오프로 재전송(프로세스 재시작 후에도 이월)
+    def _wire_alert_queue() -> None:
         if _dispatcher is not None:
             # [CODE_REVIEW M4-4] 재시도는 원격 채널만 — relay(사이렌)·log 를 재트리거하지 않는다.
             alert_queue.set_sender(
                 lambda lvl, msg, meta: _dispatcher._dispatch_now(lvl, msg, meta, remote_only=True))
         alert_queue.start()
-        # ★[W1] 워커 검출 → 알림 전송 배선. 워커는 큐에 넣기만 하고 이 스레드가 보낸다
-        #   (동기 호출 시 채널 타임아웃 6~8초가 검출 루프를 멈춘다 — 규칙6 저하 금지).
-        #   dispatcher.dispatch 를 부르므로 [B5] 선기록·재시도·데드레터 경로를 그대로 탄다.
-        import alert_notify
-        if _dispatcher is not None:
-            alert_notify.set_sender(
-                lambda lvl, msg, meta: _dispatcher.dispatch(lvl, msg, meta))
-            alert_notify.start()
-        else:
+    _required("alert_queue", _wire_alert_queue)
+
+    # 7. ★[W1] 워커 검출 → 알림 전송 배선(필수). 워커는 큐에 넣기만 하고 이 스레드가 보낸다
+    #    (동기 호출 시 채널 타임아웃 6~8초가 검출 루프를 멈춘다 — 규칙6 저하 금지).
+    #    dispatcher.dispatch 를 부르므로 [B5] 선기록·재시도·데드레터 경로를 그대로 탄다.
+    def _wire_alert_notify() -> None:
+        if _dispatcher is None:
             _log.warning("Dispatcher 없음 — 경보 통보 미배선(검출·기록은 정상)")
-        # ★[F6, 2026-08-21] 보존 정책 스윕을 **서버가 스스로** 돌린다. 이전에는 부르는 주체가
-        #   어디에도 없어(작업 스케줄러 미등록·main 스레드 없음) "자동 파기"가 사실이 아니었다.
-        #   별도 데몬 스레드라 DETECT_LOCK·GPU 를 건드리지 않고, 실패해도 검출에 영향이 없다.
-        import retention_scheduler
-        retention_scheduler.start()
-    except Exception:  # noqa: BLE001  예열 배선 실패 시에도 워커는 기동(기존 동작으로 폴백)
-        _log.warning("예열 기동 실패 — 워커를 즉시 시작(구 동작)\n%s", traceback.format_exc())
-        _start_workers_after_warmup()
+            _app_state.STARTUP_WARNINGS.append("startup:alert_notify: Dispatcher 없음(통보 미배선)")
+            return
+        alert_notify.set_sender(lambda lvl, msg, meta: _dispatcher.dispatch(lvl, msg, meta))
+        alert_notify.start()
+    _required("alert_notify", _wire_alert_notify)
+
+    # 8. ★[F6, 2026-08-21] 보존 정책 스윕(선택) — **서버가 스스로** 돌린다. 이전에는 부르는 주체가
+    #    어디에도 없어(작업 스케줄러 미등록·main 스레드 없음) "자동 파기"가 사실이 아니었다.
+    #    별도 데몬 스레드라 DETECT_LOCK·GPU 를 건드리지 않고, 실패해도 검출에 영향이 없다.
+    _optional("retention_scheduler", retention_scheduler.start)
 
 
 # ─────────────────────────────────────────────────────────────

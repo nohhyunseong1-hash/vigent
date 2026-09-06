@@ -18,6 +18,11 @@ DEFAULT_THEME = os.environ.get("VIGENT_THEME", "safety")
 # 코어가 들고 있는 런타임 상태(테마별 파이프라인 + 에이전트)
 STATE: dict[str, dict] = {}
 
+# [CODE_REVIEW M7-3] 기동 시 **선택** 서비스(go2rtc·기아 감시·보존 스윕)가 실패하면 여기 남기고 계속 기동한다.
+#   /health 의 warnings 에 그대로 노출된다("startup:<서비스>: <예외>"). 필수 서비스(예열·경보 큐·통보) 실패는
+#   기록이 아니라 기동 실패(M4-5 경로)다.
+STARTUP_WARNINGS: list[str] = []
+
 # 추론 직렬화 락 — 모든 MPS 추론엔진(guard.detect·rfdetr_service.detect·VLM summarize/quick)을
 #   '한 번에 하나만' 실행시켜 검출(PyTorch-MPS)과 VLM(MLX)이 Metal 을 동시에 만지지 않게 한다.
 #   ★F-14 본질은 이 락으로 못 막는다: mlx-vlm 을 '수명 짧은' 워커 스레드에서 돌리면 그 스레드

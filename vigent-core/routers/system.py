@@ -5,6 +5,15 @@ import time as _time
 
 from app_state import _START_TS, DEFAULT_THEME, STATE
 from app_state import load_theme as _load_theme
+
+
+def _startup_warnings() -> list:
+    """[M7-3] 기동 시 선택 서비스 실패 목록(app_state.STARTUP_WARNINGS) — 지연 import 로 순환 없음."""
+    try:
+        import app_state as _as
+        return list(_as.STARTUP_WARNINGS)
+    except Exception:  # noqa: BLE001
+        return []
 from fastapi import APIRouter
 from fastapi.responses import JSONResponse
 from web_util import _ROOT, product_version
@@ -192,7 +201,9 @@ def health(theme: str = DEFAULT_THEME):
         "phase": phase,               # [B4] starting|ready|failed — 예열 완료 여부
         "warmup": warm,               # [B4] {phase, warmup_s, elapsed_s, error} — 예열 실측
         "alerts": alerts,             # [B5] {pending, sent, dead, dead_1h, undeliverable, channels_configured, last_config_error}
-        "warnings": alert_warnings,   # [M4-1] channels_not_configured · notify_config_error — status 는 바꾸지 않는 경고
+        # [M4-1] channels_not_configured · notify_config_error — status 는 바꾸지 않는 경고
+        # [M7-3] + 기동 시 선택 서비스 실패("startup:<서비스>: <예외>") — go2rtc·기아 감시·보존 스윕
+        "warnings": list(alert_warnings) + list(_startup_warnings()),
         "privacy": privacy_status,    # [P1a/P1c] 비식별화 설정 + 저장 폴더 암호화 검사 결과
         "relay": relay_status,        # [P3a] 물리 출력 — ★off_failed=true 면 사이렌이 안 꺼졌을 수 있다
         "cameras": cameras,           # [B2] 카메라별 검출 생존
