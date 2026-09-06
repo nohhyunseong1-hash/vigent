@@ -9,8 +9,8 @@
 
 | # | 등급(등록 시) | 항목 | 출처 | 담당 모듈 | 현황 |
 |---|---|---|---|---|---|
-| R1 | **치명** | 서비스 크래시 루프 3주 미감지(4,067회 재시작) — 기동 실패 알림 / NSSM 재시작 제한 / `service_status.ps1` 회전 파일 증가 검사 | audit/c4_smoke §3·§5 | 4(통보)·7(기동) | 대기 |
-| R2 | **치명/높음** | 프론트 `realtime_core.js:3122` → `POST /llm/vision` 404(죽은 버튼) | AUDIT §9-d | 8(프론트) | 대기 |
+| R1 | **치명** | 서비스 크래시 루프 3주 미감지(4,067회 재시작) — 기동 실패 알림 / NSSM 재시작 제한 / `service_status.ps1` 회전 파일 증가 검사 | audit/c4_smoke §3·§5 | 4(통보)·7(기동) | ✅ `99488d9` M4-5(상태파일·Windows 이벤트 로그·1h 1회 통보·NSSM 60s/180s·status 크래시 루프 검사) + `5cf638b` M7-3(필수 서비스 실패도 같은 경로) + `4111dbd` M7-8(스윕 밀림 60s). 서비스 재설치·eventcreate 서비스 계정 경로는 5단계 검증 |
+| R2 | **치명/높음** | 프론트 `realtime_core.js:3122` → `POST /llm/vision` 404(죽은 버튼) | AUDIT §9-d | 8(프론트) | ✅ `7ec9509` M8-2: 서버에 없는 9경로를 미구현으로 비활성(fetch 0), 라우트 생성 시 알려 주는 테스트. 안전 페이지엔 LLM 버튼 UI 자체가 없음(실측 0) |
 | R3 | **치명(범위 규칙)** | `agents/`는 비밀정보 노출·코어 파괴 import만 점검 | CLEANUP_PLAN §10 | 전 모듈 공통 | 3단계 C4 비밀 스캔 0건 · C9 선택 import 완료. 4단계 중 추가 발견 시 기재 |
 | R4 | 높음 | W1 rf-detr `_kp_active_mask` 부분 로드 경고(3슬롯 공통) | c4_smoke §2 W1 | 1 | ★**정정 → 낮음(영향 없음)**. §1 M1-2 실측 근거 |
 | R5 | 중간 | forklift 설계상 비활성(F-7)로 `/health status=degraded` | c4_smoke §1·§6 | 1 | ★**정정 → 사유 오판**. degraded 실제 사유는 미전송 경보 pending 15건(§1 M1-3). 후속은 모듈 4 |
@@ -327,7 +327,7 @@
   → 원래 가정(30s)보다 훨씬 나빴다(cv2 5.0 은 기본 열기 타임아웃이 없음). FFmpeg 옵션 이름(`timeout`/`stimeout`)은 **연결 실패에 효과가 없어** OpenCV 속성으로 걸었다(`_RTSP_TIMEOUT_MS=5000`, env `VIGENT_RTSP_TIMEOUT_MS`/tuning `stability.rtsp_timeout_ms`). 스트림은 `CAP_FFMPEG`+타임아웃, 웹캠(정수)·파일은 기본 백엔드. `/cameras/{cid}/test` 는 같은 상수로 스레드 타임아웃(열기+읽기+1s). FFmpeg 옵션은 모듈 상단 한 곳(`_FFMPEG_CAPTURE_OPTIONS`, 저지연 포함)으로 단일화 — `_open()` 의 죽은 setdefault 제거. `isOpened()` 실패는 "열기 실패" WARNING(자격증명 마스킹). go2rtc 주소 `127.0.0.1` 통일(cameras 2·tapo 4). `_PoseModel` 지연 로드 락. 테스트 6.
   ★**(2) 실카메라 10초 수신 프레임 수·None 비율·첫 프레임 지연(저지연 옵션 전/후)은 대표 답변 "아니오"(카메라 미사용)로 이번엔 미측정 → 5단계 현장 검증 항목**(스크립트 `--live <cam_id>` 로 즉시 실행 가능, 자격증명 미출력). READ 타임아웃 5s 는 정상 스트림에서 "5초 넘게 프레임 없음 → 재연결" 이라 hang 15s 보다 먼저 잡힌다(동작 변화 — 현장 검증 항목에 포함).
 - **M5-6** → 모듈 7. **M5-8·9** 문서만.
-- **용량 스펙(FINAL_SUMMARY 배포 사양 절에 명시, 대표 지시)**: `DETECT_LOCK` 직렬화, 풀세트 ~85ms → 2fps 기준 **PC 1대당 카메라 약 5대 포화(RTX 5070 Ti 기준)**. 카메라 대수 확장(배치 추론 또는 다중 프로세스)은 다음 단계 항목.
+- **용량 스펙(FINAL_SUMMARY 배포 사양 절에 명시, 대표 지시)**: `DETECT_LOCK` 직렬화, 풀세트 ~85ms → 2fps 기준 **PC 1대당 카메라 약 5대 포화(RTX 5070 Ti 기준)**. 카메라 대수 확장(배치 추론 또는 다중 프로세스)은 다음 단계 항목. ★[M8-11, 2026-09-06] **시연 페이지(`/safety`·`/safety-local`) 동시 사용 시 카메라 여유 1대 감소** — 페이지가 `/detect/frame` 을 ≈6.6~9fps 로 불러 워커와 같은 락을 다툰다(index_hub 주석 실측 545ms). 관제는 `/hub` 를 쓴다.
 ## 6. 모듈 6 — 보존 스윕 (보고 2026-09-06, 수정 대기)
 
 **읽은 파일(전체)**: `retention.py` · `retention_scheduler.py` · `scripts/retention_sweep.py` · `data_engine.py`(pin·증거 경로) · `privacy.py` 저장 암호화 검사부 · `vlog.py` 회전 · `config/tuning.yaml retention` · `deploy/windows/install_service.ps1` 로그 회전 · 실측: `data/retention_status.json` · 디렉터리 크기 · 임시 디렉터리 시뮬레이션 2건.
@@ -457,10 +457,18 @@
   - 클라우드 직접 호출: `analyzeWithClaude`·`analyzeWithOpenAI`·`analyzeWithGemini`(`anthropic-dangerous-direct-browser-access` 헤더 포함) — 호출부 0 이었음.
   - 게이트: `tests/test_frontend_privacy.py`(금지 심볼·도메인 정적 검사 + node `--check` 구문 검사, node 24.19 실측). (a) "안전 경로만 남기는 정리"는 다음 단계.
 
-### 8-4. 수정 계획(승인됨 — 순서 M8-3·5·6·7 → M8-1 → M8-2 → M8-8)
-- **높음 M8-1**(한 커밋): `/zone/intrusion` cam 필수 + 워커 소유 카메라면 기록만(통보 위임) — 선행 테스트(워커 있음/없음/cam 누락 400). 프론트는 `cam` 을 실어 보내도록 index.html·index_local.html 의 go2rtc 카메라 id 를 `window.VIGENT_CAM_ID` 로 노출.
-- **높음 M8-2**: 404 경로 8개 — LLM 분석·열화상 경보·과속 경보·E-stop 문구·비전 능력 조회 UI 제거 또는 "미구현" 표시(서버 라우트 신설 없음 → OpenAPI 무변경). 열화상·과속은 향후 필요하면 서버 라우트를 먼저 만든다.
-- **중간 M8-3·5·6·7**: 소규모 삭제·수정(각 20줄 내외), 한 커밋 가능.
-- **중간 M8-4**: 규모 판단 요청 — (a)/(b)/(c).
-- **중간 M8-8**: pin 버튼(콘솔 2화면).
-- **중간 M8-9·낮음 M8-10·11**: 문서.
+### 8-4. 진행 현황(대표 승인 2026-09-06, 커밋 순서 M8-4(b) → M8-3·5·6·7 → M8-1 → M8-2 → M8-8)
+
+| 커밋 | 항목 | 내용(실측) |
+|---|---|---|
+| `f422dcd` | **M8-4(b)** | 성별·연령·감정 추정 3함수 + 클라우드 직접 호출 3함수 삭제(4,507→4,397줄). 정적 게이트 `test_frontend_privacy.py` |
+| `2086e49` | **M8-3·5·6·7** | 클라우드 직접호출 잔재 0 재확인 · PPE 휴리스틱 폴백 제거 + '참고(서버 판정 아님)' 문구, 통보 경로는 서버 판정(ppe_yolo)만 · 증거 원본 프레임 + 오버레이 `*_overlay.png` 분리(`data_engine.save_overlay`) · `/recognition/log` 규칙 화이트리스트(RULE_KB 18 + 2, 그 외 400) + `source` 꼬리표 · 프론트 디버그 텔레메트리 콘솔만. 테스트 5 |
+| `51b188d` | **M8-1(M3-8)** | `/zone/intrusion` cam 필수(400) · `_worker_owns`: 실행 중 워커 id 또는 go2rtc 고정 스트림(`config/go2rtc.yaml`, `${RTSP_URL}` 확장) 소스 일치 → **기록만(증거 1장·source=browser)·통보 워커 위임(gate=worker_owned)** · 비소유(시연·웹캠)만 브라우저 통보 · 페이지 `window.VIGENT_CAM_ID`. 테스트 7(같은 카메라 브라우저+워커 → 통보 1·증거 1 포함) |
+| `7ec9509` | **M8-2(R2)** | 서버에 없는 경로 9개(404 8 + 스텁 1)를 `UNIMPLEMENTED_SERVER_PATHS` 로 묶고 fetch 0 · LLM/비전능력/손크롭/rPPG 함수는 명시적 미구현(안전 페이지엔 해당 UI 요소 자체가 없음 — 실측 0) · 열화상 과열·과속은 화면 배지 '통보 미구현' + 콘솔 안내 · E-stop 문구·하트비트 제거. 테스트 3(서버에 라우트가 생기면 알려 주는 검사 포함) |
+| (대기) | **M8-8(M6-3)** | 콘솔 2화면(`templates/auto.html`·`static/auto_terminal.html`) 📌 보존/해제 버튼 → `POST /recognition/pin|unpin {path}` · 피드가 `evidence`(상대경로)·`pinned` 를 실음. 테스트 2(왕복·정적) |
+| (문서) | **M8-9** | `/dispatch/relay`·`dispatcher.relay()` 호출부 0 — 실제 §8 보조 방호신호는 워커 guard_bypass → `submit(critical)` → `dispatch` 의 `on_severity.critical` 기본 액션 `safety_relay_signal` → `relay.turn_on`(relay.enabled 시) 경로로 산다(notify.yaml 에 on_severity 없음 → 기본값). `/dispatch/relay` 는 **수동 시험용**으로 docstring 정정. 5단계: relay.enabled=true 현장 시험 |
+| (문서) | **M8-10** | 스크립트 캐시 버전 `?v=20260701-ppefix` 고정 — `_no_cache_dynamic` 이 .js 를 no-store 로 내리므로 실영향 없음. 정리는 (a) 정리 커밋 때 |
+| (문서) | **M8-11** | §5 용량 스펙에 "시연 페이지 동시 사용 시 카메라 여유 1대 감소" 병기(FINAL_SUMMARY 용량 항목에도) |
+
+- 정정 M6-6(`c23e2fc`): 정답 라벨 116파일 저장소 복원(PII 아님) — §6-3 참조.
+- (a) "안전 경로만 남기는 정리"(SERVICE_META fitness/office·스쿼트·rPPG·사무 자세·상업화 점검표·골프/요가/복싱 프롬프트 등 함수 28개 중 잔여 22개) 는 다음 단계.
