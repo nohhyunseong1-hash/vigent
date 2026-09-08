@@ -29,14 +29,73 @@
 |---|---|---|---|---|---|
 | P0-1 | **"감시 중단"을 원격으로 알리는 코드 경로가 0건 — Windows 배포에 `/health`를 읽는 주체도 없다** | Ph1 A-02: `alert_notify.submit` 호출부 8곳 전수에 health 상태 전이·카메라 stale·슬롯 degraded·예열 실패·워커 전멸 통보 없음; `install_service.ps1`에 `schtasks` 0건, `watchdog.sh`는 Linux 전용. Ph3 I-2: `stale_*|unhealthy` 참조 0건. Ph6 OPS-02: 외부 heartbeat 0 | 4대 중 1대가 야간에 죽어도 `/health` 200+degraded뿐. 프로세스 자체가 없으면(수동 `sc stop`·3단계 재기동 실패) `/health`도 사라져 무기한 무감시 | ① 앱 내부 health 전이 통보기(`overall` healthy→degraded/unhealthy 및 회복 시 `alert_notify.submit(cam="system", rule="health_*", level="critical")`) ② 설치 스크립트가 `service_status.ps1` 5분 주기 예약 작업 등록 + exit≥2 시 텔레그램 curl ③ 가능하면 외부(관제 PC/클라우드) 주기 heartbeat | S / S / M |
 | P0-2 | **사람에게 닿는 채널이 텔레그램 1개뿐이고, 지금 401로 죽어 있다 — 데드레터 요약 통보까지 같은 채널로 죽는다** | Ph4 P0-1: `data/alert_queue.db` 오늘 21:22~21:35 dead 26/26 `telegram 401`(부하 시험 발생분, id 88~113, 요약 통보 id 93 포함); `notify.yaml` 이메일·웹훅 비어 있음; 기동 시 채널 자가시험(`getMe`) 없음; `/hub` 배너가 `channels_configured`·`last_config_error`를 그리지 않음(`index_hub.html:217-229`) | 실카메라를 붙이면 화재·쓰러짐 경보가 아무에게도 가지 않는다 | ① 토큰 재발급·`/alerts/test` 검증 + **2번째 원격 채널(이메일 또는 웹훅→문자 게이트웨이) 필수 항목화** ② 기동 시 `getMe` 검증 실패 → STARTUP_WARNINGS + Windows 이벤트 로그 ③ 데드레터 요약은 로컬 채널(이벤트 로그·화면 배너)로도 ④ `/hub` 붉은 배너 | S(①②④) / M(③) |
-| P0-3 | **경보 경로 person 재현율 dev 38~42%, 원거리(화면높이<10%) 0~8% — 추적기가 검출을 버린다** | Ph2 #1: `x5_recall_knobs_interim.md:49-60`, `v1_field_baseline_report.md:61-87`(2026-08-25, ByteTrack 운영 구성, 1fps 표본), 검출 직전 71.3%→추적 후 42.0%; `guard.py:744-800`. 현장 생존율 88.3%(`reports/…v1.2.md:297-308`)는 GT 없는 값이라 반증이 못 됨 | 위험구역 침입·협착 **미탐**. 원거리 작업자는 사실상 안 보임. 재현율 목표치 자체가 선언돼 있지 않음 | ① 2fps 정답지로 재현율 재측정(현재 전부 1fps) ② 검출통과(passthrough)를 디바운스와 맞물리게 재설계 ③ ByteTrack 빈 프레임 `update()` 호출(백로그 PQ) ④ person 재현율 목표치 선언 + CI 회귀 게이트 | M |
-| P0-4 | **"멈추지 않고 통과하는 침입자" 미측정 — enter_s 1.0s + 2fps + tid 교체 4회/20초** | Ph2 #2: `zone_debounce.py:30-31,95`, `tuning.yaml:239`, `field_academy_2026-08-27.md:89,122-123`("미측정" 자인) | 유일한 판매 기능(구역 침입)이 빠른 통과를 놓칠 수 있는데 검증 없음 | 통과 시나리오(1~3m/s) 실카메라 실측 → enter_s 를 시간·속도 기준으로 재정의 또는 tid 무관 위치 기반 키(grid) 상시 병행 | M |
+| P0-3 | **경보 경로 person 재현율 dev 38~42%, 원거리(화면높이<10%) 0~8% — 추적기가 검출을 버린다** | Ph2 #1: `x5_recall_knobs_interim.md:49-60`, `v1_field_baseline_report.md:61-87`(2026-08-25, ByteTrack 운영 구성, 1fps 표본), 검출 직전 71.3%→추적 후 42.0%; `guard.py:744-800`. 현장 생존율 88.3%(`reports/…v1.2.md:297-308`)는 GT 없는 값이라 반증이 못 됨. **★근거 검증 2026-09-09(§2-1)**: 출처·입력 데이터·정답지·스크립트 전부 존재 확인 → 수치 유지. 단 **사고영상 9종 정지프레임 109장·주간·1fps·검수 1인** 기준이라 현장 카메라 대표성은 제한적 — 실카메라 재측정 절차 `docs/ops/laptop_validation.md` §6-2 | 위험구역 침입·협착 **미탐**. 원거리 작업자는 사실상 안 보임. 재현율 목표치 자체가 선언돼 있지 않음 | ① 2fps 정답지로 재현율 재측정(현재 전부 1fps) ② 검출통과(passthrough)를 디바운스와 맞물리게 재설계 ③ ByteTrack 빈 프레임 `update()` 호출(백로그 PQ) ④ person 재현율 목표치 선언 + CI 회귀 게이트 | M |
+| P0-4 | **"멈추지 않고 통과하는 침입자" 미측정 — enter_s 1.0s + 2fps + tid 교체 4회/20초** | Ph2 #2: `zone_debounce.py:30-31,95`, `tuning.yaml:239`, `field_academy_2026-08-27.md:89,122-123`("미측정" 자인). P0-3 의 근거 검증(§2-1) 결과 P0-3 유지 → 이 항목도 유지(통과형 침입은 P0-3 의 추적 손실이 그대로 미탐으로 이어지는 경로) | 유일한 판매 기능(구역 침입)이 빠른 통과를 놓칠 수 있는데 검증 없음 | 통과 시나리오(1~3m/s) 실카메라 실측 → enter_s 를 시간·속도 기준으로 재정의 또는 tid 무관 위치 기반 키(grid) 상시 병행 | M |
 | P0-5 | **근접(협착) 거리 무캘리브레이션 + 깊이 없는 운전자 제외 → 지면 보행자 7.6%(26/344)·최장 2.1초가 경보 대상에서 빠진다** | Ph2 #3: `proximity.py:103-112`(장비 박스 폭 기준자), grep 호모그래피 0건, `reports/…v1.2.md:31,143,152`, `field_academy_2026-08-27.md:118-121`(리포트 스스로 "안전 관련·최우선") | 지게차 옆 보행자가 "탑승자"로 분류돼 협착 경보 누락 — 사망 직결 시나리오. 지게차 검출 자체도 기본 비활성(F-7)이라 safety 프로파일에서는 근접 기능이 꺼져 있음(Ph8 C-10) | 단기: 발끝 높이 비교(리포트 16/16 육안 분류 기준) 추가; 중기: 바닥 호모그래피(4점 마킹) + 거리 오차 실측 리포트 | M / L |
 | P0-6 | **카메라 1대 장기 단절이 hang 오판 → `stale_detect` 오분류 → 기아 3단계 전체 프로세스 재기동 후보로 승격되며, 그 재기동 명령의 성공은 미검증** | Ph1 A-01/B-08, Ph3 I-1: `worker.py:917`(hang 재시작이 `last_frame_ts=now` 리셋), `:1229-1234`(무프레임은 하트비트 미갱신) → 15~16s마다 hang 반복 → `health_status.py:398-401`이 STALE_DETECT → `starvation_guard.py:114-131` → `Popen("sc.exe stop VIGENT & sc.exe start VIGENT", shell=True)`(`:100`). 실측 부합: `audit/soak_after_fixes_2026-08-26.md`(죽은 주소 cam_c200 → stale_detect + 기아 2단계). ★Ph3 I-9는 restarts 카운터가 STARTING 에서 리셋돼 3단계 도달 불가로 분석 — **두 분석이 갈리므로 실측으로 확정 필요** | 최선: 카메라 문제를 "검출 정지"로 오진하고 워커·go2rtc 슬롯을 불필요하게 재시작. 최악: 6분마다 4대 전체 재기동 또는 `sc stop` 뒤 `sc start` 실패로 **서비스 STOPPED 잔류 + 무통보** | ① hang 판정과 프레임 하트비트 분리(`loop_alive_ts`), 재시작 시 `last_frame_ts` 리셋 금지 ② 캡처 "프레임 없음" 신호를 health 입력에 넣어 STALE_FRAME 정확 분류 ③ 3단계는 `os._exit(3)` + NSSM `AppExit 3 Restart`로(SCM 정지 금지) ④ 실카메라 단절 ≥6분 시험을 절차에 추가 | M |
 | P0-7 | **예열 실패는 조용하다 — 프로세스는 살고 워커 0대, 재시도·통보·재기동 없음** | Ph1 A-03: `readiness.py:269-275,306-309`(FAILED 로그·상태만), `:318-324`(`on_ready` 미호출), `main.py:517`(`_required`가 스레드 시작만 감쌈). 필수 가중치 부재(F-8·M4-5 원 사고 유형)가 이제 이 경로로 들어옴 | 설치 당일 가중치 누락·CUDA 초기화 실패가 곧 무기한 무감시. M4-5가 막았다고 믿는 사고가 다른 문으로 재진입 | FAILED 시 `_notify_startup_failure` 경로(상태파일·이벤트 1000·원격 통보) + 정책 결정(재raise로 기동 실패 처리 또는 N회 재시도 후 확정) | S |
 | P0-8 | **배포기(노트북) 절전·덮개 닫힘·USB/NIC 절전 통제 절차 0건** | Ph6 OPS-01: `grep powercfg/덮개/UPS docs deploy md` → 0; `SITE_CHECKLIST.md` N-1~N-5에 전원 항목 없음. 노트북의 실제 `powercfg` 값은 **미확인**(이 세션은 개발기에서 돌았다) — 개발기조차 USB 선택적 절전이 켜져 있었으므로 노트북 기본값도 같을 가능성이 크다(추정). Win10 Pro·BitLocker는 이미 적용(`SITE_CHECKLIST.md:142-153` 실증) | 덮개를 닫거나 절전 진입 시 서비스가 멈춰 감시·경보 무기한 공백, 앱은 아무것도 못 남김 | `deploy/windows/set_power_plan.ps1`(덮개=아무 것도 안 함 AC/DC·절전/최대절전 AC 0·USB/PCIe/NIC 절전 해제·`powercfg /h off` + `powercfg /query` 재검증 출력 + audit 저장) + SITE_CHECKLIST N-6 + 재설치 검증 스크립트에 전원 검증 단계 | S |
 | P0-9 | **정전 → 전원 복구 시 배포기(노트북) 자동 부팅 보장 없음, UPS·외부 heartbeat 절차 0건** | Ph6 OPS-02, §4-2 정전 추적: 서비스 자동 기동은 "부팅 이후"만(`install_service.ps1:132`); BIOS AC 복구·UPS 언급 0. 노트북은 배터리 소진 후 AC 복구 시 자동 켜짐이 BIOS에 없는 기종이 많다(기종별 **확인 필요**) | 노트북은 배터리가 짧은 UPS 역할을 하지만 소진 뒤에는 사람이 켜기 전까지 죽어 있고 원격에서 알 수 없다 | BIOS "AC Power Recovery/Power On AC" 유무 확인 · UPS(노트북 어댑터+공유기+PoE, 정전 창을 넘길 용량) · SITE_CHECKLIST N-7·N-8(외부 heartbeat) — P0-1 ③과 같은 장치 | S(문서) / M(폴러) |
 | P0-10 | **승인(감사추적) 기록이 "누가"를 증명하지 못한다 — approver 자유 문자열 + 해시체인·서명 없음** (증빙 도구로 팔 경우) | Ph8 C-1: `routers/safety_core.py:274`(`approver = payload.get("approver") or "안전관리자"`), `:296`; `audit_store.py:21-40`(append JSONL, 무결성 0); `auth_session.py:8-10`(단일 운영자). Ph4 P1-4: ack 키가 (ts, rule)뿐이라 같은 초 다른 카메라 이벤트가 한꺼번에 "승인됨"(`audit_store.py:62-64`) | `audit_store.py:3-5`가 "법적 분쟁 시 사람이 최종판단했음을 입증"이라 선언하나 누구나 임의 이름으로 POST 가능·파일 수정 탐지 불가 → 증빙 주장이 무너진다. **제품을 "보조 감시 + 서류 초안"으로만 팔면 P1으로 내려갈 수 있다(§8 Q1)** | ① 승인자 = 서버가 세션 주체로 채움(요청값 무시) ② 레코드 `prev_hash`+`sha256` 체인 + 일자 마감 루트 해시 외부 앵커링 ③ 이벤트 id 부여(ack·pin·평가서 모두 id 참조) ④ 증거 JPEG 해시를 이벤트에 기록 | M |
+
+### 2-1. P0-3 수치의 출처 검증(2026-09-09, 코드 수정 없음)
+
+**결론: 근거 있음 — P0-3·P0-4 강등하지 않는다.** 아래 네 가지를 파일·디스크·명령으로 확인했다.
+
+**① 수치가 나온 파일·줄**
+
+| 수치 | 파일:줄 | 원문 |
+|---|---|---|
+| dev 재현율 **38.2%** [31,46], 원거리(작은박스) **0%** | `benchmarks/x5_recall_knobs_interim.md:47-58` | bytetrack ★운영 행: 정밀도 84.5% · 재현율 38.2% · TP60 FP11 FN97 · 작은박스 재현율 0% (95% 윌슨 CI, IoU≥0.5, imgsz 384, person conf 0.40, 순차 입력) |
+| dev 재현율 **42.0%** [35,50], 원거리 **8%** | `benchmarks/x5_experiments_2_3.md:10-16` | MIN_FRAMES=0 새 기준선 person dev GT157 정밀도 82.5% 재현율 42.0%, 원거리 8%; test GT44 100.0%/59.1% [44,72] |
+| 검출 직전 71.3%·원거리 83% → 추적 후 42.0%·8% | `benchmarks/v1_field_baseline_report.md:61-87` | 2026-08-25 정정: 추적기(ByteTrack, 2026-08-13 도입) 단계에서 재현율이 사라짐. passthrough 실험은 1fps 표본 한계로 2fps 재측정 대기 |
+| 데이터 제약 | `benchmarks/v1_field_baseline_report.md:126-136` | 사고영상 9종 편향(109장) · 주간만 · 조끼 양성 2건 · **정답지 1인 1회 검수, 교차검증 없음** |
+
+"38~42%"의 두 값은 같은 dev 셋에 대한 두 실행(ByteTrack 기본 vs MIN_FRAMES=0)이고, "0~8%"도 같은 두 실행의 원거리(박스 높이 < 화면 10%) 값이다. 즉 범위가 아니라 **구성 2개의 점 추정 2개**다.
+
+**② 입력 데이터의 존재(디스크 확인, 2026-09-09)**
+
+| 항목 | 경로 | 확인 결과 |
+|---|---|---|
+| 평가 프레임 | `D:\vigent_private_data\field_eval\frames\*.jpg` (저장소 밖, `VIGENT_DATA_DIR`) | `ls | wc -l` → **109** (분할 목록 dev 74 + test 35 전부 존재, 누락 0) |
+| 정답지(YOLO txt) | `data/field_eval/labels/*.txt` (git 추적) | **110 파일** = 109 프레임 + `classes.txt`(diff 로 확인), 누락 0 |
+| 분할 정의 | `data/field_eval/dev_test_split.json` | `created 2026-08-10`, `method "video-level(비디오 단위), 프레임 무작위 분할 아님"`, `frozen true`; dev 5편·test 4편 |
+| 프레임 매니페스트 | `data/field_eval/frames_manifest.json` | 109건, 항목마다 `video·t_ms·bright·size_bucket·height_frac` |
+| 원본 영상 | `D:\vigent_private_data\runs\rfdetr\accident\KakaoTalk_20260807_*.mp4` | **9 파일**(0.44~5.29 MB) |
+| 왜 이미지가 저장소 밖인가 | `D:\vigent_private_data\field_eval\README_field_eval.md:3-5` | 2026-09-06 감사 M6-6: 얼굴이 찍힌 현장 프레임(개인영상정보) jpg 530장만 이동, 라벨·매니페스트는 저장소가 정본 |
+
+```
+$ ls D:/vigent_private_data/field_eval/frames | wc -l        → 109
+$ ls data/field_eval/labels | wc -l                           → 110  (109 + classes.txt)
+$ ls -la D:/vigent_private_data/runs/rfdetr/accident/         → KakaoTalk_20260807_000438282.mp4 5291197 … 000721865.mp4 1940323 (9개)
+$ python: split dev 74 / test 35, images missing 0, labels missing 0, source videos 9
+```
+
+**③ 정답지를 누가 어떻게 만들었나**
+
+- 절차서: `docs/labeling_guide.md` — 자체 모델(RF-DETR person+ppe) conf 0.10 **과다생성 초안**(`benchmarks/generate_prelabels_draft.py:1-9`, "초안일 뿐 정답 아님")을 **로컬 CVAT**(`D:\cvat`, §3-1, 외부 클라우드 지양)에 불러와 사람이 **검수**(§3-3b 두 갈래 프로토콜 + 누락 별도 1회 패스, §3-3 "박스 0개 프레임 전수 훑기"). 파일럿 20장(`pilot20/`)으로 판독 규칙을 확정한 뒤 나머지 89장(`rest89/`) 검수.
+- 통합: `benchmarks/assemble_field_eval_labels.py` — pilot20+rest89 → `labels/`, 109개·중복 0·클래스 0~6·박스 총합 보존을 검증하고 실패 시 비정상 종료. `labels_draft/` 는 출처 추적용으로 보존.
+- 검수자: **1인, 1회**(`v1_field_baseline_report.md:134`), 교차검증 없음. 검수자가 한 일의 다수는 "오탐 지우기"가 아니라 **놓친 객체를 새로 그리기**였다(`labeling_guide.md:278`) — 자체 모델 초안의 확증편향은 절차로 완화했지만 제3자 검증은 없다.
+- 정답지 GT 통계(2026-09-09 계산): person 박스 **201개 / 109장**, 프레임당 사람 수 0명 10장 · 1명 38 · 2명 35 · 3명 18 · 4명 7 · 5명 1 · 6명 1.
+
+**④ 평가 스크립트와 명령**
+
+- `benchmarks/x5_recall_knobs.py` — `python benchmarks/x5_recall_knobs.py --exp {conf|track|imgsz|ensemble}` (`x5_recall_knobs_interim.md:5`, 스크립트 docstring `:18-22`). 입력은 `data_paths.field_eval()` → `dev_test_split.json` + `labels/<stem>.txt`(`:34,57,67`). 규칙: "튜닝은 dev 74장만, test 35장은 `--exp confirm --split test` 최종 1회"(`:4-7`).
+- 기준선·검출/추적 분리 측정: `benchmarks/person_miss_baseline.py`, `track_quality_baseline.py`, passthrough 2fps 확인 `b_passthru_2fps_check.py`(대기 중), 정답지 프레임 추출 `extract_eval_frames.py`, 분할 `make_dev_test_split.py`.
+- 이번 검토에서 재실행하지는 않았다(측정값은 2026-08-25 실행 기록을 인용). 재실행 조건은 규칙 9 — 운영 구성이 바뀌면 다시 잰다.
+
+**⑤ 현장 조건 대표성 평가(매니페스트 `frames_manifest.json` 집계, 2026-09-09)**
+
+| 축 | 평가셋 | 파일럿 현장(예상) | 대표성 |
+|---|---|---|---|
+| 조명 | `bright`: 주간 92 · 역광후보 17 · **야간 0** | 주간 위주이나 야간 무인 가능성(§8 Q2) | **부분** — 야간·우천·분진 0장 |
+| 거리 | `size_bucket`: 근거리 62 · 원거리 19 · 사람없음 28 | 고정 CCTV 3~5m 높이 → 원거리 비중이 더 클 것 | **부분** — 원거리 19장(GT 소수)으로 0~8% 추정은 신뢰구간이 넓다 |
+| 카메라 각도 | 휴대폰·사고 재현 영상(KakaoTalk 전달본), 흔들림·핸드헬드 포함 | 고정 설치 CCTV(부감) | **낮음** — 앵글·해상도·압축이 다르다 |
+| 사람 수 | 프레임당 0~6명, 2명 이하가 83장(76%) | 현장 작업조 1~4명 | 유사 |
+| 시간 표본 | 1초 간격 정지프레임, 영상 안에서 연속 | 운영은 2fps 스트림 | **부분** — 추적기(ByteTrack)는 프레임 간격에 민감하므로 1fps 표본이 재현율을 **낮게** 보이게 할 수 있다(`v1_field_baseline_report.md:80-87` 자인, 2fps 재측정 대기) |
+| 정답지 품질 | 1인 1회, 교차검증 없음 | — | **미검증** |
+
+**판단**: 수치는 지어낸 것이 아니라 재현 가능한 측정값이므로 P0-3·P0-4 는 유지한다. 그러나 이 수치는 "**사고 재현 영상 정지프레임에서의 추적 후 재현율**"이지 "**현장 고정 CCTV 2fps 에서의 재현율**"이 아니다. 어느 쪽으로든(더 나쁠 수도, 더 좋을 수도) 바뀔 수 있으므로 노트북 실카메라 단계에서 **같은 기준(IoU≥0.5, 원거리 = 박스 높이 < 화면 10%)** 으로 재측정한다 → `docs/ops/laptop_validation.md` **§6-2 "실카메라 재현율 측정"** 을 이번에 추가했다(비개발자가 정답지를 만드는 최소 절차 포함).
 
 ### P1 — 운영 신뢰성(오탐/미탐 급증·보안 침해·데이터 유실)
 
@@ -103,7 +162,7 @@
 | 2 | 보호구 세부(안전모/조끼/안전대/장갑/마스크) | **부분** | 모델 직접 3종(안전모·조끼·마스크). 장갑·보안경·안전대는 VLM 보조(Windows 로컬 VLM 불가), 하네스 클래스 없음 |
 | 3 | 위험구역 편집 UI | **있음** | 허브 폴리곤 편집·카메라별 저장 |
 | 4 | 차량-사람 근접·거리 추정 | **부분** | 단안 박스 폭 기준자, 캘리브레이션 없음, 지게차 모델 기본 비활성 |
-| 5 | 넘어짐/쓰러짐 | **없음(의도적 제거)** | 무동작 45s 규칙으로 부분 대체 |
+| 5 | 넘어짐/쓰러짐 | **없음(2026-08-06 제거, 대체 기능 없음)** | 무동작 45s 규칙(`immobility`)은 낙상 감지가 아니다 — 넘어지는 순간·넘어졌다 일어남은 못 잡고, 쓰러져 45초 이상 안 움직일 때만 발화(§4 문단 참조) |
 | 6 | 화재/연기 | **있음** | D-Fire mAP@50 80.13%(in-domain), 현장 재검증 대기 |
 | 7 | 고정 자세/움직임 없음 | **있음** | `immobility` 45s, 카메라별 override |
 | 8 | 밀폐공간 출입 관리 | **없음** | 지식·체크리스트 층만 |
@@ -144,6 +203,9 @@
 - **테스트 격리 "변경 0"**: `FINAL_SUMMARY.md:57`의 주장과 달리 실 go2rtc 기동·pin 오염(Ph7 §2.3).
 - **"KOSHA 스마트 안전장치 인증 기준 90%"**: `evaluator.py:8,172,185` — 제도·기준의 존재를 확인하지 못함.
 - **재시작 5초**: `deploy/windows/README.md:15` — 실제 60s.
+- **넘어짐(낙상) 감지**: **2026-08-06 에 제거됐다**(`docs/P3_BACKLOG.md:328-333` "PF. 작업자 낙상 감지 제거" — 사유: 착석 등 정상 상태 오발화 지속, 참조 클립 부재로 임계 재보정 불가; 재도입 조건 ①정상/양성 참조 클립 ②서버 다인 포즈 기반 재구현 ③오탐·미탐 측정). 운영 코드에 낙상을 **산출**하는 판정은 없다(`worker.py`·`agents/guard.py` 에 낙상/fall 판정 0건; `rig_monitor.py:90`·`rig_replay.py:37` 의 `fall` 은 외부 CSV/입력에서 받는 불리언일 뿐 만드는 코드가 없고, 벤치 `rig_fall/` 도 2026-09-06 감사 C2 에서 삭제). `docs/PILOT_PROPOSAL.md:38,63` 은 "낙상·쓰러짐 자동감지 미포함"을 이미 명시한다. 그런데 `MotionTracker` docstring(`worker.py:501`)·`tuning.yaml:64` 주석·관제 화면 라벨(`dashboard.py:24` "장시간 무동작(쓰러짐 의심)")·통보 문구("장시간 무동작 — 쓰러짐·실신 의심")·위험성평가 항목(`agents/scribe.py:66`)이 전부 "쓰러짐"을 말하므로 **낙상 감지가 있는 것처럼 읽힌다**. 국내 경쟁 제품(영신·Everguard)은 쓰러짐을 제공 표기한다(Ph8 §4-1).
+
+> **`MotionTracker`(`worker.py:501-624`)의 "무동작·쓰러짐 의심"이 실제로 잡는 것과 놓치는 것.** 이 규칙은 person 박스의 **중심점 이력**만 본다: 같은 트랙이 `immobile_s` 45초(`tuning.yaml:64`) 동안 표본 5개 이상(`immobile_min_samples`) 남기고 그 창 안 이동 범위가 화면의 3%(`immobile_spread`) 미만이면 `immobility`(high)를 낸다(`worker.py:617-624`). 따라서 **잡는 것**은 "사람이 검출된 채로 45초 이상 거의 제자리에 있는 상태" 하나뿐이다 — 쓰러져 움직이지 못하는 경우는 45초 뒤에 잡힌다(즉시 아님). **놓치는 것**: ① **넘어지는 순간** — 자세·박스 종횡비·낙하 속도를 보지 않으므로 넘어짐 자체는 어떤 신호도 만들지 않는다. ② **넘어졌다가 45초 안에 일어난 경우** — 이력이 움직이므로 발화하지 않는다(경미 사고·아차사고 기록 불가). ③ **쓰러진 뒤 추적이 끊긴 경우** — 누운 자세는 학습 분포 밖이라 검출·추적이 끊기기 쉽고, 트랙이 3초(`track_expire_s`) 비면 이력이 사라져 45초를 못 채운다. P0-3 의 추적 후 재현율(38~42%)이 여기에 직접 작용한다. ④ **누워서 작업하는 상황과 구분 불가** — 바닥 배관·차량 하부·용접 등 정당한 저자세 작업도 45초 정지면 같은 통보가 나가고, 반대로 서서 45초 정지(대기·통화)도 같은 통보가 나간다. 결론: 이 규칙은 "장시간 정지" 감지이지 낙상 감지가 아니며, 대외 자료에서 "쓰러짐 감지"로 표기하면 규칙 7 위반이다. 낙상 재도입은 `P3_BACKLOG.md` PF 조건(참조 클립·다인 포즈·오탐/미탐 측정)을 채운 뒤에만.
 
 **흔적 자체가 없는 것**
 - 증빙: 해시체인·전자서명·타임스탬프(TSA)·WORM, 증거·기록 열람 로그, 조치 티켓(상태·담당·기한·완료), 반기 점검 보고 서식·월간 리포트 스케줄·PDF·이메일 발송, 산업재해조사표·아차사고 연계
@@ -321,6 +383,8 @@ python scripts\capacity_probe.py --max-n 7 --hold 180
 15. 오늘 드라이런 GPU 83~89%/VRAM 4.0GB의 주체는(다른 프로세스 vs 서버 자체)? (Ph2 Q1)
 16. person 재현율 목표치("원거리 포함 미탐 허용 한계")를 어느 값으로 선언할 것인가? 대외 수치는 현장 생존율 88.3%(GT 없음)와 dev 원거리 0~8%(GT 있음, 1fps) 중 무엇을 쓸 것인가 — 둘 다 아니면 2fps 정답지 측정 일정은? (Ph2 Q2·Q6)
 17. 학원 프로파일의 AGPL YOLO(boda_ax) 사용이 배포·라이선스 방침(copyleft 0)과 어떻게 정합되는가? `.onnx` 3종을 매니페스트에 등재할 것인가, ONNX-CPU 경로를 지원 범위에서 뺄 것인가? Windows 데스크톱에서 VLM(MLX 설정) 경로가 실제 동작하는가? (Ph2 Q3·Q4·Q7)
+21. **낙상(넘어짐) 감지는 2026-08-06 에 제거된 상태**(`docs/P3_BACKLOG.md:328-333`)다. `PILOT_PROPOSAL.md:38` 은 미포함을 명시하지만 관제 화면 라벨(`dashboard.py:24`)·텔레그램 문구는 "쓰러짐 의심"을 쓴다(PPT·영업 비교표는 이번에 확인하지 않음 — 확인 필요) — 대외 표기를 "45초 무동작 감지"로 통일할 것인가, PF 재도입 조건(참조 클립·다인 포즈·오탐/미탐 측정)을 파일럿 전에 채울 것인가? (§4 문단, Ph8 C-11)
+22. P0-3 수치는 사고 재현 영상 정지프레임(주간·1fps·검수 1인) 기준이다(§2-1). 노트북 실카메라 단계에서 `docs/ops/laptop_validation.md` §6-2 재현율 측정(정답지 최소 절차 포함)을 누가·언제 하는가? 그 결과가 dev 수치보다 좋아도 P0-3 을 닫을 것인가, 2fps 정답지 재측정까지 유지할 것인가?
 
 **보안·품질**
 18. go2rtc v1.9.14 win64에서 `exec:`·`ffmpeg:` 소스 스킴이 활성인가(고립 환경에서 실행 검증 후 P1-12 확정)? `docs/academy_visit_*.md`·`docs_rtsp_tapo.md`·`tools/rtsp_test.py`의 RTSP 사용자명은 예시인가 실제 계정명인가? 파일럿은 역프록시(Caddy/nginx)인가 uvicorn 직접 TLS인가? 엣지박스 서비스 계정은 LocalSystem인가 전용 계정인가? `config/security.json` 허용 호스트 검사가 dispatcher에서 실제 강제되는가? `docs/CODE_REVIEW.md`에 "M8-4"가 없다 — 어느 문서에 있는가? (Ph5 Q1·Q3·Q4·Q7·Q8·Q6)
