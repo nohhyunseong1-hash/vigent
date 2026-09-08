@@ -191,8 +191,8 @@
 
 | # | 선택지 | 현재 코드 상태(파일:줄) | 예상 효과(추정, 노트북 실측 필요) | 구현 난이도 | 정확도 영향(규칙 6·9) |
 |---|---|---|---|---|---|
-| S1 | **카메라 fps 2 → 1.5/1** | 카메라별 `fps` 등록값(`routers/cameras.py:82-96`), 풀세트 캡 `tuning.yaml:182 worker.fullset_fps: 2`, 루프 간격 `worker.py:1145,1296` | 검출 CPU 정비례 감소(2.0→1.0fps 에서 1.38→0.71코어/카메라, `v3_fps_report.md`) → 4대에서 약 30~50% 절감. **코드 변경 0**(설정만) | **S**(설정) | 통과형 침입·근접 디바운스(enter_s 1.0s)가 프레임 기준이라 판정 지연 ↑ — P0-4 실측과 함께 결정. 히스테리시스 프레임(`guard.py:290`)은 시간 기준으로 재조정 필요 |
-| S2 | **포즈(rtmlib RTMPose, onnxruntime CPU) 끄기 또는 pose_fps 낮추기** | 포즈 스레드 상시(`worker.py:946-975`), `tuning.yaml:181 worker.pose_fps: 2`, 근골격 규칙은 **통보 없음**(`worker.py:492`, Ph1 §1-1 "통보 없음") — 끄는 공식 키는 없고 `pose_fps` 하한 0.2(`worker.py:98`) | CPU 전용 추론 1개(YOLOX-m + RTMPose-m) 제거 — 사람이 있을 때 카메라당 상시 부하. 절감량 미측정(포즈 단독 CPU 분리 측정 없음) | **S**(`pose_fps: 0.2`로 사실상 최소화) / **S~M**(off 키 추가는 코드) | 근골격(ergonomic_risk) 지표만 소실 — 5대 검출 기능과 무관 |
+| S1 | **카메라 fps 2 → 1.5/1** | 카메라별 `fps` 등록값(`routers/cameras.py:82-96`), 풀세트 캡 `tuning.yaml:182 worker.fullset_fps: 2`, 루프 간격 `worker.py:1145,1296` | 검출 CPU 정비례 감소(2.0→1.0fps 에서 1.38→0.71코어/카메라, `v3_fps_report.md`) → 4대에서 약 30~50% 절감. **코드 변경 0**(설정만) | **S**(설정) | ★**S4 와 같은 경고**: 프레임 표본이 줄어 **P0-3(재현율)·P0-4(통과형 침입자)를 악화**시킨다 — 통과형 침입은 enter_s 1.0s 안의 관측 프레임이 절반이 되고, 히스테리시스 프레임(`guard.py:290`)은 시간 기준으로 재조정해야 한다. **다른 선택지를 전부 적용한 뒤에도 미달일 때만, 2fps 정답지 재현율 재측정을 조건으로** 쓴다 |
+| S2 | **포즈(rtmlib RTMPose, onnxruntime CPU) 끄기 또는 pose_fps 낮추기** | 포즈 스레드 상시(`worker.py:946-975`), `tuning.yaml:181 worker.pose_fps: 2`, 근골격 규칙은 **통보 없음**(`worker.py:492`, Ph1 §1-1 "통보 없음") — 끄는 공식 키는 없고 `pose_fps` 하한 0.2(`worker.py:98`) | CPU 전용 추론 1개(YOLOX-m + RTMPose-m) 제거 — 사람이 있을 때 카메라당 상시 부하. 절감량 미측정(포즈 단독 CPU 분리 측정 없음) | **S**(`pose_fps: 0.2`로 사실상 최소화) / **S~M**(off 키 추가는 코드) | 근골격(ergonomic_risk) 지표만 소실. **코드 확인(2026-09-09)**: 포즈 스레드 산출물은 `ergonomic_risk` 뿐(`worker.py:492`), 무동작·쓰러짐 의심(`immobility`)은 박스 이동 기반 `MotionTracker`(`worker.py:501-624`)라 포즈와 무관, 낙상 감지는 2026-08-06 제거(`docs/P3_BACKLOG.md:328-333`, 재도입 조건 ②가 \"서버 다인 포즈 기반\") → **현 제품 기능 중 포즈에 의존하는 안전 판정은 없어 S2 포함**. 낙상을 재도입하면 그때 S2 를 되돌린다 |
 | S3 | **불필요 슬롯 제외** — fire_smoke 는 학원 프로파일에서 이미 off, forklift 기본 off | `tuning.yaml:123-124 include_*`, `worker.py:118-140`, 학원 `deploy/academy/profile_intent.yaml` | 슬롯당 0.106코어/카메라(개발기) — 작음 | S(설정) | 해당 위험 감지 소실 — 현장 요구에 따라 |
 | S4 | **추론 입력 해상도 축소(384 → 320 등)** | `tuning.yaml:88 detect.imgsz: 384`(RF-DETR 은 로드 시 컴파일 고정, 호출별 변경 불가 `detectors/rfdetr_adapter.py:167-171`), `guard.py:402` | 개발기 실측은 960/640/1280 **모두 dev 지표 악화**(`v1_field_baseline_report.md:158`) — 384 미만은 **미측정**. 전처리·모델 연산 감소 기대치 미상 | S(설정) | 원거리 재현율(이미 0~8%)이 더 떨어질 가능성 큼 — **재현율 재측정 없이는 금지** |
 | S5 | **ONNX Runtime FP32 CPU 경로(`onnx-cpu`)** | opt-in `tuning.yaml:80 detect.backend: torch`, `_OnnxRfdetrModel` CPUExecutionProvider 고정(`rfdetr_adapter.py:16-23,118-121`), `.onnx` 4종 **매니페스트 미등재**·없으면 무경고 torch 폴백(`:199,206-208`), export 스크립트 없음(`MANIFEST.md:74-102` 수동) | 개발기 실측: 지연 2.2배 빠르나 **CPU 1.7배 더 씀**(`v2_onnx_report.md:13-19`) → CPU 병목 노트북에는 **역효과**. GPU 를 쓰는 CUDA EP 는 코드에 없음 | M(CUDA EP 추가) | 패리티 테스트 있음(`tests/test_rfdetr_onnx_parity.py`) |
@@ -202,15 +202,16 @@
 | S9 | **불필요 후처리 제거** — 증거 JPEG 모자이크·인코딩이 워커 스레드에서 동기(`worker.py:1113-1118,182-201`), 브라우저 시연 페이지 동시 사용 시 −1대(`FINAL_SUMMARY.md` §5), `/hub` 썸네일 1.3s 폴링(`index_hub.html:636`) | 증거 쿨다운 30s 라 평균 부하는 작음; 시연 페이지·썸네일 폴링을 현장에서 닫는 것이 효과 큼(개발기 실측 "여유 −1대") | S(운영 지침) / M(증거 인코딩 별도 스레드) | 없음 |
 | S10 | **ORT 세션 스핀·스레드** | 이미 적용(`ort_tune.py`, intra_op 4·spin off, 카메라당 2.10→1.55코어) | 추가 여지: `intra_op_threads` 를 노트북 6코어에 맞춰 2~3 으로 재튜닝(측정 필요) | S(설정) | 없음 |
 
-권장 실험 순서(노트북): **S1(fps 1.5) + S2(pose_fps 0.2) + S9(시연·썸네일 off)** 를 먼저(전부 설정·운영 지침, 코드 0) → 4대 4h 소크 재측정 → 통과 시 S8 서브스트림·S10 재튜닝 → 그래도 미달이면 S7/S6(구조 변경, 회귀 게이트 선행) 또는 §5-4.
+권장 실험 순서(노트북): **S8(카메라 서브스트림, 예: Tapo `/stream2`) + S2(pose_fps 0.2) + S9(시연·썸네일 off)** 를 첫 묶음으로(전부 설정·운영 지침, 코드 0; 서브스트림은 해상도 저하이므로 사람 크기 요건 `docs/camera_requirements.md` 확인) → 4대 4h 소크 재측정 → 통과 못 하면 **S10**(ORT 스레드 재튜닝) → 그래도 미달이면 **S1**(fps 감소, 재현율 재측정 조건) → 구조 변경(S7/S6, 회귀 게이트 선행) 또는 §5-4. 절차서: `docs/ops/laptop_validation.md`.
 
 **노트북 실행용 벤치마크 절차**(전부 저장소 도구, 코드 변경 없음)
 ```powershell
 # 0) 전제: 노트북에 main(ee4557d 이후) 배포, 서비스 Running, 모의 영상 VIGENT_DATA_DIR\runs\rfdetr\accident\*.mp4 복사, 다른 GPU/CPU 앱 종료
 # 1) 기준선(현행 설정) — 4대 4h, 10분 창, 과부하 5·6대 각 20분
 python scripts\pilot_load_test.py --cams 4 --hours 4 --interval 600 --overload-cams 2 --overload-min 20 --tag laptop_base
-# 2) S1+S2+S9: config\tuning.yaml 에서 worker.pose_fps: 0.2, 카메라 등록 fps 1.5(키트 --fps 1.5), 시연 페이지·허브 닫음 → 서비스 재시작 → 같은 명령
-python scripts\pilot_load_test.py --cams 4 --fps 1.5 --hours 4 --interval 600 --overload-cams 2 --overload-min 20 --tag laptop_s1s2
+# 2) S8+S2+S9: 카메라를 서브스트림 주소로 등록(실카메라 --rtsp-list; 파일 모의면 해당 없음), config\tuning.yaml 에서 worker.pose_fps: 0.2, 시연 페이지·허브 닫음 → 서비스 재시작 → 같은 명령
+python scripts\pilot_load_test.py --cams 4 --hours 4 --interval 600 --overload-cams 2 --overload-min 20 --rtsp-list D:\vigent_field\cams_sub.txt --tag laptop_s8s2s9
+# 2b) 그래도 미달이면 S10(onnxruntime.intra_op_threads 2~3) → S1(--fps 1.5, 재현율 재측정 조건)
 # 3) 단계별 단가(램프): capacity_probe 로 N=1..7 재측정(선언 기준 그대로) — 비교 대상은 2026-08-22 표
 python scripts\capacity_probe.py --max-n 7 --hold 180
 # 4) 실카메라가 있으면 --rtsp-list 로 1)·2) 반복(디코드 CPU 분리: 키트 net_rx_mbps + 캡처 스레드 CPU 는 후속 코드 변경 필요)
@@ -235,7 +236,7 @@ python scripts\capacity_probe.py --max-n 7 --hold 180
 
 ### 5-6. 최종 추천
 1. **배포기는 현 노트북을 유지하되 "4대 상시"는 아직 확정하지 않는다.** 램프 1회(2026-08-22)가 유일한 근거이고 권장 상한에 걸려 있다.
-2. 노트북에서 §5-3 절차로 **기준선 4h 소크 → S1+S2+S9 적용 4h 소크**를 잰다. 두 결과가 `docs/LAPTOP_SIZING_PILOT4.md` §1 기준을 통과하면 4대 운용 확정(구매 없음).
+2. 노트북에서 §5-3 절차(`docs/ops/laptop_validation.md`)로 **기준선 4h 소크 → S8+S2+S9 적용 4h 소크**를 잰다. 두 결과가 `docs/LAPTOP_SIZING_PILOT4.md` §1 기준을 통과하면 4대 운용 확정(구매 없음).
 3. 미달이면 §5-4 A(3대) 또는 B(fps 1.0)를 먼저 검토하고, 그래도 안 되면 C(CPU 상향 노트북, Pro·발열 설계·GPU 4~8GB)로 간다.
 4. 어느 경우든 설치 전 조건: 전원·덮개·절전 스크립트(P0-8), UPS·BIOS 자동 부팅·외부 heartbeat(P0-9), 유선 이더넷, BitLocker 유지, 예비 어댑터, 물리 잠금.
 
@@ -251,7 +252,7 @@ python scripts\capacity_probe.py --max-n 7 --hold 180
 | a3 | hang/프레임 하트비트 분리 + STALE_FRAME 정확 분류 + 기아 3단계를 `os._exit`+NSSM Restart로 + 실측 시험 | P0-6, P1-11(오분류) | M | a2 |
 | a4 | 예열 FAILED → 기동 실패 경로(통보·이벤트·재raise 정책) | P0-7 | S | a2 |
 | a5 | 전원·덮개·절전 스크립트(`set_power_plan.ps1`) + SITE_CHECKLIST N-6~N-14 + BIOS AC 복구·UPS·NTP 절차(배포기 노트북 기준) | P0-8, P0-9, P1-20, P1-23 | S | — |
-| a6 | 배포기(노트북) 4h 소크 실측 — 기준선 + S1·S2·S9 적용본(§5-3 절차) + 실카메라 4대 RTSP·재연결 | P1-9, P1-11 | S(측정) | a5 |
+| a6 | 배포기(노트북) 4h 소크 실측 — 기준선 + S8·S2·S9 적용본(`docs/ops/laptop_validation.md`) + 실카메라 4대 RTSP·재연결 | P1-9, P1-11 | S(측정) | a5 |
 | a7 | 근접: 발끝 높이 비교로 운전자 오인 차단 + 통과형 침입 실측 + 2fps 정답지 재현율 재측정·목표치 선언 | P0-3, P0-4, P0-5(단기) | M | a6(실카메라) |
 | a8 | 경보 재시도 시간 기반 + 회복 후 일괄 재전송 · 릴레이 즉시 경로·락 분리 · 기동/종료 OFF · 자동 pin 기준 변경 | P1-1~P1-4 | S~M | a1 |
 | a9 | 레지스트리·pin 원자 쓰기 + 0대 복원 경보 · `/health.device` + `VIGENT_REQUIRE_CUDA` · `alert_queue.db` 손상 격리 | P1-17, P1-19, P1-22 | S | — |
@@ -346,7 +347,7 @@ python scripts\capacity_probe.py --max-n 7 --hold 180
 | W10 | 전원·정전·NTP·Windows Update 절차 스크립트 + SITE_CHECKLIST N-6~N-14(노트북 기준: 덮개·절전·USB/NIC 절전 해제, BIOS AC 복구, UPS, 배터리) + 재설치 검증에 전원 단계 | `deploy/windows/set_power_plan.ps1`(신규), `verify_service_reinstall.ps1`, `deploy/SITE_CHECKLIST.md`, `md/DEPLOYMENT.md` | — | 스크립트가 `powercfg /query` 재검증 출력을 `audit/`에 남김; 체크리스트 항목별 확인 명령 존재 |
 | W11 | 승인 기록 세션 결속 + 이벤트 id + 해시체인 (Q1 답이 "증빙"일 때) | `audit_store.py`, `data_engine.py`(id·evidence sha), `routers/safety_core.py`, `templates/auto.html`, 테스트 | Q1 | 임의 approver 거부, 체인 검증 스크립트가 변조 탐지, ack가 id 단위 |
 | W12 | 문서 정정 일괄 + 규제·계약 초안 | `CLAUDE.md`, `README.md`, `deploy/windows/README.md`, `deploy/DEPLOYMENT.md`, `docs/STABILITY.md`, `docs/PRIVACY_POLICY_DRAFT.md`, `themes/safety/vision.yaml` 주석, `weights_manifest.json` note, `evaluator.py` 문구, `Dockerfile`(수정 또는 "미지원"), `docs/legal/`(신규: 안내판·고지문·운영관리방침·열람요청서·노사협의 안건·설비연동 요구사항서·계약 부속서 초안), `.gitignore` `pilot_*.md` 정정 + `docs/PILOT_DECISIONS.md` 추가 | — | `tests/test_baseline_freshness.py` 류로 수치 자동 검사; 초안 문서 존재·법무 검토 목록 |
-| W13 | 배포기(노트북) 4h 소크 2회(기준선·S1+S2+S9) 실행·판정 기록 + 필요 시 §5-4 대안 선택 | `docs/LAPTOP_SIZING_PILOT4.md` §7 채움, `audit/loadtest_*laptop*` | 노트북 접근, W10 | 10항목 통과/미달 표 ×2 + 판정(A 4대 확정 / B 3대·fps 1.0 / C 교체 사양) |
+| W13 | 배포기(노트북) 4h 소크 2회(기준선·S8+S2+S9) 실행·판정 기록(`docs/ops/laptop_validation.md` 양식) + 필요 시 §5-4 대안 선택 | `docs/LAPTOP_SIZING_PILOT4.md` §7 채움, `audit/loadtest_*laptop*` | 노트북 접근, W10 | 10항목 통과/미달 표 ×2 + 판정(A 4대 확정 / B 3대·fps 1.0 / C 교체 사양) |
 
 ---
 
