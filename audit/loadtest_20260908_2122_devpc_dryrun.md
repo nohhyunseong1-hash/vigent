@@ -3,7 +3,7 @@
 기준(측정 전 선언 2026-09-08): detect_cycle: 10분 창마다 카메라별 last_detect_age_s p95 ≤ 1.0s (2fps 주기 0.5s의 2배 이내) 이고 샘플 중 age ≤ 0.55s 비율 ≥ 90% (허용 편차 10%) · alert_latency_s: 경보 큐 적재(created_at) → 텔레그램 전송 완료(sent_at) p95 ≤ 5s. 침입 프레임 → 적재는 검출 주기 0.5s + 판정 이내(≤ 1s) → 합계 ≤ 6s. 채널 미설정이면 '미측정'으로 남긴다 · cpu: 10분 창 평균 시스템 CPU ≤ 70% (12스레드의 30% 여유), 서버 프로세스 ≤ 8.0 환산코어 · memory: 서버 RSS ≤ 6GB · 시스템 가용 ≥ 2GB · 소크 동안 RSS 기울기 ≤ 100MB/h(누수) · degraded: 카메라 사유 degraded 샘플 0건. 경보 적체 사유는 따로 세고 판정에서 뺀다(채널 문제) · frame_loss: 창마다 카메라별 dropped_frames 증가 ≤ 창 내 예상 프레임(2fps×600s=1,200)의 1%. 파일 카메라 재연결 0 · thermal: 3시간 이후 창의 CPU '% Processor Performance' 와 GPU SM 클럭이 첫 30분 평균의 80% 이상. GPU 온도 < 87°C · gpu_vram: VRAM 사용 ≤ 3.5GB(4GB 의 87%) · overload: 판정 항목 아님 — 5·6대에서 무엇이 벌어지는지 기록: 드롭/밀림/사망, 경보 지연 증가폭, degraded 표시 여부
 
 ## ★무효·주의(지우지 않는다)
-- ★재측정 필요(F-33): 이 실행 시점 개발기 .venv 의 torch 는 CPU 빌드(2.12.0+cpu, 2026-09-06 20:08 설치) — GPU util·VRAM 은 서버가 아닌 다른 앱의 값, 서버 코어·검출 ms 는 CPU 추론 조건
+- ★F-33: 이 실행 시점 개발기 .venv 의 torch 는 CPU 빌드(2.12.0+cpu, 2026-09-06 20:08 설치) — GPU util·VRAM 은 서버가 아닌 다른 앱의 값, 서버 코어·검출 ms 는 CPU 추론 조건. **cu130 재현: `loadtest_20260909_2120_desktop_cu130_dryrun.md`(2026-09-09 21:20)**
 - 소크 0.1h < 4h — 지속 부하 판정 불가(초반 성능으로 판단 금지)
 
 ## 판정

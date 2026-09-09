@@ -1,0 +1,69 @@
+﻿# 개발기 cu130 1h 소크 사전 조건 — 2026-09-09 22:39:01 · DESKTOP-STLQ1LM · Task Scheduler 기동
+torch: 2.12.0+cu130 cuda 13.0 available True NVIDIA GeForce RTX 5070 Ti
+nvidia-smi driver/VRAM/util (서버 기동 전): 610.74, 1330 MiB, 16303 MiB, 4 %
+GPU 프로세스(서버 기동 전, nvidia-smi --query-compute-apps):
+  2056, [Insufficient Permissions], [N/A]
+  11560, C:\Windows\System32\ShellHost.exe, [N/A]
+  11952, C:\Windows\SystemApps\MicrosoftWindows.Client.CBS_cw5n1h2txyewy\CrossDeviceResume.exe, [N/A]
+  11244, C:\Windows\explorer.exe, [N/A]
+  15124, C:\Program Files\NVIDIA Corporation\NVIDIA App\CEF\NVIDIA Overlay.exe, [N/A]
+  17476, C:\Program Files (x86)\Microsoft\EdgeWebView\Application\152.0.4191.66\msedgewebview2.exe, [N/A]
+  19368, C:\Windows\SystemApps\Microsoft.LockApp_cw5n1h2txyewy\LockApp.exe, [N/A]
+  20972, C:\Windows\SystemApps\MicrosoftWindows.Client.CBS_cw5n1h2txyewy\TextInputHost.exe, [N/A]
+  21016, C:\Program Files\WindowsApps\Microsoft.YourPhone_1.26071.164.0_x64__8wekyb3d8bbwe\PhoneExperienceHost.exe, [N/A]
+  20320, C:\Program Files\AMD\CNext\CNext\AMDRSSrcExt.exe, [N/A]
+  21712, C:\Program Files\Riot Vanguard\vgtray.exe, [N/A]
+  13860, C:\Users\shgus\AppData\Local\Discord\app-1.0.9256\Discord.exe, [N/A]
+  24000, C:\Program Files (x86)\Steam\bin\cef\cef.win64\steamwebhelper.exe, [N/A]
+  2216, C:\Program Files\AMD\CNext\CNext\RadeonSoftware.exe, [N/A]
+  25996, C:\Windows\SystemApps\ShellExperienceHost_cw5n1h2txyewy\ShellExperienceHost.exe, [N/A]
+  32308, C:\Program Files\WindowsApps\Microsoft.Edge.GameAssist_1.0.4019.0_x64__8wekyb3d8bbwe\EdgeGameAssist.exe, [N/A]
+  35336, C:\Users\shgus\AppData\Local\Programs\Microsoft VS Code\Code.exe, [N/A]
+  9784, C:\Program Files\Google\Chrome\Application\chrome.exe, [N/A]
+  6252, C:\Program Files\Google\Chrome\Application\chrome.exe, [N/A]
+  13624, C:\Windows\SystemApps\MicrosoftWindows.Client.CBS_cw5n1h2txyewy\SearchHost.exe, [N/A]
+  41864, C:\Program Files\Microsoft OneDrive\OneDrive.exe, [N/A]
+  30996, [Insufficient Permissions], [N/A]
+  40592, C:\Program Files\WindowsApps\Claude_1.49585.0.0_x64__pzs8sxrjxfjjc\app\claude.exe, [N/A]
+  35828, C:\Program Files\WindowsApps\Claude_1.49585.0.0_x64__pzs8sxrjxfjjc\app\claude.exe, [N/A]
+  13640, C:\Windows\SystemApps\Microsoft.Windows.StartMenuExperienceHost_cw5n1h2txyewy\StartMenuExperienceHost.exe, [N/A]
+  7152, C:\Program Files\NVIDIA Corporation\NVIDIA App\CEF\NVIDIA Overlay.exe, [N/A]
+  37568, C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe, [N/A]
+  28092, C:\Program Files\WindowsApps\Microsoft.WindowsTerminal_1.24.11911.0_x64__8wekyb3d8bbwe\WindowsTerminal.exe, [N/A]
+게임/브라우저 잔존: chrome x14, Discord x6, msedge x5, steam x1, steamwebhelper x8
+VIGENT 서비스: Stopped/Disabled · 포트 8010 LISTEN: False
+기동 방식: run.ps1 (RF_HOME·TORCH_HOME·VIGENT_CAPTURE_MODE·PYTHONUTF8 은 run.ps1 기본값 — 서비스와 동일)
+[22:39:03] run.ps1 시작 (powershell PID 13748)
+[22:39:23] /health 200 (status=degraded phase=ready) — 기동 20s
+[22:39:23]   (GET /cameras 실패: 원격 서버에서 (401) 권한이 없음 오류를 반환했습니다. · tok.len=64 — /health registered 로 대체)
+[22:39:23] 등록 카메라(기동 직후): [] · /health registered=[] status=degraded
+[22:39:23] 기동 후 /health 200 status=degraded · registered=[] · warnings=[] · alerts dead_1h=11 dead=150 (degraded 면 health_status.py: 최근 1h 데드레터 = 텔레그램 401, 카메라 문제 아님)
+[22:39:34] 조건 2 확인: /health 200 status=degraded · rfdetr_slots [forklift=LOADED, fire_smoke=LOADED, ppe=LOADED] · LOADED=3/3
+[22:39:34] 조건 2 확인: VRAM 기동 전 1331 MiB → 예열 후 2554 MiB (서버 몫 차분 1223 MiB) · util 2 % · nvidia-smi python: 36172, C:\Users\shgus\AppData\Local\Programs\Python\Python311\python.exe, [N/A]
+[22:39:34] 서버 프로세스: 22012(5MB), 36172(2684MB) → 샘플 대상 PID 36172
+[22:39:34] nvidia-smi 로거 PID 25544 → audit\nvidia_smi_20260909_2239_cu130_1h.csv · 서버 샘플러 → audit\server_proc_20260909_2239_cu130_1h.csv
+[22:39:34] === 1h 소크 시작: --cams 4 --hours 1 --interval 600 --overload-cams 0 --tag desktop_cu130_1h ===
+[preflight] {"status": "degraded", "phase": "ready", "registered": [], "live": [], "ghosts": [], "stale": {}, "excluded": {}, "alerts": {"pending": 0, "sent": 37, "dead": 150, "dead_1h": 11, "dropped": 0, "queue_depth": 0, "notify_thread_alive": true, "undeliverable": 0, "channels_configured": true, "last_config_error": null}, "warnings": []}
+[header] DESKTOP-STLQ1LM · AMD Ryzen 9 9900X 12-Core Processor · NVIDIA GeForce RTX 5070 Ti · 서버 PID 22012 · 기록 D:\vigent_original\audit\loadtest_20260909_2239_desktop_cu130_1h.jsonl
+[ramp] 카메라 4대 등록(file)
+  등록 pilot01 ← D:\vigent_private_data\runs\rfdetr\accident\KakaoTalk_20260807_000438282.mp4 → HTTP 200 {'ok': True, 'camera': {'id': 'pilot01', 'name': '파일럿모의1', 'enabled': True, 'fps
+  등록 pilot02 ← D:\vigent_private_data\runs\rfdetr\accident\KakaoTalk_20260807_000442974.mp4 → HTTP 200 {'ok': True, 'camera': {'id': 'pilot02', 'name': '파일럿모의2', 'enabled': True, 'fps
+  등록 pilot03 ← D:\vigent_private_data\runs\rfdetr\accident\KakaoTalk_20260807_000552920.mp4 → HTTP 200 {'ok': True, 'camera': {'id': 'pilot03', 'name': '파일럿모의3', 'enabled': True, 'fps
+  등록 pilot04 ← D:\vigent_private_data\runs\rfdetr\accident\KakaoTalk_20260807_000601541.mp4 → HTTP 200 {'ok': True, 'camera': {'id': 'pilot04', 'name': '파일럿모의4', 'enabled': True, 'fps
+  /health running: 4/4 (규칙 11 확인)
+[warmup] 120s
+[2026-09-09T22:41:37] soak n=4 sysCPU=29.85% perf=122.62% srv=None코어 RSS=5.0MB GPU=8.0%/2418.0MB 41.0°C clk=1695.0 deg(cam/alert)=0/15 age_p95=[0.5, 0.3, 0.3, 0.2] alerts=1/Nones
+[2026-09-09T22:51:44] soak n=4 sysCPU=30.01% perf=123.04% srv=0.0코어 RSS=2.0MB GPU=1.0%/2373.0MB 43.0°C clk=1852.0 deg(cam/alert)=0/15 age_p95=[0.3, 0.1, 0.4, 0.3] alerts=12/Nones
+[2026-09-09T23:01:50] soak n=4 sysCPU=37.2% perf=122.44% srv=0.0코어 RSS=1.0MB GPU=14.0%/2373.0MB 44.0°C clk=1432.0 deg(cam/alert)=0/15 age_p95=[0.2, 0.5, 0.4, 0.3] alerts=3/Nones
+[2026-09-09T23:11:56] soak n=4 sysCPU=28.47% perf=122.13% srv=0.0코어 RSS=1.0MB GPU=5.0%/2378.0MB 43.0°C clk=1695.0 deg(cam/alert)=0/15 age_p95=[0.5, 0.5, 0.5, 0.5] alerts=9/Nones
+[2026-09-09T23:22:03] soak n=4 sysCPU=29.05% perf=122.74% srv=0.0코어 RSS=1.0MB GPU=9.0%/2378.0MB 44.0°C clk=1545.0 deg(cam/alert)=0/15 age_p95=[0.5, 0.3, 0.5, 0.5] alerts=5/Nones
+[2026-09-09T23:32:09] soak n=4 sysCPU=28.53% perf=123.18% srv=0.0코어 RSS=1.0MB GPU=1.0%/2378.0MB 43.0°C clk=1417.0 deg(cam/alert)=0/15 age_p95=[0.2, 0.4, 0.2, 0.3] alerts=0/Nones
+[2026-09-09T23:42:16] soak n=4 sysCPU=29.3% perf=123.04% srv=0.0코어 RSS=1.0MB GPU=9.0%/2378.0MB 44.0°C clk=1725.0 deg(cam/alert)=0/13 age_p95=[0.5, 0.3, 0.5, 0.2] alerts=0/Nones
+[cleanup] 제거 4개 [('pilot01', 200), ('pilot02', 200), ('pilot03', 200), ('pilot04', 200)] · /health 에 남은 pilot*: []
+보고서: D:\vigent_original\audit\loadtest_20260909_2239_desktop_cu130_1h.md — 통과 (무효 사유 있음)
+[23:43:04] === 1h 소크 종료 exit=1 ===
+[23:43:04] 소크 후 VRAM(서버 켜진 상태) 2378 MiB
+[23:43:04] 서버 종료: python.exe 22012
+[23:43:04] 서버 종료: go2rtc.exe 8700
+[23:43:09] 서버 종료 후 VRAM 993 MiB (기동 전 1331) · 잔존 프로세스 0
+[23:43:09] DONE

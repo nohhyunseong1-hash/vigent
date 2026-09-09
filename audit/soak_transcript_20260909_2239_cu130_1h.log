@@ -1,0 +1,41 @@
+﻿**********************
+Windows PowerShell 기록 시작
+시작 시간: 20260909223901
+사용자 이름: DESKTOP-STLQ1LM\shgus
+RunAs 사용자: DESKTOP-STLQ1LM\shgus
+구성 이름: 
+Machine: DESKTOP-STLQ1LM (Microsoft Windows NT 10.0.26200.0)
+호스트 응용 프로그램: powershell.exe -NoProfile -ExecutionPolicy Bypass -File C:\Users\shgus\AppData\Local\Temp\claude\d--vigent-original\7ae58df6-0718-46a6-8582-7374338dc1d7\scratchpad\soak_cu130_1h.ps1
+프로세스 ID: 36356
+PSVersion: 5.1.26100.9168
+PSEdition: Desktop
+PSCompatibleVersions: 1.0, 2.0, 3.0, 4.0, 5.0, 5.1.26100.9168
+BuildVersion: 10.0.26100.9168
+CLRVersion: 4.0.30319.42000
+WSManStackVersion: 3.0
+PSRemotingProtocolVersion: 2.3
+SerializationVersion: 1.1.0.1
+**********************
+[22:39:03] run.ps1 시작 (powershell PID 13748)
+PS>종료 오류(Invoke-WebRequest): "작업 시간을 초과했습니다."
+PS>종료 오류(Invoke-WebRequest): "{"status":"starting","phase":"starting","warmup":{"phase":"starting","warmup_s":null,"elapsed_s":11.1,"error":""},"alerts":{"pending":0,"sent":37,"dead":150,"dead_1h":11,"dropped":0,"queue_depth":0,"notify_thread_alive":true,"undeliverable":0,"channels_configured":true,"last_config_error":null},"warnings":[],"privacy":{"face_anonymize":true,"method":"mosaic","detector":"person_box_head + yunet","mosaic_blocks":8,"storage_encrypted":false,"bitlocker":"unknown","efs_by_dir":{"evidence":false,"recognition":false,"audit":false,"tbm":false,"risk_assessments":false,"field_eval":false},"checked_dirs":["D:\\vigent_original\\data\\evidence","D:\\vigent_original\\data\\recognition","D:\\vigent_original\\data\\audit","D:\\vigent_original\\data\\tbm","D:\\vigent_original\\data\\risk_assessments","D:\\vigent_private_data\\field_eval"],"note":"BitLocker 조회는 관리자 권한이 필요하다. 미적용 시 조치는 deploy/SITE_CHECKLIST.md N-2 참고.","anonymize_failures_total":0,"anonymize_failures_per_min":0,"alert_threshold_per_min":5,"legal_review_required":false,"legal_review_note":""},"relay":{"enabled":false,"on":false,"off_failed":false,"on_count":0,"off_count":0,"retrigger_count":0,"remaining_s":null,"last_error":""},"cameras":{},"version":"0.2.0","uptime_s":13.2,"theme":"safety","loaded":true,"backend":{"person":"rfdetr","ppe":"rfdetr","fire_smoke":"rfdetr","forklift":"rfdetr"},"models":[{"file":"rf-detr-nano.pth","slot":"_pretrain","backend":"rfdetr","version":"nano_coco_best_regular","sha256":"d8d6b9ee57d4d0ed"},{"file":"yolo11m.pt","slot":"person","backend":"yolo","version":"yolo11m","sha256":"d5ffc1a674953a08"},{"file":"yolo11s.pt","slot":"person","backend":"yolo","version":"yolo11s","sha256":"85a76fe86dd8afe3"},{"file":"ppe_css_v1.pt","slot":"ppe","backend":"yolo","version":"css_v1","sha256":"17a968ab4484c0b4"},{"file":"ppe_rfdetr_v1.pth","slot":"ppe","backend":"rfdetr","version":"rfdetr_v1","sha256":"3380fa7d4bb1be87"},{"file":"fire_smoke_boda.pt","slot":"fire_smoke","backend":"yolo","version":"boda","sha256":"95ecffe9e6398239"},{"file":"forklift_boda_ax.pt","slot":"forklift","backend":"yolo","version":"boda_ax","sha256":"30579655ea0f8f48"},{"file":"forklift_rfdetr_v1.pth","slot":"forklift","backend":"rfdetr","version":"rfdetr_v1","sha256":"cd76eb56487bf1aa"},{"file":"fire_smoke_rfdetr_v1_e17.pth","slot":"fire_smoke","backend":"rfdetr","version":"rfdetr_v1_e17","sha256":"b7425ce450f12cad"},{"file":"yolov8n-pose.pt","slot":"pose","backend":"yolo","version":"yolov8n-pose","sha256":"c6fa93dd1ee4a2c1"},{"file":"face_detection_yunet.onnx","slot":"privacy","backend":"opencv","version":"yunet_2023mar","sha256":"8f2383e4dd3cfbb4"},{"file":"yolox_m_8xb8-300e_humanart-c2c7a14a.onnx","slot":"pose","backend":"rtmlib","version":"humanart-c2c7a14a","sha256":"3dea6513388889f0"},{"file":"rtmpose-m_simcc-body7_pt-body7_420e-256x192-e48f03d0_20230504.onnx","slot":"pose","backend":"rtmlib","version":"body7-e48f03d0_20230504","sha256":"5c0a4bf67953e6d2"},{"file":"go2rtc.exe","slot":"_bin","backend":"go2rtc","version":"v1.9.14 (win64)","sha256":"923d57252e8139a6"}],"rfdetr_slots":[{"slot":"forklift","backend":"rfdetr","weights":"D:\\vigent_original\\vigent-core\\weights\\forklift_rfdetr_v1.pth","sha16":"cd76eb56487bf1aa","state":"LOADED"},{"slot":"fire_smoke","backend":"rfdetr","weights":"D:\\vigent_original\\vigent-core\\weights\\fire_smoke_rfdetr_v1_e17.pth","sha16":"b7425ce450f12cad","state":"LOADED"},{"slot":"ppe","backend":"rfdetr","weights":"D:\\vigent_original\\vigent-core\\weights\\ppe_rfdetr_v1.pth","sha16":"3380fa7d4bb1be87","state":"LOADED"}],"slot_degraded":{},"slot_errors":{},"llm":{"provider":"openai","available":false,"model":"gpt-4o-mini","note":"키 없음 → 규칙 기반 폴백으로 동작(기능 유지)"},"disk_retention":{"enabled":true,"last_run":"2026-09-09T21:29:37+09:00","warnings":[],"dry_run":false,"deleted_count":348,"deleted_bytes":10115522,"pending_count":348},"retention_sweep":{"auto_sweep":true,"thread_alive":true,"interval_h":24.0,"runs":0,"failures":0,"next_run_in_s":588.9,"last_error":"","overdue":false},"disabled_detectors":{"forklift":"F-7 과소학습(정탐 conf p50 0.002 ≈ 오탐 수준, 2026-07-11 실측). 라이브·safety-local·재해분석(incident)·음성안내(voice) 소비 경로 제외(강재를 지게차로 오탐→협착 오염·오경보). detect.include_forklift=1(또는 VIGENT_INCLUDE_FORKLIFT=1)로 활성화."},"active_detectors":["person","ppe","fire_smoke"]}"
+[22:39:23] /health 200 (status=degraded phase=ready) — 기동 20s
+PS>종료 오류(Invoke-WebRequest): "{"detail":"unauthorized"}"
+[22:39:23]   (GET /cameras 실패: 원격 서버에서 (401) 권한이 없음 오류를 반환했습니다. · tok.len=64 — /health registered 로 대체)
+[22:39:23] 등록 카메라(기동 직후): [] · /health registered=[] status=degraded
+[22:39:23] 기동 후 /health 200 status=degraded · registered=[] · warnings=[] · alerts dead_1h=11 dead=150 (degraded 면 health_status.py: 최근 1h 데드레터 = 텔레그램 401, 카메라 문제 아님)
+[22:39:34] 조건 2 확인: /health 200 status=degraded · rfdetr_slots [forklift=LOADED, fire_smoke=LOADED, ppe=LOADED] · LOADED=3/3
+[22:39:34] 조건 2 확인: VRAM 기동 전 1331 MiB → 예열 후 2554 MiB (서버 몫 차분 1223 MiB) · util 2 % · nvidia-smi python: 36172, C:\Users\shgus\AppData\Local\Programs\Python\Python311\python.exe, [N/A]
+[22:39:34] 서버 프로세스: 22012(5MB), 36172(2684MB) → 샘플 대상 PID 36172
+[22:39:34] nvidia-smi 로거 PID 25544 → audit\nvidia_smi_20260909_2239_cu130_1h.csv · 서버 샘플러 → audit\server_proc_20260909_2239_cu130_1h.csv
+[22:39:34] === 1h 소크 시작: --cams 4 --hours 1 --interval 600 --overload-cams 0 --tag desktop_cu130_1h ===
+[23:43:04] === 1h 소크 종료 exit=1 ===
+[23:43:04] 소크 후 VRAM(서버 켜진 상태) 2378 MiB
+[23:43:04] 서버 종료: python.exe 22012
+[23:43:04] 서버 종료: go2rtc.exe 8700
+[23:43:09] 서버 종료 후 VRAM 993 MiB (기동 전 1331) · 잔존 프로세스 0
+[23:43:09] DONE
+**********************
+Windows PowerShell 기록 끝
+종료 시간: 20260909234309
+**********************

@@ -1,0 +1,40 @@
+﻿# 개발기 cu130 소크 사전 조건 — 2026-09-09 21:19:27 · DESKTOP-STLQ1LM
+torch: 2.12.0+cu130 cuda 13.0 available True NVIDIA GeForce RTX 5070 Ti
+nvidia-smi driver/VRAM/util (서버 기동 전): 610.74, 1311 MiB, 16303 MiB, 2 %
+GPU 프로세스(서버 기동 전, nvidia-smi --query-compute-apps):
+  2056, [Insufficient Permissions], [N/A]
+  11560, C:\Windows\System32\ShellHost.exe, [N/A]
+  11952, C:\Windows\SystemApps\MicrosoftWindows.Client.CBS_cw5n1h2txyewy\CrossDeviceResume.exe, [N/A]
+  11244, C:\Windows\explorer.exe, [N/A]
+  15124, C:\Program Files\NVIDIA Corporation\NVIDIA App\CEF\NVIDIA Overlay.exe, [N/A]
+  17476, C:\Program Files (x86)\Microsoft\EdgeWebView\Application\152.0.4191.66\msedgewebview2.exe, [N/A]
+  19368, C:\Windows\SystemApps\Microsoft.LockApp_cw5n1h2txyewy\LockApp.exe, [N/A]
+  20972, C:\Windows\SystemApps\MicrosoftWindows.Client.CBS_cw5n1h2txyewy\TextInputHost.exe, [N/A]
+  21016, C:\Program Files\WindowsApps\Microsoft.YourPhone_1.26071.164.0_x64__8wekyb3d8bbwe\PhoneExperienceHost.exe, [N/A]
+  20320, C:\Program Files\AMD\CNext\CNext\AMDRSSrcExt.exe, [N/A]
+  21712, C:\Program Files\Riot Vanguard\vgtray.exe, [N/A]
+  13860, C:\Users\shgus\AppData\Local\Discord\app-1.0.9256\Discord.exe, [N/A]
+  24000, C:\Program Files (x86)\Steam\bin\cef\cef.win64\steamwebhelper.exe, [N/A]
+  2216, C:\Program Files\AMD\CNext\CNext\RadeonSoftware.exe, [N/A]
+  25996, C:\Windows\SystemApps\ShellExperienceHost_cw5n1h2txyewy\ShellExperienceHost.exe, [N/A]
+  32308, C:\Program Files\WindowsApps\Microsoft.Edge.GameAssist_1.0.4019.0_x64__8wekyb3d8bbwe\EdgeGameAssist.exe, [N/A]
+  35336, C:\Users\shgus\AppData\Local\Programs\Microsoft VS Code\Code.exe, [N/A]
+  26672, C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe, [N/A]
+  35852, C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe, [N/A]
+  9784, C:\Program Files\Google\Chrome\Application\chrome.exe, [N/A]
+  6252, C:\Program Files\Google\Chrome\Application\chrome.exe, [N/A]
+  13624, C:\Windows\SystemApps\MicrosoftWindows.Client.CBS_cw5n1h2txyewy\SearchHost.exe, [N/A]
+  41864, C:\Program Files\Microsoft OneDrive\OneDrive.exe, [N/A]
+  30996, [Insufficient Permissions], [N/A]
+  40592, C:\Program Files\WindowsApps\Claude_1.49585.0.0_x64__pzs8sxrjxfjjc\app\claude.exe, [N/A]
+  35828, C:\Program Files\WindowsApps\Claude_1.49585.0.0_x64__pzs8sxrjxfjjc\app\claude.exe, [N/A]
+  13640, C:\Windows\SystemApps\Microsoft.Windows.StartMenuExperienceHost_cw5n1h2txyewy\StartMenuExperienceHost.exe, [N/A]
+  7152, C:\Program Files\NVIDIA Corporation\NVIDIA App\CEF\NVIDIA Overlay.exe, [N/A]
+게임/브라우저 잔존: chrome x16, Discord x6, msedge x29, steam x1, steamwebhelper x8
+VIGENT 서비스: Stopped/Disabled · 포트 8010 LISTEN: False
+기동 방식: run.ps1 (RF_HOME·TORCH_HOME·VIGENT_CAPTURE_MODE·PYTHONUTF8 은 run.ps1 기본값 — 서비스와 동일)
+
+조건 2 결과:
+  /health 200 · rfdetr_slots [forklift=LOADED, fire_smoke=LOADED, ppe=LOADED] · LOADED=3/3
+  VRAM 1311 → 2584 MiB (서버 몫 차분 1273 MiB) · nvidia-smi python: 41284, C:\Users\shgus\AppData\Local\Programs\Python\Python311\python.exe, [N/A]
+  서버 python PID 41284 (WS 2687 MB)

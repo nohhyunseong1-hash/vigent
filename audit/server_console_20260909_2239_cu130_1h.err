@@ -1,0 +1,2248 @@
+INFO:     Started server process [36172]
+INFO:     Waiting for application startup.
+2026-09-09 22:39:06,858 [INFO] vigent.guard: 검출 슬롯: slot=forklift backend=rfdetr weights=forklift_rfdetr_v1.pth sha=cd76eb56487bf1aa → LOADED
+2026-09-09 22:39:06,944 [INFO] vigent.guard: 검출 슬롯: slot=fire_smoke backend=rfdetr weights=fire_smoke_rfdetr_v1_e17.pth sha=b7425ce450f12cad → LOADED
+2026-09-09 22:39:07,027 [INFO] vigent.guard: 검출 슬롯: slot=ppe backend=rfdetr weights=ppe_rfdetr_v1.pth sha=3380fa7d4bb1be87 → LOADED
+2026-09-09 22:39:07,039 [INFO] vigent.guard: RF-DETR 사전학습 캐시 확인: D:\vigent_original\vigent-core\weights\rf-detr-nano.pth
+2026-09-09 22:39:07,040 [INFO] vigent: 'VIGENT Safety' 로드 완료 (폴백 1개 / 비활성 0개)
+2026-09-09 22:39:07,562 [INFO] vigent.cameras: go2rtc 기동(pid 8700)
+2026-09-09 22:39:07,563 [INFO] vigent: go2rtc 준비(확대뷰 실시간 재생 가능)
+2026-09-09 22:39:07,572 [INFO] vigent.starvation: 기아 감시 시작 — 1단계 60s(슬롯 회수) / 2단계 120s(워커 재시작) / 3단계 3회 후 프로세스 재기동
+2026-09-09 22:39:07,574 [INFO] vigent.alert_queue: 경보 재시도 스레드 시작(주기 5s, 최대 10회, 백오프 상한 60s) — 이월 pending 0건
+2026-09-09 22:39:07,575 [INFO] vigent.alert_notify: 경보 통보 스레드 시작 — 큐 200 · 반복억제 300s · 시간당 상한 6건
+2026-09-09 22:39:07,577 [INFO] vigent.retention_sched: 보존 스윕 스레드 시작 — 주기 24시간 · 첫 실행 10분 뒤
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://127.0.0.1:8010 (Press CTRL+C to quit)
+FutureWarning: target=True is deprecated since `v0.8`; use `TargetMode.ARGS_REMAP` instead. Will be removed in `v1.0`.
+[2026-09-09 22:39:11] [WARNING] rf-detr - Using a different number of positional encodings than DINOv2, which means we're not loading DINOv2 backbone weights. This is not a problem if finetuning a pretrained RF-DETR model.
+[2026-09-09 22:39:11] [WARNING] rf-detr - Using patch size 16 instead of 14, which means we're not loading DINOv2 backbone weights. This is not a problem if finetuning a pretrained RF-DETR model.
+[2026-09-09 22:39:12] [WARNING] rf-detr - Pretrained weights at 'D:\\vigent_original\\vigent-core\\weights\\rf-detr-nano.pth' loaded only partially — this typically produces lower accuracy. 1 model parameter(s) not in checkpoint (left at random init): [_kp_active_mask]. Check that the model configuration (encoder, hidden_dim, out_feature_indexes, projector_scale, ...) matches the architecture the checkpoint was trained with.
+[transformers] `loss_type=None` was set in the config but it is unrecognized. Using the default loss: `ForCausalLMLoss`.
+TracerWarning: Converting a tensor to a Python boolean might cause the trace to be incorrect. We can't record the data flow of Python values, so this value will be treated as a constant in the future. This means that the trace might not generalize to other inputs!
+[transformers] `use_return_dict` is deprecated! Use `return_dict` instead!
+TracerWarning: Converting a tensor to a Python boolean might cause the trace to be incorrect. We can't record the data flow of Python values, so this value will be treated as a constant in the future. This means that the trace might not generalize to other inputs!
+TracerWarning: Converting a tensor to a Python boolean might cause the trace to be incorrect. We can't record the data flow of Python values, so this value will be treated as a constant in the future. This means that the trace might not generalize to other inputs!
+TracerWarning: Converting a tensor to a Python boolean might cause the trace to be incorrect. We can't record the data flow of Python values, so this value will be treated as a constant in the future. This means that the trace might not generalize to other inputs!
+TracerWarning: Converting a tensor to a Python boolean might cause the trace to be incorrect. We can't record the data flow of Python values, so this value will be treated as a constant in the future. This means that the trace might not generalize to other inputs!
+TracerWarning: Converting a tensor to a Python boolean might cause the trace to be incorrect. We can't record the data flow of Python values, so this value will be treated as a constant in the future. This means that the trace might not generalize to other inputs!
+TracerWarning: Converting a tensor to a Python boolean might cause the trace to be incorrect. We can't record the data flow of Python values, so this value will be treated as a constant in the future. This means that the trace might not generalize to other inputs!
+TracerWarning: Converting a tensor to a Python boolean might cause the trace to be incorrect. We can't record the data flow of Python values, so this value will be treated as a constant in the future. This means that the trace might not generalize to other inputs!
+TracerWarning: Converting a tensor to a Python boolean might cause the trace to be incorrect. We can't record the data flow of Python values, so this value will be treated as a constant in the future. This means that the trace might not generalize to other inputs!
+TracerWarning: Converting a tensor to a Python boolean might cause the trace to be incorrect. We can't record the data flow of Python values, so this value will be treated as a constant in the future. This means that the trace might not generalize to other inputs!
+TracerWarning: Converting a tensor to a Python boolean might cause the trace to be incorrect. We can't record the data flow of Python values, so this value will be treated as a constant in the future. This means that the trace might not generalize to other inputs!
+TracerWarning: Iterating over a tensor might cause the trace to be incorrect. Passing a tensor of different shape won't change the number of iterations executed (and might lead to errors or silently give incorrect results).
+TracerWarning: Iterating over a tensor might cause the trace to be incorrect. Passing a tensor of different shape won't change the number of iterations executed (and might lead to errors or silently give incorrect results).
+2026-09-09 22:39:15,441 [INFO] vigent.readiness: 예열 slot=person 7.8s
+[2026-09-09 22:39:15] [WARNING] rf-detr - Using a different number of positional encodings than DINOv2, which means we're not loading DINOv2 backbone weights. This is not a problem if finetuning a pretrained RF-DETR model.
+[2026-09-09 22:39:15] [WARNING] rf-detr - Using patch size 16 instead of 14, which means we're not loading DINOv2 backbone weights. This is not a problem if finetuning a pretrained RF-DETR model.
+[2026-09-09 22:39:15] [WARNING] rf-detr - Checkpoint has 10 classes but model is configured for 90. Using checkpoint class count (10). Pass num_classes=10 to suppress this warning.
+[2026-09-09 22:39:15] [WARNING] rf-detr - load_pretrain_weights: args.num_queries absent; inferred ckpt_num_queries=300 from tensor rows 3900 ÷ ckpt_group_detr=13.
+2026-09-09 22:39:17,532 [INFO] vigent.readiness: 예열 slot=ppe 2.1s
+[2026-09-09 22:39:17] [WARNING] rf-detr - Using a different number of positional encodings than DINOv2, which means we're not loading DINOv2 backbone weights. This is not a problem if finetuning a pretrained RF-DETR model.
+[2026-09-09 22:39:17] [WARNING] rf-detr - Using patch size 16 instead of 14, which means we're not loading DINOv2 backbone weights. This is not a problem if finetuning a pretrained RF-DETR model.
+[2026-09-09 22:39:17] [WARNING] rf-detr - Checkpoint has 2 classes but model is configured for 90. Using checkpoint class count (2). Pass num_classes=2 to suppress this warning.
+[2026-09-09 22:39:17] [WARNING] rf-detr - load_pretrain_weights: args.num_queries absent; inferred ckpt_num_queries=300 from tensor rows 3900 ÷ ckpt_group_detr=13.
+2026-09-09 22:39:19,627 [INFO] vigent.readiness: 예열 slot=fire_smoke 2.1s
+2026-09-09 22:39:19,628 [INFO] vigent.readiness: ★예열 완료 12.06s (slots=person,ppe,fire_smoke) — 이제 워커 기동, 워치독 정상 적용
+2026-09-09 22:39:36,462 [WARNING] vigent.worker: 카메라 '파일럿모의1' 위험구역 미설정 — **침입 판정을 하지 않는다**. 구역을 그리려면 /safety-hub 에서 카메라별로 설정하라.
+2026-09-09 22:39:36,487 [WARNING] vigent.worker: 카메라 '파일럿모의2' 위험구역 미설정 — **침입 판정을 하지 않는다**. 구역을 그리려면 /safety-hub 에서 카메라별로 설정하라.
+2026-09-09 22:39:36,538 [WARNING] vigent.worker: 카메라 '파일럿모의3' 위험구역 미설정 — **침입 판정을 하지 않는다**. 구역을 그리려면 /safety-hub 에서 카메라별로 설정하라.
+2026-09-09 22:39:36,584 [WARNING] vigent.worker: 카메라 '파일럿모의4' 위험구역 미설정 — **침입 판정을 하지 않는다**. 구역을 그리려면 /safety-hub 에서 카메라별로 설정하라.
+FutureWarning: target=None is deprecated since `v0.8`; use `TargetMode.NOTIFY` instead. Will be removed in `v1.0`.
+2026-09-09 22:39:37,195 [INFO] vigent.ort_tune: ORT 세션 2개 튜닝 적용(intra_op=4 · spin=off)
+2026-09-09 22:39:38,720 [ERROR] vigent.dispatcher: ★통보 설정 오류(telegram HTTP 401) — 재시도하지 않는다. 토큰·chat_id·URL 을 확인하라
+2026-09-09 22:39:38,750 [ERROR] vigent.dispatcher: ★통보 설정 오류(telegram HTTP 401) — 재시도하지 않는다. 토큰·chat_id·URL 을 확인하라
+2026-09-09 22:39:38,816 [ERROR] vigent.alert_queue: 경보 데드레터(설정 오류 — 재시도 안 함) id=188: config_error: [{'channel': 'telegram', 'sent': False, 'fallback': True, 'status': 401, 'config_error': True}, {'channel': 'email', 'sent': False, 'fallback': True, 'reason': 'SMTP 미설정'}, {'channel': '
+2026-09-09 22:39:38,922 [INFO] vigent.alert_notify: 경보 즉시 전송 미도달 — 재시도 큐로 이월: [파일럿모의1] 보호구 미착용 감지(NO-Mask, NO-Safety-Vest)
+2026-09-09 22:39:40,055 [ERROR] vigent.dispatcher: ★통보 설정 오류(telegram HTTP 401) — 재시도하지 않는다. 토큰·chat_id·URL 을 확인하라
+2026-09-09 22:39:40,189 [INFO] vigent.alert_notify: 경보 즉시 전송 미도달 — 재시도 큐로 이월: [파일럿모의2] 보호구 미착용 감지(NO-Hardhat, NO-Safety-Vest)
+2026-09-09 22:39:40,840 [ERROR] vigent.worker: 워커 '파일럿모의4'(D:\vigent_private_data\runs\rfdetr\accident\KakaoTalk_20260807_000601541.mp4) 프레임 처리 예외 — 계속 진행
+Traceback (most recent call last):
+  File "D:\vigent_original\vigent-core\worker.py", line 1098, in _process_frame
+    for rule, level, note, subject in fired:
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: not enough values to unpack (expected 4, got 3)
+
+2026-09-09 22:39:41,062 [ERROR] vigent.worker: 워커 '파일럿모의1'(D:\vigent_private_data\runs\rfdetr\accident\KakaoTalk_20260807_000438282.mp4) 프레임 처리 예외 — 계속 진행
+Traceback (most recent call last):
+  File "D:\vigent_original\vigent-core\worker.py", line 1098, in _process_frame
+    for rule, level, note, subject in fired:
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: not enough values to unpack (expected 4, got 3)
+
+2026-09-09 22:39:41,231 [ERROR] vigent.dispatcher: ★통보 설정 오류(telegram HTTP 401) — 재시도하지 않는다. 토큰·chat_id·URL 을 확인하라
+2026-09-09 22:39:41,324 [INFO] vigent.alert_notify: 경보 즉시 전송 미도달 — 재시도 큐로 이월: [파일럿모의4] 보호구 미착용 감지(NO-Hardhat, NO-Mask, NO-Safety-Vest)
+2026-09-09 22:39:42,490 [ERROR] vigent.dispatcher: ★통보 설정 오류(telegram HTTP 401) — 재시도하지 않는다. 토큰·chat_id·URL 을 확인하라
+2026-09-09 22:39:42,591 [INFO] vigent.alert_notify: 경보 즉시 전송 미도달 — 재시도 큐로 이월: [시스템] 경보 전송 실패로 폐기(데드레터) 최근 1시간 12건(누적 151건) — 채널 설정·네트워크 확인 필요. 예: [파일럿모의1] 보호구 미착용 감지(NO-Mask, NO-Safety-Vest)
+2026-09-09 22:39:44,899 [ERROR] vigent.dispatcher: ★통보 설정 오류(telegram HTTP 401) — 재시도하지 않는다. 토큰·chat_id·URL 을 확인하라
+2026-09-09 22:39:45,008 [ERROR] vigent.alert_queue: 경보 데드레터(설정 오류 — 재시도 안 함) id=189: config_error: [{'channel': 'telegram', 'sent': False, 'fallback': True, 'status': 401, 'config_error': True}, {'channel': 'email', 'sent': False, 'fallback': True, 'reason': 'SMTP 미설정'}, {'channel': '
+2026-09-09 22:39:45,995 [ERROR] vigent.dispatcher: ★통보 설정 오류(telegram HTTP 401) — 재시도하지 않는다. 토큰·chat_id·URL 을 확인하라
+2026-09-09 22:39:46,105 [ERROR] vigent.alert_queue: 경보 데드레터(설정 오류 — 재시도 안 함) id=190: config_error: [{'channel': 'telegram', 'sent': False, 'fallback': True, 'status': 401, 'config_error': True}, {'channel': 'email', 'sent': False, 'fallback': True, 'reason': 'SMTP 미설정'}, {'channel': '
+2026-09-09 22:39:47,096 [ERROR] vigent.dispatcher: ★통보 설정 오류(telegram HTTP 401) — 재시도하지 않는다. 토큰·chat_id·URL 을 확인하라
+2026-09-09 22:39:47,191 [ERROR] vigent.alert_queue: 경보 데드레터(설정 오류 — 재시도 안 함) id=191: config_error: [{'channel': 'telegram', 'sent': False, 'fallback': True, 'status': 401, 'config_error': True}, {'channel': 'email', 'sent': False, 'fallback': True, 'reason': 'SMTP 미설정'}, {'channel': '
+2026-09-09 22:39:47,464 [ERROR] vigent.dispatcher: ★통보 설정 오류(telegram HTTP 401) — 재시도하지 않는다. 토큰·chat_id·URL 을 확인하라
+2026-09-09 22:39:47,581 [INFO] vigent.alert_notify: 경보 즉시 전송 미도달 — 재시도 큐로 이월: [파일럿모의3] 화재/연기 감지
+2026-09-09 22:39:49,307 [ERROR] vigent.dispatcher: ★통보 설정 오류(telegram HTTP 401) — 재시도하지 않는다. 토큰·chat_id·URL 을 확인하라
+2026-09-09 22:39:49,399 [INFO] vigent.alert_notify: 경보 즉시 전송 미도달 — 재시도 큐로 이월: [파일럿모의3] 보호구 미착용 감지(NO-Hardhat)
+2026-09-09 22:39:49,585 [INFO] vigent.alert_notify: 경보 즉시 전송 미도달 — 재시도 큐로 이월: [파일럿모의1] 인원 밀집 — 6명 감지
+2026-09-09 22:39:51,765 [INFO] vigent.alert_notify: 경보 즉시 전송 미도달 — 재시도 큐로 이월: [파일럿모의2] 급격한 이동 감지 — 돌진·이상행동
+2026-09-09 22:39:51,878 [INFO] vigent.alert_notify: 경보 즉시 전송 미도달 — 재시도 큐로 이월: [파일럿모의4] 급격한 이동 감지 — 돌진·이상행동
+2026-09-09 22:39:53,266 [ERROR] vigent.dispatcher: ★통보 설정 오류(telegram HTTP 401) — 재시도하지 않는다. 토큰·chat_id·URL 을 확인하라
+2026-09-09 22:39:53,365 [ERROR] vigent.alert_queue: 경보 데드레터(설정 오류 — 재시도 안 함) id=192: config_error: [{'channel': 'telegram', 'sent': False, 'fallback': True, 'status': 401, 'config_error': True}, {'channel': 'email', 'sent': False, 'fallback': True, 'reason': 'SMTP 미설정'}, {'channel': '
+2026-09-09 22:39:54,270 [ERROR] vigent.dispatcher: ★통보 설정 오류(telegram HTTP 401) — 재시도하지 않는다. 토큰·chat_id·URL 을 확인하라
+2026-09-09 22:39:54,389 [ERROR] vigent.alert_queue: 경보 데드레터(설정 오류 — 재시도 안 함) id=193: config_error: [{'channel': 'telegram', 'sent': False, 'fallback': True, 'status': 401, 'config_error': True}, {'channel': 'email', 'sent': False, 'fallback': True, 'reason': 'SMTP 미설정'}, {'channel': '
+2026-09-09 22:39:54,580 [ERROR] vigent.worker: 워커 '파일럿모의1'(D:\vigent_private_data\runs\rfdetr\accident\KakaoTalk_20260807_000438282.mp4) 프레임 처리 예외 — 계속 진행
+Traceback (most recent call last):
+  File "D:\vigent_original\vigent-core\worker.py", line 1098, in _process_frame
+    for rule, level, note, subject in fired:
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: not enough values to unpack (expected 4, got 3)
+
+2026-09-09 22:40:03,605 [ERROR] vigent.worker: 워커 '파일럿모의1'(D:\vigent_private_data\runs\rfdetr\accident\KakaoTalk_20260807_000438282.mp4) 프레임 처리 예외 — 계속 진행
+Traceback (most recent call last):
+  File "D:\vigent_original\vigent-core\worker.py", line 1098, in _process_frame
+    for rule, level, note, subject in fired:
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: not enough values to unpack (expected 4, got 3)
+
+2026-09-09 22:40:04,113 [INFO] vigent.alert_notify: 경보 즉시 전송 미도달 — 재시도 큐로 이월: [파일럿모의1] 급격한 이동 감지 — 돌진·이상행동
+2026-09-09 22:40:07,393 [ERROR] vigent.worker: 워커 '파일럿모의4'(D:\vigent_private_data\runs\rfdetr\accident\KakaoTalk_20260807_000601541.mp4) 프레임 처리 예외 — 계속 진행
+Traceback (most recent call last):
+  File "D:\vigent_original\vigent-core\worker.py", line 1098, in _process_frame
+    for rule, level, note, subject in fired:
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: not enough values to unpack (expected 4, got 3)
+
+2026-09-09 22:40:07,615 [ERROR] vigent.worker: 워커 '파일럿모의1'(D:\vigent_private_data\runs\rfdetr\accident\KakaoTalk_20260807_000438282.mp4) 프레임 처리 예외 — 계속 진행
+Traceback (most recent call last):
+  File "D:\vigent_original\vigent-core\worker.py", line 1098, in _process_frame
+    for rule, level, note, subject in fired:
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: not enough values to unpack (expected 4, got 3)
+
+2026-09-09 22:40:10,390 [ERROR] vigent.worker: 워커 '파일럿모의4'(D:\vigent_private_data\runs\rfdetr\accident\KakaoTalk_20260807_000601541.mp4) 프레임 처리 예외 — 계속 진행
+Traceback (most recent call last):
+  File "D:\vigent_original\vigent-core\worker.py", line 1098, in _process_frame
+    for rule, level, note, subject in fired:
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: not enough values to unpack (expected 4, got 3)
+
+2026-09-09 22:40:12,485 [ERROR] vigent.dispatcher: ★통보 설정 오류(telegram HTTP 401) — 재시도하지 않는다. 토큰·chat_id·URL 을 확인하라
+2026-09-09 22:40:12,631 [INFO] vigent.alert_notify: 경보 즉시 전송 미도달 — 재시도 큐로 이월: [파일럿모의2] car 작업반경 침입 — 사람 약 1.1m
+2026-09-09 22:40:15,443 [ERROR] vigent.dispatcher: ★통보 설정 오류(telegram HTTP 401) — 재시도하지 않는다. 토큰·chat_id·URL 을 확인하라
+2026-09-09 22:40:15,575 [ERROR] vigent.alert_queue: 경보 데드레터(설정 오류 — 재시도 안 함) id=194: config_error: [{'channel': 'telegram', 'sent': False, 'fallback': True, 'status': 401, 'config_error': True}, {'channel': 'email', 'sent': False, 'fallback': True, 'reason': 'SMTP 미설정'}, {'channel': '
+2026-09-09 22:40:22,525 [ERROR] vigent.dispatcher: ★통보 설정 오류(telegram HTTP 401) — 재시도하지 않는다. 토큰·chat_id·URL 을 확인하라
+2026-09-09 22:40:22,666 [INFO] vigent.alert_notify: 경보 즉시 전송 미도달 — 재시도 큐로 이월: [파일럿모의4] 화재/연기 감지
+2026-09-09 22:40:25,127 [ERROR] vigent.worker: 워커 '파일럿모의1'(D:\vigent_private_data\runs\rfdetr\accident\KakaoTalk_20260807_000438282.mp4) 프레임 처리 예외 — 계속 진행
+Traceback (most recent call last):
+  File "D:\vigent_original\vigent-core\worker.py", line 1098, in _process_frame
+    for rule, level, note, subject in fired:
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: not enough values to unpack (expected 4, got 3)
+
+2026-09-09 22:40:26,561 [ERROR] vigent.dispatcher: ★통보 설정 오류(telegram HTTP 401) — 재시도하지 않는다. 토큰·chat_id·URL 을 확인하라
+2026-09-09 22:40:26,681 [ERROR] vigent.alert_queue: 경보 데드레터(설정 오류 — 재시도 안 함) id=195: config_error: [{'channel': 'telegram', 'sent': False, 'fallback': True, 'status': 401, 'config_error': True}, {'channel': 'email', 'sent': False, 'fallback': True, 'reason': 'SMTP 미설정'}, {'channel': '
+2026-09-09 22:40:41,035 [ERROR] vigent.dispatcher: ★통보 설정 오류(telegram HTTP 401) — 재시도하지 않는다. 토큰·chat_id·URL 을 확인하라
+2026-09-09 22:40:41,167 [INFO] vigent.alert_notify: 경보 즉시 전송 미도달 — 재시도 큐로 이월: [파일럿모의3] truck 작업반경 침입 — 사람 약 0.1m
+2026-09-09 22:40:44,427 [ERROR] vigent.dispatcher: ★통보 설정 오류(telegram HTTP 401) — 재시도하지 않는다. 토큰·chat_id·URL 을 확인하라
+2026-09-09 22:40:44,589 [INFO] vigent.alert_notify: 경보 즉시 전송 미도달 — 재시도 큐로 이월: [파일럿모의1] 화재/연기 감지
+2026-09-09 22:40:47,697 [ERROR] vigent.dispatcher: ★통보 설정 오류(telegram HTTP 401) — 재시도하지 않는다. 토큰·chat_id·URL 을 확인하라
+2026-09-09 22:40:47,823 [ERROR] vigent.alert_queue: 경보 데드레터(설정 오류 — 재시도 안 함) id=196: config_error: [{'channel': 'telegram', 'sent': False, 'fallback': True, 'status': 401, 'config_error': True}, {'channel': 'email', 'sent': False, 'fallback': True, 'reason': 'SMTP 미설정'}, {'channel': '
+2026-09-09 22:40:48,758 [ERROR] vigent.dispatcher: ★통보 설정 오류(telegram HTTP 401) — 재시도하지 않는다. 토큰·chat_id·URL 을 확인하라
+2026-09-09 22:40:48,891 [ERROR] vigent.alert_queue: 경보 데드레터(설정 오류 — 재시도 안 함) id=197: config_error: [{'channel': 'telegram', 'sent': False, 'fallback': True, 'status': 401, 'config_error': True}, {'channel': 'email', 'sent': False, 'fallback': True, 'reason': 'SMTP 미설정'}, {'channel': '
+2026-09-09 22:40:52,867 [ERROR] vigent.worker: 워커 '파일럿모의2'(D:\vigent_private_data\runs\rfdetr\accident\KakaoTalk_20260807_000442974.mp4) 프레임 처리 예외 — 계속 진행
+Traceback (most recent call last):
+  File "D:\vigent_original\vigent-core\worker.py", line 1098, in _process_frame
+    for rule, level, note, subject in fired:
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: not enough values to unpack (expected 4, got 3)
+
+2026-09-09 22:41:10,808 [ERROR] vigent.dispatcher: ★통보 설정 오류(telegram HTTP 401) — 재시도하지 않는다. 토큰·chat_id·URL 을 확인하라
+2026-09-09 22:41:10,934 [INFO] vigent.alert_notify: 경보 즉시 전송 미도달 — 재시도 큐로 이월: [파일럿모의1] car 작업반경 침입 — 사람 약 0.0m
+2026-09-09 22:41:14,922 [ERROR] vigent.dispatcher: ★통보 설정 오류(telegram HTTP 401) — 재시도하지 않는다. 토큰·chat_id·URL 을 확인하라
+2026-09-09 22:41:15,050 [ERROR] vigent.alert_queue: 경보 데드레터(설정 오류 — 재시도 안 함) id=198: config_error: [{'channel': 'telegram', 'sent': False, 'fallback': True, 'status': 401, 'config_error': True}, {'channel': 'email', 'sent': False, 'fallback': True, 'reason': 'SMTP 미설정'}, {'channel': '
+2026-09-09 22:41:51,085 [ERROR] vigent.dispatcher: ★통보 설정 오류(telegram HTTP 401) — 재시도하지 않는다. 토큰·chat_id·URL 을 확인하라
+2026-09-09 22:41:51,104 [ERROR] vigent.dispatcher: ★통보 설정 오류(telegram HTTP 401) — 재시도하지 않는다. 토큰·chat_id·URL 을 확인하라
+2026-09-09 22:41:51,225 [ERROR] vigent.alert_queue: 경보 데드레터(설정 오류 — 재시도 안 함) id=199: config_error: [{'channel': 'telegram', 'sent': False, 'fallback': True, 'status': 401, 'config_error': True}, {'channel': 'email', 'sent': False, 'fallback': True, 'reason': 'SMTP 미설정'}, {'channel': '
+2026-09-09 22:41:51,350 [INFO] vigent.alert_notify: 경보 즉시 전송 미도달 — 재시도 큐로 이월: [파일럿모의2] 화재/연기 감지
+2026-09-09 22:41:53,556 [ERROR] vigent.worker: 워커 '파일럿모의4'(D:\vigent_private_data\runs\rfdetr\accident\KakaoTalk_20260807_000601541.mp4) 프레임 처리 예외 — 계속 진행
+Traceback (most recent call last):
+  File "D:\vigent_original\vigent-core\worker.py", line 1098, in _process_frame
+    for rule, level, note, subject in fired:
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: not enough values to unpack (expected 4, got 3)
+
+2026-09-09 22:42:12,016 [ERROR] vigent.worker: 워커 '파일럿모의3'(D:\vigent_private_data\runs\rfdetr\accident\KakaoTalk_20260807_000552920.mp4) 프레임 처리 예외 — 계속 진행
+Traceback (most recent call last):
+  File "D:\vigent_original\vigent-core\worker.py", line 1098, in _process_frame
+    for rule, level, note, subject in fired:
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: not enough values to unpack (expected 4, got 3)
+
+2026-09-09 22:42:20,110 [ERROR] vigent.worker: 워커 '파일럿모의4'(D:\vigent_private_data\runs\rfdetr\accident\KakaoTalk_20260807_000601541.mp4) 프레임 처리 예외 — 계속 진행
+Traceback (most recent call last):
+  File "D:\vigent_original\vigent-core\worker.py", line 1098, in _process_frame
+    for rule, level, note, subject in fired:
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: not enough values to unpack (expected 4, got 3)
+
+2026-09-09 22:42:23,108 [ERROR] vigent.worker: 워커 '파일럿모의4'(D:\vigent_private_data\runs\rfdetr\accident\KakaoTalk_20260807_000601541.mp4) 프레임 처리 예외 — 계속 진행
+Traceback (most recent call last):
+  File "D:\vigent_original\vigent-core\worker.py", line 1098, in _process_frame
+    for rule, level, note, subject in fired:
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: not enough values to unpack (expected 4, got 3)
+
+2026-09-09 22:42:32,830 [ERROR] vigent.worker: 워커 '파일럿모의1'(D:\vigent_private_data\runs\rfdetr\accident\KakaoTalk_20260807_000438282.mp4) 프레임 처리 예외 — 계속 진행
+Traceback (most recent call last):
+  File "D:\vigent_original\vigent-core\worker.py", line 1098, in _process_frame
+    for rule, level, note, subject in fired:
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: not enough values to unpack (expected 4, got 3)
+
+2026-09-09 22:42:48,373 [ERROR] vigent.worker: 워커 '파일럿모의1'(D:\vigent_private_data\runs\rfdetr\accident\KakaoTalk_20260807_000438282.mp4) 프레임 처리 예외 — 계속 진행
+Traceback (most recent call last):
+  File "D:\vigent_original\vigent-core\worker.py", line 1098, in _process_frame
+    for rule, level, note, subject in fired:
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: not enough values to unpack (expected 4, got 3)
+
+2026-09-09 22:43:06,385 [ERROR] vigent.worker: 워커 '파일럿모의1'(D:\vigent_private_data\runs\rfdetr\accident\KakaoTalk_20260807_000438282.mp4) 프레임 처리 예외 — 계속 진행
+Traceback (most recent call last):
+  File "D:\vigent_original\vigent-core\worker.py", line 1098, in _process_frame
+    for rule, level, note, subject in fired:
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: not enough values to unpack (expected 4, got 3)
+
+2026-09-09 22:43:08,396 [ERROR] vigent.worker: 워커 '파일럿모의1'(D:\vigent_private_data\runs\rfdetr\accident\KakaoTalk_20260807_000438282.mp4) 프레임 처리 예외 — 계속 진행
+Traceback (most recent call last):
+  File "D:\vigent_original\vigent-core\worker.py", line 1098, in _process_frame
+    for rule, level, note, subject in fired:
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: not enough values to unpack (expected 4, got 3)
+
+2026-09-09 22:43:16,233 [ERROR] vigent.dispatcher: ★통보 설정 오류(telegram HTTP 401) — 재시도하지 않는다. 토큰·chat_id·URL 을 확인하라
+2026-09-09 22:43:16,350 [INFO] vigent.alert_notify: 경보 즉시 전송 미도달 — 재시도 큐로 이월: [파일럿모의3] 장시간 무동작 — 쓰러짐·실신 의심
+2026-09-09 22:43:22,385 [ERROR] vigent.dispatcher: ★통보 설정 오류(telegram HTTP 401) — 재시도하지 않는다. 토큰·chat_id·URL 을 확인하라
+2026-09-09 22:43:22,509 [ERROR] vigent.alert_queue: 경보 데드레터(설정 오류 — 재시도 안 함) id=200: config_error: [{'channel': 'telegram', 'sent': False, 'fallback': True, 'status': 401, 'config_error': True}, {'channel': 'email', 'sent': False, 'fallback': True, 'reason': 'SMTP 미설정'}, {'channel': '
+2026-09-09 22:43:34,438 [ERROR] vigent.worker: 워커 '파일럿모의1'(D:\vigent_private_data\runs\rfdetr\accident\KakaoTalk_20260807_000438282.mp4) 프레임 처리 예외 — 계속 진행
+Traceback (most recent call last):
+  File "D:\vigent_original\vigent-core\worker.py", line 1098, in _process_frame
+    for rule, level, note, subject in fired:
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: not enough values to unpack (expected 4, got 3)
+
+2026-09-09 22:43:46,971 [ERROR] vigent.worker: 워커 '파일럿모의1'(D:\vigent_private_data\runs\rfdetr\accident\KakaoTalk_20260807_000438282.mp4) 프레임 처리 예외 — 계속 진행
+Traceback (most recent call last):
+  File "D:\vigent_original\vigent-core\worker.py", line 1098, in _process_frame
+    for rule, level, note, subject in fired:
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: not enough values to unpack (expected 4, got 3)
+
+2026-09-09 22:44:03,488 [ERROR] vigent.worker: 워커 '파일럿모의1'(D:\vigent_private_data\runs\rfdetr\accident\KakaoTalk_20260807_000438282.mp4) 프레임 처리 예외 — 계속 진행
+Traceback (most recent call last):
+  File "D:\vigent_original\vigent-core\worker.py", line 1098, in _process_frame
+    for rule, level, note, subject in fired:
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: not enough values to unpack (expected 4, got 3)
+
+2026-09-09 22:44:06,254 [ERROR] vigent.worker: 워커 '파일럿모의4'(D:\vigent_private_data\runs\rfdetr\accident\KakaoTalk_20260807_000601541.mp4) 프레임 처리 예외 — 계속 진행
+Traceback (most recent call last):
+  File "D:\vigent_original\vigent-core\worker.py", line 1098, in _process_frame
+    for rule, level, note, subject in fired:
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: not enough values to unpack (expected 4, got 3)
+
+2026-09-09 22:44:12,492 [ERROR] vigent.worker: 워커 '파일럿모의1'(D:\vigent_private_data\runs\rfdetr\accident\KakaoTalk_20260807_000438282.mp4) 프레임 처리 예외 — 계속 진행
+Traceback (most recent call last):
+  File "D:\vigent_original\vigent-core\worker.py", line 1098, in _process_frame
+    for rule, level, note, subject in fired:
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: not enough values to unpack (expected 4, got 3)
+
+2026-09-09 22:44:12,649 [ERROR] vigent.worker: 워커 '파일럿모의2'(D:\vigent_private_data\runs\rfdetr\accident\KakaoTalk_20260807_000442974.mp4) 프레임 처리 예외 — 계속 진행
+Traceback (most recent call last):
+  File "D:\vigent_original\vigent-core\worker.py", line 1098, in _process_frame
+    for rule, level, note, subject in fired:
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: not enough values to unpack (expected 4, got 3)
+
+2026-09-09 22:44:17,004 [ERROR] vigent.worker: 워커 '파일럿모의1'(D:\vigent_private_data\runs\rfdetr\accident\KakaoTalk_20260807_000438282.mp4) 프레임 처리 예외 — 계속 진행
+Traceback (most recent call last):
+  File "D:\vigent_original\vigent-core\worker.py", line 1098, in _process_frame
+    for rule, level, note, subject in fired:
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: not enough values to unpack (expected 4, got 3)
+
+2026-09-09 22:44:32,801 [ERROR] vigent.worker: 워커 '파일럿모의4'(D:\vigent_private_data\runs\rfdetr\accident\KakaoTalk_20260807_000601541.mp4) 프레임 처리 예외 — 계속 진행
+Traceback (most recent call last):
+  File "D:\vigent_original\vigent-core\worker.py", line 1098, in _process_frame
+    for rule, level, note, subject in fired:
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: not enough values to unpack (expected 4, got 3)
+
+2026-09-09 22:44:33,552 [ERROR] vigent.worker: 워커 '파일럿모의1'(D:\vigent_private_data\runs\rfdetr\accident\KakaoTalk_20260807_000438282.mp4) 프레임 처리 예외 — 계속 진행
+Traceback (most recent call last):
+  File "D:\vigent_original\vigent-core\worker.py", line 1098, in _process_frame
+    for rule, level, note, subject in fired:
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: not enough values to unpack (expected 4, got 3)
+
+2026-09-09 22:44:35,803 [ERROR] vigent.worker: 워커 '파일럿모의4'(D:\vigent_private_data\runs\rfdetr\accident\KakaoTalk_20260807_000601541.mp4) 프레임 처리 예외 — 계속 진행
+Traceback (most recent call last):
+  File "D:\vigent_original\vigent-core\worker.py", line 1098, in _process_frame
+    for rule, level, note, subject in fired:
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: not enough values to unpack (expected 4, got 3)
+
+2026-09-09 22:46:01,891 [ERROR] vigent.worker: 워커 '파일럿모의3'(D:\vigent_private_data\runs\rfdetr\accident\KakaoTalk_20260807_000552920.mp4) 프레임 처리 예외 — 계속 진행
+Traceback (most recent call last):
+  File "D:\vigent_original\vigent-core\worker.py", line 1098, in _process_frame
+    for rule, level, note, subject in fired:
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: not enough values to unpack (expected 4, got 3)
+
+2026-09-09 22:46:18,993 [ERROR] vigent.worker: 워커 '파일럿모의4'(D:\vigent_private_data\runs\rfdetr\accident\KakaoTalk_20260807_000601541.mp4) 프레임 처리 예외 — 계속 진행
+Traceback (most recent call last):
+  File "D:\vigent_original\vigent-core\worker.py", line 1098, in _process_frame
+    for rule, level, note, subject in fired:
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: not enough values to unpack (expected 4, got 3)
+
+2026-09-09 22:46:41,746 [ERROR] vigent.worker: 워커 '파일럿모의1'(D:\vigent_private_data\runs\rfdetr\accident\KakaoTalk_20260807_000438282.mp4) 프레임 처리 예외 — 계속 진행
+Traceback (most recent call last):
+  File "D:\vigent_original\vigent-core\worker.py", line 1098, in _process_frame
+    for rule, level, note, subject in fired:
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: not enough values to unpack (expected 4, got 3)
+
+2026-09-09 22:46:45,530 [ERROR] vigent.worker: 워커 '파일럿모의4'(D:\vigent_private_data\runs\rfdetr\accident\KakaoTalk_20260807_000601541.mp4) 프레임 처리 예외 — 계속 진행
+Traceback (most recent call last):
+  File "D:\vigent_original\vigent-core\worker.py", line 1098, in _process_frame
+    for rule, level, note, subject in fired:
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: not enough values to unpack (expected 4, got 3)
+
+2026-09-09 22:46:48,543 [ERROR] vigent.worker: 워커 '파일럿모의4'(D:\vigent_private_data\runs\rfdetr\accident\KakaoTalk_20260807_000601541.mp4) 프레임 처리 예외 — 계속 진행
+Traceback (most recent call last):
+  File "D:\vigent_original\vigent-core\worker.py", line 1098, in _process_frame
+    for rule, level, note, subject in fired:
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: not enough values to unpack (expected 4, got 3)
+
+2026-09-09 22:46:53,055 [ERROR] vigent.worker: 워커 '파일럿모의4'(D:\vigent_private_data\runs\rfdetr\accident\KakaoTalk_20260807_000601541.mp4) 프레임 처리 예외 — 계속 진행
+Traceback (most recent call last):
+  File "D:\vigent_original\vigent-core\worker.py", line 1098, in _process_frame
+    for rule, level, note, subject in fired:
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: not enough values to unpack (expected 4, got 3)
+
+2026-09-09 22:46:57,786 [ERROR] vigent.worker: 워커 '파일럿모의1'(D:\vigent_private_data\runs\rfdetr\accident\KakaoTalk_20260807_000438282.mp4) 프레임 처리 예외 — 계속 진행
+Traceback (most recent call last):
+  File "D:\vigent_original\vigent-core\worker.py", line 1098, in _process_frame
+    for rule, level, note, subject in fired:
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: not enough values to unpack (expected 4, got 3)
+
+2026-09-09 22:47:02,282 [ERROR] vigent.worker: 워커 '파일럿모의1'(D:\vigent_private_data\runs\rfdetr\accident\KakaoTalk_20260807_000438282.mp4) 프레임 처리 예외 — 계속 진행
+Traceback (most recent call last):
+  File "D:\vigent_original\vigent-core\worker.py", line 1098, in _process_frame
+    for rule, level, note, subject in fired:
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: not enough values to unpack (expected 4, got 3)
+
+2026-09-09 22:47:15,306 [ERROR] vigent.worker: 워커 '파일럿모의1'(D:\vigent_private_data\runs\rfdetr\accident\KakaoTalk_20260807_000438282.mp4) 프레임 처리 예외 — 계속 진행
+Traceback (most recent call last):
+  File "D:\vigent_original\vigent-core\worker.py", line 1098, in _process_frame
+    for rule, level, note, subject in fired:
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: not enough values to unpack (expected 4, got 3)
+
+2026-09-09 22:47:17,316 [ERROR] vigent.worker: 워커 '파일럿모의1'(D:\vigent_private_data\runs\rfdetr\accident\KakaoTalk_20260807_000438282.mp4) 프레임 처리 예외 — 계속 진행
+Traceback (most recent call last):
+  File "D:\vigent_original\vigent-core\worker.py", line 1098, in _process_frame
+    for rule, level, note, subject in fired:
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: not enough values to unpack (expected 4, got 3)
+
+2026-09-09 22:47:32,483 [ERROR] vigent.worker: 워커 '파일럿모의2'(D:\vigent_private_data\runs\rfdetr\accident\KakaoTalk_20260807_000442974.mp4) 프레임 처리 예외 — 계속 진행
+Traceback (most recent call last):
+  File "D:\vigent_original\vigent-core\worker.py", line 1098, in _process_frame
+    for rule, level, note, subject in fired:
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: not enough values to unpack (expected 4, got 3)
+
+2026-09-09 22:47:43,354 [ERROR] vigent.worker: 워커 '파일럿모의1'(D:\vigent_private_data\runs\rfdetr\accident\KakaoTalk_20260807_000438282.mp4) 프레임 처리 예외 — 계속 진행
+Traceback (most recent call last):
+  File "D:\vigent_original\vigent-core\worker.py", line 1098, in _process_frame
+    for rule, level, note, subject in fired:
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: not enough values to unpack (expected 4, got 3)
+
+2026-09-09 22:47:56,369 [ERROR] vigent.worker: 워커 '파일럿모의1'(D:\vigent_private_data\runs\rfdetr\accident\KakaoTalk_20260807_000438282.mp4) 프레임 처리 예외 — 계속 진행
+Traceback (most recent call last):
+  File "D:\vigent_original\vigent-core\worker.py", line 1098, in _process_frame
+    for rule, level, note, subject in fired:
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: not enough values to unpack (expected 4, got 3)
+
+2026-09-09 22:48:12,390 [ERROR] vigent.worker: 워커 '파일럿모의1'(D:\vigent_private_data\runs\rfdetr\accident\KakaoTalk_20260807_000438282.mp4) 프레임 처리 예외 — 계속 진행
+Traceback (most recent call last):
+  File "D:\vigent_original\vigent-core\worker.py", line 1098, in _process_frame
+    for rule, level, note, subject in fired:
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: not enough values to unpack (expected 4, got 3)
+
+2026-09-09 22:48:21,419 [ERROR] vigent.worker: 워커 '파일럿모의1'(D:\vigent_private_data\runs\rfdetr\accident\KakaoTalk_20260807_000438282.mp4) 프레임 처리 예외 — 계속 진행
+Traceback (most recent call last):
+  File "D:\vigent_original\vigent-core\worker.py", line 1098, in _process_frame
+    for rule, level, note, subject in fired:
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: not enough values to unpack (expected 4, got 3)
+
+2026-09-09 22:48:25,910 [ERROR] vigent.worker: 워커 '파일럿모의1'(D:\vigent_private_data\runs\rfdetr\accident\KakaoTalk_20260807_000438282.mp4) 프레임 처리 예외 — 계속 진행
+Traceback (most recent call last):
+  File "D:\vigent_original\vigent-core\worker.py", line 1098, in _process_frame
+    for rule, level, note, subject in fired:
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: not enough values to unpack (expected 4, got 3)
+
+2026-09-09 22:48:31,706 [ERROR] vigent.worker: 워커 '파일럿모의4'(D:\vigent_private_data\runs\rfdetr\accident\KakaoTalk_20260807_000601541.mp4) 프레임 처리 예외 — 계속 진행
+Traceback (most recent call last):
+  File "D:\vigent_original\vigent-core\worker.py", line 1098, in _process_frame
+    for rule, level, note, subject in fired:
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: not enough values to unpack (expected 4, got 3)
+
+2026-09-09 22:48:42,441 [ERROR] vigent.worker: 워커 '파일럿모의1'(D:\vigent_private_data\runs\rfdetr\accident\KakaoTalk_20260807_000438282.mp4) 프레임 처리 예외 — 계속 진행
+Traceback (most recent call last):
+  File "D:\vigent_original\vigent-core\worker.py", line 1098, in _process_frame
+    for rule, level, note, subject in fired:
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: not enough values to unpack (expected 4, got 3)
+
+2026-09-09 22:48:58,250 [ERROR] vigent.worker: 워커 '파일럿모의4'(D:\vigent_private_data\runs\rfdetr\accident\KakaoTalk_20260807_000601541.mp4) 프레임 처리 예외 — 계속 진행
+Traceback (most recent call last):
+  File "D:\vigent_original\vigent-core\worker.py", line 1098, in _process_frame
+    for rule, level, note, subject in fired:
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: not enough values to unpack (expected 4, got 3)
+
+2026-09-09 22:49:01,261 [ERROR] vigent.worker: 워커 '파일럿모의4'(D:\vigent_private_data\runs\rfdetr\accident\KakaoTalk_20260807_000601541.mp4) 프레임 처리 예외 — 계속 진행
+Traceback (most recent call last):
+  File "D:\vigent_original\vigent-core\worker.py", line 1098, in _process_frame
+    for rule, level, note, subject in fired:
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: not enough values to unpack (expected 4, got 3)
+
+2026-09-09 22:49:10,286 [INFO] vigent.retention_sched: 보존 스윕 완료 — 삭제 360건(11.0MB) · 대기 360건 · 소요 2.71s
+2026-09-09 22:49:40,228 [ERROR] vigent.dispatcher: ★통보 설정 오류(telegram HTTP 401) — 재시도하지 않는다. 토큰·chat_id·URL 을 확인하라
+2026-09-09 22:49:40,337 [INFO] vigent.alert_notify: 경보 즉시 전송 미도달 — 재시도 큐로 이월: [파일럿모의1] 보호구 미착용 감지(NO-Mask, NO-Safety-Vest) · 직전 통보 이후 동일 경보 39건 억제됨
+2026-09-09 22:49:44,035 [ERROR] vigent.dispatcher: ★통보 설정 오류(telegram HTTP 401) — 재시도하지 않는다. 토큰·chat_id·URL 을 확인하라
+2026-09-09 22:49:44,156 [ERROR] vigent.alert_queue: 경보 데드레터(설정 오류 — 재시도 안 함) id=201: config_error: [{'channel': 'telegram', 'sent': False, 'fallback': True, 'status': 401, 'config_error': True}, {'channel': 'email', 'sent': False, 'fallback': True, 'reason': 'SMTP 미설정'}, {'channel': '
+2026-09-09 22:49:52,457 [ERROR] vigent.worker: 워커 '파일럿모의3'(D:\vigent_private_data\runs\rfdetr\accident\KakaoTalk_20260807_000552920.mp4) 프레임 처리 예외 — 계속 진행
+Traceback (most recent call last):
+  File "D:\vigent_original\vigent-core\worker.py", line 1098, in _process_frame
+    for rule, level, note, subject in fired:
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: not enough values to unpack (expected 4, got 3)
+
+2026-09-09 22:49:53,610 [ERROR] vigent.dispatcher: ★통보 설정 오류(telegram HTTP 401) — 재시도하지 않는다. 토큰·chat_id·URL 을 확인하라
+2026-09-09 22:49:53,727 [INFO] vigent.alert_notify: 경보 즉시 전송 미도달 — 재시도 큐로 이월: [파일럿모의4] 보호구 미착용 감지(NO-Safety-Vest) · 직전 통보 이후 동일 경보 28건 억제됨
+2026-09-09 22:49:58,616 [ERROR] vigent.dispatcher: ★통보 설정 오류(telegram HTTP 401) — 재시도하지 않는다. 토큰·chat_id·URL 을 확인하라
+2026-09-09 22:49:58,726 [INFO] vigent.alert_notify: 경보 즉시 전송 미도달 — 재시도 큐로 이월: [파일럿모의3] 보호구 미착용 감지(NO-Safety-Vest) · 직전 통보 이후 동일 경보 12건 억제됨
+2026-09-09 22:50:00,210 [ERROR] vigent.dispatcher: ★통보 설정 오류(telegram HTTP 401) — 재시도하지 않는다. 토큰·chat_id·URL 을 확인하라
+2026-09-09 22:50:00,336 [ERROR] vigent.alert_queue: 경보 데드레터(설정 오류 — 재시도 안 함) id=202: config_error: [{'channel': 'telegram', 'sent': False, 'fallback': True, 'status': 401, 'config_error': True}, {'channel': 'email', 'sent': False, 'fallback': True, 'reason': 'SMTP 미설정'}, {'channel': '
+2026-09-09 22:50:00,894 [ERROR] vigent.dispatcher: ★통보 설정 오류(telegram HTTP 401) — 재시도하지 않는다. 토큰·chat_id·URL 을 확인하라
+2026-09-09 22:50:01,019 [INFO] vigent.alert_notify: 경보 즉시 전송 미도달 — 재시도 큐로 이월: [파일럿모의2] 보호구 미착용 감지(NO-Hardhat, NO-Safety-Vest) · 직전 통보 이후 동일 경보 33건 억제됨
+2026-09-09 22:50:06,381 [ERROR] vigent.dispatcher: ★통보 설정 오류(telegram HTTP 401) — 재시도하지 않는다. 토큰·chat_id·URL 을 확인하라
+2026-09-09 22:50:06,517 [ERROR] vigent.alert_queue: 경보 데드레터(설정 오류 — 재시도 안 함) id=203: config_error: [{'channel': 'telegram', 'sent': False, 'fallback': True, 'status': 401, 'config_error': True}, {'channel': 'email', 'sent': False, 'fallback': True, 'reason': 'SMTP 미설정'}, {'channel': '
+2026-09-09 22:50:07,509 [ERROR] vigent.dispatcher: ★통보 설정 오류(telegram HTTP 401) — 재시도하지 않는다. 토큰·chat_id·URL 을 확인하라
+2026-09-09 22:50:07,611 [ERROR] vigent.alert_queue: 경보 데드레터(설정 오류 — 재시도 안 함) id=204: config_error: [{'channel': 'telegram', 'sent': False, 'fallback': True, 'status': 401, 'config_error': True}, {'channel': 'email', 'sent': False, 'fallback': True, 'reason': 'SMTP 미설정'}, {'channel': '
+2026-09-09 22:50:18,611 [INFO] vigent.alert_notify: 경보 즉시 전송 미도달 — 재시도 큐로 이월: [파일럿모의1] 급격한 이동 감지 — 돌진·이상행동 · 직전 통보 이후 동일 경보 13건 억제됨
+2026-09-09 22:50:44,712 [ERROR] vigent.dispatcher: ★통보 설정 오류(telegram HTTP 401) — 재시도하지 않는다. 토큰·chat_id·URL 을 확인하라
+2026-09-09 22:50:44,842 [INFO] vigent.alert_notify: 경보 즉시 전송 미도달 — 재시도 큐로 이월: [파일럿모의3] truck 작업반경 침입 — 사람 약 0.0m · 직전 통보 이후 동일 경보 14건 억제됨
+2026-09-09 22:50:45,126 [ERROR] vigent.worker: 워커 '파일럿모의4'(D:\vigent_private_data\runs\rfdetr\accident\KakaoTalk_20260807_000601541.mp4) 프레임 처리 예외 — 계속 진행
+Traceback (most recent call last):
+  File "D:\vigent_original\vigent-core\worker.py", line 1098, in _process_frame
+    for rule, level, note, subject in fired:
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: not enough values to unpack (expected 4, got 3)
+
+2026-09-09 22:50:48,596 [ERROR] vigent.dispatcher: ★통보 설정 오류(telegram HTTP 401) — 재시도하지 않는다. 토큰·chat_id·URL 을 확인하라
+2026-09-09 22:50:48,703 [ERROR] vigent.alert_queue: 경보 데드레터(설정 오류 — 재시도 안 함) id=205: config_error: [{'channel': 'telegram', 'sent': False, 'fallback': True, 'status': 401, 'config_error': True}, {'channel': 'email', 'sent': False, 'fallback': True, 'reason': 'SMTP 미설정'}, {'channel': '
+2026-09-09 22:50:50,649 [ERROR] vigent.worker: 워커 '파일럿모의1'(D:\vigent_private_data\runs\rfdetr\accident\KakaoTalk_20260807_000438282.mp4) 프레임 처리 예외 — 계속 진행
+Traceback (most recent call last):
+  File "D:\vigent_original\vigent-core\worker.py", line 1098, in _process_frame
+    for rule, level, note, subject in fired:
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: not enough values to unpack (expected 4, got 3)
+
+2026-09-09 22:50:52,315 [ERROR] vigent.worker: 워커 '파일럿모의2'(D:\vigent_private_data\runs\rfdetr\accident\KakaoTalk_20260807_000442974.mp4) 프레임 처리 예외 — 계속 진행
+Traceback (most recent call last):
+  File "D:\vigent_original\vigent-core\worker.py", line 1098, in _process_frame
+    for rule, level, note, subject in fired:
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: not enough values to unpack (expected 4, got 3)
+
+2026-09-09 22:50:52,796 [ERROR] vigent.dispatcher: ★통보 설정 오류(telegram HTTP 401) — 재시도하지 않는다. 토큰·chat_id·URL 을 확인하라
+2026-09-09 22:50:52,911 [INFO] vigent.alert_notify: 경보 즉시 전송 미도달 — 재시도 큐로 이월: [파일럿모의1] 화재/연기 감지 · 직전 통보 이후 동일 경보 22건 억제됨
+2026-09-09 22:50:55,643 [INFO] vigent.alert_notify: 경보 즉시 전송 미도달 — 재시도 큐로 이월: [파일럿모의4] 급격한 이동 감지 — 돌진·이상행동 · 직전 통보 이후 동일 경보 4건 억제됨
+2026-09-09 22:50:59,785 [ERROR] vigent.dispatcher: ★통보 설정 오류(telegram HTTP 401) — 재시도하지 않는다. 토큰·chat_id·URL 을 확인하라
+2026-09-09 22:50:59,895 [ERROR] vigent.alert_queue: 경보 데드레터(설정 오류 — 재시도 안 함) id=206: config_error: [{'channel': 'telegram', 'sent': False, 'fallback': True, 'status': 401, 'config_error': True}, {'channel': 'email', 'sent': False, 'fallback': True, 'reason': 'SMTP 미설정'}, {'channel': '
+2026-09-09 22:51:06,168 [ERROR] vigent.worker: 워커 '파일럿모의1'(D:\vigent_private_data\runs\rfdetr\accident\KakaoTalk_20260807_000438282.mp4) 프레임 처리 예외 — 계속 진행
+Traceback (most recent call last):
+  File "D:\vigent_original\vigent-core\worker.py", line 1098, in _process_frame
+    for rule, level, note, subject in fired:
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: not enough values to unpack (expected 4, got 3)
+
+2026-09-09 22:51:11,156 [ERROR] vigent.worker: 워커 '파일럿모의4'(D:\vigent_private_data\runs\rfdetr\accident\KakaoTalk_20260807_000601541.mp4) 프레임 처리 예외 — 계속 진행
+Traceback (most recent call last):
+  File "D:\vigent_original\vigent-core\worker.py", line 1098, in _process_frame
+    for rule, level, note, subject in fired:
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: not enough values to unpack (expected 4, got 3)
+
+2026-09-09 22:51:11,228 [ERROR] vigent.worker: 워커 '파일럿모의1'(D:\vigent_private_data\runs\rfdetr\accident\KakaoTalk_20260807_000438282.mp4) 프레임 처리 예외 — 계속 진행
+Traceback (most recent call last):
+  File "D:\vigent_original\vigent-core\worker.py", line 1098, in _process_frame
+    for rule, level, note, subject in fired:
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: not enough values to unpack (expected 4, got 3)
+
+2026-09-09 22:51:14,150 [ERROR] vigent.worker: 워커 '파일럿모의4'(D:\vigent_private_data\runs\rfdetr\accident\KakaoTalk_20260807_000601541.mp4) 프레임 처리 예외 — 계속 진행
+Traceback (most recent call last):
+  File "D:\vigent_original\vigent-core\worker.py", line 1098, in _process_frame
+    for rule, level, note, subject in fired:
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: not enough values to unpack (expected 4, got 3)
+
+2026-09-09 22:51:17,205 [ERROR] vigent.dispatcher: ★통보 설정 오류(telegram HTTP 401) — 재시도하지 않는다. 토큰·chat_id·URL 을 확인하라
+2026-09-09 22:51:17,329 [INFO] vigent.alert_notify: 경보 즉시 전송 미도달 — 재시도 큐로 이월: [파일럿모의3] 화재/연기 감지 · 직전 통보 이후 동일 경보 17건 억제됨
+2026-09-09 22:51:20,903 [ERROR] vigent.dispatcher: ★통보 설정 오류(telegram HTTP 401) — 재시도하지 않는다. 토큰·chat_id·URL 을 확인하라
+2026-09-09 22:51:21,161 [ERROR] vigent.alert_queue: 경보 데드레터(설정 오류 — 재시도 안 함) id=207: config_error: [{'channel': 'telegram', 'sent': False, 'fallback': True, 'status': 401, 'config_error': True}, {'channel': 'email', 'sent': False, 'fallback': True, 'reason': 'SMTP 미설정'}, {'channel': '
+2026-09-09 22:51:24,208 [ERROR] vigent.worker: 워커 '파일럿모의1'(D:\vigent_private_data\runs\rfdetr\accident\KakaoTalk_20260807_000438282.mp4) 프레임 처리 예외 — 계속 진행
+Traceback (most recent call last):
+  File "D:\vigent_original\vigent-core\worker.py", line 1098, in _process_frame
+    for rule, level, note, subject in fired:
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: not enough values to unpack (expected 4, got 3)
+
+2026-09-09 22:51:26,230 [ERROR] vigent.worker: 워커 '파일럿모의1'(D:\vigent_private_data\runs\rfdetr\accident\KakaoTalk_20260807_000438282.mp4) 프레임 처리 예외 — 계속 진행
+Traceback (most recent call last):
+  File "D:\vigent_original\vigent-core\worker.py", line 1098, in _process_frame
+    for rule, level, note, subject in fired:
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: not enough values to unpack (expected 4, got 3)
+
+2026-09-09 22:51:26,295 [ERROR] vigent.dispatcher: ★통보 설정 오류(telegram HTTP 401) — 재시도하지 않는다. 토큰·chat_id·URL 을 확인하라
+2026-09-09 22:51:26,510 [INFO] vigent.alert_notify: 경보 즉시 전송 미도달 — 재시도 큐로 이월: [파일럿모의4] 화재/연기 감지 · 직전 통보 이후 동일 경보 4건 억제됨
+2026-09-09 22:51:27,188 [ERROR] vigent.dispatcher: ★통보 설정 오류(telegram HTTP 401) — 재시도하지 않는다. 토큰·chat_id·URL 을 확인하라
+2026-09-09 22:51:27,303 [ERROR] vigent.alert_queue: 경보 데드레터(설정 오류 — 재시도 안 함) id=208: config_error: [{'channel': 'telegram', 'sent': False, 'fallback': True, 'status': 401, 'config_error': True}, {'channel': 'email', 'sent': False, 'fallback': True, 'reason': 'SMTP 미설정'}, {'channel': '
+2026-09-09 22:51:43,787 [ERROR] vigent.dispatcher: ★통보 설정 오류(telegram HTTP 401) — 재시도하지 않는다. 토큰·chat_id·URL 을 확인하라
+2026-09-09 22:51:43,904 [INFO] vigent.alert_notify: 경보 즉시 전송 미도달 — 재시도 큐로 이월: [파일럿모의1] car 작업반경 침입 — 사람 약 0.0m · 직전 통보 이후 동일 경보 9건 억제됨
+2026-09-09 22:51:48,339 [ERROR] vigent.dispatcher: ★통보 설정 오류(telegram HTTP 401) — 재시도하지 않는다. 토큰·chat_id·URL 을 확인하라
+2026-09-09 22:51:48,462 [ERROR] vigent.alert_queue: 경보 데드레터(설정 오류 — 재시도 안 함) id=209: config_error: [{'channel': 'telegram', 'sent': False, 'fallback': True, 'status': 401, 'config_error': True}, {'channel': 'email', 'sent': False, 'fallback': True, 'reason': 'SMTP 미설정'}, {'channel': '
+2026-09-09 22:51:52,258 [ERROR] vigent.worker: 워커 '파일럿모의1'(D:\vigent_private_data\runs\rfdetr\accident\KakaoTalk_20260807_000438282.mp4) 프레임 처리 예외 — 계속 진행
+Traceback (most recent call last):
+  File "D:\vigent_original\vigent-core\worker.py", line 1098, in _process_frame
+    for rule, level, note, subject in fired:
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: not enough values to unpack (expected 4, got 3)
+
+2026-09-09 22:52:04,747 [ERROR] vigent.worker: 워커 '파일럿모의1'(D:\vigent_private_data\runs\rfdetr\accident\KakaoTalk_20260807_000438282.mp4) 프레임 처리 예외 — 계속 진행
+Traceback (most recent call last):
+  File "D:\vigent_original\vigent-core\worker.py", line 1098, in _process_frame
+    for rule, level, note, subject in fired:
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: not enough values to unpack (expected 4, got 3)
+
+2026-09-09 22:52:08,435 [INFO] vigent.alert_notify: 경보 즉시 전송 미도달 — 재시도 큐로 이월: [파일럿모의2] 급격한 이동 감지 — 돌진·이상행동 · 직전 통보 이후 동일 경보 9건 억제됨
+2026-09-09 22:52:15,013 [ERROR] vigent.dispatcher: ★통보 설정 오류(telegram HTTP 401) — 재시도하지 않는다. 토큰·chat_id·URL 을 확인하라
+2026-09-09 22:52:15,128 [INFO] vigent.alert_notify: 경보 즉시 전송 미도달 — 재시도 큐로 이월: [파일럿모의2] 화재/연기 감지 · 직전 통보 이후 동일 경보 6건 억제됨
+2026-09-09 22:52:16,315 [INFO] vigent.alert_notify: 경보 즉시 전송 미도달 — 재시도 큐로 이월: [파일럿모의1] 인원 밀집 — 6명 감지 · 직전 통보 이후 동일 경보 2건 억제됨
+2026-09-09 22:52:19,398 [ERROR] vigent.dispatcher: ★통보 설정 오류(telegram HTTP 401) — 재시도하지 않는다. 토큰·chat_id·URL 을 확인하라
+2026-09-09 22:52:19,521 [ERROR] vigent.alert_queue: 경보 데드레터(설정 오류 — 재시도 안 함) id=210: config_error: [{'channel': 'telegram', 'sent': False, 'fallback': True, 'status': 401, 'config_error': True}, {'channel': 'email', 'sent': False, 'fallback': True, 'reason': 'SMTP 미설정'}, {'channel': '
+2026-09-09 22:52:21,269 [ERROR] vigent.worker: 워커 '파일럿모의1'(D:\vigent_private_data\runs\rfdetr\accident\KakaoTalk_20260807_000438282.mp4) 프레임 처리 예외 — 계속 진행
+Traceback (most recent call last):
+  File "D:\vigent_original\vigent-core\worker.py", line 1098, in _process_frame
+    for rule, level, note, subject in fired:
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: not enough values to unpack (expected 4, got 3)
+
+2026-09-09 22:52:30,292 [ERROR] vigent.worker: 워커 '파일럿모의1'(D:\vigent_private_data\runs\rfdetr\accident\KakaoTalk_20260807_000438282.mp4) 프레임 처리 예외 — 계속 진행
+Traceback (most recent call last):
+  File "D:\vigent_original\vigent-core\worker.py", line 1098, in _process_frame
+    for rule, level, note, subject in fired:
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: not enough values to unpack (expected 4, got 3)
+
+2026-09-09 22:52:34,323 [ERROR] vigent.worker: 워커 '파일럿모의1'(D:\vigent_private_data\runs\rfdetr\accident\KakaoTalk_20260807_000438282.mp4) 프레임 처리 예외 — 계속 진행
+Traceback (most recent call last):
+  File "D:\vigent_original\vigent-core\worker.py", line 1098, in _process_frame
+    for rule, level, note, subject in fired:
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: not enough values to unpack (expected 4, got 3)
+
+2026-09-09 22:52:51,329 [ERROR] vigent.worker: 워커 '파일럿모의1'(D:\vigent_private_data\runs\rfdetr\accident\KakaoTalk_20260807_000438282.mp4) 프레임 처리 예외 — 계속 진행
+Traceback (most recent call last):
+  File "D:\vigent_original\vigent-core\worker.py", line 1098, in _process_frame
+    for rule, level, note, subject in fired:
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: not enough values to unpack (expected 4, got 3)
+
+2026-09-09 22:52:57,281 [ERROR] vigent.worker: 워커 '파일럿모의4'(D:\vigent_private_data\runs\rfdetr\accident\KakaoTalk_20260807_000601541.mp4) 프레임 처리 예외 — 계속 진행
+Traceback (most recent call last):
+  File "D:\vigent_original\vigent-core\worker.py", line 1098, in _process_frame
+    for rule, level, note, subject in fired:
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: not enough values to unpack (expected 4, got 3)
+
+2026-09-09 22:53:23,833 [ERROR] vigent.worker: 워커 '파일럿모의4'(D:\vigent_private_data\runs\rfdetr\accident\KakaoTalk_20260807_000601541.mp4) 프레임 처리 예외 — 계속 진행
+Traceback (most recent call last):
+  File "D:\vigent_original\vigent-core\worker.py", line 1098, in _process_frame
+    for rule, level, note, subject in fired:
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: not enough values to unpack (expected 4, got 3)
+
+2026-09-09 22:53:26,831 [ERROR] vigent.worker: 워커 '파일럿모의4'(D:\vigent_private_data\runs\rfdetr\accident\KakaoTalk_20260807_000601541.mp4) 프레임 처리 예외 — 계속 진행
+Traceback (most recent call last):
+  File "D:\vigent_original\vigent-core\worker.py", line 1098, in _process_frame
+    for rule, level, note, subject in fired:
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: not enough values to unpack (expected 4, got 3)
+
+2026-09-09 22:53:31,688 [ERROR] vigent.dispatcher: ★통보 설정 오류(telegram HTTP 401) — 재시도하지 않는다. 토큰·chat_id·URL 을 확인하라
+2026-09-09 22:53:31,804 [INFO] vigent.alert_notify: 경보 즉시 전송 미도달 — 재시도 큐로 이월: [파일럿모의2] car 작업반경 침입 — 사람 약 1.1m · 직전 통보 이후 동일 경보 3건 억제됨
+2026-09-09 22:53:35,588 [ERROR] vigent.dispatcher: ★통보 설정 오류(telegram HTTP 401) — 재시도하지 않는다. 토큰·chat_id·URL 을 확인하라
+2026-09-09 22:53:35,704 [ERROR] vigent.alert_queue: 경보 데드레터(설정 오류 — 재시도 안 함) id=211: config_error: [{'channel': 'telegram', 'sent': False, 'fallback': True, 'status': 401, 'config_error': True}, {'channel': 'email', 'sent': False, 'fallback': True, 'reason': 'SMTP 미설정'}, {'channel': '
+2026-09-09 22:53:41,805 [ERROR] vigent.worker: 워커 '파일럿모의3'(D:\vigent_private_data\runs\rfdetr\accident\KakaoTalk_20260807_000552920.mp4) 프레임 처리 예외 — 계속 진행
+Traceback (most recent call last):
+  File "D:\vigent_original\vigent-core\worker.py", line 1098, in _process_frame
+    for rule, level, note, subject in fired:
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: not enough values to unpack (expected 4, got 3)
+
+2026-09-09 22:54:12,121 [ERROR] vigent.worker: 워커 '파일럿모의2'(D:\vigent_private_data\runs\rfdetr\accident\KakaoTalk_20260807_000442974.mp4) 프레임 처리 예외 — 계속 진행
+Traceback (most recent call last):
+  File "D:\vigent_original\vigent-core\worker.py", line 1098, in _process_frame
+    for rule, level, note, subject in fired:
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: not enough values to unpack (expected 4, got 3)
+
+2026-09-09 22:54:46,087 [ERROR] vigent.dispatcher: ★통보 설정 오류(telegram HTTP 401) — 재시도하지 않는다. 토큰·chat_id·URL 을 확인하라
+2026-09-09 22:54:46,204 [INFO] vigent.alert_notify: 경보 즉시 전송 미도달 — 재시도 큐로 이월: [파일럿모의3] 장시간 무동작 — 쓰러짐·실신 의심 · 직전 통보 이후 동일 경보 2건 억제됨
+2026-09-09 22:54:46,794 [ERROR] vigent.dispatcher: ★통보 설정 오류(telegram HTTP 401) — 재시도하지 않는다. 토큰·chat_id·URL 을 확인하라
+2026-09-09 22:54:46,938 [ERROR] vigent.alert_queue: 경보 데드레터(설정 오류 — 재시도 안 함) id=212: config_error: [{'channel': 'telegram', 'sent': False, 'fallback': True, 'status': 401, 'config_error': True}, {'channel': 'email', 'sent': False, 'fallback': True, 'reason': 'SMTP 미설정'}, {'channel': '
+2026-09-09 22:54:59,545 [ERROR] vigent.worker: 워커 '파일럿모의1'(D:\vigent_private_data\runs\rfdetr\accident\KakaoTalk_20260807_000438282.mp4) 프레임 처리 예외 — 계속 진행
+Traceback (most recent call last):
+  File "D:\vigent_original\vigent-core\worker.py", line 1098, in _process_frame
+    for rule, level, note, subject in fired:
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: not enough values to unpack (expected 4, got 3)
+
+2026-09-09 22:55:10,006 [ERROR] vigent.worker: 워커 '파일럿모의4'(D:\vigent_private_data\runs\rfdetr\accident\KakaoTalk_20260807_000601541.mp4) 프레임 처리 예외 — 계속 진행
+Traceback (most recent call last):
+  File "D:\vigent_original\vigent-core\worker.py", line 1098, in _process_frame
+    for rule, level, note, subject in fired:
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: not enough values to unpack (expected 4, got 3)
+
+2026-09-09 22:55:15,557 [ERROR] vigent.worker: 워커 '파일럿모의1'(D:\vigent_private_data\runs\rfdetr\accident\KakaoTalk_20260807_000438282.mp4) 프레임 처리 예외 — 계속 진행
+Traceback (most recent call last):
+  File "D:\vigent_original\vigent-core\worker.py", line 1098, in _process_frame
+    for rule, level, note, subject in fired:
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: not enough values to unpack (expected 4, got 3)
+
+2026-09-09 22:55:20,062 [ERROR] vigent.worker: 워커 '파일럿모의1'(D:\vigent_private_data\runs\rfdetr\accident\KakaoTalk_20260807_000438282.mp4) 프레임 처리 예외 — 계속 진행
+Traceback (most recent call last):
+  File "D:\vigent_original\vigent-core\worker.py", line 1098, in _process_frame
+    for rule, level, note, subject in fired:
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: not enough values to unpack (expected 4, got 3)
+
+2026-09-09 22:55:33,072 [ERROR] vigent.worker: 워커 '파일럿모의1'(D:\vigent_private_data\runs\rfdetr\accident\KakaoTalk_20260807_000438282.mp4) 프레임 처리 예외 — 계속 진행
+Traceback (most recent call last):
+  File "D:\vigent_original\vigent-core\worker.py", line 1098, in _process_frame
+    for rule, level, note, subject in fired:
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: not enough values to unpack (expected 4, got 3)
+
+2026-09-09 22:55:35,086 [ERROR] vigent.worker: 워커 '파일럿모의1'(D:\vigent_private_data\runs\rfdetr\accident\KakaoTalk_20260807_000438282.mp4) 프레임 처리 예외 — 계속 진행
+Traceback (most recent call last):
+  File "D:\vigent_original\vigent-core\worker.py", line 1098, in _process_frame
+    for rule, level, note, subject in fired:
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: not enough values to unpack (expected 4, got 3)
+
+2026-09-09 22:55:36,537 [ERROR] vigent.worker: 워커 '파일럿모의4'(D:\vigent_private_data\runs\rfdetr\accident\KakaoTalk_20260807_000601541.mp4) 프레임 처리 예외 — 계속 진행
+Traceback (most recent call last):
+  File "D:\vigent_original\vigent-core\worker.py", line 1098, in _process_frame
+    for rule, level, note, subject in fired:
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: not enough values to unpack (expected 4, got 3)
+
+2026-09-09 22:55:39,544 [ERROR] vigent.worker: 워커 '파일럿모의4'(D:\vigent_private_data\runs\rfdetr\accident\KakaoTalk_20260807_000601541.mp4) 프레임 처리 예외 — 계속 진행
+Traceback (most recent call last):
+  File "D:\vigent_original\vigent-core\worker.py", line 1098, in _process_frame
+    for rule, level, note, subject in fired:
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: not enough values to unpack (expected 4, got 3)
+
+2026-09-09 22:56:01,142 [ERROR] vigent.worker: 워커 '파일럿모의1'(D:\vigent_private_data\runs\rfdetr\accident\KakaoTalk_20260807_000438282.mp4) 프레임 처리 예외 — 계속 진행
+Traceback (most recent call last):
+  File "D:\vigent_original\vigent-core\worker.py", line 1098, in _process_frame
+    for rule, level, note, subject in fired:
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: not enough values to unpack (expected 4, got 3)
+
+2026-09-09 22:56:13,650 [ERROR] vigent.worker: 워커 '파일럿모의1'(D:\vigent_private_data\runs\rfdetr\accident\KakaoTalk_20260807_000438282.mp4) 프레임 처리 예외 — 계속 진행
+Traceback (most recent call last):
+  File "D:\vigent_original\vigent-core\worker.py", line 1098, in _process_frame
+    for rule, level, note, subject in fired:
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: not enough values to unpack (expected 4, got 3)
+
+2026-09-09 22:56:30,157 [ERROR] vigent.worker: 워커 '파일럿모의1'(D:\vigent_private_data\runs\rfdetr\accident\KakaoTalk_20260807_000438282.mp4) 프레임 처리 예외 — 계속 진행
+Traceback (most recent call last):
+  File "D:\vigent_original\vigent-core\worker.py", line 1098, in _process_frame
+    for rule, level, note, subject in fired:
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: not enough values to unpack (expected 4, got 3)
+
+2026-09-09 22:56:39,179 [ERROR] vigent.worker: 워커 '파일럿모의1'(D:\vigent_private_data\runs\rfdetr\accident\KakaoTalk_20260807_000438282.mp4) 프레임 처리 예외 — 계속 진행
+Traceback (most recent call last):
+  File "D:\vigent_original\vigent-core\worker.py", line 1098, in _process_frame
+    for rule, level, note, subject in fired:
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: not enough values to unpack (expected 4, got 3)
+
+2026-09-09 22:56:43,190 [ERROR] vigent.worker: 워커 '파일럿모의1'(D:\vigent_private_data\runs\rfdetr\accident\KakaoTalk_20260807_000438282.mp4) 프레임 처리 예외 — 계속 진행
+Traceback (most recent call last):
+  File "D:\vigent_original\vigent-core\worker.py", line 1098, in _process_frame
+    for rule, level, note, subject in fired:
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: not enough values to unpack (expected 4, got 3)
+
+2026-09-09 22:57:00,243 [ERROR] vigent.worker: 워커 '파일럿모의1'(D:\vigent_private_data\runs\rfdetr\accident\KakaoTalk_20260807_000438282.mp4) 프레임 처리 예외 — 계속 진행
+Traceback (most recent call last):
+  File "D:\vigent_original\vigent-core\worker.py", line 1098, in _process_frame
+    for rule, level, note, subject in fired:
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: not enough values to unpack (expected 4, got 3)
+
+2026-09-09 22:57:22,697 [ERROR] vigent.worker: 워커 '파일럿모의4'(D:\vigent_private_data\runs\rfdetr\accident\KakaoTalk_20260807_000601541.mp4) 프레임 처리 예외 — 계속 진행
+Traceback (most recent call last):
+  File "D:\vigent_original\vigent-core\worker.py", line 1098, in _process_frame
+    for rule, level, note, subject in fired:
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: not enough values to unpack (expected 4, got 3)
+
+2026-09-09 22:57:31,660 [ERROR] vigent.worker: 워커 '파일럿모의3'(D:\vigent_private_data\runs\rfdetr\accident\KakaoTalk_20260807_000552920.mp4) 프레임 처리 예외 — 계속 진행
+Traceback (most recent call last):
+  File "D:\vigent_original\vigent-core\worker.py", line 1098, in _process_frame
+    for rule, level, note, subject in fired:
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: not enough values to unpack (expected 4, got 3)
+
+2026-09-09 22:57:31,932 [ERROR] vigent.worker: 워커 '파일럿모의2'(D:\vigent_private_data\runs\rfdetr\accident\KakaoTalk_20260807_000442974.mp4) 프레임 처리 예외 — 계속 진행
+Traceback (most recent call last):
+  File "D:\vigent_original\vigent-core\worker.py", line 1098, in _process_frame
+    for rule, level, note, subject in fired:
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: not enough values to unpack (expected 4, got 3)
+
+2026-09-09 22:57:39,945 [ERROR] vigent.worker: 워커 '파일럿모의2'(D:\vigent_private_data\runs\rfdetr\accident\KakaoTalk_20260807_000442974.mp4) 프레임 처리 예외 — 계속 진행
+Traceback (most recent call last):
+  File "D:\vigent_original\vigent-core\worker.py", line 1098, in _process_frame
+    for rule, level, note, subject in fired:
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: not enough values to unpack (expected 4, got 3)
+
+2026-09-09 22:57:49,252 [ERROR] vigent.worker: 워커 '파일럿모의4'(D:\vigent_private_data\runs\rfdetr\accident\KakaoTalk_20260807_000601541.mp4) 프레임 처리 예외 — 계속 진행
+Traceback (most recent call last):
+  File "D:\vigent_original\vigent-core\worker.py", line 1098, in _process_frame
+    for rule, level, note, subject in fired:
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: not enough values to unpack (expected 4, got 3)
+
+2026-09-09 22:57:52,241 [ERROR] vigent.worker: 워커 '파일럿모의4'(D:\vigent_private_data\runs\rfdetr\accident\KakaoTalk_20260807_000601541.mp4) 프레임 처리 예외 — 계속 진행
+Traceback (most recent call last):
+  File "D:\vigent_original\vigent-core\worker.py", line 1098, in _process_frame
+    for rule, level, note, subject in fired:
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: not enough values to unpack (expected 4, got 3)
+
+2026-09-09 22:59:23,930 [ERROR] vigent.worker: 워커 '파일럿모의1'(D:\vigent_private_data\runs\rfdetr\accident\KakaoTalk_20260807_000438282.mp4) 프레임 처리 예외 — 계속 진행
+Traceback (most recent call last):
+  File "D:\vigent_original\vigent-core\worker.py", line 1098, in _process_frame
+    for rule, level, note, subject in fired:
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: not enough values to unpack (expected 4, got 3)
+
+2026-09-09 22:59:28,966 [ERROR] vigent.worker: 워커 '파일럿모의1'(D:\vigent_private_data\runs\rfdetr\accident\KakaoTalk_20260807_000438282.mp4) 프레임 처리 예외 — 계속 진행
+Traceback (most recent call last):
+  File "D:\vigent_original\vigent-core\worker.py", line 1098, in _process_frame
+    for rule, level, note, subject in fired:
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: not enough values to unpack (expected 4, got 3)
+
+2026-09-09 22:59:35,897 [ERROR] vigent.worker: 워커 '파일럿모의4'(D:\vigent_private_data\runs\rfdetr\accident\KakaoTalk_20260807_000601541.mp4) 프레임 처리 예외 — 계속 진행
+Traceback (most recent call last):
+  File "D:\vigent_original\vigent-core\worker.py", line 1098, in _process_frame
+    for rule, level, note, subject in fired:
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: not enough values to unpack (expected 4, got 3)
+
+2026-09-09 22:59:41,963 [ERROR] vigent.worker: 워커 '파일럿모의1'(D:\vigent_private_data\runs\rfdetr\accident\KakaoTalk_20260807_000438282.mp4) 프레임 처리 예외 — 계속 진행
+Traceback (most recent call last):
+  File "D:\vigent_original\vigent-core\worker.py", line 1098, in _process_frame
+    for rule, level, note, subject in fired:
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: not enough values to unpack (expected 4, got 3)
+
+2026-09-09 22:59:43,960 [ERROR] vigent.worker: 워커 '파일럿모의1'(D:\vigent_private_data\runs\rfdetr\accident\KakaoTalk_20260807_000438282.mp4) 프레임 처리 예외 — 계속 진행
+Traceback (most recent call last):
+  File "D:\vigent_original\vigent-core\worker.py", line 1098, in _process_frame
+    for rule, level, note, subject in fired:
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: not enough values to unpack (expected 4, got 3)
+
+2026-09-09 23:00:01,944 [ERROR] vigent.worker: 워커 '파일럿모의4'(D:\vigent_private_data\runs\rfdetr\accident\KakaoTalk_20260807_000601541.mp4) 프레임 처리 예외 — 계속 진행
+Traceback (most recent call last):
+  File "D:\vigent_original\vigent-core\worker.py", line 1098, in _process_frame
+    for rule, level, note, subject in fired:
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: not enough values to unpack (expected 4, got 3)
+
+2026-09-09 23:00:04,960 [ERROR] vigent.worker: 워커 '파일럿모의4'(D:\vigent_private_data\runs\rfdetr\accident\KakaoTalk_20260807_000601541.mp4) 프레임 처리 예외 — 계속 진행
+Traceback (most recent call last):
+  File "D:\vigent_original\vigent-core\worker.py", line 1098, in _process_frame
+    for rule, level, note, subject in fired:
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: not enough values to unpack (expected 4, got 3)
+
+2026-09-09 23:00:10,004 [ERROR] vigent.worker: 워커 '파일럿모의1'(D:\vigent_private_data\runs\rfdetr\accident\KakaoTalk_20260807_000438282.mp4) 프레임 처리 예외 — 계속 진행
+Traceback (most recent call last):
+  File "D:\vigent_original\vigent-core\worker.py", line 1098, in _process_frame
+    for rule, level, note, subject in fired:
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: not enough values to unpack (expected 4, got 3)
+
+2026-09-09 23:00:22,544 [ERROR] vigent.worker: 워커 '파일럿모의1'(D:\vigent_private_data\runs\rfdetr\accident\KakaoTalk_20260807_000438282.mp4) 프레임 처리 예외 — 계속 진행
+Traceback (most recent call last):
+  File "D:\vigent_original\vigent-core\worker.py", line 1098, in _process_frame
+    for rule, level, note, subject in fired:
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: not enough values to unpack (expected 4, got 3)
+
+2026-09-09 23:00:39,067 [ERROR] vigent.worker: 워커 '파일럿모의1'(D:\vigent_private_data\runs\rfdetr\accident\KakaoTalk_20260807_000438282.mp4) 프레임 처리 예외 — 계속 진행
+Traceback (most recent call last):
+  File "D:\vigent_original\vigent-core\worker.py", line 1098, in _process_frame
+    for rule, level, note, subject in fired:
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: not enough values to unpack (expected 4, got 3)
+
+2026-09-09 23:00:48,091 [ERROR] vigent.worker: 워커 '파일럿모의1'(D:\vigent_private_data\runs\rfdetr\accident\KakaoTalk_20260807_000438282.mp4) 프레임 처리 예외 — 계속 진행
+Traceback (most recent call last):
+  File "D:\vigent_original\vigent-core\worker.py", line 1098, in _process_frame
+    for rule, level, note, subject in fired:
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: not enough values to unpack (expected 4, got 3)
+
+2026-09-09 23:00:51,732 [ERROR] vigent.worker: 워커 '파일럿모의2'(D:\vigent_private_data\runs\rfdetr\accident\KakaoTalk_20260807_000442974.mp4) 프레임 처리 예외 — 계속 진행
+Traceback (most recent call last):
+  File "D:\vigent_original\vigent-core\worker.py", line 1098, in _process_frame
+    for rule, level, note, subject in fired:
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: not enough values to unpack (expected 4, got 3)
+
+2026-09-09 23:00:52,582 [ERROR] vigent.worker: 워커 '파일럿모의1'(D:\vigent_private_data\runs\rfdetr\accident\KakaoTalk_20260807_000438282.mp4) 프레임 처리 예외 — 계속 진행
+Traceback (most recent call last):
+  File "D:\vigent_original\vigent-core\worker.py", line 1098, in _process_frame
+    for rule, level, note, subject in fired:
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: not enough values to unpack (expected 4, got 3)
+
+2026-09-09 23:01:09,598 [ERROR] vigent.worker: 워커 '파일럿모의1'(D:\vigent_private_data\runs\rfdetr\accident\KakaoTalk_20260807_000438282.mp4) 프레임 처리 예외 — 계속 진행
+Traceback (most recent call last):
+  File "D:\vigent_original\vigent-core\worker.py", line 1098, in _process_frame
+    for rule, level, note, subject in fired:
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: not enough values to unpack (expected 4, got 3)
+
+2026-09-09 23:01:21,517 [ERROR] vigent.worker: 워커 '파일럿모의3'(D:\vigent_private_data\runs\rfdetr\accident\KakaoTalk_20260807_000552920.mp4) 프레임 처리 예외 — 계속 진행
+Traceback (most recent call last):
+  File "D:\vigent_original\vigent-core\worker.py", line 1098, in _process_frame
+    for rule, level, note, subject in fired:
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: not enough values to unpack (expected 4, got 3)
+
+2026-09-09 23:01:48,131 [ERROR] vigent.worker: 워커 '파일럿모의4'(D:\vigent_private_data\runs\rfdetr\accident\KakaoTalk_20260807_000601541.mp4) 프레임 처리 예외 — 계속 진행
+Traceback (most recent call last):
+  File "D:\vigent_original\vigent-core\worker.py", line 1098, in _process_frame
+    for rule, level, note, subject in fired:
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: not enough values to unpack (expected 4, got 3)
+
+2026-09-09 23:02:14,646 [ERROR] vigent.worker: 워커 '파일럿모의4'(D:\vigent_private_data\runs\rfdetr\accident\KakaoTalk_20260807_000601541.mp4) 프레임 처리 예외 — 계속 진행
+Traceback (most recent call last):
+  File "D:\vigent_original\vigent-core\worker.py", line 1098, in _process_frame
+    for rule, level, note, subject in fired:
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: not enough values to unpack (expected 4, got 3)
+
+2026-09-09 23:02:17,656 [ERROR] vigent.worker: 워커 '파일럿모의4'(D:\vigent_private_data\runs\rfdetr\accident\KakaoTalk_20260807_000601541.mp4) 프레임 처리 예외 — 계속 진행
+Traceback (most recent call last):
+  File "D:\vigent_original\vigent-core\worker.py", line 1098, in _process_frame
+    for rule, level, note, subject in fired:
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: not enough values to unpack (expected 4, got 3)
+
+2026-09-09 23:03:17,316 [ERROR] vigent.worker: 워커 '파일럿모의1'(D:\vigent_private_data\runs\rfdetr\accident\KakaoTalk_20260807_000438282.mp4) 프레임 처리 예외 — 계속 진행
+Traceback (most recent call last):
+  File "D:\vigent_original\vigent-core\worker.py", line 1098, in _process_frame
+    for rule, level, note, subject in fired:
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: not enough values to unpack (expected 4, got 3)
+
+2026-09-09 23:03:32,826 [ERROR] vigent.worker: 워커 '파일럿모의1'(D:\vigent_private_data\runs\rfdetr\accident\KakaoTalk_20260807_000438282.mp4) 프레임 처리 예외 — 계속 진행
+Traceback (most recent call last):
+  File "D:\vigent_original\vigent-core\worker.py", line 1098, in _process_frame
+    for rule, level, note, subject in fired:
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: not enough values to unpack (expected 4, got 3)
+
+2026-09-09 23:03:37,850 [ERROR] vigent.worker: 워커 '파일럿모의1'(D:\vigent_private_data\runs\rfdetr\accident\KakaoTalk_20260807_000438282.mp4) 프레임 처리 예외 — 계속 진행
+Traceback (most recent call last):
+  File "D:\vigent_original\vigent-core\worker.py", line 1098, in _process_frame
+    for rule, level, note, subject in fired:
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: not enough values to unpack (expected 4, got 3)
+
+2026-09-09 23:03:50,854 [ERROR] vigent.worker: 워커 '파일럿모의1'(D:\vigent_private_data\runs\rfdetr\accident\KakaoTalk_20260807_000438282.mp4) 프레임 처리 예외 — 계속 진행
+Traceback (most recent call last):
+  File "D:\vigent_original\vigent-core\worker.py", line 1098, in _process_frame
+    for rule, level, note, subject in fired:
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: not enough values to unpack (expected 4, got 3)
+
+2026-09-09 23:03:52,876 [ERROR] vigent.worker: 워커 '파일럿모의1'(D:\vigent_private_data\runs\rfdetr\accident\KakaoTalk_20260807_000438282.mp4) 프레임 처리 예외 — 계속 진행
+Traceback (most recent call last):
+  File "D:\vigent_original\vigent-core\worker.py", line 1098, in _process_frame
+    for rule, level, note, subject in fired:
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: not enough values to unpack (expected 4, got 3)
+
+2026-09-09 23:04:00,810 [ERROR] vigent.worker: 워커 '파일럿모의4'(D:\vigent_private_data\runs\rfdetr\accident\KakaoTalk_20260807_000601541.mp4) 프레임 처리 예외 — 계속 진행
+Traceback (most recent call last):
+  File "D:\vigent_original\vigent-core\worker.py", line 1098, in _process_frame
+    for rule, level, note, subject in fired:
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: not enough values to unpack (expected 4, got 3)
+
+2026-09-09 23:04:11,536 [ERROR] vigent.worker: 워커 '파일럿모의2'(D:\vigent_private_data\runs\rfdetr\accident\KakaoTalk_20260807_000442974.mp4) 프레임 처리 예외 — 계속 진행
+Traceback (most recent call last):
+  File "D:\vigent_original\vigent-core\worker.py", line 1098, in _process_frame
+    for rule, level, note, subject in fired:
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: not enough values to unpack (expected 4, got 3)
+
+2026-09-09 23:04:18,886 [ERROR] vigent.worker: 워커 '파일럿모의1'(D:\vigent_private_data\runs\rfdetr\accident\KakaoTalk_20260807_000438282.mp4) 프레임 처리 예외 — 계속 진행
+Traceback (most recent call last):
+  File "D:\vigent_original\vigent-core\worker.py", line 1098, in _process_frame
+    for rule, level, note, subject in fired:
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: not enough values to unpack (expected 4, got 3)
+
+2026-09-09 23:04:27,347 [ERROR] vigent.worker: 워커 '파일럿모의4'(D:\vigent_private_data\runs\rfdetr\accident\KakaoTalk_20260807_000601541.mp4) 프레임 처리 예외 — 계속 진행
+Traceback (most recent call last):
+  File "D:\vigent_original\vigent-core\worker.py", line 1098, in _process_frame
+    for rule, level, note, subject in fired:
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: not enough values to unpack (expected 4, got 3)
+
+2026-09-09 23:04:30,356 [ERROR] vigent.worker: 워커 '파일럿모의4'(D:\vigent_private_data\runs\rfdetr\accident\KakaoTalk_20260807_000601541.mp4) 프레임 처리 예외 — 계속 진행
+Traceback (most recent call last):
+  File "D:\vigent_original\vigent-core\worker.py", line 1098, in _process_frame
+    for rule, level, note, subject in fired:
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: not enough values to unpack (expected 4, got 3)
+
+2026-09-09 23:04:31,406 [ERROR] vigent.worker: 워커 '파일럿모의1'(D:\vigent_private_data\runs\rfdetr\accident\KakaoTalk_20260807_000438282.mp4) 프레임 처리 예외 — 계속 진행
+Traceback (most recent call last):
+  File "D:\vigent_original\vigent-core\worker.py", line 1098, in _process_frame
+    for rule, level, note, subject in fired:
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: not enough values to unpack (expected 4, got 3)
+
+2026-09-09 23:04:47,953 [ERROR] vigent.worker: 워커 '파일럿모의1'(D:\vigent_private_data\runs\rfdetr\accident\KakaoTalk_20260807_000438282.mp4) 프레임 처리 예외 — 계속 진행
+Traceback (most recent call last):
+  File "D:\vigent_original\vigent-core\worker.py", line 1098, in _process_frame
+    for rule, level, note, subject in fired:
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: not enough values to unpack (expected 4, got 3)
+
+2026-09-09 23:04:56,962 [ERROR] vigent.worker: 워커 '파일럿모의1'(D:\vigent_private_data\runs\rfdetr\accident\KakaoTalk_20260807_000438282.mp4) 프레임 처리 예외 — 계속 진행
+Traceback (most recent call last):
+  File "D:\vigent_original\vigent-core\worker.py", line 1098, in _process_frame
+    for rule, level, note, subject in fired:
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: not enough values to unpack (expected 4, got 3)
+
+2026-09-09 23:05:00,974 [ERROR] vigent.worker: 워커 '파일럿모의1'(D:\vigent_private_data\runs\rfdetr\accident\KakaoTalk_20260807_000438282.mp4) 프레임 처리 예외 — 계속 진행
+Traceback (most recent call last):
+  File "D:\vigent_original\vigent-core\worker.py", line 1098, in _process_frame
+    for rule, level, note, subject in fired:
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: not enough values to unpack (expected 4, got 3)
+
+2026-09-09 23:05:11,354 [ERROR] vigent.worker: 워커 '파일럿모의3'(D:\vigent_private_data\runs\rfdetr\accident\KakaoTalk_20260807_000552920.mp4) 프레임 처리 예외 — 계속 진행
+Traceback (most recent call last):
+  File "D:\vigent_original\vigent-core\worker.py", line 1098, in _process_frame
+    for rule, level, note, subject in fired:
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: not enough values to unpack (expected 4, got 3)
+
+2026-09-09 23:05:17,985 [ERROR] vigent.worker: 워커 '파일럿모의1'(D:\vigent_private_data\runs\rfdetr\accident\KakaoTalk_20260807_000438282.mp4) 프레임 처리 예외 — 계속 진행
+Traceback (most recent call last):
+  File "D:\vigent_original\vigent-core\worker.py", line 1098, in _process_frame
+    for rule, level, note, subject in fired:
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: not enough values to unpack (expected 4, got 3)
+
+2026-09-09 23:06:13,536 [ERROR] vigent.worker: 워커 '파일럿모의4'(D:\vigent_private_data\runs\rfdetr\accident\KakaoTalk_20260807_000601541.mp4) 프레임 처리 예외 — 계속 진행
+Traceback (most recent call last):
+  File "D:\vigent_original\vigent-core\worker.py", line 1098, in _process_frame
+    for rule, level, note, subject in fired:
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: not enough values to unpack (expected 4, got 3)
+
+2026-09-09 23:06:40,054 [ERROR] vigent.worker: 워커 '파일럿모의4'(D:\vigent_private_data\runs\rfdetr\accident\KakaoTalk_20260807_000601541.mp4) 프레임 처리 예외 — 계속 진행
+Traceback (most recent call last):
+  File "D:\vigent_original\vigent-core\worker.py", line 1098, in _process_frame
+    for rule, level, note, subject in fired:
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: not enough values to unpack (expected 4, got 3)
+
+2026-09-09 23:06:43,068 [ERROR] vigent.worker: 워커 '파일럿모의4'(D:\vigent_private_data\runs\rfdetr\accident\KakaoTalk_20260807_000601541.mp4) 프레임 처리 예외 — 계속 진행
+Traceback (most recent call last):
+  File "D:\vigent_original\vigent-core\worker.py", line 1098, in _process_frame
+    for rule, level, note, subject in fired:
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: not enough values to unpack (expected 4, got 3)
+
+2026-09-09 23:07:26,184 [ERROR] vigent.worker: 워커 '파일럿모의1'(D:\vigent_private_data\runs\rfdetr\accident\KakaoTalk_20260807_000438282.mp4) 프레임 처리 예외 — 계속 진행
+Traceback (most recent call last):
+  File "D:\vigent_original\vigent-core\worker.py", line 1098, in _process_frame
+    for rule, level, note, subject in fired:
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: not enough values to unpack (expected 4, got 3)
+
+2026-09-09 23:07:31,319 [ERROR] vigent.worker: 워커 '파일럿모의2'(D:\vigent_private_data\runs\rfdetr\accident\KakaoTalk_20260807_000442974.mp4) 프레임 처리 예외 — 계속 진행
+Traceback (most recent call last):
+  File "D:\vigent_original\vigent-core\worker.py", line 1098, in _process_frame
+    for rule, level, note, subject in fired:
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: not enough values to unpack (expected 4, got 3)
+
+2026-09-09 23:07:41,703 [ERROR] vigent.worker: 워커 '파일럿모의1'(D:\vigent_private_data\runs\rfdetr\accident\KakaoTalk_20260807_000438282.mp4) 프레임 처리 예외 — 계속 진행
+Traceback (most recent call last):
+  File "D:\vigent_original\vigent-core\worker.py", line 1098, in _process_frame
+    for rule, level, note, subject in fired:
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: not enough values to unpack (expected 4, got 3)
+
+2026-09-09 23:07:46,724 [ERROR] vigent.worker: 워커 '파일럿모의1'(D:\vigent_private_data\runs\rfdetr\accident\KakaoTalk_20260807_000438282.mp4) 프레임 처리 예외 — 계속 진행
+Traceback (most recent call last):
+  File "D:\vigent_original\vigent-core\worker.py", line 1098, in _process_frame
+    for rule, level, note, subject in fired:
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: not enough values to unpack (expected 4, got 3)
+
+2026-09-09 23:07:59,740 [ERROR] vigent.worker: 워커 '파일럿모의1'(D:\vigent_private_data\runs\rfdetr\accident\KakaoTalk_20260807_000438282.mp4) 프레임 처리 예외 — 계속 진행
+Traceback (most recent call last):
+  File "D:\vigent_original\vigent-core\worker.py", line 1098, in _process_frame
+    for rule, level, note, subject in fired:
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: not enough values to unpack (expected 4, got 3)
+
+2026-09-09 23:08:01,753 [ERROR] vigent.worker: 워커 '파일럿모의1'(D:\vigent_private_data\runs\rfdetr\accident\KakaoTalk_20260807_000438282.mp4) 프레임 처리 예외 — 계속 진행
+Traceback (most recent call last):
+  File "D:\vigent_original\vigent-core\worker.py", line 1098, in _process_frame
+    for rule, level, note, subject in fired:
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: not enough values to unpack (expected 4, got 3)
+
+2026-09-09 23:08:19,451 [ERROR] vigent.worker: 워커 '파일럿모의3' HANG 감지(15.9s 무진전 > 15s) → 재기동
+2026-09-09 23:08:26,487 [ERROR] vigent.worker: 워커 '파일럿모의2' HANG 감지(15.6s 무진전 > 15s) → 재기동
+2026-09-09 23:08:29,520 [ERROR] vigent.worker: 워커 '파일럿모의1' HANG 감지(15.3s 무진전 > 15s) → 재기동
+2026-09-09 23:08:32,370 [WARNING] vigent.worker: 워커 '파일럿모의3' HANG 재시작 #1 (즉시)
+2026-09-09 23:08:32,761 [WARNING] vigent.worker: 워커 '파일럿모의2' HANG 재시작 #1 (즉시)
+2026-09-09 23:08:32,870 [WARNING] vigent.worker: 워커 '파일럿모의1' HANG 재시작 #1 (즉시)
+2026-09-09 23:08:32,915 [ERROR] vigent.worker: 워커 '파일럿모의4'(D:\vigent_private_data\runs\rfdetr\accident\KakaoTalk_20260807_000601541.mp4) 프레임 처리 예외 — 계속 진행
+Traceback (most recent call last):
+  File "D:\vigent_original\vigent-core\worker.py", line 1098, in _process_frame
+    for rule, level, note, subject in fired:
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: not enough values to unpack (expected 4, got 3)
+
+2026-09-09 23:08:33,388 [ERROR] vigent.worker: 워커 '파일럿모의3' HANG 감지(29.8s 무진전 > 15s) → 재기동
+2026-09-09 23:08:33,418 [WARNING] vigent.worker: 카메라 '파일럿모의3' 위험구역 미설정 — **침입 판정을 하지 않는다**. 구역을 그리려면 /safety-hub 에서 카메라별로 설정하라.
+2026-09-09 23:08:33,426 [WARNING] vigent.worker: 워커 '파일럿모의3' HANG 재시작 #2 (즉시)
+2026-09-09 23:08:33,767 [WARNING] vigent.worker: 카메라 '파일럿모의2' 위험구역 미설정 — **침입 판정을 하지 않는다**. 구역을 그리려면 /safety-hub 에서 카메라별로 설정하라.
+2026-09-09 23:08:33,879 [WARNING] vigent.worker: 카메라 '파일럿모의1' 위험구역 미설정 — **침입 판정을 하지 않는다**. 구역을 그리려면 /safety-hub 에서 카메라별로 설정하라.
+2026-09-09 23:08:34,437 [WARNING] vigent.worker: 카메라 '파일럿모의3' 위험구역 미설정 — **침입 판정을 하지 않는다**. 구역을 그리려면 /safety-hub 에서 카메라별로 설정하라.
+2026-09-09 23:08:37,483 [ERROR] vigent.worker: 워커 '파일럿모의1'(D:\vigent_private_data\runs\rfdetr\accident\KakaoTalk_20260807_000438282.mp4) 프레임 처리 예외 — 계속 진행
+Traceback (most recent call last):
+  File "D:\vigent_original\vigent-core\worker.py", line 1098, in _process_frame
+    for rule, level, note, subject in fired:
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: not enough values to unpack (expected 4, got 3)
+
+2026-09-09 23:08:52,493 [ERROR] vigent.worker: 워커 '파일럿모의1'(D:\vigent_private_data\runs\rfdetr\accident\KakaoTalk_20260807_000438282.mp4) 프레임 처리 예외 — 계속 진행
+Traceback (most recent call last):
+  File "D:\vigent_original\vigent-core\worker.py", line 1098, in _process_frame
+    for rule, level, note, subject in fired:
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: not enough values to unpack (expected 4, got 3)
+
+2026-09-09 23:09:01,002 [ERROR] vigent.worker: 워커 '파일럿모의1'(D:\vigent_private_data\runs\rfdetr\accident\KakaoTalk_20260807_000438282.mp4) 프레임 처리 예외 — 계속 진행
+Traceback (most recent call last):
+  File "D:\vigent_original\vigent-core\worker.py", line 1098, in _process_frame
+    for rule, level, note, subject in fired:
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: not enough values to unpack (expected 4, got 3)
+
+2026-09-09 23:09:01,463 [ERROR] vigent.worker: 워커 '파일럿모의4'(D:\vigent_private_data\runs\rfdetr\accident\KakaoTalk_20260807_000601541.mp4) 프레임 처리 예외 — 계속 진행
+Traceback (most recent call last):
+  File "D:\vigent_original\vigent-core\worker.py", line 1098, in _process_frame
+    for rule, level, note, subject in fired:
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: not enough values to unpack (expected 4, got 3)
+
+2026-09-09 23:09:04,467 [ERROR] vigent.worker: 워커 '파일럿모의4'(D:\vigent_private_data\runs\rfdetr\accident\KakaoTalk_20260807_000601541.mp4) 프레임 처리 예외 — 계속 진행
+Traceback (most recent call last):
+  File "D:\vigent_original\vigent-core\worker.py", line 1098, in _process_frame
+    for rule, level, note, subject in fired:
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: not enough values to unpack (expected 4, got 3)
+
+2026-09-09 23:09:05,008 [ERROR] vigent.worker: 워커 '파일럿모의1'(D:\vigent_private_data\runs\rfdetr\accident\KakaoTalk_20260807_000438282.mp4) 프레임 처리 예외 — 계속 진행
+Traceback (most recent call last):
+  File "D:\vigent_original\vigent-core\worker.py", line 1098, in _process_frame
+    for rule, level, note, subject in fired:
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: not enough values to unpack (expected 4, got 3)
+
+2026-09-09 23:09:22,060 [ERROR] vigent.worker: 워커 '파일럿모의1'(D:\vigent_private_data\runs\rfdetr\accident\KakaoTalk_20260807_000438282.mp4) 프레임 처리 예외 — 계속 진행
+Traceback (most recent call last):
+  File "D:\vigent_original\vigent-core\worker.py", line 1098, in _process_frame
+    for rule, level, note, subject in fired:
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: not enough values to unpack (expected 4, got 3)
+
+2026-09-09 23:09:49,922 [ERROR] vigent.worker: 워커 '파일럿모의2'(D:\vigent_private_data\runs\rfdetr\accident\KakaoTalk_20260807_000442974.mp4) 프레임 처리 예외 — 계속 진행
+Traceback (most recent call last):
+  File "D:\vigent_original\vigent-core\worker.py", line 1098, in _process_frame
+    for rule, level, note, subject in fired:
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: not enough values to unpack (expected 4, got 3)
+
+2026-09-09 23:09:52,117 [ERROR] vigent.dispatcher: ★통보 설정 오류(telegram HTTP 401) — 재시도하지 않는다. 토큰·chat_id·URL 을 확인하라
+2026-09-09 23:09:52,223 [INFO] vigent.alert_notify: 경보 즉시 전송 미도달 — 재시도 큐로 이월: [파일럿모의1] 보호구 미착용 감지(NO-Mask, NO-Safety-Vest) · 직전 통보 이후 동일 경보 80건 억제됨
+2026-09-09 23:09:54,243 [ERROR] vigent.dispatcher: ★통보 설정 오류(telegram HTTP 401) — 재시도하지 않는다. 토큰·chat_id·URL 을 확인하라
+2026-09-09 23:09:54,348 [ERROR] vigent.alert_queue: 경보 데드레터(설정 오류 — 재시도 안 함) id=213: config_error: [{'channel': 'telegram', 'sent': False, 'fallback': True, 'status': 401, 'config_error': True}, {'channel': 'email', 'sent': False, 'fallback': True, 'reason': 'SMTP 미설정'}, {'channel': '
+2026-09-09 23:09:56,735 [ERROR] vigent.dispatcher: ★통보 설정 오류(telegram HTTP 401) — 재시도하지 않는다. 토큰·chat_id·URL 을 확인하라
+2026-09-09 23:09:56,957 [INFO] vigent.alert_notify: 경보 즉시 전송 미도달 — 재시도 큐로 이월: [파일럿모의4] 보호구 미착용 감지(NO-Safety-Vest) · 직전 통보 이후 동일 경보 54건 억제됨
+2026-09-09 23:10:00,315 [ERROR] vigent.dispatcher: ★통보 설정 오류(telegram HTTP 401) — 재시도하지 않는다. 토큰·chat_id·URL 을 확인하라
+2026-09-09 23:10:00,424 [ERROR] vigent.alert_queue: 경보 데드레터(설정 오류 — 재시도 안 함) id=214: config_error: [{'channel': 'telegram', 'sent': False, 'fallback': True, 'status': 401, 'config_error': True}, {'channel': 'email', 'sent': False, 'fallback': True, 'reason': 'SMTP 미설정'}, {'channel': '
+2026-09-09 23:10:15,606 [ERROR] vigent.dispatcher: ★통보 설정 오류(telegram HTTP 401) — 재시도하지 않는다. 토큰·chat_id·URL 을 확인하라
+2026-09-09 23:10:15,741 [INFO] vigent.alert_notify: 경보 즉시 전송 미도달 — 재시도 큐로 이월: [파일럿모의2] 보호구 미착용 감지(NO-Safety-Vest) · 직전 통보 이후 동일 경보 68건 억제됨
+2026-09-09 23:10:16,472 [ERROR] vigent.dispatcher: ★통보 설정 오류(telegram HTTP 401) — 재시도하지 않는다. 토큰·chat_id·URL 을 확인하라
+2026-09-09 23:10:16,590 [ERROR] vigent.alert_queue: 경보 데드레터(설정 오류 — 재시도 안 함) id=215: config_error: [{'channel': 'telegram', 'sent': False, 'fallback': True, 'status': 401, 'config_error': True}, {'channel': 'email', 'sent': False, 'fallback': True, 'reason': 'SMTP 미설정'}, {'channel': '
+2026-09-09 23:10:20,147 [INFO] vigent.alert_notify: 경보 즉시 전송 미도달 — 재시도 큐로 이월: [파일럿모의1] 급격한 이동 감지 — 돌진·이상행동 · 직전 통보 이후 동일 경보 27건 억제됨
+2026-09-09 23:10:47,650 [ERROR] vigent.worker: 워커 '파일럿모의4'(D:\vigent_private_data\runs\rfdetr\accident\KakaoTalk_20260807_000601541.mp4) 프레임 처리 예외 — 계속 진행
+Traceback (most recent call last):
+  File "D:\vigent_original\vigent-core\worker.py", line 1098, in _process_frame
+    for rule, level, note, subject in fired:
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: not enough values to unpack (expected 4, got 3)
+
+2026-09-09 23:10:58,677 [INFO] vigent.alert_notify: 경보 즉시 전송 미도달 — 재시도 큐로 이월: [파일럿모의4] 급격한 이동 감지 — 돌진·이상행동 · 직전 통보 이후 동일 경보 8건 억제됨
+2026-09-09 23:11:01,377 [ERROR] vigent.dispatcher: ★통보 설정 오류(telegram HTTP 401) — 재시도하지 않는다. 토큰·chat_id·URL 을 확인하라
+2026-09-09 23:11:01,491 [INFO] vigent.alert_notify: 경보 즉시 전송 미도달 — 재시도 큐로 이월: [파일럿모의1] 화재/연기 감지 · 직전 통보 이후 동일 경보 41건 억제됨
+2026-09-09 23:11:02,652 [ERROR] vigent.dispatcher: ★통보 설정 오류(telegram HTTP 401) — 재시도하지 않는다. 토큰·chat_id·URL 을 확인하라
+2026-09-09 23:11:02,673 [ERROR] vigent.dispatcher: ★통보 설정 오류(telegram HTTP 401) — 재시도하지 않는다. 토큰·chat_id·URL 을 확인하라
+2026-09-09 23:11:02,775 [ERROR] vigent.alert_queue: 경보 데드레터(설정 오류 — 재시도 안 함) id=217: config_error: [{'channel': 'telegram', 'sent': False, 'fallback': True, 'status': 401, 'config_error': True}, {'channel': 'email', 'sent': False, 'fallback': True, 'reason': 'SMTP 미설정'}, {'channel': '
+2026-09-09 23:11:02,899 [INFO] vigent.alert_notify: 경보 즉시 전송 미도달 — 재시도 큐로 이월: [파일럿모의3] 보호구 미착용 감지(NO-Safety-Vest) · 직전 통보 이후 동일 경보 25건 억제됨
+2026-09-09 23:11:09,034 [ERROR] vigent.dispatcher: ★통보 설정 오류(telegram HTTP 401) — 재시도하지 않는다. 토큰·chat_id·URL 을 확인하라
+2026-09-09 23:11:09,167 [ERROR] vigent.alert_queue: 경보 데드레터(설정 오류 — 재시도 안 함) id=216: config_error: [{'channel': 'telegram', 'sent': False, 'fallback': True, 'status': 401, 'config_error': True}, {'channel': 'email', 'sent': False, 'fallback': True, 'reason': 'SMTP 미설정'}, {'channel': '
+2026-09-09 23:11:09,764 [ERROR] vigent.worker: 워커 '파일럿모의3'(D:\vigent_private_data\runs\rfdetr\accident\KakaoTalk_20260807_000552920.mp4) 프레임 처리 예외 — 계속 진행
+Traceback (most recent call last):
+  File "D:\vigent_original\vigent-core\worker.py", line 1098, in _process_frame
+    for rule, level, note, subject in fired:
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: not enough values to unpack (expected 4, got 3)
+
+2026-09-09 23:11:14,178 [ERROR] vigent.worker: 워커 '파일럿모의4'(D:\vigent_private_data\runs\rfdetr\accident\KakaoTalk_20260807_000601541.mp4) 프레임 처리 예외 — 계속 진행
+Traceback (most recent call last):
+  File "D:\vigent_original\vigent-core\worker.py", line 1098, in _process_frame
+    for rule, level, note, subject in fired:
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: not enough values to unpack (expected 4, got 3)
+
+2026-09-09 23:11:17,416 [ERROR] vigent.dispatcher: ★통보 설정 오류(telegram HTTP 401) — 재시도하지 않는다. 토큰·chat_id·URL 을 확인하라
+2026-09-09 23:11:17,557 [INFO] vigent.alert_notify: 경보 즉시 전송 미도달 — 재시도 큐로 이월: [파일럿모의3] truck 작업반경 침입 — 사람 약 1.7m · 직전 통보 이후 동일 경보 25건 억제됨
+2026-09-09 23:11:17,674 [ERROR] vigent.worker: 워커 '파일럿모의4'(D:\vigent_private_data\runs\rfdetr\accident\KakaoTalk_20260807_000601541.mp4) 프레임 처리 예외 — 계속 진행
+Traceback (most recent call last):
+  File "D:\vigent_original\vigent-core\worker.py", line 1098, in _process_frame
+    for rule, level, note, subject in fired:
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: not enough values to unpack (expected 4, got 3)
+
+2026-09-09 23:11:20,202 [ERROR] vigent.dispatcher: ★통보 설정 오류(telegram HTTP 401) — 재시도하지 않는다. 토큰·chat_id·URL 을 확인하라
+2026-09-09 23:11:20,300 [ERROR] vigent.alert_queue: 경보 데드레터(설정 오류 — 재시도 안 함) id=218: config_error: [{'channel': 'telegram', 'sent': False, 'fallback': True, 'status': 401, 'config_error': True}, {'channel': 'email', 'sent': False, 'fallback': True, 'reason': 'SMTP 미설정'}, {'channel': '
+2026-09-09 23:11:29,376 [ERROR] vigent.dispatcher: ★통보 설정 오류(telegram HTTP 401) — 재시도하지 않는다. 토큰·chat_id·URL 을 확인하라
+2026-09-09 23:11:29,491 [INFO] vigent.alert_notify: 경보 즉시 전송 미도달 — 재시도 큐로 이월: [파일럿모의4] 화재/연기 감지 · 직전 통보 이후 동일 경보 8건 억제됨
+2026-09-09 23:11:30,250 [ERROR] vigent.worker: 워커 '파일럿모의1'(D:\vigent_private_data\runs\rfdetr\accident\KakaoTalk_20260807_000438282.mp4) 프레임 처리 예외 — 계속 진행
+Traceback (most recent call last):
+  File "D:\vigent_original\vigent-core\worker.py", line 1098, in _process_frame
+    for rule, level, note, subject in fired:
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: not enough values to unpack (expected 4, got 3)
+
+2026-09-09 23:11:36,384 [ERROR] vigent.dispatcher: ★통보 설정 오류(telegram HTTP 401) — 재시도하지 않는다. 토큰·chat_id·URL 을 확인하라
+2026-09-09 23:11:36,491 [ERROR] vigent.alert_queue: 경보 데드레터(설정 오류 — 재시도 안 함) id=219: config_error: [{'channel': 'telegram', 'sent': False, 'fallback': True, 'status': 401, 'config_error': True}, {'channel': 'email', 'sent': False, 'fallback': True, 'reason': 'SMTP 미설정'}, {'channel': '
+2026-09-09 23:11:45,772 [ERROR] vigent.worker: 워커 '파일럿모의1'(D:\vigent_private_data\runs\rfdetr\accident\KakaoTalk_20260807_000438282.mp4) 프레임 처리 예외 — 계속 진행
+Traceback (most recent call last):
+  File "D:\vigent_original\vigent-core\worker.py", line 1098, in _process_frame
+    for rule, level, note, subject in fired:
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: not enough values to unpack (expected 4, got 3)
+
+2026-09-09 23:11:50,791 [ERROR] vigent.worker: 워커 '파일럿모의1'(D:\vigent_private_data\runs\rfdetr\accident\KakaoTalk_20260807_000438282.mp4) 프레임 처리 예외 — 계속 진행
+Traceback (most recent call last):
+  File "D:\vigent_original\vigent-core\worker.py", line 1098, in _process_frame
+    for rule, level, note, subject in fired:
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: not enough values to unpack (expected 4, got 3)
+
+2026-09-09 23:12:03,811 [ERROR] vigent.worker: 워커 '파일럿모의1'(D:\vigent_private_data\runs\rfdetr\accident\KakaoTalk_20260807_000438282.mp4) 프레임 처리 예외 — 계속 진행
+Traceback (most recent call last):
+  File "D:\vigent_original\vigent-core\worker.py", line 1098, in _process_frame
+    for rule, level, note, subject in fired:
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: not enough values to unpack (expected 4, got 3)
+
+2026-09-09 23:12:05,802 [ERROR] vigent.worker: 워커 '파일럿모의1'(D:\vigent_private_data\runs\rfdetr\accident\KakaoTalk_20260807_000438282.mp4) 프레임 처리 예외 — 계속 진행
+Traceback (most recent call last):
+  File "D:\vigent_original\vigent-core\worker.py", line 1098, in _process_frame
+    for rule, level, note, subject in fired:
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: not enough values to unpack (expected 4, got 3)
+
+2026-09-09 23:12:08,637 [INFO] vigent.alert_notify: 경보 즉시 전송 미도달 — 재시도 큐로 이월: [파일럿모의2] 급격한 이동 감지 — 돌진·이상행동 · 직전 통보 이후 동일 경보 17건 억제됨
+2026-09-09 23:12:23,414 [ERROR] vigent.dispatcher: ★통보 설정 오류(telegram HTTP 401) — 재시도하지 않는다. 토큰·chat_id·URL 을 확인하라
+2026-09-09 23:12:23,524 [INFO] vigent.alert_notify: 경보 즉시 전송 미도달 — 재시도 큐로 이월: [파일럿모의1] car 작업반경 침입 — 사람 약 0.0m · 직전 통보 이후 동일 경보 17건 억제됨
+2026-09-09 23:12:27,613 [ERROR] vigent.dispatcher: ★통보 설정 오류(telegram HTTP 401) — 재시도하지 않는다. 토큰·chat_id·URL 을 확인하라
+2026-09-09 23:12:27,726 [ERROR] vigent.alert_queue: 경보 데드레터(설정 오류 — 재시도 안 함) id=220: config_error: [{'channel': 'telegram', 'sent': False, 'fallback': True, 'status': 401, 'config_error': True}, {'channel': 'email', 'sent': False, 'fallback': True, 'reason': 'SMTP 미설정'}, {'channel': '
+2026-09-09 23:12:34,938 [ERROR] vigent.dispatcher: ★통보 설정 오류(telegram HTTP 401) — 재시도하지 않는다. 토큰·chat_id·URL 을 확인하라
+2026-09-09 23:12:35,067 [INFO] vigent.alert_notify: 경보 즉시 전송 미도달 — 재시도 큐로 이월: [파일럿모의3] 화재/연기 감지 · 직전 통보 이후 동일 경보 33건 억제됨
+2026-09-09 23:12:38,786 [ERROR] vigent.dispatcher: ★통보 설정 오류(telegram HTTP 401) — 재시도하지 않는다. 토큰·chat_id·URL 을 확인하라
+2026-09-09 23:12:38,901 [ERROR] vigent.alert_queue: 경보 데드레터(설정 오류 — 재시도 안 함) id=221: config_error: [{'channel': 'telegram', 'sent': False, 'fallback': True, 'status': 401, 'config_error': True}, {'channel': 'email', 'sent': False, 'fallback': True, 'reason': 'SMTP 미설정'}, {'channel': '
+2026-09-09 23:12:44,347 [ERROR] vigent.worker: 워커 '파일럿모의1'(D:\vigent_private_data\runs\rfdetr\accident\KakaoTalk_20260807_000438282.mp4) 프레임 처리 예외 — 계속 진행
+Traceback (most recent call last):
+  File "D:\vigent_original\vigent-core\worker.py", line 1098, in _process_frame
+    for rule, level, note, subject in fired:
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: not enough values to unpack (expected 4, got 3)
+
+2026-09-09 23:12:55,892 [INFO] vigent.alert_notify: 경보 즉시 전송 미도달 — 재시도 큐로 이월: [파일럿모의1] 인원 밀집 — 6명 감지 · 직전 통보 이후 동일 경보 4건 억제됨
+2026-09-09 23:13:00,346 [ERROR] vigent.worker: 워커 '파일럿모의4'(D:\vigent_private_data\runs\rfdetr\accident\KakaoTalk_20260807_000601541.mp4) 프레임 처리 예외 — 계속 진행
+Traceback (most recent call last):
+  File "D:\vigent_original\vigent-core\worker.py", line 1098, in _process_frame
+    for rule, level, note, subject in fired:
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: not enough values to unpack (expected 4, got 3)
+
+2026-09-09 23:13:01,384 [ERROR] vigent.worker: 워커 '파일럿모의1'(D:\vigent_private_data\runs\rfdetr\accident\KakaoTalk_20260807_000438282.mp4) 프레임 처리 예외 — 계속 진행
+Traceback (most recent call last):
+  File "D:\vigent_original\vigent-core\worker.py", line 1098, in _process_frame
+    for rule, level, note, subject in fired:
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: not enough values to unpack (expected 4, got 3)
+
+2026-09-09 23:13:09,723 [ERROR] vigent.worker: 워커 '파일럿모의2'(D:\vigent_private_data\runs\rfdetr\accident\KakaoTalk_20260807_000442974.mp4) 프레임 처리 예외 — 계속 진행
+Traceback (most recent call last):
+  File "D:\vigent_original\vigent-core\worker.py", line 1098, in _process_frame
+    for rule, level, note, subject in fired:
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: not enough values to unpack (expected 4, got 3)
+
+2026-09-09 23:13:09,905 [ERROR] vigent.worker: 워커 '파일럿모의1'(D:\vigent_private_data\runs\rfdetr\accident\KakaoTalk_20260807_000438282.mp4) 프레임 처리 예외 — 계속 진행
+Traceback (most recent call last):
+  File "D:\vigent_original\vigent-core\worker.py", line 1098, in _process_frame
+    for rule, level, note, subject in fired:
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: not enough values to unpack (expected 4, got 3)
+
+2026-09-09 23:13:13,905 [ERROR] vigent.worker: 워커 '파일럿모의1'(D:\vigent_private_data\runs\rfdetr\accident\KakaoTalk_20260807_000438282.mp4) 프레임 처리 예외 — 계속 진행
+Traceback (most recent call last):
+  File "D:\vigent_original\vigent-core\worker.py", line 1098, in _process_frame
+    for rule, level, note, subject in fired:
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: not enough values to unpack (expected 4, got 3)
+
+2026-09-09 23:13:26,879 [ERROR] vigent.worker: 워커 '파일럿모의4'(D:\vigent_private_data\runs\rfdetr\accident\KakaoTalk_20260807_000601541.mp4) 프레임 처리 예외 — 계속 진행
+Traceback (most recent call last):
+  File "D:\vigent_original\vigent-core\worker.py", line 1098, in _process_frame
+    for rule, level, note, subject in fired:
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: not enough values to unpack (expected 4, got 3)
+
+2026-09-09 23:13:29,884 [ERROR] vigent.worker: 워커 '파일럿모의4'(D:\vigent_private_data\runs\rfdetr\accident\KakaoTalk_20260807_000601541.mp4) 프레임 처리 예외 — 계속 진행
+Traceback (most recent call last):
+  File "D:\vigent_original\vigent-core\worker.py", line 1098, in _process_frame
+    for rule, level, note, subject in fired:
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: not enough values to unpack (expected 4, got 3)
+
+2026-09-09 23:13:30,933 [ERROR] vigent.worker: 워커 '파일럿모의1'(D:\vigent_private_data\runs\rfdetr\accident\KakaoTalk_20260807_000438282.mp4) 프레임 처리 예외 — 계속 진행
+Traceback (most recent call last):
+  File "D:\vigent_original\vigent-core\worker.py", line 1098, in _process_frame
+    for rule, level, note, subject in fired:
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: not enough values to unpack (expected 4, got 3)
+
+2026-09-09 23:14:07,967 [ERROR] vigent.dispatcher: ★통보 설정 오류(telegram HTTP 401) — 재시도하지 않는다. 토큰·chat_id·URL 을 확인하라
+2026-09-09 23:14:08,100 [INFO] vigent.alert_notify: 경보 즉시 전송 미도달 — 재시도 큐로 이월: [파일럿모의2] 화재/연기 감지 · 직전 통보 이후 동일 경보 10건 억제됨
+2026-09-09 23:14:10,048 [ERROR] vigent.dispatcher: ★통보 설정 오류(telegram HTTP 401) — 재시도하지 않는다. 토큰·chat_id·URL 을 확인하라
+2026-09-09 23:14:10,186 [ERROR] vigent.alert_queue: 경보 데드레터(설정 오류 — 재시도 안 함) id=222: config_error: [{'channel': 'telegram', 'sent': False, 'fallback': True, 'status': 401, 'config_error': True}, {'channel': 'email', 'sent': False, 'fallback': True, 'reason': 'SMTP 미설정'}, {'channel': '
+2026-09-09 23:14:59,622 [ERROR] vigent.worker: 워커 '파일럿모의3'(D:\vigent_private_data\runs\rfdetr\accident\KakaoTalk_20260807_000552920.mp4) 프레임 처리 예외 — 계속 진행
+Traceback (most recent call last):
+  File "D:\vigent_original\vigent-core\worker.py", line 1098, in _process_frame
+    for rule, level, note, subject in fired:
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: not enough values to unpack (expected 4, got 3)
+
+2026-09-09 23:15:13,052 [ERROR] vigent.worker: 워커 '파일럿모의4'(D:\vigent_private_data\runs\rfdetr\accident\KakaoTalk_20260807_000601541.mp4) 프레임 처리 예외 — 계속 진행
+Traceback (most recent call last):
+  File "D:\vigent_original\vigent-core\worker.py", line 1098, in _process_frame
+    for rule, level, note, subject in fired:
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: not enough values to unpack (expected 4, got 3)
+
+2026-09-09 23:15:39,145 [ERROR] vigent.worker: 워커 '파일럿모의1'(D:\vigent_private_data\runs\rfdetr\accident\KakaoTalk_20260807_000438282.mp4) 프레임 처리 예외 — 계속 진행
+Traceback (most recent call last):
+  File "D:\vigent_original\vigent-core\worker.py", line 1098, in _process_frame
+    for rule, level, note, subject in fired:
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: not enough values to unpack (expected 4, got 3)
+
+2026-09-09 23:15:39,598 [ERROR] vigent.worker: 워커 '파일럿모의4'(D:\vigent_private_data\runs\rfdetr\accident\KakaoTalk_20260807_000601541.mp4) 프레임 처리 예외 — 계속 진행
+Traceback (most recent call last):
+  File "D:\vigent_original\vigent-core\worker.py", line 1098, in _process_frame
+    for rule, level, note, subject in fired:
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: not enough values to unpack (expected 4, got 3)
+
+2026-09-09 23:15:42,618 [ERROR] vigent.worker: 워커 '파일럿모의4'(D:\vigent_private_data\runs\rfdetr\accident\KakaoTalk_20260807_000601541.mp4) 프레임 처리 예외 — 계속 진행
+Traceback (most recent call last):
+  File "D:\vigent_original\vigent-core\worker.py", line 1098, in _process_frame
+    for rule, level, note, subject in fired:
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: not enough values to unpack (expected 4, got 3)
+
+2026-09-09 23:15:49,174 [ERROR] vigent.dispatcher: ★통보 설정 오류(telegram HTTP 401) — 재시도하지 않는다. 토큰·chat_id·URL 을 확인하라
+2026-09-09 23:15:49,288 [INFO] vigent.alert_notify: 경보 즉시 전송 미도달 — 재시도 큐로 이월: [파일럿모의2] car 작업반경 침입 — 사람 약 1.1m · 직전 통보 이후 동일 경보 6건 억제됨
+2026-09-09 23:15:51,407 [ERROR] vigent.dispatcher: ★통보 설정 오류(telegram HTTP 401) — 재시도하지 않는다. 토큰·chat_id·URL 을 확인하라
+2026-09-09 23:15:51,553 [ERROR] vigent.alert_queue: 경보 데드레터(설정 오류 — 재시도 안 함) id=223: config_error: [{'channel': 'telegram', 'sent': False, 'fallback': True, 'status': 401, 'config_error': True}, {'channel': 'email', 'sent': False, 'fallback': True, 'reason': 'SMTP 미설정'}, {'channel': '
+2026-09-09 23:15:54,658 [ERROR] vigent.worker: 워커 '파일럿모의1'(D:\vigent_private_data\runs\rfdetr\accident\KakaoTalk_20260807_000438282.mp4) 프레임 처리 예외 — 계속 진행
+Traceback (most recent call last):
+  File "D:\vigent_original\vigent-core\worker.py", line 1098, in _process_frame
+    for rule, level, note, subject in fired:
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: not enough values to unpack (expected 4, got 3)
+
+2026-09-09 23:15:59,661 [ERROR] vigent.worker: 워커 '파일럿모의1'(D:\vigent_private_data\runs\rfdetr\accident\KakaoTalk_20260807_000438282.mp4) 프레임 처리 예외 — 계속 진행
+Traceback (most recent call last):
+  File "D:\vigent_original\vigent-core\worker.py", line 1098, in _process_frame
+    for rule, level, note, subject in fired:
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: not enough values to unpack (expected 4, got 3)
+
+2026-09-09 23:16:03,806 [ERROR] vigent.dispatcher: ★통보 설정 오류(telegram HTTP 401) — 재시도하지 않는다. 토큰·chat_id·URL 을 확인하라
+2026-09-09 23:16:03,921 [INFO] vigent.alert_notify: 경보 즉시 전송 미도달 — 재시도 큐로 이월: [파일럿모의3] 장시간 무동작 — 쓰러짐·실신 의심 · 직전 통보 이후 동일 경보 4건 억제됨
+2026-09-09 23:16:07,499 [ERROR] vigent.dispatcher: ★통보 설정 오류(telegram HTTP 401) — 재시도하지 않는다. 토큰·chat_id·URL 을 확인하라
+2026-09-09 23:16:07,621 [ERROR] vigent.alert_queue: 경보 데드레터(설정 오류 — 재시도 안 함) id=224: config_error: [{'channel': 'telegram', 'sent': False, 'fallback': True, 'status': 401, 'config_error': True}, {'channel': 'email', 'sent': False, 'fallback': True, 'reason': 'SMTP 미설정'}, {'channel': '
+2026-09-09 23:16:12,709 [ERROR] vigent.worker: 워커 '파일럿모의1'(D:\vigent_private_data\runs\rfdetr\accident\KakaoTalk_20260807_000438282.mp4) 프레임 처리 예외 — 계속 진행
+Traceback (most recent call last):
+  File "D:\vigent_original\vigent-core\worker.py", line 1098, in _process_frame
+    for rule, level, note, subject in fired:
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: not enough values to unpack (expected 4, got 3)
+
+2026-09-09 23:16:14,723 [ERROR] vigent.worker: 워커 '파일럿모의1'(D:\vigent_private_data\runs\rfdetr\accident\KakaoTalk_20260807_000438282.mp4) 프레임 처리 예외 — 계속 진행
+Traceback (most recent call last):
+  File "D:\vigent_original\vigent-core\worker.py", line 1098, in _process_frame
+    for rule, level, note, subject in fired:
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: not enough values to unpack (expected 4, got 3)
+
+2026-09-09 23:16:29,523 [ERROR] vigent.worker: 워커 '파일럿모의2'(D:\vigent_private_data\runs\rfdetr\accident\KakaoTalk_20260807_000442974.mp4) 프레임 처리 예외 — 계속 진행
+Traceback (most recent call last):
+  File "D:\vigent_original\vigent-core\worker.py", line 1098, in _process_frame
+    for rule, level, note, subject in fired:
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: not enough values to unpack (expected 4, got 3)
+
+2026-09-09 23:16:40,738 [ERROR] vigent.worker: 워커 '파일럿모의1'(D:\vigent_private_data\runs\rfdetr\accident\KakaoTalk_20260807_000438282.mp4) 프레임 처리 예외 — 계속 진행
+Traceback (most recent call last):
+  File "D:\vigent_original\vigent-core\worker.py", line 1098, in _process_frame
+    for rule, level, note, subject in fired:
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: not enough values to unpack (expected 4, got 3)
+
+2026-09-09 23:16:53,244 [ERROR] vigent.worker: 워커 '파일럿모의1'(D:\vigent_private_data\runs\rfdetr\accident\KakaoTalk_20260807_000438282.mp4) 프레임 처리 예외 — 계속 진행
+Traceback (most recent call last):
+  File "D:\vigent_original\vigent-core\worker.py", line 1098, in _process_frame
+    for rule, level, note, subject in fired:
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: not enough values to unpack (expected 4, got 3)
+
+2026-09-09 23:17:10,266 [ERROR] vigent.worker: 워커 '파일럿모의1'(D:\vigent_private_data\runs\rfdetr\accident\KakaoTalk_20260807_000438282.mp4) 프레임 처리 예외 — 계속 진행
+Traceback (most recent call last):
+  File "D:\vigent_original\vigent-core\worker.py", line 1098, in _process_frame
+    for rule, level, note, subject in fired:
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: not enough values to unpack (expected 4, got 3)
+
+2026-09-09 23:17:18,802 [ERROR] vigent.worker: 워커 '파일럿모의1'(D:\vigent_private_data\runs\rfdetr\accident\KakaoTalk_20260807_000438282.mp4) 프레임 처리 예외 — 계속 진행
+Traceback (most recent call last):
+  File "D:\vigent_original\vigent-core\worker.py", line 1098, in _process_frame
+    for rule, level, note, subject in fired:
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: not enough values to unpack (expected 4, got 3)
+
+2026-09-09 23:17:22,813 [ERROR] vigent.worker: 워커 '파일럿모의1'(D:\vigent_private_data\runs\rfdetr\accident\KakaoTalk_20260807_000438282.mp4) 프레임 처리 예외 — 계속 진행
+Traceback (most recent call last):
+  File "D:\vigent_original\vigent-core\worker.py", line 1098, in _process_frame
+    for rule, level, note, subject in fired:
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: not enough values to unpack (expected 4, got 3)
+
+2026-09-09 23:17:25,757 [ERROR] vigent.worker: 워커 '파일럿모의4'(D:\vigent_private_data\runs\rfdetr\accident\KakaoTalk_20260807_000601541.mp4) 프레임 처리 예외 — 계속 진행
+Traceback (most recent call last):
+  File "D:\vigent_original\vigent-core\worker.py", line 1098, in _process_frame
+    for rule, level, note, subject in fired:
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: not enough values to unpack (expected 4, got 3)
+
+2026-09-09 23:17:39,814 [ERROR] vigent.worker: 워커 '파일럿모의1'(D:\vigent_private_data\runs\rfdetr\accident\KakaoTalk_20260807_000438282.mp4) 프레임 처리 예외 — 계속 진행
+Traceback (most recent call last):
+  File "D:\vigent_original\vigent-core\worker.py", line 1098, in _process_frame
+    for rule, level, note, subject in fired:
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: not enough values to unpack (expected 4, got 3)
+
+2026-09-09 23:17:52,301 [ERROR] vigent.worker: 워커 '파일럿모의4'(D:\vigent_private_data\runs\rfdetr\accident\KakaoTalk_20260807_000601541.mp4) 프레임 처리 예외 — 계속 진행
+Traceback (most recent call last):
+  File "D:\vigent_original\vigent-core\worker.py", line 1098, in _process_frame
+    for rule, level, note, subject in fired:
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: not enough values to unpack (expected 4, got 3)
+
+2026-09-09 23:17:55,293 [ERROR] vigent.worker: 워커 '파일럿모의4'(D:\vigent_private_data\runs\rfdetr\accident\KakaoTalk_20260807_000601541.mp4) 프레임 처리 예외 — 계속 진행
+Traceback (most recent call last):
+  File "D:\vigent_original\vigent-core\worker.py", line 1098, in _process_frame
+    for rule, level, note, subject in fired:
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: not enough values to unpack (expected 4, got 3)
+
+2026-09-09 23:17:59,803 [ERROR] vigent.worker: 워커 '파일럿모의4'(D:\vigent_private_data\runs\rfdetr\accident\KakaoTalk_20260807_000601541.mp4) 프레임 처리 예외 — 계속 진행
+Traceback (most recent call last):
+  File "D:\vigent_original\vigent-core\worker.py", line 1098, in _process_frame
+    for rule, level, note, subject in fired:
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: not enough values to unpack (expected 4, got 3)
+
+2026-09-09 23:18:49,463 [ERROR] vigent.worker: 워커 '파일럿모의3'(D:\vigent_private_data\runs\rfdetr\accident\KakaoTalk_20260807_000552920.mp4) 프레임 처리 예외 — 계속 진행
+Traceback (most recent call last):
+  File "D:\vigent_original\vigent-core\worker.py", line 1098, in _process_frame
+    for rule, level, note, subject in fired:
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: not enough values to unpack (expected 4, got 3)
+
+2026-09-09 23:19:38,966 [ERROR] vigent.worker: 워커 '파일럿모의4'(D:\vigent_private_data\runs\rfdetr\accident\KakaoTalk_20260807_000601541.mp4) 프레임 처리 예외 — 계속 진행
+Traceback (most recent call last):
+  File "D:\vigent_original\vigent-core\worker.py", line 1098, in _process_frame
+    for rule, level, note, subject in fired:
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: not enough values to unpack (expected 4, got 3)
+
+2026-09-09 23:19:48,058 [ERROR] vigent.worker: 워커 '파일럿모의1'(D:\vigent_private_data\runs\rfdetr\accident\KakaoTalk_20260807_000438282.mp4) 프레임 처리 예외 — 계속 진행
+Traceback (most recent call last):
+  File "D:\vigent_original\vigent-core\worker.py", line 1098, in _process_frame
+    for rule, level, note, subject in fired:
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: not enough values to unpack (expected 4, got 3)
+
+2026-09-09 23:19:49,344 [ERROR] vigent.worker: 워커 '파일럿모의2'(D:\vigent_private_data\runs\rfdetr\accident\KakaoTalk_20260807_000442974.mp4) 프레임 처리 예외 — 계속 진행
+Traceback (most recent call last):
+  File "D:\vigent_original\vigent-core\worker.py", line 1098, in _process_frame
+    for rule, level, note, subject in fired:
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: not enough values to unpack (expected 4, got 3)
+
+2026-09-09 23:20:04,060 [ERROR] vigent.worker: 워커 '파일럿모의1'(D:\vigent_private_data\runs\rfdetr\accident\KakaoTalk_20260807_000438282.mp4) 프레임 처리 예외 — 계속 진행
+Traceback (most recent call last):
+  File "D:\vigent_original\vigent-core\worker.py", line 1098, in _process_frame
+    for rule, level, note, subject in fired:
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: not enough values to unpack (expected 4, got 3)
+
+2026-09-09 23:20:05,528 [ERROR] vigent.worker: 워커 '파일럿모의4'(D:\vigent_private_data\runs\rfdetr\accident\KakaoTalk_20260807_000601541.mp4) 프레임 처리 예외 — 계속 진행
+Traceback (most recent call last):
+  File "D:\vigent_original\vigent-core\worker.py", line 1098, in _process_frame
+    for rule, level, note, subject in fired:
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: not enough values to unpack (expected 4, got 3)
+
+2026-09-09 23:20:07,574 [ERROR] vigent.worker: 워커 '파일럿모의1'(D:\vigent_private_data\runs\rfdetr\accident\KakaoTalk_20260807_000438282.mp4) 프레임 처리 예외 — 계속 진행
+Traceback (most recent call last):
+  File "D:\vigent_original\vigent-core\worker.py", line 1098, in _process_frame
+    for rule, level, note, subject in fired:
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: not enough values to unpack (expected 4, got 3)
+
+2026-09-09 23:20:08,023 [ERROR] vigent.worker: 워커 '파일럿모의4'(D:\vigent_private_data\runs\rfdetr\accident\KakaoTalk_20260807_000601541.mp4) 프레임 처리 예외 — 계속 진행
+Traceback (most recent call last):
+  File "D:\vigent_original\vigent-core\worker.py", line 1098, in _process_frame
+    for rule, level, note, subject in fired:
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: not enough values to unpack (expected 4, got 3)
+
+2026-09-09 23:20:21,626 [ERROR] vigent.worker: 워커 '파일럿모의1'(D:\vigent_private_data\runs\rfdetr\accident\KakaoTalk_20260807_000438282.mp4) 프레임 처리 예외 — 계속 진행
+Traceback (most recent call last):
+  File "D:\vigent_original\vigent-core\worker.py", line 1098, in _process_frame
+    for rule, level, note, subject in fired:
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: not enough values to unpack (expected 4, got 3)
+
+2026-09-09 23:20:23,587 [ERROR] vigent.worker: 워커 '파일럿모의1'(D:\vigent_private_data\runs\rfdetr\accident\KakaoTalk_20260807_000438282.mp4) 프레임 처리 예외 — 계속 진행
+Traceback (most recent call last):
+  File "D:\vigent_original\vigent-core\worker.py", line 1098, in _process_frame
+    for rule, level, note, subject in fired:
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: not enough values to unpack (expected 4, got 3)
+
+2026-09-09 23:20:49,616 [ERROR] vigent.worker: 워커 '파일럿모의1'(D:\vigent_private_data\runs\rfdetr\accident\KakaoTalk_20260807_000438282.mp4) 프레임 처리 예외 — 계속 진행
+Traceback (most recent call last):
+  File "D:\vigent_original\vigent-core\worker.py", line 1098, in _process_frame
+    for rule, level, note, subject in fired:
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: not enough values to unpack (expected 4, got 3)
+
+2026-09-09 23:21:02,158 [ERROR] vigent.worker: 워커 '파일럿모의1'(D:\vigent_private_data\runs\rfdetr\accident\KakaoTalk_20260807_000438282.mp4) 프레임 처리 예외 — 계속 진행
+Traceback (most recent call last):
+  File "D:\vigent_original\vigent-core\worker.py", line 1098, in _process_frame
+    for rule, level, note, subject in fired:
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: not enough values to unpack (expected 4, got 3)
+
+2026-09-09 23:21:18,683 [ERROR] vigent.worker: 워커 '파일럿모의1'(D:\vigent_private_data\runs\rfdetr\accident\KakaoTalk_20260807_000438282.mp4) 프레임 처리 예외 — 계속 진행
+Traceback (most recent call last):
+  File "D:\vigent_original\vigent-core\worker.py", line 1098, in _process_frame
+    for rule, level, note, subject in fired:
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: not enough values to unpack (expected 4, got 3)
+
+2026-09-09 23:21:27,688 [ERROR] vigent.worker: 워커 '파일럿모의1'(D:\vigent_private_data\runs\rfdetr\accident\KakaoTalk_20260807_000438282.mp4) 프레임 처리 예외 — 계속 진행
+Traceback (most recent call last):
+  File "D:\vigent_original\vigent-core\worker.py", line 1098, in _process_frame
+    for rule, level, note, subject in fired:
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: not enough values to unpack (expected 4, got 3)
+
+2026-09-09 23:21:32,183 [ERROR] vigent.worker: 워커 '파일럿모의1'(D:\vigent_private_data\runs\rfdetr\accident\KakaoTalk_20260807_000438282.mp4) 프레임 처리 예외 — 계속 진행
+Traceback (most recent call last):
+  File "D:\vigent_original\vigent-core\worker.py", line 1098, in _process_frame
+    for rule, level, note, subject in fired:
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: not enough values to unpack (expected 4, got 3)
+
+2026-09-09 23:21:48,718 [ERROR] vigent.worker: 워커 '파일럿모의1'(D:\vigent_private_data\runs\rfdetr\accident\KakaoTalk_20260807_000438282.mp4) 프레임 처리 예외 — 계속 진행
+Traceback (most recent call last):
+  File "D:\vigent_original\vigent-core\worker.py", line 1098, in _process_frame
+    for rule, level, note, subject in fired:
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: not enough values to unpack (expected 4, got 3)
+
+2026-09-09 23:21:51,182 [ERROR] vigent.worker: 워커 '파일럿모의4'(D:\vigent_private_data\runs\rfdetr\accident\KakaoTalk_20260807_000601541.mp4) 프레임 처리 예외 — 계속 진행
+Traceback (most recent call last):
+  File "D:\vigent_original\vigent-core\worker.py", line 1098, in _process_frame
+    for rule, level, note, subject in fired:
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: not enough values to unpack (expected 4, got 3)
+
+2026-09-09 23:22:17,720 [ERROR] vigent.worker: 워커 '파일럿모의4'(D:\vigent_private_data\runs\rfdetr\accident\KakaoTalk_20260807_000601541.mp4) 프레임 처리 예외 — 계속 진행
+Traceback (most recent call last):
+  File "D:\vigent_original\vigent-core\worker.py", line 1098, in _process_frame
+    for rule, level, note, subject in fired:
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: not enough values to unpack (expected 4, got 3)
+
+2026-09-09 23:22:20,717 [ERROR] vigent.worker: 워커 '파일럿모의4'(D:\vigent_private_data\runs\rfdetr\accident\KakaoTalk_20260807_000601541.mp4) 프레임 처리 예외 — 계속 진행
+Traceback (most recent call last):
+  File "D:\vigent_original\vigent-core\worker.py", line 1098, in _process_frame
+    for rule, level, note, subject in fired:
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: not enough values to unpack (expected 4, got 3)
+
+2026-09-09 23:22:39,824 [ERROR] vigent.worker: 워커 '파일럿모의3'(D:\vigent_private_data\runs\rfdetr\accident\KakaoTalk_20260807_000552920.mp4) 프레임 처리 예외 — 계속 진행
+Traceback (most recent call last):
+  File "D:\vigent_original\vigent-core\worker.py", line 1098, in _process_frame
+    for rule, level, note, subject in fired:
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: not enough values to unpack (expected 4, got 3)
+
+2026-09-09 23:23:09,149 [ERROR] vigent.worker: 워커 '파일럿모의2'(D:\vigent_private_data\runs\rfdetr\accident\KakaoTalk_20260807_000442974.mp4) 프레임 처리 예외 — 계속 진행
+Traceback (most recent call last):
+  File "D:\vigent_original\vigent-core\worker.py", line 1098, in _process_frame
+    for rule, level, note, subject in fired:
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: not enough values to unpack (expected 4, got 3)
+
+2026-09-09 23:23:56,918 [ERROR] vigent.worker: 워커 '파일럿모의1'(D:\vigent_private_data\runs\rfdetr\accident\KakaoTalk_20260807_000438282.mp4) 프레임 처리 예외 — 계속 진행
+Traceback (most recent call last):
+  File "D:\vigent_original\vigent-core\worker.py", line 1098, in _process_frame
+    for rule, level, note, subject in fired:
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: not enough values to unpack (expected 4, got 3)
+
+2026-09-09 23:24:04,379 [ERROR] vigent.worker: 워커 '파일럿모의4'(D:\vigent_private_data\runs\rfdetr\accident\KakaoTalk_20260807_000601541.mp4) 프레임 처리 예외 — 계속 진행
+Traceback (most recent call last):
+  File "D:\vigent_original\vigent-core\worker.py", line 1098, in _process_frame
+    for rule, level, note, subject in fired:
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: not enough values to unpack (expected 4, got 3)
+
+2026-09-09 23:24:12,456 [ERROR] vigent.worker: 워커 '파일럿모의1'(D:\vigent_private_data\runs\rfdetr\accident\KakaoTalk_20260807_000438282.mp4) 프레임 처리 예외 — 계속 진행
+Traceback (most recent call last):
+  File "D:\vigent_original\vigent-core\worker.py", line 1098, in _process_frame
+    for rule, level, note, subject in fired:
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: not enough values to unpack (expected 4, got 3)
+
+2026-09-09 23:24:17,471 [ERROR] vigent.worker: 워커 '파일럿모의1'(D:\vigent_private_data\runs\rfdetr\accident\KakaoTalk_20260807_000438282.mp4) 프레임 처리 예외 — 계속 진행
+Traceback (most recent call last):
+  File "D:\vigent_original\vigent-core\worker.py", line 1098, in _process_frame
+    for rule, level, note, subject in fired:
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: not enough values to unpack (expected 4, got 3)
+
+2026-09-09 23:24:30,415 [ERROR] vigent.worker: 워커 '파일럿모의4'(D:\vigent_private_data\runs\rfdetr\accident\KakaoTalk_20260807_000601541.mp4) 프레임 처리 예외 — 계속 진행
+Traceback (most recent call last):
+  File "D:\vigent_original\vigent-core\worker.py", line 1098, in _process_frame
+    for rule, level, note, subject in fired:
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: not enough values to unpack (expected 4, got 3)
+
+2026-09-09 23:24:30,465 [ERROR] vigent.worker: 워커 '파일럿모의1'(D:\vigent_private_data\runs\rfdetr\accident\KakaoTalk_20260807_000438282.mp4) 프레임 처리 예외 — 계속 진행
+Traceback (most recent call last):
+  File "D:\vigent_original\vigent-core\worker.py", line 1098, in _process_frame
+    for rule, level, note, subject in fired:
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: not enough values to unpack (expected 4, got 3)
+
+2026-09-09 23:24:32,478 [ERROR] vigent.worker: 워커 '파일럿모의1'(D:\vigent_private_data\runs\rfdetr\accident\KakaoTalk_20260807_000438282.mp4) 프레임 처리 예외 — 계속 진행
+Traceback (most recent call last):
+  File "D:\vigent_original\vigent-core\worker.py", line 1098, in _process_frame
+    for rule, level, note, subject in fired:
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: not enough values to unpack (expected 4, got 3)
+
+2026-09-09 23:24:33,424 [ERROR] vigent.worker: 워커 '파일럿모의4'(D:\vigent_private_data\runs\rfdetr\accident\KakaoTalk_20260807_000601541.mp4) 프레임 처리 예외 — 계속 진행
+Traceback (most recent call last):
+  File "D:\vigent_original\vigent-core\worker.py", line 1098, in _process_frame
+    for rule, level, note, subject in fired:
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: not enough values to unpack (expected 4, got 3)
+
+2026-09-09 23:24:58,509 [ERROR] vigent.worker: 워커 '파일럿모의1'(D:\vigent_private_data\runs\rfdetr\accident\KakaoTalk_20260807_000438282.mp4) 프레임 처리 예외 — 계속 진행
+Traceback (most recent call last):
+  File "D:\vigent_original\vigent-core\worker.py", line 1098, in _process_frame
+    for rule, level, note, subject in fired:
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: not enough values to unpack (expected 4, got 3)
+
+2026-09-09 23:25:11,037 [ERROR] vigent.worker: 워커 '파일럿모의1'(D:\vigent_private_data\runs\rfdetr\accident\KakaoTalk_20260807_000438282.mp4) 프레임 처리 예외 — 계속 진행
+Traceback (most recent call last):
+  File "D:\vigent_original\vigent-core\worker.py", line 1098, in _process_frame
+    for rule, level, note, subject in fired:
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: not enough values to unpack (expected 4, got 3)
+
+2026-09-09 23:25:27,561 [ERROR] vigent.worker: 워커 '파일럿모의1'(D:\vigent_private_data\runs\rfdetr\accident\KakaoTalk_20260807_000438282.mp4) 프레임 처리 예외 — 계속 진행
+Traceback (most recent call last):
+  File "D:\vigent_original\vigent-core\worker.py", line 1098, in _process_frame
+    for rule, level, note, subject in fired:
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: not enough values to unpack (expected 4, got 3)
+
+2026-09-09 23:25:37,069 [ERROR] vigent.worker: 워커 '파일럿모의1'(D:\vigent_private_data\runs\rfdetr\accident\KakaoTalk_20260807_000438282.mp4) 프레임 처리 예외 — 계속 진행
+Traceback (most recent call last):
+  File "D:\vigent_original\vigent-core\worker.py", line 1098, in _process_frame
+    for rule, level, note, subject in fired:
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: not enough values to unpack (expected 4, got 3)
+
+2026-09-09 23:25:39,085 [ERROR] vigent.worker: 워커 '파일럿모의1'(D:\vigent_private_data\runs\rfdetr\accident\KakaoTalk_20260807_000438282.mp4) 프레임 처리 예외 — 계속 진행
+Traceback (most recent call last):
+  File "D:\vigent_original\vigent-core\worker.py", line 1098, in _process_frame
+    for rule, level, note, subject in fired:
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: not enough values to unpack (expected 4, got 3)
+
+2026-09-09 23:25:57,619 [ERROR] vigent.worker: 워커 '파일럿모의1'(D:\vigent_private_data\runs\rfdetr\accident\KakaoTalk_20260807_000438282.mp4) 프레임 처리 예외 — 계속 진행
+Traceback (most recent call last):
+  File "D:\vigent_original\vigent-core\worker.py", line 1098, in _process_frame
+    for rule, level, note, subject in fired:
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: not enough values to unpack (expected 4, got 3)
+
+2026-09-09 23:26:16,588 [ERROR] vigent.worker: 워커 '파일럿모의4'(D:\vigent_private_data\runs\rfdetr\accident\KakaoTalk_20260807_000601541.mp4) 프레임 처리 예외 — 계속 진행
+Traceback (most recent call last):
+  File "D:\vigent_original\vigent-core\worker.py", line 1098, in _process_frame
+    for rule, level, note, subject in fired:
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: not enough values to unpack (expected 4, got 3)
+
+2026-09-09 23:26:28,938 [ERROR] vigent.worker: 워커 '파일럿모의2'(D:\vigent_private_data\runs\rfdetr\accident\KakaoTalk_20260807_000442974.mp4) 프레임 처리 예외 — 계속 진행
+Traceback (most recent call last):
+  File "D:\vigent_original\vigent-core\worker.py", line 1098, in _process_frame
+    for rule, level, note, subject in fired:
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: not enough values to unpack (expected 4, got 3)
+
+2026-09-09 23:26:29,205 [ERROR] vigent.worker: 워커 '파일럿모의3'(D:\vigent_private_data\runs\rfdetr\accident\KakaoTalk_20260807_000552920.mp4) 프레임 처리 예외 — 계속 진행
+Traceback (most recent call last):
+  File "D:\vigent_original\vigent-core\worker.py", line 1098, in _process_frame
+    for rule, level, note, subject in fired:
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: not enough values to unpack (expected 4, got 3)
+
+2026-09-09 23:26:43,128 [ERROR] vigent.worker: 워커 '파일럿모의4'(D:\vigent_private_data\runs\rfdetr\accident\KakaoTalk_20260807_000601541.mp4) 프레임 처리 예외 — 계속 진행
+Traceback (most recent call last):
+  File "D:\vigent_original\vigent-core\worker.py", line 1098, in _process_frame
+    for rule, level, note, subject in fired:
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: not enough values to unpack (expected 4, got 3)
+
+2026-09-09 23:26:46,144 [ERROR] vigent.worker: 워커 '파일럿모의4'(D:\vigent_private_data\runs\rfdetr\accident\KakaoTalk_20260807_000601541.mp4) 프레임 처리 예외 — 계속 진행
+Traceback (most recent call last):
+  File "D:\vigent_original\vigent-core\worker.py", line 1098, in _process_frame
+    for rule, level, note, subject in fired:
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: not enough values to unpack (expected 4, got 3)
+
+2026-09-09 23:28:05,796 [ERROR] vigent.worker: 워커 '파일럿모의1'(D:\vigent_private_data\runs\rfdetr\accident\KakaoTalk_20260807_000438282.mp4) 프레임 처리 예외 — 계속 진행
+Traceback (most recent call last):
+  File "D:\vigent_original\vigent-core\worker.py", line 1098, in _process_frame
+    for rule, level, note, subject in fired:
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: not enough values to unpack (expected 4, got 3)
+
+2026-09-09 23:28:21,312 [ERROR] vigent.worker: 워커 '파일럿모의1'(D:\vigent_private_data\runs\rfdetr\accident\KakaoTalk_20260807_000438282.mp4) 프레임 처리 예외 — 계속 진행
+Traceback (most recent call last):
+  File "D:\vigent_original\vigent-core\worker.py", line 1098, in _process_frame
+    for rule, level, note, subject in fired:
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: not enough values to unpack (expected 4, got 3)
+
+2026-09-09 23:28:26,353 [ERROR] vigent.worker: 워커 '파일럿모의1'(D:\vigent_private_data\runs\rfdetr\accident\KakaoTalk_20260807_000438282.mp4) 프레임 처리 예외 — 계속 진행
+Traceback (most recent call last):
+  File "D:\vigent_original\vigent-core\worker.py", line 1098, in _process_frame
+    for rule, level, note, subject in fired:
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: not enough values to unpack (expected 4, got 3)
+
+2026-09-09 23:28:29,277 [ERROR] vigent.worker: 워커 '파일럿모의4'(D:\vigent_private_data\runs\rfdetr\accident\KakaoTalk_20260807_000601541.mp4) 프레임 처리 예외 — 계속 진행
+Traceback (most recent call last):
+  File "D:\vigent_original\vigent-core\worker.py", line 1098, in _process_frame
+    for rule, level, note, subject in fired:
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: not enough values to unpack (expected 4, got 3)
+
+2026-09-09 23:28:39,862 [ERROR] vigent.worker: 워커 '파일럿모의1'(D:\vigent_private_data\runs\rfdetr\accident\KakaoTalk_20260807_000438282.mp4) 프레임 처리 예외 — 계속 진행
+Traceback (most recent call last):
+  File "D:\vigent_original\vigent-core\worker.py", line 1098, in _process_frame
+    for rule, level, note, subject in fired:
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: not enough values to unpack (expected 4, got 3)
+
+2026-09-09 23:28:41,868 [ERROR] vigent.worker: 워커 '파일럿모의1'(D:\vigent_private_data\runs\rfdetr\accident\KakaoTalk_20260807_000438282.mp4) 프레임 처리 예외 — 계속 진행
+Traceback (most recent call last):
+  File "D:\vigent_original\vigent-core\worker.py", line 1098, in _process_frame
+    for rule, level, note, subject in fired:
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: not enough values to unpack (expected 4, got 3)
+
+2026-09-09 23:28:55,846 [ERROR] vigent.worker: 워커 '파일럿모의4'(D:\vigent_private_data\runs\rfdetr\accident\KakaoTalk_20260807_000601541.mp4) 프레임 처리 예외 — 계속 진행
+Traceback (most recent call last):
+  File "D:\vigent_original\vigent-core\worker.py", line 1098, in _process_frame
+    for rule, level, note, subject in fired:
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: not enough values to unpack (expected 4, got 3)
+
+2026-09-09 23:28:58,849 [ERROR] vigent.worker: 워커 '파일럿모의4'(D:\vigent_private_data\runs\rfdetr\accident\KakaoTalk_20260807_000601541.mp4) 프레임 처리 예외 — 계속 진행
+Traceback (most recent call last):
+  File "D:\vigent_original\vigent-core\worker.py", line 1098, in _process_frame
+    for rule, level, note, subject in fired:
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: not enough values to unpack (expected 4, got 3)
+
+2026-09-09 23:29:07,435 [ERROR] vigent.worker: 워커 '파일럿모의1'(D:\vigent_private_data\runs\rfdetr\accident\KakaoTalk_20260807_000438282.mp4) 프레임 처리 예외 — 계속 진행
+Traceback (most recent call last):
+  File "D:\vigent_original\vigent-core\worker.py", line 1098, in _process_frame
+    for rule, level, note, subject in fired:
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: not enough values to unpack (expected 4, got 3)
+
+2026-09-09 23:29:19,912 [ERROR] vigent.worker: 워커 '파일럿모의1'(D:\vigent_private_data\runs\rfdetr\accident\KakaoTalk_20260807_000438282.mp4) 프레임 처리 예외 — 계속 진행
+Traceback (most recent call last):
+  File "D:\vigent_original\vigent-core\worker.py", line 1098, in _process_frame
+    for rule, level, note, subject in fired:
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: not enough values to unpack (expected 4, got 3)
+
+2026-09-09 23:29:45,449 [ERROR] vigent.worker: 워커 '파일럿모의1'(D:\vigent_private_data\runs\rfdetr\accident\KakaoTalk_20260807_000438282.mp4) 프레임 처리 예외 — 계속 진행
+Traceback (most recent call last):
+  File "D:\vigent_original\vigent-core\worker.py", line 1098, in _process_frame
+    for rule, level, note, subject in fired:
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: not enough values to unpack (expected 4, got 3)
+
+2026-09-09 23:29:48,745 [ERROR] vigent.worker: 워커 '파일럿모의2'(D:\vigent_private_data\runs\rfdetr\accident\KakaoTalk_20260807_000442974.mp4) 프레임 처리 예외 — 계속 진행
+Traceback (most recent call last):
+  File "D:\vigent_original\vigent-core\worker.py", line 1098, in _process_frame
+    for rule, level, note, subject in fired:
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: not enough values to unpack (expected 4, got 3)
+
+2026-09-09 23:29:49,450 [ERROR] vigent.worker: 워커 '파일럿모의1'(D:\vigent_private_data\runs\rfdetr\accident\KakaoTalk_20260807_000438282.mp4) 프레임 처리 예외 — 계속 진행
+Traceback (most recent call last):
+  File "D:\vigent_original\vigent-core\worker.py", line 1098, in _process_frame
+    for rule, level, note, subject in fired:
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: not enough values to unpack (expected 4, got 3)
+
+2026-09-09 23:30:06,475 [ERROR] vigent.worker: 워커 '파일럿모의1'(D:\vigent_private_data\runs\rfdetr\accident\KakaoTalk_20260807_000438282.mp4) 프레임 처리 예외 — 계속 진행
+Traceback (most recent call last):
+  File "D:\vigent_original\vigent-core\worker.py", line 1098, in _process_frame
+    for rule, level, note, subject in fired:
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: not enough values to unpack (expected 4, got 3)
+
+2026-09-09 23:30:19,029 [ERROR] vigent.worker: 워커 '파일럿모의3'(D:\vigent_private_data\runs\rfdetr\accident\KakaoTalk_20260807_000552920.mp4) 프레임 처리 예외 — 계속 진행
+Traceback (most recent call last):
+  File "D:\vigent_original\vigent-core\worker.py", line 1098, in _process_frame
+    for rule, level, note, subject in fired:
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: not enough values to unpack (expected 4, got 3)
+
+2026-09-09 23:30:41,990 [ERROR] vigent.worker: 워커 '파일럿모의4'(D:\vigent_private_data\runs\rfdetr\accident\KakaoTalk_20260807_000601541.mp4) 프레임 처리 예외 — 계속 진행
+Traceback (most recent call last):
+  File "D:\vigent_original\vigent-core\worker.py", line 1098, in _process_frame
+    for rule, level, note, subject in fired:
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: not enough values to unpack (expected 4, got 3)
+
+2026-09-09 23:31:08,531 [ERROR] vigent.worker: 워커 '파일럿모의4'(D:\vigent_private_data\runs\rfdetr\accident\KakaoTalk_20260807_000601541.mp4) 프레임 처리 예외 — 계속 진행
+Traceback (most recent call last):
+  File "D:\vigent_original\vigent-core\worker.py", line 1098, in _process_frame
+    for rule, level, note, subject in fired:
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: not enough values to unpack (expected 4, got 3)
+
+2026-09-09 23:31:11,549 [ERROR] vigent.worker: 워커 '파일럿모의4'(D:\vigent_private_data\runs\rfdetr\accident\KakaoTalk_20260807_000601541.mp4) 프레임 처리 예외 — 계속 진행
+Traceback (most recent call last):
+  File "D:\vigent_original\vigent-core\worker.py", line 1098, in _process_frame
+    for rule, level, note, subject in fired:
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: not enough values to unpack (expected 4, got 3)
+
+2026-09-09 23:32:14,673 [ERROR] vigent.worker: 워커 '파일럿모의1'(D:\vigent_private_data\runs\rfdetr\accident\KakaoTalk_20260807_000438282.mp4) 프레임 처리 예외 — 계속 진행
+Traceback (most recent call last):
+  File "D:\vigent_original\vigent-core\worker.py", line 1098, in _process_frame
+    for rule, level, note, subject in fired:
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: not enough values to unpack (expected 4, got 3)
+
+2026-09-09 23:32:30,700 [ERROR] vigent.worker: 워커 '파일럿모의1'(D:\vigent_private_data\runs\rfdetr\accident\KakaoTalk_20260807_000438282.mp4) 프레임 처리 예외 — 계속 진행
+Traceback (most recent call last):
+  File "D:\vigent_original\vigent-core\worker.py", line 1098, in _process_frame
+    for rule, level, note, subject in fired:
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: not enough values to unpack (expected 4, got 3)
+
+2026-09-09 23:32:34,226 [ERROR] vigent.worker: 워커 '파일럿모의1'(D:\vigent_private_data\runs\rfdetr\accident\KakaoTalk_20260807_000438282.mp4) 프레임 처리 예외 — 계속 진행
+Traceback (most recent call last):
+  File "D:\vigent_original\vigent-core\worker.py", line 1098, in _process_frame
+    for rule, level, note, subject in fired:
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: not enough values to unpack (expected 4, got 3)
+
+2026-09-09 23:32:48,251 [ERROR] vigent.worker: 워커 '파일럿모의1'(D:\vigent_private_data\runs\rfdetr\accident\KakaoTalk_20260807_000438282.mp4) 프레임 처리 예외 — 계속 진행
+Traceback (most recent call last):
+  File "D:\vigent_original\vigent-core\worker.py", line 1098, in _process_frame
+    for rule, level, note, subject in fired:
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: not enough values to unpack (expected 4, got 3)
+
+2026-09-09 23:32:50,242 [ERROR] vigent.worker: 워커 '파일럿모의1'(D:\vigent_private_data\runs\rfdetr\accident\KakaoTalk_20260807_000438282.mp4) 프레임 처리 예외 — 계속 진행
+Traceback (most recent call last):
+  File "D:\vigent_original\vigent-core\worker.py", line 1098, in _process_frame
+    for rule, level, note, subject in fired:
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: not enough values to unpack (expected 4, got 3)
+
+2026-09-09 23:32:54,697 [ERROR] vigent.worker: 워커 '파일럿모의4'(D:\vigent_private_data\runs\rfdetr\accident\KakaoTalk_20260807_000601541.mp4) 프레임 처리 예외 — 계속 진행
+Traceback (most recent call last):
+  File "D:\vigent_original\vigent-core\worker.py", line 1098, in _process_frame
+    for rule, level, note, subject in fired:
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: not enough values to unpack (expected 4, got 3)
+
+2026-09-09 23:33:08,557 [ERROR] vigent.worker: 워커 '파일럿모의2'(D:\vigent_private_data\runs\rfdetr\accident\KakaoTalk_20260807_000442974.mp4) 프레임 처리 예외 — 계속 진행
+Traceback (most recent call last):
+  File "D:\vigent_original\vigent-core\worker.py", line 1098, in _process_frame
+    for rule, level, note, subject in fired:
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: not enough values to unpack (expected 4, got 3)
+
+2026-09-09 23:33:16,275 [ERROR] vigent.worker: 워커 '파일럿모의1'(D:\vigent_private_data\runs\rfdetr\accident\KakaoTalk_20260807_000438282.mp4) 프레임 처리 예외 — 계속 진행
+Traceback (most recent call last):
+  File "D:\vigent_original\vigent-core\worker.py", line 1098, in _process_frame
+    for rule, level, note, subject in fired:
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: not enough values to unpack (expected 4, got 3)
+
+2026-09-09 23:33:21,239 [ERROR] vigent.worker: 워커 '파일럿모의4'(D:\vigent_private_data\runs\rfdetr\accident\KakaoTalk_20260807_000601541.mp4) 프레임 처리 예외 — 계속 진행
+Traceback (most recent call last):
+  File "D:\vigent_original\vigent-core\worker.py", line 1098, in _process_frame
+    for rule, level, note, subject in fired:
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: not enough values to unpack (expected 4, got 3)
+
+2026-09-09 23:33:24,740 [ERROR] vigent.worker: 워커 '파일럿모의4'(D:\vigent_private_data\runs\rfdetr\accident\KakaoTalk_20260807_000601541.mp4) 프레임 처리 예외 — 계속 진행
+Traceback (most recent call last):
+  File "D:\vigent_original\vigent-core\worker.py", line 1098, in _process_frame
+    for rule, level, note, subject in fired:
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: not enough values to unpack (expected 4, got 3)
+
+2026-09-09 23:33:28,789 [ERROR] vigent.worker: 워커 '파일럿모의1'(D:\vigent_private_data\runs\rfdetr\accident\KakaoTalk_20260807_000438282.mp4) 프레임 처리 예외 — 계속 진행
+Traceback (most recent call last):
+  File "D:\vigent_original\vigent-core\worker.py", line 1098, in _process_frame
+    for rule, level, note, subject in fired:
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: not enough values to unpack (expected 4, got 3)
+
+2026-09-09 23:33:45,311 [ERROR] vigent.worker: 워커 '파일럿모의1'(D:\vigent_private_data\runs\rfdetr\accident\KakaoTalk_20260807_000438282.mp4) 프레임 처리 예외 — 계속 진행
+Traceback (most recent call last):
+  File "D:\vigent_original\vigent-core\worker.py", line 1098, in _process_frame
+    for rule, level, note, subject in fired:
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: not enough values to unpack (expected 4, got 3)
+
+2026-09-09 23:33:54,830 [ERROR] vigent.worker: 워커 '파일럿모의1'(D:\vigent_private_data\runs\rfdetr\accident\KakaoTalk_20260807_000438282.mp4) 프레임 처리 예외 — 계속 진행
+Traceback (most recent call last):
+  File "D:\vigent_original\vigent-core\worker.py", line 1098, in _process_frame
+    for rule, level, note, subject in fired:
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: not enough values to unpack (expected 4, got 3)
+
+2026-09-09 23:33:56,866 [ERROR] vigent.worker: 워커 '파일럿모의1'(D:\vigent_private_data\runs\rfdetr\accident\KakaoTalk_20260807_000438282.mp4) 프레임 처리 예외 — 계속 진행
+Traceback (most recent call last):
+  File "D:\vigent_original\vigent-core\worker.py", line 1098, in _process_frame
+    for rule, level, note, subject in fired:
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: not enough values to unpack (expected 4, got 3)
+
+2026-09-09 23:34:08,907 [ERROR] vigent.worker: 워커 '파일럿모의3'(D:\vigent_private_data\runs\rfdetr\accident\KakaoTalk_20260807_000552920.mp4) 프레임 처리 예외 — 계속 진행
+Traceback (most recent call last):
+  File "D:\vigent_original\vigent-core\worker.py", line 1098, in _process_frame
+    for rule, level, note, subject in fired:
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: not enough values to unpack (expected 4, got 3)
+
+2026-09-09 23:34:15,873 [ERROR] vigent.worker: 워커 '파일럿모의1'(D:\vigent_private_data\runs\rfdetr\accident\KakaoTalk_20260807_000438282.mp4) 프레임 처리 예외 — 계속 진행
+Traceback (most recent call last):
+  File "D:\vigent_original\vigent-core\worker.py", line 1098, in _process_frame
+    for rule, level, note, subject in fired:
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: not enough values to unpack (expected 4, got 3)
+
+2026-09-09 23:35:07,405 [ERROR] vigent.worker: 워커 '파일럿모의4'(D:\vigent_private_data\runs\rfdetr\accident\KakaoTalk_20260807_000601541.mp4) 프레임 처리 예외 — 계속 진행
+Traceback (most recent call last):
+  File "D:\vigent_original\vigent-core\worker.py", line 1098, in _process_frame
+    for rule, level, note, subject in fired:
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: not enough values to unpack (expected 4, got 3)
+
+2026-09-09 23:35:33,961 [ERROR] vigent.worker: 워커 '파일럿모의4'(D:\vigent_private_data\runs\rfdetr\accident\KakaoTalk_20260807_000601541.mp4) 프레임 처리 예외 — 계속 진행
+Traceback (most recent call last):
+  File "D:\vigent_original\vigent-core\worker.py", line 1098, in _process_frame
+    for rule, level, note, subject in fired:
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: not enough values to unpack (expected 4, got 3)
+
+2026-09-09 23:35:36,959 [ERROR] vigent.worker: 워커 '파일럿모의4'(D:\vigent_private_data\runs\rfdetr\accident\KakaoTalk_20260807_000601541.mp4) 프레임 처리 예외 — 계속 진행
+Traceback (most recent call last):
+  File "D:\vigent_original\vigent-core\worker.py", line 1098, in _process_frame
+    for rule, level, note, subject in fired:
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: not enough values to unpack (expected 4, got 3)
+
+2026-09-09 23:36:28,366 [ERROR] vigent.worker: 워커 '파일럿모의2'(D:\vigent_private_data\runs\rfdetr\accident\KakaoTalk_20260807_000442974.mp4) 프레임 처리 예외 — 계속 진행
+Traceback (most recent call last):
+  File "D:\vigent_original\vigent-core\worker.py", line 1098, in _process_frame
+    for rule, level, note, subject in fired:
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: not enough values to unpack (expected 4, got 3)
+
+2026-09-09 23:36:39,112 [ERROR] vigent.worker: 워커 '파일럿모의1'(D:\vigent_private_data\runs\rfdetr\accident\KakaoTalk_20260807_000438282.mp4) 프레임 처리 예외 — 계속 진행
+Traceback (most recent call last):
+  File "D:\vigent_original\vigent-core\worker.py", line 1098, in _process_frame
+    for rule, level, note, subject in fired:
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: not enough values to unpack (expected 4, got 3)
+
+2026-09-09 23:36:44,115 [ERROR] vigent.worker: 워커 '파일럿모의1'(D:\vigent_private_data\runs\rfdetr\accident\KakaoTalk_20260807_000438282.mp4) 프레임 처리 예외 — 계속 진행
+Traceback (most recent call last):
+  File "D:\vigent_original\vigent-core\worker.py", line 1098, in _process_frame
+    for rule, level, note, subject in fired:
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: not enough values to unpack (expected 4, got 3)
+
+2026-09-09 23:36:57,116 [ERROR] vigent.worker: 워커 '파일럿모의1'(D:\vigent_private_data\runs\rfdetr\accident\KakaoTalk_20260807_000438282.mp4) 프레임 처리 예외 — 계속 진행
+Traceback (most recent call last):
+  File "D:\vigent_original\vigent-core\worker.py", line 1098, in _process_frame
+    for rule, level, note, subject in fired:
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: not enough values to unpack (expected 4, got 3)
+
+2026-09-09 23:36:59,125 [ERROR] vigent.worker: 워커 '파일럿모의1'(D:\vigent_private_data\runs\rfdetr\accident\KakaoTalk_20260807_000438282.mp4) 프레임 처리 예외 — 계속 진행
+Traceback (most recent call last):
+  File "D:\vigent_original\vigent-core\worker.py", line 1098, in _process_frame
+    for rule, level, note, subject in fired:
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: not enough values to unpack (expected 4, got 3)
+
+2026-09-09 23:37:20,109 [ERROR] vigent.worker: 워커 '파일럿모의4'(D:\vigent_private_data\runs\rfdetr\accident\KakaoTalk_20260807_000601541.mp4) 프레임 처리 예외 — 계속 진행
+Traceback (most recent call last):
+  File "D:\vigent_original\vigent-core\worker.py", line 1098, in _process_frame
+    for rule, level, note, subject in fired:
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: not enough values to unpack (expected 4, got 3)
+
+2026-09-09 23:37:25,166 [ERROR] vigent.worker: 워커 '파일럿모의1'(D:\vigent_private_data\runs\rfdetr\accident\KakaoTalk_20260807_000438282.mp4) 프레임 처리 예외 — 계속 진행
+Traceback (most recent call last):
+  File "D:\vigent_original\vigent-core\worker.py", line 1098, in _process_frame
+    for rule, level, note, subject in fired:
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: not enough values to unpack (expected 4, got 3)
+
+2026-09-09 23:37:37,689 [ERROR] vigent.worker: 워커 '파일럿모의1'(D:\vigent_private_data\runs\rfdetr\accident\KakaoTalk_20260807_000438282.mp4) 프레임 처리 예외 — 계속 진행
+Traceback (most recent call last):
+  File "D:\vigent_original\vigent-core\worker.py", line 1098, in _process_frame
+    for rule, level, note, subject in fired:
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: not enough values to unpack (expected 4, got 3)
+
+2026-09-09 23:37:46,645 [ERROR] vigent.worker: 워커 '파일럿모의4'(D:\vigent_private_data\runs\rfdetr\accident\KakaoTalk_20260807_000601541.mp4) 프레임 처리 예외 — 계속 진행
+Traceback (most recent call last):
+  File "D:\vigent_original\vigent-core\worker.py", line 1098, in _process_frame
+    for rule, level, note, subject in fired:
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: not enough values to unpack (expected 4, got 3)
+
+2026-09-09 23:37:49,654 [ERROR] vigent.worker: 워커 '파일럿모의4'(D:\vigent_private_data\runs\rfdetr\accident\KakaoTalk_20260807_000601541.mp4) 프레임 처리 예외 — 계속 진행
+Traceback (most recent call last):
+  File "D:\vigent_original\vigent-core\worker.py", line 1098, in _process_frame
+    for rule, level, note, subject in fired:
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: not enough values to unpack (expected 4, got 3)
+
+2026-09-09 23:37:54,223 [ERROR] vigent.worker: 워커 '파일럿모의1'(D:\vigent_private_data\runs\rfdetr\accident\KakaoTalk_20260807_000438282.mp4) 프레임 처리 예외 — 계속 진행
+Traceback (most recent call last):
+  File "D:\vigent_original\vigent-core\worker.py", line 1098, in _process_frame
+    for rule, level, note, subject in fired:
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: not enough values to unpack (expected 4, got 3)
+
+2026-09-09 23:37:58,817 [ERROR] vigent.worker: 워커 '파일럿모의3'(D:\vigent_private_data\runs\rfdetr\accident\KakaoTalk_20260807_000552920.mp4) 프레임 처리 예외 — 계속 진행
+Traceback (most recent call last):
+  File "D:\vigent_original\vigent-core\worker.py", line 1098, in _process_frame
+    for rule, level, note, subject in fired:
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: not enough values to unpack (expected 4, got 3)
+
+2026-09-09 23:38:03,218 [ERROR] vigent.worker: 워커 '파일럿모의1'(D:\vigent_private_data\runs\rfdetr\accident\KakaoTalk_20260807_000438282.mp4) 프레임 처리 예외 — 계속 진행
+Traceback (most recent call last):
+  File "D:\vigent_original\vigent-core\worker.py", line 1098, in _process_frame
+    for rule, level, note, subject in fired:
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: not enough values to unpack (expected 4, got 3)
+
+2026-09-09 23:38:07,226 [ERROR] vigent.worker: 워커 '파일럿모의1'(D:\vigent_private_data\runs\rfdetr\accident\KakaoTalk_20260807_000438282.mp4) 프레임 처리 예외 — 계속 진행
+Traceback (most recent call last):
+  File "D:\vigent_original\vigent-core\worker.py", line 1098, in _process_frame
+    for rule, level, note, subject in fired:
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: not enough values to unpack (expected 4, got 3)
+
+2026-09-09 23:38:24,257 [ERROR] vigent.worker: 워커 '파일럿모의1'(D:\vigent_private_data\runs\rfdetr\accident\KakaoTalk_20260807_000438282.mp4) 프레임 처리 예외 — 계속 진행
+Traceback (most recent call last):
+  File "D:\vigent_original\vigent-core\worker.py", line 1098, in _process_frame
+    for rule, level, note, subject in fired:
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: not enough values to unpack (expected 4, got 3)
+
+2026-09-09 23:39:32,829 [ERROR] vigent.worker: 워커 '파일럿모의4'(D:\vigent_private_data\runs\rfdetr\accident\KakaoTalk_20260807_000601541.mp4) 프레임 처리 예외 — 계속 진행
+Traceback (most recent call last):
+  File "D:\vigent_original\vigent-core\worker.py", line 1098, in _process_frame
+    for rule, level, note, subject in fired:
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: not enough values to unpack (expected 4, got 3)
+
+2026-09-09 23:39:48,190 [ERROR] vigent.worker: 워커 '파일럿모의2'(D:\vigent_private_data\runs\rfdetr\accident\KakaoTalk_20260807_000442974.mp4) 프레임 처리 예외 — 계속 진행
+Traceback (most recent call last):
+  File "D:\vigent_original\vigent-core\worker.py", line 1098, in _process_frame
+    for rule, level, note, subject in fired:
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: not enough values to unpack (expected 4, got 3)
+
+2026-09-09 23:39:59,889 [ERROR] vigent.worker: 워커 '파일럿모의4'(D:\vigent_private_data\runs\rfdetr\accident\KakaoTalk_20260807_000601541.mp4) 프레임 처리 예외 — 계속 진행
+Traceback (most recent call last):
+  File "D:\vigent_original\vigent-core\worker.py", line 1098, in _process_frame
+    for rule, level, note, subject in fired:
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: not enough values to unpack (expected 4, got 3)
+
+2026-09-09 23:40:02,376 [ERROR] vigent.worker: 워커 '파일럿모의4'(D:\vigent_private_data\runs\rfdetr\accident\KakaoTalk_20260807_000601541.mp4) 프레임 처리 예외 — 계속 진행
+Traceback (most recent call last):
+  File "D:\vigent_original\vigent-core\worker.py", line 1098, in _process_frame
+    for rule, level, note, subject in fired:
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: not enough values to unpack (expected 4, got 3)
+
+2026-09-09 23:40:29,961 [ERROR] vigent.worker: 워커 '파일럿모의1'(D:\vigent_private_data\runs\rfdetr\accident\KakaoTalk_20260807_000438282.mp4) 프레임 처리 예외 — 계속 진행
+Traceback (most recent call last):
+  File "D:\vigent_original\vigent-core\worker.py", line 1098, in _process_frame
+    for rule, level, note, subject in fired:
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: not enough values to unpack (expected 4, got 3)
+
+2026-09-09 23:40:48,016 [ERROR] vigent.worker: 워커 '파일럿모의1'(D:\vigent_private_data\runs\rfdetr\accident\KakaoTalk_20260807_000438282.mp4) 프레임 처리 예외 — 계속 진행
+Traceback (most recent call last):
+  File "D:\vigent_original\vigent-core\worker.py", line 1098, in _process_frame
+    for rule, level, note, subject in fired:
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: not enough values to unpack (expected 4, got 3)
+
+2026-09-09 23:40:53,499 [ERROR] vigent.worker: 워커 '파일럿모의1'(D:\vigent_private_data\runs\rfdetr\accident\KakaoTalk_20260807_000438282.mp4) 프레임 처리 예외 — 계속 진행
+Traceback (most recent call last):
+  File "D:\vigent_original\vigent-core\worker.py", line 1098, in _process_frame
+    for rule, level, note, subject in fired:
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: not enough values to unpack (expected 4, got 3)
+
+2026-09-09 23:41:06,039 [ERROR] vigent.worker: 워커 '파일럿모의1'(D:\vigent_private_data\runs\rfdetr\accident\KakaoTalk_20260807_000438282.mp4) 프레임 처리 예외 — 계속 진행
+Traceback (most recent call last):
+  File "D:\vigent_original\vigent-core\worker.py", line 1098, in _process_frame
+    for rule, level, note, subject in fired:
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: not enough values to unpack (expected 4, got 3)
+
+2026-09-09 23:41:08,019 [ERROR] vigent.worker: 워커 '파일럿모의1'(D:\vigent_private_data\runs\rfdetr\accident\KakaoTalk_20260807_000438282.mp4) 프레임 처리 예외 — 계속 진행
+Traceback (most recent call last):
+  File "D:\vigent_original\vigent-core\worker.py", line 1098, in _process_frame
+    for rule, level, note, subject in fired:
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: not enough values to unpack (expected 4, got 3)
+
+2026-09-09 23:41:34,092 [ERROR] vigent.worker: 워커 '파일럿모의1'(D:\vigent_private_data\runs\rfdetr\accident\KakaoTalk_20260807_000438282.mp4) 프레임 처리 예외 — 계속 진행
+Traceback (most recent call last):
+  File "D:\vigent_original\vigent-core\worker.py", line 1098, in _process_frame
+    for rule, level, note, subject in fired:
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: not enough values to unpack (expected 4, got 3)
+
+2026-09-09 23:41:45,543 [ERROR] vigent.worker: 워커 '파일럿모의4'(D:\vigent_private_data\runs\rfdetr\accident\KakaoTalk_20260807_000601541.mp4) 프레임 처리 예외 — 계속 진행
+Traceback (most recent call last):
+  File "D:\vigent_original\vigent-core\worker.py", line 1098, in _process_frame
+    for rule, level, note, subject in fired:
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: not enough values to unpack (expected 4, got 3)
+
+2026-09-09 23:41:47,083 [ERROR] vigent.worker: 워커 '파일럿모의1'(D:\vigent_private_data\runs\rfdetr\accident\KakaoTalk_20260807_000438282.mp4) 프레임 처리 예외 — 계속 진행
+Traceback (most recent call last):
+  File "D:\vigent_original\vigent-core\worker.py", line 1098, in _process_frame
+    for rule, level, note, subject in fired:
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: not enough values to unpack (expected 4, got 3)
+
+2026-09-09 23:41:48,660 [ERROR] vigent.worker: 워커 '파일럿모의3'(D:\vigent_private_data\runs\rfdetr\accident\KakaoTalk_20260807_000552920.mp4) 프레임 처리 예외 — 계속 진행
+Traceback (most recent call last):
+  File "D:\vigent_original\vigent-core\worker.py", line 1098, in _process_frame
+    for rule, level, note, subject in fired:
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: not enough values to unpack (expected 4, got 3)
+
+2026-09-09 23:42:03,138 [ERROR] vigent.worker: 워커 '파일럿모의1'(D:\vigent_private_data\runs\rfdetr\accident\KakaoTalk_20260807_000438282.mp4) 프레임 처리 예외 — 계속 진행
+Traceback (most recent call last):
+  File "D:\vigent_original\vigent-core\worker.py", line 1098, in _process_frame
+    for rule, level, note, subject in fired:
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: not enough values to unpack (expected 4, got 3)
+
+2026-09-09 23:42:12,073 [ERROR] vigent.worker: 워커 '파일럿모의4'(D:\vigent_private_data\runs\rfdetr\accident\KakaoTalk_20260807_000601541.mp4) 프레임 처리 예외 — 계속 진행
+Traceback (most recent call last):
+  File "D:\vigent_original\vigent-core\worker.py", line 1098, in _process_frame
+    for rule, level, note, subject in fired:
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: not enough values to unpack (expected 4, got 3)
+
+2026-09-09 23:42:12,119 [ERROR] vigent.worker: 워커 '파일럿모의1'(D:\vigent_private_data\runs\rfdetr\accident\KakaoTalk_20260807_000438282.mp4) 프레임 처리 예외 — 계속 진행
+Traceback (most recent call last):
+  File "D:\vigent_original\vigent-core\worker.py", line 1098, in _process_frame
+    for rule, level, note, subject in fired:
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: not enough values to unpack (expected 4, got 3)
+
+2026-09-09 23:42:15,079 [ERROR] vigent.worker: 워커 '파일럿모의4'(D:\vigent_private_data\runs\rfdetr\accident\KakaoTalk_20260807_000601541.mp4) 프레임 처리 예외 — 계속 진행
+Traceback (most recent call last):
+  File "D:\vigent_original\vigent-core\worker.py", line 1098, in _process_frame
+    for rule, level, note, subject in fired:
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: not enough values to unpack (expected 4, got 3)
+
+2026-09-09 23:42:16,131 [ERROR] vigent.worker: 워커 '파일럿모의1'(D:\vigent_private_data\runs\rfdetr\accident\KakaoTalk_20260807_000438282.mp4) 프레임 처리 예외 — 계속 진행
+Traceback (most recent call last):
+  File "D:\vigent_original\vigent-core\worker.py", line 1098, in _process_frame
+    for rule, level, note, subject in fired:
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: not enough values to unpack (expected 4, got 3)
+
+2026-09-09 23:42:33,160 [ERROR] vigent.worker: 워커 '파일럿모의1'(D:\vigent_private_data\runs\rfdetr\accident\KakaoTalk_20260807_000438282.mp4) 프레임 처리 예외 — 계속 진행
+Traceback (most recent call last):
+  File "D:\vigent_original\vigent-core\worker.py", line 1098, in _process_frame
+    for rule, level, note, subject in fired:
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: not enough values to unpack (expected 4, got 3)
+

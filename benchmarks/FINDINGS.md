@@ -411,6 +411,40 @@ F-8 진단 중, 서버 detect_frame 이 **연속 프레임 추적**(`guard._trac
   · **B. CPU torch 선설치(임시 venv `%TEMP%\venv_cpu`, `py -3.11 -m venv` + PyPI torch 2.12.0+cpu)** — exit 0, 214s. CPU 빌드는 보호 대상이 아니므로 기존 경로("torch 는 PyPI CPU 휠이 설치된다" 안내) 그대로, 실행 후 2.12.0+cpu 유지 · cv2 4.13.0.92 · numpy 2.4.6 — `audit/setup_env_guard_2026-09-09_stateB.log`.
   · **C. torch 미설치(임시 venv `%TEMP%\venv_new`, 노트북 서비스 설치 경로 = `setup_env.py --weights`)** — exit 0, 332s. 기존과 동일하게 전체 설치(torch 2.12.0+cpu) → opencv 정리 → cv2 4.13 headless 검증 → `fetch_weights.py --all` 필수 가중치 8/8·선택 6/6 검증(저장소 weights 폴더 mtime 불변 = 재다운로드 0) — `audit/setup_env_guard_2026-09-09_stateC.log`.
   · 임시 venv 2개 삭제 확인. 상태 C 가 원본과 동일하게 동작하므로 되돌리지 않았다.
+- **재측정(2026-09-09 3차 작업 4 — 9/8 절차 재현, cu130)**: 조건 — PUBG·Steam·Discord·브라우저 종료 후 VRAM 1,331 MiB·util 1%(잔존은 트레이 프로세스),
+  서버는 `run.ps1` 로 기동(RF_HOME·TORCH_HOME·VIGENT_CAPTURE_MODE·PYTHONUTF8 서비스와 동일), 잔존 카메라 `test`(192.168.0.4, 9/8 에도 등록돼 있었고 연결 실패로
+  워커 HANG 재시작을 반복 → 4대 정리 후 /health 503 의 원인) 삭제, `/health` 200·rfdetr 슬롯 3개 LOADED·서버 python 이 nvidia-smi 에 표시됨을 확인하고 시작
+  (`audit/loadtest_precheck_20260909_2119_cu130.txt`, `…_2239_cu130_1h.txt`). 오케스트레이터는 Task Scheduler 로 띄웠다(에이전트 프로세스 트리에서 띄우면
+  21:33 에 서버·로거와 함께 일괄 종료되는 사고가 있었음).
+  · **드라이런 재현**(21:20, 4대 7분 + 5대 2분, `loadtest_20260909_2120_desktop_cu130_dryrun.md`): 시스템 CPU 32~38%(4대)·46~48%(5대) · 서버 6.3코어(4대)·7.9코어(5대,
+    자식 python 샘플러) · GPU util 평균 11.4%(순간 0~49%) · VRAM 총 2,723~2,849 MiB → **서버 몫 1,273 MiB**(기동 전후 차분) · 검출 p95 39~170ms · age p95 ≤0.5s ·
+    3분 시점 VRAM 급증 **없음**(9/8 의 2.5→4.0GB 는 다른 앱).
+  · **1h 소크 재현**(22:39~23:42, 4대·2fps·간격 600s·과부하 없음, `loadtest_20260909_2239_desktop_cu130_1h.md`): 시스템 CPU 28.5~37.2% · 서버 6.0~6.3코어(창별, 평균 6.19 —
+    E1 공식 4×1.55=6.2 와 일치) · GPU util 창 표본 1~14%, 10초 로그 평균 10.4%(순간 최대 45%) · VRAM 총 2,366~2,463 MiB → **서버 몫 1,223 MiB(기동 전후)·1,385 MiB(종료 전후)** ·
+    GPU 41~45°C · SM 757~2,640MHz · 검출 p95 40~118ms · age p95 ≤0.5s · degraded 카메라 0(경보 적체 13~15 = 텔레그램 401, 판정 제외) · 키트 판정 "통과(1h<4h 무효 사유)".
+    서버 WS 3,150→303 MB 는 Windows 워킹셋 트리밍(9/8 의 3.3→1.2GB 도 같은 현상) — RSS 열은 누수 판정에 못 쓴다. 키트의 서버코어·RSS 열은 여전히 .venv 실행기(부모) PID 를
+    잡아 무효 — 자식 python 샘플러(`server_proc_*.csv`)로 대체 산출.
+  · 비교: 서버 코어는 CPU torch(6.1~7.4) ≈ cu130(6.0~6.3) — 디코드·파이프라인이 CPU 몫이라는 E1 결론과 부합. 시스템 CPU 45~61%→28.5~37.2% 차이는 9/8 의 다른 앱(게임·브라우저) 부하.
+- **P1-10 판정 — "확정 해소"로 변경(2026-09-09)**: 근거 ① 다른 GPU 앱을 닫은 상태에서 cu130 서버 4대 1h: util 평균 10.4%, 서버 몫 VRAM 1,223~1,385 MiB — 2026-08-18 기준선
+  (1.4GB·util 31~37% @5~7대) 및 노트북 실측(1.47GB 램프·1.2GB 소크)과 일치 ② 9/8 의 4.0GB/83~89% 는 서버가 GPU 를 쓰지 않던 시점의 값 = 전부 다른 앱(PUBG 등) 몫으로 확정
+  ③ "GPU 는 병목 아님·VRAM 4GB 충분" 이 개발기·노트북 양쪽 실측으로 성립. 한계: Windows 는 프로세스별 VRAM 을 N/A 로 주므로 서버 몫은 기동 전후 차분(다른 앱 변동 ±300 MiB 포함).
+- **부수 발견**: 소크 로그의 `ValueError: not enough values to unpack (expected 4, got 3)` 는 아래 **F-34**(경보 유실 결함)로 분리. 스케줄러 환경의 PowerShell `Invoke-WebRequest` 가
+  Bearer 토큰으로 GET /cameras 시 401(대화형·python 키트는 200) — 원인 미확정, 소크 무관.
+
+### F-34. 근골격(ergonomic_risk) 이벤트가 있는 프레임의 **모든 경보가 버려진다** — 3-튜플/4-튜플 불일치 (발견 2026-09-09, 코드 미수정)
+- **관찰**: cu130 소크 서버 로그(`audit/server_console_20260909_2239_cu130_1h.err`)에 `vigent.worker: 워커 '<카메라>' 프레임 처리 예외 → 계속 진행` +
+  `Traceback … worker.py line 1098, in _process_frame: for rule, level, note, subject in fired: ValueError: not enough values to unpack (expected 4, got 3)` 가 1h 동안 **289회**.
+  `logs/vigent.log` 집계: 현재 파일 717회(첫 2026-09-08 21:23:02 — 9/8 드라이런 시작 시각), `vigent.log.2`(08-05~08-28) 20회, `vigent.log.1`(08-28~09-06) 0회. 9/8 1h 소크 시간대에만 481회.
+- **원인(코드 읽기, 실측 아님)**: 포즈 스레드의 `ErgoTracker.update()` 가 `("ergonomic_risk", level, note)` **3-튜플**을 내고(`worker.py:492`), 메인 루프가 `fired += _pose_ev`(`:1064`)로
+  그대로 합친 뒤 `for rule, level, note, subject in fired`(`:1098`)로 **4-튜플**을 기대한다. `MotionTracker` 3-튜플은 `:1086` 에서 `""` subject 를 붙여 맞추지만 포즈 이벤트는 안 맞췄다.
+  예외는 프레임 단위 `try/except` 로 삼켜져("계속 진행") 서버는 살아 있다.
+- **영향**: 그 프레임의 `fired` 전체 — 같은 프레임에서 함께 발화한 **zone_intrusion·ppe_missing·fire_smoke·proximity·immobility** 까지 — 쿨다운·기록·증거·통보 단계에 **도달하지 못한다**.
+  포즈 이벤트는 사람이 부담 자세를 `hold_sec` 이상 유지했을 때 1회씩 나오므로 빈도는 pose_fps·현장 자세에 따라 다르다(이번 1h 4대: 289회 ≈ 1.2회/분). 근골격 기록 자체도 남지 않는다.
+  안전 판정에 직접 닿는 결함이라 **P1 이상**으로 본다(검토 보고서 P0/P1 목록에 없던 항목).
+- **재현 조건**: 사람이 있는 영상 + 포즈 스레드 활성(pose_fps > 0). 사고영상 파일 4대로 1h 에 289회 재현.
+- **제안(승인 후 코드 수정)**: `:1064` 를 `fired += [(r, lv, n, "") for r, lv, n in _pose_ev]` 로 맞추거나 `ErgoTracker.update()` 가 4-튜플을 내게 통일 + 회귀 테스트(포즈 이벤트가 있는 프레임에서 zone_intrusion 이 기록되는지).
+  임시 완화: `worker.pose_fps` 를 낮추면 빈도만 줄고 결함은 남는다(노트북 2차 소크의 S2=0.2 도 마찬가지).
+- **문서 영향**: 9/8·9/9 개발기 소크와 노트북 소크의 "경보 n/p95" 는 이 유실을 포함한 값이다(유실된 프레임의 경보는 큐에 들어가지 않았으므로 지연 통계에 안 잡힌다).
 
 ```diff
 --- a/scripts/setup_env.py
