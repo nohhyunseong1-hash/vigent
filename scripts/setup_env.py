@@ -32,6 +32,42 @@ def _pip(*args: str, check: bool = True) -> int:
     return r.returncode
 
 
+def _torch_cuda_build() -> str:
+    """현재 인터프리터의 torch CUDA 빌드 문자열('13.0' 등). 미설치·CPU 빌드면 ''.
+
+    ★[F-33] 이 프로세스 안에서 import 하지 않고 **새 프로세스**에서 읽는다 — pip 설치 전후로 같은 프로세스가
+    import 캐시를 들고 있으면 바뀐 빌드를 못 본다(verify_cv2 와 같은 이유).
+    """
+    r = subprocess.run([sys.executable, "-c", "import torch; print(torch.version.cuda or '')"],
+                       capture_output=True, text=True, cwd=str(_ROOT))
+    return r.stdout.strip() if r.returncode == 0 else ""
+
+
+def requirements_for_install(cuda_build: str) -> Path:
+    """설치에 쓸 requirements 경로. CUDA 빌드 torch 가 있으면 torch/torchvision 줄을 뺀 임시 파일(%TEMP%)을 돌려준다.
+
+    ★[F-33 재발 방지, 2026-09-09] requirements.txt 의 `torch==2.12.0` 핀은 PyPI 에서 **CPU 휠**로 해석돼 이미 깔린
+    +cu130 을 조용히 덮어썼다(2026-09-06 20:08 실제 사고, benchmarks/FINDINGS.md F-33). CUDA 빌드가 있으면 두 줄을
+    제외하고 설치한다. CPU 빌드·미설치는 보호 대상이 아니다(requirements 그대로 = 기존 동작).
+    임시 파일은 %TEMP% 에 두므로 파일 안의 `-c constraints.txt`(파일 위치 기준 상대경로) 줄은 빼고, 호출측(main)이
+    `-c <절대경로>` 를 pip 인자로 따로 넘긴다(실측 2026-09-09: 파일 안에 절대경로를 적으면 pip 가 경로를 깨뜨렸다 —
+    'D:\\vigent_original\\vigent_originalconstraints.txt').
+    """
+    req = _ROOT / "requirements.txt"
+    if not cuda_build:
+        return req
+    import tempfile
+    lines = []
+    for line in req.read_text(encoding="utf-8").splitlines():
+        code = line.split("#")[0].strip()
+        if code.startswith(("torch==", "torchvision==", "-c ")):
+            continue
+        lines.append(line)
+    tmp = Path(tempfile.gettempdir()) / "vigent_setup_env_requirements_no_torch.txt"
+    tmp.write_text("\n".join(lines) + "\n", encoding="utf-8")
+    return tmp
+
+
 def installed_opencv() -> dict[str, str]:
     """설치된 opencv 배포판 {이름: 버전} — 같은 인터프리터 메타데이터 기준."""
     import importlib.metadata as m
@@ -69,8 +105,25 @@ def main() -> int:
         print("[오류] Python 3.11 전용(.python-version). 대상 venv 의 python 으로 실행하세요.")
         return 1
     if not a.no_install:
-        print("\n[1/3] pip install -r requirements.txt (constraints.txt 동반)")
-        _pip("install", "-r", str(_ROOT / "requirements.txt"))
+        cuda_before = _torch_cuda_build()
+        req = requirements_for_install(cuda_before)
+        if cuda_before:
+            print(f"\n[1/3] pip install -r requirements.txt (constraints.txt 동반) — ★경고: torch CUDA 빌드(cu{cuda_before}) 보호를 위해 "
+                  f"torch/torchvision 줄을 제외하고 설치한다(F-33). 임시 목록: {req}")
+        else:
+            print("\n[1/3] pip install -r requirements.txt (constraints.txt 동반) — torch 는 PyPI CPU 휠이 설치된다"
+                  "(GPU 는 md/DEPLOYMENT.md §3 의 CUDA 휠로 교체)")
+        if cuda_before:
+            _pip("install", "-r", str(req), "-c", str(_ROOT / "constraints.txt"))   # 임시 목록엔 -c 줄이 없다 → 여기서 동반
+        else:
+            _pip("install", "-r", str(req))
+        if cuda_before:
+            cuda_after = _torch_cuda_build()
+            if cuda_after != cuda_before:
+                print(f"  ★[오류] torch 빌드가 cu{cuda_before} → {cuda_after or 'cpu/없음'} 로 바뀌었다(F-33 재발). "
+                      f"복구: requirements.txt 의 CUDA 휠 설치 명령(--index-url https://download.pytorch.org/whl/cu{cuda_before.replace('.', '')})")
+                return 1
+            print(f"  torch CUDA 빌드 유지 확인: cu{cuda_after}")
     print("\n[2/3] opencv 정리: GUI 빌드 제거 → headless --no-deps 재설치")
     before = installed_opencv()
     print(f"  설치 전: {before or '(opencv 없음)'}")
