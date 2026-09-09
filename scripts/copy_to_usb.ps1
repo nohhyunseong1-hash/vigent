@@ -40,7 +40,9 @@ if ($fs -eq "FAT32") {
 if ($free -lt $need) { throw ("여유 용량 부족: {0:N2} GB 남음, {1:N2} GB 필요" -f ($free / 1GB), ($need / 1GB)) }
 
 $mode = if ($Sub) { "/MIR" } else { "/E" }
-$rc_args = @($Root, $dest, $mode, "/NFL", "/NDL", "/NJH", "/NP", "/R:2", "/W:2", "/XJ", "/XD") + $excl + @("/XF", "*.tmp")
+# /FFT: FAT/exFAT 는 파일 시각을 2초 단위로 저장한다 — 없으면 robocopy 가 NTFS 원본과 시각이 다르다고 보고 매번 전체를 다시 복사한다.
+#   검증(파일 수·바이트·SHA256 표본)은 시각을 쓰지 않으므로 오탐과 무관하고, /FFT 는 재복사 시간만 줄인다.
+$rc_args = @($Root, $dest, $mode, "/FFT", "/NFL", "/NDL", "/NJH", "/NP", "/R:2", "/W:2", "/XJ", "/XD") + $excl + @("/XF", "*.tmp")
 Write-Host "robocopy $($rc_args -join ' ')"
 & robocopy @rc_args
 $rc = $LASTEXITCODE

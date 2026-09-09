@@ -13,6 +13,8 @@
 | `VIGENT_종료.bat` | 패키지 폴더 아래에서 실행된 프로세스(uvicorn 파이썬·go2rtc)만 종료 | 패키지 루트 |
 | `portable_wait.py` | 런처가 `start /b` 로 띄우는 대기·브라우저 열기 보조 | `app\deploy\portable\` |
 | `사용법.md` | 비개발자용 한 장 | 패키지 루트 |
+| `VIGENT_데이터정리.bat` + `portable_cleanup.py` | 현장 사용 후 `app\data`(증거 사진·인식 기록)·`state\logs` 삭제. 기본은 카메라 등록 보존, `--all` 은 전부 | 패키지 루트 / `app\deploy\portable\` |
+| `USB_실기동_체크리스트.md` | 실제 USB(삼성 64GB, exFAT) 복사 → 개발기 실기동 → 제3 PC 실기동을 사람이 손으로 하는 절차·기록 칸·합격 기준(3차) | 저장소만(실행은 사람) |
 
 ## 패키지 구조
 
