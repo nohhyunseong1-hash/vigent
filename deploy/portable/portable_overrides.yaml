@@ -1,0 +1,18 @@
+# deploy/portable/portable_overrides.yaml — USB 포터블 패키지가 원본 config/tuning.yaml 에 얹는 값
+#
+# 원본 config/tuning.yaml 은 건드리지 않는다. scripts/build_portable.ps1 이 빌드 시점의
+# config/tuning.yaml 을 읽어 아래 항목만 바꿔 <패키지>\app\config\tuning.yaml 로 쓴다
+# (deploy/academy 가 파일 통째 복사인 것과 달리, 원본이 바뀌어도 여기 적힌 차이만 유지된다).
+# 각 항목은 "정확히 1곳" 치환을 전제로 하며, 원본에서 그 줄을 못 찾으면 빌드가 실패한다.
+#
+# 형식: section.key: {from: "<원본 줄의 앞부분>", to: "<치환 후 앞부분>", why: "..."}
+
+detect.backend:
+  from: "  backend: torch "
+  to:   "  backend: onnx-cpu "
+  why: >-
+    포터블은 CPU 전용 torch(PyPI 기본 휠)를 싣는다. onnx-cpu 는 슬롯별 .onnx 가 있는 ppe·forklift·fire_smoke 를
+    ONNX Runtime 으로 돌리고(benchmarks/onnx_cpu_bench.md: torch CPU 대비 지연 1.85배 빠름·dev 74장 정확도 손실 0),
+    .onnx 가 없는 person 슬롯은 자동으로 torch CPU 폴백(vigent-core/detectors/rfdetr_adapter.py [C-3]).
+    ★단 benchmarks/v2_onnx_report.md 실측: 지연은 빨라지지만 CPU 사용량은 1.7~2.2배 늘 수 있다(스핀 서명) —
+    onnxruntime.tune_sessions(기본 on)가 스핀을 끈 뒤에는 미재측정. 포터블은 데모·소수 카메라 용도라 지연 우선.
