@@ -371,3 +371,69 @@ F-8 진단 중, 서버 detect_frame 이 **연속 프레임 추적**(`guard._trac
   `docs/labeling_plan.md` 의 판정 항목 ①에 포함했다.
 - **미확인**: 이 57건이 검출에서 빠진 것인지 추적에서 버려진 것인지 **구분하지 않았다.**
   dets.jsonl 은 추적 이후 결과만 담는다 — 추적 전(`_pre_track`) 기록이 없으면 알 수 없다.
+
+## 2026-09-09 — 개발기 .venv 의 torch 가 CPU 빌드로 바뀌어 있었다
+
+### F-33. 개발기 `.venv` torch 2.12.0+cu130 → 2.12.0+cpu 무단 전환 (2026-09-06 20:08 ~ 2026-09-09 19:26, 약 71시간)
+- **발견(2026-09-09, USB 포터블 검증 중)**: 포터블 CPU 결과와 비교하려고 개발 `.venv` 로 CUDA 추론을 돌리자
+  `AssertionError: Torch not compiled with CUDA enabled`. 확인: `.venv\Scripts\python -c "import torch; print(torch.__version__, torch.cuda.is_available())"`
+  → **`2.12.0+cpu False`**(torchvision 0.27.0+cpu). `.venv\Lib\site-packages\torch-2.12.0.dist-info` 생성 시각 **2026-09-06 20:08**.
+- **원인 추정**: 5단계 5-1 새 클론 검증(커밋 `ee5ef18`·`d577267`, "setup_env 322s")에서 `scripts/setup_env.py` 가
+  `pip install -r requirements.txt` 를 실행 → `torch==2.12.0` 핀이 **PyPI 의 Windows CPU 휠**로 해석돼 cu130 을 덮어썼다.
+  `requirements.txt` 주석 자체가 이 위험을 경고하고 있었다("이 requirements.txt 를 그대로 재설치하면 CPU 빌드로 조용히 되돌아가니 주의").
+  같은 날 커밋 `580114e` 가 "개발 PC 의 .venv 는 검증용 CPU torch(2026-09-06 5단계)" 라고 requirements.txt:38 에 적어 **상태는 인지됐으나**,
+  README.md:29 의 "이 데스크탑은 반드시 cu130 휠" 과 모순된 채 이후 측정(09-08 드라이런·1h 소크)에 반영되지 않았다.
+- **영향 범위 — 2026-09-06 20:08 이후 개발기 `.venv` 로 잰 GPU 관련 수치 전부**(값은 지우지 않고 각 문서에 "★재측정 필요(F-33)" 주석만 달았다):
+  · `audit/loadtest_20260908_2122_devpc_dryrun.md`(4대 7분 드라이런): GPU util 1→17→83~89%·VRAM 2.56→4.0GB·서버 6.3~7.5코어·검출 p95 40~202ms
+  · `audit/loadtest_20260908_2356_desktop_1h.md`(4대 1h 소크): 시스템 CPU 45~61%·서버 6.1~7.4코어·GPU 46~63°C·"서버 종료 후 7,660MiB 잔존 → 서버 몫 차분 ≈1.1~1.2GB"
+  · `docs/review/02-model-inference.md` §3 표(드라이런 행)·"이상 신호 해소" 문단·G4·플랫폼 표 데스크톱 행·이슈 #8·Q1
+  · `docs/review/FINAL-REPORT.md` P1-10(해소 근거)·§5-1 VRAM 행의 개발기 근거·§5-5 개발기 소크 문단·§8 Q15
+  · `docs/review/06-operations-deploy.md` H11 개발기 근거·§9 개발기 소크 문단
+  · `docs/LAPTOP_SIZING_PILOT4.md` §8 표 드라이런 행·§8-1 참고 관찰
+  · 영향 **없음**: 노트북 실측 전부(2026-08-22 램프 cu126, 2026-09-09 소크 2회 — 노트북 .venv 는 cu126), 2026-08-18 이전 개발기 실측(E1·C5·V1·V2·V3, cu130 시절),
+    `docs/FINAL_SUMMARY.md` 의 기동 19.4s·3분 11초(**CPU torch 라고 명시된** 값).
+  · 결론에 대한 영향: "GPU 는 병목 아님·VRAM 4GB 충분" 은 노트북 실측(1.2~1.47GB)으로 여전히 성립한다. 다만 P1-10 "해소" 의 개발기 근거(서버 몫 차분 1.1~1.2GB)는
+    서버가 GPU 를 전혀 쓰지 않던 상태의 값이라 **근거로 쓸 수 없다** — 개발기에서 cu130 으로 소크를 다시 돌려 프로세스별 VRAM 을 기록해야 닫힌다.
+- **복구(2026-09-09 19:26, 정본 명령 README.md:29·requirements.txt:38)**: 드라이버 610.74(≥580 확인 후)
+  `.venv\Scripts\python -m pip install --index-url https://download.pytorch.org/whl/cu130 torch==2.12.0+cu130 torchvision==0.27.0+cu130`
+  → `2.12.0+cu130 / 0.27.0+cu130 / cuda 13.0 / available True / RTX 5070 Ti / (1000×1000)@(1000×1000) on cuda OK` ·
+  numpy 2.4.6·opencv-contrib-python-headless 4.13.0.92 **불변** · `pip check` 의 "rtmlib·supervision·trackers 가 opencv-python 요구" 는
+  headless 교체 설계(setup_env)로 인한 기존 상태 · `unittest discover -s tests` → **Ran 662 tests in 109.907s → OK (.venv python, 2026-09-09)**.
+- **재발 방지 제안(적용은 승인 후 — 이 스크립트는 노트북 서비스 설치 경로와도 연결됨)**: `scripts/setup_env.py` 가 pip 설치 **전에** 현재
+  torch 가 CUDA 빌드인지 검사해, CUDA 빌드면 torch/torchvision 을 요구사항에서 빼고 설치한 뒤 경고를 남긴다. 설치 후에도 빌드가 바뀌었으면 비정상 종료.
+
+```diff
+--- a/scripts/setup_env.py
++++ b/scripts/setup_env.py
+@@ def main() -> int:
+     if sys.version_info[:2] != (3, 11):
+         print("[오류] Python 3.11 전용(.python-version). 대상 venv 의 python 으로 실행하세요.")
+         return 1
++    # ★[F-33] CUDA 빌드 torch 보호: requirements.txt 의 torch==2.12.0 핀은 PyPI 에서 CPU 휠로 해석된다.
++    #   이미 +cu 빌드가 깔려 있으면 torch/torchvision 줄을 뺀 임시 requirements 로 설치해 덮어쓰지 않는다.
++    cuda_before = _torch_cuda_build()
+     if not a.no_install:
+-        print("\n[1/3] pip install -r requirements.txt (constraints.txt 동반)")
+-        _pip("install", "-r", str(_ROOT / "requirements.txt"))
++        req = _ROOT / "requirements.txt"
++        if cuda_before:
++            print(f"\n[1/3] pip install -r requirements.txt — ★torch {cuda_before} CUDA 빌드 보호: torch/torchvision 줄 제외")
++            lines = [l for l in req.read_text(encoding="utf-8").splitlines()
++                     if not l.split("#")[0].strip().startswith(("torch==", "torchvision=="))]
++            req = _ROOT / ".setup_env_requirements_no_torch.txt"
++            req.write_text("\n".join(lines) + "\n", encoding="utf-8")
++        else:
++            print("\n[1/3] pip install -r requirements.txt (constraints.txt 동반) — CPU torch 가 설치된다(GPU 는 md/DEPLOYMENT.md §3 로 교체)")
++        _pip("install", "-r", str(req))
++        if cuda_before and _torch_cuda_build() != cuda_before:
++            print(f"  ★[오류] torch 빌드가 {cuda_before} → {_torch_cuda_build()} 로 바뀌었다(F-33 재발). 복구: requirements.txt:38 명령")
++            return 1
+     print("\n[2/3] opencv 정리: GUI 빌드 제거 → headless --no-deps 재설치")
+@@
++def _torch_cuda_build() -> str:
++    """현재 인터프리터의 torch CUDA 빌드 문자열('13.0' 등). 미설치·CPU 빌드면 ''(새 프로세스에서 확인 — 이 프로세스의 import 캐시 회피)."""
++    code = "import torch; print(torch.version.cuda or '')"
++    r = subprocess.run([sys.executable, "-c", code], capture_output=True, text=True, cwd=str(_ROOT))
++    return r.stdout.strip() if r.returncode == 0 else ""
+```
+  검증 방법(승인 후): cu130 상태에서 `setup_env.py` 실행 → torch 줄 제외 로그 + 설치 후 `torch.version.cuda == '13.0'` 유지 · CPU 상태에서 실행 → 기존 동작(CPU 설치) 유지 · `tests/` 의 setup_env 관련 테스트가 있으면 통과.
