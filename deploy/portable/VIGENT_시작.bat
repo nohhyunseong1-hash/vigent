@@ -59,12 +59,17 @@ if errorlevel 1 (
 )
 "%PY%" -c "import cv2, torch, onnxruntime, rfdetr, fastapi; print('  패키지 OK: cv2', cv2.__version__, '· torch', torch.__version__, '· onnxruntime', onnxruntime.__version__)" 2>"%STATE%\logs\selftest_import.err"
 if errorlevel 1 (
+  rem VC++ 런타임 부재 서명: msvcp140 / vcruntime140 / "DLL load failed" / WinError 126 중 하나 → 동봉한 vc_redist 안내
+  findstr /I /C:"msvcp140" /C:"vcruntime140" /C:"DLL load failed" /C:"WinError 126" "%STATE%\logs\selftest_import.err" >nul 2>&1
+  if not errorlevel 1 (
+    rem 괄호 블록 안이라 메시지의 ( ) 는 ^ 로 이스케이프한다(안 하면 블록이 조기 종료돼 "unexpected at this time")
+    echo [원인] 이 PC 에 Microsoft Visual C++ 재배포 패키지가 없습니다. [조치] 이 USB 의 vc_redist.x64.exe 를 실행해 설치한 뒤^(관리자 권한, 1분^) VIGENT_시작.bat 를 다시 실행하세요.
+    echo        vc_redist.x64.exe 위치: %PKG%\vc_redist.x64.exe   ^(상세: %STATE%\logs\selftest_import.err^)
+    goto :fail
+  )
   echo [오류] 필수 패키지를 불러오지 못했습니다. 상세: %STATE%\logs\selftest_import.err
-  type "%STATE%\logs\selftest_import.err" | findstr /I "DLL Error error"
-  echo.
-  echo   ▶ "DLL load failed" 가 보이면: 이 PC 에 "Microsoft Visual C++ 2015-2022 재배포 가능 패키지(x64)" 가
-  echo     없는 것입니다. 마이크로소프트 사이트에서 vc_redist.x64.exe 를 설치한 뒤 다시 실행하세요.
-  echo   ▶ 그 외: 사용법.md 의 '문제가 생겼을 때' 를 보세요.
+  type "%STATE%\logs\selftest_import.err" | findstr /I "Error error"
+  echo   ▶ 사용법.md 의 '문제가 생겼을 때' 를 보세요.
   goto :fail
 )
 
