@@ -74,9 +74,13 @@ cd D:\vigent_original
 | CPU 추론 속도(클라이언트 왕복, 640px, n=5 중앙값) | **합격**(3슬롯 합산 ≤ 500 ms) | person 165~243 · ppe 156~170 · fire_smoke 156~180 · forklift 166 · **person+ppe+fire_smoke 321~423 ms**(2회 측정). 워커 경로(384px)는 더 빠를 것으로 예상하나 **미측정** |
 | USB 복사 스크립트 | 가상 드라이브로 확인 | `subst W: D:\vigent_usb_test` → `copy_to_usb.ps1 -Drive W:` — 여유 용량 계산·robocopy /MIR(하위 VIGENT\)·파일 수/바이트/SHA 표본 대조. 실제 USB(exFAT/FAT32)는 **미측정** |
 | 원본 저장소 변경 | **없음** | `git status`: 추가 파일만(`deploy/portable/`, `scripts/build_portable.ps1`, `scripts/copy_to_usb.ps1`). 추적 파일 수정 0, `.venv`·`config/`·`vigent-core/weights/` 불변 |
+| 데이터 정리(2차) | **합격** | `VIGENT_데이터정리.bat`: 더미 증거 jpg·인식 jsonl·cameras.json·camera_secrets.json·로그 생성 → 기본 모드 `Y`: 7개 삭제, cameras.json·camera_secrets.json·go2rtc.runtime.yaml·legal\statutes.yaml 보존 → `--all`: 3개 삭제, statutes.yaml 만 잔존 → 재실행 "지울 것이 없습니다" |
+| USB 복사 시 개인정보 격리(2차) | **합격** | 개발기 `app\data\evidence\dummy.jpg`·`state\logs\dummy.log` 를 만든 뒤 `subst W:` → `copy_to_usb.ps1 -Drive W:`: USB 쪽 `app\data` 에 `legal\statutes.yaml` 만, `state` 파일 0, 검증 46,744 파일/2,606,144,265 B 양쪽 일치. 역방향(USB→개발기) 복사 코드 없음 |
 
 **미검증·주의**
-- **VC++ 재배포 패키지 없는 PC**: 포터블에는 `vcruntime140.dll`·`vcruntime140_1.dll`(embeddable 동봉)만 있고 `msvcp140.dll` 은 없다(torch/onnxruntime 이 시스템 것을 쓴다). 그런 PC 에서는 `import torch` 가 "DLL load failed" 로 실패한다 — 런처가 원인·조치를 한글로 출력하고 멈춘다. 개발기에는 이미 설치돼 있어 **재현 불가(미검증)**. 필요하면 `vc_redist.x64.exe` 를 USB 에 함께 넣는다(마이크로소프트 배포본, 이 빌드 스크립트의 다운로드 출처 제한 밖이라 수동).
+- **VC++ 재배포 패키지 없는 PC**: 포터블에는 `vcruntime140.dll`·`vcruntime140_1.dll`(embeddable 동봉)만 있고 `msvcp140.dll` 은 없다(torch/onnxruntime 이 시스템 것을 쓴다). 그런 PC 에서는 `import torch` 가 `[WinError 126] … Error loading …\torch\lib\*.dll or one of its dependencies` 로 실패한다.
+  **대응(2026-09-09 2차)**: `vc_redist.x64.exe`(Microsoft `https://aka.ms/vs/17/release/vc_redist.x64.exe`, v14.44.35211.0, Authenticode **Valid**·CN=Microsoft Corporation, 25,635,768 B)를 패키지 루트에 동봉(빌드 1b 단계, 서명 유효하면 재다운로드 안 함). 런처는 import 실패 시 오류 파일에 `msvcp140`·`vcruntime140`·`DLL load failed`·`WinError 126` 중 하나가 있으면 `[원인] … [조치] 이 USB 의 vc_redist.x64.exe 를 실행 …` 을 출력하고 멈춘다.
+  **단위검증(2026-09-09)**: 개발기(Windows 11 Home — Windows Sandbox 미지원, VC++ 는 시스템 전역이라 임시 계정으로도 제거 불가)에서 torch 의존 DLL(`torch\lib\libiomp5md.dll`)을 임시로 이름을 바꿔 같은 종류의 오류(`[WinError 126] … Error loading "…\torch\lib\shm.dll" or one of its dependencies`)를 유도 → 지정 메시지 출력·종료코드 1 확인, DLL 원복 후 `import torch` 정상. **VC++ 가 실제로 없는 PC 의 완전 재현은 미검증**(vc_redist 설치로 해결되는지는 그런 PC 에서 확인해야 한다).
 - `--gpu`(CUDA 휠 오프라인 교체)는 코드 경로만 있고 **미실행**(`-Gpu` 로 휠을 받지 않았다).
 - Windows Home/Pro, FAT32 USB(4GB 파일 제한은 없음 — 최대 파일 366 MB), 실제 USB 3.0 첫 기동 시간: **미측정**.
 - 부수 발견: 개발기 `.venv` 의 torch 가 2026-09-06 20:08 이후 **CPU 빌드(2.12.0+cpu, cuda None)** 다(5단계 5-1 `setup_env.py` 재실행이 PyPI 휠로 교체한 것으로 추정). 그 뒤 개발기에서 잰 GPU 관련 값은 재확인이 필요하다 — 이 작업 범위 밖이라 기록만 남긴다.

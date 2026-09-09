@@ -26,7 +26,9 @@ $vol = Get-Volume -DriveLetter $Drive.TrimEnd(':') -ErrorAction SilentlyContinue
 $fs = if ($vol) { $vol.FileSystem } else { "?" }
 $free = if ($vol) { $vol.SizeRemaining } else { (Get-PSDrive $Drive.TrimEnd(':')).Free }
 
-$srcFiles = Get-ChildItem $Root -Recurse -File -Force | Where-Object { $_.FullName -notlike (Join-Path $Root "state\*") }
+# ★개인정보 격리: 개발기 쪽 app\data(증거·인식 기록·카메라 등록)와 state\(로그)는 USB 로 딸려가지 않는다 — 빈 폴더 구조 + data\legal\statutes.yaml(읽기 전용 자산)만 만든다.
+$excl = @((Join-Path $Root "state"), (Join-Path $Root "app\data"))
+$srcFiles = Get-ChildItem $Root -Recurse -File -Force | Where-Object { $f = $_.FullName; -not ($excl | Where-Object { $f -like ($_ + "\*") }) }
 $srcBytes = ($srcFiles | Measure-Object -Property Length -Sum).Sum
 $existing = if (Test-Path $dest) { (Get-ChildItem $dest -Recurse -File -Force -ErrorAction SilentlyContinue | Measure-Object -Property Length -Sum).Sum } else { 0 }
 $need = [math]::Ceiling(($srcBytes - $existing) * 1.05)
@@ -38,16 +40,21 @@ if ($fs -eq "FAT32") {
 if ($free -lt $need) { throw ("여유 용량 부족: {0:N2} GB 남음, {1:N2} GB 필요" -f ($free / 1GB), ($need / 1GB)) }
 
 $mode = if ($Sub) { "/MIR" } else { "/E" }
-$rc_args = @($Root, $dest, $mode, "/NFL", "/NDL", "/NJH", "/NP", "/R:2", "/W:2", "/XJ", "/XD", (Join-Path $Root "state"), "/XF", "*.tmp")
+$rc_args = @($Root, $dest, $mode, "/NFL", "/NDL", "/NJH", "/NP", "/R:2", "/W:2", "/XJ", "/XD") + $excl + @("/XF", "*.tmp")
 Write-Host "robocopy $($rc_args -join ' ')"
 & robocopy @rc_args
 $rc = $LASTEXITCODE
 if ($rc -ge 8) { throw "robocopy 실패(exit $rc)" }
 New-Item -ItemType Directory -Path (Join-Path $dest "state\logs") -Force | Out-Null
-New-Item -ItemType Directory -Path (Join-Path $dest "state\data") -Force | Out-Null
+New-Item -ItemType Directory -Path (Join-Path $dest "app\data\legal") -Force | Out-Null
+Copy-Item (Join-Path $Root "app\data\legal\statutes.yaml") (Join-Path $dest "app\data\legal\statutes.yaml") -Force
+# USB 쪽 app\data 에 statutes.yaml 외 파일이 있으면(이전 현장 사용 기록) 알린다 — 지우지는 않는다(VIGENT_데이터정리.bat 의 몫)
+$leftover = Get-ChildItem (Join-Path $dest "app\data") -Recurse -File -Force | Where-Object { $_.Name -ne "statutes.yaml" }
+if ($leftover) { Write-Host ("★USB app\data 에 이전 기록 {0}개가 남아 있습니다 — 현장 사용 후라면 USB 에서 VIGENT_데이터정리.bat 을 실행하세요" -f @($leftover).Count) -ForegroundColor Yellow }
 
-# 검증 1: 파일 수·바이트
-$dstFiles = Get-ChildItem $dest -Recurse -File -Force | Where-Object { $_.FullName -notlike (Join-Path $dest "state\*") }
+# 검증 1: 파일 수·바이트(app\data·state 제외 — 위에서 의도적으로 뺐다)
+$dstExcl = @((Join-Path $dest "state"), (Join-Path $dest "app\data"))
+$dstFiles = Get-ChildItem $dest -Recurse -File -Force | Where-Object { $f = $_.FullName; -not ($dstExcl | Where-Object { $f -like ($_ + "\*") }) }
 $dstBytes = ($dstFiles | Measure-Object -Property Length -Sum).Sum
 Write-Host ("검증: 원본 {0:N0} 파일 / {1:N0} B  ↔  USB {2:N0} 파일 / {3:N0} B" -f $srcFiles.Count, $srcBytes, $dstFiles.Count, $dstBytes)
 if ($srcFiles.Count -ne $dstFiles.Count -or $srcBytes -ne $dstBytes) { throw "파일 수 또는 용량이 다릅니다 — 다시 실행하세요" }

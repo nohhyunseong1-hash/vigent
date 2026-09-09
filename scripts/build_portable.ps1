@@ -239,8 +239,8 @@ Run $Py @("-c", "import io,sys; t=io.open(sys.argv[1],encoding='utf-8').read(); 
 
 # ── 8. 런처·문서 ──
 Step "8. 런처·사용법 → 패키지 루트"
-foreach ($f in @("VIGENT_시작.bat", "VIGENT_종료.bat", "사용법.md")) { Copy-Item (Join-Path $Source "deploy\portable\$f") (Join-Path $Root $f) -Force }
-Write-Host "  VIGENT_시작.bat · VIGENT_종료.bat · 사용법.md"
+foreach ($f in @("VIGENT_시작.bat", "VIGENT_종료.bat", "VIGENT_데이터정리.bat", "사용법.md")) { Copy-Item (Join-Path $Source "deploy\portable\$f") (Join-Path $Root $f) -Force }
+Write-Host "  VIGENT_시작.bat · VIGENT_종료.bat · VIGENT_데이터정리.bat · 사용법.md"
 
 # ── 9. 패키지 매니페스트·용량 ──
 Step "9. PACKAGE_MANIFEST.md"
@@ -269,6 +269,7 @@ $md += ""
 $md += "## 넣은 것"
 $md += "- python\ : Windows embeddable Python $PyVer (python.org, MD5 게시값 일치) + pip $PipVer + requirements.txt 전체(CPU torch, opencv headless 4.13.0.92)"
 $md += "- vc_redist.x64.exe : Microsoft Visual C++ 2015-2022 재배포 패키지(x64) v$((Get-Item $vcr).VersionInfo.FileVersion), Authenticode $($vs.Status) — torch/onnxruntime 이 msvcp140.dll 을 시스템에서 찾으므로 없는 PC 에서 설치(런처가 안내)"
+$md += "- VIGENT_데이터정리.bat : 현장 사용 후 app\data(증거 사진·인식 기록)·state\logs 삭제. 기본은 카메라 등록 보존, --all 은 전부"
 $md += "- app\vigent-core\ : 서버 코드·정적 파일·demo_assets(저장소 추적 데모 이미지 3장) · app\themes\ · app\config\(tuning.yaml = 포터블 프로필, notify.example.yaml, security.json) · app\bin\go2rtc.exe · app\deploy\portable\ · app\data\legal\statutes.yaml(법령 화이트리스트, 읽기 전용) · app\scripts\offline_probe.py · README.md·md\·VERSION·weights_manifest.json·requirements.txt·constraints.txt"
 $md += "- state\ : 실행 중 생기는 기록(logs). ※ data\(증거·인식 로그·카메라 등록)는 코드가 app\data 를 고정 사용 — 아래 '뺀 것' 참고"
 $md += "- 가중치: 위 표(필수 .pth 4 + onnx-cpu 슬롯 .onnx 3 + RTMPose 2 + YuNet 1). rf-detr-nano.pth 동봉 → 기동 시 인터넷 다운로드 없음(RF_HOME 고정)"
