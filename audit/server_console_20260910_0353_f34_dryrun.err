@@ -1,0 +1,172 @@
+INFO:     Started server process [19596]
+INFO:     Waiting for application startup.
+2026-09-10 03:54:03,954 [INFO] vigent.guard: 검출 슬롯: slot=forklift backend=rfdetr weights=forklift_rfdetr_v1.pth sha=cd76eb56487bf1aa → LOADED
+2026-09-10 03:54:04,122 [INFO] vigent.guard: 검출 슬롯: slot=fire_smoke backend=rfdetr weights=fire_smoke_rfdetr_v1_e17.pth sha=b7425ce450f12cad → LOADED
+2026-09-10 03:54:04,228 [INFO] vigent.guard: 검출 슬롯: slot=ppe backend=rfdetr weights=ppe_rfdetr_v1.pth sha=3380fa7d4bb1be87 → LOADED
+2026-09-10 03:54:04,241 [INFO] vigent.guard: RF-DETR 사전학습 캐시 확인: D:\vigent_original\vigent-core\weights\rf-detr-nano.pth
+2026-09-10 03:54:04,243 [INFO] vigent: 'VIGENT Safety' 로드 완료 (폴백 1개 / 비활성 0개)
+2026-09-10 03:54:04,757 [INFO] vigent.cameras: go2rtc 기동(pid 33904)
+2026-09-10 03:54:04,758 [INFO] vigent: go2rtc 준비(확대뷰 실시간 재생 가능)
+2026-09-10 03:54:04,765 [INFO] vigent.starvation: 기아 감시 시작 — 1단계 60s(슬롯 회수) / 2단계 120s(워커 재시작) / 3단계 3회 후 프로세스 재기동
+2026-09-10 03:54:04,811 [INFO] vigent.alert_queue: 경보 재시도 스레드 시작(주기 5s, 최대 10회, 백오프 상한 60s) — 이월 pending 0건
+2026-09-10 03:54:04,824 [INFO] vigent.alert_notify: 경보 통보 스레드 시작 — 큐 200 · 반복억제 300s · 시간당 상한 6건
+2026-09-10 03:54:04,844 [INFO] vigent.retention_sched: 보존 스윕 스레드 시작 — 주기 24시간 · 첫 실행 10분 뒤
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://127.0.0.1:8010 (Press CTRL+C to quit)
+FutureWarning: target=True is deprecated since `v0.8`; use `TargetMode.ARGS_REMAP` instead. Will be removed in `v1.0`.
+[2026-09-10 03:54:08] [WARNING] rf-detr - Using a different number of positional encodings than DINOv2, which means we're not loading DINOv2 backbone weights. This is not a problem if finetuning a pretrained RF-DETR model.
+[2026-09-10 03:54:08] [WARNING] rf-detr - Using patch size 16 instead of 14, which means we're not loading DINOv2 backbone weights. This is not a problem if finetuning a pretrained RF-DETR model.
+[2026-09-10 03:54:09] [WARNING] rf-detr - Pretrained weights at 'D:\\vigent_original\\vigent-core\\weights\\rf-detr-nano.pth' loaded only partially — this typically produces lower accuracy. 1 model parameter(s) not in checkpoint (left at random init): [_kp_active_mask]. Check that the model configuration (encoder, hidden_dim, out_feature_indexes, projector_scale, ...) matches the architecture the checkpoint was trained with.
+[transformers] `loss_type=None` was set in the config but it is unrecognized. Using the default loss: `ForCausalLMLoss`.
+TracerWarning: Converting a tensor to a Python boolean might cause the trace to be incorrect. We can't record the data flow of Python values, so this value will be treated as a constant in the future. This means that the trace might not generalize to other inputs!
+[transformers] `use_return_dict` is deprecated! Use `return_dict` instead!
+TracerWarning: Converting a tensor to a Python boolean might cause the trace to be incorrect. We can't record the data flow of Python values, so this value will be treated as a constant in the future. This means that the trace might not generalize to other inputs!
+TracerWarning: Converting a tensor to a Python boolean might cause the trace to be incorrect. We can't record the data flow of Python values, so this value will be treated as a constant in the future. This means that the trace might not generalize to other inputs!
+TracerWarning: Converting a tensor to a Python boolean might cause the trace to be incorrect. We can't record the data flow of Python values, so this value will be treated as a constant in the future. This means that the trace might not generalize to other inputs!
+TracerWarning: Converting a tensor to a Python boolean might cause the trace to be incorrect. We can't record the data flow of Python values, so this value will be treated as a constant in the future. This means that the trace might not generalize to other inputs!
+TracerWarning: Converting a tensor to a Python boolean might cause the trace to be incorrect. We can't record the data flow of Python values, so this value will be treated as a constant in the future. This means that the trace might not generalize to other inputs!
+TracerWarning: Converting a tensor to a Python boolean might cause the trace to be incorrect. We can't record the data flow of Python values, so this value will be treated as a constant in the future. This means that the trace might not generalize to other inputs!
+TracerWarning: Converting a tensor to a Python boolean might cause the trace to be incorrect. We can't record the data flow of Python values, so this value will be treated as a constant in the future. This means that the trace might not generalize to other inputs!
+TracerWarning: Converting a tensor to a Python boolean might cause the trace to be incorrect. We can't record the data flow of Python values, so this value will be treated as a constant in the future. This means that the trace might not generalize to other inputs!
+TracerWarning: Converting a tensor to a Python boolean might cause the trace to be incorrect. We can't record the data flow of Python values, so this value will be treated as a constant in the future. This means that the trace might not generalize to other inputs!
+TracerWarning: Converting a tensor to a Python boolean might cause the trace to be incorrect. We can't record the data flow of Python values, so this value will be treated as a constant in the future. This means that the trace might not generalize to other inputs!
+TracerWarning: Iterating over a tensor might cause the trace to be incorrect. Passing a tensor of different shape won't change the number of iterations executed (and might lead to errors or silently give incorrect results).
+TracerWarning: Iterating over a tensor might cause the trace to be incorrect. Passing a tensor of different shape won't change the number of iterations executed (and might lead to errors or silently give incorrect results).
+2026-09-10 03:54:12,148 [INFO] vigent.readiness: 예열 slot=person 7.4s
+[2026-09-10 03:54:12] [WARNING] rf-detr - Using a different number of positional encodings than DINOv2, which means we're not loading DINOv2 backbone weights. This is not a problem if finetuning a pretrained RF-DETR model.
+[2026-09-10 03:54:12] [WARNING] rf-detr - Using patch size 16 instead of 14, which means we're not loading DINOv2 backbone weights. This is not a problem if finetuning a pretrained RF-DETR model.
+[2026-09-10 03:54:12] [WARNING] rf-detr - Checkpoint has 10 classes but model is configured for 90. Using checkpoint class count (10). Pass num_classes=10 to suppress this warning.
+[2026-09-10 03:54:12] [WARNING] rf-detr - load_pretrain_weights: args.num_queries absent; inferred ckpt_num_queries=300 from tensor rows 3900 ÷ ckpt_group_detr=13.
+2026-09-10 03:54:14,052 [INFO] vigent.readiness: 예열 slot=ppe 1.9s
+[2026-09-10 03:54:14] [WARNING] rf-detr - Using a different number of positional encodings than DINOv2, which means we're not loading DINOv2 backbone weights. This is not a problem if finetuning a pretrained RF-DETR model.
+[2026-09-10 03:54:14] [WARNING] rf-detr - Using patch size 16 instead of 14, which means we're not loading DINOv2 backbone weights. This is not a problem if finetuning a pretrained RF-DETR model.
+[2026-09-10 03:54:14] [WARNING] rf-detr - Checkpoint has 2 classes but model is configured for 90. Using checkpoint class count (2). Pass num_classes=2 to suppress this warning.
+[2026-09-10 03:54:14] [WARNING] rf-detr - load_pretrain_weights: args.num_queries absent; inferred ckpt_num_queries=300 from tensor rows 3900 ÷ ckpt_group_detr=13.
+2026-09-10 03:54:15,959 [INFO] vigent.readiness: 예열 slot=fire_smoke 1.9s
+2026-09-10 03:54:15,959 [INFO] vigent.readiness: ★예열 완료 11.19s (slots=person,ppe,fire_smoke) — 이제 워커 기동, 워치독 정상 적용
+2026-09-10 03:54:28,705 [WARNING] vigent.worker: 카메라 '파일럿모의1' 위험구역 미설정 — **침입 판정을 하지 않는다**. 구역을 그리려면 /safety-hub 에서 카메라별로 설정하라.
+2026-09-10 03:54:28,770 [WARNING] vigent.worker: 카메라 '파일럿모의2' 위험구역 미설정 — **침입 판정을 하지 않는다**. 구역을 그리려면 /safety-hub 에서 카메라별로 설정하라.
+2026-09-10 03:54:28,820 [WARNING] vigent.worker: 카메라 '파일럿모의3' 위험구역 미설정 — **침입 판정을 하지 않는다**. 구역을 그리려면 /safety-hub 에서 카메라별로 설정하라.
+2026-09-10 03:54:28,862 [WARNING] vigent.worker: 카메라 '파일럿모의4' 위험구역 미설정 — **침입 판정을 하지 않는다**. 구역을 그리려면 /safety-hub 에서 카메라별로 설정하라.
+FutureWarning: target=None is deprecated since `v0.8`; use `TargetMode.NOTIFY` instead. Will be removed in `v1.0`.
+2026-09-10 03:54:30,382 [INFO] vigent.ort_tune: ORT 세션 2개 튜닝 적용(intra_op=4 · spin=off)
+2026-09-10 03:54:31,858 [ERROR] vigent.dispatcher: ★통보 설정 오류(telegram HTTP 401) — 재시도하지 않는다. 토큰·chat_id·URL 을 확인하라
+2026-09-10 03:54:31,977 [INFO] vigent.alert_notify: 경보 즉시 전송 미도달 — 재시도 큐로 이월: [파일럿모의1] 보호구 미착용 감지(NO-Mask, NO-Safety-Vest)
+2026-09-10 03:54:33,154 [ERROR] vigent.dispatcher: ★통보 설정 오류(telegram HTTP 401) — 재시도하지 않는다. 토큰·chat_id·URL 을 확인하라
+2026-09-10 03:54:33,294 [INFO] vigent.alert_notify: 경보 즉시 전송 미도달 — 재시도 큐로 이월: [파일럿모의2] 보호구 미착용 감지(NO-Hardhat, NO-Safety-Vest)
+2026-09-10 03:54:34,434 [ERROR] vigent.dispatcher: ★통보 설정 오류(telegram HTTP 401) — 재시도하지 않는다. 토큰·chat_id·URL 을 확인하라
+2026-09-10 03:54:34,552 [INFO] vigent.alert_notify: 경보 즉시 전송 미도달 — 재시도 큐로 이월: [파일럿모의4] 보호구 미착용 감지(NO-Hardhat, NO-Mask, NO-Safety-Vest)
+2026-09-10 03:54:34,552 [INFO] vigent.alert_notify: 경보 즉시 전송 미도달 — 재시도 큐로 이월: [파일럿모의4] 근골격계 부담 자세 — 목 37°, 어깨 37° 굽힘/비대칭(2D 근사·스크리닝) · 3초 지속 · 등급 bad
+2026-09-10 03:54:34,554 [INFO] vigent.alert_notify: 경보 즉시 전송 미도달 — 재시도 큐로 이월: [파일럿모의1] 근골격계 부담 자세 — 목 42°, 어깨 22° 굽힘/비대칭(2D 근사·스크리닝) · 3초 지속 · 등급 bad
+2026-09-10 03:54:36,204 [ERROR] vigent.dispatcher: ★통보 설정 오류(telegram HTTP 401) — 재시도하지 않는다. 토큰·chat_id·URL 을 확인하라
+2026-09-10 03:54:36,317 [ERROR] vigent.alert_queue: 경보 데드레터(설정 오류 — 재시도 안 함) id=225: config_error: [{'channel': 'telegram', 'sent': False, 'fallback': True, 'status': 401, 'config_error': True}, {'channel': 'email', 'sent': False, 'fallback': True, 'reason': 'SMTP 미설정'}, {'channel': '
+2026-09-10 03:54:37,370 [ERROR] vigent.dispatcher: ★통보 설정 오류(telegram HTTP 401) — 재시도하지 않는다. 토큰·chat_id·URL 을 확인하라
+2026-09-10 03:54:37,482 [ERROR] vigent.dispatcher: ★통보 설정 오류(telegram HTTP 401) — 재시도하지 않는다. 토큰·chat_id·URL 을 확인하라
+2026-09-10 03:54:37,501 [ERROR] vigent.alert_queue: 경보 데드레터(설정 오류 — 재시도 안 함) id=226: config_error: [{'channel': 'telegram', 'sent': False, 'fallback': True, 'status': 401, 'config_error': True}, {'channel': 'email', 'sent': False, 'fallback': True, 'reason': 'SMTP 미설정'}, {'channel': '
+2026-09-10 03:54:37,618 [INFO] vigent.alert_notify: 경보 즉시 전송 미도달 — 재시도 큐로 이월: [시스템] 경보 전송 실패로 폐기(데드레터) 최근 1시간 1건(누적 188건) — 채널 설정·네트워크 확인 필요. 예: [파일럿모의1] 보호구 미착용 감지(NO-Mask, NO-Safety-Vest)
+2026-09-10 03:54:40,600 [ERROR] vigent.dispatcher: ★통보 설정 오류(telegram HTTP 401) — 재시도하지 않는다. 토큰·chat_id·URL 을 확인하라
+2026-09-10 03:54:40,709 [INFO] vigent.alert_notify: 경보 즉시 전송 미도달 — 재시도 큐로 이월: [파일럿모의3] 화재/연기 감지
+2026-09-10 03:54:42,633 [ERROR] vigent.dispatcher: ★통보 설정 오류(telegram HTTP 401) — 재시도하지 않는다. 토큰·chat_id·URL 을 확인하라
+2026-09-10 03:54:42,753 [INFO] vigent.alert_notify: 경보 즉시 전송 미도달 — 재시도 큐로 이월: [파일럿모의3] 보호구 미착용 감지(NO-Hardhat)
+2026-09-10 03:54:42,754 [INFO] vigent.alert_notify: 경보 즉시 전송 미도달 — 재시도 큐로 이월: [파일럿모의1] 인원 밀집 — 6명 감지
+2026-09-10 03:54:43,680 [ERROR] vigent.dispatcher: ★통보 설정 오류(telegram HTTP 401) — 재시도하지 않는다. 토큰·chat_id·URL 을 확인하라
+2026-09-10 03:54:43,785 [ERROR] vigent.alert_queue: 경보 데드레터(설정 오류 — 재시도 안 함) id=227: config_error: [{'channel': 'telegram', 'sent': False, 'fallback': True, 'status': 401, 'config_error': True}, {'channel': 'email', 'sent': False, 'fallback': True, 'reason': 'SMTP 미설정'}, {'channel': '
+2026-09-10 03:54:44,816 [ERROR] vigent.dispatcher: ★통보 설정 오류(telegram HTTP 401) — 재시도하지 않는다. 토큰·chat_id·URL 을 확인하라
+2026-09-10 03:54:44,942 [ERROR] vigent.alert_queue: 경보 데드레터(설정 오류 — 재시도 안 함) id=228: config_error: [{'channel': 'telegram', 'sent': False, 'fallback': True, 'status': 401, 'config_error': True}, {'channel': 'email', 'sent': False, 'fallback': True, 'reason': 'SMTP 미설정'}, {'channel': '
+2026-09-10 03:54:44,954 [INFO] vigent.alert_notify: 경보 즉시 전송 미도달 — 재시도 큐로 이월: [파일럿모의2] 급격한 이동 감지 — 돌진·이상행동
+2026-09-10 03:54:45,071 [INFO] vigent.alert_notify: 경보 즉시 전송 미도달 — 재시도 큐로 이월: [파일럿모의4] 급격한 이동 감지 — 돌진·이상행동
+2026-09-10 03:54:45,971 [ERROR] vigent.dispatcher: ★통보 설정 오류(telegram HTTP 401) — 재시도하지 않는다. 토큰·chat_id·URL 을 확인하라
+2026-09-10 03:54:46,111 [ERROR] vigent.alert_queue: 경보 데드레터(설정 오류 — 재시도 안 함) id=229: config_error: [{'channel': 'telegram', 'sent': False, 'fallback': True, 'status': 401, 'config_error': True}, {'channel': 'email', 'sent': False, 'fallback': True, 'reason': 'SMTP 미설정'}, {'channel': '
+2026-09-10 03:54:47,162 [ERROR] vigent.dispatcher: ★통보 설정 오류(telegram HTTP 401) — 재시도하지 않는다. 토큰·chat_id·URL 을 확인하라
+2026-09-10 03:54:47,318 [ERROR] vigent.alert_queue: 경보 데드레터(설정 오류 — 재시도 안 함) id=230: config_error: [{'channel': 'telegram', 'sent': False, 'fallback': True, 'status': 401, 'config_error': True}, {'channel': 'email', 'sent': False, 'fallback': True, 'reason': 'SMTP 미설정'}, {'channel': '
+2026-09-10 03:54:57,188 [INFO] vigent.alert_notify: 경보 즉시 전송 미도달 — 재시도 큐로 이월: [파일럿모의1] 급격한 이동 감지 — 돌진·이상행동
+2026-09-10 03:55:05,570 [ERROR] vigent.dispatcher: ★통보 설정 오류(telegram HTTP 401) — 재시도하지 않는다. 토큰·chat_id·URL 을 확인하라
+2026-09-10 03:55:05,701 [INFO] vigent.alert_notify: 경보 즉시 전송 미도달 — 재시도 큐로 이월: [파일럿모의2] car 작업반경 침입 — 사람 약 1.1m
+2026-09-10 03:55:08,281 [ERROR] vigent.dispatcher: ★통보 설정 오류(telegram HTTP 401) — 재시도하지 않는다. 토큰·chat_id·URL 을 확인하라
+2026-09-10 03:55:08,396 [ERROR] vigent.alert_queue: 경보 데드레터(설정 오류 — 재시도 안 함) id=231: config_error: [{'channel': 'telegram', 'sent': False, 'fallback': True, 'status': 401, 'config_error': True}, {'channel': 'email', 'sent': False, 'fallback': True, 'reason': 'SMTP 미설정'}, {'channel': '
+2026-09-10 03:55:15,753 [ERROR] vigent.dispatcher: ★통보 설정 오류(telegram HTTP 401) — 재시도하지 않는다. 토큰·chat_id·URL 을 확인하라
+2026-09-10 03:55:15,902 [INFO] vigent.alert_notify: 경보 즉시 전송 미도달 — 재시도 큐로 이월: [파일럿모의4] 화재/연기 감지
+2026-09-10 03:55:19,417 [ERROR] vigent.dispatcher: ★통보 설정 오류(telegram HTTP 401) — 재시도하지 않는다. 토큰·chat_id·URL 을 확인하라
+2026-09-10 03:55:19,527 [ERROR] vigent.alert_queue: 경보 데드레터(설정 오류 — 재시도 안 함) id=232: config_error: [{'channel': 'telegram', 'sent': False, 'fallback': True, 'status': 401, 'config_error': True}, {'channel': 'email', 'sent': False, 'fallback': True, 'reason': 'SMTP 미설정'}, {'channel': '
+2026-09-10 03:55:34,248 [ERROR] vigent.dispatcher: ★통보 설정 오류(telegram HTTP 401) — 재시도하지 않는다. 토큰·chat_id·URL 을 확인하라
+2026-09-10 03:55:34,385 [INFO] vigent.alert_notify: 경보 즉시 전송 미도달 — 재시도 큐로 이월: [파일럿모의3] truck 작업반경 침입 — 사람 약 0.1m
+2026-09-10 03:55:37,469 [ERROR] vigent.dispatcher: ★통보 설정 오류(telegram HTTP 401) — 재시도하지 않는다. 토큰·chat_id·URL 을 확인하라
+2026-09-10 03:55:37,597 [INFO] vigent.alert_notify: 경보 즉시 전송 미도달 — 재시도 큐로 이월: [파일럿모의1] 화재/연기 감지
+2026-09-10 03:55:40,659 [ERROR] vigent.dispatcher: ★통보 설정 오류(telegram HTTP 401) — 재시도하지 않는다. 토큰·chat_id·URL 을 확인하라
+2026-09-10 03:55:40,814 [ERROR] vigent.alert_queue: 경보 데드레터(설정 오류 — 재시도 안 함) id=233: config_error: [{'channel': 'telegram', 'sent': False, 'fallback': True, 'status': 401, 'config_error': True}, {'channel': 'email', 'sent': False, 'fallback': True, 'reason': 'SMTP 미설정'}, {'channel': '
+2026-09-10 03:55:41,894 [ERROR] vigent.dispatcher: ★통보 설정 오류(telegram HTTP 401) — 재시도하지 않는다. 토큰·chat_id·URL 을 확인하라
+2026-09-10 03:55:42,072 [ERROR] vigent.alert_queue: 경보 데드레터(설정 오류 — 재시도 안 함) id=234: config_error: [{'channel': 'telegram', 'sent': False, 'fallback': True, 'status': 401, 'config_error': True}, {'channel': 'email', 'sent': False, 'fallback': True, 'reason': 'SMTP 미설정'}, {'channel': '
+2026-09-10 03:55:46,046 [INFO] vigent.alert_notify: 경보 즉시 전송 미도달 — 재시도 큐로 이월: [파일럿모의2] 근골격계 부담 자세 — 허리 51° 굽힘/비대칭(2D 근사·스크리닝) · 3초 지속 · 등급 bad
+2026-09-10 03:56:03,818 [ERROR] vigent.dispatcher: ★통보 설정 오류(telegram HTTP 401) — 재시도하지 않는다. 토큰·chat_id·URL 을 확인하라
+2026-09-10 03:56:03,948 [INFO] vigent.alert_notify: 경보 즉시 전송 미도달 — 재시도 큐로 이월: [파일럿모의1] car 작업반경 침입 — 사람 약 0.0m
+2026-09-10 03:56:08,008 [ERROR] vigent.dispatcher: ★통보 설정 오류(telegram HTTP 401) — 재시도하지 않는다. 토큰·chat_id·URL 을 확인하라
+2026-09-10 03:56:08,144 [ERROR] vigent.alert_queue: 경보 데드레터(설정 오류 — 재시도 안 함) id=235: config_error: [{'channel': 'telegram', 'sent': False, 'fallback': True, 'status': 401, 'config_error': True}, {'channel': 'email', 'sent': False, 'fallback': True, 'reason': 'SMTP 미설정'}, {'channel': '
+2026-09-10 03:56:44,312 [ERROR] vigent.dispatcher: ★통보 설정 오류(telegram HTTP 401) — 재시도하지 않는다. 토큰·chat_id·URL 을 확인하라
+2026-09-10 03:56:44,323 [ERROR] vigent.dispatcher: ★통보 설정 오류(telegram HTTP 401) — 재시도하지 않는다. 토큰·chat_id·URL 을 확인하라
+2026-09-10 03:56:44,473 [ERROR] vigent.alert_queue: 경보 데드레터(설정 오류 — 재시도 안 함) id=236: config_error: [{'channel': 'telegram', 'sent': False, 'fallback': True, 'status': 401, 'config_error': True}, {'channel': 'email', 'sent': False, 'fallback': True, 'reason': 'SMTP 미설정'}, {'channel': '
+2026-09-10 03:56:44,619 [INFO] vigent.alert_notify: 경보 즉시 전송 미도달 — 재시도 큐로 이월: [파일럿모의2] 화재/연기 감지
+2026-09-10 03:57:05,228 [INFO] vigent.alert_notify: 경보 즉시 전송 미도달 — 재시도 큐로 이월: [파일럿모의3] 근골격계 부담 자세 — 허리 21°, 어깨 90° 굽힘/비대칭(2D 근사·스크리닝) · 4초 지속 · 등급 bad
+2026-09-10 03:58:09,489 [ERROR] vigent.dispatcher: ★통보 설정 오류(telegram HTTP 401) — 재시도하지 않는다. 토큰·chat_id·URL 을 확인하라
+2026-09-10 03:58:09,624 [INFO] vigent.alert_notify: 경보 즉시 전송 미도달 — 재시도 큐로 이월: [파일럿모의3] 장시간 무동작 — 쓰러짐·실신 의심
+2026-09-10 03:58:15,797 [ERROR] vigent.dispatcher: ★통보 설정 오류(telegram HTTP 401) — 재시도하지 않는다. 토큰·chat_id·URL 을 확인하라
+2026-09-10 03:58:15,963 [ERROR] vigent.alert_queue: 경보 데드레터(설정 오류 — 재시도 안 함) id=237: config_error: [{'channel': 'telegram', 'sent': False, 'fallback': True, 'status': 401, 'config_error': True}, {'channel': 'email', 'sent': False, 'fallback': True, 'reason': 'SMTP 미설정'}, {'channel': '
+2026-09-10 04:04:10,797 [INFO] vigent.retention_sched: 보존 스윕 완료 — 삭제 1450건(44.9MB) · 대기 1450건 · 소요 5.95s
+2026-09-10 04:04:36,195 [ERROR] vigent.dispatcher: ★통보 설정 오류(telegram HTTP 401) — 재시도하지 않는다. 토큰·chat_id·URL 을 확인하라
+2026-09-10 04:04:36,340 [INFO] vigent.alert_notify: 경보 즉시 전송 미도달 — 재시도 큐로 이월: [파일럿모의1] 보호구 미착용 감지(NO-Mask, NO-Safety-Vest) · 직전 통보 이후 동일 경보 39건 억제됨
+2026-09-10 04:04:42,582 [ERROR] vigent.dispatcher: ★통보 설정 오류(telegram HTTP 401) — 재시도하지 않는다. 토큰·chat_id·URL 을 확인하라
+2026-09-10 04:04:42,728 [ERROR] vigent.alert_queue: 경보 데드레터(설정 오류 — 재시도 안 함) id=238: config_error: [{'channel': 'telegram', 'sent': False, 'fallback': True, 'status': 401, 'config_error': True}, {'channel': 'email', 'sent': False, 'fallback': True, 'reason': 'SMTP 미설정'}, {'channel': '
+2026-09-10 04:04:46,597 [ERROR] vigent.dispatcher: ★통보 설정 오류(telegram HTTP 401) — 재시도하지 않는다. 토큰·chat_id·URL 을 확인하라
+2026-09-10 04:04:46,774 [INFO] vigent.alert_notify: 경보 즉시 전송 미도달 — 재시도 큐로 이월: [파일럿모의4] 보호구 미착용 감지(NO-Safety-Vest) · 직전 통보 이후 동일 경보 28건 억제됨
+2026-09-10 04:04:48,774 [ERROR] vigent.dispatcher: ★통보 설정 오류(telegram HTTP 401) — 재시도하지 않는다. 토큰·chat_id·URL 을 확인하라
+2026-09-10 04:04:48,926 [ERROR] vigent.alert_queue: 경보 데드레터(설정 오류 — 재시도 안 함) id=239: config_error: [{'channel': 'telegram', 'sent': False, 'fallback': True, 'status': 401, 'config_error': True}, {'channel': 'email', 'sent': False, 'fallback': True, 'reason': 'SMTP 미설정'}, {'channel': '
+2026-09-10 04:04:51,542 [ERROR] vigent.dispatcher: ★통보 설정 오류(telegram HTTP 401) — 재시도하지 않는다. 토큰·chat_id·URL 을 확인하라
+2026-09-10 04:04:51,707 [INFO] vigent.alert_notify: 경보 즉시 전송 미도달 — 재시도 큐로 이월: [파일럿모의3] 보호구 미착용 감지(NO-Safety-Vest) · 직전 통보 이후 동일 경보 12건 억제됨
+2026-09-10 04:04:54,095 [ERROR] vigent.dispatcher: ★통보 설정 오류(telegram HTTP 401) — 재시도하지 않는다. 토큰·chat_id·URL 을 확인하라
+2026-09-10 04:04:54,240 [INFO] vigent.alert_notify: 경보 즉시 전송 미도달 — 재시도 큐로 이월: [파일럿모의2] 보호구 미착용 감지(NO-Hardhat, NO-Safety-Vest) · 직전 통보 이후 동일 경보 33건 억제됨
+2026-09-10 04:04:54,912 [ERROR] vigent.dispatcher: ★통보 설정 오류(telegram HTTP 401) — 재시도하지 않는다. 토큰·chat_id·URL 을 확인하라
+2026-09-10 04:04:55,065 [ERROR] vigent.alert_queue: 경보 데드레터(설정 오류 — 재시도 안 함) id=240: config_error: [{'channel': 'telegram', 'sent': False, 'fallback': True, 'status': 401, 'config_error': True}, {'channel': 'email', 'sent': False, 'fallback': True, 'reason': 'SMTP 미설정'}, {'channel': '
+2026-09-10 04:04:56,083 [ERROR] vigent.dispatcher: ★통보 설정 오류(telegram HTTP 401) — 재시도하지 않는다. 토큰·chat_id·URL 을 확인하라
+2026-09-10 04:04:56,266 [ERROR] vigent.alert_queue: 경보 데드레터(설정 오류 — 재시도 안 함) id=241: config_error: [{'channel': 'telegram', 'sent': False, 'fallback': True, 'status': 401, 'config_error': True}, {'channel': 'email', 'sent': False, 'fallback': True, 'reason': 'SMTP 미설정'}, {'channel': '
+2026-09-10 04:04:56,341 [WARNING] vigent.worker: 카메라 '파일럿모의5' 위험구역 미설정 — **침입 판정을 하지 않는다**. 구역을 그리려면 /safety-hub 에서 카메라별로 설정하라.
+2026-09-10 04:05:03,549 [ERROR] vigent.dispatcher: ★통보 설정 오류(telegram HTTP 401) — 재시도하지 않는다. 토큰·chat_id·URL 을 확인하라
+2026-09-10 04:05:03,699 [INFO] vigent.alert_notify: 경보 즉시 전송 미도달 — 재시도 큐로 이월: [파일럿모의5] 보호구 미착용 감지(NO-Safety-Vest)
+2026-09-10 04:05:07,295 [ERROR] vigent.dispatcher: ★통보 설정 오류(telegram HTTP 401) — 재시도하지 않는다. 토큰·chat_id·URL 을 확인하라
+2026-09-10 04:05:07,433 [ERROR] vigent.alert_queue: 경보 데드레터(설정 오류 — 재시도 안 함) id=242: config_error: [{'channel': 'telegram', 'sent': False, 'fallback': True, 'status': 401, 'config_error': True}, {'channel': 'email', 'sent': False, 'fallback': True, 'reason': 'SMTP 미설정'}, {'channel': '
+2026-09-10 04:05:11,635 [INFO] vigent.alert_notify: 경보 즉시 전송 미도달 — 재시도 큐로 이월: [파일럿모의1] 급격한 이동 감지 — 돌진·이상행동 · 직전 통보 이후 동일 경보 13건 억제됨
+2026-09-10 04:05:32,616 [ERROR] vigent.dispatcher: ★통보 설정 오류(telegram HTTP 401) — 재시도하지 않는다. 토큰·chat_id·URL 을 확인하라
+2026-09-10 04:05:32,758 [INFO] vigent.alert_notify: 경보 즉시 전송 미도달 — 재시도 큐로 이월: [파일럿모의5] 화재/연기 감지
+2026-09-10 04:05:33,516 [ERROR] vigent.dispatcher: ★통보 설정 오류(telegram HTTP 401) — 재시도하지 않는다. 토큰·chat_id·URL 을 확인하라
+2026-09-10 04:05:33,671 [ERROR] vigent.alert_queue: 경보 데드레터(설정 오류 — 재시도 안 함) id=243: config_error: [{'channel': 'telegram', 'sent': False, 'fallback': True, 'status': 401, 'config_error': True}, {'channel': 'email', 'sent': False, 'fallback': True, 'reason': 'SMTP 미설정'}, {'channel': '
+2026-09-10 04:05:34,529 [INFO] vigent.alert_notify: 경보 즉시 전송 미도달 — 재시도 큐로 이월: [파일럿모의5] 근골격계 부담 자세 — 목 45°, 어깨 34° 굽힘/비대칭(2D 근사·스크리닝) · 4초 지속 · 등급 bad
+2026-09-10 04:05:37,670 [ERROR] vigent.dispatcher: ★통보 설정 오류(telegram HTTP 401) — 재시도하지 않는다. 토큰·chat_id·URL 을 확인하라
+2026-09-10 04:05:37,833 [INFO] vigent.alert_notify: 경보 즉시 전송 미도달 — 재시도 큐로 이월: [파일럿모의3] truck 작업반경 침입 — 사람 약 0.0m · 직전 통보 이후 동일 경보 14건 억제됨
+2026-09-10 04:05:37,833 [INFO] vigent.alert_notify: 경보 즉시 전송 미도달 — 재시도 큐로 이월: [파일럿모의4] 근골격계 부담 자세 — 목 37°, 어깨 37° 굽힘/비대칭(2D 근사·스크리닝) · 3초 지속 · 등급 bad · 직전 통보 이후 동일 경보 9건 억제됨
+2026-09-10 04:05:39,713 [ERROR] vigent.dispatcher: ★통보 설정 오류(telegram HTTP 401) — 재시도하지 않는다. 토큰·chat_id·URL 을 확인하라
+2026-09-10 04:05:39,833 [ERROR] vigent.alert_queue: 경보 데드레터(설정 오류 — 재시도 안 함) id=244: config_error: [{'channel': 'telegram', 'sent': False, 'fallback': True, 'status': 401, 'config_error': True}, {'channel': 'email', 'sent': False, 'fallback': True, 'reason': 'SMTP 미설정'}, {'channel': '
+2026-09-10 04:05:43,689 [INFO] vigent.alert_notify: 경보 즉시 전송 미도달 — 재시도 큐로 이월: [파일럿모의1] 근골격계 부담 자세 — 어깨 21° 굽힘/비대칭(2D 근사·스크리닝) · 3초 지속 · 등급 warn · 직전 통보 이후 동일 경보 14건 억제됨
+2026-09-10 04:05:45,903 [ERROR] vigent.dispatcher: ★통보 설정 오류(telegram HTTP 401) — 재시도하지 않는다. 토큰·chat_id·URL 을 확인하라
+2026-09-10 04:05:45,923 [ERROR] vigent.dispatcher: ★통보 설정 오류(telegram HTTP 401) — 재시도하지 않는다. 토큰·chat_id·URL 을 확인하라
+2026-09-10 04:05:46,055 [INFO] vigent.alert_notify: 경보 즉시 전송 미도달 — 재시도 큐로 이월: [파일럿모의1] 화재/연기 감지 · 직전 통보 이후 동일 경보 22건 억제됨
+2026-09-10 04:05:46,192 [ERROR] vigent.alert_queue: 경보 데드레터(설정 오류 — 재시도 안 함) id=245: config_error: [{'channel': 'telegram', 'sent': False, 'fallback': True, 'status': 401, 'config_error': True}, {'channel': 'email', 'sent': False, 'fallback': True, 'reason': 'SMTP 미설정'}, {'channel': '
+2026-09-10 04:05:48,652 [INFO] vigent.alert_notify: 경보 즉시 전송 미도달 — 재시도 큐로 이월: [파일럿모의4] 급격한 이동 감지 — 돌진·이상행동 · 직전 통보 이후 동일 경보 4건 억제됨
+2026-09-10 04:06:10,241 [ERROR] vigent.dispatcher: ★통보 설정 오류(telegram HTTP 401) — 재시도하지 않는다. 토큰·chat_id·URL 을 확인하라
+2026-09-10 04:06:10,367 [INFO] vigent.alert_notify: 경보 즉시 전송 미도달 — 재시도 큐로 이월: [파일럿모의3] 화재/연기 감지 · 직전 통보 이후 동일 경보 17건 억제됨
+2026-09-10 04:06:17,261 [ERROR] vigent.dispatcher: ★통보 설정 오류(telegram HTTP 401) — 재시도하지 않는다. 토큰·chat_id·URL 을 확인하라
+2026-09-10 04:06:17,392 [ERROR] vigent.alert_queue: 경보 데드레터(설정 오류 — 재시도 안 함) id=246: config_error: [{'channel': 'telegram', 'sent': False, 'fallback': True, 'status': 401, 'config_error': True}, {'channel': 'email', 'sent': False, 'fallback': True, 'reason': 'SMTP 미설정'}, {'channel': '
+2026-09-10 04:06:19,345 [ERROR] vigent.dispatcher: ★통보 설정 오류(telegram HTTP 401) — 재시도하지 않는다. 토큰·chat_id·URL 을 확인하라
+2026-09-10 04:06:19,476 [INFO] vigent.alert_notify: 경보 즉시 전송 미도달 — 재시도 큐로 이월: [파일럿모의4] 화재/연기 감지 · 직전 통보 이후 동일 경보 4건 억제됨
+2026-09-10 04:06:23,427 [ERROR] vigent.dispatcher: ★통보 설정 오류(telegram HTTP 401) — 재시도하지 않는다. 토큰·chat_id·URL 을 확인하라
+2026-09-10 04:06:23,542 [ERROR] vigent.alert_queue: 경보 데드레터(설정 오류 — 재시도 안 함) id=247: config_error: [{'channel': 'telegram', 'sent': False, 'fallback': True, 'status': 401, 'config_error': True}, {'channel': 'email', 'sent': False, 'fallback': True, 'reason': 'SMTP 미설정'}, {'channel': '
+2026-09-10 04:06:36,749 [ERROR] vigent.dispatcher: ★통보 설정 오류(telegram HTTP 401) — 재시도하지 않는다. 토큰·chat_id·URL 을 확인하라
+2026-09-10 04:06:36,876 [INFO] vigent.alert_notify: 경보 즉시 전송 미도달 — 재시도 큐로 이월: [파일럿모의5] 장시간 무동작 — 쓰러짐·실신 의심
+2026-09-10 04:06:38,097 [ERROR] vigent.dispatcher: ★통보 설정 오류(telegram HTTP 401) — 재시도하지 않는다. 토큰·chat_id·URL 을 확인하라
+2026-09-10 04:06:38,274 [INFO] vigent.alert_notify: 경보 즉시 전송 미도달 — 재시도 큐로 이월: [파일럿모의1] car 작업반경 침입 — 사람 약 0.0m · 직전 통보 이후 동일 경보 9건 억제됨
+2026-09-10 04:06:39,595 [ERROR] vigent.dispatcher: ★통보 설정 오류(telegram HTTP 401) — 재시도하지 않는다. 토큰·chat_id·URL 을 확인하라
+2026-09-10 04:06:39,717 [ERROR] vigent.alert_queue: 경보 데드레터(설정 오류 — 재시도 안 함) id=248: config_error: [{'channel': 'telegram', 'sent': False, 'fallback': True, 'status': 401, 'config_error': True}, {'channel': 'email', 'sent': False, 'fallback': True, 'reason': 'SMTP 미설정'}, {'channel': '
+2026-09-10 04:06:45,673 [ERROR] vigent.dispatcher: ★통보 설정 오류(telegram HTTP 401) — 재시도하지 않는다. 토큰·chat_id·URL 을 확인하라
+2026-09-10 04:06:45,840 [ERROR] vigent.alert_queue: 경보 데드레터(설정 오류 — 재시도 안 함) id=249: config_error: [{'channel': 'telegram', 'sent': False, 'fallback': True, 'status': 401, 'config_error': True}, {'channel': 'email', 'sent': False, 'fallback': True, 'reason': 'SMTP 미설정'}, {'channel': '
+2026-09-10 04:07:01,672 [INFO] vigent.alert_notify: 경보 즉시 전송 미도달 — 재시도 큐로 이월: [파일럿모의2] 급격한 이동 감지 — 돌진·이상행동 · 직전 통보 이후 동일 경보 9건 억제됨
+2026-09-10 04:07:08,307 [ERROR] vigent.dispatcher: ★통보 설정 오류(telegram HTTP 401) — 재시도하지 않는다. 토큰·chat_id·URL 을 확인하라
+2026-09-10 04:07:08,433 [INFO] vigent.alert_notify: 경보 즉시 전송 미도달 — 재시도 큐로 이월: [파일럿모의2] 화재/연기 감지 · 직전 통보 이후 동일 경보 6건 억제됨
+2026-09-10 04:07:11,811 [ERROR] vigent.dispatcher: ★통보 설정 오류(telegram HTTP 401) — 재시도하지 않는다. 토큰·chat_id·URL 을 확인하라
+2026-09-10 04:07:11,941 [ERROR] vigent.alert_queue: 경보 데드레터(설정 오류 — 재시도 안 함) id=250: config_error: [{'channel': 'telegram', 'sent': False, 'fallback': True, 'status': 401, 'config_error': True}, {'channel': 'email', 'sent': False, 'fallback': True, 'reason': 'SMTP 미설정'}, {'channel': '

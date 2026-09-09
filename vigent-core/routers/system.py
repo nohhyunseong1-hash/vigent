@@ -33,6 +33,27 @@ def _strip_paths(msg: str, limit: int = 200) -> str:
     return out[:limit]
 
 
+def _dropped_by_error(mstatus: dict) -> dict:
+    """[F-34] 워커별 state["frame_errors"]({frames, alerts, last_error, last_at})를 카메라 합산한다.
+    last_error/last_at 은 가장 최근 것 하나. 오류 문자열은 경로 축약(/health 무인증 원칙)."""
+    agg: dict = {"frames": 0, "alerts": 0, "last_error": None, "last_at": None, "cameras": {}}
+    try:
+        for cid, st in (mstatus.get("cameras") or {}).items():
+            fe = (st or {}).get("frame_errors") or {}
+            if not fe:
+                continue
+            agg["frames"] += int(fe.get("frames", 0) or 0)
+            agg["alerts"] += int(fe.get("alerts", 0) or 0)
+            agg["cameras"][str(cid)] = int(fe.get("frames", 0) or 0)
+            at = fe.get("last_at")
+            if at and (agg["last_at"] is None or str(at) >= str(agg["last_at"])):
+                agg["last_at"] = at
+                agg["last_error"] = _strip_paths(str(fe.get("last_error") or ""))
+    except Exception:  # noqa: BLE001  헬스체크를 죽이지 않는다
+        pass
+    return agg
+
+
 @router.get("/health")
 def health(theme: str = DEFAULT_THEME):
     """확장 헬스체크(C-S1): 제품 버전·모델별 버전/SHA·uptime·backend 구성.
@@ -144,6 +165,7 @@ def health(theme: str = DEFAULT_THEME):
     active_dets: list = []
     disabled_dets: dict = {}
     alert_warnings: list = []
+    dropped_by_error: dict = {"frames": 0, "alerts": 0, "last_error": None, "last_at": None, "cameras": {}}
     try:
         import health_status
         import readiness
@@ -180,10 +202,13 @@ def health(theme: str = DEFAULT_THEME):
                   "undeliverable": disp_status.get("undeliverable_count", 0),
                   "channels_configured": disp_status.get("channels_configured"),
                   "last_config_error": disp_status.get("last_config_error")}
-        overall, cameras = health_status.build(_w.manager.status(), model_loaded,
+        _mstatus = _w.manager.status()
+        overall, cameras = health_status.build(_mstatus, model_loaded,
                                                alert_backlog=int(alerts.get("pending", 0)),
                                                slot_degraded=slot_degraded,
                                                alert_problems=alert_problems)
+        # ★[F-34] 워커가 삼킨 프레임 예외로 기록·통보에 못 간 경보 — 카메라 합산. 0 이 정상. 값이 오르면 "서버는 멀쩡한데 경보가 샌다".
+        dropped_by_error = _dropped_by_error(_mstatus)
         # [B4] 예열 중에는 워커가 아직 없는 게 정상 — 카메라 판정으로 unhealthy 를 내지 않는다.
         #   대신 phase 로 "아직 준비 중"임을 알리고 503 을 준다(로드밸런서·워치독이 대기하도록).
         if phase == readiness.STARTING:
@@ -230,6 +255,8 @@ def health(theme: str = DEFAULT_THEME):
         #   ('동작은 맞고 표시만 틀림' = 이 프로젝트가 금지하는 조용한 거짓말 유형).
         "disabled_detectors": disabled_dets,
         "active_detectors": active_dets,
+        # ★[F-34] {frames, alerts, last_error, last_at, cameras:{cid: frames}} — 프레임 예외로 버려진 경보(누적, 워커 기동 이후)
+        "alerts_dropped_by_error": dropped_by_error,
     }
     # [B2] unhealthy 는 HTTP 503 — 외부 워치독이 본문 파싱 없이 상태코드만으로 장애를 잡게 한다.
     #   degraded 는 200(운영은 계속되지만 일부 카메라 정지) + 본문으로 구분.

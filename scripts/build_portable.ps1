@@ -217,25 +217,37 @@ if ((Sha256 (Join-Path $App "bin\go2rtc.exe")) -ne $g2) { throw "go2rtc.exe SHA 
 Write-Host "  OK bin\go2rtc.exe (manifest SHA 일치)"
 
 # ── 7. 포터블 프로필(원본 config 불변 — 빌드 시점 tuning.yaml + overrides) ──
-Step "7. deploy\portable 프로필 적용 → app\config\tuning.yaml"
+Step "7. deploy\portable 프로필 적용 → app\config\tuning.yaml · app\themes\safety\vision.yaml"
 $ov = Join-Path $Source "deploy\portable\portable_overrides.yaml"
+# overrides 항목의 file(tuning|vision, 기본 tuning)별로 원본을 읽어 치환한다. 원본(config/·themes/)은 불변, 산출물은 app\ 아래.
 $prof = @"
-import re, sys, io
-src, ov, dst = sys.argv[1:4]
-t = io.open(src, encoding='utf-8').read()
+import sys, io, os
+src_root, ov, dst_root = sys.argv[1:4]
 import yaml
 o = yaml.safe_load(io.open(ov, encoding='utf-8'))
-for k, v in o.items():
-    n = t.count(v['from'])
-    assert n == 1, f'{k}: 원본에서 {v["from"]!r} 가 {n}곳 (정확히 1곳이어야 함)'
-    t = t.replace(v['from'], v['to'], 1)
-hdr = '# ★USB 포터블 프로필 — scripts/build_portable.ps1 이 원본 config/tuning.yaml + deploy/portable/portable_overrides.yaml 로 생성. 직접 고치지 말 것.\n'
-io.open(dst, 'w', encoding='utf-8', newline='\n').write(hdr + t)
-print('  적용:', ', '.join(o.keys()))
+FILES = {'tuning': ('config/tuning.yaml', 'config/tuning.yaml'), 'vision': ('themes/safety/vision.yaml', 'themes/safety/vision.yaml')}
+applied = {}
+for fkey, (rel_src, rel_dst) in FILES.items():
+    items = [(k, v) for k, v in o.items() if (v.get('file') or 'tuning') == fkey]
+    if not items:
+        continue
+    t = io.open(os.path.join(src_root, rel_src), encoding='utf-8').read()
+    for k, v in items:
+        n = t.count(v['from'])
+        assert n == 1, k + ': 원본(' + rel_src + ')에서 ' + repr(v['from']) + ' 가 ' + str(n) + '곳 (정확히 1곳이어야 함)'
+        t = t.replace(v['from'], v['to'], 1)
+    hdr = '# ★USB 포터블 프로필 — scripts/build_portable.ps1 이 원본 ' + rel_src + ' + deploy/portable/portable_overrides.yaml 로 생성. 직접 고치지 말 것.\n'
+    dst = os.path.join(dst_root, rel_dst)
+    os.makedirs(os.path.dirname(dst), exist_ok=True)
+    io.open(dst, 'w', encoding='utf-8', newline='\n').write(hdr + t)
+    applied[rel_dst] = [k for k, _ in items]
+for d, ks in applied.items():
+    print('  적용 ' + d + ': ' + ', '.join(ks))
 "@
 $profPy = Join-Path $Cache "apply_profile.py"; Set-Content -Path $profPy -Value $prof -Encoding UTF8
-Run $Py @($profPy, (Join-Path $Source "config\tuning.yaml"), $ov, (Join-Path $App "config\tuning.yaml"))
+Run $Py @($profPy, $Source, $ov, $App)
 Run $Py @("-c", "import io,sys; t=io.open(sys.argv[1],encoding='utf-8').read(); assert 'backend: onnx-cpu' in t; print('  확인: detect.backend = onnx-cpu')", (Join-Path $App "config\tuning.yaml"))
+Run $Py @("-c", "import io,sys,yaml; t=io.open(sys.argv[1],encoding='utf-8').read(); d=yaml.safe_load(t); erg=d['judgment']['ergonomics']; assert 'joints' not in erg and 'joints_off_portable' in erg, list(erg); print('  확인: judgment.ergonomics.joints 없음(근골격 규칙 OFF, 값은 joints_off_portable 로 보존)')", (Join-Path $App "themes\safety\vision.yaml"))
 
 # ── 8. 런처·문서 ──
 Step "8. 런처·사용법 → 패키지 루트"

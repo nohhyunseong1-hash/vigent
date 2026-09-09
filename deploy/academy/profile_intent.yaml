@@ -11,6 +11,7 @@
 #   · 기본값에 있는 키가 프로파일에 없으면 → 무조건 실패(드리프트).
 #   · 값이 다르면 → 아래 `overrides` 에 선언돼 있어야 통과. 선언 없으면 실패.
 #   · 프로파일에만 있는 키는 → 아래 `profile_only` 에 선언돼 있어야 통과.
+#   · 기본값 키를 **의도적으로 뺀** 경우는 → 아래 `omitted` 에 키(또는 접두)와 이유를 선언해야 통과(2026-09-10 추가).
 #   · 새 차이를 만들 때는 **이유를 함께** 적는다. 이유 없는 차이는 나중에 아무도 못 되돌린다.
 
 tuning:
@@ -43,7 +44,20 @@ tuning:
 vision:
   base: themes/safety/vision.yaml
   profile: deploy/academy/vision.academy.yaml
-  profile_only: {}
+  omitted:
+    judgment.ergonomics.joints:
+      why: >-
+        [2026-09-10 대표 결정] 근골격(ergonomic_risk) 규칙 OFF — 학원 계약 범위 밖 + 현장 보고서 §387 기울기 판정 오류.
+        worker.ErgonomicsTracker 는 joints 가 비어 있으면 _enabled=False(설정 없으면 조용히 비활성)이므로 이 블록을
+        joints_off_academy 로 이름만 바꿔 값은 보존한다. 포즈 스레드·MotionTracker(무동작=쓰러짐 의심)는 그대로.
+        전역 themes/safety/vision.yaml 은 불변. 되돌리려면 키 이름을 joints 로. 근거: benchmarks/FINDINGS.md F-34.
+  profile_only:
+    judgment.ergonomics.joints_off_academy.neck.good:     {value: 25, why: "위 omitted 참조 — 값 보존용 개명 키"}
+    judgment.ergonomics.joints_off_academy.neck.warn:     {value: 40, why: "위 omitted 참조 — 값 보존용 개명 키"}
+    judgment.ergonomics.joints_off_academy.trunk.good:    {value: 20, why: "위 omitted 참조 — 값 보존용 개명 키"}
+    judgment.ergonomics.joints_off_academy.trunk.warn:    {value: 45, why: "위 omitted 참조 — 값 보존용 개명 키"}
+    judgment.ergonomics.joints_off_academy.shoulder.good: {value: 15, why: "위 omitted 참조 — 값 보존용 개명 키"}
+    judgment.ergonomics.joints_off_academy.shoulder.warn: {value: 35, why: "위 omitted 참조 — 값 보존용 개명 키"}
   overrides:
     perception.backend.forklift:
       value: yolo

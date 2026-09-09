@@ -1,0 +1,39 @@
+﻿# F-34 검증 드라이런 사전 조건 — 2026-09-10 03:53:58 · DESKTOP-STLQ1LM · Task Scheduler 기동 · worker.py 수정본(git 86eb188 + 작업트리)
+torch: 2.12.0+cu130 cuda 13.0 available True
+nvidia-smi driver/VRAM/util (서버 기동 전): 610.74, 1297 MiB, 16303 MiB, 1 %
+GPU 프로세스(서버 기동 전): [Insufficient Permissions], ShellHost.exe, CrossDeviceResume.exe, explorer.exe, NVIDIA Overlay.exe, msedgewebview2.exe, LockApp.exe, TextInputHost.exe, AMDRSSrcExt.exe, vgtray.exe, Discord.exe, steamwebhelper.exe, RadeonSoftware.exe, ShellExperienceHost.exe, EdgeGameAssist.exe, Code.exe, chrome.exe, chrome.exe, SearchHost.exe, OneDrive.exe, [Insufficient Permissions], claude.exe, claude.exe, StartMenuExperienceHost.exe, msedge.exe, PhoneExperienceHost.exe, NVIDIA Overlay.exe, msedge.exe, WindowsTerminal.exe
+게임/브라우저 잔존: chrome x12, Discord x6, msedge x16, steam x1, steamwebhelper x8
+data\cameras.json 항목: 0 · VIGENT 서비스: Stopped · 8010 LISTEN: False
+vigent.log 크기(시작 시점): 930614 B
+[03:54:00] run.ps1 시작 (powershell PID 20264)
+[03:54:26] 조건 2: /health 200 status=healthy · registered=[] · rfdetr_slots [forklift=LOADED, fire_smoke=LOADED, ppe=LOADED] LOADED=3/3 · VRAM 1297 → 3919 MiB(서버 몫 2622) · alerts_dropped_by_error(기동 직후)={"frames":0,"alerts":0,"last_error":null,"last_at":null,"cameras":{}}
+[03:54:26] events.jsonl(data\recognition\events_20260910.jsonl) 시작 시점 줄 수: 0 · alert_queue sent=37 dead=187 pending=0
+[03:54:26] === 드라이런 시작: --cams 4 --hours 0.12 --interval 60 --overload-cams 1 --overload-min 2 --tag f34_dryrun ===
+[preflight] {"status": "healthy", "phase": "ready", "registered": [], "live": [], "ghosts": [], "stale": {}, "excluded": {}, "alerts": {"pending": 0, "sent": 37, "dead": 187, "dead_1h": 0, "dropped": 0, "queue_depth": 0, "notify_thread_alive": true, "undeliverable": 0, "channels_configured": true, "last_config_error": null}, "warnings": []}
+[header] DESKTOP-STLQ1LM · AMD Ryzen 9 9900X 12-Core Processor · NVIDIA GeForce RTX 5070 Ti · 서버 PID 38588 · 기록 D:\vigent_original\audit\loadtest_20260910_0354_f34_dryrun.jsonl
+[ramp] 카메라 4대 등록(file)
+  등록 pilot01 ← D:\vigent_private_data\runs\rfdetr\accident\KakaoTalk_20260807_000438282.mp4 → HTTP 200 {'ok': True, 'camera': {'id': 'pilot01', 'name': '파일럿모의1', 'enabled': True, 'fps
+  등록 pilot02 ← D:\vigent_private_data\runs\rfdetr\accident\KakaoTalk_20260807_000442974.mp4 → HTTP 200 {'ok': True, 'camera': {'id': 'pilot02', 'name': '파일럿모의2', 'enabled': True, 'fps
+  등록 pilot03 ← D:\vigent_private_data\runs\rfdetr\accident\KakaoTalk_20260807_000552920.mp4 → HTTP 200 {'ok': True, 'camera': {'id': 'pilot03', 'name': '파일럿모의3', 'enabled': True, 'fps
+  등록 pilot04 ← D:\vigent_private_data\runs\rfdetr\accident\KakaoTalk_20260807_000601541.mp4 → HTTP 200 {'ok': True, 'camera': {'id': 'pilot04', 'name': '파일럿모의4', 'enabled': True, 'fps
+  /health running: 4/4 (규칙 11 확인)
+[warmup] 120s
+[2026-09-10T03:56:30] soak n=4 sysCPU=39.42% perf=121.87% srv=None코어 RSS=5.0MB GPU=1.0%/2699.0MB 42.0°C clk=1537.0 deg(cam/alert)=0/15 age_p95=[0.3, 0.4, 0.4, 0.3] alerts=1/Nones
+[2026-09-10T03:57:36] soak n=4 sysCPU=30.72% perf=121.12% srv=0.0코어 RSS=5.0MB GPU=4.0%/2714.0MB 42.0°C clk=2145.0 deg(cam/alert)=0/15 age_p95=[0.4, 0.5, 0.5, 0.4] alerts=2/Nones
+[2026-09-10T03:58:43] soak n=4 sysCPU=29.73% perf=121.82% srv=0.0코어 RSS=4.0MB GPU=10.0%/2699.0MB 43.0°C clk=1912.0 deg(cam/alert)=0/15 age_p95=[0.2, 0.3, 0.3, 0.2] alerts=1/Nones
+[2026-09-10T03:59:49] soak n=4 sysCPU=36.03% perf=121.33% srv=0.0코어 RSS=4.0MB GPU=23.0%/2714.0MB 44.0°C clk=1657.0 deg(cam/alert)=0/15 age_p95=[0.4, 0.5, 0.5, 0.5] alerts=0/Nones
+[2026-09-10T04:00:55] soak n=4 sysCPU=29.74% perf=121.84% srv=0.0코어 RSS=3.0MB GPU=4.0%/2699.0MB 43.0°C clk=1185.0 deg(cam/alert)=0/15 age_p95=[0.4, 0.1, 0.5, 0.5] alerts=0/Nones
+[2026-09-10T04:02:02] soak n=4 sysCPU=34.33% perf=121.68% srv=0.0코어 RSS=3.0MB GPU=5.0%/2789.0MB 44.0°C clk=2115.0 deg(cam/alert)=0/15 age_p95=[0.3, 0.4, 0.4, 0.3] alerts=0/Nones
+[2026-09-10T04:03:08] soak n=4 sysCPU=33.84% perf=120.13% srv=0.0코어 RSS=3.0MB GPU=1.0%/2796.0MB 44.0°C clk=2437.0 deg(cam/alert)=0/15 age_p95=[0.5, 0.2, 0.2, 0.5] alerts=0/Nones
+[2026-09-10T04:04:14] soak n=4 sysCPU=33.3% perf=121.34% srv=0.0코어 RSS=2.0MB GPU=47.0%/2782.0MB 45.0°C clk=1560.0 deg(cam/alert)=0/15 age_p95=[0.4, 0.5, 0.5, 0.4] alerts=4/Nones
+  등록 pilot05 ← D:\vigent_private_data\runs\rfdetr\accident\KakaoTalk_20260807_000611749.mp4 → HTTP 200 {'ok': True, 'camera': {'id': 'pilot05', 'name': '파일럿모의5', 'enabled': True, 'fps
+  /health running: 5/5 (규칙 11 확인)
+[2026-09-10T04:05:21] overload1 n=5 sysCPU=39.21% perf=121.52% srv=0.0코어 RSS=2.0MB GPU=51.0%/2814.0MB 45.0°C clk=1432.0 deg(cam/alert)=0/15 age_p95=[0.3, 0.5, 0.4, 0.4, 0.5] alerts=8/Nones
+[2026-09-10T04:06:27] overload1 n=5 sysCPU=38.34% perf=120.39% srv=0.0코어 RSS=2.0MB GPU=4.0%/2813.0MB 45.0°C clk=2722.0 deg(cam/alert)=0/15 age_p95=[0.5, 0.3, 0.2, 0.2, 0.3] alerts=8/Nones
+[cleanup] 제거 5개 [('pilot01', 200), ('pilot02', 200), ('pilot03', 200), ('pilot04', 200), ('pilot05', 200)] · /health 에 남은 pilot*: []
+보고서: D:\vigent_original\audit\loadtest_20260910_0354_f34_dryrun.md — 통과 (무효 사유 있음)
+[04:07:13] === 드라이런 종료 exit=1 ===
+[04:07:18] 판정: ValueError(not enough values, 서버 err) = 0 · '프레임 처리 예외' = 0 · alerts_dropped_by_error = {"frames":0,"alerts":0,"last_error":null,"last_at":null,"cameras":{}}
+[04:07:18] 판정: events.jsonl 신규 350줄 [ppe_missing=161, ergonomic_risk=45, fire_smoke=65, crowd_density=4, rapid_motion=37, proximity_hazard=33, immobility=5] · alert_queue sent 37→37 dead 187→213 pending=0 dropped=0
+[04:07:24] 서버 종료 후 VRAM 1390 MiB(기동 전 1297) · 잔존 프로세스 0 · data\cameras.json 항목 0
+[04:07:24] DONE

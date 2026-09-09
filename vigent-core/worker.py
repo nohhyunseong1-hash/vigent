@@ -981,6 +981,7 @@ class Worker:
         ([CODE_REVIEW M1-8] 이 docstring 이 아래 if 문 뒤에 있어 실행 없는 문자열이었다 — 위치만 교정)"""
         if self.fault_stop_detect:      # [B2] 주입된 결함: 추론을 건너뛴다 → last_detect_ts 가 늙는다
             return
+        fired: list = []                # [F-34] 예외 시 "버려진 경보 수"를 세기 위해 try 밖에서 먼저 정의
         try:                                        # 1단계: 프레임 단위 예외 격리 → 한 프레임 실패가 루프를 죽이지 않음
             if ctx.collect_on and (t0 - ctx.last_collect) >= ctx.collect_every:   # 학습용 프레임 수집
                 ctx.last_collect = t0
@@ -1061,7 +1062,11 @@ class Worker:
             fired = _derive(out, ctx.zone, frame.shape[0] / frame.shape[1],
                             cid=str(ctx.name), debouncer=self._zone_debouncer,   # [B6] 침입 시간 디바운스
                             prox_debouncer=self._prox_debouncer)                 # [W2] 근접 디바운스
-            fired += _pose_ev                                       # ergo(별도 스레드 산출) — 쿨다운은 아래 공통
+            # ★[F-34, 2026-09-10] 포즈 스레드의 ergonomic_risk 는 (rule, level, note) 3-튜플(ErgonomicsTracker.update)인데
+            #   아래 루프는 [D1-C] 이후 4-튜플(subject 포함)을 언패킹한다. 그대로 합치면 ValueError 로 **그 프레임의 모든 경보**
+            #   (침입·PPE·화재·근접·무동작)가 기록·통보 전에 버려졌다(2026-08-24 aa4df83 ~ 09-10, benchmarks/FINDINGS.md F-34).
+            #   mtrack(아래 :1086)과 같은 방식으로 subject "" 를 붙인다. 이미 4-튜플이면 그대로 둔다.
+            fired += [tuple(ev) if len(ev) == 4 else (ev[0], ev[1], ev[2], "") for ev in _pose_ev]   # ergo — 쿨다운은 아래 공통
             # B9: 위험구역 한정 타일 재검출(가산·기본 off, VIGENT_ZONE_TILE=1). zone 내 놓친 소형 person 회수.
             #   ★확인1(스코프 한정): 타일 박스는 zone_intrusion 발화에만 쓴다 — 공유 out["detections"] 에
             #     병합하지 않음 → proximity/crowd/motion/트래커/PPE 전부 무영향.
@@ -1134,8 +1139,16 @@ class Worker:
         except Exception as _fe:   # noqa: BLE001  프레임 처리 실패 → 로그 남기고 다음 프레임(루프 유지)
             # [S2-수정] str(_fe)에 자격증명이 섞여 나올 수 있어 scrub — state["error"]는 /worker/status로 그대로 노출됨
             self.state["error"] = _scrub(f"frame: {type(_fe).__name__}: {_fe}")
-            _WLOG.error("워커 '%s'(%s) 프레임 처리 예외 — 계속 진행\n%s",
-                        ctx.name, _mask_src(ctx.source), _scrub(traceback.format_exc()))
+            # ★[F-34] 삼키는 동작은 유지하되 **보이게** 한다 — 이 프레임에서 발화했다가 기록·통보에 못 간 경보 수를 센다.
+            #   /health 의 alerts_dropped_by_error 로 노출(routers/system.py). 0 이 아니면 "서버는 멀쩡한데 경보가 샌다".
+            _fe_rec = self.state.get("frame_errors") or {"frames": 0, "alerts": 0, "last_error": None, "last_at": None}
+            _fe_rec = {"frames": int(_fe_rec.get("frames", 0)) + 1,
+                       "alerts": int(_fe_rec.get("alerts", 0)) + len(fired),
+                       "last_error": self.state["error"],
+                       "last_at": time.strftime("%Y-%m-%dT%H:%M:%S")}
+            self.state["frame_errors"] = _fe_rec
+            _WLOG.error("워커 '%s'(%s) 프레임 처리 예외 — 계속 진행(버려진 경보 %d건, 누적 프레임 %d)\n%s",
+                        ctx.name, _mask_src(ctx.source), len(fired), _fe_rec["frames"], _scrub(traceback.format_exc()))
 
     def _setup_run(self, source, name, fps, detectors, zone):
         """_loop 시작 준비 — 트래커·수집설정·zone 컨텍스트(ctx) + 소스판별 + 캡처 초기화(P2-13 분해).

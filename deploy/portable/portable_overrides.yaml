@@ -5,7 +5,17 @@
 # (deploy/academy 가 파일 통째 복사인 것과 달리, 원본이 바뀌어도 여기 적힌 차이만 유지된다).
 # 각 항목은 "정확히 1곳" 치환을 전제로 하며, 원본에서 그 줄을 못 찾으면 빌드가 실패한다.
 #
-# 형식: section.key: {from: "<원본 줄의 앞부분>", to: "<치환 후 앞부분>", why: "..."}
+# 형식: section.key: {file: tuning|vision, from: "<원본 줄의 앞부분>", to: "<치환 후 앞부분>", why: "..."}
+#   file 생략 = tuning(config/tuning.yaml). vision = themes/safety/vision.yaml → app/themes/safety/vision.yaml
+
+judgment.ergonomics.joints:
+  file: vision
+  from: "    joints:"
+  to:   "    joints_off_portable:"
+  why: >-
+    [2026-09-10 대표 결정] 근골격(ergonomic_risk) 규칙 OFF — 학원 현장 계약 범위 밖 + 현장 보고서 §387 기울기 판정 오류.
+    worker.ErgonomicsTracker 는 joints 가 비어 있으면 비활성(_enabled=False)이라 키 이름만 바꾼다(값 보존, 전역 vision.yaml 불변).
+    포즈 스레드·무동작(쓰러짐 의심) 규칙은 그대로(tests/test_worker_pose_event_tuple_f34.py 로 확인).
 
 detect.backend:
   from: "  backend: torch "

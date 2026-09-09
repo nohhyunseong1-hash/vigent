@@ -75,7 +75,10 @@ judgment:                         # ── Analyst (판단), 가산식
     - {id: guard_bypass,   when: "hand in machine_hazard_zone",    severity: critical}  # 프레스/전단기
   ergonomics:                     # ── 5.5단계: 인간공학(작업자세 위험) — 포즈 기반, 추가 모델 불필요
     framework: REBA               # safety=전신(REBA), 중량물·허리굽힘 작업자세
-    joints:
+    # ★[학원 프로필, 2026-09-10 대표 결정] 근골격(ergonomic_risk) 규칙 OFF — 계약 범위 밖 + 현장 보고서 §387 기울기 판정 오류.
+    #   worker.ErgonomicsTracker 는 `joints` 가 비어 있으면 스스로 비활성(_enabled=False)이므로 키 이름만 바꿔 둔다(값은 보존).
+    #   포즈 스레드·무동작(쓰러짐 의심) 규칙은 그대로. 다시 켜려면 아래 키를 `joints:` 로 되돌린다. 전역 themes/safety/vision.yaml 은 불변.
+    joints_off_academy:
       neck:     {good: 25, warn: 40}    # 목 굽힘(도) — 실영상 튜닝(하향 CCTV 2D 과대추정 보정, 중립~21°가 good)
       trunk:    {good: 20, warn: 45}    # 허리 굽힘(작업현장은 허용범위 넓게) — 실측상 적정, 유지
       shoulder: {good: 15, warn: 35}    # 어깨 비대칭/들어올림(도) — 실영상 튜닝(선 채 원근 오탐 억제)

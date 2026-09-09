@@ -1,0 +1,12 @@
+﻿# F-34 검증 드라이런 사전 조건 — 2026-09-10 03:53:58 · DESKTOP-STLQ1LM · Task Scheduler 기동 · worker.py 수정본(git 86eb188 + 작업트리)
+torch: 2.12.0+cu130 cuda 13.0 available True
+nvidia-smi driver/VRAM/util (서버 기동 전): 610.74, 1297 MiB, 16303 MiB, 1 %
+GPU 프로세스(서버 기동 전): [Insufficient Permissions], ShellHost.exe, CrossDeviceResume.exe, explorer.exe, NVIDIA Overlay.exe, msedgewebview2.exe, LockApp.exe, TextInputHost.exe, AMDRSSrcExt.exe, vgtray.exe, Discord.exe, steamwebhelper.exe, RadeonSoftware.exe, ShellExperienceHost.exe, EdgeGameAssist.exe, Code.exe, chrome.exe, chrome.exe, SearchHost.exe, OneDrive.exe, [Insufficient Permissions], claude.exe, claude.exe, StartMenuExperienceHost.exe, msedge.exe, PhoneExperienceHost.exe, NVIDIA Overlay.exe, msedge.exe, WindowsTerminal.exe
+게임/브라우저 잔존: chrome x12, Discord x6, msedge x16, steam x1, steamwebhelper x8
+data\cameras.json 항목: 0 · VIGENT 서비스: Stopped · 8010 LISTEN: False
+vigent.log 크기(시작 시점): 930614 B
+
+조건 2: /health 200 status=healthy · LOADED=3/3 · VRAM 1297 → 3919 MiB · alerts_dropped_by_error={"frames":0,"alerts":0,"last_error":null,"last_at":null,"cameras":{}}
+
+판정: ValueError=0 · 프레임 처리 예외=0 · alerts_dropped_by_error={"frames":0,"alerts":0,"last_error":null,"last_at":null,"cameras":{}}
+  events.jsonl 신규 350 [ppe_missing=161, ergonomic_risk=45, fire_smoke=65, crowd_density=4, rapid_motion=37, proximity_hazard=33, immobility=5] · alert_queue sent 37→37 dead 187→213

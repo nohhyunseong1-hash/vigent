@@ -114,10 +114,16 @@ def check_one(name: str, spec: dict) -> list[str]:
     fb, fp = _flat(_load(base_p)), _flat(_load(prof_p))
     declared_over = spec.get("overrides") or {}
     declared_only = spec.get("profile_only") or {}
+    # [F-34 후속, 2026-09-10] 의도적 **누락** 선언(`omitted`) — 키 또는 접두(하위 키 전부). 이유 없는 누락은 여전히 실패.
+    #   예: 학원 프로파일이 judgment.ergonomics.joints 를 통째로 비워 근골격 규칙을 끈다(ErgonomicsTracker 는 joints 가 없으면 비활성).
+    declared_omit = spec.get("omitted") or {}
     problems: list[str] = []
 
+    def _omitted(key: str) -> bool:
+        return any(key == o or key.startswith(o + ".") for o in declared_omit)
+
     for k in fb:
-        if k not in fp:
+        if k not in fp and not _omitted(k):
             problems.append(
                 f"[{name}] ★누락: '{k}' 이 프로파일에 없다(기본값 {fb[k]!r}). "
                 f"프로파일을 적용하면 이 설정이 사라진다 — --fix 로 채우거나 의도라면 intent 에 적어라")

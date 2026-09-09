@@ -442,9 +442,31 @@ F-8 진단 중, 서버 detect_frame 이 **연속 프레임 추적**(`guard._trac
   포즈 이벤트는 사람이 부담 자세를 `hold_sec` 이상 유지했을 때 1회씩 나오므로 빈도는 pose_fps·현장 자세에 따라 다르다(이번 1h 4대: 289회 ≈ 1.2회/분). 근골격 기록 자체도 남지 않는다.
   안전 판정에 직접 닿는 결함이라 **P1 이상**으로 본다(검토 보고서 P0/P1 목록에 없던 항목).
 - **재현 조건**: 사람이 있는 영상 + 포즈 스레드 활성(pose_fps > 0). 사고영상 파일 4대로 1h 에 289회 재현.
-- **제안(승인 후 코드 수정)**: `:1064` 를 `fired += [(r, lv, n, "") for r, lv, n in _pose_ev]` 로 맞추거나 `ErgoTracker.update()` 가 4-튜플을 내게 통일 + 회귀 테스트(포즈 이벤트가 있는 프레임에서 zone_intrusion 이 기록되는지).
-  임시 완화: `worker.pose_fps` 를 낮추면 빈도만 줄고 결함은 남는다(노트북 2차 소크의 S2=0.2 도 마찬가지).
-- **문서 영향**: 9/8·9/9 개발기 소크와 노트북 소크의 "경보 n/p95" 는 이 유실을 포함한 값이다(유실된 프레임의 경보는 큐에 들어가지 않았으므로 지연 통계에 안 잡힌다).
+- **영향 기간(git blame, 2026-09-10)**: 3-튜플 산출은 `6db9ad8`(2026-07-03, ergonomic_risk 도입)부터, 4-튜플 언패킹은 `aa4df83`(**2026-08-24 21:19**, [D1-C] 구역 침입 사람 단위)부터 →
+  **불일치 기간 2026-08-24 21:19 ~ 2026-09-10(이 수정)**. 로그 실측: `vigent.log.2` 의 같은 오류 20건은 전부 **2026-08-26**(첫 18:45), `vigent.log` 717건은 2026-09-08 21:23~09-09 23:42 — 08-24 이전 발생 0.
+
+  | 측정 | 일시 | 기간 안? | 경보 수치가 있는 문서 → 단서 |
+  |---|---|---|---|
+  | 현장 테스트(학원, 노트북) | 2026-08-27 | **안**(코드 기준 — 노트북 배포본이 08-24 이후 커밋이었는지는 노트북 로그 미확인) | `reports/현장테스트_보고서_20260827_v1.2.md` §6 "19/19 · 중앙값 1.8s · 270건" |
+  | 노트북 1차 소크(기준선) | 2026-09-09 10:32 | 안 | `docs/ops/laptop_soak_2nd_2026-09-09.md` 경보 행, 콘솔 "alerts=n/p95" |
+  | 노트북 2차 소크(S2+S9) | 2026-09-09 16:23 | 안(pose_fps 0.2 라 빈도만 낮음) | 같은 문서(수령 대기) |
+  | 개발기 드라이런·1h(CPU torch) | 2026-09-08 21:22 / 23:56 | 안(1h 창에 481건) | `audit/loadtest_20260908_*.md` 경보 열 |
+  | 개발기 cu130 드라이런·1h | 2026-09-09 21:20 / 22:39 | 안(1h 289건) | `audit/loadtest_20260909_*.md` 경보 열 |
+  | 2026-08-24 이전 실측 전부 | ~08-24 | 밖 | — |
+- **수정 적용(2026-09-10, 승인)**: `worker.py` `_pose_ev` 합류 지점에서 3-튜플에 subject `""` 를 붙인다(4-튜플이면 그대로) — mtrack 과 같은 방식. 회귀 테스트 `tests/test_worker_pose_event_tuple_f34.py`
+  (① 3-튜플 포즈 이벤트 + fire_smoke 같은 프레임 → 둘 다 log_event 도달·frame_errors 없음 ② 4-튜플 통과 ③ 프레임 예외 카운터·/health 합산 ④ 근골격 OFF 상태에서 immobility 기록).
+- **삼킨 예외를 보이게(2026-09-10)**: `_process_frame` except 에서 `state["frame_errors"] = {frames, alerts(=그 프레임에서 버려진 fired 수), last_error, last_at}` 누적, `/health` 에
+  `alerts_dropped_by_error: {frames, alerts, last_error, last_at, cameras:{cid: frames}}` 로 카메라 합산 노출(`routers/system.py _dropped_by_error`). 삼키는 동작은 유지. OpenAPI (path,method) 집합 불변 → `scripts/check_openapi_diff.py` 통과(110/110).
+- **근골격 규칙 OFF 는 설정으로 가능**: `ErgonomicsTracker.__init__` 이 `vision.yaml judgment.ergonomics.joints` 가 비어 있으면 `_enabled=False`(`worker.py:431`, "설정 없으면 조용히 비활성"). tuning.yaml·hazard_rules.py 에는 스위치 없음.
+  → `deploy/academy/vision.academy.yaml` 의 `joints:` 를 `joints_off_academy:` 로(값 보존), 포터블은 `deploy/portable/portable_overrides.yaml` 에 `file: vision` 항목으로 `joints:` → `joints_off_portable:`. 전역 `themes/safety/vision.yaml`·`config/tuning.yaml` 불변. 포즈 스레드·MotionTracker(무동작=쓰러짐 의심) 는 그대로(테스트 ④).
+- **문서 영향**: 위 표의 문서에 "★F-34 유실 포함 가능" 단서만 달았다(값 유지). 유실된 프레임의 경보는 큐에 들어가지 않았으므로 지연 통계(p95)에는 안 잡히고, 건수(n)만 실제보다 적을 수 있다.
+- **드리프트 게이트 보완(2026-09-10)**: 학원 프로파일에서 `joints` 를 빼자 `tests/test_profile_drift.py` 2건이 실패했다(게이트가 "기본값 키 누락 = 무조건 실패" 이고 의도 선언 수단이 없었음 — F-34 수정 자체의 회귀는 아님).
+  `scripts/check_profile_drift.py` 에 `omitted`(키/접두 + 이유) 선언을 추가하고 `deploy/academy/profile_intent.yaml` 에 `judgment.ergonomics.joints` 누락 사유와 `joints_off_academy.*` 6키를 선언 → 드리프트 0·게이트 통과.
+- **검증(2026-09-10, 수정본)**: `unittest discover -s tests` **666 OK**(662 + 신규 4) · ruff 0 · `check_openapi_diff.py` 110/110 무변경 통과.
+  드라이런 7분 재현(4대·2fps·0.12h·간격 60s·과부하 1대 2분, run.ps1 기동·Task Scheduler·PUBG 종료 후 VRAM 1,297 MiB·잔존 카메라 0, `audit/loadtest_20260910_0354_f34_dryrun.md`):
+  서버 err 의 `not enough values` **0회**·"프레임 처리 예외" **0회** · `/health alerts_dropped_by_error = {frames:0, alerts:0}` · `data/recognition/events_20260910.jsonl` **+350줄**
+  (ppe_missing 161 · fire_smoke 65 · **ergonomic_risk 45**(수정 전엔 0건 기록) · rapid_motion 37 · proximity 33 · immobility 5 · crowd 4) · 통보 큐 dead 187→213(경보 26건이 큐·전송 단계까지 도달, 텔레그램 401 로 dead — 채널 문제이지 유실 아님).
+  ※ 이 드라이런은 전체 unittest 와 동시에 돌아 GPU·CPU 수치는 판정에 쓰지 않는다(목적은 예외 0·카운터 0·도달 확인).
 
 ```diff
 --- a/scripts/setup_env.py
