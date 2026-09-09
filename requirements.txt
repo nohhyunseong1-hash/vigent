@@ -36,7 +36,8 @@ Pillow==12.3.0               # P0-2a 보안 업그레이드(PYSEC-2026-2249~2874
 #    선언(pkg_resources 제거 이슈) → 여기 핀하지 않음(핀하면 pip 충돌). torch 업그레이드(CVE-2025-3000) 시 함께 재정리.
 # ★torch: PyPI 의 Windows 휠은 **CPU 전용**이다. GPU 서비스는 설치 후 CUDA 휠로 교체한다(md/DEPLOYMENT.md §3):
 #   python -m pip install --index-url https://download.pytorch.org/whl/cu130 torch==2.12.0+cu130 torchvision==0.27.0+cu130
-#   (드라이버 580 미만: cu126). 개발 PC 의 .venv 는 검증용 CPU torch(2026-09-06 5단계).
+#   (드라이버 580 미만: cu126). 개발 PC(RTX 5070 Ti) 의 .venv 는 **cu130**(2026-09-09 복구, F-33) — 2026-09-06 5단계에서 이 파일 재설치로
+#   CPU 빌드가 됐던 것을 되돌렸다. scripts/setup_env.py 는 CUDA 빌드가 있으면 torch/torchvision 줄을 빼고 설치한다(F-33 가드).
 torch==2.12.0                # ★ 보류(P0-2b): CVE-2025-3000 조사 중, MPS 크래시(F-14) 이력으로 별도 합의 후 업그레이드
 torchvision==0.27.0
 rfdetr==1.8.0

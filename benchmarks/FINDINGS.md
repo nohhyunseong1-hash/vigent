@@ -383,6 +383,7 @@ F-8 진단 중, 서버 detect_frame 이 **연속 프레임 추적**(`guard._trac
   `requirements.txt` 주석 자체가 이 위험을 경고하고 있었다("이 requirements.txt 를 그대로 재설치하면 CPU 빌드로 조용히 되돌아가니 주의").
   같은 날 커밋 `580114e` 가 "개발 PC 의 .venv 는 검증용 CPU torch(2026-09-06 5단계)" 라고 requirements.txt:38 에 적어 **상태는 인지됐으나**,
   README.md:29 의 "이 데스크탑은 반드시 cu130 휠" 과 모순된 채 이후 측정(09-08 드라이런·1h 소크)에 반영되지 않았다.
+- **모순이 9/8 까지 발견되지 않은 경위(2026-09-09 정리)**: 09-06 의 CPU 전환은 5단계 5-2 "서비스 재설치 검증" 의 HealthTimeout 을 늘리는 맥락에서만 기록됐고(커밋 `580114e`, requirements.txt 주석 1줄), 부하 키트(`scripts/pilot_load_test.py`)와 소크 보고서 양식에는 **torch 빌드·`torch.cuda.is_available()` 을 기록하는 항목이 없어** 09-08 드라이런·1h 소크 보고서 어디에도 "CPU 추론" 이 드러나지 않았다. 검토 보고서는 그 수치를 GPU 사용 전제로 읽었다(P1-10 "해소"). → 2026-09-09 requirements.txt:38 을 현재 사실(cu130)로 고쳤고, 재발 방지로 키트 헤더에 torch 빌드 기록을 추가할 것을 후속 항목으로 남긴다(코드 변경, 미적용).
 - **영향 범위 — 2026-09-06 20:08 이후 개발기 `.venv` 로 잰 GPU 관련 수치 전부**(값은 지우지 않고 각 문서에 "★재측정 필요(F-33)" 주석만 달았다):
   · `audit/loadtest_20260908_2122_devpc_dryrun.md`(4대 7분 드라이런): GPU util 1→17→83~89%·VRAM 2.56→4.0GB·서버 6.3~7.5코어·검출 p95 40~202ms
   · `audit/loadtest_20260908_2356_desktop_1h.md`(4대 1h 소크): 시스템 CPU 45~61%·서버 6.1~7.4코어·GPU 46~63°C·"서버 종료 후 7,660MiB 잔존 → 서버 몫 차분 ≈1.1~1.2GB"
@@ -399,8 +400,17 @@ F-8 진단 중, 서버 detect_frame 이 **연속 프레임 추적**(`guard._trac
   → `2.12.0+cu130 / 0.27.0+cu130 / cuda 13.0 / available True / RTX 5070 Ti / (1000×1000)@(1000×1000) on cuda OK` ·
   numpy 2.4.6·opencv-contrib-python-headless 4.13.0.92 **불변** · `pip check` 의 "rtmlib·supervision·trackers 가 opencv-python 요구" 는
   headless 교체 설계(setup_env)로 인한 기존 상태 · `unittest discover -s tests` → **Ran 662 tests in 109.907s → OK (.venv python, 2026-09-09)**.
-- **재발 방지 제안(적용은 승인 후 — 이 스크립트는 노트북 서비스 설치 경로와도 연결됨)**: `scripts/setup_env.py` 가 pip 설치 **전에** 현재
-  torch 가 CUDA 빌드인지 검사해, CUDA 빌드면 torch/torchvision 을 요구사항에서 빼고 설치한 뒤 경고를 남긴다. 설치 후에도 빌드가 바뀌었으면 비정상 종료.
+- **재발 방지 — 적용됨(2026-09-09 3차, 승인 후)**: `scripts/setup_env.py` 가 pip 설치 **전에** 새 프로세스로 `torch.version.cuda` 를 읽어,
+  CUDA 빌드면 torch/torchvision 줄을 뺀 임시 requirements(%TEMP%)로 설치하고 경고 1줄을 남긴다. 설치 후 빌드가 바뀌었으면 exit 1 + 한글 원인.
+  아래 diff 와 다른 점 하나: 임시 목록 안에 `-c <절대경로>` 를 적으면 pip 가 경로를 깨뜨려(`D:\vigent_original\vigent_originalconstraints.txt`, 1차 시도 exit 1)
+  `-c` 줄을 빼고 pip 인자 `-c constraints.txt` 로 넘긴다. 검증 3상태(`audit/setup_env_guard_2026-09-09*.{txt,log}`) — 결과는 아래 "가드 검증" 참조.
+- **가드 검증(2026-09-09 3차, 개발기)**:
+  · **A. cu130 설치됨(개발기 .venv)** — `setup_env.py` exit 0. 경고 1줄("torch CUDA 빌드(cu13.0) 보호를 위해 torch/torchvision 줄을 제외") 후 "torch CUDA 빌드 유지 확인: cu13.0".
+    실행 전후 동일: torch 2.12.0+cu130 · torchvision 0.27.0+cu130 · cuda 13.0 · available True · numpy 2.4.6 · cv2 4.13.0(dist 4.13.0.92) — `audit/setup_env_guard_2026-09-09.txt`.
+    (1차 시도는 임시 목록 안 `-c 절대경로` 를 pip 가 깨뜨려 exit 1 — 가드가 설치 자체를 막았고 .venv 불변. 수정 후 재실행이 위 결과.)
+  · **B. CPU torch 선설치(임시 venv `%TEMP%\venv_cpu`, `py -3.11 -m venv` + PyPI torch 2.12.0+cpu)** — exit 0, 214s. CPU 빌드는 보호 대상이 아니므로 기존 경로("torch 는 PyPI CPU 휠이 설치된다" 안내) 그대로, 실행 후 2.12.0+cpu 유지 · cv2 4.13.0.92 · numpy 2.4.6 — `audit/setup_env_guard_2026-09-09_stateB.log`.
+  · **C. torch 미설치(임시 venv `%TEMP%\venv_new`, 노트북 서비스 설치 경로 = `setup_env.py --weights`)** — exit 0, 332s. 기존과 동일하게 전체 설치(torch 2.12.0+cpu) → opencv 정리 → cv2 4.13 headless 검증 → `fetch_weights.py --all` 필수 가중치 8/8·선택 6/6 검증(저장소 weights 폴더 mtime 불변 = 재다운로드 0) — `audit/setup_env_guard_2026-09-09_stateC.log`.
+  · 임시 venv 2개 삭제 확인. 상태 C 가 원본과 동일하게 동작하므로 되돌리지 않았다.
 
 ```diff
 --- a/scripts/setup_env.py
