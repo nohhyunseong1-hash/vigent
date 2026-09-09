@@ -53,6 +53,9 @@ python scripts\fetch_weights.py --all
 - 지게차 영상 파일 카메라 등록 → 오버레이에 `forklift 0.9x` 박스 확인
 - proximity 는 변경 불필요 — boda 라벨이 `forklift` 라 기준자(`vehicle_ref_m.forklift: 2.5`)가
   그대로 정확하다(COCO 대용이었다면 필요했을 truck 오버라이드 불필요)
+- ★[2026-09-10 배포 전 확인] 근골격 규칙 OFF(`vision.academy.yaml` 의 `joints` → `joints_off_academy`, F-34) 상태에서 **브라우저 자세 화면(`ergonomics.js`, `/vision` raw 를 읽음)이 정상 동작하는지** 확인.
+  워커 쪽은 `ErgonomicsTracker` 비활성으로 확인됐으나(tests/test_worker_pose_event_tuple_f34.py ④) 프론트는 실기동 미확인 — 코드 읽기(`vigent-core/static/ergonomics.js:41 setConfig`: `c.joints` 가 없으면 **내장 기본값(DEFAULT)으로 계속 동작**)로는 화면이 깨지지 않고 브라우저 쪽 자세 판정만 기본 임계로 돈다. 배포 전 브라우저에서 한 번 열어 확인.
+- ★[2026-09-10 배포 전 필수] 텔레그램 통보 401(F-35) — 새 봇 토큰·chat_id 로 테스트 전송 1건 성공 + `/health alerts.dead_1h == 0` 확인. 이 상태로 배포하면 경보가 기록만 되고 아무에게도 가지 않는다.
 
 ## ⚠ 한계·조건 (판정문 그대로)
 

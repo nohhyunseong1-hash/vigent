@@ -19,7 +19,9 @@ def main() -> int:
     port = int(sys.argv[1]) if len(sys.argv) > 1 else 8010
     max_wait = float(sys.argv[2]) if len(sys.argv) > 2 else 90.0
     url_health = f"http://127.0.0.1:{port}/health"
-    url_home = f"http://127.0.0.1:{port}/home"
+    # [4차, 2026-09-10] 브라우저는 현장 관제 화면(/safety-hub)을 연다 — /home 은 메뉴(허브)라 제3 PC 시험에서 사용자가 관제 화면을 못 찾았다.
+    #   docs/academy_visit_day.md §A-1 "관제 대시보드 = /safety-hub". 메뉴로 가려면 /home.
+    url_home = f"http://127.0.0.1:{port}/safety-hub"
     # 회사 PC 의 HTTP(S)_PROXY 환경변수가 127.0.0.1 요청까지 프록시로 보내 실패하게 하므로, 로컬 헬스체크는 프록시를 쓰지 않는다.
     opener = urllib.request.build_opener(urllib.request.ProxyHandler({}))
     t0 = time.time()

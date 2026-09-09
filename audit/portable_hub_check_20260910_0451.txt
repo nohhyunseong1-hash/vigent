@@ -1,0 +1,7 @@
+﻿[04:51:00] launcher cmd PID 38564
+[04:51:23] /health 200: True (22s)
+[04:51:23] status=healthy slots=[forklift=LOADED, fire_smoke=LOADED, ppe=LOADED] active=[person,ppe,fire_smoke] alerts_dropped_by_error={"frames":0,"alerts":0,"last_error":null,"last_at":null,"cameras":{}}
+[04:51:23] GET /safety-hub (Accept text/html, 무토큰·무쿠키, 리다이렉트 미추적): HTTP 200 · 44448 B · title='VIGENT 산업안전 AI — VMS' · login 폼 포함: False
+[04:51:23] GET /home (Accept text/html, 무토큰·무쿠키, 리다이렉트 미추적): HTTP 200 · 4840 B · title='VIGENT // 산업안전 AI — 허브' · login 폼 포함: False
+[04:51:31] 종료 후 잔존: 0 · 8010 LISTEN: False
+[04:51:31] DONE

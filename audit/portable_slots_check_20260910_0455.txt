@@ -1,0 +1,33 @@
+﻿[04:55:58] VRAM(기동 전): 1368 MiB, 7 % · TslGame: 0
+[04:55:58] launcher cmd PID 30520
+[04:56:21]   health: healthy | rfdetr_slots: [('forklift', 'LOADED'), ('fire_smoke', 'LOADED'), ('ppe', 'LOADED')] | backend: {'person': 'rfdetr', 'ppe': 'rfdetr', 'fire_smoke': 'rfdetr', 'forklift': 'rfdetr'} | active: ['person', 'ppe', 'forklift'] | disabled: {'fire_smoke': 'detect.include_fire_smoke=0 으로 껐다(또는 VIGENT_INCLUDE_FIRE_SMOKE=0). 학원 등 화재 감시가 계약 범위 밖이고 배경 오탐 리스크가 있는 현장 프로파일.'} | dropped_by_error: {'frames': 0, 'alerts': 0, 'last_error': None, 'last_at': None, 'cameras': {}}
+[04:56:21]     01_1s.jpg                    forklift                253ms  forklift=1 0.002  others=[]
+[04:56:21]     01_1s.jpg                    person+ppe+forklift     262ms  forklift=1 0.002  others=[('truck', 0.69), ('car', 0.39)]
+[04:56:21]     01_4s.jpg                    forklift                427ms  forklift=1 0.002  others=[]
+[04:56:21]     01_4s.jpg                    person+ppe+forklift     432ms  forklift=1 0.002  others=[('truck', 0.66), ('car', 0.39)]
+[04:56:21]     01_7s.jpg                    forklift                351ms  forklift=1 0.002  others=[]
+[04:56:21]     01_7s.jpg                    person+ppe+forklift     264ms  forklift=1 0.002  others=[('truck', 0.64), ('car', 0.48), ('car', 0.38)]
+[04:56:21]     04_1s.jpg                    forklift                254ms  forklift=1 0.003  others=[]
+[04:56:21]     04_1s.jpg                    person+ppe+forklift     428ms  forklift=1 0.003  others=[('car', 0.5), ('machinery', 0.78)]
+[04:56:21]     04_4s.jpg                    forklift                255ms  forklift=2 0.003,0.002  others=[]
+[04:56:21]     04_4s.jpg                    person+ppe+forklift     247ms  forklift=2 0.003,0.002  others=[('car', 0.34), ('vehicle', 0.53), ('Safety-Vest', 0.45)]
+[04:56:21]     04_7s.jpg                    forklift                 85ms  forklift=1 0.002  others=[]
+[04:56:21]     04_7s.jpg                    person+ppe+forklift     249ms  forklift=1 0.002  others=[('truck', 0.71), ('car', 0.32)]
+[04:56:21]     05_1s.jpg                    forklift                 83ms  forklift=1 0.004  others=[]
+[04:56:21]     05_1s.jpg                    person+ppe+forklift     246ms  forklift=1 0.004  others=[('truck', 0.44), ('car', 0.3), ('machinery', 0.92), ('NO-Safety-Vest', 0.59)]
+[04:56:21]     05_4s.jpg                    forklift                 92ms  forklift=1 0.003  others=[]
+[04:56:21]     05_4s.jpg                    person+ppe+forklift     243ms  forklift=1 0.003  others=[('truck', 0.42), ('car', 0.39), ('machinery', 0.96)]
+[04:56:21]     05_7s.jpg                    forklift                 70ms  forklift=1 0.004  others=[]
+[04:56:21]     05_7s.jpg                    person+ppe+forklift     241ms  forklift=1 0.004  others=[('truck', 0.39), ('car', 0.38), ('truck', 0.31), ('car', 0.31), ('machinery', 0.97)]
+[04:56:21]   forklift 단독 호출 9장 중 forklift 박스 있음 9장
+[04:56:21] 키트 3분 시작(--cams 4 --hours 0.05 --interval 60 --overload-cams 0) · events 시작 줄 0
+[04:59:07]   [2026-09-10T04:58:25] soak n=4 sysCPU=35.34% perf=118.74% srv=None코어 RSS=1422.0MB GPU=2.0%/1354.0MB 36.0°C clk=645.0 deg(cam/alert)=0/0 age_p95=[0.8, 0.8, 0.9, 0.8] alerts=0/Nones
+[05:00:14]   [2026-09-10T04:59:32] soak n=4 sysCPU=32.99% perf=119.01% srv=6.77코어 RSS=1394.0MB GPU=2.0%/1354.0MB 36.0°C clk=600.0 deg(cam/alert)=0/0 age_p95=[0.9, 0.8, 0.9, 0.8] alerts=0/Nones
+[05:01:20]   [2026-09-10T05:00:39] soak n=4 sysCPU=33.51% perf=118.69% srv=6.79코어 RSS=1400.0MB GPU=2.0%/1354.0MB 35.0°C clk=630.0 deg(cam/alert)=0/0 age_p95=[0.9, 0.9, 0.9, 0.8] alerts=0/Nones
+[05:02:27]   [2026-09-10T05:01:45] soak n=4 sysCPU=37.73% perf=118.15% srv=6.79코어 RSS=1104.0MB GPU=3.0%/1352.0MB 35.0°C clk=645.0 deg(cam/alert)=0/0 age_p95=[0.8, 0.9, 0.9, 0.9] alerts=0/Nones
+[05:02:32]   보고서: D:\vigent_original\audit\loadtest_20260910_0456_portable_slots.md — 미달 (무효 사유 있음)
+[05:02:32] 3분 결과: events 신규 95줄 [ppe_missing=68, proximity_hazard=18, crowd_density=1, rapid_motion=6, immobility=2] · alerts_dropped_by_error={"frames":0,"alerts":0,"last_error":null,"last_at":null,"cameras":{}} · slots=[forklift=LOADED, fire_smoke=LOADED, ppe=LOADED] · active=[person,ppe,forklift]
+[05:02:32] vigent.log(패키지): ValueError 0 · 프레임 처리 예외 0 · ergonomic 문자열 0
+[05:02:41] 데이터정리(--all): 위 파일을 지웁니다. 계속하려면 Y 를 입력하세요 [Y/N]:   삭제 완료: 62개 /   남은 파일(app\data): 1개 /   남은 파일(state\logs): 0개
+[05:02:42] 잔존: 0 · 8010: False · app\data 파일: statutes.yaml
+[05:02:42] DONE

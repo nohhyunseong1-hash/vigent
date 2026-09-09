@@ -17,6 +17,17 @@ judgment.ergonomics.joints:
     worker.ErgonomicsTracker 는 joints 가 비어 있으면 비활성(_enabled=False)이라 키 이름만 바꾼다(값 보존, 전역 vision.yaml 불변).
     포즈 스레드·무동작(쓰러짐 의심) 규칙은 그대로(tests/test_worker_pose_event_tuple_f34.py 로 확인).
 
+# detect.include_forklift — ★포터블은 켜지 않는다(전역 기본 0 그대로, 2026-09-10 대표 결정 3번).
+#   실측(2026-09-10 04:56, 현장 지게차 프레임 9장): onnx-cpu 경로의 forklift_rfdetr_v1.onnx 는 9/9 박스를 내지만 신뢰도 0.002~0.004 —
+#   F-7 판정("정탐 conf 0.002~0.005 = 오탐과 동일") 그대로라 켜 봐야 노이즈다. 현장 프로필의 yolo forklift_boda_ax.pt 는 ultralytics(AGPL,
+#   배포 제거 A-4) 가 필요해 포터블에 싣지 않는다. 후속 과제: benchmarks/FINDINGS.md F-35 아래 "후속 과제" 참조.
+
+detect.include_fire_smoke:
+  from: "  # include_fire_smoke: 1"
+  to:   "  include_fire_smoke: 0"
+  why: >-
+    [4차, 2026-09-10] 현장(학원) 프로필과 동일 — 화재 감시는 계약 범위 밖 + 배경 오탐 리스크(deploy/academy/README_academy.md).
+
 detect.backend:
   from: "  backend: torch "
   to:   "  backend: onnx-cpu "

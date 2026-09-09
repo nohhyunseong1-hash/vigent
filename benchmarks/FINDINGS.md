@@ -448,6 +448,7 @@ F-8 진단 중, 서버 detect_frame 이 **연속 프레임 추적**(`guard._trac
   | 측정 | 일시 | 기간 안? | 경보 수치가 있는 문서 → 단서 |
   |---|---|---|---|
   | 현장 테스트(학원, 노트북) | 2026-08-27 | **안**(코드 기준 — 노트북 배포본이 08-24 이후 커밋이었는지는 노트북 로그 미확인) | `reports/현장테스트_보고서_20260827_v1.2.md` §6 "19/19 · 중앙값 1.8s · 270건" |
+  | (위 행 보충, 2026-09-10) | — | **08-27 현장 배포본 커밋 미확정** — 노트북 git log/reflog 로 확인 예정. 단 `D:\vigent_field\20260827\field_20260827\*\summary.md`(11개 중 4개, 읽기만) 에 `ergonomic_risk` 발화가 1~2건씩 기록돼 있어, 배포본이 08-24 이전이었거나 기록 경로(field_recorder 의 fired 집계)가 워커 경보 경로(`_process_frame` 쿨다운·log_event)와 달랐을 가능성이 있다 | — |
   | 노트북 1차 소크(기준선) | 2026-09-09 10:32 | 안 | `docs/ops/laptop_soak_2nd_2026-09-09.md` 경보 행, 콘솔 "alerts=n/p95" |
   | 노트북 2차 소크(S2+S9) | 2026-09-09 16:23 | 안(pose_fps 0.2 라 빈도만 낮음) | 같은 문서(수령 대기) |
   | 개발기 드라이런·1h(CPU torch) | 2026-09-08 21:22 / 23:56 | 안(1h 창에 481건) | `audit/loadtest_20260908_*.md` 경보 열 |
@@ -467,6 +468,18 @@ F-8 진단 중, 서버 detect_frame 이 **연속 프레임 추적**(`guard._trac
   서버 err 의 `not enough values` **0회**·"프레임 처리 예외" **0회** · `/health alerts_dropped_by_error = {frames:0, alerts:0}` · `data/recognition/events_20260910.jsonl` **+350줄**
   (ppe_missing 161 · fire_smoke 65 · **ergonomic_risk 45**(수정 전엔 0건 기록) · rapid_motion 37 · proximity 33 · immobility 5 · crowd 4) · 통보 큐 dead 187→213(경보 26건이 큐·전송 단계까지 도달, 텔레그램 401 로 dead — 채널 문제이지 유실 아님).
   ※ 이 드라이런은 전체 unittest 와 동시에 돌아 GPU·CPU 수치는 판정에 쓰지 않는다(목적은 예외 0·카운터 0·도달 확인).
+
+### F-35. 텔레그램 통보 401 — 경보는 기록되나 사람에게 전달되지 않는 상태 (개발기, 2026-09-08~10 · 현장 배포 전 필수 조치)
+- **관찰**: 개발기 `/health alerts` 데드레터 누적 **dead 213건**(2026-09-10 04:07, F-34 드라이런 후; 09-08 21:22 시점 50 → 09-09 22:39 150 → 187 → 213). 서버 로그 `vigent.dispatcher: 통보 설정 오류(telegram HTTP 401) — 재시도하지 않는다. 토큰·chat_id·URL 을 확인하라`.
+  `alert_notify` 는 큐에 넣고 dispatcher 가 전송하는데 401 은 설정 오류(4xx)로 분류돼 즉시 dead 처리된다(`last_config_error`). 검토 보고서 P0-2 와 같은 증상.
+- **원인(확인된 범위)**: 봇 토큰 문제(401 = Unauthorized). 토큰 값은 이 문서·로그에 적지 않는다. `.env`/`config/notify.yaml` 의 토큰이 폐기·재발급됐거나 chat_id 가 틀렸을 가능성 — 어느 쪽인지는 새 토큰으로 `/alerts/test`(또는 dispatcher 테스트 전송) 1회로 확정한다.
+- **영향**: 경보 파이프라인(발화 → events.jsonl → 큐)은 정상이고 마지막 단계(텔레그램)만 죽어 있다. 사람에게 닿는 채널이 텔레그램 1개뿐(FINAL-REPORT P0-2)이라 **현장에서 이 상태면 경보는 기록만 되고 아무도 모른다**. `/health` 는 degraded(최근 1h dead)로만 표시하고 HTTP 200 이라 워치독이 못 잡는다.
+- **조치(현장 배포 전 필수)**: ① 새 봇 토큰·chat_id 를 `.env`(또는 UI 알림 설정)에 넣고 테스트 전송 1건 성공 확인 ② `/health alerts.dead_1h == 0`·`status healthy` 확인 ③ 두 번째 채널(FINAL-REPORT P0-2) 결정. 개발기의 dead 213건은 시험 발화분이라 재전송 대상이 아니다.
+
+### 후속 과제(2026-09-10, 착수 전 대표 결정 필요)
+- **forklift_boda_ax.pt 를 ONNX 로 변환해 ultralytics 런타임 없이 onnxruntime 으로 서빙하는 방안** — 포터블(USB)에서 지게차를 현장 프로필과 같은 검출기로 잡으려는 목적.
+  실측 배경: onnx-cpu 경로의 RF-DETR forklift(`forklift_rfdetr_v1.onnx`)는 현장 지게차 프레임 9/9 에 박스를 내지만 신뢰도 0.002~0.004 라 F-7 판정 그대로 노이즈(2026-09-10 04:56, `audit/portable_slots_check_20260910_0455.txt`) → 포터블 forklift 는 **끔**(전역 기본과 동일)으로 결정.
+  ★**AGPL 적용 범위(ultralytics 로 학습·내보낸 산출 가중치·ONNX 에 라이선스가 미치는지)는 대표 결정 필요. 결정 전 착수 금지.**
 
 ```diff
 --- a/scripts/setup_env.py

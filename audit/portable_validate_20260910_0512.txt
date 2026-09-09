@@ -1,0 +1,29 @@
+﻿[05:12:49] subst X: -> D:\vigent_portable : True
+[05:12:49] launcher cmd PID 37036 (HTTPS_PROXY 차단, NOBROWSER)
+[05:13:11]   [health] 200 after 16s
+[05:13:11]     status: healthy phase: ready warmup_s: None
+[05:13:11]     slot: forklift LOADED cd76eb56487bf1aa rfdetr
+[05:13:11]     slot: fire_smoke LOADED b7425ce450f12cad rfdetr
+[05:13:11]     slot: ppe LOADED 3380fa7d4bb1be87 rfdetr
+[05:13:11]     backend: {'person': 'rfdetr', 'ppe': 'rfdetr', 'fire_smoke': 'rfdetr', 'forklift': 'rfdetr'} active_detectors: ['person', 'ppe']
+[05:13:11]   [home] HTTP 200, 5668 bytes
+[05:13:11]   [detect/frame ppe=true demo1.jpg] 734 ms �� success=True �� detections=4 �� person_count=0 �� train:0.42, backpack:0.30, NO-Safety-Vest:0.50, NO-Hardhat:0.41
+[05:13:11]   [detect/frame ppe=true demo2.jpg] 297 ms �� success=True �� detections=2 �� person_count=0 �� train:0.42, NO-Hardhat:0.37
+[05:13:11]   [detect/frame ppe=true demo4.jpg] 276 ms �� success=True �� detections=1 �� person_count=0 �� mouse:0.95
+[05:13:11]   [slot latency, client RTT incl. base64/JSON, n=5, imgsz=640]
+[05:13:11]      person                   median   135.1 ms  (min 120 / max 151)
+[05:13:11]      ppe                      median    90.0 ms  (min 75 / max 96)
+[05:13:11]      fire_smoke               median    90.1 ms  (min 75 / max 94)
+[05:13:11]      forklift                 median    88.1 ms  (min 72 / max 105)
+[05:13:11]      person+ppe+fire_smoke    median   302.5 ms  (min 235 / max 435)
+[05:13:11] 기동→/health 200 까지 포함 검증 소요 22s
+[05:13:12] GET /safety-hub (text/html·무토큰·리다이렉트 미추적): HTTP 200 · 44448 B · title='VIGENT 산업안전 AI — VMS' · login 폼: False
+[05:13:12] GET /home (text/html·무토큰·리다이렉트 미추적): HTTP 200 · 4840 B · title='VIGENT // 산업안전 AI — 허브' · login 폼: False
+[05:13:12] [proc] python.exe PID 39392 exe=X:\python\python.exe
+[05:13:12] [proc] go2rtc.exe PID 38580 exe=D:\vigent_portable\app\bin\go2rtc.exe
+[05:13:20] 종료 후 잔존 패키지 프로세스: 0
+[05:13:20] vigent.log 3453 B · 다운로드/외부접속 줄 0 · 2026-09-10 05:12:57,298 [INFO] vigent.guard: RF-DETR 사전학습 캐시 확인: X:\app\vigent-core\weights\rf-detr-nano.pth | 2026-09-10 05:13:05,646 [INFO] vigent.rfdetr_adapter: RF-DETR ONNX 백엔드 사용(저가 CPU 배포): ppe_rfdetr_v1.onnx | 2026-09-10 05:13:05,789 [INFO] vigent.readiness: ★예열 완료 7.86s (slots=person,ppe) — 이제 워커 기동, 워치독 정상 적용 | 2026-09-10 05:13:06,444 [INFO] vigent.rfdetr_adapter: RF-DETR ONNX 백엔드 사용(저가 CPU 배포): fire_smoke_rfdetr_v1_e17.onnx | 2026-09-10 05:13:09,420 [INFO] vigent.rfdetr_adapter: RF-DETR ONNX 백엔드 사용(저가 CPU 배포): forklift_rfdetr_v1.onnx
+[05:13:20] vigent.log ValueError/프레임 예외 줄: 0
+[05:13:20] 데이터정리(기본):   삭제 대상: 5개 파일, 20 KB / 위 파일을 지웁니다. 계속하려면 Y 를 입력하세요 [Y/N]:   삭제 완료: 5개 /   남은 파일(app\data): 2개 /   남은 파일(state\logs): 0개
+[05:13:20] subst 해제: True · app\data 파일: go2rtc.runtime.yaml,statutes.yaml
+[05:13:20] DONE

@@ -108,7 +108,7 @@ if "%BUSY%"=="1" (
 set "VIGENT_PORT=%PORT%"
 
 echo.
-echo   서버를 시작합니다: http://127.0.0.1:%PORT%/home
+echo   서버를 시작합니다: 관제 화면 http://127.0.0.1:%PORT%/safety-hub   ^(메뉴^(허브^)는 /home^)
 echo   (모델 예열에 15~60초 걸립니다. 준비되면 브라우저가 자동으로 열립니다. 이 창을 닫으면 서버가 종료됩니다.)
 echo.
 start "" /b "%PY%" "%PORTABLE_DIR%\portable_wait.py" %PORT% 90
