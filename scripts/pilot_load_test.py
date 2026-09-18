@@ -30,6 +30,7 @@ from __future__ import annotations
 
 import argparse
 import datetime as _dt
+import hashlib
 import json
 import os
 import re
@@ -190,6 +191,73 @@ def proc_stats(pid: int) -> dict[str, Any]:
     c, r, fm, tm, n = out.split(",")
     return {"alive": True, "cpu_s": float(c), "rss_mb": float(r), "sys_avail_mb": float(fm), "sys_total_mb": float(tm),
             "logical_cpus": int(n)}
+
+
+def _sha256(p: Path) -> str | None:
+    try:
+        return hashlib.sha256(p.read_bytes()).hexdigest()
+    except OSError:
+        return None
+
+
+def run_config() -> dict[str, Any]:
+    """측정 당시의 구성 지문 — "이 값이 어떤 설정으로 나온 것인지"를 결과 파일 안에서 확정할 수 있게 한다(규칙 9).
+
+    ★2026-09-09 노트북 두 소크(기준선·S2+S9)는 이것을 남기지 않아, 검출기 구성이 같았는지를
+      사후에 가릴 수 없었다(`docs/ops/laptop_soak_compare_2026-09-09.md` 작업 4). 그래서 header 에 박는다.
+    """
+    tun = _ROOT / "config" / "tuning.yaml"
+    git = ["git", "-C", str(_ROOT)]
+    cur = _sha256(tun)
+    # 활성 프로파일: 현재 tuning.yaml 과 바이트가 같은 후보를 찾는다(없으면 로컬 수정본이라는 뜻).
+    same = [str(p.relative_to(_ROOT)).replace("\\", "/")
+            for p in sorted(_ROOT.glob("deploy/*/tuning*.yaml")) if cur and _sha256(p) == cur]
+    try:                                        # 추적 파일 기준 HEAD 와 다른지(종료코드 1 = 다름)
+        dirty = subprocess.call([*git, "diff", "--quiet", "--", "config/tuning.yaml", "themes"],
+                                stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL) != 0
+    except Exception:  # noqa: BLE001
+        dirty = None
+    m = re.search(r"^\s*pose_fps:\s*([0-9.]+)", tun.read_text(encoding="utf-8", errors="replace"), re.M) if tun.exists() else None
+    return {"tuning_yaml_sha256": cur,
+            "tuning_yaml_mtime": _dt.datetime.fromtimestamp(tun.stat().st_mtime).isoformat(timespec="seconds") if tun.exists() else None,
+            "pose_fps_in_file": float(m.group(1)) if m else None,          # S2 적용 여부가 한눈에
+            "profile_match": same or "없음(로컬 수정본 또는 전역 기본)",
+            "git_head": _run([*git, "rev-parse", "--short", "HEAD"]).strip() or None,
+            "git_branch": _run([*git, "rev-parse", "--abbrev-ref", "HEAD"]).strip() or None,
+            "config_or_theme_dirty": dirty,
+            "vision_yaml_sha256": _sha256(_ROOT / "themes" / "safety" / "vision.yaml")}
+
+
+def health_config(h: dict[str, Any]) -> dict[str, Any]:
+    """/health 에서 "무엇이 돌고 있었는지" 만 추린다 — 슬롯 수가 다르면 부하가 달라지므로 판정의 전제다."""
+    models = [{"slot": e.get("slot"), "file": e.get("file"), "backend": e.get("backend")}
+              for e in (h.get("models") or [])]
+    return {"active_detectors": h.get("active_detectors"), "disabled_detectors": h.get("disabled_detectors"),
+            "backend": h.get("backend"), "models": models, "version": h.get("version")}
+
+
+_BROWSERS = ("chrome", "msedge", "firefox", "whale", "brave", "opera", "iexplore")
+
+
+def browser_procs() -> dict[str, Any]:
+    """S9(시연 `/safety`·관제 `/hub` 화면 열지 않기) 준수 여부를 데이터로 남긴다.
+
+    ★한계: 브라우저가 떠 있다는 것이 곧 VIGENT 페이지를 열어 뒀다는 뜻은 아니다. 서버에 페이지 요청
+      카운터가 없어서(2026-09-18 확인) 여기까지가 한계다 — `docs/P3_BACKLOG.md` B-page-hits.
+    """
+    ps = (f"$p = Get-Process -Name {','.join(_BROWSERS)} -ErrorAction SilentlyContinue; "
+          "if ($p) { (($p | Group-Object ProcessName | ForEach-Object { $_.Name + ':' + $_.Count }) -join ';') "
+          "+ '|' + [math]::Round((($p | Measure-Object -Sum WorkingSet64).Sum)/1MB) } else { '|0' }")
+    out = _run(["powershell", "-NoProfile", "-Command", ps]).strip()
+    if "|" not in out:
+        return {"measured": False}
+    names, rss = out.rsplit("|", 1)
+    by: dict[str, int] = {}
+    for item in names.split(";"):
+        if ":" in item:
+            k, v = item.rsplit(":", 1)
+            by[k] = int(v) if v.isdigit() else 0
+    return {"measured": True, "count": sum(by.values()), "rss_mb": float(rss or 0), "by_name": by}
 
 
 def net_bytes() -> int | None:
@@ -369,7 +437,9 @@ class Sampler:
         return {"overall": overall, "alert_pending_max": int((last.get("alerts") or {}).get("pending") or 0),
                 "degraded_samples": sum(1 for s in overall if s not in ("healthy",)),
                 "degraded_alert_samples": alert_bad, "degraded_camera_samples": cam_bad, "cams": per,
-                "slot_degraded": last.get("slot_degraded"), "alerts": last.get("alerts")}
+                "slot_degraded": last.get("slot_degraded"), "alerts": last.get("alerts"),
+                # 서버가 페이지 요청 카운터를 내놓으면 그때부터 자동으로 잡힌다(현재는 없음 — B-page-hits)
+                "page_hits": last.get("page_hits")}
 
     def sample(self, phase: str, n_cams: int) -> dict[str, Any]:
         t = time.time()
@@ -385,6 +455,7 @@ class Sampler:
             ps["server_cores"] = round((ps["cpu_s"] - self.prev["cpu_s"]) / dt, 2) if dt > 0 else None
         rec["proc"] = ps
         rec["health"] = self.health_burst()
+        rec["browsers"] = browser_procs()                    # S9 준수 여부를 데이터로 남긴다
         rec["alerts_window"] = alert_stats(self.prev.get("t", self.t_start))
         rec["disk"] = {"data_mb": round(dir_size(_ROOT / "data") / 1048576, 1), "logs_mb": round(dir_size(_ROOT / "logs") / 1048576, 1)}
         nb = net_bytes()
@@ -398,7 +469,8 @@ class Sampler:
               f"{rec['gpu'].get('mem_used_mb')}MB {rec['gpu'].get('temp_c')}°C clk={rec['gpu'].get('clock_sm')} "
               f"deg(cam/alert)={h['degraded_camera_samples']}/{h['degraded_alert_samples']} "
               f"age_p95={[c['age_p95'] for c in h['cams'].values()]} alerts={rec['alerts_window'].get('created')}/"
-              f"{rec['alerts_window'].get('latency_p95')}s")
+              f"{rec['alerts_window'].get('latency_p95')}s "
+              f"br={rec['browsers'].get('count')}개/{rec['browsers'].get('rss_mb')}MB")
         return rec
 
 
@@ -584,6 +656,7 @@ def main() -> int:
     header = {"type": "header", "started": _dt.datetime.now().isoformat(timespec="seconds"), "host": host, "cpu": cpu_name, "gpu": gpu_name,
               "cams": a.cams, "fps": a.fps, "hours": a.hours, "interval_s": a.interval, "source_kind": kind,
               "sources": [mask(s) for s in sources], "record": a.record, "server_pid": pid, "preflight": pre, "pass_criteria": PASS,
+              "run_config": run_config(), "health_config": health_config(api("/health")[1] or {}),
               "note": "파일 소스는 네트워크 지연·재접속·h264 실스트림 디코드가 없다 — 6단계(네트워크)는 실카메라 전용" if kind == "file" else ""}
     with jsonl.open("w", encoding="utf-8") as f:
         f.write(json.dumps(header, ensure_ascii=False) + "\n")

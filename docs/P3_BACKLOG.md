@@ -747,3 +747,16 @@
   (ctypes ~40줄, `ensure_go2rtc` 의 Popen 직후 AssignProcessToJobObject). 보조로 `ensure_go2rtc` 기동 시 PID 파일의 프로세스가
   **우리 바이너리 경로**이면 "재사용" 대신 재기동(현재는 PID 파일 불일치면 무조건 재사용).
 - **상태**: 기록만. 구현하지 않음(테스트: Job 핸들 닫힘 → 자식 종료 실측 필요).
+
+## B-page-hits. `/health` 에 페이지 요청 누계가 없어 S9(시연·관제 화면 금지) 준수를 증명할 수 없다 (2026-09-18, 노트북 소크 판독 후속)
+
+- **실측**: `vigent-core/routers/system.py` 의 `/health` 응답에 `page_hits`·요청 카운터류 키가 **없다**(grep `page_hits|request_count|hub_hits|safety_hits` → 0건).
+  `/hub` 는 열려 있는 동안 2.0s(폴링)·1.3s(썸네일)·1.2s(spot) 간격으로 서버를 부르지만(`themes/safety/index_hub.html:636`),
+  서버는 그 요청을 세지 않으므로 **사후에 "그 소크 동안 화면을 열었는가"를 가릴 방법이 없다.**
+- **영향**: 2026-09-09 2차 소크는 S2+**S9** 적용본으로 기록됐으나 S9 준수는 **미검증**으로 남았다
+  (`docs/ops/laptop_soak_2nd_2026-09-09.md`). S9 는 FINAL-REPORT §5-3 기준 "여유 −1대" 규모의 부하라 판정에 직접 영향을 준다.
+- **키트 쪽 보완(2026-09-18 적용)**: `scripts/pilot_load_test.py` 가 표본마다 브라우저 프로세스 수·RSS 합계(`browsers`)를 기록한다.
+  단 **브라우저가 떠 있다 ≠ VIGENT 페이지를 열어 뒀다** 이므로 이것은 상한선일 뿐 증명이 아니다.
+  키트는 `/health` 에 `page_hits` 키가 나타나면 창마다 자동으로 기록하도록 미리 만들어 뒀다(현재는 항상 null).
+- **제안**: `/hub`·`/safety` 와 그 폴링 엔드포인트에 프로세스 수명 기준 누적 카운터(dict 증가 1줄) → `/health` 에 `page_hits` 로 노출.
+- **상태**: 기록만. **서버 코드는 수정하지 않았다**(이번 작업 범위 밖 — 대표 승인 대상).
