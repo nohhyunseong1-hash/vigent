@@ -1,0 +1,29 @@
+﻿# MANIFEST — audit\export_laptop_2026-09-18
+생성: 2026-09-18 15:13:26  노트북(현장 배포기)  저장소: C:\Users\1\Desktop\VIGENT
+
+## 복사된 파일 (원본 대비 SHA256 일치 확인함)
+
+| 원본 경로 | 바이트 | SHA256 | 원본 수정 시각 | 사본 바이트 |
+|---|---|---|---|---|
+| audit\loadtest_20260909_1032_laptop_base.md | 19922 | AFA26F13EF73A4E33580418DA0970A9F50666165B2F700CFF3CC750C856A8B7E | 2026-09-09 15:20:19 | 19922 |
+| audit\loadtest_20260909_1032_laptop_base.jsonl | 122021 | 5A2FCB1276B51200BBE51E7F9318D6C48EC75015B1CD7C4A77BC1736C0B04F7E | 2026-09-09 15:20:19 | 122021 |
+| audit\loadtest_20260909_1623_laptop_s2s9.md | 5128 | 5B562C1E6957B0E549DFBBCE4404084C09A69F7897654DDC6B9B91113B7566EE | 2026-09-10 09:15:31 | 5128 |
+| audit\loadtest_20260909_1623_laptop_s2s9.jsonl | 28724 | F692D8B54D097E450CFA503455F168C7639B203E91162AF3B5FCDD8039C311B2 | 2026-09-09 18:37:50 | 28724 |
+| audit\soak_console_laptop_base.log | 27006 | A0272692127220EF1484304C946245BC7B45E4F71EAF373F7DC3B94472570549 | 2026-09-09 15:20:19 | 27006 |
+| audit\soak_console_laptop_s2s9.log | 7882 | E3315399066CC0A6E97B0439F38E512C83F6C9008E03CFE6CE62CB73DBC0909C | 2026-09-09 18:37:50 | 7882 |
+| audit\power_2026-09-09_before.txt | 15837 | EE74FF8846F338503886D4B1BC4396BE8D249F94A6D9B56AC70DEBDDC00226B3 | 2026-09-09 09:08:42 | 15837 |
+| audit\power_2026-09-09_after.txt | 4839 | F5EAEA67EF2642DB73ABD93A1E01C2F629C8F7F1C0A04DCBC7BD709D8B42707C | 2026-09-09 10:14:30 | 4839 |
+| audit\battery_2026-09-09.html | 38972 | E2FB0BCC29C48EA4EA563CC8F066E9DCEE124AAFAFF52EA1F7FB994242450298 | 2026-09-09 09:09:10 | 38972 |
+| docs\ops\laptop_results.md | 27670 | 152DD255FBB377FF12731FDC91B5A09542DD404A7A4831D3465CA6ACF3543019 | 2026-09-17 15:06:41 | 27670 |
+
+## 없음으로 판명된 항목
+- audit\rss_manual_laptop_base.txt — 없음 (저장소 전체 rss_manual* 검색 결과도 0건)
+- audit\rss_manual_laptop_s2s9.txt — 없음
+
+## 자격증명 포함으로 제외된 항목
+- 없음 (복사 대상 10개 파일 모두 rtsp 자격증명·토큰·chat_id 패턴 검색 0건)
+- 처음부터 제외: .env, config\notify.yaml, data\camera_secrets.json, data\go2rtc.runtime.yaml (복사 대상 아님)
+
+## 비고
+- 절전 해제 후 전원 값 파일 = audit\power_2026-09-09_after.txt (10:14 생성) 로 판단하여 포함
+- 이 폴더에서 새로 만든 파일: MANIFEST.txt, facts.txt

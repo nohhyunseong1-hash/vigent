@@ -1,0 +1,525 @@
+﻿# facts.txt — 노트북(현장 배포기) 사실 확인값
+수집 시각: 2026-09-18 15:17:50  호스트: DESKTOP-GEL7LD6  저장소: C:\Users\1\Desktop\VIGENT
+원칙: 읽기 전용. 명령 → 출력 그대로. 판정·해석 없음(개발기에서 한다).
+★수집 중 관찰된 사실: OS 마지막 부팅 2026-09-18 15:10:15, VIGENT 서비스(자동·지연 시작) 는 그 직후 기동(/health uptime_s 로 역산 15:12:35). 이 수집 세션은 서비스를 재시작·중지하지 않았다.
+★5) 의 'registered' 키는 현재 /health 응답에 없다(대신 cameras 키 존재, 4-보충에 기록).
+★3) 의 'not enough values to unpack' 집계는 문자열 일치 줄 수이며, 오류 1건 = 줄 1개 로 가정하지 않았다(줄 수 그대로).
+
+## 1) git 상태
+
+> git branch --show-current
+audit/cleanup-20260906
+
+> git log --oneline -5
+8bcd8c8 학원 프로파일 + pose_fps 0.2 (3차 소크 미달 판정 근거, 파일럿기는 기본값에서 시작)
+97ac1a3 인수시험 절차서, 오프라인 번들 v1(4.07GB), D-1 4대 실측 근거
+b500447 키트: 서버 PID 트리 합산, perf% 로깅, 시작 게이트
+9b5ea29 docs: P0-3 근거 검증 및 낙상 감지 누락 기록
+8950b48 docs: FINAL-REPORT §5-3 순서 정정(S8 서브스트림 우선·S1 fps 감소는 최후 수단·S2 포즈 비의존 확인) + 현장 배포기(노트북) 검증 패키지 docs/ops/laptop_validation.md
+
+> git status --short
+ M themes/safety/vision.yaml
+?? audit/battery_2026-09-09.html
+?? audit/export_laptop_2026-09-18/
+?? audit/loadtest_20260909_1032_laptop_base.jsonl
+?? audit/loadtest_20260909_1032_laptop_base.md
+?? audit/loadtest_20260909_1623_laptop_s2s9.jsonl
+?? audit/loadtest_20260909_1623_laptop_s2s9.md
+?? audit/loadtest_20260917_1012_laptop_academy_s2.jsonl
+?? audit/loadtest_20260917_1012_laptop_academy_s2.md
+?? audit/loadtest_20260917_1617_pidfix_check.jsonl
+?? audit/loadtest_20260917_1617_pidfix_check.md
+?? audit/loadtest_20260917_1619_pidfix_negative.jsonl
+?? audit/power_2026-09-09_after.txt
+?? audit/power_2026-09-09_before.txt
+?? audit/soak_console_laptop_academy_s2.log
+?? audit/soak_console_laptop_base.log
+?? audit/soak_console_laptop_s2s9.log
+?? audit/soak_console_pidfix_check.log
+?? audit/tuning_before_academy_2026-09-17.yaml
+?? audit/tuning_stash_diff_2026-09-09.txt
+?? audit/vision_yaml_diff_2026-09-09.txt
+?? config/tuning.yaml.bak
+?? themes/safety/vision.yaml.bak
+
+> git diff config/tuning.yaml
+(출력 없음 — 추적 파일 기준 변경 없음)
+
+> git ls-files config/tuning.yaml (추적 여부)
+config/tuning.yaml
+
+> git diff --stat (참고: 작업트리 변경 전체)
+ themes/safety/vision.yaml | 34 ++++++++++++----------------------
+ 1 file changed, 12 insertions(+), 22 deletions(-)
+
+## 2) 2026-08-27 현장 테스트 당시 배포본 커밋 추정
+
+> git reflog --date=iso | Select-Object -First 60
+8bcd8c8 HEAD@{2026-09-17 17:48:49 +0900}: commit: 학원 프로파일 + pose_fps 0.2 (3차 소크 미달 판정 근거, 파일럿기는 기본값에서 시작)
+97ac1a3 HEAD@{2026-09-17 17:48:49 +0900}: commit: 인수시험 절차서, 오프라인 번들 v1(4.07GB), D-1 4대 실측 근거
+b500447 HEAD@{2026-09-17 17:48:49 +0900}: commit: 키트: 서버 PID 트리 합산, perf% 로깅, 시작 게이트
+9b5ea29 HEAD@{2026-09-09 10:10:37 +0900}: checkout: moving from fix/review-bugs to audit/cleanup-20260906
+67b89fa HEAD@{2026-08-28 13:01:36 +0900}: commit: [현장 원자료] 학원 시험 2026-08-27 텍스트 원자료 + 보고서 md + 수집 도구
+6c12a07 HEAD@{2026-08-26 20:31:52 +0900}: commit: [출발 전 점검] track_debug 가 person 을 못 담던 결함 수정 + 방문 한 장 요약본
+322293a HEAD@{2026-08-26 19:05:17 +0900}: commit: [부록 D-3 완료] C200 실카메라 재확인 — ★현장 갈 준비 완료 선언
+4976e6a HEAD@{2026-08-26 15:44:09 +0900}: commit: [좀비 카메라] 워커를 되살리는 입구 3곳 전수 차단 + 소크 지시문 오류 정정 + 부록 D-3
+64c9282 HEAD@{2026-08-26 15:13:08 +0900}: commit (merge): Merge remote-tracking branch 'origin/fix/review-bugs' into fix/review-bugs
+4622c8e HEAD@{2026-08-26 15:11:41 +0900}: commit: [소크] 안전 리뷰 수정(F1·F5·F6) 3시간 단축 소크 PASS + 학원 프로파일 드리프트 잠금
+4b7043c HEAD@{2026-08-24 12:48:37 +0900}: pull origin fix/review-bugs: Fast-forward
+46e3446 HEAD@{2026-08-22 02:45:14 +0900}: commit: [0-J 완료] C200 라이브 종단 실증 — 부록 D-2 전 항목 통과 + 경보 확인 절차 신설
+d35d684 HEAD@{2026-08-22 02:18:52 +0900}: commit: [0-C 확정] 부록 D-2 에 C200 실측 반영 + 학원 조건과의 차이 표
+9d41013 HEAD@{2026-08-22 02:18:08 +0900}: commit: [0-C 완료] Tapo C200 실카메라 검증 — 코덱 h264·재연결 30초 + 결함 2건 문서화
+9610e9b HEAD@{2026-08-22 01:22:20 +0900}: commit: [서버 결함] 삭제한 카메라가 /health 에 유령으로 남던 문제 — WorkerManager.remove() 신설
+befccda HEAD@{2026-08-22 00:55:16 +0900}: commit: [측정 위생] capacity_probe 결함 3종 수정 + 전수 점검 + 한계 6대/권장 4대 실측
+3e6b351 HEAD@{2026-08-21 11:37:26 +0900}: commit: [현장 준비 완료] 오프라인 완주 실증 + 부록 D-2(노트북 판) + 통보 오류 비밀값 마스킹
+8663a06 HEAD@{2026-08-21 09:33:00 +0900}: commit: [오프라인 2차 구멍] 포즈 모델 156MB 런타임 다운로드 — TORCH_HOME 고정
+db1f1cf HEAD@{2026-08-21 09:08:47 +0900}: commit (merge): Merge remote-tracking branch 'origin/fix/review-bugs' into fix/review-bugs
+e959d29 HEAD@{2026-08-20 17:38:58 +0900}: commit: [테스트] 인증 환경 격리 — 배포 .env 가 있는 실기계에서 게이트가 빨갛던 문제
+64af7ef HEAD@{2026-08-20 17:22:55 +0900}: commit: [C3 완결] 현장 노트북 BitLocker 적용·검증 + 복구 키 드라이브 문자 사고 절차화
+557227f HEAD@{2026-08-20 17:02:11 +0900}: commit: [문서] 인수시험(§9-4) 측정 전제 3가지 명시 — BitLocker 암호화 중 측정 금지 포함
+8c8e4d2 HEAD@{2026-08-20 16:44:37 +0900}: commit: [문서] 로그 읽기 인코딩 + capacity_probe 재측정 전제 명시
+28f114d HEAD@{2026-08-20 16:43:54 +0900}: commit: [B-enc 확정] JSON 응답 charset=utf-8 명시 + 방문 절차서 폰 모니터링 주소 확인 단계
+21a402d HEAD@{2026-08-20 16:13:19 +0900}: commit: [현장노트북] 예열 슬롯 하드코딩 제거 — 실제 활성 슬롯을 예열한다
+a37538a HEAD@{2026-08-20 15:51:15 +0900}: commit: [현장노트북] 오프라인 조달 경로(RF_HOME) + disabled_detectors 하드코딩 제거 + 정본 3.11 정정
+13c3d4c HEAD@{2026-08-20 15:11:06 +0900}: commit: [현장노트북 2차검증] DEPLOYMENT.md 실전 결함 4건 수정 + scripts cp949 크래시 수정
+c12fcf1 HEAD@{2026-08-20 14:49:53 +0900}: clone: from https://github.com/nohhyunseong1-hash/vigent.git
+
+> git log --date=iso --format="%h %ad %s" --since=2026-08-18 --until=2026-08-28
+3d1b467 2026-08-28 14:05:22 +0900 [v1.2 보강] 보호구 오탐 원인 규명(마스크 17.8%) + F30 원인 확정 + relay flake 제거
+b9e8289 2026-08-28 13:19:58 +0900 [v1.2 재분석] 근접경보 누락 확정 + 판정 3건 완료 + 수치 정정
+67b89fa 2026-08-28 13:01:36 +0900 [현장 원자료] 학원 시험 2026-08-27 텍스트 원자료 + 보고서 md + 수집 도구
+6c12a07 2026-08-26 20:31:52 +0900 [출발 전 점검] track_debug 가 person 을 못 담던 결함 수정 + 방문 한 장 요약본
+322293a 2026-08-26 19:05:17 +0900 [부록 D-3 완료] C200 실카메라 재확인 — ★현장 갈 준비 완료 선언
+4976e6a 2026-08-26 15:44:09 +0900 [좀비 카메라] 워커를 되살리는 입구 3곳 전수 차단 + 소크 지시문 오류 정정 + 부록 D-3
+64c9282 2026-08-26 15:13:08 +0900 Merge remote-tracking branch 'origin/fix/review-bugs' into fix/review-bugs
+4622c8e 2026-08-26 15:11:41 +0900 [소크] 안전 리뷰 수정(F1·F5·F6) 3시간 단축 소크 PASS + 학원 프로파일 드리프트 잠금
+447866f 2026-08-25 11:42:02 +0900 [절차서] track_debug 절 도구 연결 + ★탭으로 깨진 경로 4곳 복구
+415b959 2026-08-25 11:38:52 +0900 [B-passthru 마감] 2fps 재측정 설계 확정 + 검출층 성과 기록 + 반증된 직관 메모
+8b6a43b 2026-08-25 11:28:51 +0900 [B-passthru] 검출통과 + 위치 기반 대체 키 구현 — 검출은 회복, 경보는 미확인
+0f34c54 2026-08-25 10:47:13 +0900 [X5-②] 원거리 역전 조사 — 판정 불가 → 384 유지 · 512 보류
+c552091 2026-08-25 10:34:21 +0900 [X5-②③] MIN_FRAMES=0 적용 + 해상도·앙상블 실험 — 병목은 검출이 아니라 추적
+e8dc730 2026-08-25 10:21:05 +0900 [X5-①] 트래커 5개 후보 비교 + 기준선 무효화 문서 정정 + 규칙9
+e1b60dc 2026-08-25 09:56:44 +0900 [X5 중간] 재현율 손잡이 실험 — 평가 방법 무효 발견 + 트래커가 최대 손잡이
+aa4df83 2026-08-24 21:19:33 +0900 [D1-C] 구역 침입을 사람 단위로 — 두 번째 사람의 무기한 가려짐 해소
+6731822 2026-08-24 20:58:20 +0900 [D1~D4] 결정 반영 — D4 구현 완료 · D1·D3 은 재생 검증 결과 보류 · D2 측정 설계
+74ebe82 2026-08-24 20:25:15 +0900 [방문전] 프로파일 드리프트 게이트 차단 + 수정 5건 회귀 확인 + 파일럿 결정 목록
+d03fe20 2026-08-24 18:01:24 +0900 [안전리뷰 F31] 슬롯 로드 실패도 빨간불로 — F1 이 덮지 못한 절반
+86c003f 2026-08-24 17:30:53 +0900 [정직화] vision.yaml person 검출기 죽은 설정 주석화 + F30 관측 추가
+8140974 2026-08-24 16:24:20 +0900 [문서] 눈으로 하는 코드 리뷰 A~Z 체크리스트 신설
+4b7043c 2026-08-24 11:51:58 +0900 [문서] F30 미확인 결함 등재 + 노트북 단축 소크 지시문
+28d903c 2026-08-24 11:45:59 +0900 [F29] test_relay flake 제거 + 개발 PC 필수 가중치 조달
+da25d60 2026-08-24 11:23:52 +0900 Merge remote-tracking branch 'origin/fix/review-bugs' into fix/review-bugs
+d9b8603 2026-08-24 11:15:05 +0900 [안전리뷰 F6] 보존 스윕 자동 실행 + F5 시드 정리 + "자동 파기" 문서 정정
+275e87f 2026-08-24 10:57:13 +0900 [안전리뷰 F5·F1·F2] 조용히 실패하던 3건 수정 + 전수 리뷰 리포트
+46e3446 2026-08-22 02:45:14 +0900 [0-J 완료] C200 라이브 종단 실증 — 부록 D-2 전 항목 통과 + 경보 확인 절차 신설
+d35d684 2026-08-22 02:18:52 +0900 [0-C 확정] 부록 D-2 에 C200 실측 반영 + 학원 조건과의 차이 표
+9d41013 2026-08-22 02:18:08 +0900 [0-C 완료] Tapo C200 실카메라 검증 — 코덱 h264·재연결 30초 + 결함 2건 문서화
+9610e9b 2026-08-22 01:22:20 +0900 [서버 결함] 삭제한 카메라가 /health 에 유령으로 남던 문제 — WorkerManager.remove() 신설
+befccda 2026-08-22 00:55:16 +0900 [측정 위생] capacity_probe 결함 3종 수정 + 전수 점검 + 한계 6대/권장 4대 실측
+3e6b351 2026-08-21 11:37:26 +0900 [현장 준비 완료] 오프라인 완주 실증 + 부록 D-2(노트북 판) + 통보 오류 비밀값 마스킹
+8663a06 2026-08-21 09:33:00 +0900 [오프라인 2차 구멍] 포즈 모델 156MB 런타임 다운로드 — TORCH_HOME 고정
+db1f1cf 2026-08-21 09:08:47 +0900 Merge remote-tracking branch 'origin/fix/review-bugs' into fix/review-bugs
+47dd643 2026-08-21 00:52:56 +0900 [리허설] 0단계 완주 기록(부록 D) — 현장 갈 준비 판정
+51e6073 2026-08-21 00:51:18 +0900 [실증] 라이브 E2E 완료 기록 + guard_bypass 문구 일반화 + 학원 프로파일 절차 강조
+e3014f3 2026-08-21 00:28:32 +0900 [B5-fix] 원격 채널 없는 등급이 영원히 재시도되다 데드레터가 되던 결함
+3a3525f 2026-08-21 00:14:20 +0900 [P1a-fix] 얼굴 비식별화 경합 수정 + W2 반영 후 지연 재측정 + 테스트 격리
+ba45c0b 2026-08-20 23:51:21 +0900 [M1 갱신] 텔레그램 실채널 전송 실측 — mock 13.4ms → 실측 1,415.8ms
+198e655 2026-08-20 23:34:13 +0900 [W3] 구역 편집 중 대상 전환 사고 차단 — 3중 가드 + safety-pro 저장 비활성
+bd34d15 2026-08-20 23:08:22 +0900 [문서] safety-pro 경고 정정 + 텔레그램 실채널 설정 절차서 신설
+01c0daa 2026-08-20 22:57:26 +0900 [학원 절차서] 위험구역 그리기·반경 조정·사전 연습 절차 보강(부록 A·B·C)
+63cb7a1 2026-08-20 22:43:18 +0900 [W1·W2] 경보 통보 배선 + 폭주 방지 + 근접 디바운스
+6ebbf8a 2026-08-20 22:11:31 +0900 [M1·M2·M3] 경보 지연 실측 + 야간 1차 측정 + 오탐 재집계 — 기획서 §2 반영
+6dc2f93 2026-08-20 21:16:58 +0900 [기획서] 심사 제출용 기술 검증 실적 정리 신설
+e959d29 2026-08-20 17:38:58 +0900 [테스트] 인증 환경 격리 — 배포 .env 가 있는 실기계에서 게이트가 빨갛던 문제
+64af7ef 2026-08-20 17:22:55 +0900 [C3 완결] 현장 노트북 BitLocker 적용·검증 + 복구 키 드라이브 문자 사고 절차화
+557227f 2026-08-20 17:02:11 +0900 [문서] 인수시험(§9-4) 측정 전제 3가지 명시 — BitLocker 암호화 중 측정 금지 포함
+8c8e4d2 2026-08-20 16:44:37 +0900 [문서] 로그 읽기 인코딩 + capacity_probe 재측정 전제 명시
+28f114d 2026-08-20 16:43:54 +0900 [B-enc 확정] JSON 응답 charset=utf-8 명시 + 방문 절차서 폰 모니터링 주소 확인 단계
+21a402d 2026-08-20 16:13:19 +0900 [현장노트북] 예열 슬롯 하드코딩 제거 — 실제 활성 슬롯을 예열한다
+a37538a 2026-08-20 15:51:15 +0900 [현장노트북] 오프라인 조달 경로(RF_HOME) + disabled_detectors 하드코딩 제거 + 정본 3.11 정정
+13c3d4c 2026-08-20 15:11:06 +0900 [현장노트북 2차검증] DEPLOYMENT.md 실전 결함 4건 수정 + scripts cp949 크래시 수정
+416ce0b 2026-08-20 13:21:41 +0900 [D4 종결] 클라우드 뒷정리 완료 + 결측 24개 git 복원 + evidence 격리보관 확정
+c12fcf1 2026-08-20 12:59:57 +0900 [D1~D3] 맥 salvage 회수·검증·편입 — LOCO 교차검증 + F-7 실패 원인 규명
+96413b8 2026-08-20 01:52:16 +0900 [마무리] 폰 재검증 성공 확인 + 백로그 2건 + 감사 항목 최종 현황표
+c973762 2026-08-20 00:41:43 +0900 [T3 마감] VIGENT_HOST 라이브 반영 검증 — LAN /health 200 복구
+2ded147 2026-08-20 00:38:37 +0900 [T3 결과] 재부팅 시험 완료 + 폰 403 잠복 결함 발견·수정(VIGENT_HOST 정합)
+2f37fc3 2026-08-20 00:13:15 +0900 [T2·T3] 강제 kill 재기동 PASS + 재부팅 전 스냅샷 — 사람 시험 묶음 기록
+3b945ac 2026-08-20 00:03:38 +0900 [T1 판정] EFS 는 이 PC 에서 불가 — Windows Home 에디션 한계(요건 발견)
+d72742d 2026-08-19 23:58:32 +0900 [정리] 미추적 자산 3건 커밋 — 24h 소크 원본(2026-08-17)·상용화 보드 산출물
+4a201e2 2026-08-19 23:52:02 +0900 [G5] 지게차 운전자 제외 — 차단급 오발화 조건 해소 (proximity + zone 공유)
+8808733 2026-08-19 23:14:39 +0900 [G1 판정] 지게차 대결 — boda_ax(YOLO) 채택(학원 프로파일 한정) + fire 스위치 신설
+7d88e5b 2026-08-19 22:52:39 +0900 [가중치] Release weights-v1 백업 완비 — 전 10종 SHA 재검증 일치(2026-08-19)
+0a0e8ee 2026-08-19 16:28:12 +0900 [G1~G4] 중장비 학원 테스트 준비 — 지게차 F-7 부적격 확정·질문지·당일 절차서
+be548eb 2026-08-19 16:00:40 +0900 [현장검증] 설치 예정 프레스 공장 영상 사전 검증 — smoke 오탐·원거리 conf 급락 발견
+b321862 2026-08-19 13:16:23 +0900 [TP] tapo_test 영상 3편 실서비스 검출·추적 품질 실측
+1104c72 2026-08-19 11:38:40 +0900 [Q10] ORT 스핀 제거 기본 on 확정 — 카메라당 1.55코어, 1시간 소크 PASS
+29ea216 2026-08-19 09:32:24 +0900 [Q9] ORT 세션 옵션 스위치 추가 (기본 off) — 스핀 낭비 제거 경로
+1ab8ffc 2026-08-19 01:48:10 +0900 [V2재측정][V3][V4] GPU-less 성립 확정 + pose 스핀 낭비 실증 + 구매 가이드 전면 개정
+19edb49 2026-08-18 22:07:45 +0900 [V2] ONNX 동일성 검증 — ppe·fire_smoke 통과, forklift 부결 / CPU 매트릭스는 무효
+dc03dea 2026-08-18 21:39:19 +0900 [V1] 슬롯 구성별 자원 실측 — 기능을 팔아도 CPU 는 거의 안 준다
+1f7e9cb 2026-08-18 17:07:06 +0900 [E2][E3] 엣지박스 사양표 — "이 PC 코어 환산" 기준 도입 + 30만원 결정 숫자 대조
+
+> aa4df83 이 reflog 에 나타나는 줄 (git reflog --date=iso | Select-String aa4df83)
+  (reflog 에 aa4df83 없음)
+
+> git log -1 --date=iso --format='%h %ad %an %s' aa4df83
+aa4df83 2026-08-24 21:19:33 +0900 nohhyunesong1-hash [D1-C] 구역 침입을 사람 단위로 — 두 번째 사람의 무기한 가려짐 해소
+
+> git reflog 전체 줄 수: 28
+> reflog 에서 2026-08-2x 날짜가 붙은 줄 (git reflog --date=iso | Select-String '2026-08-2')
+  67b89fa HEAD@{2026-08-28 13:01:36 +0900}: commit: [현장 원자료] 학원 시험 2026-08-27 텍스트 원자료 + 보고서 md + 수집 도구
+  6c12a07 HEAD@{2026-08-26 20:31:52 +0900}: commit: [출발 전 점검] track_debug 가 person 을 못 담던 결함 수정 + 방문 한 장 요약본
+  322293a HEAD@{2026-08-26 19:05:17 +0900}: commit: [부록 D-3 완료] C200 실카메라 재확인 — ★현장 갈 준비 완료 선언
+  4976e6a HEAD@{2026-08-26 15:44:09 +0900}: commit: [좀비 카메라] 워커를 되살리는 입구 3곳 전수 차단 + 소크 지시문 오류 정정 + 부록 D-3
+  64c9282 HEAD@{2026-08-26 15:13:08 +0900}: commit (merge): Merge remote-tracking branch 'origin/fix/review-bugs' into fix/review-bugs
+  4622c8e HEAD@{2026-08-26 15:11:41 +0900}: commit: [소크] 안전 리뷰 수정(F1·F5·F6) 3시간 단축 소크 PASS + 학원 프로파일 드리프트 잠금
+  4b7043c HEAD@{2026-08-24 12:48:37 +0900}: pull origin fix/review-bugs: Fast-forward
+  46e3446 HEAD@{2026-08-22 02:45:14 +0900}: commit: [0-J 완료] C200 라이브 종단 실증 — 부록 D-2 전 항목 통과 + 경보 확인 절차 신설
+  d35d684 HEAD@{2026-08-22 02:18:52 +0900}: commit: [0-C 확정] 부록 D-2 에 C200 실측 반영 + 학원 조건과의 차이 표
+  9d41013 HEAD@{2026-08-22 02:18:08 +0900}: commit: [0-C 완료] Tapo C200 실카메라 검증 — 코덱 h264·재연결 30초 + 결함 2건 문서화
+  9610e9b HEAD@{2026-08-22 01:22:20 +0900}: commit: [서버 결함] 삭제한 카메라가 /health 에 유령으로 남던 문제 — WorkerManager.remove() 신설
+  befccda HEAD@{2026-08-22 00:55:16 +0900}: commit: [측정 위생] capacity_probe 결함 3종 수정 + 전수 점검 + 한계 6대/권장 4대 실측
+  3e6b351 HEAD@{2026-08-21 11:37:26 +0900}: commit: [현장 준비 완료] 오프라인 완주 실증 + 부록 D-2(노트북 판) + 통보 오류 비밀값 마스킹
+  8663a06 HEAD@{2026-08-21 09:33:00 +0900}: commit: [오프라인 2차 구멍] 포즈 모델 156MB 런타임 다운로드 — TORCH_HOME 고정
+  db1f1cf HEAD@{2026-08-21 09:08:47 +0900}: commit (merge): Merge remote-tracking branch 'origin/fix/review-bugs' into fix/review-bugs
+  e959d29 HEAD@{2026-08-20 17:38:58 +0900}: commit: [테스트] 인증 환경 격리 — 배포 .env 가 있는 실기계에서 게이트가 빨갛던 문제
+  64af7ef HEAD@{2026-08-20 17:22:55 +0900}: commit: [C3 완결] 현장 노트북 BitLocker 적용·검증 + 복구 키 드라이브 문자 사고 절차화
+  557227f HEAD@{2026-08-20 17:02:11 +0900}: commit: [문서] 인수시험(§9-4) 측정 전제 3가지 명시 — BitLocker 암호화 중 측정 금지 포함
+  8c8e4d2 HEAD@{2026-08-20 16:44:37 +0900}: commit: [문서] 로그 읽기 인코딩 + capacity_probe 재측정 전제 명시
+  28f114d HEAD@{2026-08-20 16:43:54 +0900}: commit: [B-enc 확정] JSON 응답 charset=utf-8 명시 + 방문 절차서 폰 모니터링 주소 확인 단계
+  21a402d HEAD@{2026-08-20 16:13:19 +0900}: commit: [현장노트북] 예열 슬롯 하드코딩 제거 — 실제 활성 슬롯을 예열한다
+  a37538a HEAD@{2026-08-20 15:51:15 +0900}: commit: [현장노트북] 오프라인 조달 경로(RF_HOME) + disabled_detectors 하드코딩 제거 + 정본 3.11 정정
+  13c3d4c HEAD@{2026-08-20 15:11:06 +0900}: commit: [현장노트북 2차검증] DEPLOYMENT.md 실전 결함 4건 수정 + scripts cp949 크래시 수정
+  c12fcf1 HEAD@{2026-08-20 14:49:53 +0900}: clone: from https://github.com/nohhyunseong1-hash/vigent.git
+
+----------------------------------------------------------------
+
+## 2-보충) aa4df83 유입 경로 확인용 git 사실값 (해석 없이 명령 출력만)
+
+> git reflog show origin/fix/review-bugs --date=iso
+e1ba0ab refs/remotes/origin/fix/review-bugs@{2026-09-09 10:09:53 +0900}: fetch origin: fast-forward
+67b89fa refs/remotes/origin/fix/review-bugs@{2026-08-28 13:01:39 +0900}: update by push
+6c12a07 refs/remotes/origin/fix/review-bugs@{2026-08-26 20:31:54 +0900}: update by push
+322293a refs/remotes/origin/fix/review-bugs@{2026-08-26 19:05:20 +0900}: update by push
+4976e6a refs/remotes/origin/fix/review-bugs@{2026-08-26 15:44:12 +0900}: update by push
+64c9282 refs/remotes/origin/fix/review-bugs@{2026-08-26 15:18:59 +0900}: update by push
+447866f refs/remotes/origin/fix/review-bugs@{2026-08-26 15:11:58 +0900}: fetch -q origin: fast-forward
+4b7043c refs/remotes/origin/fix/review-bugs@{2026-08-24 12:48:06 +0900}: pull origin fix/review-bugs: fast-forward
+46e3446 refs/remotes/origin/fix/review-bugs@{2026-08-22 02:45:19 +0900}: update by push
+9610e9b refs/remotes/origin/fix/review-bugs@{2026-08-22 01:22:23 +0900}: update by push
+befccda refs/remotes/origin/fix/review-bugs@{2026-08-22 00:55:30 +0900}: update by push
+3e6b351 refs/remotes/origin/fix/review-bugs@{2026-08-21 11:41:41 +0900}: update by push
+47dd643 refs/remotes/origin/fix/review-bugs@{2026-08-21 09:07:18 +0900}: fetch origin: fast-forward
+
+> git reflog show origin/audit/cleanup-20260906 --date=iso
+9b5ea29 refs/remotes/origin/audit/cleanup-20260906@{2026-09-09 10:09:53 +0900}: fetch origin: storing head
+
+> git merge-base --is-ancestor aa4df83 4b7043c ; $LASTEXITCODE  (08-24 12:48 pull 결과에 포함?)
+  exit=1 (0=포함, 1=미포함)
+> git merge-base --is-ancestor aa4df83 4622c8e ; $LASTEXITCODE  (08-26 15:11 로컬 커밋에 포함?)
+  exit=1 (0=포함, 1=미포함)
+> git merge-base --is-ancestor aa4df83 64c9282 ; $LASTEXITCODE  (08-26 15:13 merge 커밋에 포함?)
+  exit=0 (0=포함, 1=미포함)
+> git merge-base --is-ancestor aa4df83 6c12a07 ; $LASTEXITCODE  (08-26 20:31 커밋 = 08-27 당시 HEAD 에 포함?)
+  exit=0 (0=포함, 1=미포함)
+
+> git log --oneline --date=iso 4b7043c..64c9282  (pull 이후 merge 까지 새로 들어온 커밋)
+64c9282 2026-08-26 15:13:08 +0900 Merge remote-tracking branch 'origin/fix/review-bugs' into fix/review-bugs
+4622c8e 2026-08-26 15:11:41 +0900 [소크] 안전 리뷰 수정(F1·F5·F6) 3시간 단축 소크 PASS + 학원 프로파일 드리프트 잠금
+447866f 2026-08-25 11:42:02 +0900 [절차서] track_debug 절 도구 연결 + ★탭으로 깨진 경로 4곳 복구
+415b959 2026-08-25 11:38:52 +0900 [B-passthru 마감] 2fps 재측정 설계 확정 + 검출층 성과 기록 + 반증된 직관 메모
+8b6a43b 2026-08-25 11:28:51 +0900 [B-passthru] 검출통과 + 위치 기반 대체 키 구현 — 검출은 회복, 경보는 미확인
+0f34c54 2026-08-25 10:47:13 +0900 [X5-②] 원거리 역전 조사 — 판정 불가 → 384 유지 · 512 보류
+c552091 2026-08-25 10:34:21 +0900 [X5-②③] MIN_FRAMES=0 적용 + 해상도·앙상블 실험 — 병목은 검출이 아니라 추적
+e8dc730 2026-08-25 10:21:05 +0900 [X5-①] 트래커 5개 후보 비교 + 기준선 무효화 문서 정정 + 규칙9
+e1b60dc 2026-08-25 09:56:44 +0900 [X5 중간] 재현율 손잡이 실험 — 평가 방법 무효 발견 + 트래커가 최대 손잡이
+aa4df83 2026-08-24 21:19:33 +0900 [D1-C] 구역 침입을 사람 단위로 — 두 번째 사람의 무기한 가려짐 해소
+6731822 2026-08-24 20:58:20 +0900 [D1~D4] 결정 반영 — D4 구현 완료 · D1·D3 은 재생 검증 결과 보류 · D2 측정 설계
+74ebe82 2026-08-24 20:25:15 +0900 [방문전] 프로파일 드리프트 게이트 차단 + 수정 5건 회귀 확인 + 파일럿 결정 목록
+d03fe20 2026-08-24 18:01:24 +0900 [안전리뷰 F31] 슬롯 로드 실패도 빨간불로 — F1 이 덮지 못한 절반
+86c003f 2026-08-24 17:30:53 +0900 [정직화] vision.yaml person 검출기 죽은 설정 주석화 + F30 관측 추가
+8140974 2026-08-24 16:24:20 +0900 [문서] 눈으로 하는 코드 리뷰 A~Z 체크리스트 신설
+
+> git log -1 --format='%h %ad %P' --date=iso 64c9282  (merge 커밋의 부모)
+64c9282 2026-08-26 15:13:08 +0900 parents=4622c8e66ae41fcfe6794327f17357fba4979308 447866f19c3c57990148865c9bf1243ff6e57fd6
+
+> git branch -a --contains aa4df83
+* audit/cleanup-20260906
+  fix/review-bugs
+  remotes/origin/HEAD -> origin/main
+  remotes/origin/audit/cleanup-20260906
+  remotes/origin/fix/review-bugs
+  remotes/origin/main
+
+> reflog 상 HEAD 이동 이력 요약(사실): 08-26 20:31 commit 6c12a07 이후 다음 reflog 항목은 08-28 13:01 commit 67b89fa
+
+----------------------------------------------------------------
+
+## 3) F-34 결함 흔적 (경보 유실: 'not enough values to unpack')
+
+> Get-ChildItem logs\vigent.log*  (현재 로그는 서버가 잡고 있어 FileShare.ReadWrite 로 읽음)
+
+Name          Length LastWrite          
+----          ------ ---------          
+vigent.log   8230981 2026-09-18 15:13:25
+vigent.log.1 9999948 2026-09-07 01:39:49
+vigent.log.2 9999943 2026-08-30 18:21:55
+
+### vigent.log
+  총 줄 수: 91399
+  첫 타임스탬프: 2026-09-07 01:39:52
+  마지막 타임스탬프: 2026-09-18 15:13:25
+  'not enough values to unpack' 줄 수: 8167
+  첫 발생: 2026-09-09 10:32:53 (L33536)
+  마지막 발생: 2026-09-17 17:36:28 (L91382)
+  타임스탬프 미확인 건수: 0
+  날짜별 건수:
+    2026-09-09: 2170
+    2026-09-10: 3061
+    2026-09-11: 2193
+    2026-09-15: 7
+    2026-09-17: 736
+  1차 소크 구간(09-09 10:34~15:20) 건수: 1198
+  2차 소크 구간(09-09 16:25~21:10) 건수: 585
+  샘플(첫 발생 줄 원문): ValueError: not enough values to unpack (expected 4, got 3)
+  샘플(첫 발생 직전 타임스탬프 줄): 2026-09-09 10:32:53,036 [ERROR] vigent.worker: 워커 '파일럿모의1'(C:\Users\1\Desktop\vigent_private_data\runs\rfdetr\accident\KakaoTalk_20260807_000438282.mp4) 프레임 처리 예외 — 계속 진행
+
+### vigent.log.1
+  총 줄 수: 79943
+  첫 타임스탬프: 2026-08-30 18:21:56
+  마지막 타임스탬프: 2026-09-07 01:39:49
+  'not enough values to unpack' 줄 수: 0
+  (해당 파일에 09-09 소크 구간 줄 존재 여부) 10:34~15:20 타임스탬프 줄 수: 0
+  16:25~21:10 타임스탬프 줄 수: 0
+
+### vigent.log.2
+  총 줄 수: 82454
+  첫 타임스탬프: 2026-08-20 15:04:14
+  마지막 타임스탬프: 2026-08-30 18:21:55
+  'not enough values to unpack' 줄 수: 520
+  첫 발생: 2026-08-26 15:14:49 (L34199)
+  마지막 발생: 2026-08-27 14:41:51 (L40712)
+  타임스탬프 미확인 건수: 0
+  날짜별 건수:
+    2026-08-26: 478
+    2026-08-27: 42
+  1차 소크 구간(09-09 10:34~15:20) 건수: 0
+  2차 소크 구간(09-09 16:25~21:10) 건수: 0
+  샘플(첫 발생 줄 원문): ValueError: not enough values to unpack (expected 4, got 3)
+  샘플(첫 발생 직전 타임스탬프 줄): 2026-08-26 15:14:49,953 [ERROR] vigent.worker: 워커 '소크test'(C:\Users\1\Desktop\VIGENT\runs\rfdetr\accident\KakaoTalk_20260807_000438282.mp4) 프레임 처리 예외 — 계속 진행
+
+### 전체 파일 합계
+  총 건수: 8687
+  날짜별 합계:
+    2026-08-26: 478
+    2026-08-27: 42
+    2026-09-09: 2170
+    2026-09-10: 3061
+    2026-09-11: 2193
+    2026-09-15: 7
+    2026-09-17: 736
+  2026-08-27 합계: 42
+  2026-09-09 합계: 2170
+  1차 소크 구간 합계: 1198
+  2차 소크 구간 합계: 585
+
+----------------------------------------------------------------
+
+## 4) 파이썬·torch
+
+> Test-Path C:\Users\1\Desktop\VIGENT\.venv\Scripts\python.exe
+True
+> .venv\Scripts\python.exe -c "import torch, cv2; print(torch.__version__, torch.version.cuda, torch.cuda.is_available(), cv2.__version__)"
+2.12.0+cu126 12.6 True 4.13.0
+
+> .venv\Scripts\python.exe --version
+Python 3.11.9
+
+> Get-CimInstance Win32_Process -Filter "Name='python.exe'" | Select ProcessId, ParentProcessId, ExecutablePath
+
+ProcessId ParentProcessId ExecutablePath Start              
+--------- --------------- -------------- -----              
+    17476           10492                2026-09-18 15:12:32
+    17592           17476                2026-09-18 15:12:32
+
+> (참고) 서버 프로세스 커맨드라인 — 8010 포트 LISTEN 소유 PID
+  PID 17592 |  | 
+
+> Get-Service vigent* (읽기만)
+
+Name    Status StartType
+----    ------ ---------
+VIGENT Running Automatic
+
+----------------------------------------------------------------
+
+## 4-보충) 서버 프로세스 경로·서비스 구성 (읽기만)
+
+> Get-Process -Id 10492, 17476, 17592 | Select Id, ProcessName, Path, StartTime
+
+   Id ProcessName Path StartTime
+   -- ----------- ---- ---------
+10492 nssm             (권한 없음)  
+17476 python           (권한 없음)  
+17592 python           (권한 없음)
+
+> sc.exe qc VIGENT
+[SC] QueryServiceConfig SUCCESS
+
+SERVICE_NAME: VIGENT
+        TYPE               : 10  WIN32_OWN_PROCESS 
+        START_TYPE         : 2   AUTO_START  (DELAYED)
+        ERROR_CONTROL      : 1   NORMAL
+        BINARY_PATH_NAME   : C:\Users\1\Desktop\VIGENT\deploy\windows\nssm.exe
+        LOAD_ORDER_GROUP   : 
+        TAG                : 0
+        DISPLAY_NAME       : VIGENT ������� ���� ����
+        DEPENDENCIES       : 
+        SERVICE_START_NAME : LocalSystem
+
+> 레지스트리 HKLM:\SYSTEM\CurrentControlSet\Services\VIGENT\Parameters 의 Application / AppDirectory / AppParameters 만 (환경변수 항목은 비밀값 가능성으로 미기록)
+  Application = C:\Users\1\Desktop\VIGENT\.venv\Scripts\python.exe
+  AppDirectory = C:\Users\1\Desktop\VIGENT\vigent-core
+  AppParameters = -m uvicorn main:app --host 0.0.0.0 --port 8010
+  (Parameters 하위 키 이름 목록: AppExit)
+
+> /health 의 uptime_s · version · cameras 키 (registered 키가 없어 대신 기록)
+  조회 시각: 2026-09-18 15:16:20
+  uptime_s = 224.9  → 기동 추정 시각: 2026-09-18 15:12:35
+  version = "0.2.0"
+  cameras = {}
+  disabled_detectors = {"fire_smoke":"detect.include_fire_smoke=0 으로 껐다(또는 VIGENT_INCLUDE_FIRE_SMOKE=0). 학원 등 화재 감시가 계약 범위 밖이고 배경 오탐 리스크가 있는 현장 프로파일."}
+  slot_degraded = {}
+  slot_errors = {}
+
+> OS 마지막 부팅 시각: (Get-CimInstance Win32_OperatingSystem).LastBootUpTime
+  2026-09-18 15:10:15
+
+> System 이벤트 로그 — VIGENT 서비스 상태 변경(7036) 최근 15건 (읽기만)
+
+> 이 수집 세션의 첫 명령 실행 시각 참고: MANIFEST.txt 생성 15:13:26 (그 전 명령 2개는 15:12~15:13 사이 — 정확한 초는 미기록)
+
+----------------------------------------------------------------
+
+## 5) 서버 현재 상태 (읽기만)
+
+> Invoke-RestMethod http://127.0.0.1:8010/health  (조회 시각 2026-09-18 15:14:10)
+  status = "healthy"
+  phase = "ready"
+  active_detectors = ["person","ppe","forklift"]
+  backend = {"person":"rfdetr","ppe":"rfdetr","fire_smoke":"rfdetr","forklift":"yolo"}
+  registered = (키 없음)
+  warnings = 
+  alerts.pending = 0
+  alerts.sent = 1007
+  alerts.dead = 28
+  alerts.dead_1h = 0
+  (health 최상위 키 목록: active_detectors, alerts, backend, cameras, disabled_detectors, disk_retention, llm, loaded, models, phase, privacy, relay, retention_sweep, rfdetr_slots, slot_degraded, slot_errors, status, theme, uptime_s, version, warmup, warnings)
+
+## 6) 현재 전원 설정 (읽기만)
+
+> powercfg /getactivescheme
+전원 구성표 GUID: b2a18f33-b99f-47ba-8e4f-eb7f8d21aadc  (고성능)
+
+> powercfg /query SCHEME_CURRENT SUB_SLEEP 29f6c1db-86da-48c5-9fdb-f2b67b1f44da
+전원 구성표 GUID: b2a18f33-b99f-47ba-8e4f-eb7f8d21aadc  (고성능)
+  하위 그룹 GUID: 238c9fa8-0aad-41ed-83f4-97be242c8f20  (절전)
+    GUID 별칭: SUB_SLEEP
+    전원 설정 GUID: 29f6c1db-86da-48c5-9fdb-f2b67b1f44da  (다음 시간 후 절전 모드로 전환)
+      GUID 별칭: STANDBYIDLE
+      가능한 최소 설정: 0x00000000
+      가능한 최대 설정: 0xffffffff
+      가능한 설정 증가: 0x00000001
+      가능한 설정 단위: 초
+    현재 AC 전원 설정 색인: 0x00000000
+    현재 DC 전원 설정 색인: 0x00000000
+
+----------------------------------------------------------------
+
+## 7) 소크 콘솔 로그 특이사항 발췌 (UTF-8 로 읽음; 정규 'soak n=' 줄을 제외한 나머지 전부 + 오류/재시도/중단 패턴 줄)
+
+### soak_console_laptop_base.log  (총 76 줄)
+  정규 soak 줄 수: 25
+  첫 soak 줄: [2026-09-09T10:34:57] soak n=4 sysCPU=94.5% perf=103.91% srv=None肄붿뼱 RSS=3.0MB GPU=45.0%/1208.0MB 74.0째C clk=1575.0 deg(cam/alert)=0/0 age_p95=[0.5, 0.6, 0.5, 0.5] alerts=0/Nones
+  마지막 soak 줄: [2026-09-09T14:38:11] soak n=4 sysCPU=89.36% perf=78.84% srv=0.0肄붿뼱 RSS=3.0MB GPU=37.0%/1220.0MB 68.0째C clk=1665.0 deg(cam/alert)=0/0 age_p95=[0.6, 0.5, 0.6, 0.6] alerts=0/Nones
+  --- 비정규 줄(soak n= 아닌 줄) 전부 ---
+  L1: [preflight] {"status": "healthy", "phase": "ready", "registered": [], "live": [], "ghosts": [], "stale": {}, "excluded": {}, "alerts": {"pending": 0, "sent": 161, "dead": 15, "dead_1h": 0, "dropped": 0, "queue_depth": 0, "notify_thread_alive": true, "undeliverable": 0, "channels_configured": true, "last_config_error": null}, "warnings": []}
+  L2: [header] DESKTOP-GEL7LD6 쨌 Intel(R) Core(TM) i7-10750H CPU @ 2.60GHz 쨌 NVIDIA GeForce GTX 1650 Ti 쨌 ?쒕쾭 PID 25948 쨌 湲곕줉 C:\Users\1\Desktop\VIGENT\audit\loadtest_20260909_1032_laptop_base.jsonl
+  L3: [ramp] 移대찓??4? ?깅줉(file)
+  L4:   ?깅줉 pilot01 ??C:\Users\1\Desktop\vigent_private_data\runs\rfdetr\accident\KakaoTalk_20260807_000438282.mp4 ??HTTP 200 {'ok': True, 'camera': {'id': 'pilot01', 'name': '?뚯씪?용え??', 'enabled': True, 'fps
+  L5:   ?깅줉 pilot02 ??C:\Users\1\Desktop\vigent_private_data\runs\rfdetr\accident\KakaoTalk_20260807_000442974.mp4 ??HTTP 200 {'ok': True, 'camera': {'id': 'pilot02', 'name': '?뚯씪?용え??', 'enabled': True, 'fps
+  L6:   ?깅줉 pilot03 ??C:\Users\1\Desktop\vigent_private_data\runs\rfdetr\accident\KakaoTalk_20260807_000552920.mp4 ??HTTP 200 {'ok': True, 'camera': {'id': 'pilot03', 'name': '?뚯씪?용え??', 'enabled': True, 'fps
+  L7:   ?깅줉 pilot04 ??C:\Users\1\Desktop\vigent_private_data\runs\rfdetr\accident\KakaoTalk_20260807_000601541.mp4 ??HTTP 200 {'ok': True, 'camera': {'id': 'pilot04', 'name': '?뚯씪?용え??', 'enabled': True, 'fps
+  L8:   /health running: 4/4 (洹쒖튃 11 ?뺤씤)
+  L9: [warmup] 120s
+  L35:   ?깅줉 pilot05 ??C:\Users\1\Desktop\vigent_private_data\runs\rfdetr\accident\KakaoTalk_20260807_000611749.mp4 ??HTTP 200 {'ok': True, 'camera': {'id': 'pilot05', 'name': '?뚯씪?용え??', 'enabled': True, 'fps
+  L36:   /health running: 5/5 (洹쒖튃 11 ?뺤씤)
+  L37: [2026-09-09T14:39:26] overload1 n=5 sysCPU=90.37% perf=73.91% srv=0.0肄붿뼱 RSS=3.0MB GPU=34.0%/1260.0MB 67.0째C clk=1605.0 deg(cam/alert)=0/1 age_p95=[0.7, 0.7, 0.7, 0.7, 0.7] alerts=2/3.01s
+  L38: [2026-09-09T14:40:34] overload1 n=5 sysCPU=95.02% perf=72.71% srv=0.0肄붿뼱 RSS=3.0MB GPU=36.0%/1225.0MB 66.0째C clk=1470.0 deg(cam/alert)=0/0 age_p95=[0.7, 0.7, 0.8, 0.8, 0.6] alerts=1/3.01s
+  L39: [2026-09-09T14:41:43] overload1 n=5 sysCPU=90.64% perf=74.27% srv=0.0肄붿뼱 RSS=3.0MB GPU=35.0%/1215.0MB 70.0째C clk=1725.0 deg(cam/alert)=0/0 age_p95=[0.8, 0.8, 0.7, 0.8, 0.7] alerts=1/1.62s
+  L40: [2026-09-09T14:42:52] overload1 n=5 sysCPU=89.74% perf=79.02% srv=0.0肄붿뼱 RSS=3.0MB GPU=37.0%/1217.0MB 72.0째C clk=1785.0 deg(cam/alert)=0/0 age_p95=[0.7, 0.7, 0.8, 0.8, 0.7] alerts=0/Nones
+  L41: [2026-09-09T14:44:00] overload1 n=5 sysCPU=87.41% perf=74.55% srv=0.0肄붿뼱 RSS=3.0MB GPU=34.0%/1214.0MB 71.0째C clk=1815.0 deg(cam/alert)=0/0 age_p95=[0.8, 0.8, 0.7, 0.6, 0.7] alerts=3/2.27s
+  L42: [2026-09-09T14:45:08] overload1 n=5 sysCPU=90.6% perf=78.51% srv=0.0肄붿뼱 RSS=3.0MB GPU=35.0%/1221.0MB 72.0째C clk=1845.0 deg(cam/alert)=0/0 age_p95=[0.7, 0.6, 0.7, 0.7, 0.7] alerts=2/2.27s
+  L43: [2026-09-09T14:46:17] overload1 n=5 sysCPU=93.21% perf=73.61% srv=0.0肄붿뼱 RSS=3.0MB GPU=33.0%/1219.0MB 71.0째C clk=1800.0 deg(cam/alert)=0/1 age_p95=[0.7, 0.7, 0.8, 0.8, 0.7] alerts=1/2.3s
+  L44: [2026-09-09T14:47:25] overload1 n=5 sysCPU=90.35% perf=79.19% srv=0.0肄붿뼱 RSS=3.0MB GPU=35.0%/1219.0MB 69.0째C clk=1650.0 deg(cam/alert)=0/1 age_p95=[0.7, 0.7, 0.7, 0.8, 0.6] alerts=2/2.3s
+  L45: [2026-09-09T14:48:34] overload1 n=5 sysCPU=89.51% perf=77.51% srv=0.0肄붿뼱 RSS=3.0MB GPU=36.0%/1223.0MB 69.0째C clk=1665.0 deg(cam/alert)=0/0 age_p95=[0.7, 0.7, 0.7, 0.7, 0.7] alerts=1/1.55s
+  L46: [2026-09-09T14:49:42] overload1 n=5 sysCPU=88.77% perf=78.93% srv=0.0肄붿뼱 RSS=3.0MB GPU=36.0%/1226.0MB 71.0째C clk=1710.0 deg(cam/alert)=0/1 age_p95=[0.7, 0.6, 0.7, 0.7, 0.7] alerts=2/2.22s
+  L47: [2026-09-09T14:50:50] overload1 n=5 sysCPU=89.36% perf=76.71% srv=0.0肄붿뼱 RSS=3.0MB GPU=37.0%/1220.0MB 73.0째C clk=1860.0 deg(cam/alert)=0/1 age_p95=[0.7, 0.6, 0.7, 0.8, 0.7] alerts=2/1.59s
+  L48: [2026-09-09T14:51:59] overload1 n=5 sysCPU=90.35% perf=78.23% srv=0.0肄붿뼱 RSS=3.0MB GPU=34.0%/1215.0MB 69.0째C clk=1650.0 deg(cam/alert)=0/0 age_p95=[0.7, 0.8, 0.7, 0.7, 0.7] alerts=1/1.59s
+  L49: [2026-09-09T14:53:07] overload1 n=5 sysCPU=90.82% perf=82.7% srv=0.0肄붿뼱 RSS=3.0MB GPU=36.0%/1215.0MB 70.0째C clk=1680.0 deg(cam/alert)=0/0 age_p95=[0.7, 0.6, 0.6, 0.7, 0.7] alerts=0/Nones
+  L50: [2026-09-09T14:54:15] overload1 n=5 sysCPU=92.59% perf=88.44% srv=0.0肄붿뼱 RSS=3.0MB GPU=39.0%/1215.0MB 71.0째C clk=1665.0 deg(cam/alert)=0/0 age_p95=[0.6, 0.7, 0.7, 0.6, 0.7] alerts=0/Nones
+  L51: [2026-09-09T14:55:23] overload1 n=5 sysCPU=91.48% perf=83.12% srv=0.0肄붿뼱 RSS=3.0MB GPU=36.0%/1215.0MB 70.0째C clk=1605.0 deg(cam/alert)=0/0 age_p95=[0.6, 0.7, 0.7, 0.7, 0.6] alerts=0/Nones
+  L52: [2026-09-09T14:56:30] overload1 n=5 sysCPU=92.15% perf=84.69% srv=0.0肄붿뼱 RSS=3.0MB GPU=36.0%/1215.0MB 72.0째C clk=1695.0 deg(cam/alert)=0/0 age_p95=[0.7, 0.7, 0.6, 0.7, 0.6] alerts=0/Nones
+  L53: [2026-09-09T14:57:38] overload1 n=5 sysCPU=92.33% perf=83.19% srv=0.0肄붿뼱 RSS=3.0MB GPU=37.0%/1215.0MB 71.0째C clk=1695.0 deg(cam/alert)=0/1 age_p95=[0.6, 0.7, 0.6, 0.7, 0.7] alerts=1/1.84s
+  L54: [2026-09-09T14:58:46] overload1 n=5 sysCPU=92.05% perf=82.33% srv=0.0肄붿뼱 RSS=3.0MB GPU=37.0%/1215.0MB 71.0째C clk=1695.0 deg(cam/alert)=0/0 age_p95=[0.7, 0.6, 0.7, 0.7, 0.7] alerts=1/1.84s
+  L55:   ?깅줉 pilot06 ??C:\Users\1\Desktop\vigent_private_data\runs\rfdetr\accident\KakaoTalk_20260807_000632301.mp4 ??HTTP 200 {'ok': True, 'camera': {'id': 'pilot06', 'name': '?뚯씪?용え??', 'enabled': True, 'fps
+  L56:   /health running: 6/6 (洹쒖튃 11 ?뺤씤)
+  L57: [2026-09-09T14:59:57] overload2 n=6 sysCPU=91.26% perf=84.28% srv=0.0肄붿뼱 RSS=3.0MB GPU=37.0%/1257.0MB 70.0째C clk=1725.0 deg(cam/alert)=0/0 age_p95=[0.8, 0.9, 0.9, 0.8, 0.8, 0.7] alerts=2/1.54s
+  L58: [2026-09-09T15:01:05] overload2 n=6 sysCPU=91.02% perf=85.44% srv=0.0肄붿뼱 RSS=3.0MB GPU=38.0%/1257.0MB 70.0째C clk=1770.0 deg(cam/alert)=0/0 age_p95=[0.9, 0.8, 0.8, 0.8, 0.8, 0.7] alerts=3/1.98s
+  L59: [2026-09-09T15:02:12] overload2 n=6 sysCPU=91.3% perf=84.88% srv=0.0肄붿뼱 RSS=3.0MB GPU=37.0%/1257.0MB 70.0째C clk=1710.0 deg(cam/alert)=0/0 age_p95=[0.7, 0.8, 0.6, 0.8, 0.7, 0.7] alerts=1/1.45s
+  L60: [2026-09-09T15:03:20] overload2 n=6 sysCPU=91.66% perf=84.37% srv=0.0肄붿뼱 RSS=3.0MB GPU=36.0%/1257.0MB 71.0째C clk=1695.0 deg(cam/alert)=0/0 age_p95=[0.8, 0.8, 0.8, 0.9, 0.9, 0.8] alerts=0/Nones
+  L61: [2026-09-09T15:04:28] overload2 n=6 sysCPU=90.87% perf=84.05% srv=0.0肄붿뼱 RSS=3.0MB GPU=36.0%/1257.0MB 69.0째C clk=1635.0 deg(cam/alert)=0/0 age_p95=[0.8, 0.8, 0.7, 0.8, 0.8, 0.8] alerts=0/Nones
+  L62: [2026-09-09T15:05:36] overload2 n=6 sysCPU=91.76% perf=89.46% srv=0.0肄붿뼱 RSS=3.0MB GPU=38.0%/1257.0MB 70.0째C clk=1665.0 deg(cam/alert)=0/0 age_p95=[0.8, 0.7, 0.8, 0.8, 0.8, 0.8] alerts=0/Nones
+  L63: [2026-09-09T15:06:44] overload2 n=6 sysCPU=92.49% perf=89.77% srv=0.0肄붿뼱 RSS=3.0MB GPU=37.0%/1257.0MB 71.0째C clk=1620.0 deg(cam/alert)=0/0 age_p95=[0.7, 0.8, 0.8, 0.9, 0.7, 0.9] alerts=0/Nones
+  L64: [2026-09-09T15:07:51] overload2 n=6 sysCPU=91.92% perf=86.82% srv=0.0肄붿뼱 RSS=3.0MB GPU=38.0%/1267.0MB 72.0째C clk=1725.0 deg(cam/alert)=0/0 age_p95=[0.8, 1.1, 1.0, 0.9, 0.8, 0.8] alerts=0/Nones
+  L65: [2026-09-09T15:09:00] overload2 n=6 sysCPU=92.68% perf=88.39% srv=0.0肄붿뼱 RSS=3.0MB GPU=35.0%/1270.0MB 71.0째C clk=1605.0 deg(cam/alert)=0/1 age_p95=[0.7, 0.9, 0.8, 0.9, 0.7, 0.8] alerts=2/1.5s
+  L66: [2026-09-09T15:10:08] overload2 n=6 sysCPU=92.31% perf=88.84% srv=0.0肄붿뼱 RSS=3.0MB GPU=37.0%/1272.0MB 74.0째C clk=1830.0 deg(cam/alert)=0/0 age_p95=[0.8, 0.8, 0.9, 0.8, 0.8, 0.9] alerts=2/1.5s
+  L67: [2026-09-09T15:11:16] overload2 n=6 sysCPU=90.82% perf=83.83% srv=0.0肄붿뼱 RSS=3.0MB GPU=40.0%/1266.0MB 72.0째C clk=1860.0 deg(cam/alert)=0/0 age_p95=[1.0, 0.9, 1.2, 1.0, 1.1, 1.0] alerts=1/2.07s
+  L68: [2026-09-09T15:12:25] overload2 n=6 sysCPU=92.02% perf=81.91% srv=0.0肄붿뼱 RSS=3.0MB GPU=41.0%/1264.0MB 75.0째C clk=1830.0 deg(cam/alert)=0/0 age_p95=[0.9, 1.0, 1.0, 1.0, 1.2, 1.0] alerts=2/1.63s
+  L69: [2026-09-09T15:13:34] overload2 n=6 sysCPU=91.3% perf=89.59% srv=0.0肄붿뼱 RSS=3.0MB GPU=39.0%/1272.0MB 72.0째C clk=1620.0 deg(cam/alert)=0/0 age_p95=[0.9, 0.9, 0.8, 0.9, 1.0, 0.8] alerts=1/1.63s
+  L70: [2026-09-09T15:14:42] overload2 n=6 sysCPU=92.95% perf=84.57% srv=0.0肄붿뼱 RSS=3.0MB GPU=40.0%/1277.0MB 72.0째C clk=1650.0 deg(cam/alert)=0/0 age_p95=[0.9, 1.1, 1.0, 0.9, 1.1, 1.2] alerts=0/Nones
+  L71: [2026-09-09T15:15:50] overload2 n=6 sysCPU=91.22% perf=88.62% srv=0.0肄붿뼱 RSS=3.0MB GPU=39.0%/1266.0MB 75.0째C clk=1605.0 deg(cam/alert)=0/0 age_p95=[0.9, 0.9, 0.8, 0.9, 0.7, 0.9] alerts=1/1.72s
+  L72: [2026-09-09T15:16:58] overload2 n=6 sysCPU=91.85% perf=86.77% srv=0.0肄붿뼱 RSS=3.0MB GPU=38.0%/1287.0MB 73.0째C clk=1665.0 deg(cam/alert)=0/0 age_p95=[0.7, 0.9, 0.9, 0.8, 0.7, 0.7] alerts=1/1.72s
+  L73: [2026-09-09T15:18:06] overload2 n=6 sysCPU=91.29% perf=85.07% srv=0.0肄붿뼱 RSS=3.0MB GPU=32.0%/1282.0MB 73.0째C clk=1785.0 deg(cam/alert)=0/0 age_p95=[0.8, 0.9, 0.9, 0.8, 0.8, 0.9] alerts=0/Nones
+  L74: [2026-09-09T15:19:14] overload2 n=6 sysCPU=90.34% perf=89.17% srv=0.0肄붿뼱 RSS=3.0MB GPU=26.0%/1269.0MB 71.0째C clk=1530.0 deg(cam/alert)=0/0 age_p95=[0.8, 0.9, 0.8, 0.9, 0.8, 0.9] alerts=0/Nones
+  L75: [cleanup] ?쒓굅 6媛?[('pilot01', 200), ('pilot02', 200), ('pilot03', 200), ('pilot04', 200), ('pilot05', 200), ('pilot06', 200)] 쨌 /health ???⑥? pilot*: []
+  L76: 蹂닿퀬?? C:\Users\1\Desktop\VIGENT\audit\loadtest_20260909_1032_laptop_base.md ??誘몃떖
+  --- 패턴 일치 줄 ---
+  패턴 일치 줄 수: 1
+  L1: [preflight] {"status": "healthy", "phase": "ready", "registered": [], "live": [], "ghosts": [], "stale": {}, "excluded": {}, "alerts": {"pending": 0, "sent": 161, "dead": 15, "dead_1h": 0, "dropped": 0, "queue_depth": 0, "notify_thread_alive": true, "undeliverable": 0, "channels_configured": true, "last_config_error": null}, "warnings": []}
+
+### soak_console_laptop_s2s9.log  (총 23 줄)
+  정규 soak 줄 수: 14
+  첫 soak 줄: [2026-09-09T16:25:20] soak n=4 sysCPU=91.13% perf=121.66% srv=None肄붿뼱 RSS=3.0MB GPU=55.0%/1381.0MB 74.0째C clk=1350.0 deg(cam/alert)=0/0 age_p95=[0.7, 0.8, 0.7, 0.5] alerts=0/Nones
+  마지막 soak 줄: [2026-09-09T18:37:07] soak n=4 sysCPU=86.67% perf=83.27% srv=0.0肄붿뼱 RSS=3.0MB GPU=47.0%/1416.0MB 74.0째C clk=1350.0 deg(cam/alert)=0/0 age_p95=[0.7, 0.7, 0.7, 0.7] alerts=4/1.86s
+  --- 비정규 줄(soak n= 아닌 줄) 전부 ---
+  L1: [preflight] {"status": "healthy", "phase": "ready", "registered": [], "live": [], "ghosts": [], "stale": {}, "excluded": {}, "alerts": {"pending": 0, "sent": 232, "dead": 15, "dead_1h": 0, "dropped": 0, "queue_depth": 0, "notify_thread_alive": true, "undeliverable": 0, "channels_configured": true, "last_config_error": null}, "warnings": []}
+  L2: [header] DESKTOP-GEL7LD6 쨌 Intel(R) Core(TM) i7-10750H CPU @ 2.60GHz 쨌 NVIDIA GeForce GTX 1650 Ti 쨌 ?쒕쾭 PID 15136 쨌 湲곕줉 C:\Users\1\Desktop\VIGENT\audit\loadtest_20260909_1623_laptop_s2s9.jsonl
+  L3: [ramp] 移대찓??4? ?깅줉(file)
+  L4:   ?깅줉 pilot01 ??C:\Users\1\Desktop\vigent_private_data\runs\rfdetr\accident\KakaoTalk_20260807_000438282.mp4 ??HTTP 200 {'ok': True, 'camera': {'id': 'pilot01', 'name': '?뚯씪?용え??', 'enabled': True, 'fps
+  L5:   ?깅줉 pilot02 ??C:\Users\1\Desktop\vigent_private_data\runs\rfdetr\accident\KakaoTalk_20260807_000442974.mp4 ??HTTP 200 {'ok': True, 'camera': {'id': 'pilot02', 'name': '?뚯씪?용え??', 'enabled': True, 'fps
+  L6:   ?깅줉 pilot03 ??C:\Users\1\Desktop\vigent_private_data\runs\rfdetr\accident\KakaoTalk_20260807_000552920.mp4 ??HTTP 200 {'ok': True, 'camera': {'id': 'pilot03', 'name': '?뚯씪?용え??', 'enabled': True, 'fps
+  L7:   ?깅줉 pilot04 ??C:\Users\1\Desktop\vigent_private_data\runs\rfdetr\accident\KakaoTalk_20260807_000601541.mp4 ??HTTP 200 {'ok': True, 'camera': {'id': 'pilot04', 'name': '?뚯씪?용え??', 'enabled': True, 'fps
+  L8:   /health running: 4/4 (洹쒖튃 11 ?뺤씤)
+  L9: [warmup] 120s
+  --- 패턴 일치 줄 ---
+  패턴 일치 줄 수: 1
+  L1: [preflight] {"status": "healthy", "phase": "ready", "registered": [], "live": [], "ghosts": [], "stale": {}, "excluded": {}, "alerts": {"pending": 0, "sent": 232, "dead": 15, "dead_1h": 0, "dropped": 0, "queue_depth": 0, "notify_thread_alive": true, "undeliverable": 0, "channels_configured": true, "last_config_error": null}, "warnings": []}
+
+### 인코딩 확인(콘솔 로그 한글 깨짐)
+  파일 첫 4바이트: FF FE 5B 00  (FF FE = UTF-16 LE BOM)
+  L2 를 UTF-16 LE 로 디코드: [header] DESKTOP-GEL7LD6 쨌 Intel(R) Core(TM) i7-10750H CPU @ 2.60GHz 쨌 NVIDIA GeForce GTX 1650 Ti 쨌 ?쒕쾭 PID 25948 쨌 湲곕줉 
+  → 파일은 UTF-16 LE 로 저장돼 있고, 그 안의 한글은 이미 깨진 문자열로 기록돼 있다(기록 시점 콘솔 코드페이지 문제로 보임 — 추측/미검증). 파일 원본 그대로 복사함. 숫자·타임스탬프·영문 필드는 온전함.
+
+----------------------------------------------------------------
+
