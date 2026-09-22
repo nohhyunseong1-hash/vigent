@@ -39,6 +39,8 @@ TRACK_IOU = 0.45        # b_passthru_2fps_check.py 와 동일(같은 객체로 �
 SAME_IOU = 0.30         # 앞뒤 프레임에서 '같은 사람' 판정 IoU — 지시받은 값
 SAME_DIST = 0.15        # 같은 사람 판정 중심거리 — 지시받은 값
 WINDOW = 2              # t±2 프레임까지 본다
+CLIP_H = 0.95           # 이 이상이면 세로가 화면에 잘린 박스로 본다(v2)
+VERSION = "v2"          # v1 의 B 분류 결함(고정 거리 기준) 정정본
 TAUS = [0.4, 0.5, 0.6]
 
 # 스크립트가 미리 선언한 판정 기준(b_passthru_2fps_check.py docstring) — 결과 파일에 함께 싣는다.
@@ -74,8 +76,27 @@ def _dist(a, b) -> float:
 
 
 def same_person(a, b) -> bool:
-    """앞뒤 프레임에서 같은 사람으로 볼 것인가 — 지시받은 기준(IoU>=0.3 또는 중심거리<=0.15)."""
-    return _iou(a, b) >= SAME_IOU or _dist(a, b) <= SAME_DIST
+    """앞뒤 프레임에서 같은 사람으로 볼 것인가 — **박스 크기에 비례하는** 기준(v2).
+
+    ★v1 결함(2026-09-22 발견): 중심거리를 **고정 0.15** 로 봐서, 카메라 앞을 가로지르는
+      큰 박스(폭 0.2~0.3)가 프레임당 0.2 이동하면 '다른 사람' 으로 걸러졌다. 그 결과
+      B(검출 깜빡임) 6건이 실제로는 앞뒤에 검출이 있는데도 '없음' 으로 분류됐다
+      (`audit/b_items_qualitative_20260922.md`). 큰 박스일수록 같은 이동량이 더 작은
+      상대 변위이므로 기준도 폭에 비례해야 한다.
+
+    v2 기준:
+      IoU >= SAME_IOU  **또는**  중심거리 <= max(SAME_DIST, 0.6 × max(폭_t, 폭_t+1))
+      단 클리핑 박스(h >= CLIP_H)는 세로가 잘려 세로 중심이 의미 없으므로
+      **가로 중심거리만** 본다.
+    """
+    if _iou(a, b) >= SAME_IOU:
+        return True
+    wa, wb = a[2] - a[0], b[2] - b[0]
+    thr = max(SAME_DIST, 0.6 * max(wa, wb))
+    ha, hb = a[3] - a[1], b[3] - b[1]
+    if ha >= CLIP_H or hb >= CLIP_H:
+        return abs(_center(a)[0] - _center(b)[0]) <= thr      # 세로 무시 — 잘린 박스
+    return _dist(a, b) <= thr
 
 
 def persons(row: dict, kind: str, conf: float = 0.0) -> list[dict]:
@@ -232,11 +253,14 @@ def main() -> int:
         p = _ROOT / a.json
         p.parent.mkdir(parents=True, exist_ok=True)
         p.write_text(json.dumps({
+            "version": VERSION,
+            "correction": "v1 의 B 분류 결함 정정 — same_person 중심거리를 고정 0.15 에서 max(0.15, 0.6×max(폭)) 로 바꾸고, 클리핑 박스(h>=0.95)는 가로 중심거리만 본다. v1(audit/passthru_field_20260922.json)은 수정하지 않고 보존한다.",
             "generated": "2026-09-22", "data": a.data,
             "frames": len(rows), "span_min": round(span_s / 60, 1), "fps": round(fps, 2),
             "algo": algos, "declared_criteria": DECLARED_CRITERIA,
             "params": {"TRACK_IOU": TRACK_IOU, "SAME_IOU": SAME_IOU, "SAME_DIST": SAME_DIST,
-                       "WINDOW": WINDOW},
+                       "WINDOW": WINDOW, "CLIP_H": CLIP_H,
+                       "same_person_rule": "IoU>=0.30 OR dist<=max(0.15, 0.6*max(w)); h>=0.95 면 가로거리만"},
             "r1_sweep": sweeps, "r2_tau": a.tau,
             "r2_counts": dict(cnt), "r2_items": items,
         }, ensure_ascii=False, indent=1), encoding="utf-8")
