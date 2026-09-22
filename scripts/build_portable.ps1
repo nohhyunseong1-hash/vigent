@@ -1,7 +1,8 @@
 ﻿# scripts/build_portable.ps1 — VIGENT USB 포터블 패키지 빌드 (Windows PowerShell 5.1 이상)
 #
 #   .\scripts\build_portable.ps1                        # D:\vigent_portable 에 빌드(캐시 D:\vigent_portable_cache)
-#   .\scripts\build_portable.ps1 -Gpu -Cuda cu126       # + python\wheels_cuda\ 에 CUDA torch 휠 동봉(선택, 2.5GB+)
+#   .\scripts\build_portable.ps1 -Gpu                   # + python\wheels_cuda\ 에 CUDA torch 휠 동봉(선택, 2.5GB+)
+#                                                       #   기본 cu130 — RTX 50 시리즈(sm_120) 지원
 #   .\scripts\build_portable.ps1 -Root E:\pkg -Cache E:\cache
 #
 # 방식: Windows embeddable Python 3.11.9 + 상대경로 런처(PyInstaller 미사용). 두 번 실행해도 같은 결과가
@@ -15,7 +16,11 @@ param(
     [string]$Cache = "D:\vigent_portable_cache",
     [string]$Source = "",
     [switch]$Gpu,
-    [string]$Cuda = "cu126",
+    # ★[2026-09-23] 기본값 cu126 → cu130. 실측: torch 2.12.0+cu130 의 지원 아키텍처는
+    #   ['sm_75','sm_80','sm_86','sm_90','sm_100','sm_120'] 이고, RTX 50 시리즈(Blackwell)는
+    #   **sm_120** 이다. cu126 은 sm_120 을 지원하지 않아 RTX 5060/5070 에서 커널이 없어
+    #   실패하거나 **조용히 CPU 로 떨어진다**(조용한 성능 저하 = 이 프로젝트가 금지하는 유형).
+    [string]$Cuda = "cu130",
     [switch]$SkipPip            # 패키지 설치 단계 생략(앱·가중치·런처만 다시 복사할 때)
 )
 $ErrorActionPreference = "Stop"
@@ -147,6 +152,15 @@ if (-not $SkipPip) {
 
 # ── 4b. 선택: CUDA 휠 동봉 ──
 if ($Gpu) {
+    # ★sm_120(RTX 50 시리즈) 지원 여부를 빌드 시점에 경고한다 — 현장에서 조용히 CPU 로
+    #   떨어진 뒤에 알게 되면 늦다.
+    if ($Cuda -notin @("cu128", "cu129", "cu130")) {
+        Write-Host ""
+        Write-Host "  ⚠ 경고: $Cuda 는 **sm_120(RTX 50 시리즈) 미지원** 입니다." -ForegroundColor Yellow
+        Write-Host "    RTX 5060/5070 등에서 CUDA 커널이 없어 실패하거나 조용히 CPU 로 떨어집니다." -ForegroundColor Yellow
+        Write-Host "    RTX 50 시리즈 대상이면 -Cuda cu130 을 쓰세요(기본값)." -ForegroundColor Yellow
+        Write-Host ""
+    }
     Step "4b. CUDA 휠($Cuda) → python\wheels_cuda\ (오프라인 교체용, --gpu 로만 사용)"
     $wc = Join-Path $PyDir "wheels_cuda"; Ensure-Dir $wc
     Run $Py @("-m", "pip", "download", "torch==$TorchVer+$Cuda", "torchvision==$TvVer+$Cuda", "--index-url", "https://download.pytorch.org/whl/$Cuda",
