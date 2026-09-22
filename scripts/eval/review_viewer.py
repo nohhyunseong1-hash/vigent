@@ -11,6 +11,7 @@
 조작(마우스 없이 가능):
   Enter  승인(source → human_verified)      1~9  후보 트랙 선택
   N      선택 박스에 새 트랙 부여            D    선택 박스 삭제
+  U      판정 불가(화질 등) — ID 를 부여하지 않고 IDSW 분모에서 뺀다
   ← →    이전·다음                          Tab  박스 선택 이동
   드래그  박스 수정(마우스, 선택)            S    즉시 저장(자동 저장도 됨)
 
@@ -29,6 +30,8 @@ import sys
 from pathlib import Path
 from typing import Any
 
+from pydantic import BaseModel
+
 _ROOT = Path(__file__).resolve().parent.parent.parent
 sys.path.insert(0, str(_ROOT / "vigent-core"))
 
@@ -36,6 +39,18 @@ _FE = _ROOT / "data" / "field_eval"
 _DRAFT = _FE / "labels_2fps_draft"
 _SIDE_1FPS = _FE / "labels_1fps_tid"
 _PROGRESS = _FE / "review_progress.json"
+
+
+class Save(BaseModel):
+    """★모듈 최상위에 둬야 한다 — `from __future__ import annotations` 로 애노테이션이
+    문자열이 되는데, FastAPI 는 그것을 **모듈 전역**에서 해석한다. main() 안에 두면
+    'Save' 를 못 찾아 본문이 아니라 **쿼리 파라미터**로 취급해 422 가 난다
+    (2026-09-22 실측: POST /api/save 가 계속 실패하고 있었다)."""
+
+    stem: str
+    boxes: list[dict]
+    verified: bool = True
+    seconds: float = 0.0
 
 
 def build_queue() -> list[dict[str, Any]]:
@@ -130,18 +145,11 @@ def main() -> int:
     from data_paths import media
     from fastapi import FastAPI
     from fastapi.responses import FileResponse, HTMLResponse, JSONResponse
-    from pydantic import BaseModel
 
     frames_2fps = media("field_eval") / "frames_2fps_draft"
     frames_1fps = media("field_eval") / "frames"
     queue = build_queue()
     app = FastAPI(title="VIGENT 2fps 정답지 검수")
-
-    class Save(BaseModel):
-        stem: str
-        boxes: list[dict]
-        verified: bool = True
-        seconds: float = 0.0
 
     @app.get("/", response_class=HTMLResponse)
     def index() -> str:
@@ -150,7 +158,8 @@ def main() -> int:
     @app.get("/api/queue")
     def api_queue() -> JSONResponse:
         p = progress()
-        return JSONResponse({"queue": queue, "done": p["done"],
+        unres = sum(int(v.get("n_unresolvable", 0)) for v in p["done"].values())
+        return JSONResponse({"queue": queue, "done": p["done"], "unresolvable": unres,
                              "avg_sec": (sum(p["durations"]) / len(p["durations"])) if p["durations"] else None})
 
     @app.get("/api/item/{idx}")
@@ -175,7 +184,16 @@ def main() -> int:
     @app.post("/api/save")
     def api_save(s: Save) -> JSONResponse:
         p = progress()
-        p["done"][s.stem] = {"boxes": s.boxes, "verified": s.verified}
+        # ★Q-1: 판정 불가 박스는 track_id 를 지운다(ID 를 부여하지 않는다는 뜻).
+        #   IDSW 분모에서 빼되 **개수는 따로 센다** — 정답지 한계를 숫자로 남기기 위함.
+        boxes = []
+        for b in s.boxes:
+            if b.get("verdict") == "unresolvable":
+                b = {**b, "track_id": None, "reason": b.get("reason") or "low_quality"}
+            boxes.append(b)
+        p["done"][s.stem] = {"boxes": boxes, "verified": s.verified,
+                             "n_unresolvable": sum(1 for b in boxes if b.get("verdict") == "unresolvable")}
+        s.boxes = boxes
         if s.seconds > 0:
             p["durations"].append(round(s.seconds, 1))
         save_progress(p)
@@ -265,7 +283,7 @@ kbd{background:#1c2029;border:1px solid var(--line);border-radius:3px;padding:1p
 </div>
 <footer>
   <span><kbd>Enter</kbd> 승인</span><span><kbd>1</kbd>~<kbd>9</kbd> 후보 선택</span>
-  <span><kbd>N</kbd> 새 트랙</span><span><kbd>D</kbd> 삭제</span><span><kbd>Tab</kbd> 박스 선택</span>
+  <span><kbd>N</kbd> 새 트랙</span><span><kbd>D</kbd> 삭제</span><span><kbd>U</kbd> 판정 불가(화질)</span><span><kbd>Tab</kbd> 박스 선택</span>
   <span><kbd>←</kbd><kbd>→</kbd> 이동</span><span><kbd>S</kbd> 저장</span><span>드래그: 박스 수정</span>
 </footer>
 <script>
@@ -288,8 +306,10 @@ async function load(i){
   const done=Object.keys(q.done).length; avg=q.avg_sec;
   $('pb').style.width=(done/cur.total*100)+'%';
   const left=cur.total-done;
-  $('eta').textContent=avg?`남은 ${left}장 · 예상 ${Math.round(left*avg/60)}분 (평균 ${avg.toFixed(1)}초/장)`
-                           :`남은 ${left}장 · 평균 측정 전`;
+  const un=q.unresolvable||0;
+  $('eta').textContent=(avg?`남은 ${left}장 · 예상 ${Math.round(left*avg/60)}분 (평균 ${avg.toFixed(1)}초/장)`
+                           :`남은 ${left}장 · 평균 측정 전`)
+                       +(un?` · 판정 불가 ${un}개`:'');
 }
 function paint(cv,src,boxes,dashed,selIdx){
   const im=new Image();
@@ -302,6 +322,9 @@ function paint(cv,src,boxes,dashed,selIdx){
       g.font='bold 15px sans-serif';
       if(dashed){ // 참고 패널 — ID 만 흐리게(후보 고를 때 눈으로 대조하라고)
         g.fillStyle='#b9c0cc'; g.fillText(`id${b.track_id??'?'}`,x+3,Math.max(14,y-4));
+      }else if(b.verdict==='unresolvable'){
+        g.setLineDash([3,3]); g.strokeStyle='#ff6b6b'; g.strokeRect(x,y,W,H);
+        g.fillStyle='#ff6b6b'; g.fillText(`${i+1}·판정불가`,x+3,Math.max(14,y-4));
       }else{
         g.fillStyle=col(b.track_id); g.fillText(`${i+1}·id${b.track_id??'?'}`,x+3,Math.max(14,y-4));
       }
@@ -343,6 +366,11 @@ document.addEventListener('keydown',async e=>{
   if(e.key==='ArrowLeft'){if(idx>0)load(idx-1);return;}
   if(e.key==='Tab'){sel=(sel+1)%Math.max(1,cur.boxes.length);draw();e.preventDefault();return;}
   if(e.key.toLowerCase()==='d'){cur.boxes.splice(sel,1);sel=0;draw();await save(false);return;}
+  if(e.key.toLowerCase()==='u'){          // ★판정 불가 — ID 를 부여하지 않는다
+    const b=cur.boxes[sel]; if(b){
+      if(b.verdict==='unresolvable'){delete b.verdict;delete b.reason;}
+      else{b.verdict='unresolvable';b.reason='low_quality';b.track_id=null;}
+      draw();renderCand();await save(false);} return;}
   if(e.key.toLowerCase()==='s'){await save(false);return;}
   if(e.key.toLowerCase()==='n'){
     const mx=Math.max(0,...cur.boxes.map(b=>b.track_id||0));
