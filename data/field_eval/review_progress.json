@@ -1,0 +1,623 @@
+{
+ "done": {
+  "KakaoTalk_20260807_000438282_500ms": {
+   "boxes": [
+    {
+     "cls": 0,
+     "box": [
+      0.8281095,
+      0.4199235,
+      0.312623,
+      0.46645800000000004
+     ],
+     "track_id": 1,
+     "src_tid": 1,
+     "source": "interp",
+     "parent_track_id": null,
+     "link": "new"
+    },
+    {
+     "cls": 0,
+     "box": [
+      0.4297845,
+      0.4344755,
+      0.43826350000000003,
+      0.376896
+     ],
+     "track_id": 2,
+     "src_tid": 2,
+     "source": "interp",
+     "parent_track_id": null,
+     "link": "new"
+    },
+    {
+     "cls": 0,
+     "box": [
+      0.6093595,
+      0.2514475,
+      0.08977850000000001,
+      0.0778125
+     ],
+     "track_id": 3,
+     "src_tid": 3,
+     "source": "interp",
+     "parent_track_id": null,
+     "link": "new"
+    }
+   ],
+   "verified": true,
+   "n_unresolvable": 0
+  },
+  "KakaoTalk_20260807_000438282_2500ms": {
+   "boxes": [
+    {
+     "cls": 0,
+     "box": [
+      0.8334235,
+      0.507278,
+      0.33315300000000003,
+      0.8066530000000001
+     ],
+     "track_id": 1,
+     "src_tid": 1,
+     "source": "interp",
+     "parent_track_id": null,
+     "link": "ok"
+    },
+    {
+     "cls": 0,
+     "box": [
+      0.423873,
+      0.4648505,
+      0.477155,
+      0.6062015000000001
+     ],
+     "track_id": 2,
+     "src_tid": 2,
+     "source": "interp",
+     "parent_track_id": null,
+     "link": "ok"
+    }
+   ],
+   "verified": true,
+   "n_unresolvable": 0
+  },
+  "KakaoTalk_20260807_000438282_3500ms": {
+   "boxes": [
+    {
+     "cls": 0,
+     "box": [
+      0.7969949999999999,
+      0.554625,
+      0.40601,
+      0.884847
+     ],
+     "track_id": 1,
+     "src_tid": 1,
+     "source": "interp",
+     "parent_track_id": null,
+     "link": "ok"
+    },
+    {
+     "cls": 0,
+     "box": [
+      0.36469799999999997,
+      0.48937149999999996,
+      0.602204,
+      0.7533544999999999
+     ],
+     "track_id": 2,
+     "src_tid": 2,
+     "source": "interp",
+     "parent_track_id": null,
+     "link": "ok"
+    }
+   ],
+   "verified": true,
+   "n_unresolvable": 0
+  },
+  "KakaoTalk_20260807_000438282_4500ms": {
+   "boxes": [
+    {
+     "cls": 0,
+     "box": [
+      0.756921,
+      0.5816735,
+      0.4861575,
+      0.8327500000000001
+     ],
+     "track_id": 1,
+     "src_tid": 1,
+     "source": "interp",
+     "parent_track_id": null,
+     "link": "ok"
+    },
+    {
+     "cls": 0,
+     "box": [
+      0.32802299999999995,
+      0.48624999999999996,
+      0.6144455,
+      0.7875
+     ],
+     "track_id": 2,
+     "src_tid": 2,
+     "source": "interp",
+     "parent_track_id": null,
+     "link": "ok"
+    }
+   ],
+   "verified": true,
+   "n_unresolvable": 0
+  },
+  "KakaoTalk_20260807_000438282_7500ms": {
+   "boxes": [
+    {
+     "cls": 0,
+     "box": [
+      0.707075,
+      0.5601495000000001,
+      0.58585,
+      0.8762015000000001
+     ],
+     "track_id": 1,
+     "src_tid": 1,
+     "source": "interp",
+     "parent_track_id": null,
+     "link": "ok"
+    },
+    {
+     "cls": 0,
+     "box": [
+      0.253898,
+      0.532375,
+      0.5077955,
+      0.7887500000000001
+     ],
+     "track_id": 2,
+     "src_tid": 2,
+     "source": "interp",
+     "parent_track_id": null,
+     "link": "ok"
+    }
+   ],
+   "verified": true,
+   "n_unresolvable": 0
+  },
+  "KakaoTalk_20260807_000438282_8500ms": {
+   "boxes": [
+    {
+     "cls": 0,
+     "box": [
+      0.662728,
+      0.558639,
+      0.524298,
+      0.8541665
+     ],
+     "track_id": 1,
+     "src_tid": 1,
+     "source": "interp",
+     "parent_track_id": null,
+     "link": "ok"
+    }
+   ],
+   "verified": true,
+   "n_unresolvable": 0
+  },
+  "KakaoTalk_20260807_000438282_9500ms": {
+   "boxes": [
+    {
+     "cls": 0,
+     "box": [
+      0.6663795,
+      0.5612395,
+      0.5169955,
+      0.847965
+     ],
+     "track_id": 1,
+     "src_tid": 1,
+     "source": "interp",
+     "parent_track_id": null,
+     "link": "ok"
+    }
+   ],
+   "verified": true,
+   "n_unresolvable": 0
+  },
+  "KakaoTalk_20260807_000438282_11500ms": {
+   "boxes": [
+    {
+     "cls": 0,
+     "box": [
+      0.7552220000000001,
+      0.37575349999999996,
+      0.4866505,
+      0.6672015
+     ],
+     "track_id": 1,
+     "src_tid": 1,
+     "source": "interp",
+     "parent_track_id": null,
+     "link": "ok"
+    }
+   ],
+   "verified": true,
+   "n_unresolvable": 0
+  },
+  "KakaoTalk_20260807_000438282_12500ms": {
+   "boxes": [],
+   "verified": true,
+   "n_unresolvable": 0
+  },
+  "KakaoTalk_20260807_000438282_13500ms": {
+   "boxes": [
+    {
+     "cls": 0,
+     "box": [
+      0.336749,
+      0.486948,
+      0.6734975000000001,
+      0.973007
+     ],
+     "track_id": 10,
+     "src_tid": 10,
+     "source": "interp",
+     "parent_track_id": null,
+     "link": "new"
+    }
+   ],
+   "verified": true,
+   "n_unresolvable": 0
+  },
+  "KakaoTalk_20260807_000438282_14500ms": {
+   "boxes": [
+    {
+     "cls": 0,
+     "box": [
+      0.3296245,
+      0.49952450000000004,
+      0.6592485,
+      0.9980485
+     ],
+     "track_id": 10,
+     "src_tid": 10,
+     "source": "interp",
+     "parent_track_id": null,
+     "link": "ok"
+    }
+   ],
+   "verified": true,
+   "n_unresolvable": 0
+  },
+  "KakaoTalk_20260807_000438282_15500ms": {
+   "boxes": [
+    {
+     "cls": 0,
+     "box": [
+      0.3671985,
+      0.558476,
+      0.7324999999999999,
+      0.881048
+     ],
+     "track_id": 10,
+     "src_tid": 10,
+     "source": "interp",
+     "parent_track_id": null,
+     "link": "ok"
+    }
+   ],
+   "verified": true,
+   "n_unresolvable": 0
+  },
+  "KakaoTalk_20260807_000438282_16500ms": {
+   "boxes": [
+    {
+     "cls": 0,
+     "box": [
+      0.4539535,
+      0.55625,
+      0.7997535,
+      0.8769020000000001
+     ],
+     "track_id": 10,
+     "src_tid": 10,
+     "source": "interp",
+     "parent_track_id": null,
+     "link": "ok"
+    },
+    {
+     "cls": 0,
+     "box": [
+      0.3929435,
+      0.10470099999999999,
+      0.1811085,
+      0.150208
+     ],
+     "track_id": 12,
+     "src_tid": 12,
+     "source": "interp",
+     "parent_track_id": null,
+     "link": "new"
+    },
+    {
+     "cls": 0,
+     "box": [
+      0.793473,
+      0.1174515,
+      0.232143,
+      0.233903
+     ],
+     "track_id": 13,
+     "src_tid": 13,
+     "source": "interp",
+     "parent_track_id": null,
+     "link": "new"
+    },
+    {
+     "cls": 0,
+     "box": [
+      0.5981095,
+      0.110927,
+      0.14269700000000002,
+      0.1191455
+     ],
+     "track_id": 14,
+     "src_tid": 14,
+     "source": "interp",
+     "parent_track_id": null,
+     "link": "new"
+    }
+   ],
+   "verified": true,
+   "n_unresolvable": 0
+  },
+  "KakaoTalk_20260807_000438282_17500ms": {
+   "boxes": [
+    {
+     "cls": 0,
+     "box": [
+      0.40613299999999997,
+      0.543979,
+      0.7060095,
+      0.899347
+     ],
+     "track_id": 10,
+     "src_tid": 10,
+     "source": "interp",
+     "parent_track_id": null,
+     "link": "ok"
+    },
+    {
+     "cls": 0,
+     "box": [
+      0.37533249999999996,
+      0.085316,
+      0.1710595,
+      0.1706315
+     ],
+     "track_id": 12,
+     "src_tid": 12,
+     "source": "interp",
+     "parent_track_id": null,
+     "link": "ok"
+    },
+    {
+     "cls": 0,
+     "box": [
+      0.8102214999999999,
+      0.1085,
+      0.205542,
+      0.216806
+     ],
+     "track_id": 13,
+     "src_tid": 13,
+     "source": "interp",
+     "parent_track_id": null,
+     "link": "maybe"
+    },
+    {
+     "cls": 0,
+     "box": [
+      0.5969089999999999,
+      0.1099095,
+      0.1413795,
+      0.146333
+     ],
+     "track_id": 14,
+     "src_tid": 14,
+     "source": "interp",
+     "parent_track_id": null,
+     "link": "maybe"
+    },
+    {
+     "cls": 0,
+     "box": [
+      0.1094335,
+      0.1044825,
+      0.1641625,
+      0.1460205
+     ],
+     "track_id": 15,
+     "src_tid": 15,
+     "source": "interp",
+     "parent_track_id": null,
+     "link": "new"
+    }
+   ],
+   "verified": true,
+   "n_unresolvable": 0
+  },
+  "KakaoTalk_20260807_000438282_18500ms": {
+   "boxes": [
+    {
+     "cls": 0,
+     "box": [
+      0.3364285,
+      0.616229,
+      0.672857,
+      0.764542
+     ],
+     "track_id": 10,
+     "src_tid": 10,
+     "source": "interp",
+     "parent_track_id": null,
+     "link": "ok"
+    },
+    {
+     "cls": 0,
+     "box": [
+      0.4062375,
+      0.07166349999999999,
+      0.207845,
+      0.1425205
+     ],
+     "track_id": 12,
+     "src_tid": 12,
+     "source": "interp",
+     "parent_track_id": null,
+     "link": "ok"
+    },
+    {
+     "cls": 0,
+     "box": [
+      0.1440145,
+      0.069458,
+      0.2541625,
+      0.1290695
+     ],
+     "track_id": 15,
+     "src_tid": 15,
+     "source": "interp",
+     "parent_track_id": null,
+     "link": "ok"
+    }
+   ],
+   "verified": true,
+   "n_unresolvable": 0
+  },
+  "KakaoTalk_20260807_000438282_19500ms": {
+   "boxes": [
+    {
+     "cls": 0,
+     "box": [
+      0.425899,
+      0.6664475000000001,
+      0.851798,
+      0.662396
+     ],
+     "track_id": 10,
+     "src_tid": 10,
+     "source": "interp",
+     "parent_track_id": null,
+     "link": "ok"
+    }
+   ],
+   "verified": true,
+   "n_unresolvable": 0
+  },
+  "KakaoTalk_20260807_000552920_500ms": {
+   "boxes": [
+    {
+     "cls": 0,
+     "box": [
+      0.5406595000000001,
+      0.72695,
+      0.14779150000000002,
+      0.1966775
+     ],
+     "track_id": 1,
+     "src_tid": 1,
+     "source": "interp",
+     "parent_track_id": null,
+     "link": "new"
+    },
+    {
+     "cls": 0,
+     "box": [
+      0.2757225,
+      0.436867,
+      0.11875,
+      0.16899999999999998
+     ],
+     "track_id": 2,
+     "src_tid": 2,
+     "source": "interp",
+     "parent_track_id": null,
+     "link": "new"
+    }
+   ],
+   "verified": true,
+   "n_unresolvable": 0
+  },
+  "KakaoTalk_20260807_000552920_1500ms": {
+   "boxes": [
+    {
+     "cls": 0,
+     "box": [
+      0.622215,
+      0.7091445,
+      0.1263195,
+      0.1710445
+     ],
+     "track_id": 1,
+     "src_tid": 1,
+     "source": "interp",
+     "parent_track_id": null,
+     "link": "ok"
+    },
+    {
+     "cls": 0,
+     "box": [
+      0.46111800000000003,
+      0.6593835,
+      0.13940249999999998,
+      0.1388335
+     ],
+     "track_id": 4,
+     "src_tid": 4,
+     "source": "interp",
+     "parent_track_id": null,
+     "link": "new"
+    }
+   ],
+   "verified": true,
+   "n_unresolvable": 0
+  }
+ },
+ "started": null,
+ "durations": [
+  15.1,
+  1.9,
+  0.4,
+  0.7,
+  0.5,
+  0.3,
+  0.4,
+  74.9,
+  13.3,
+  0.7,
+  0.3,
+  0.5,
+  1.2,
+  0.4,
+  0.4,
+  0.4,
+  0.2,
+  5.3,
+  5.5,
+  5.7,
+  6.2,
+  6.7,
+  7.0,
+  7.4,
+  8.2,
+  9.0,
+  12.6,
+  13.7,
+  14.3,
+  14.7,
+  0.8,
+  10.0,
+  7.6
+ ]
+}
