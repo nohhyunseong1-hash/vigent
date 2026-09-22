@@ -1029,6 +1029,9 @@ class GuardAgent(BaseAgent):
         detections = self._track(detections, track_key)
         # ★[B-passthru] 추적이 버린 **고신뢰 person** 을 되살린다(기본 off — PASSTHROUGH_CONF=0).
         #   실측(dev 74장): 추적이 검출의 29.3%p 를 버리고 원거리는 83%→8% 로 전멸한다.
+        #   ★단서(2026-09-22): 이 값은 **dev 1fps 정지프레임 기준**이며 현장 2fps 를 대표하지 않는다.
+        #     현장 실측은 전체 손실 11.7%(2026-08-28 D5) / 고신뢰 손실 3.9%(2026-09-22, conf>=0.5).
+        #     근거: audit/passthru_field_20260922.json · audit/field_v1.2_reanalysis_2026-08-28.md §D5
         #   "못 보는 것"이 아니라 "보고도 버리는 것"이라, 경보 재현율을 추적기 성능에서
         #   분리하려면 이 경로가 필요하다. 되살린 박스는 **tid 가 없다** — 하위 판정은
         #   worker._derive 의 위치 기반 격자 키가 받는다(zone.grid_cells).

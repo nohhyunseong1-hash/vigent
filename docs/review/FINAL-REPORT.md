@@ -81,7 +81,7 @@ $ python: split dev 74 / test 35, images missing 0, labels missing 0, source vid
 **④ 평가 스크립트와 명령**
 
 - `benchmarks/x5_recall_knobs.py` — `python benchmarks/x5_recall_knobs.py --exp {conf|track|imgsz|ensemble}` (`x5_recall_knobs_interim.md:5`, 스크립트 docstring `:18-22`). 입력은 `data_paths.field_eval()` → `dev_test_split.json` + `labels/<stem>.txt`(`:34,57,67`). 규칙: "튜닝은 dev 74장만, test 35장은 `--exp confirm --split test` 최종 1회"(`:4-7`).
-- 기준선·검출/추적 분리 측정: `benchmarks/person_miss_baseline.py`, `track_quality_baseline.py`, passthrough 2fps 확인 `b_passthru_2fps_check.py`(대기 중), 정답지 프레임 추출 `extract_eval_frames.py`, 분할 `make_dev_test_split.py`.
+- 기준선·검출/추적 분리 측정: `benchmarks/person_miss_baseline.py`, `track_quality_baseline.py`, passthrough 2fps 확인 `b_passthru_2fps_check.py`(**완료 2026-09-22** — 현장 34분·1.88fps 실행. 고신뢰 손실 τ=0.5 에서 **3.9%**, 디바운스를 넘는 3프레임 이상 구간 **0개** → 통과 경로는 현 시점 **off 유지**. 근거 `audit/passthru_field_20260922.json` · 분류 `scripts/eval/classify_field_drops.py`), 정답지 프레임 추출 `extract_eval_frames.py`, 분할 `make_dev_test_split.py`.
 - 이번 검토에서 재실행하지는 않았다(측정값은 2026-08-25 실행 기록을 인용). 재실행 조건은 규칙 9 — 운영 구성이 바뀌면 다시 잰다.
 
 **⑤ 현장 조건 대표성 평가(매니페스트 `frames_manifest.json` 집계, 2026-09-09)**
