@@ -13,6 +13,7 @@
     0.1966775
    ],
    "track_id": 1,
+   "src_tid": 1,
    "source": "interp",
    "parent_track_id": null,
    "link": "new"
@@ -26,6 +27,7 @@
     0.16899999999999998
    ],
    "track_id": 2,
+   "src_tid": 2,
    "source": "interp",
    "parent_track_id": null,
    "link": "new"

@@ -1,0 +1,86 @@
+{
+ "file": "KakaoTalk_20260807_000438282_18000ms.jpg",
+ "video": "KakaoTalk_20260807_000438282",
+ "t_ms": 18000.0,
+ "video_role": "full",
+ "boxes": [
+  {
+   "cls": 0,
+   "box": [
+    0.112081,
+    0.088715,
+    0.169433,
+    0.158347
+   ],
+   "track_id": 15,
+   "source": "human",
+   "parent_track_id": null,
+   "link": "ok"
+  },
+  {
+   "cls": 0,
+   "box": [
+    0.833793,
+    0.101653,
+    0.183793,
+    0.203306
+   ],
+   "track_id": 13,
+   "source": "human",
+   "parent_track_id": null,
+   "link": "ok"
+  },
+  {
+   "cls": 0,
+   "box": [
+    0.321059,
+    0.593257,
+    0.642118,
+    0.809292
+   ],
+   "track_id": 10,
+   "source": "human",
+   "parent_track_id": null,
+   "link": "ok"
+  },
+  {
+   "cls": 0,
+   "box": [
+    0.735345,
+    0.108424,
+    0.123892,
+    0.158986
+   ],
+   "track_id": 16,
+   "source": "human",
+   "parent_track_id": null,
+   "link": "new"
+  },
+  {
+   "cls": 0,
+   "box": [
+    0.603042,
+    0.112361,
+    0.123867,
+    0.158972
+   ],
+   "track_id": 14,
+   "source": "human",
+   "parent_track_id": null,
+   "link": "maybe"
+  },
+  {
+   "cls": 0,
+   "box": [
+    0.386379,
+    0.079174,
+    0.123892,
+    0.158347
+   ],
+   "track_id": 12,
+   "source": "human",
+   "parent_track_id": null,
+   "link": "ok"
+  }
+ ]
+}

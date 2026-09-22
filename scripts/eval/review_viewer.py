@@ -24,6 +24,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import random
 import sys
 from pathlib import Path
 from typing import Any
@@ -33,6 +34,7 @@ sys.path.insert(0, str(_ROOT / "vigent-core"))
 
 _FE = _ROOT / "data" / "field_eval"
 _DRAFT = _FE / "labels_2fps_draft"
+_SIDE_1FPS = _FE / "labels_1fps_tid"
 _PROGRESS = _FE / "review_progress.json"
 
 
@@ -54,9 +56,22 @@ def build_queue() -> list[dict[str, Any]]:
                   "prev_file": at.get((f["video"], t - 500)), "next_file": at.get((f["video"], t + 500)),
                   "_ord": (order.get(f["video"], 99), t)})
     q.sort(key=lambda x: (x["status"] != "needs_review", x["_ord"]))   # 검수 필요분 먼저
-    for x in q:
+    # ★V-3: 자동 연결분(interp) 중 **10장을 무작위 표본**으로 뒤에 붙인다 — 자동 연결 정확도 측정용.
+    #   시드를 고정해 새로고침해도 같은 표본이 나온다(재현성).
+    need = [x for x in q if x["status"] == "needs_review"]
+    auto = [x for x in q if x["status"] != "needs_review"]
+    rnd = random.Random(20260922)
+    sample = rnd.sample(auto, min(10, len(auto)))
+    ids = {id(x) for x in sample}
+    for x in sample:
+        x["review_kind"] = "auto_sample"
+    for x in need:
+        x["review_kind"] = "needs_review"
+    out = need + sample + [x for x in auto if id(x) not in ids]
+    for x in out:
         x.pop("_ord", None)
-    return q
+        x.setdefault("review_kind", "auto")
+    return out
 
 
 def load_draft(stem: str) -> dict[str, Any]:
@@ -65,21 +80,34 @@ def load_draft(stem: str) -> dict[str, Any]:
 
 
 def load_src_labels(stem: str) -> list[dict[str, Any]]:
-    """원본 1fps 라벨(person 만) — 좌·우 패널용. **읽기만 한다.**"""
-    p = _FE / "labels" / f"{stem}.txt"
-    out = []
-    if p.exists():
-        for line in p.read_text(encoding="utf-8").splitlines():
-            a = line.split()
-            if len(a) < 5:
-                continue
-            try:
-                cls = int(a[0])
-            except ValueError:
-                continue
-            if cls != 0:
-                continue
-            out.append({"cls": cls, "box": [float(v) for v in a[1:5]]})
+    """원본 1fps 라벨(person 만) — 좌·우 패널용.
+
+    ★V-1(2026-09-22): 원본 `.txt` 는 5필드라 track_id 가 없다. 보간 단계가 부여한 ID 는
+      `labels_1fps_tid/<stem>.json` 사이드카에 있다 — 그것을 우선 읽는다(좌표는 txt 와 동일).
+    ★V-2: 검수에서 바뀐 ID 가 있으면 `review_progress.json` 을 **덮어쓴다**(최신 우선).
+      그래야 다음 프레임의 후보 목록이 방금 확정한 ID 를 반영한다.
+    """
+    out: list[dict[str, Any]] = []
+    sc = _SIDE_1FPS / f"{stem}.json"
+    if sc.exists():
+        d = json.loads(sc.read_text(encoding="utf-8"))
+        out = [dict(b) for b in d.get("boxes", [])]
+    else:                                        # 사이드카가 없으면 좌표만이라도 보여준다
+        p = _FE / "labels" / f"{stem}.txt"
+        if p.exists():
+            for line in p.read_text(encoding="utf-8").splitlines():
+                a = line.split()
+                if len(a) < 5:
+                    continue
+                try:
+                    cls = int(a[0])
+                except ValueError:
+                    continue
+                if cls == 0:
+                    out.append({"cls": cls, "box": [float(v) for v in a[1:5]], "track_id": None})
+    done = progress()["done"].get(stem)
+    if done:                                     # V-2: 확정분이 있으면 그것이 정본
+        out = [dict(b) for b in done["boxes"]]
     return out
 
 
@@ -162,7 +190,25 @@ def main() -> int:
             lines = [f"{b.get('cls', 0)} {b['box'][0]:.6f} {b['box'][1]:.6f} "
                      f"{b['box'][2]:.6f} {b['box'][3]:.6f} {b.get('track_id', 0)}" for b in s.boxes]
             tp.write_text("\n".join(lines) + ("\n" if lines else ""), encoding="utf-8")
-        return JSONResponse({"ok": True, "done": len(p["done"])})
+        # ★V-2 ID 연쇄: 보간 박스에서 확정한 track_id 를 **우측 원본 프레임(t+500ms)** 의
+        #   대응 박스에도 기록한다. 대응 박스는 보간 때 짝지은 그 박스(src_tid 로 찾는다).
+        #   좌표는 **수정하지 않는다** — track_id 필드만 바꾼다.
+        chained = 0
+        it = next((x for x in queue if Path(x["file"]).stem == s.stem), None)
+        if it and it.get("next_file"):
+            nxt = _SIDE_1FPS / f"{Path(it['next_file']).stem}.json"
+            if nxt.exists():
+                d = json.loads(nxt.read_text(encoding="utf-8"))
+                by_src = {b.get("src_tid"): b.get("track_id") for b in s.boxes
+                          if b.get("src_tid") is not None}
+                for b in d.get("boxes", []):
+                    new = by_src.get(b.get("track_id"))
+                    if new is not None and new != b.get("track_id"):
+                        b["track_id"] = new
+                        chained += 1
+                if chained:
+                    nxt.write_text(json.dumps(d, ensure_ascii=False, indent=1), encoding="utf-8")
+        return JSONResponse({"ok": True, "done": len(p["done"]), "chained": chained})
 
     @app.get("/img/2fps/{name}")
     def img2(name: str) -> Any:
@@ -211,6 +257,7 @@ kbd{background:#1c2029;border:1px solid var(--line);border-radius:3px;padding:1p
 <div class="note" style="padding:0 14px 6px">
   회색 점선은 <b>참고용 제안</b>이다. 자동 반영하지 않는다 — <b>최종 판단은 사람이 한다.</b>
 </div>
+<div class="note" id="cand" style="padding:0 14px 8px"></div>
 <div class="wrap">
   <div class="pane"><h2 id="h-prev">이전 (t−500ms, 원본 라벨)</h2><div class="cv"><canvas id="cPrev"></canvas></div></div>
   <div class="pane"><h2 id="h-mid">검수 대상 (보간 초안)</h2><div class="cv"><canvas id="cMid"></canvas></div></div>
@@ -231,10 +278,12 @@ async function load(i){
   const r=await fetch('/api/item/'+i); if(!r.ok)return;
   cur=await r.json(); idx=cur.idx; sel=0; t0=Date.now();
   $('pos').textContent=`${idx+1} / ${cur.total} · ${cur.stem}`;
-  $('h-mid').textContent=`검수 대상 (보간 초안) — ${cur.item.status==='needs_review'?'★검수 필요':'자동 보간'}`
+  const kind=cur.item.review_kind==='auto_sample'?'🔎 자동 보간 표본 확인'
+            :cur.item.status==='needs_review'?'★검수 필요':'자동 보간';
+  $('h-mid').textContent=`검수 대상 (보간 초안) — ${kind}`
     +(cur.video_role==='detector_only'?' · [검출기 전용 영상]':'');
   $('state').innerHTML=cur.verified?'<span class="ok">확정됨</span>':'미확정';
-  draw();
+  draw(); renderCand();
   const q=await (await fetch('/api/queue')).json();
   const done=Object.keys(q.done).length; avg=q.avg_sec;
   $('pb').style.width=(done/cur.total*100)+'%';
@@ -250,10 +299,30 @@ function paint(cv,src,boxes,dashed,selIdx){
       const[cx,cy,w,h]=b.box,x=(cx-w/2)*cv.width,y=(cy-h/2)*cv.height,W=w*cv.width,H=h*cv.height;
       g.lineWidth=(i===selIdx?4:2); g.setLineDash(dashed?[7,5]:[]);
       g.strokeStyle=dashed?'#8b93a1':col(b.track_id); g.strokeRect(x,y,W,H);
-      if(!dashed){g.fillStyle=col(b.track_id);g.font='bold 15px sans-serif';
-        g.fillText(`${i+1}·id${b.track_id??'?'}`,x+3,Math.max(14,y-4));}
+      g.font='bold 15px sans-serif';
+      if(dashed){ // 참고 패널 — ID 만 흐리게(후보 고를 때 눈으로 대조하라고)
+        g.fillStyle='#b9c0cc'; g.fillText(`id${b.track_id??'?'}`,x+3,Math.max(14,y-4));
+      }else{
+        g.fillStyle=col(b.track_id); g.fillText(`${i+1}·id${b.track_id??'?'}`,x+3,Math.max(14,y-4));
+      }
     });};
   im.src=src;
+}
+function candidates(){
+  // ★V-1: 후보는 **좌측(t-500ms) 원본 ID 먼저**, 그다음 우측(t+500ms) ID 에 "다음" 표시.
+  const seen=new Set(), out=[];
+  (cur.prev.boxes||[]).forEach(b=>{if(b.track_id!=null&&!seen.has(b.track_id)){
+    seen.add(b.track_id);out.push({id:b.track_id,src:'이전'});}});
+  (cur.next.boxes||[]).forEach(b=>{if(b.track_id!=null&&!seen.has(b.track_id)){
+    seen.add(b.track_id);out.push({id:b.track_id,src:'다음'});}});
+  return out.slice(0,9);
+}
+function renderCand(){
+  const c=candidates(), el=$('cand');
+  if(!c.length){el.innerHTML='<b style="color:#ff6b6b">후보 없음</b> — 진짜 등장·퇴장일 수 있다. <kbd>N</kbd> 으로 새 트랙.';return;}
+  el.innerHTML='후보: '+c.map((x,i)=>
+    `<span style="color:${col(x.id)}"><kbd>${i+1}</kbd> id${x.id}`+
+    (x.src==='다음'?'<span style="color:#8b93a1">(다음)</span>':'')+'</span>').join(' · ');
 }
 function draw(){
   if(!cur)return;
@@ -279,8 +348,8 @@ document.addEventListener('keydown',async e=>{
     const mx=Math.max(0,...cur.boxes.map(b=>b.track_id||0));
     if(cur.boxes[sel]){cur.boxes[sel].track_id=mx+1;draw();await save(false);} return;}
   if(/^[1-9]$/.test(e.key)){
-    const cand=[...new Set([...cur.prev.boxes,...cur.next.boxes].map(b=>b.track_id).filter(v=>v!=null))];
-    const t=cand[+e.key-1]; if(t!=null&&cur.boxes[sel]){cur.boxes[sel].track_id=t;draw();await save(false);}
+    const c=candidates(); const t=c[+e.key-1];
+    if(t&&cur.boxes[sel]){cur.boxes[sel].track_id=t.id;draw();renderCand();await save(false);}
     return;}
 });
 const mid=$('cMid');

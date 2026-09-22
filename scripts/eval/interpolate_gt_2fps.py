@@ -176,7 +176,7 @@ def interpolate_midpoints(frames: list[dict]) -> list[dict]:
         boxes = []
         for tid in both:
             x, y = pa[tid], pb[tid]
-            boxes.append({"cls": x["cls"], "tid": tid,
+            boxes.append({"cls": x["cls"], "tid": tid, "src_tid": tid,   # src_tid: 짝지은 원본 tid(V-2 연쇄용)
                           "box": [(u + v) / 2 for u, v in zip(x["box"], y["box"])],
                           "src": "interp", "link": x.get("link", "ok")})
         mids.append({"t_ms": a["t_ms"] + 500, "boxes": boxes, "gap_ms": gap,
@@ -266,9 +266,22 @@ def main() -> int:
         _lgmax = {}
     new_manifest: list[dict] = []
 
+    out_1fps = fe_repo / "labels_1fps_tid"
     for v, frames in byv.items():
         ids = assign_track_ids(frames)
         mids = interpolate_midpoints(frames)
+        if a.write:
+            # ★원본 109장 라벨(.txt)은 **수정하지 않는다.** track_id 는 사이드카 JSON 으로만 둔다.
+            #   검수 뷰어의 좌·우 패널과 후보 목록(1~9)이 이 파일을 읽는다.
+            out_1fps.mkdir(parents=True, exist_ok=True)
+            for fr in frames:
+                (out_1fps / f"{Path(fr['file']).stem}.json").write_text(json.dumps(
+                    {"file": fr["file"], "video": v, "t_ms": fr["t_ms"],
+                     "video_role": "detector_only" if v in DETECTOR_ONLY_VIDEOS else "full",
+                     "boxes": [{"cls": b["cls"], "box": b["box"], "track_id": b["tid"],
+                                "source": "human", "parent_track_id": None,
+                                "link": b.get("link", "new")} for b in fr["boxes"]]},
+                    ensure_ascii=False, indent=1), encoding="utf-8")
         vid = videos_dir / f"{v}.mp4"
         vrep: dict[str, Any] = {"labeled_frames": len(frames), "track_ids": ids["next_id"] - 1,
                                 "links_ok": ids["ok"], "links_maybe": ids["maybe"], "new_tracks": ids["new"],
@@ -302,7 +315,8 @@ def main() -> int:
                         {"file": name, "video": v, "t_ms": t,
                          "video_role": "detector_only" if v in DETECTOR_ONLY_VIDEOS else "full",
                          "boxes": [{"cls": b["cls"], "box": b["box"], "track_id": b["tid"],
-                                    "source": "interp", "parent_track_id": None,
+                                    "src_tid": b.get("src_tid"), "source": "interp",
+                                    "parent_track_id": None,
                                     "link": b.get("link", "ok")} for b in m["boxes"]]},
                         ensure_ascii=False, indent=1), encoding="utf-8")
                     (out_labels / f"{Path(name).stem}.txt").write_text("\n".join(lines) + ("\n" if lines else ""),

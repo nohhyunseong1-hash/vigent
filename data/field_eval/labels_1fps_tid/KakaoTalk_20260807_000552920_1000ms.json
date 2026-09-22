@@ -1,0 +1,47 @@
+{
+ "file": "KakaoTalk_20260807_000552920_1000ms.jpg",
+ "video": "KakaoTalk_20260807_000552920",
+ "t_ms": 1000.0,
+ "video_role": "full",
+ "boxes": [
+  {
+   "cls": 0,
+   "box": [
+    0.419792,
+    0.658556,
+    0.153194,
+    0.167511
+   ],
+   "track_id": 4,
+   "source": "human",
+   "parent_track_id": null,
+   "link": "new"
+  },
+  {
+   "cls": 0,
+   "box": [
+    0.311514,
+    0.433578,
+    0.153194,
+    0.167511
+   ],
+   "track_id": 2,
+   "source": "human",
+   "parent_track_id": null,
+   "link": "ok"
+  },
+  {
+   "cls": 0,
+   "box": [
+    0.578194,
+    0.714756,
+    0.127,
+    0.184711
+   ],
+   "track_id": 1,
+   "source": "human",
+   "parent_track_id": null,
+   "link": "ok"
+  }
+ ]
+}
