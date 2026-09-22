@@ -194,6 +194,25 @@ def health(theme: str = DEFAULT_THEME):
             disp_status = {**disp_status, "dropped": _ns.get("dropped", 0)}
         except Exception:  # noqa: BLE001
             _ns = {}
+        # ★[F-35, 2026-09-22] 조용한 실패 방지 — 채널이 살아 있는지를 /health 가 말하게 한다.
+        #   2026-08-21~09-10 20일간 텔레그램 401 로 경보 213건이 못 갔는데 /health 는 조용했다.
+        #   selftest 는 캐시를 보므로 여기서 불러도 매번 망을 타지 않는다(확정 상태면 즉시 반환).
+        notify_block: dict = {}
+        try:
+            from agents import dispatcher as _disp_mod
+            _st = _disp_mod.selftest_channels()
+            notify_block = {
+                "last_success": alerts.get("last_success_ts"),
+                "dead_count": int(alerts.get("dead", 0) or 0),
+                "config_error": disp_status.get("last_config_error"),
+                "config_error_count": disp_status.get("config_error_count", 0),
+                "channels_configured": disp_status.get("channels_configured"),
+                "selftest_state": _st.get("state"),
+                "selftest_reason": _st.get("reason"),
+                "selftest_unknown_too_long": _disp_mod.selftest_status().get("unknown_too_long", False),
+            }
+        except Exception:  # noqa: BLE001
+            notify_block = {}
         alert_problems, alert_warnings = health_status.alert_health(alerts, disp_status)
         alerts = {**alerts,
                   "dropped": _ns.get("dropped", 0),
@@ -226,6 +245,10 @@ def health(theme: str = DEFAULT_THEME):
         "phase": phase,               # [B4] starting|ready|failed — 예열 완료 여부
         "warmup": warm,               # [B4] {phase, warmup_s, elapsed_s, error} — 예열 실측
         "alerts": alerts,             # [B5] {pending, sent, dead, dead_1h, undeliverable, channels_configured, last_config_error}
+        # ★[F-35] 알림 채널이 실제로 살아 있는가 — "조용한 실패" 를 표면화한다.
+        #   {last_success, dead_count, config_error, selftest_state, selftest_unknown_too_long}
+        #   selftest_state: ok | config_error(붉은 배너) | unknown(30분 넘으면 노란 배너) | not_configured
+        "notify": notify_block,
         # [M4-1] channels_not_configured · notify_config_error — status 는 바꾸지 않는 경고
         # [M7-3] + 기동 시 선택 서비스 실패("startup:<서비스>: <예외>") — go2rtc·기아 감시·보존 스윕
         "warnings": list(alert_warnings) + list(_startup_warnings()),

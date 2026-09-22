@@ -15,6 +15,7 @@ from __future__ import annotations
 import logging
 import os
 import re
+import time
 from pathlib import Path
 from typing import Any
 
@@ -96,14 +97,122 @@ def redact_secrets(s: str) -> str:
 # [CODE_REVIEW M4-1·M4-3, 2026-09-06] 전달 실패 통계(프로세스 전역) — /health 가 dispatcher.status() 로 읽는다.
 #   undeliverable: critical/high 가 발생했는데 원격 채널이 하나도 설정돼 있지 않아 **큐에 넣지 않고 폐기**한 건수
 #   last_config_error: 4xx(토큰·chat_id·URL 오류) — 재시도해도 영원히 실패하는 설정 오류. 토큰 값은 절대 담지 않는다.
-_DELIVERY: dict[str, Any] = {"undeliverable_count": 0, "undeliverable_last_ts": None, "last_config_error": None}
+_DELIVERY: dict[str, Any] = {"undeliverable_count": 0, "undeliverable_last_ts": None, "last_config_error": None,
+                             "config_error_count": 0, "config_error_first_ts": None}
+
+# ★[F-35, 2026-09-22] 채널 자가시험 상태 — "조용한 실패" 를 없애기 위한 것.
+#   실제 사고: 2026-08-21 22:04 을 마지막으로 텔레그램이 401 이 됐는데 **아무도 몰랐다.**
+#   09-10 까지 20일간 경보 213건이 사람에게 닿지 않았다(F-35).
+#   ★망 오류와 설정 오류를 **구분**한다(2026-09-22 결정):
+#     · HTTP 4xx 확정  → state="config_error"  → 붉은 배너(경보가 전달되지 않음)
+#     · 망 오류·타임아웃 → state="unknown"      → 10분마다 재시도, 30분 넘게 미확인이면 노란 배너
+#     현장 노트북은 Wi-Fi 가 불안정해 기동 직후 실패하는 일이 잦다 — 그걸 '불능' 으로 단정하면 오탐이다.
+_SELFTEST: dict[str, Any] = {"state": "unknown", "checked_at": None, "unknown_since": None,
+                             "reason": None, "bot": None, "attempts": 0}
+SELFTEST_RETRY_SEC = 600.0        # 미확인 상태에서 재시도 간격(10분)
+SELFTEST_UNKNOWN_WARN_SEC = 1800.0  # 이 시간을 넘게 미확인이면 노란 배너(30분)
 # HTTP 코드 분류: 설정 오류(즉시 dead) vs 재시도(429 는 Retry-After 존중, 5xx·타임아웃·네트워크는 기존 백오프)
 _CONFIG_ERROR_CODES = (400, 401, 403, 404)
 _TELEGRAM_MAX_TEXT = 4000        # [M4-7] 텔레그램 sendMessage 본문 상한 4096 — 여유 두고 절단
 
 
 def reset_delivery_stats_for_test() -> None:
-    _DELIVERY.update(undeliverable_count=0, undeliverable_last_ts=None, last_config_error=None)
+    _DELIVERY.update(undeliverable_count=0, undeliverable_last_ts=None, last_config_error=None,
+                     config_error_count=0, config_error_first_ts=None)
+    _SELFTEST.update(state="unknown", checked_at=None, unknown_since=None,
+                     reason=None, bot=None, attempts=0)
+
+
+def note_config_error(channel: str, status: int | None) -> None:
+    """[F-35] 설정 오류(4xx)를 기록하고 **첫 발생만** CRITICAL 로 남긴다.
+
+    반복까지 CRITICAL 이면 로그가 폭주해 오히려 묻힌다 — 첫 건만 크게 울리고 이후는 카운트만.
+    ★토큰 값은 담지 않는다(채널명·HTTP 코드만).
+    """
+    first = _DELIVERY.get("config_error_first_ts") is None
+    _DELIVERY["last_config_error"] = f"{channel} HTTP {status}"
+    _DELIVERY["config_error_count"] = int(_DELIVERY.get("config_error_count", 0)) + 1
+    if first:
+        _DELIVERY["config_error_first_ts"] = time.time()
+        _LOG.critical("★알림 채널 설정 오류(%s HTTP %s) — 경보가 전달되지 않는다. 토큰·chat_id 를 확인하라.",
+                      channel, status)
+    _SELFTEST.update(state="config_error", checked_at=time.time(),
+                     reason=f"{channel} HTTP {status}", unknown_since=None)
+
+
+def selftest_channels(force: bool = False) -> dict[str, Any]:
+    """[F-35] 텔레그램 getMe 로 토큰이 살아 있는지 확인한다. **기동을 막지 않는다.**
+
+    감시는 계속하되 "경보가 안 간다" 를 사람에게 보이게 하는 것이 목적이다.
+    반환 state: ok | config_error | unknown | not_configured
+      · unknown 은 **망 문제일 수 있다** — 단정하지 않고 10분 뒤 다시 본다.
+    """
+    now = time.time()
+    if not force and _SELFTEST["checked_at"] and _SELFTEST["state"] in ("ok", "config_error"):
+        return dict(_SELFTEST)                     # 확정된 상태는 다시 묻지 않는다
+    if not force and _SELFTEST["checked_at"] and now - _SELFTEST["checked_at"] < SELFTEST_RETRY_SEC:
+        return dict(_SELFTEST)                     # 미확인 재시도 간격 이내
+    c = notify_cfg()
+    _SELFTEST["attempts"] = int(_SELFTEST.get("attempts", 0)) + 1
+    if not (c["telegram_token"] and c["telegram_chat"]):
+        _SELFTEST.update(state="not_configured", checked_at=now, reason="telegram 미설정", unknown_since=None)
+        return dict(_SELFTEST)
+    if requests is None:
+        _SELFTEST.update(state="unknown", checked_at=now, reason="requests 미설치",
+                         unknown_since=_SELFTEST["unknown_since"] or now)
+        return dict(_SELFTEST)
+    try:
+        r = requests.get(f"https://api.telegram.org/bot{c['telegram_token']}/getMe", timeout=8)
+        if r.status_code == 200 and (r.json() or {}).get("ok"):
+            _SELFTEST.update(state="ok", checked_at=now, unknown_since=None, reason=None,
+                             bot=((r.json().get("result") or {}).get("username")))
+            _LOG.info("알림 채널 자가시험 통과 — 봇 @%s", _SELFTEST["bot"])
+            return dict(_SELFTEST)
+        if r.status_code in _CONFIG_ERROR_CODES:
+            note_config_error("telegram", r.status_code)      # ★확정 — 붉은 배너
+            return dict(_SELFTEST)
+        _SELFTEST.update(state="unknown", checked_at=now, reason=f"getMe HTTP {r.status_code}",
+                         unknown_since=_SELFTEST["unknown_since"] or now)
+    except Exception as ex:  # noqa: BLE001
+        # ★망 오류다 — 설정 오류로 단정하지 않는다. 배너도 30분 뒤에야 노란색으로 뜬다.
+        _SELFTEST.update(state="unknown", checked_at=now, reason=f"{type(ex).__name__}",
+                         unknown_since=_SELFTEST["unknown_since"] or now)
+    return dict(_SELFTEST)
+
+
+def start_selftest_loop() -> None:
+    """[F-35] 기동 시 자가시험을 **배경 스레드**로 돌린다. 확정될 때까지 10분마다 재시도.
+
+    ★배경으로 도는 이유(2026-09-22):
+      · 기동 경로에서 동기로 부르면 getMe 타임아웃(8초)만큼 **기동이 늦어진다.**
+        현장 노트북은 Wi-Fi 가 불안정해 이 지연이 매 부팅마다 생긴다.
+      · 기동을 막지 않는다는 원칙과도 맞는다 — 감시가 먼저다.
+    결과는 `_SELFTEST` 에 남고 `/health notify` 와 허브 배너가 읽는다.
+    ok 또는 config_error 로 **확정되면 루프를 끝낸다.**
+    """
+    import threading
+
+    def _loop() -> None:
+        while True:
+            try:
+                st = selftest_channels(force=True)
+            except Exception as ex:  # noqa: BLE001  자가시험이 서버를 죽이면 안 된다
+                _LOG.warning("알림 자가시험 예외(%s) — 계속한다", type(ex).__name__)
+                st = {"state": "unknown"}
+            if st.get("state") in ("ok", "config_error", "not_configured"):
+                return                                     # 확정 — 더 물을 필요 없다
+            time.sleep(SELFTEST_RETRY_SEC)                  # 미확인이면 10분 뒤 다시
+
+    threading.Thread(target=_loop, name="notify-selftest", daemon=True).start()
+
+
+def selftest_status() -> dict[str, Any]:
+    """/health·배너가 읽는 형태. unknown 이 30분을 넘었는지 여기서 판정한다."""
+    s = dict(_SELFTEST)
+    s["unknown_too_long"] = bool(
+        s["state"] == "unknown" and s.get("unknown_since")
+        and time.time() - float(s["unknown_since"]) >= SELFTEST_UNKNOWN_WARN_SEC)
+    return s
 
 
 def _classify_http(channel: str, r: Any) -> dict[str, Any]:
@@ -111,6 +220,9 @@ def _classify_http(channel: str, r: Any) -> dict[str, Any]:
     out: dict[str, Any] = {"channel": channel, "sent": bool(r.ok), "fallback": not r.ok, "status": r.status_code}
     if r.status_code in _CONFIG_ERROR_CODES:
         out["config_error"] = True
+        # ★[F-35] 여기까지 오면 **확정된 설정 오류**다 — 첫 건은 CRITICAL, 배너는 붉은색.
+        #   예전에는 조용히 dead 로만 쌓여 20일간 아무도 몰랐다.
+        note_config_error(channel, r.status_code)
     elif r.status_code == 429:
         ra = (getattr(r, "headers", None) or {}).get("Retry-After")
         try:
@@ -152,7 +264,10 @@ class DispatcherAgent(BaseAgent):
                 "channels_configured": self.channels_configured(c),
                 "undeliverable_count": _DELIVERY["undeliverable_count"],
                 "undeliverable_last_ts": _DELIVERY["undeliverable_last_ts"],
-                "last_config_error": _DELIVERY["last_config_error"]}
+                "last_config_error": _DELIVERY["last_config_error"],
+                # [F-35] 조용한 실패 방지 — 자가시험 상태·설정오류 누계
+                "config_error_count": _DELIVERY.get("config_error_count", 0),
+                "selftest": selftest_status()}
 
     def _send_telegram(self, text: str) -> dict[str, Any]:
         c = notify_cfg()

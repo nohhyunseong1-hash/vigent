@@ -484,6 +484,18 @@ def _startup() -> None:
         if _cameras_router.ensure_go2rtc():
             _log.info("go2rtc 준비(확대뷰 실시간 재생 가능)")
     _optional("go2rtc", _go2rtc)
+
+    # ★[F-35, 2026-09-22] 알림 채널 자가시험 — "조용한 실패" 를 기동 때부터 드러낸다.
+    #   실제 사고: 2026-08-21 22:04 을 마지막으로 텔레그램이 401 이 됐는데 아무도 몰랐고,
+    #   09-10 까지 20일간 경보 213건이 사람에게 닿지 않았다.
+    #   ★기동을 막지 않는다 — 감시는 계속하되 /health·허브 배너로 보이게만 한다.
+    #   망 오류면 state="unknown" 으로 두고 10분마다 다시 본다(현장 Wi-Fi 불안정 오탐 방지).
+    #   ★**배경 스레드**로 돌린다 — 동기로 부르면 getMe 타임아웃(8초)만큼 기동이 늦어진다.
+    #   결과는 /health 의 notify 블록과 허브 배너로 드러난다(STARTUP_WARNINGS 가 아니라).
+    def _notify_selftest() -> None:
+        from agents import dispatcher as _disp_mod
+        _disp_mod.start_selftest_loop()
+    _optional("notify_selftest", _notify_selftest)
     # [B4] 워커 기동은 **모델 예열이 끝난 뒤**로 미룬다.
     #   예열 전에 붙이면 워커의 첫 검출이 콜드 로드(실측 12.5s)를 떠안아 hang 워치독(15s)을
     #   넘기고, 죽이면 로드를 처음부터 다시 해 무한 재시작에 빠진다(2026-08-13 실측 45회).

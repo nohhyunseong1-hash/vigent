@@ -230,6 +230,11 @@ def counts() -> dict[str, int]:
     with _lock:   # [M4-2] 최근 1시간 데드레터 — /health degraded 판정 입력
         c["dead_1h"] = int(db.execute("SELECT COUNT(*) FROM alerts WHERE status=? AND dead_at>?",
                                       (DEAD, time.time() - 3600.0)).fetchone()[0])
+    # ★[F-35] 마지막 성공 전송 시각 — "언제부터 안 가고 있나" 를 한 눈에 본다.
+    #   실제 사고: 2026-08-21 22:04 이후 20일간 한 건도 못 갔는데 이 값이 없어 아무도 몰랐다.
+    with _lock:
+        row = db.execute("SELECT MAX(sent_at) FROM alerts WHERE status=?", (SENT,)).fetchone()
+    c["last_success_ts"] = float(row[0]) if row and row[0] else None
     return c
 
 
