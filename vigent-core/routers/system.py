@@ -211,6 +211,16 @@ def health(theme: str = DEFAULT_THEME):
                 "selftest_reason": _st.get("reason"),
                 "selftest_unknown_too_long": _disp_mod.selftest_status().get("unknown_too_long", False),
             }
+            # [F-35] heartbeat 도 실패할 수 있다 — 그 실패가 안 보이면 '침묵이 신호' 설계가 무너진다.
+            try:
+                import notify_heartbeat
+                _hb = notify_heartbeat.status()
+                notify_block["heartbeat_enabled"] = _hb.get("enabled")
+                notify_block["heartbeat_at"] = _hb.get("at")
+                notify_block["last_heartbeat_at"] = _hb.get("last_sent_ts")
+                notify_block["last_heartbeat_ok"] = _hb.get("last_ok")
+            except Exception:  # noqa: BLE001
+                pass
         except Exception:  # noqa: BLE001
             notify_block = {}
         alert_problems, alert_warnings = health_status.alert_health(alerts, disp_status)

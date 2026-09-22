@@ -228,4 +228,6 @@ relay:                      # [P3a] 물리 출력(사이렌·경광등) 네트�
 ppe:
   required: [NO-Hardhat, NO-Safety-Vest]
 notify:
-  heartbeat_at: ''    # [드리프트 보충] 전역 기본값에서 상속
+  # ★학원 현장: 수업 시작 전에 "채널 정상" 을 받아 둔다. 이 메시지가 안 오면 그날 경보가
+  #   못 나갈 수 있다는 뜻이므로 수업 전에 손쓸 시간이 생긴다(전역 기본은 빈 값=끔).
+  heartbeat_at: '08:30'

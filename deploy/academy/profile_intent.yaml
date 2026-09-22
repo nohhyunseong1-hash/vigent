@@ -34,6 +34,14 @@ tuning:
         ★전역 기본값은 3종 그대로 둔다 — 실내 분진 작업 등 다른 현장에서는 필수일 수 있다.
         근거: benchmarks/ppe_mask_share_ci.py · audit/field_v1.2_reanalysis_2026-08-28.md
   overrides:
+    notify.heartbeat_at:
+      value: "08:30"
+      why: >-
+        [F-35, 2026-09-22] 하루 1회 "알림 채널 정상" 통보 시각. 학원 **수업 시작 전**으로 잡아,
+        이 메시지가 안 오면 그날 경보가 못 나갈 수 있다는 뜻이므로 수업 전에 손쓸 시간이 생긴다.
+        전역 기본은 빈 값(끔) — 현장마다 일과 시각이 다르므로 프로파일에서만 켠다.
+        근거: 2026-08-21~09-10 에 텔레그램 401 로 20일간 경보 213건이 못 갔는데 **아무 신호도
+        없었다**(benchmarks/FINDINGS.md F-35). 침묵이 신호가 되게 하는 장치다.
     detect.conf.forklift:
       value: 0.5
       why: >-

@@ -77,6 +77,28 @@ class HeartbeatTest(unittest.TestCase):
         self.H.maybe_send(dt.datetime(2026, 9, 22, 9, 10), sender=_fail)
         self.assertEqual(len(self.sent), 1)
 
+    def test_health_shows_heartbeat_failure(self) -> None:
+        """★heartbeat 전송 실패가 /health 에 드러나야 한다.
+
+        heartbeat 가 조용히 실패하면 '침묵이 신호' 라는 설계 자체가 무너진다 —
+        메시지가 안 온 게 채널 문제인지 heartbeat 문제인지 사람이 가릴 수 있어야 한다.
+        """
+        self.H.configured_at = lambda: "09:00"
+        def _fail(_t: str) -> dict[str, Any]:
+            return {"sent": False, "reason": "401"}
+        with self.assertLogs("vigent.heartbeat", level="WARNING"):
+            self.H.maybe_send(dt.datetime(2026, 9, 22, 9, 0), sender=_fail)
+        st = self.H.status()
+        self.assertIsNotNone(st["last_sent_ts"], "시도 시각이 남아야 한다")
+        self.assertFalse(st["last_ok"], "실패가 false 로 드러나야 한다")
+        # 성공했을 때는 true
+        self.H.reset_for_test()
+        self.H.configured_at = lambda: "09:00"
+        self.H.maybe_send(dt.datetime(2026, 9, 22, 9, 0), sender=self._sender)
+        st2 = self.H.status()
+        self.assertTrue(st2["last_ok"])
+        self.assertIsNotNone(st2["last_sent_ts"])
+
     def test_bad_time_format_is_off(self) -> None:
         """형식이 틀리면 조용히 켜지 않는다 — 잘못된 설정으로 엉뚱한 시각에 보내지 않는다."""
         import tuning

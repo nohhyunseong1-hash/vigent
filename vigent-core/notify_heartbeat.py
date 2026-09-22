@@ -25,7 +25,8 @@ from typing import Any
 import tuning
 
 _LOG = logging.getLogger("vigent.heartbeat")
-_STATE: dict[str, Any] = {"last_sent_date": None, "last_result": None, "enabled": None}
+_STATE: dict[str, Any] = {"last_sent_date": None, "last_result": None, "enabled": None,
+                          "last_sent_ts": None, "last_ok": None}
 _CHECK_INTERVAL_SEC = 30.0        # 분 단위 시각을 놓치지 않을 만큼만 자주 본다
 
 
@@ -104,6 +105,10 @@ def maybe_send(now: _dt.datetime | None = None, sender: Any = None) -> dict[str,
         res = {"sent": False, "reason": type(ex).__name__}
     _STATE["last_sent_date"] = today          # ★성공·실패와 무관하게 하루 1회만 시도한다
     _STATE["last_result"] = res
+    # ★[F-35] 전송 시각·성공 여부를 남긴다 — /health 가 "heartbeat 도 실패했다" 를 말할 수 있게.
+    #   heartbeat 가 조용히 실패하면 '침묵이 신호' 라는 설계 자체가 무너진다.
+    _STATE["last_sent_ts"] = time.time()
+    _STATE["last_ok"] = bool(res.get("sent"))
     if res.get("sent"):
         _LOG.info("알림 채널 heartbeat 전송: %s", text)
     else:
@@ -133,8 +138,10 @@ def start() -> None:
 
 def status() -> dict[str, Any]:
     return {"enabled": bool(_STATE["enabled"]), "at": configured_at(),
-            "last_sent_date": _STATE["last_sent_date"], "last_result": _STATE["last_result"]}
+            "last_sent_date": _STATE["last_sent_date"], "last_result": _STATE["last_result"],
+            "last_sent_ts": _STATE["last_sent_ts"], "last_ok": _STATE["last_ok"]}
 
 
 def reset_for_test() -> None:
-    _STATE.update(last_sent_date=None, last_result=None, enabled=None)
+    _STATE.update(last_sent_date=None, last_result=None, enabled=None,
+                  last_sent_ts=None, last_ok=None)
