@@ -76,6 +76,13 @@ def _db() -> sqlite3.Connection:
             cols = {r[1] for r in _conn.execute("PRAGMA table_info(alerts)")}
             if "dead_at" not in cols:
                 _conn.execute("ALTER TABLE alerts ADD COLUMN dead_at REAL")
+            # ★[F-35, 2026-09-22] 어느 채널로 갔고 어디서 실패했는지 **행 단위로** 남긴다.
+            #   성공 판정은 "하나라도 sent"(확정)이므로, 텔레그램만 성공하고 이메일이 실패한
+            #   경보는 status=sent 로 끝난다 — 그 사실이 아무 데도 안 남으면 나중에 못 가린다.
+            #   기존 행은 NULL(모름) 로 둔다 — 소급해서 지어내지 않는다.
+            for _c, _t in (("channels_sent", "TEXT"), ("channels_failed", "TEXT")):
+                if _c not in cols:
+                    _conn.execute(f"ALTER TABLE alerts ADD COLUMN {_c} {_t}")
             _conn.commit()
         return _conn
 
@@ -92,10 +99,21 @@ def enqueue(level: str, message: str, meta: dict[str, Any] | None = None) -> int
         return int(cur.lastrowid or 0)
 
 
-def mark_sent(row_id: int) -> None:
+def mark_sent(row_id: int, sent_ch: list[str] | None = None,
+              failed_ch: list[str] | None = None) -> None:
+    """[F-35] 성공 표시 + **어느 채널이 갔고 어디가 실패했는지** 함께 남긴다.
+
+    sent_ch  예: ["telegram"]      failed_ch 예: ["email:535"]
+    둘 다 None 이면 기존 동작(열은 NULL 유지) — 구 호출부 호환.
+    """
     db = _db()
     with _lock:
-        db.execute("UPDATE alerts SET status=?, sent_at=? WHERE id=?", (SENT, time.time(), row_id))
+        if sent_ch is None and failed_ch is None:
+            db.execute("UPDATE alerts SET status=?, sent_at=? WHERE id=?", (SENT, time.time(), row_id))
+        else:
+            db.execute("UPDATE alerts SET status=?, sent_at=?, channels_sent=?, channels_failed=? WHERE id=?",
+                       (SENT, time.time(), json.dumps(sent_ch or [], ensure_ascii=False),
+                        json.dumps(failed_ch or [], ensure_ascii=False), row_id))
         db.commit()
     _auto_pin_sent(row_id)
 
@@ -235,6 +253,16 @@ def counts() -> dict[str, int]:
     with _lock:
         row = db.execute("SELECT MAX(sent_at) FROM alerts WHERE status=?", (SENT,)).fetchone()
     c["last_success_ts"] = float(row[0]) if row and row[0] else None
+    # ★[F-35] 채널별 지표 — "하나라도 sent 면 성공" 이라 **이메일만 죽은 상태가 숨는다.**
+    #   channels_sent/failed 는 이 변경 이후 행에만 있다(기존 행은 NULL=모름).
+    with _lock:
+        r1 = db.execute(
+            "SELECT MAX(sent_at) FROM alerts WHERE status=? AND channels_sent LIKE ?",
+            (SENT, '%"email"%')).fetchone()
+        r2 = db.execute(
+            "SELECT COUNT(*) FROM alerts WHERE channels_failed LIKE ?", ('%"email:%',)).fetchone()
+    c["email_last_success"] = float(r1[0]) if r1 and r1[0] else None
+    c["email_dead_count"] = int(r2[0]) if r2 else 0
     return c
 
 
@@ -289,6 +317,27 @@ def _attempted_remote(res: dict[str, Any]) -> bool:
     return False
 
 
+def _split_channels(res: dict[str, Any]) -> tuple[list[str], list[str]]:
+    """[F-35] dispatcher 결과 → (성공 채널, 실패 채널) 목록.
+
+    실패는 사유를 붙인다: "email:535" · "telegram:401" · "webhook:timeout".
+    ★원격 채널만 센다(log·relay 는 전달 여부 판단과 무관).
+    """
+    remote = ("telegram", "email", "webhook")
+    ok: list[str] = []
+    bad: list[str] = []
+    for r in (res.get("results") or []):
+        ch = str(r.get("channel", ""))
+        if ch not in remote:
+            continue
+        if r.get("sent"):
+            ok.append(ch)
+        else:
+            why = r.get("status") or r.get("reason") or "실패"
+            bad.append(f"{ch}:{str(why)[:40]}")
+    return ok, bad
+
+
 def try_send(row: dict[str, Any]) -> bool:
     """1건 전송 시도. 성공하면 sent 표시, 실패하면 백오프 예약."""
     if _sender is None:
@@ -297,7 +346,7 @@ def try_send(row: dict[str, Any]) -> bool:
     try:
         res = _sender(row["level"], row["message"], row["meta"])
         if res.get("delivered"):
-            mark_sent(row["id"])
+            mark_sent(row["id"], *_split_channels(res))
             return True
         # ★[2026-08-21] 원격 채널을 **아예 시도조차 안 한** 건은 재시도해도 영원히 실패한다
         #   (log 전용 등급). 이전에는 이런 건이 10회 재시도 후 데드레터로 갔고, 그 사이

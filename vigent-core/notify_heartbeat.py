@@ -75,6 +75,38 @@ def _sent_today() -> int:
         con.close()
 
 
+def _send_all_channels(text: str) -> dict[str, Any]:
+    """[F-35] 설정된 **원격 채널 전부**로 보낸다(텔레그램 + 이메일).
+
+    ★왜 전부인가: heartbeat 의 목적은 "채널이 살아 있음" 을 확인하는 것이다.
+      텔레그램만 보내면 **이메일이 죽어도 모른다** — 정작 텔레그램이 죽었을 때 쓰려고
+      만든 두 번째 채널인데 그 상태를 확인할 길이 없어진다.
+    ★이메일 실패도 note_config_error 경로를 탄다(_send_email 안에서 처리).
+    반환: {"sent": 하나라도 성공, "channels": {...}} — 성공 판정은 경보와 같은 규칙.
+    """
+    from app_state import STATE
+    agent = ((STATE.get("bundle") or {}).get("agents") or {}).get("Dispatcher")
+    if agent is None:
+        return {"sent": False, "reason": "에이전트 없음"}
+    out: dict[str, Any] = {}
+    cfg = {}
+    try:
+        from agents.dispatcher import notify_cfg
+        cfg = notify_cfg()
+    except Exception:  # noqa: BLE001
+        pass
+    if cfg.get("telegram_token") and cfg.get("telegram_chat"):
+        out["telegram"] = agent._send_telegram(text)
+    if cfg.get("smtp_host") and cfg.get("smtp_user") and cfg.get("email_to"):
+        out["email"] = agent._send_email("[VIGENT] 알림 채널 점검", text)
+    if not out:
+        return {"sent": False, "reason": "설정된 원격 채널 없음"}
+    ok = [k for k, v in out.items() if v.get("sent")]
+    bad = [f"{k}:{v.get('status') or v.get('reason') or '실패'}" for k, v in out.items() if not v.get("sent")]
+    return {"sent": bool(ok), "channels": out, "sent_channels": ok, "failed_channels": bad,
+            "reason": ("; ".join(bad) if bad else None)}
+
+
 def maybe_send(now: _dt.datetime | None = None, sender: Any = None) -> dict[str, Any]:
     """지정 시각이 됐고 **오늘 아직 안 보냈으면** 1회 보낸다.
 
@@ -94,11 +126,7 @@ def maybe_send(now: _dt.datetime | None = None, sender: Any = None) -> dict[str,
     text = compose_message()
     try:
         if sender is None:
-            from agents import dispatcher as _d
-            sender = _d.DispatcherAgent.__dict__.get("_send_telegram")
-            from app_state import STATE
-            agent = ((STATE.get("bundle") or {}).get("agents") or {}).get("Dispatcher")
-            res = agent._send_telegram(text) if agent is not None else {"sent": False, "reason": "에이전트 없음"}
+            res = _send_all_channels(text)
         else:
             res = sender(text)
     except Exception as ex:  # noqa: BLE001  통보 실패가 서버를 죽이면 안 된다

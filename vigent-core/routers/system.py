@@ -204,6 +204,9 @@ def health(theme: str = DEFAULT_THEME):
             notify_block = {
                 "last_success": alerts.get("last_success_ts"),
                 "dead_count": int(alerts.get("dead", 0) or 0),
+                # ★[F-35] 채널별 — "하나라도 성공" 판정이라 이메일만 죽은 상태가 숨는다.
+                "email_last_success": alerts.get("email_last_success"),
+                "email_dead_count": alerts.get("email_dead_count", 0),
                 "config_error": disp_status.get("last_config_error"),
                 "config_error_count": disp_status.get("config_error_count", 0),
                 "channels_configured": disp_status.get("channels_configured"),

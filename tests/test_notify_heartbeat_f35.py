@@ -99,6 +99,47 @@ class HeartbeatTest(unittest.TestCase):
         self.assertTrue(st2["last_ok"])
         self.assertIsNotNone(st2["last_sent_ts"])
 
+    def test_sends_to_all_configured_channels(self) -> None:
+        """★heartbeat 는 설정된 **원격 채널 전부**로 간다 — 이메일이 죽어도 알아야 한다.
+
+        텔레그램만 보내면, 정작 텔레그램이 죽었을 때 쓰려고 만든 두 번째 채널의
+        상태를 확인할 길이 없어진다.
+        """
+        import app_state
+        H = self.H
+        calls: list[str] = []
+
+        class _Agent:
+            @staticmethod
+            def _send_telegram(text: str) -> dict[str, Any]:
+                calls.append("telegram")
+                return {"channel": "telegram", "sent": True}
+
+            @staticmethod
+            def _send_email(subject: str, text: str) -> dict[str, Any]:
+                calls.append("email")
+                return {"channel": "email", "sent": False, "status": 535, "config_error": True}
+
+        from agents import dispatcher as D
+        orig_cfg = D.notify_cfg
+        D.notify_cfg = lambda: {"telegram_token": "t", "telegram_chat": "c", "webhook_url": None,
+                                "smtp_host": "smtp.x", "smtp_user": "u", "smtp_pass": "p",
+                                "email_to": "to@x", "smtp_port": 587}
+        prev_bundle = app_state.STATE.get("bundle")
+        app_state.STATE["bundle"] = {"agents": {"Dispatcher": _Agent}}
+        try:
+            res = H._send_all_channels("점검")
+        finally:
+            D.notify_cfg = orig_cfg
+            if prev_bundle is None:
+                app_state.STATE.pop("bundle", None)
+            else:
+                app_state.STATE["bundle"] = prev_bundle
+        self.assertEqual(sorted(calls), ["email", "telegram"], "두 채널 모두 시도해야 한다")
+        self.assertTrue(res["sent"], "하나라도 성공하면 sent(경보와 같은 규칙)")
+        self.assertEqual(res["sent_channels"], ["telegram"])
+        self.assertEqual(res["failed_channels"], ["email:535"])
+
     def test_bad_time_format_is_off(self) -> None:
         """형식이 틀리면 조용히 켜지 않는다 — 잘못된 설정으로 엉뚱한 시각에 보내지 않는다."""
         import tuning
