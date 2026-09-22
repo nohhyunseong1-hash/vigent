@@ -106,6 +106,14 @@ person 만 torch/GPU 다. **현장 프로필에서는 차이가 더 클 수 있�
 
 ## 2. 사양 검사 (preflight) — 미달이면 설치 중단
 
+★**구현됨(G-4, 2026-09-23)**: [`scripts/deploy/preflight.ps1`](../../scripts/deploy/preflight.ps1)
+아래 표 중 **VC++ 재배포를 뺀 7개 항목**을 검사한다. 미달이면 한 줄씩 전부 출력하고 **종료코드 1**.
+`-JsonOut` 으로 `install_report` 에 실을 JSON 을 남긴다.
+
+```
+powershell -ExecutionPolicy Bypass -File scripts\deploy\preflight.ps1 -InstallPath C:\VIGENT
+```
+
 기준선: **파일럿 사양(Ryzen 9700X / RTX 5060 8GB / RAM 16GB)**
 
 | 항목 | 최소 | 확인 방법 | 미달 시 메시지 |
@@ -117,7 +125,7 @@ person 만 torch/GPU 다. **현장 프로필에서는 차이가 더 클 수 있�
 | **VRAM** | **≥ 8 GB** | `nvidia-smi --query-gpu=memory.total` | "VRAM이 부족합니다(현재 X GB, 필요 8GB)" |
 | **RAM** | **≥ 16 GB** | `Win32_ComputerSystem.TotalPhysicalMemory` | "메모리가 부족합니다(현재 X GB, 필요 16GB)" |
 | **디스크 여유** | **≥ 20 GB** | 설치 대상 드라이브 | "디스크 여유가 부족합니다(현재 X GB, 필요 20GB)" |
-| VC++ 재배포 | 설치됨 | DLL 로드 시험 | USB의 `vc_redist.x64.exe` 자동 실행 제안 |
+| VC++ 재배포 | 설치됨 | DLL 로드 시험 | USB의 `vc_redist.x64.exe` 자동 실행 제안 · ⚠️**미구현** |
 
 ★**미달 항목은 한 줄씩 전부 출력한다.** 하나 고치고 다시 돌렸더니 또 다른 게 걸리는 일을 막는다.
 ★결과는 `install_report` 에 그대로 싣는다(나중에 "왜 이 기기를 골랐나" 의 근거).
