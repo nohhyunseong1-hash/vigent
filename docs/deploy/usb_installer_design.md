@@ -106,9 +106,23 @@ person 만 torch/GPU 다. **현장 프로필에서는 차이가 더 클 수 있�
 
 ## 2. 사양 검사 (preflight) — 미달이면 설치 중단
 
-★**구현됨(G-4, 2026-09-23)**: [`scripts/deploy/preflight.ps1`](../../scripts/deploy/preflight.ps1)
-아래 표 중 **VC++ 재배포를 뺀 7개 항목**을 검사한다. 미달이면 한 줄씩 전부 출력하고 **종료코드 1**.
+★**구현됨(G-4·H-1, 2026-09-23)**: [`scripts/deploy/preflight.ps1`](../../scripts/deploy/preflight.ps1)
+아래 표 **8개 항목 전부**를 검사한다. 미달이면 한 줄씩 전부 출력하고 **종료코드 1**.
 `-JsonOut` 으로 `install_report` 에 실을 JSON 을 남긴다.
+
+### ★지원 GPU 하한 — cu130 채택의 결과
+
+동봉 torch 가 `cu130` 빌드이므로 **`sm_75` 미만 GPU 는 지원하지 않는다.**
+실측 지원 목록: `sm_75, sm_80, sm_86, sm_90, sm_100, sm_120`.
+
+| 세대 | 예시 | 지원 |
+|---|---|---|
+| Pascal 이하 (`sm_61` 등) | **GTX 1080 / 1060 / 1050** 등 GTX 10xx | ❌ **미지원** |
+| Turing (`sm_75`) | GTX 1650 Ti · RTX 2060 | ✅ (현장 노트북이 여기) |
+| Ampere~Blackwell | RTX 30/40/50 시리즈 | ✅ |
+
+→ GTX 10xx 이하 기기는 preflight 의 **GPU 아키텍처 항목에서 차단**된다. 되살리려면
+CUDA 빌드를 낮춰야 하는데 그러면 `sm_120`(RTX 50)을 잃는다 — **동시 지원은 불가**다.
 
 ```
 powershell -ExecutionPolicy Bypass -File scripts\deploy\preflight.ps1 -InstallPath C:\VIGENT
@@ -125,7 +139,25 @@ powershell -ExecutionPolicy Bypass -File scripts\deploy\preflight.ps1 -InstallPa
 | **VRAM** | **≥ 8 GB** | `nvidia-smi --query-gpu=memory.total` | "VRAM이 부족합니다(현재 X GB, 필요 8GB)" |
 | **RAM** | **≥ 16 GB** | `Win32_ComputerSystem.TotalPhysicalMemory` | "메모리가 부족합니다(현재 X GB, 필요 16GB)" |
 | **디스크 여유** | **≥ 20 GB** | 설치 대상 드라이브 | "디스크 여유가 부족합니다(현재 X GB, 필요 20GB)" |
-| VC++ 재배포 | 설치됨 | DLL 로드 시험 | USB의 `vc_redist.x64.exe` 자동 실행 제안 · ⚠️**미구현** |
+| **VC++ 재배포** | **≥ 14.51** (x64) | 레지스트리 `Installed=1` + 버전 + 필수 DLL 존재 | "USB의 `vc_redist.x64.exe` 실행 후 재시작" |
+
+#### VC++ 재배포 하한 14.51 의 근거 (추측 아님)
+
+1. **무엇이 필요한가 — 바이너리 실측**: 포터블 torch DLL 들이 `vcruntime140.dll` ·
+   `vcruntime140_1.dll` · `msvcp140.dll` · `msvcp140_atomic_wait.dll` 을 가져다 쓴다.
+   앞의 둘은 포터블이 `python\` 에 **동봉**(14.38.33126.1)하지만, **`msvcp140.dll` 과
+   `msvcp140_atomic_wait.dll` 은 동봉되지 않는다** → 시스템 재배포가 없으면 torch import 가 죽는다.
+2. **버전 규칙 — 출처**: Microsoft Learn *C++ binary compatibility 2015-2026* —
+   "the Redistributable version must be at least as new as **the latest build tools used by
+   any app component**."
+3. **그 규칙에 넣을 실측값**: 포터블 PE 헤더의 링커 버전(=MSVC 빌드툴 버전) 최댓값 —
+   torch/cuDNN 구성요소 **14.44**(`cudnn64_9.dll`), **포터블 전체 14.51**
+   (`charset_normalizer`·`fontTools` 확장모듈).
+   → 규칙대로 **전체 최댓값 14.51** 을 하한으로 둔다.
+
+★**포터블 구성이 바뀌면 이 값도 다시 재야 한다**(같은 방법: 링커 버전 최댓값).
+★MS 문서가 `msvcp140_atomic_wait.dll` 의 **최초 도입 버전**은 명시하지 않는다 — 그래서
+그 숫자는 쓰지 않았고, 대신 위 규칙 + 실측으로 유도했다.
 
 ★**미달 항목은 한 줄씩 전부 출력한다.** 하나 고치고 다시 돌렸더니 또 다른 게 걸리는 일을 막는다.
 ★결과는 `install_report` 에 그대로 싣는다(나중에 "왜 이 기기를 골랐나" 의 근거).

@@ -35,6 +35,12 @@ param(
     # ★USB 안 드라이버 설치 파일 경로 - USB 구성이 확정되면 채운다(설계서 §3).
     #   비어 있으면 안내 문구에 "경로 미정" 이라고 정직하게 찍는다.
     [string]$DriverInstallerPath = "",
+    # VC++ 재배포(x64) 하한. 근거는 아래 §6 주석 - 포터블 PE 링커 버전 실측 + MS 이진호환 규칙.
+    [string]$MinVcRedist = "14.51",
+    # ★USB 안 vc_redist.x64.exe 경로 - 드라이버와 같은 이유로 비워 둔다.
+    [string]$VcRedistPath = "",
+    # 조회할 레지스트리 경로. 시험 때 없는 경로를 줘서 "키 없음" 경로를 타볼 수 있다.
+    [string]$VcRegPath = "HKLM:\SOFTWARE\Microsoft\VisualStudio\14.0\VC\Runtimes\x64",
     [string]$JsonOut = ""
 )
 
@@ -95,6 +101,13 @@ function Get-DriverHint {
         return "USB 안의 NVIDIA 드라이버 설치 파일을 실행한 뒤 재부팅하고 다시 시작하세요. (설치 파일 경로: ___________ - USB 구성 확정 시 기입)"
     }
     return "USB 안의 드라이버 설치 파일을 실행한 뒤 재부팅하고 다시 시작하세요: $DriverInstallerPath"
+}
+
+function Get-VcRedistHint {
+    if ([string]::IsNullOrWhiteSpace($VcRedistPath)) {
+        return "USB 안의 vc_redist.x64.exe 를 실행한 뒤 다시 시작하세요. (설치 파일 경로: ___________ - USB 구성 확정 시 기입)"
+    }
+    return "다음 파일을 실행한 뒤 다시 시작하세요: $VcRedistPath"
 }
 
 Write-Host ""
@@ -212,6 +225,73 @@ if ($targetRoot) {
 }
 Add-Check -Name "디스크 여유" -Required ">= $MinDiskGB GB ($InstallPath)" -Actual $diskActual -Ok $diskOk `
     -Hint ("디스크 여유가 부족합니다(현재 {0}, 필요 {1}GB). 다른 드라이브를 -InstallPath 로 지정하거나 공간을 비우세요." -f $diskActual, $MinDiskGB)
+
+# ── 6. VC++ 재배포 패키지 (H-1) ───────────────────────────────────────────
+# 왜 필요한가 - 실측 근거:
+#   포터블의 torch DLL 들이 가져다 쓰는 CRT DLL 을 바이너리에서 확인했다(2026-09-23):
+#     vcruntime140.dll · vcruntime140_1.dll · msvcp140.dll · msvcp140_atomic_wait.dll
+#   이 중 vcruntime140(_1).dll 은 포터블이 python\ 에 **동봉**한다(14.38.33126.1).
+#   ★msvcp140.dll 과 msvcp140_atomic_wait.dll 은 **동봉되지 않는다** - 시스템 재배포가
+#     없으면 torch import 가 DLL 로드 실패로 죽는다.
+#
+# 최소 버전의 근거(추측 아님):
+#   Microsoft Learn "C++ binary compatibility 2015-2026" -
+#     "the Redistributable version must be at least as new as the latest build tools
+#      used by any app component."
+#     https://learn.microsoft.com/en-us/cpp/porting/binary-compat-2015-2017
+#   여기에 실측값을 대입한다. 포터블 PE 헤더의 링커 버전(=MSVC 빌드툴 버전) 실측:
+#     torch/cuDNN 구성요소 최대 14.44 (cudnn64_9.dll)
+#     포터블 전체 최대     14.51 (charset_normalizer, fontTools 확장모듈)
+#   → 규칙대로 **전체 최댓값 14.51** 을 기본 하한으로 둔다. 느슨하게 잡았다가
+#     import 시점에 죽는 쪽보다, 설치 전에 vc_redist 를 한 번 더 돌리는 쪽이 싸다.
+#   ★포터블 구성이 바뀌면 이 값도 다시 재야 한다(같은 방법으로 링커 버전 최댓값).
+$vcOk = $false; $vcActual = "확인 불가"; $vcHint = ""
+$vcFloorVer = $null
+try { $vcFloorVer = [Version]$MinVcRedist } catch { $vcFloorVer = $null }
+
+# ★동봉되지 않아 시스템에 반드시 있어야 하는 DLL (위 실측에서 나온 목록)
+$REQUIRED_SYS_DLL = @("msvcp140.dll", "msvcp140_atomic_wait.dll")
+$missingDll = @()
+foreach ($n in $REQUIRED_SYS_DLL) {
+    if (-not (Test-Path (Join-Path $env:SystemRoot "System32\$n"))) { $missingDll += $n }
+}
+
+$vcInstalled = $false; $vcVer = $null
+if (Test-Path $VcRegPath) {
+    $rp = Get-ItemProperty -Path $VcRegPath -ErrorAction SilentlyContinue
+    if ($rp) {
+        $vcInstalled = ([int]$rp.Installed -eq 1)
+        if ($null -ne $rp.Major -and $null -ne $rp.Minor) {
+            $bld = if ($null -ne $rp.Bld) { $rp.Bld } else { 0 }
+            try { $vcVer = [Version]("{0}.{1}.{2}.0" -f $rp.Major, $rp.Minor, $bld) } catch { $vcVer = $null }
+        }
+    }
+}
+
+if (-not (Test-Path $VcRegPath)) {
+    $vcActual = "미설치(레지스트리 키 없음)"
+    $vcHint = "Visual C++ 재배포 패키지(x64)가 설치돼 있지 않습니다. " + (Get-VcRedistHint)
+} elseif (-not $vcInstalled) {
+    $vcActual = "레지스트리 Installed != 1"
+    $vcHint = "Visual C++ 재배포 패키지가 온전히 설치되지 않았습니다. " + (Get-VcRedistHint)
+} elseif ($null -eq $vcVer) {
+    $vcActual = "설치됨(버전 읽기 실패)"
+    $vcHint = "레지스트리에 버전 값이 없습니다. 최신 재배포 패키지로 다시 설치하세요. " + (Get-VcRedistHint)
+} elseif ($null -eq $vcFloorVer) {
+    $vcActual = "$vcVer"
+    $vcHint = "-MinVcRedist 값 '$MinVcRedist' 을 버전으로 읽을 수 없습니다. 'major.minor' 형식이어야 합니다."
+} elseif ($vcVer -lt $vcFloorVer) {
+    $vcActual = "$vcVer"
+    $vcHint = ("Visual C++ 재배포 패키지가 오래됐습니다(현재 {0}, 필요 {1} 이상). {2}" -f $vcVer, $MinVcRedist, (Get-VcRedistHint))
+} elseif ($missingDll.Count -gt 0) {
+    # 레지스트리는 설치됐다는데 파일이 없는 상태. 실제로 있는 사고다(다른 설치기가 지우는 경우).
+    $vcActual = ("{0} - 그런데 {1} 없음" -f $vcVer, ($missingDll -join ", "))
+    $vcHint = ("레지스트리는 설치됨이나 필요한 DLL 이 없습니다({0}). 재배포 패키지를 복구 설치하세요. {1}" -f ($missingDll -join ", "), (Get-VcRedistHint))
+} else {
+    $vcOk = $true
+    $vcActual = "$vcVer"
+}
+Add-Check -Name "VC++ 재배포" -Required ">= $MinVcRedist (x64)" -Actual $vcActual -Ok $vcOk -Hint $vcHint
 
 # ── 결과 출력 ─────────────────────────────────────────────────────────────
 Write-Host "--- 검사 결과 ---"
