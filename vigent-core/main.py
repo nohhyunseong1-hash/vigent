@@ -496,6 +496,14 @@ def _startup() -> None:
         from agents import dispatcher as _disp_mod
         _disp_mod.start_selftest_loop()
     _optional("notify_selftest", _notify_selftest)
+
+    # ★[F-35] 하루 1회 "살아 있음" 통보 — **이게 안 오면 사람이 알아차린다.**
+    #   배너·CRITICAL 은 화면·로그를 볼 때만 보인다. 정상일 때도 말을 하게 해야
+    #   침묵이 곧 신호가 된다. notify.heartbeat_at 미설정이면 스레드조차 띄우지 않는다.
+    def _notify_heartbeat() -> None:
+        import notify_heartbeat
+        notify_heartbeat.start()
+    _optional("notify_heartbeat", _notify_heartbeat)
     # [B4] 워커 기동은 **모델 예열이 끝난 뒤**로 미룬다.
     #   예열 전에 붙이면 워커의 첫 검출이 콜드 로드(실측 12.5s)를 떠안아 hang 워치독(15s)을
     #   넘기고, 죽이면 로드를 처음부터 다시 해 무한 재시작에 빠진다(2026-08-13 실측 45회).

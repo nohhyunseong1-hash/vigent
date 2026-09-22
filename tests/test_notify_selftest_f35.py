@@ -140,9 +140,18 @@ class NotifySelftestTest(unittest.TestCase):
 
     def test_startup_loop_is_background_and_does_not_block(self) -> None:
         """★기동 경로가 getMe 타임아웃만큼 늦어지면 안 된다 — 배경 스레드로 돈다."""
+        import os
         import threading
         D = self.D
         self._fake_requests(_Resp(200, {"ok": True, "result": {"username": "bg"}}))
+        # ★테스트 러너는 VIGENT_NOTIFY_SELFTEST=0 으로 망을 막아 둔다(tests/_isolate.py).
+        #   이 시험은 **루프 자체**를 보는 것이므로 잠깐만 켠다(요청은 가짜라 망을 타지 않는다).
+        prev = os.environ.get("VIGENT_NOTIFY_SELFTEST")
+        os.environ["VIGENT_NOTIFY_SELFTEST"] = "1"
+        if prev is None:
+            self.addCleanup(os.environ.pop, "VIGENT_NOTIFY_SELFTEST", None)
+        else:
+            self.addCleanup(os.environ.__setitem__, "VIGENT_NOTIFY_SELFTEST", prev)
         before = threading.active_count()
         t0 = time.time()
         D.start_selftest_loop()
@@ -153,6 +162,35 @@ class NotifySelftestTest(unittest.TestCase):
             time.sleep(0.02)
         self.assertEqual(D._SELFTEST["state"], "ok")
         self.assertGreaterEqual(before, 1)
+
+    def test_flag_disables_selftest(self) -> None:
+        """★VIGENT_NOTIFY_SELFTEST=0 이면 스레드를 띄우지 않는다 — 테스트·오프라인에서 망을 안 탄다.
+
+        이 스위치가 없어 2026-09-22 에 **전체 테스트가 실제 텔레그램에 접속**했다.
+        테스트 러너(tests/_isolate.py)가 이 값을 기본으로 0 으로 둔다.
+        """
+        import os
+        D = self.D
+        called = {"n": 0}
+
+        class _R:
+            @staticmethod
+            def get(*_a: Any, **_k: Any) -> Any:
+                called["n"] += 1
+                raise AssertionError("★꺼져 있는데 망을 탔다")
+        D.requests = _R
+        prev = os.environ.get("VIGENT_NOTIFY_SELFTEST")
+        os.environ["VIGENT_NOTIFY_SELFTEST"] = "0"
+        try:
+            D.start_selftest_loop()
+            time.sleep(0.1)
+        finally:
+            if prev is None:
+                os.environ.pop("VIGENT_NOTIFY_SELFTEST", None)
+            else:
+                os.environ["VIGENT_NOTIFY_SELFTEST"] = prev
+        self.assertEqual(called["n"], 0, "요청이 한 번도 나가면 안 된다")
+        self.assertEqual(D._SELFTEST["state"], "disabled")
 
     def test_not_configured(self) -> None:
         D = self.D

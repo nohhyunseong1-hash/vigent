@@ -103,6 +103,15 @@ def isolate_logs():
 #   10MB 회전(vigent.log·.1·.2 변경 3건)했다. unittest discover 는 모든 test 모듈을 먼저 import 한 뒤 실행하므로, 이 모듈이
 #   import 되는 순간(어느 test 모듈이든 _isolate 를 쓰면) 루트 파일 핸들러·이벤트 로거를 임시 경로로 돌려 두면 실행 단계의
 #   모든 테스트 로그가 운영 logs/ 를 건드리지 않는다. 프로세스 종료 때 원복(atexit). VIGENT_TEST_KEEP_LOGS=1 이면 끄기.
+# ── ★[F-35, 2026-09-22] 테스트는 **망을 타지 않는다** ────────────────────────────────────────
+#   실측 사고: 알림 채널 자가시험(getMe)을 기동 경로에 넣자 **전체 테스트가 실제 텔레그램에
+#   접속했다**(test_startup_services 2건 실패로 드러남). 망이 없거나 느린 환경에서는 테스트가
+#   불안정해지고, 토큰이 설정된 PC 에서는 **외부로 요청이 나간다.**
+#   이 모듈이 import 되는 순간(어느 test 모듈이든) 자가시험을 꺼 둔다.
+#   실제로 망을 태워 보려면 VIGENT_TEST_ALLOW_NET=1.
+if os.environ.get("VIGENT_TEST_ALLOW_NET", "") != "1":
+    os.environ.setdefault("VIGENT_NOTIFY_SELFTEST", "0")
+
 _PROCESS_LOG_RESTORE = None
 if os.environ.get("VIGENT_TEST_KEEP_LOGS", "") != "1":
     try:

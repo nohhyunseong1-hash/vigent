@@ -192,6 +192,13 @@ def start_selftest_loop() -> None:
     """
     import threading
 
+    # ★테스트·오프라인에서 망을 타지 않게 끌 수 있다(VIGENT_NOTIFY_SELFTEST=0).
+    #   2026-09-22: 이 스위치가 없어 전체 테스트가 실제 텔레그램에 접속했다.
+    if os.environ.get("VIGENT_NOTIFY_SELFTEST", "1").strip() in ("0", "false", "off"):
+        _LOG.info("알림 자가시험 비활성(VIGENT_NOTIFY_SELFTEST=0)")
+        _SELFTEST.update(state="disabled", checked_at=time.time(), reason="비활성", unknown_since=None)
+        return
+
     def _loop() -> None:
         while True:
             try:

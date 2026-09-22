@@ -227,3 +227,5 @@ relay:                      # [P3a] 물리 출력(사이렌·경광등) 네트�
 #     ppe_config_warn 에 사유가 뜬다.
 ppe:
   required: [NO-Hardhat, NO-Safety-Vest]
+notify:
+  heartbeat_at: ''    # [드리프트 보충] 전역 기본값에서 상속
