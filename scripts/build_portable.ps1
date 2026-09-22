@@ -58,7 +58,17 @@ function Quiet($exe, [string[]]$argv) {
 }
 function Run($exe, [string[]]$argv) {
     Write-Host ("  > " + $exe + " " + ($argv -join " ")) -ForegroundColor DarkGray
-    & $exe @argv
+    # ★[2026-09-23] $ErrorActionPreference="Stop" 이면 PowerShell 5.1 은 **네이티브 명령의
+    #   stderr 한 줄**도 NativeCommandError 예외로 만든다. 실제로 rfdetr 의 FutureWarning
+    #   한 줄 때문에 GPU 빌드가 통째로 죽었다(종료코드는 0 이었다).
+    #   → 이 블록 안에서만 Continue 로 낮추고, **성패는 종료코드로만** 판정한다.
+    $prev = $ErrorActionPreference
+    $ErrorActionPreference = "Continue"
+    try {
+        & $exe @argv
+    } finally {
+        $ErrorActionPreference = $prev
+    }
     if ($LASTEXITCODE -ne 0) { throw "실패(exit $LASTEXITCODE): $exe $($argv -join ' ')" }
 }
 

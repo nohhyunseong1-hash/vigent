@@ -66,8 +66,41 @@ GPU: RTX 5070 Ti · 드라이버 610.74
 - NVIDIA 드라이버 설치 파일(`.exe`)을 USB에 **동봉**한다.
 - `nvidia-smi` 가 없으면 **설치를 중단**하고 안내한다:
   > `USB의 driver\<파일명>.exe 를 실행 → 재부팅 → VIGENT_설치.bat 다시 실행`
-- 드라이버 **버전 하한**: CUDA 13.0 런타임을 쓰려면 그에 맞는 드라이버가 필요하다.
-  개발기 실측값 **610.74** 에서 동작 확인. 하한은 **빌드 시점에 확정**한다(아래 위험 R-2).
+- 드라이버 **버전 하한 — 확정됨(2026-09-23)**
+
+  | 항목 | 값 | 출처 |
+  |---|---|---|
+  | **CUDA 13.0 (Windows) 최소 드라이버** | **≥ 580** | NVIDIA CUDA Toolkit Release Notes, Table 3 |
+  | CUDA 12.8 (Windows) 참고 | ≥ 570.65 | 동일 |
+  | **개발기 실측 드라이버** | **610.74** (RTX 5070 Ti) | `nvidia-smi` 2026-09-23 |
+
+  → **preflight 기준값은 580** 으로 둔다. 개발기 610.74 는 여유 있게 통과한다.
+
+### 1-3. ★GPU 포터블 실증 (2026-09-23, 개발기 RTX 5070 Ti)
+
+**인터넷 차단(`HTTPS_PROXY=http://127.0.0.1:9`) 상태에서 전 과정 확인.**
+
+| 항목 | 결과 |
+|---|---|
+| 빌드 | ✅ `D:\vigent_portable_gpu` · **4.23 GB** · 46,848 파일 · **1.3분** |
+| CUDA 휠 동봉 | ✅ `torch-2.12.0+cu130`(1,926MB) · `torchvision-0.27.0+cu130` |
+| **오프라인 휠 교체** | ✅ **0.9분** (`--no-index --find-links wheels_cuda`) |
+| CUDA 인식 | ✅ `torch 2.12.0+cu130` · `is_available True` · **`sm_120` 포함** |
+| **nvidia-smi 점유** | ✅ `D:\vigent_portable_gpu\python\python.exe` 가 GPU 프로세스로 잡힘 |
+| torch VRAM | allocated 281MB · reserved 558MB |
+
+**추론 시간 비교** (같은 사고영상 1프레임, 예열 후 4회 평균, person+ppe):
+
+| 패키지 | torch | 평균 | 최소 | 첫 추론 |
+|---|---|---|---|---|
+| CPU 포터블 | 2.12.0+cpu | **231.6 ms** | 229.5 | 36.1 s |
+| **GPU 포터블** | **2.12.0+cu130** | **128.6 ms** | 111.1 | 11.1 s |
+| | | **1.80배 빠름** | | **3.3배 빠름** |
+
+⚠️ **PPE 슬롯은 포터블 프로필상 `onnx-cpu`** 라 GPU 를 쓰지 않는다(`portable_overrides.yaml`).
+person 만 torch/GPU 다. **현장 프로필에서는 차이가 더 클 수 있으나 미측정**이다.
+
+⚠️ **RTX 5060 실기는 여전히 미검증**(R-1). 위 값은 **5070 Ti** 기준이다.
 
 ---
 
@@ -79,7 +112,7 @@ GPU: RTX 5070 Ti · 드라이버 610.74
 |---|---|---|---|
 | OS | Windows 10/11 **64bit** | `[Environment]::Is64BitOperatingSystem` | "64비트 Windows 10 이상이 필요합니다" |
 | **GPU 드라이버** | `nvidia-smi` 응답 | `nvidia-smi` 실행 | "USB의 `driver\*.exe` 실행 → 재부팅 → 재시작" |
-| **드라이버 버전** | CUDA 13.0 지원 버전(빌드 시 확정) | `nvidia-smi --query-gpu=driver_version` | "드라이버가 오래됐습니다(현재 X, 필요 Y 이상)" |
+| **드라이버 버전** | **≥ 580** (CUDA 13.0 Windows) | `nvidia-smi --query-gpu=driver_version` | "드라이버가 오래됐습니다(현재 X, 필요 Y 이상)" |
 | **GPU 아키텍처** | torch 빌드의 `get_arch_list()` 에 포함 | `nvidia-smi --query-gpu=compute_cap` | "이 GPU(sm_XX)는 동봉된 CUDA 빌드가 지원하지 않습니다" |
 | **VRAM** | **≥ 8 GB** | `nvidia-smi --query-gpu=memory.total` | "VRAM이 부족합니다(현재 X GB, 필요 8GB)" |
 | **RAM** | **≥ 16 GB** | `Win32_ComputerSystem.TotalPhysicalMemory` | "메모리가 부족합니다(현재 X GB, 필요 16GB)" |
@@ -224,10 +257,11 @@ python scripts\acceptance_test.py --only-human
 | # | 위험 | 영향 | 완화 |
 |---|---|---|---|
 | **R-1** | **RTX 5060 실기 미검증** | sm_120 에서 실제로 도는지 **모른다**. 5070 Ti 로만 검증 | 5070 Ti 로 검증하고 **"5060 미검증"을 설치기에 표시**. 첫 5060 설치 시 A4(GPU 점유)를 반드시 확인 |
-| **R-2** | **드라이버 버전 하한 미확정** | 너무 낮으면 CUDA 13.0 이 안 돈다 | 빌드 시 NVIDIA 문서로 확정. 개발기 실측 **610.74** 는 동작 |
-| **R-3** | **`-Cuda` 기본값이 cu126** | 그대로 빌드하면 **5060에서 실패하거나 조용히 CPU 폴백** | 기본값을 **cu130** 으로 바꾸고 preflight 가 아키텍처 검사 |
+| ~~R-2~~ | ~~드라이버 버전 하한 미확정~~ | — | ✅ **해소(2026-09-23)**: CUDA 13.0 Windows 최소 **580**(NVIDIA Release Notes Table 3). 개발기 610.74 동작 확인 |
+| ~~R-3~~ | ~~`-Cuda` 기본값이 cu126~~ | — | ✅ **해소(2026-09-23, 커밋 7e2bd08)**: 기본값 cu130 + cu128 미만 선택 시 경고 |
 | **R-4** | **두 계보 분리** | 4.07GB 번들 내용을 모른다 | **착수 조건**: 원격 복구 후 비교·통합 |
-| **R-5** | `--gpu` 경로 **미실행** | 코드만 있고 한 번도 안 돌렸다 | 1차 구현 시 **최우선 검증** |
+| ~~R-5~~ | ~~`--gpu` 경로 미실행~~ | — | ✅ **해소(2026-09-23)**: 인터넷 차단 상태에서 빌드·휠교체·GPU 추론까지 실증(§1-3) |
+| **R-8** | ★빌드 스크립트가 **stderr 한 줄에 죽었다** | rfdetr FutureWarning 때문에 GPU 빌드가 통째로 실패 | ✅ 수정: `Run` 이 종료코드로만 판정(PS 5.1 NativeCommandError 회피) |
 | **R-6** | 카메라 IP 할당 방식 기록 없음 | 재부팅 후 IP 가 바뀌면 카메라가 끊긴다 | 1차는 수동 입력. **2차에서 고정 IP 대역으로 해결** |
 | **R-7** | USB 분실 | 코드·가중치 유출(토큰·영상은 없음) | 토큰은 USB 에 없다. USB 는 잠긴 곳에 보관 |
 
@@ -236,10 +270,11 @@ python scripts\acceptance_test.py --only-human
 ## 9. 1차 착수 조건
 
 - [ ] **원격(GitHub) 복구** — 현재 `ls-remote` 404
-- [ ] **두 계보 비교·통합** — 4.07GB 번들 vs 2.43GB 포터블
-- [ ] `build_portable.ps1` `-Cuda` 기본값 **cu130** 으로 변경
-- [ ] `--gpu` 경로 **실제 실행 검증**(개발기 5070 Ti)
-- [ ] NVIDIA 드라이버 버전 하한 확정
+- [ ] **두 계보 비교·통합** — 4.07GB 번들 vs 2.43GB 포터블 (원격 복구 후)
+- [x] `build_portable.ps1` `-Cuda` 기본값 **cu130** 으로 변경 — G-1, 커밋 `7e2bd08`
+- [x] `--gpu` 경로 **실제 실행 검증**(개발기 5070 Ti) — G-2, §1-3
+- [x] NVIDIA 드라이버 버전 하한 확정 — G-3, **≥ 580**, §1-2
+- [x] preflight 스크립트 초안 — G-4, `scripts/deploy/preflight.ps1`
 
 ---
 
