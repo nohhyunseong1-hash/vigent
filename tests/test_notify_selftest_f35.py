@@ -210,6 +210,78 @@ class NotifySelftestTest(unittest.TestCase):
         self.assertEqual(D._DELIVERY["last_config_error"], "telegram HTTP 401")
         self.assertEqual(D.selftest_status()["state"], "config_error")
 
+    # ── 5-b. 이메일 설정 오류도 같은 경로 ───────────────────────────────────
+    def test_email_config_error_takes_banner_path(self) -> None:
+        """★이메일 인증 오류도 붉은 배너·CRITICAL 을 탄다 — 텔레그램과 같은 실수를 반복하지 않는다."""
+        import smtplib
+        D = self.D
+        D.notify_cfg = lambda: {"telegram_token": None, "telegram_chat": None, "webhook_url": None,
+                                "smtp_host": "smtp.example.com", "smtp_user": "u@example.com",
+                                "smtp_pass": "x", "email_to": "to@example.com", "smtp_port": 587}
+        import vision_loader
+        agent = D.DispatcherAgent(vision_loader.load_vision("safety"))
+
+        class _SMTP:
+            def __init__(self, *a, **k): pass
+            def __enter__(self): return self
+            def __exit__(self, *a): return False
+            def starttls(self): pass
+            def login(self, *a): raise smtplib.SMTPAuthenticationError(535, b"bad creds")
+            def send_message(self, m): pass
+        orig = smtplib.SMTP
+        smtplib.SMTP = _SMTP
+        try:
+            with self.assertLogs("vigent.dispatcher", level="CRITICAL"):
+                out = agent._send_email("제목", "본문")
+        finally:
+            smtplib.SMTP = orig
+        self.assertTrue(out["config_error"])
+        self.assertEqual(D._DELIVERY["last_config_error"], "email HTTP 535")
+        self.assertEqual(D.selftest_status()["state"], "config_error")
+
+    def test_config_error_type_is_consistent(self) -> None:
+        """★두 경로가 같은 **문자열** 타입을 넣어야 한다(2026-09-22 타입 충돌 결함).
+
+        예전엔 _dispatch_now 가 dict 를, note_config_error 가 문자열을 넣어
+        /health notify.config_error 모양이 경로에 따라 달라졌다.
+        """
+        D = self.D
+        D.note_config_error("telegram", 401)
+        self.assertIsInstance(D._DELIVERY["last_config_error"], str)
+        D.reset_delivery_stats_for_test()
+        D.note_config_error("email", 535)
+        self.assertIsInstance(D._DELIVERY["last_config_error"], str)
+
+    def test_smtp_selftest_does_not_login(self) -> None:
+        """★SMTP 자가시험은 **연결까지만** — 로그인하면 Gmail 이 계정을 잠글 수 있다."""
+        import smtplib
+        D = self.D
+        D.notify_cfg = lambda: {"telegram_token": None, "telegram_chat": None, "webhook_url": None,
+                                "smtp_host": "smtp.example.com", "smtp_user": "u@example.com",
+                                "smtp_pass": "x", "email_to": "to@example.com", "smtp_port": 587}
+        seen = {"login": 0, "starttls": 0}
+
+        class _SMTP:
+            def __init__(self, *a, **k): pass
+            def __enter__(self): return self
+            def __exit__(self, *a): return False
+            def ehlo(self): pass
+            def starttls(self): seen["starttls"] += 1
+            def login(self, *a): seen["login"] += 1
+        orig = smtplib.SMTP
+        smtplib.SMTP = _SMTP
+        try:
+            st = D.selftest_smtp()
+        finally:
+            smtplib.SMTP = orig
+        self.assertEqual(st["state"], "ok")
+        self.assertEqual(seen["starttls"], 1)
+        self.assertEqual(seen["login"], 0, "★로그인을 시도하면 안 된다(계정 잠금 위험)")
+
+    def test_smtp_not_configured(self) -> None:
+        D = self.D
+        self.assertEqual(D.selftest_smtp()["state"], "not_configured")
+
     # ── 6. 마지막 성공 시각 ────────────────────────────────────────────────
     def test_counts_has_last_success_ts(self) -> None:
         """'언제부터 안 가고 있나' 를 /health 가 말할 수 있어야 한다."""

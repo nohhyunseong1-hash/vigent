@@ -213,6 +213,27 @@ def start_selftest_loop() -> None:
     threading.Thread(target=_loop, name="notify-selftest", daemon=True).start()
 
 
+def selftest_smtp() -> dict[str, Any]:
+    """[F-35] SMTP **연결만** 확인한다. ★로그인은 하지 않는다.
+
+    왜 로그인을 안 하나: 기동마다 인증을 시도하면 Gmail 이 반복 실패를 **계정 잠금**으로 볼 수
+    있다. 연결·STARTTLS 까지만 보고, 자격증명 오류는 실제 전송 때 `note_config_error("email", …)`
+    로 드러난다(붉은 배너·CRITICAL).
+    반환 state: ok | unknown | not_configured
+    """
+    c = notify_cfg()
+    if not (c["smtp_host"] and c["smtp_user"] and c["email_to"]):
+        return {"state": "not_configured", "reason": "SMTP 미설정"}
+    try:
+        import smtplib
+        with smtplib.SMTP(c["smtp_host"], c["smtp_port"], timeout=8) as s:
+            s.ehlo()
+            s.starttls()
+        return {"state": "ok", "reason": None}
+    except Exception as ex:  # noqa: BLE001  망·서버 문제일 수 있다 — 설정 오류로 단정하지 않는다
+        return {"state": "unknown", "reason": type(ex).__name__}
+
+
 def selftest_status() -> dict[str, Any]:
     """/health·배너가 읽는 형태. unknown 이 30분을 넘었는지 여기서 판정한다."""
     s = dict(_SELFTEST)
@@ -311,6 +332,10 @@ class DispatcherAgent(BaseAgent):
             if type(ex).__name__ in ("SMTPAuthenticationError", "SMTPRecipientsRefused", "SMTPSenderRefused"):
                 out["config_error"] = True                            # [M4-3] 인증·수신자 오류 = 설정 오류
                 out["status"] = getattr(ex, "smtp_code", None)
+                # ★[F-35] 이메일 설정 오류도 붉은 배너·CRITICAL 경로를 탄다.
+                #   예전엔 dict 에 표시만 하고 아무도 보지 않았다 — 텔레그램과 같은 실수를
+                #   이메일에서 반복하지 않는다.
+                note_config_error("email", out["status"])
             return out
 
     def _send_webhook(self, payload: dict[str, Any]) -> dict[str, Any]:
@@ -399,12 +424,13 @@ class DispatcherAgent(BaseAgent):
         if not any_remote:
             bad = [r for r in results if r.get("config_error")]
             if bad:
-                import time as _t
                 extra["config_error"] = True
-                _DELIVERY["last_config_error"] = {"ts": _t.time(), "channel": bad[0]["channel"],
-                                                  "status": bad[0].get("status")}
-                _LOG.error("★통보 설정 오류(%s HTTP %s) — 재시도하지 않는다. 토큰·chat_id·URL 을 확인하라",
-                           bad[0]["channel"], bad[0].get("status"))
+                # ★[F-35, 2026-09-22] 여기서 직접 쓰지 않고 note_config_error 를 쓴다.
+                #   ① 예전엔 dict 를, note_config_error 는 문자열을 넣어 **타입이 엇갈렸다**
+                #      (/health notify.config_error 가 경로에 따라 모양이 달라짐 — 2026-09-22 결함).
+                #   ② 그리고 이 경로는 CRITICAL·배너를 타지 않아 **조용히 dead 로만 쌓였다.**
+                #      20일간 213건이 그렇게 사라졌다.
+                note_config_error(bad[0]["channel"], bad[0].get("status"))
             ras = [float(r["retry_after"]) for r in results if r.get("retry_after") is not None]
             if ras:
                 extra["retry_after"] = max(ras)

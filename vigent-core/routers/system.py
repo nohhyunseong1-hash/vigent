@@ -211,6 +211,19 @@ def health(theme: str = DEFAULT_THEME):
                 "selftest_reason": _st.get("reason"),
                 "selftest_unknown_too_long": _disp_mod.selftest_status().get("unknown_too_long", False),
             }
+            # [F-35] SMTP 연결 확인(로그인 안 함) + ★**단일 채널 경고**
+            #   2026-08-21~09-10 에 텔레그램 하나뿐이었고 그게 죽자 경보가 아무에게도 안 갔다.
+            #   두 번째 채널이 없다는 사실 자체가 위험 신호다 — 조용히 두지 않는다.
+            try:
+                _sm = _disp_mod.selftest_smtp()
+                notify_block["smtp_state"] = _sm.get("state")
+                notify_block["smtp_reason"] = _sm.get("reason")
+                _remote_n = sum(1 for k in ("telegram", "email", "webhook")
+                                if disp_status.get(k))
+                notify_block["remote_channel_count"] = _remote_n
+                notify_block["single_channel"] = bool(_remote_n == 1)
+            except Exception:  # noqa: BLE001
+                pass
             # [F-35] heartbeat 도 실패할 수 있다 — 그 실패가 안 보이면 '침묵이 신호' 설계가 무너진다.
             try:
                 import notify_heartbeat

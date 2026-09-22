@@ -104,9 +104,11 @@ class HttpCodeClassification(unittest.TestCase):
         self.assertEqual(st, "dead", "설정 오류(401)는 재시도해도 영원히 실패 — 즉시 dead 여야 한다")
         self.assertEqual(attempts, 1)
         self.assertIn("config_error", err)
+        # ★[F-35, 2026-09-22] 형식이 dict → **문자열**로 통일됐다.
+        #   예전엔 _dispatch_now 는 dict 를, 자가시험 경로는 문자열을 넣어 /health 의
+        #   notify.config_error 모양이 경로에 따라 달라졌다. 이제 둘 다 "채널 HTTP 코드".
         lce = self.agent.status()["last_config_error"]
-        self.assertEqual(lce["channel"], "telegram")
-        self.assertEqual(lce["status"], 401)
+        self.assertEqual(lce, "telegram HTTP 401")
         self.assertNotIn("SECRET-TOKEN", str(self.agent.status()), "status 에 토큰이 새면 안 된다")
 
     def test_429_retries_with_retry_after(self):
