@@ -41,6 +41,9 @@ CENTER_OK = 0.20       # 중심 거리 — IoU 가 낮아도 이 안이면 후�
 SIZE_RATIO_OK = 2.5    # ★**변 길이비**(폭·높이 각각 계산해 큰 쪽) 상한. 2026-09-22 정정:
                        #   예전엔 '면적비 1.8' 이라 사람이 다가오면(면적은 제곱으로 변함)
                        #   0.5초에도 후보에서 빠졌다. 변 길이비 2.5 로 바꾼다.
+# ★영상 역할(2026-09-22): 긴 간격이 많아 연속 구간이 사실상 없는 영상은 추적/IDSW 집계에서 뺀다.
+#   721865 는 8프레임 중 6구간이 긴 간격이라 연속 쌍이 1개뿐 — 검출기 재현율에만 쓴다.
+DETECTOR_ONLY_VIDEOS = {"KakaoTalk_20260807_000721865"}
 PERSON_ONLY = True     # ★보간 대상은 person 만. 실측상 안전모·마스크는 1fps 에서 IoU 중앙값
                        #   0.000~0.17 로 자동 연결이 불가능하고, 이번 목적(재현율·IDSW)과도 무관.
 
@@ -159,8 +162,12 @@ def interpolate_midpoints(frames: list[dict]) -> list[dict]:
     for a, b in zip(frames, frames[1:]):
         gap = b["t_ms"] - a["t_ms"]
         if gap != 1000:
+            # ★[결정 2026-09-22] 긴 간격 구간은 **이번 2fps 정답지에서 제외한다.**
+            #   IDSW 평가는 연속 구간에서만 성립하고, 2초 이상 벌어지면 추적 연속성을 잴 수 없다.
+            #   단 "사람이 없어서" 가 아님이 확인됐으므로(check_long_gaps.py: 17/17 구간에서
+            #   person 검출) 제외 사실과 사유를 메타에 남긴다.
             mids.append({"t_ms": a["t_ms"] + gap / 2, "boxes": [], "gap_ms": gap,
-                         "status": "skip_long_gap", "from": a["t_ms"], "to": b["t_ms"]})
+                         "status": "excluded_long_gap", "from": a["t_ms"], "to": b["t_ms"]})
             continue
         pa = {x["tid"]: x for x in a["boxes"]}
         pb = {x["tid"]: x for x in b["boxes"]}
@@ -248,8 +255,15 @@ def main() -> int:
     report: dict[str, Any] = {"generated_at": None, "params": {
         "IOU_OK": IOU_OK, "IOU_MAYBE": IOU_MAYBE, "CENTER_OK": CENTER_OK, "SIZE_RATIO_OK": SIZE_RATIO_OK},
         "videos": {}, "totals": {}}
-    tot = {"interp_frames": 0, "interp_boxes": 0, "needs_review": 0, "skip_long_gap": 0,
+    tot = {"interp_frames": 0, "interp_boxes": 0, "needs_review": 0, "excluded_long_gap": 0,
            "maybe_links": 0, "extracted": 0, "extract_failed": 0}
+    gaps_excluded: list[dict[str, Any]] = []
+    try:                                  # 긴 간격 확인 결과가 있으면 최대 conf 를 실어 준다
+        _lg = json.loads((_ROOT / "audit" / "long_gaps_20260922.json").read_text(encoding="utf-8"))
+        _lgmax = {(g["video"], g["from_ms"], g["to_ms"]):
+                  max((f.get("max_conf", 0) for f in g.get("frames", [])), default=0) for g in _lg["gaps"]}
+    except Exception:  # noqa: BLE001
+        _lgmax = {}
     new_manifest: list[dict] = []
 
     for v, frames in byv.items():
@@ -264,46 +278,69 @@ def main() -> int:
             name = f"{v}_{t}ms.jpg"
             item = {"t_ms": t, "status": m["status"], "gap_ms": m["gap_ms"],
                     "boxes": len(m["boxes"]), "unmatched_tids": m.get("unmatched_tids", []), "file": name}
-            if m["status"] == "skip_long_gap":
-                tot["skip_long_gap"] += 1
+            if m["status"] == "excluded_long_gap":
+                tot["excluded_long_gap"] += 1
+                gaps_excluded.append({
+                    "video": v, "from_ms": m["from"], "to_ms": m["to"], "gap_ms": m["gap_ms"],
+                    "probe_max_conf": _lgmax.get((v, m["from"], m["to"])),
+                    "reason": "IDSW 평가는 연속 구간만 필요. 구간 내 사람 존재 확인됨(검출기 기준, 미라벨)"})
             else:
                 tot["interp_frames"] += 1
                 tot["interp_boxes"] += len(m["boxes"])
                 if m["status"] == "needs_review":
                     tot["needs_review"] += 1
-            if a.write and vid.exists():
+            if a.write and vid.exists() and m["status"] != "excluded_long_gap":
                 ok, why = extract_frame(vid, m["t_ms"], out_frames / name)
                 item["extract"] = why
                 tot["extracted" if ok else "extract_failed"] += 1
-                if ok and m["status"] != "skip_long_gap":
+                if ok and m["status"] != "excluded_long_gap":
                     out_labels.mkdir(parents=True, exist_ok=True)
                     lines = [f"{b['cls']} {b['box'][0]:.6f} {b['box'][1]:.6f} "
                              f"{b['box'][2]:.6f} {b['box'][3]:.6f} {b['tid']}" for b in m["boxes"]]
+                    # 스키마 확장분은 YOLO txt 형식을 깨지 않게 **사이드카 JSON** 으로 둔다.
+                    (out_labels / f"{Path(name).stem}.json").write_text(json.dumps(
+                        {"file": name, "video": v, "t_ms": t,
+                         "video_role": "detector_only" if v in DETECTOR_ONLY_VIDEOS else "full",
+                         "boxes": [{"cls": b["cls"], "box": b["box"], "track_id": b["tid"],
+                                    "source": "interp", "parent_track_id": None,
+                                    "link": b.get("link", "ok")} for b in m["boxes"]]},
+                        ensure_ascii=False, indent=1), encoding="utf-8")
                     (out_labels / f"{Path(name).stem}.txt").write_text("\n".join(lines) + ("\n" if lines else ""),
                                                                       encoding="utf-8")
             vrep["items"].append(item)
+            if m["status"] == "excluded_long_gap":
+                continue                       # 제외 구간은 정답지 매니페스트에 넣지 않는다
             new_manifest.append({"video": v, "t_ms": t, "file": name, "status": m["status"],
+                                 "video_role": "detector_only" if v in DETECTOR_ONLY_VIDEOS else "full",
                                  "gap_ms": m["gap_ms"], "boxes": len(m["boxes"]),
                                  "unmatched_tids": m.get("unmatched_tids", [])})
         tot["maybe_links"] += ids["maybe"]
         report["videos"][v] = vrep
         print(f"  {v[:34]:36} 라벨{len(frames):3}장 tid{ids['next_id']-1:3}개 "
               f"(확실{ids['ok']:3}/불확실{ids['maybe']:3}/신규{ids['new']:3}) "
-              f"보간{sum(1 for m in mids if m['status']!='skip_long_gap'):3} "
+              f"보간{sum(1 for m in mids if m['status']!='excluded_long_gap'):3} "
               f"검수필요{sum(1 for m in mids if m['status']=='needs_review'):2} "
-              f"긴간격{sum(1 for m in mids if m['status']=='skip_long_gap'):2}")
+              f"제외{sum(1 for m in mids if m['status']=='excluded_long_gap'):2}")
 
     report["totals"] = tot
+    report["gaps_excluded"] = gaps_excluded
     print("\n" + "=" * 78)
     print(f"보간 대상 프레임 {tot['interp_frames']}장 · 보간 박스 {tot['interp_boxes']}개")
     print(f"★사람 검수 필요: {tot['needs_review']}장(등장·퇴장·가림) + 불확실 짝짓기 {tot['maybe_links']}건")
-    print(f"★긴 간격(1,000ms 아님) {tot['skip_long_gap']}구간 — 원본 프레임으로 '사람 없음' 확인 대상")
+    print(f"★긴 간격 {tot['excluded_long_gap']}구간 — **이번 정답지에서 제외**(결정 2026-09-22). "
+          f"구간 내 사람 존재는 확인됨 — audit/long_gaps_20260922.json")
     if a.write:
         print(f"프레임 추출: 성공 {tot['extracted']} · 실패 {tot['extract_failed']}")
         if tot["extract_failed"]:
             print("★실패가 있다 — 성공으로 보고하지 않는다(규칙 11)")
         rp = fe_repo / "frames_manifest_2fps_draft.json"
-        rp.write_text(json.dumps(new_manifest, ensure_ascii=False, indent=1), encoding="utf-8")
+        rp.write_text(json.dumps({
+            "schema": {"track_id": "int", "source": "human|interp|human_verified",
+                       "parent_track_id": "int|null(지금은 비움)",
+                       "video_role": "full|detector_only"},
+            "detector_only_videos": sorted(DETECTOR_ONLY_VIDEOS),
+            "gaps_excluded": gaps_excluded,
+            "frames": new_manifest}, ensure_ascii=False, indent=1), encoding="utf-8")
         (fe_repo / "interpolate_2fps_report.json").write_text(
             json.dumps(report, ensure_ascii=False, indent=1), encoding="utf-8")
         print(f"매니페스트: {rp}\n리포트: {fe_repo / 'interpolate_2fps_report.json'}")

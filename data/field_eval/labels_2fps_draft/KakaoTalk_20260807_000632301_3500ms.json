@@ -1,0 +1,21 @@
+{
+ "file": "KakaoTalk_20260807_000632301_3500ms.jpg",
+ "video": "KakaoTalk_20260807_000632301",
+ "t_ms": 3500,
+ "video_role": "full",
+ "boxes": [
+  {
+   "cls": 0,
+   "box": [
+    0.5416529999999999,
+    0.5118265,
+    0.194,
+    0.28584699999999996
+   ],
+   "track_id": 2,
+   "source": "interp",
+   "parent_track_id": null,
+   "link": "ok"
+  }
+ ]
+}

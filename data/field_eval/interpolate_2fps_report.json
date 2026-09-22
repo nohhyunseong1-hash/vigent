@@ -1,0 +1,1260 @@
+{
+ "generated_at": null,
+ "params": {
+  "IOU_OK": 0.25,
+  "IOU_MAYBE": 0.05,
+  "CENTER_OK": 0.2,
+  "SIZE_RATIO_OK": 2.5
+ },
+ "videos": {
+  "KakaoTalk_20260807_000438282": {
+   "labeled_frames": 21,
+   "track_ids": 16,
+   "links_ok": 35,
+   "links_maybe": 4,
+   "new_tracks": 16,
+   "midpoints": 20,
+   "items": [
+    {
+     "t_ms": 500,
+     "status": "needs_review",
+     "gap_ms": 1000.0,
+     "boxes": 3,
+     "unmatched_tids": [
+      4
+     ],
+     "file": "KakaoTalk_20260807_000438282_500ms.jpg",
+     "extract": "frame 12 @ 24fps"
+    },
+    {
+     "t_ms": 1500,
+     "status": "interp",
+     "gap_ms": 1000.0,
+     "boxes": 3,
+     "unmatched_tids": [],
+     "file": "KakaoTalk_20260807_000438282_1500ms.jpg",
+     "extract": "frame 36 @ 24fps"
+    },
+    {
+     "t_ms": 2500,
+     "status": "needs_review",
+     "gap_ms": 1000.0,
+     "boxes": 2,
+     "unmatched_tids": [
+      3
+     ],
+     "file": "KakaoTalk_20260807_000438282_2500ms.jpg",
+     "extract": "frame 60 @ 24fps"
+    },
+    {
+     "t_ms": 3500,
+     "status": "needs_review",
+     "gap_ms": 1000.0,
+     "boxes": 2,
+     "unmatched_tids": [
+      5,
+      6
+     ],
+     "file": "KakaoTalk_20260807_000438282_3500ms.jpg",
+     "extract": "frame 84 @ 24fps"
+    },
+    {
+     "t_ms": 4500,
+     "status": "needs_review",
+     "gap_ms": 1000.0,
+     "boxes": 2,
+     "unmatched_tids": [
+      5,
+      6
+     ],
+     "file": "KakaoTalk_20260807_000438282_4500ms.jpg",
+     "extract": "frame 108 @ 24fps"
+    },
+    {
+     "t_ms": 5500,
+     "status": "interp",
+     "gap_ms": 1000.0,
+     "boxes": 2,
+     "unmatched_tids": [],
+     "file": "KakaoTalk_20260807_000438282_5500ms.jpg",
+     "extract": "frame 132 @ 24fps"
+    },
+    {
+     "t_ms": 6500,
+     "status": "interp",
+     "gap_ms": 1000.0,
+     "boxes": 2,
+     "unmatched_tids": [],
+     "file": "KakaoTalk_20260807_000438282_6500ms.jpg",
+     "extract": "frame 156 @ 24fps"
+    },
+    {
+     "t_ms": 7500,
+     "status": "needs_review",
+     "gap_ms": 1000.0,
+     "boxes": 2,
+     "unmatched_tids": [
+      7
+     ],
+     "file": "KakaoTalk_20260807_000438282_7500ms.jpg",
+     "extract": "frame 180 @ 24fps"
+    },
+    {
+     "t_ms": 8500,
+     "status": "needs_review",
+     "gap_ms": 1000.0,
+     "boxes": 1,
+     "unmatched_tids": [
+      2,
+      7,
+      8
+     ],
+     "file": "KakaoTalk_20260807_000438282_8500ms.jpg",
+     "extract": "frame 204 @ 24fps"
+    },
+    {
+     "t_ms": 9500,
+     "status": "needs_review",
+     "gap_ms": 1000.0,
+     "boxes": 1,
+     "unmatched_tids": [
+      8,
+      9
+     ],
+     "file": "KakaoTalk_20260807_000438282_9500ms.jpg",
+     "extract": "frame 228 @ 24fps"
+    },
+    {
+     "t_ms": 10500,
+     "status": "interp",
+     "gap_ms": 1000.0,
+     "boxes": 2,
+     "unmatched_tids": [],
+     "file": "KakaoTalk_20260807_000438282_10500ms.jpg",
+     "extract": "frame 252 @ 24fps"
+    },
+    {
+     "t_ms": 11500,
+     "status": "needs_review",
+     "gap_ms": 1000.0,
+     "boxes": 1,
+     "unmatched_tids": [
+      9
+     ],
+     "file": "KakaoTalk_20260807_000438282_11500ms.jpg",
+     "extract": "frame 276 @ 24fps"
+    },
+    {
+     "t_ms": 12500,
+     "status": "needs_review",
+     "gap_ms": 1000.0,
+     "boxes": 0,
+     "unmatched_tids": [
+      1,
+      10
+     ],
+     "file": "KakaoTalk_20260807_000438282_12500ms.jpg",
+     "extract": "frame 300 @ 24fps"
+    },
+    {
+     "t_ms": 13500,
+     "status": "needs_review",
+     "gap_ms": 1000.0,
+     "boxes": 1,
+     "unmatched_tids": [
+      11
+     ],
+     "file": "KakaoTalk_20260807_000438282_13500ms.jpg",
+     "extract": "frame 324 @ 24fps"
+    },
+    {
+     "t_ms": 14500,
+     "status": "needs_review",
+     "gap_ms": 1000.0,
+     "boxes": 1,
+     "unmatched_tids": [
+      11
+     ],
+     "file": "KakaoTalk_20260807_000438282_14500ms.jpg",
+     "extract": "frame 348 @ 24fps"
+    },
+    {
+     "t_ms": 15500,
+     "status": "needs_review",
+     "gap_ms": 1000.0,
+     "boxes": 1,
+     "unmatched_tids": [
+      12,
+      13,
+      14
+     ],
+     "file": "KakaoTalk_20260807_000438282_15500ms.jpg",
+     "extract": "frame 372 @ 24fps"
+    },
+    {
+     "t_ms": 16500,
+     "status": "needs_review",
+     "gap_ms": 1000.0,
+     "boxes": 4,
+     "unmatched_tids": [
+      15
+     ],
+     "file": "KakaoTalk_20260807_000438282_16500ms.jpg",
+     "extract": "frame 396 @ 24fps"
+    },
+    {
+     "t_ms": 17500,
+     "status": "needs_review",
+     "gap_ms": 1000.0,
+     "boxes": 5,
+     "unmatched_tids": [
+      16
+     ],
+     "file": "KakaoTalk_20260807_000438282_17500ms.jpg",
+     "extract": "frame 420 @ 24fps"
+    },
+    {
+     "t_ms": 18500,
+     "status": "needs_review",
+     "gap_ms": 1000.0,
+     "boxes": 3,
+     "unmatched_tids": [
+      13,
+      14,
+      16
+     ],
+     "file": "KakaoTalk_20260807_000438282_18500ms.jpg",
+     "extract": "frame 444 @ 24fps"
+    },
+    {
+     "t_ms": 19500,
+     "status": "needs_review",
+     "gap_ms": 1000.0,
+     "boxes": 1,
+     "unmatched_tids": [
+      12,
+      15
+     ],
+     "file": "KakaoTalk_20260807_000438282_19500ms.jpg",
+     "extract": "frame 468 @ 24fps"
+    }
+   ]
+  },
+  "KakaoTalk_20260807_000442974": {
+   "labeled_frames": 10,
+   "track_ids": 10,
+   "links_ok": 4,
+   "links_maybe": 3,
+   "new_tracks": 10,
+   "midpoints": 9,
+   "items": [
+    {
+     "t_ms": 500,
+     "status": "needs_review",
+     "gap_ms": 1000.0,
+     "boxes": 0,
+     "unmatched_tids": [
+      1,
+      2
+     ],
+     "file": "KakaoTalk_20260807_000442974_500ms.jpg",
+     "extract": "frame 12 @ 24fps"
+    },
+    {
+     "t_ms": 2000,
+     "status": "excluded_long_gap",
+     "gap_ms": 2000.0,
+     "boxes": 0,
+     "unmatched_tids": [],
+     "file": "KakaoTalk_20260807_000442974_2000ms.jpg"
+    },
+    {
+     "t_ms": 4500,
+     "status": "excluded_long_gap",
+     "gap_ms": 3000.0,
+     "boxes": 0,
+     "unmatched_tids": [],
+     "file": "KakaoTalk_20260807_000442974_4500ms.jpg"
+    },
+    {
+     "t_ms": 8000,
+     "status": "excluded_long_gap",
+     "gap_ms": 4000.0,
+     "boxes": 0,
+     "unmatched_tids": [],
+     "file": "KakaoTalk_20260807_000442974_8000ms.jpg"
+    },
+    {
+     "t_ms": 11000,
+     "status": "excluded_long_gap",
+     "gap_ms": 2000.0,
+     "boxes": 0,
+     "unmatched_tids": [],
+     "file": "KakaoTalk_20260807_000442974_11000ms.jpg"
+    },
+    {
+     "t_ms": 12500,
+     "status": "needs_review",
+     "gap_ms": 1000.0,
+     "boxes": 1,
+     "unmatched_tids": [
+      8,
+      10
+     ],
+     "file": "KakaoTalk_20260807_000442974_12500ms.jpg",
+     "extract": "frame 300 @ 24fps"
+    },
+    {
+     "t_ms": 13500,
+     "status": "interp",
+     "gap_ms": 1000.0,
+     "boxes": 2,
+     "unmatched_tids": [],
+     "file": "KakaoTalk_20260807_000442974_13500ms.jpg",
+     "extract": "frame 324 @ 24fps"
+    },
+    {
+     "t_ms": 14500,
+     "status": "interp",
+     "gap_ms": 1000.0,
+     "boxes": 2,
+     "unmatched_tids": [],
+     "file": "KakaoTalk_20260807_000442974_14500ms.jpg",
+     "extract": "frame 348 @ 24fps"
+    },
+    {
+     "t_ms": 15500,
+     "status": "interp",
+     "gap_ms": 1000.0,
+     "boxes": 2,
+     "unmatched_tids": [],
+     "file": "KakaoTalk_20260807_000442974_15500ms.jpg",
+     "extract": "frame 372 @ 24fps"
+    }
+   ]
+  },
+  "KakaoTalk_20260807_000552920": {
+   "labeled_frames": 18,
+   "track_ids": 17,
+   "links_ok": 8,
+   "links_maybe": 21,
+   "new_tracks": 17,
+   "midpoints": 17,
+   "items": [
+    {
+     "t_ms": 500,
+     "status": "needs_review",
+     "gap_ms": 1000.0,
+     "boxes": 2,
+     "unmatched_tids": [
+      3,
+      4
+     ],
+     "file": "KakaoTalk_20260807_000552920_500ms.jpg",
+     "extract": "frame 12 @ 24fps"
+    },
+    {
+     "t_ms": 1500,
+     "status": "needs_review",
+     "gap_ms": 1000.0,
+     "boxes": 2,
+     "unmatched_tids": [
+      2
+     ],
+     "file": "KakaoTalk_20260807_000552920_1500ms.jpg",
+     "extract": "frame 36 @ 24fps"
+    },
+    {
+     "t_ms": 2500,
+     "status": "interp",
+     "gap_ms": 1000.0,
+     "boxes": 2,
+     "unmatched_tids": [],
+     "file": "KakaoTalk_20260807_000552920_2500ms.jpg",
+     "extract": "frame 60 @ 24fps"
+    },
+    {
+     "t_ms": 3500,
+     "status": "interp",
+     "gap_ms": 1000.0,
+     "boxes": 2,
+     "unmatched_tids": [],
+     "file": "KakaoTalk_20260807_000552920_3500ms.jpg",
+     "extract": "frame 84 @ 24fps"
+    },
+    {
+     "t_ms": 4500,
+     "status": "needs_review",
+     "gap_ms": 1000.0,
+     "boxes": 2,
+     "unmatched_tids": [
+      5,
+      6
+     ],
+     "file": "KakaoTalk_20260807_000552920_4500ms.jpg",
+     "extract": "frame 108 @ 24fps"
+    },
+    {
+     "t_ms": 5500,
+     "status": "needs_review",
+     "gap_ms": 1000.0,
+     "boxes": 3,
+     "unmatched_tids": [
+      6
+     ],
+     "file": "KakaoTalk_20260807_000552920_5500ms.jpg",
+     "extract": "frame 132 @ 24fps"
+    },
+    {
+     "t_ms": 6500,
+     "status": "needs_review",
+     "gap_ms": 1000.0,
+     "boxes": 2,
+     "unmatched_tids": [
+      5
+     ],
+     "file": "KakaoTalk_20260807_000552920_6500ms.jpg",
+     "extract": "frame 156 @ 24fps"
+    },
+    {
+     "t_ms": 7500,
+     "status": "interp",
+     "gap_ms": 1000.0,
+     "boxes": 2,
+     "unmatched_tids": [],
+     "file": "KakaoTalk_20260807_000552920_7500ms.jpg",
+     "extract": "frame 180 @ 24fps"
+    },
+    {
+     "t_ms": 8500,
+     "status": "interp",
+     "gap_ms": 1000.0,
+     "boxes": 2,
+     "unmatched_tids": [],
+     "file": "KakaoTalk_20260807_000552920_8500ms.jpg",
+     "extract": "frame 204 @ 24fps"
+    },
+    {
+     "t_ms": 9500,
+     "status": "interp",
+     "gap_ms": 1000.0,
+     "boxes": 2,
+     "unmatched_tids": [],
+     "file": "KakaoTalk_20260807_000552920_9500ms.jpg",
+     "extract": "frame 228 @ 24fps"
+    },
+    {
+     "t_ms": 10500,
+     "status": "interp",
+     "gap_ms": 1000.0,
+     "boxes": 2,
+     "unmatched_tids": [],
+     "file": "KakaoTalk_20260807_000552920_10500ms.jpg",
+     "extract": "frame 252 @ 24fps"
+    },
+    {
+     "t_ms": 11500,
+     "status": "interp",
+     "gap_ms": 1000.0,
+     "boxes": 2,
+     "unmatched_tids": [],
+     "file": "KakaoTalk_20260807_000552920_11500ms.jpg",
+     "extract": "frame 276 @ 24fps"
+    },
+    {
+     "t_ms": 12500,
+     "status": "needs_review",
+     "gap_ms": 1000.0,
+     "boxes": 1,
+     "unmatched_tids": [
+      4,
+      7
+     ],
+     "file": "KakaoTalk_20260807_000552920_12500ms.jpg",
+     "extract": "frame 300 @ 24fps"
+    },
+    {
+     "t_ms": 13500,
+     "status": "needs_review",
+     "gap_ms": 1000.0,
+     "boxes": 1,
+     "unmatched_tids": [
+      7,
+      8,
+      9
+     ],
+     "file": "KakaoTalk_20260807_000552920_13500ms.jpg",
+     "extract": "frame 324 @ 24fps"
+    },
+    {
+     "t_ms": 15000,
+     "status": "excluded_long_gap",
+     "gap_ms": 2000.0,
+     "boxes": 0,
+     "unmatched_tids": [],
+     "file": "KakaoTalk_20260807_000552920_15000ms.jpg"
+    },
+    {
+     "t_ms": 16500,
+     "status": "needs_review",
+     "gap_ms": 1000.0,
+     "boxes": 2,
+     "unmatched_tids": [
+      11,
+      13,
+      14
+     ],
+     "file": "KakaoTalk_20260807_000552920_16500ms.jpg",
+     "extract": "frame 396 @ 24fps"
+    },
+    {
+     "t_ms": 18000,
+     "status": "excluded_long_gap",
+     "gap_ms": 2000.0,
+     "boxes": 0,
+     "unmatched_tids": [],
+     "file": "KakaoTalk_20260807_000552920_18000ms.jpg"
+    }
+   ]
+  },
+  "KakaoTalk_20260807_000601541": {
+   "labeled_frames": 9,
+   "track_ids": 1,
+   "links_ok": 8,
+   "links_maybe": 0,
+   "new_tracks": 1,
+   "midpoints": 8,
+   "items": [
+    {
+     "t_ms": 500,
+     "status": "interp",
+     "gap_ms": 1000.0,
+     "boxes": 1,
+     "unmatched_tids": [],
+     "file": "KakaoTalk_20260807_000601541_500ms.jpg",
+     "extract": "frame 12 @ 24fps"
+    },
+    {
+     "t_ms": 1500,
+     "status": "interp",
+     "gap_ms": 1000.0,
+     "boxes": 1,
+     "unmatched_tids": [],
+     "file": "KakaoTalk_20260807_000601541_1500ms.jpg",
+     "extract": "frame 36 @ 24fps"
+    },
+    {
+     "t_ms": 2500,
+     "status": "interp",
+     "gap_ms": 1000.0,
+     "boxes": 1,
+     "unmatched_tids": [],
+     "file": "KakaoTalk_20260807_000601541_2500ms.jpg",
+     "extract": "frame 60 @ 24fps"
+    },
+    {
+     "t_ms": 3500,
+     "status": "interp",
+     "gap_ms": 1000.0,
+     "boxes": 1,
+     "unmatched_tids": [],
+     "file": "KakaoTalk_20260807_000601541_3500ms.jpg",
+     "extract": "frame 84 @ 24fps"
+    },
+    {
+     "t_ms": 4500,
+     "status": "interp",
+     "gap_ms": 1000.0,
+     "boxes": 1,
+     "unmatched_tids": [],
+     "file": "KakaoTalk_20260807_000601541_4500ms.jpg",
+     "extract": "frame 108 @ 24fps"
+    },
+    {
+     "t_ms": 5500,
+     "status": "interp",
+     "gap_ms": 1000.0,
+     "boxes": 1,
+     "unmatched_tids": [],
+     "file": "KakaoTalk_20260807_000601541_5500ms.jpg",
+     "extract": "frame 132 @ 24fps"
+    },
+    {
+     "t_ms": 6500,
+     "status": "interp",
+     "gap_ms": 1000.0,
+     "boxes": 1,
+     "unmatched_tids": [],
+     "file": "KakaoTalk_20260807_000601541_6500ms.jpg",
+     "extract": "frame 156 @ 24fps"
+    },
+    {
+     "t_ms": 7500,
+     "status": "interp",
+     "gap_ms": 1000.0,
+     "boxes": 1,
+     "unmatched_tids": [],
+     "file": "KakaoTalk_20260807_000601541_7500ms.jpg",
+     "extract": "frame 180 @ 24fps"
+    }
+   ]
+  },
+  "KakaoTalk_20260807_000611749": {
+   "labeled_frames": 12,
+   "track_ids": 17,
+   "links_ok": 10,
+   "links_maybe": 3,
+   "new_tracks": 17,
+   "midpoints": 11,
+   "items": [
+    {
+     "t_ms": 500,
+     "status": "interp",
+     "gap_ms": 1000.0,
+     "boxes": 3,
+     "unmatched_tids": [],
+     "file": "KakaoTalk_20260807_000611749_500ms.jpg",
+     "extract": "frame 12 @ 24fps"
+    },
+    {
+     "t_ms": 2000,
+     "status": "excluded_long_gap",
+     "gap_ms": 2000.0,
+     "boxes": 0,
+     "unmatched_tids": [],
+     "file": "KakaoTalk_20260807_000611749_2000ms.jpg"
+    },
+    {
+     "t_ms": 3500,
+     "status": "interp",
+     "gap_ms": 1000.0,
+     "boxes": 1,
+     "unmatched_tids": [],
+     "file": "KakaoTalk_20260807_000611749_3500ms.jpg",
+     "extract": "frame 84 @ 24fps"
+    },
+    {
+     "t_ms": 4500,
+     "status": "needs_review",
+     "gap_ms": 1000.0,
+     "boxes": 0,
+     "unmatched_tids": [
+      4,
+      5,
+      6
+     ],
+     "file": "KakaoTalk_20260807_000611749_4500ms.jpg",
+     "extract": "frame 108 @ 24fps"
+    },
+    {
+     "t_ms": 6500,
+     "status": "excluded_long_gap",
+     "gap_ms": 3000.0,
+     "boxes": 0,
+     "unmatched_tids": [],
+     "file": "KakaoTalk_20260807_000611749_6500ms.jpg"
+    },
+    {
+     "t_ms": 9000,
+     "status": "excluded_long_gap",
+     "gap_ms": 2000.0,
+     "boxes": 0,
+     "unmatched_tids": [],
+     "file": "KakaoTalk_20260807_000611749_9000ms.jpg"
+    },
+    {
+     "t_ms": 10500,
+     "status": "needs_review",
+     "gap_ms": 1000.0,
+     "boxes": 0,
+     "unmatched_tids": [
+      10,
+      11,
+      12,
+      13,
+      14
+     ],
+     "file": "KakaoTalk_20260807_000611749_10500ms.jpg",
+     "extract": "frame 252 @ 24fps"
+    },
+    {
+     "t_ms": 11500,
+     "status": "needs_review",
+     "gap_ms": 1000.0,
+     "boxes": 2,
+     "unmatched_tids": [
+      15
+     ],
+     "file": "KakaoTalk_20260807_000611749_11500ms.jpg",
+     "extract": "frame 276 @ 24fps"
+    },
+    {
+     "t_ms": 12500,
+     "status": "needs_review",
+     "gap_ms": 1000.0,
+     "boxes": 2,
+     "unmatched_tids": [
+      15
+     ],
+     "file": "KakaoTalk_20260807_000611749_12500ms.jpg",
+     "extract": "frame 300 @ 24fps"
+    },
+    {
+     "t_ms": 13500,
+     "status": "needs_review",
+     "gap_ms": 1000.0,
+     "boxes": 2,
+     "unmatched_tids": [
+      16,
+      17
+     ],
+     "file": "KakaoTalk_20260807_000611749_13500ms.jpg",
+     "extract": "frame 324 @ 24fps"
+    },
+    {
+     "t_ms": 14500,
+     "status": "needs_review",
+     "gap_ms": 1000.0,
+     "boxes": 3,
+     "unmatched_tids": [
+      17
+     ],
+     "file": "KakaoTalk_20260807_000611749_14500ms.jpg",
+     "extract": "frame 348 @ 24fps"
+    }
+   ]
+  },
+  "KakaoTalk_20260807_000632301": {
+   "labeled_frames": 8,
+   "track_ids": 3,
+   "links_ok": 7,
+   "links_maybe": 0,
+   "new_tracks": 3,
+   "midpoints": 7,
+   "items": [
+    {
+     "t_ms": 500,
+     "status": "interp",
+     "gap_ms": 1000.0,
+     "boxes": 2,
+     "unmatched_tids": [],
+     "file": "KakaoTalk_20260807_000632301_500ms.jpg",
+     "extract": "frame 12 @ 24fps"
+    },
+    {
+     "t_ms": 1500,
+     "status": "needs_review",
+     "gap_ms": 1000.0,
+     "boxes": 1,
+     "unmatched_tids": [
+      1
+     ],
+     "file": "KakaoTalk_20260807_000632301_1500ms.jpg",
+     "extract": "frame 36 @ 24fps"
+    },
+    {
+     "t_ms": 2500,
+     "status": "interp",
+     "gap_ms": 1000.0,
+     "boxes": 1,
+     "unmatched_tids": [],
+     "file": "KakaoTalk_20260807_000632301_2500ms.jpg",
+     "extract": "frame 60 @ 24fps"
+    },
+    {
+     "t_ms": 3500,
+     "status": "interp",
+     "gap_ms": 1000.0,
+     "boxes": 1,
+     "unmatched_tids": [],
+     "file": "KakaoTalk_20260807_000632301_3500ms.jpg",
+     "extract": "frame 84 @ 24fps"
+    },
+    {
+     "t_ms": 4500,
+     "status": "interp",
+     "gap_ms": 1000.0,
+     "boxes": 1,
+     "unmatched_tids": [],
+     "file": "KakaoTalk_20260807_000632301_4500ms.jpg",
+     "extract": "frame 108 @ 24fps"
+    },
+    {
+     "t_ms": 5500,
+     "status": "interp",
+     "gap_ms": 1000.0,
+     "boxes": 1,
+     "unmatched_tids": [],
+     "file": "KakaoTalk_20260807_000632301_5500ms.jpg",
+     "extract": "frame 132 @ 24fps"
+    },
+    {
+     "t_ms": 7000,
+     "status": "excluded_long_gap",
+     "gap_ms": 2000.0,
+     "boxes": 0,
+     "unmatched_tids": [],
+     "file": "KakaoTalk_20260807_000632301_7000ms.jpg"
+    }
+   ]
+  },
+  "KakaoTalk_20260807_000633827": {
+   "labeled_frames": 14,
+   "track_ids": 8,
+   "links_ok": 1,
+   "links_maybe": 0,
+   "new_tracks": 8,
+   "midpoints": 13,
+   "items": [
+    {
+     "t_ms": 500,
+     "status": "needs_review",
+     "gap_ms": 1000.0,
+     "boxes": 0,
+     "unmatched_tids": [
+      1,
+      2
+     ],
+     "file": "KakaoTalk_20260807_000633827_500ms.jpg",
+     "extract": "frame 12 @ 24fps"
+    },
+    {
+     "t_ms": 1500,
+     "status": "needs_review",
+     "gap_ms": 1000.0,
+     "boxes": 0,
+     "unmatched_tids": [
+      2
+     ],
+     "file": "KakaoTalk_20260807_000633827_1500ms.jpg",
+     "extract": "frame 36 @ 24fps"
+    },
+    {
+     "t_ms": 2500,
+     "status": "interp",
+     "gap_ms": 1000.0,
+     "boxes": 0,
+     "unmatched_tids": [],
+     "file": "KakaoTalk_20260807_000633827_2500ms.jpg",
+     "extract": "frame 60 @ 24fps"
+    },
+    {
+     "t_ms": 3500,
+     "status": "interp",
+     "gap_ms": 1000.0,
+     "boxes": 0,
+     "unmatched_tids": [],
+     "file": "KakaoTalk_20260807_000633827_3500ms.jpg",
+     "extract": "frame 84 @ 24fps"
+    },
+    {
+     "t_ms": 4500,
+     "status": "interp",
+     "gap_ms": 1000.0,
+     "boxes": 0,
+     "unmatched_tids": [],
+     "file": "KakaoTalk_20260807_000633827_4500ms.jpg",
+     "extract": "frame 108 @ 24fps"
+    },
+    {
+     "t_ms": 5500,
+     "status": "interp",
+     "gap_ms": 1000.0,
+     "boxes": 0,
+     "unmatched_tids": [],
+     "file": "KakaoTalk_20260807_000633827_5500ms.jpg",
+     "extract": "frame 132 @ 24fps"
+    },
+    {
+     "t_ms": 6500,
+     "status": "interp",
+     "gap_ms": 1000.0,
+     "boxes": 0,
+     "unmatched_tids": [],
+     "file": "KakaoTalk_20260807_000633827_6500ms.jpg",
+     "extract": "frame 156 @ 24fps"
+    },
+    {
+     "t_ms": 7500,
+     "status": "interp",
+     "gap_ms": 1000.0,
+     "boxes": 0,
+     "unmatched_tids": [],
+     "file": "KakaoTalk_20260807_000633827_7500ms.jpg",
+     "extract": "frame 180 @ 24fps"
+    },
+    {
+     "t_ms": 8500,
+     "status": "needs_review",
+     "gap_ms": 1000.0,
+     "boxes": 0,
+     "unmatched_tids": [
+      3
+     ],
+     "file": "KakaoTalk_20260807_000633827_8500ms.jpg",
+     "extract": "frame 204 @ 24fps"
+    },
+    {
+     "t_ms": 9500,
+     "status": "needs_review",
+     "gap_ms": 1000.0,
+     "boxes": 0,
+     "unmatched_tids": [
+      3,
+      4
+     ],
+     "file": "KakaoTalk_20260807_000633827_9500ms.jpg",
+     "extract": "frame 228 @ 24fps"
+    },
+    {
+     "t_ms": 10500,
+     "status": "needs_review",
+     "gap_ms": 1000.0,
+     "boxes": 0,
+     "unmatched_tids": [
+      4,
+      5
+     ],
+     "file": "KakaoTalk_20260807_000633827_10500ms.jpg",
+     "extract": "frame 252 @ 24fps"
+    },
+    {
+     "t_ms": 11500,
+     "status": "needs_review",
+     "gap_ms": 1000.0,
+     "boxes": 1,
+     "unmatched_tids": [
+      6,
+      7
+     ],
+     "file": "KakaoTalk_20260807_000633827_11500ms.jpg",
+     "extract": "frame 276 @ 24fps"
+    },
+    {
+     "t_ms": 12500,
+     "status": "needs_review",
+     "gap_ms": 1000.0,
+     "boxes": 0,
+     "unmatched_tids": [
+      5,
+      6,
+      7,
+      8
+     ],
+     "file": "KakaoTalk_20260807_000633827_12500ms.jpg",
+     "extract": "frame 300 @ 24fps"
+    }
+   ]
+  },
+  "KakaoTalk_20260807_000658251": {
+   "labeled_frames": 9,
+   "track_ids": 7,
+   "links_ok": 10,
+   "links_maybe": 0,
+   "new_tracks": 7,
+   "midpoints": 8,
+   "items": [
+    {
+     "t_ms": 500,
+     "status": "needs_review",
+     "gap_ms": 1000.0,
+     "boxes": 1,
+     "unmatched_tids": [
+      2,
+      3
+     ],
+     "file": "KakaoTalk_20260807_000658251_500ms.jpg",
+     "extract": "frame 12 @ 24fps"
+    },
+    {
+     "t_ms": 1500,
+     "status": "needs_review",
+     "gap_ms": 1000.0,
+     "boxes": 3,
+     "unmatched_tids": [
+      4
+     ],
+     "file": "KakaoTalk_20260807_000658251_1500ms.jpg",
+     "extract": "frame 36 @ 24fps"
+    },
+    {
+     "t_ms": 2500,
+     "status": "needs_review",
+     "gap_ms": 1000.0,
+     "boxes": 2,
+     "unmatched_tids": [
+      2,
+      4
+     ],
+     "file": "KakaoTalk_20260807_000658251_2500ms.jpg",
+     "extract": "frame 60 @ 24fps"
+    },
+    {
+     "t_ms": 4000,
+     "status": "excluded_long_gap",
+     "gap_ms": 2000.0,
+     "boxes": 0,
+     "unmatched_tids": [],
+     "file": "KakaoTalk_20260807_000658251_4000ms.jpg"
+    },
+    {
+     "t_ms": 5500,
+     "status": "interp",
+     "gap_ms": 1000.0,
+     "boxes": 1,
+     "unmatched_tids": [],
+     "file": "KakaoTalk_20260807_000658251_5500ms.jpg",
+     "extract": "frame 132 @ 24fps"
+    },
+    {
+     "t_ms": 6500,
+     "status": "needs_review",
+     "gap_ms": 1000.0,
+     "boxes": 0,
+     "unmatched_tids": [
+      5,
+      6
+     ],
+     "file": "KakaoTalk_20260807_000658251_6500ms.jpg",
+     "extract": "frame 156 @ 24fps"
+    },
+    {
+     "t_ms": 7500,
+     "status": "needs_review",
+     "gap_ms": 1000.0,
+     "boxes": 1,
+     "unmatched_tids": [
+      7
+     ],
+     "file": "KakaoTalk_20260807_000658251_7500ms.jpg",
+     "extract": "frame 180 @ 24fps"
+    },
+    {
+     "t_ms": 8500,
+     "status": "interp",
+     "gap_ms": 1000.0,
+     "boxes": 2,
+     "unmatched_tids": [],
+     "file": "KakaoTalk_20260807_000658251_8500ms.jpg",
+     "extract": "frame 204 @ 24fps"
+    }
+   ]
+  },
+  "KakaoTalk_20260807_000721865": {
+   "labeled_frames": 8,
+   "track_ids": 8,
+   "links_ok": 0,
+   "links_maybe": 0,
+   "new_tracks": 8,
+   "midpoints": 7,
+   "items": [
+    {
+     "t_ms": 2500,
+     "status": "excluded_long_gap",
+     "gap_ms": 5000.0,
+     "boxes": 0,
+     "unmatched_tids": [],
+     "file": "KakaoTalk_20260807_000721865_2500ms.jpg"
+    },
+    {
+     "t_ms": 8000,
+     "status": "excluded_long_gap",
+     "gap_ms": 6000.0,
+     "boxes": 0,
+     "unmatched_tids": [],
+     "file": "KakaoTalk_20260807_000721865_8000ms.jpg"
+    },
+    {
+     "t_ms": 12000,
+     "status": "excluded_long_gap",
+     "gap_ms": 2000.0,
+     "boxes": 0,
+     "unmatched_tids": [],
+     "file": "KakaoTalk_20260807_000721865_12000ms.jpg"
+    },
+    {
+     "t_ms": 14500,
+     "status": "excluded_long_gap",
+     "gap_ms": 3000.0,
+     "boxes": 0,
+     "unmatched_tids": [],
+     "file": "KakaoTalk_20260807_000721865_14500ms.jpg"
+    },
+    {
+     "t_ms": 19500,
+     "status": "excluded_long_gap",
+     "gap_ms": 7000.0,
+     "boxes": 0,
+     "unmatched_tids": [],
+     "file": "KakaoTalk_20260807_000721865_19500ms.jpg"
+    },
+    {
+     "t_ms": 24000,
+     "status": "excluded_long_gap",
+     "gap_ms": 2000.0,
+     "boxes": 0,
+     "unmatched_tids": [],
+     "file": "KakaoTalk_20260807_000721865_24000ms.jpg"
+    },
+    {
+     "t_ms": 25500,
+     "status": "needs_review",
+     "gap_ms": 1000.0,
+     "boxes": 0,
+     "unmatched_tids": [
+      8
+     ],
+     "file": "KakaoTalk_20260807_000721865_25500ms.jpg",
+     "extract": "frame 612 @ 24fps"
+    }
+   ]
+  }
+ },
+ "totals": {
+  "interp_frames": 83,
+  "interp_boxes": 114,
+  "needs_review": 46,
+  "excluded_long_gap": 17,
+  "maybe_links": 31,
+  "extracted": 83,
+  "extract_failed": 0
+ },
+ "gaps_excluded": [
+  {
+   "video": "KakaoTalk_20260807_000442974",
+   "from_ms": 1000.0,
+   "to_ms": 3000.0,
+   "gap_ms": 2000.0,
+   "probe_max_conf": 0.911,
+   "reason": "IDSW 평가는 연속 구간만 필요. 구간 내 사람 존재 확인됨(검출기 기준, 미라벨)"
+  },
+  {
+   "video": "KakaoTalk_20260807_000442974",
+   "from_ms": 3000.0,
+   "to_ms": 6000.0,
+   "gap_ms": 3000.0,
+   "probe_max_conf": 0.891,
+   "reason": "IDSW 평가는 연속 구간만 필요. 구간 내 사람 존재 확인됨(검출기 기준, 미라벨)"
+  },
+  {
+   "video": "KakaoTalk_20260807_000442974",
+   "from_ms": 6000.0,
+   "to_ms": 10000.0,
+   "gap_ms": 4000.0,
+   "probe_max_conf": 0.912,
+   "reason": "IDSW 평가는 연속 구간만 필요. 구간 내 사람 존재 확인됨(검출기 기준, 미라벨)"
+  },
+  {
+   "video": "KakaoTalk_20260807_000442974",
+   "from_ms": 10000.0,
+   "to_ms": 12000.0,
+   "gap_ms": 2000.0,
+   "probe_max_conf": 0.905,
+   "reason": "IDSW 평가는 연속 구간만 필요. 구간 내 사람 존재 확인됨(검출기 기준, 미라벨)"
+  },
+  {
+   "video": "KakaoTalk_20260807_000552920",
+   "from_ms": 14000.0,
+   "to_ms": 16000.0,
+   "gap_ms": 2000.0,
+   "probe_max_conf": 0.873,
+   "reason": "IDSW 평가는 연속 구간만 필요. 구간 내 사람 존재 확인됨(검출기 기준, 미라벨)"
+  },
+  {
+   "video": "KakaoTalk_20260807_000552920",
+   "from_ms": 17000.0,
+   "to_ms": 19000.0,
+   "gap_ms": 2000.0,
+   "probe_max_conf": 0.72,
+   "reason": "IDSW 평가는 연속 구간만 필요. 구간 내 사람 존재 확인됨(검출기 기준, 미라벨)"
+  },
+  {
+   "video": "KakaoTalk_20260807_000611749",
+   "from_ms": 1000.0,
+   "to_ms": 3000.0,
+   "gap_ms": 2000.0,
+   "probe_max_conf": 0.757,
+   "reason": "IDSW 평가는 연속 구간만 필요. 구간 내 사람 존재 확인됨(검출기 기준, 미라벨)"
+  },
+  {
+   "video": "KakaoTalk_20260807_000611749",
+   "from_ms": 5000.0,
+   "to_ms": 8000.0,
+   "gap_ms": 3000.0,
+   "probe_max_conf": 0.823,
+   "reason": "IDSW 평가는 연속 구간만 필요. 구간 내 사람 존재 확인됨(검출기 기준, 미라벨)"
+  },
+  {
+   "video": "KakaoTalk_20260807_000611749",
+   "from_ms": 8000.0,
+   "to_ms": 10000.0,
+   "gap_ms": 2000.0,
+   "probe_max_conf": 0.864,
+   "reason": "IDSW 평가는 연속 구간만 필요. 구간 내 사람 존재 확인됨(검출기 기준, 미라벨)"
+  },
+  {
+   "video": "KakaoTalk_20260807_000632301",
+   "from_ms": 6000.0,
+   "to_ms": 8000.0,
+   "gap_ms": 2000.0,
+   "probe_max_conf": 0.417,
+   "reason": "IDSW 평가는 연속 구간만 필요. 구간 내 사람 존재 확인됨(검출기 기준, 미라벨)"
+  },
+  {
+   "video": "KakaoTalk_20260807_000658251",
+   "from_ms": 3000.0,
+   "to_ms": 5000.0,
+   "gap_ms": 2000.0,
+   "probe_max_conf": 0.9,
+   "reason": "IDSW 평가는 연속 구간만 필요. 구간 내 사람 존재 확인됨(검출기 기준, 미라벨)"
+  },
+  {
+   "video": "KakaoTalk_20260807_000721865",
+   "from_ms": 0.0,
+   "to_ms": 5000.0,
+   "gap_ms": 5000.0,
+   "probe_max_conf": 0.92,
+   "reason": "IDSW 평가는 연속 구간만 필요. 구간 내 사람 존재 확인됨(검출기 기준, 미라벨)"
+  },
+  {
+   "video": "KakaoTalk_20260807_000721865",
+   "from_ms": 5000.0,
+   "to_ms": 11000.0,
+   "gap_ms": 6000.0,
+   "probe_max_conf": 0.956,
+   "reason": "IDSW 평가는 연속 구간만 필요. 구간 내 사람 존재 확인됨(검출기 기준, 미라벨)"
+  },
+  {
+   "video": "KakaoTalk_20260807_000721865",
+   "from_ms": 11000.0,
+   "to_ms": 13000.0,
+   "gap_ms": 2000.0,
+   "probe_max_conf": 0.873,
+   "reason": "IDSW 평가는 연속 구간만 필요. 구간 내 사람 존재 확인됨(검출기 기준, 미라벨)"
+  },
+  {
+   "video": "KakaoTalk_20260807_000721865",
+   "from_ms": 13000.0,
+   "to_ms": 16000.0,
+   "gap_ms": 3000.0,
+   "probe_max_conf": 0.886,
+   "reason": "IDSW 평가는 연속 구간만 필요. 구간 내 사람 존재 확인됨(검출기 기준, 미라벨)"
+  },
+  {
+   "video": "KakaoTalk_20260807_000721865",
+   "from_ms": 16000.0,
+   "to_ms": 23000.0,
+   "gap_ms": 7000.0,
+   "probe_max_conf": 0.929,
+   "reason": "IDSW 평가는 연속 구간만 필요. 구간 내 사람 존재 확인됨(검출기 기준, 미라벨)"
+  },
+  {
+   "video": "KakaoTalk_20260807_000721865",
+   "from_ms": 23000.0,
+   "to_ms": 25000.0,
+   "gap_ms": 2000.0,
+   "probe_max_conf": 0.75,
+   "reason": "IDSW 평가는 연속 구간만 필요. 구간 내 사람 존재 확인됨(검출기 기준, 미라벨)"
+  }
+ ]
+}

@@ -1,0 +1,1110 @@
+{
+ "schema": {
+  "track_id": "int",
+  "source": "human|interp|human_verified",
+  "parent_track_id": "int|null(지금은 비움)",
+  "video_role": "full|detector_only"
+ },
+ "detector_only_videos": [
+  "KakaoTalk_20260807_000721865"
+ ],
+ "gaps_excluded": [
+  {
+   "video": "KakaoTalk_20260807_000442974",
+   "from_ms": 1000.0,
+   "to_ms": 3000.0,
+   "gap_ms": 2000.0,
+   "probe_max_conf": 0.911,
+   "reason": "IDSW 평가는 연속 구간만 필요. 구간 내 사람 존재 확인됨(검출기 기준, 미라벨)"
+  },
+  {
+   "video": "KakaoTalk_20260807_000442974",
+   "from_ms": 3000.0,
+   "to_ms": 6000.0,
+   "gap_ms": 3000.0,
+   "probe_max_conf": 0.891,
+   "reason": "IDSW 평가는 연속 구간만 필요. 구간 내 사람 존재 확인됨(검출기 기준, 미라벨)"
+  },
+  {
+   "video": "KakaoTalk_20260807_000442974",
+   "from_ms": 6000.0,
+   "to_ms": 10000.0,
+   "gap_ms": 4000.0,
+   "probe_max_conf": 0.912,
+   "reason": "IDSW 평가는 연속 구간만 필요. 구간 내 사람 존재 확인됨(검출기 기준, 미라벨)"
+  },
+  {
+   "video": "KakaoTalk_20260807_000442974",
+   "from_ms": 10000.0,
+   "to_ms": 12000.0,
+   "gap_ms": 2000.0,
+   "probe_max_conf": 0.905,
+   "reason": "IDSW 평가는 연속 구간만 필요. 구간 내 사람 존재 확인됨(검출기 기준, 미라벨)"
+  },
+  {
+   "video": "KakaoTalk_20260807_000552920",
+   "from_ms": 14000.0,
+   "to_ms": 16000.0,
+   "gap_ms": 2000.0,
+   "probe_max_conf": 0.873,
+   "reason": "IDSW 평가는 연속 구간만 필요. 구간 내 사람 존재 확인됨(검출기 기준, 미라벨)"
+  },
+  {
+   "video": "KakaoTalk_20260807_000552920",
+   "from_ms": 17000.0,
+   "to_ms": 19000.0,
+   "gap_ms": 2000.0,
+   "probe_max_conf": 0.72,
+   "reason": "IDSW 평가는 연속 구간만 필요. 구간 내 사람 존재 확인됨(검출기 기준, 미라벨)"
+  },
+  {
+   "video": "KakaoTalk_20260807_000611749",
+   "from_ms": 1000.0,
+   "to_ms": 3000.0,
+   "gap_ms": 2000.0,
+   "probe_max_conf": 0.757,
+   "reason": "IDSW 평가는 연속 구간만 필요. 구간 내 사람 존재 확인됨(검출기 기준, 미라벨)"
+  },
+  {
+   "video": "KakaoTalk_20260807_000611749",
+   "from_ms": 5000.0,
+   "to_ms": 8000.0,
+   "gap_ms": 3000.0,
+   "probe_max_conf": 0.823,
+   "reason": "IDSW 평가는 연속 구간만 필요. 구간 내 사람 존재 확인됨(검출기 기준, 미라벨)"
+  },
+  {
+   "video": "KakaoTalk_20260807_000611749",
+   "from_ms": 8000.0,
+   "to_ms": 10000.0,
+   "gap_ms": 2000.0,
+   "probe_max_conf": 0.864,
+   "reason": "IDSW 평가는 연속 구간만 필요. 구간 내 사람 존재 확인됨(검출기 기준, 미라벨)"
+  },
+  {
+   "video": "KakaoTalk_20260807_000632301",
+   "from_ms": 6000.0,
+   "to_ms": 8000.0,
+   "gap_ms": 2000.0,
+   "probe_max_conf": 0.417,
+   "reason": "IDSW 평가는 연속 구간만 필요. 구간 내 사람 존재 확인됨(검출기 기준, 미라벨)"
+  },
+  {
+   "video": "KakaoTalk_20260807_000658251",
+   "from_ms": 3000.0,
+   "to_ms": 5000.0,
+   "gap_ms": 2000.0,
+   "probe_max_conf": 0.9,
+   "reason": "IDSW 평가는 연속 구간만 필요. 구간 내 사람 존재 확인됨(검출기 기준, 미라벨)"
+  },
+  {
+   "video": "KakaoTalk_20260807_000721865",
+   "from_ms": 0.0,
+   "to_ms": 5000.0,
+   "gap_ms": 5000.0,
+   "probe_max_conf": 0.92,
+   "reason": "IDSW 평가는 연속 구간만 필요. 구간 내 사람 존재 확인됨(검출기 기준, 미라벨)"
+  },
+  {
+   "video": "KakaoTalk_20260807_000721865",
+   "from_ms": 5000.0,
+   "to_ms": 11000.0,
+   "gap_ms": 6000.0,
+   "probe_max_conf": 0.956,
+   "reason": "IDSW 평가는 연속 구간만 필요. 구간 내 사람 존재 확인됨(검출기 기준, 미라벨)"
+  },
+  {
+   "video": "KakaoTalk_20260807_000721865",
+   "from_ms": 11000.0,
+   "to_ms": 13000.0,
+   "gap_ms": 2000.0,
+   "probe_max_conf": 0.873,
+   "reason": "IDSW 평가는 연속 구간만 필요. 구간 내 사람 존재 확인됨(검출기 기준, 미라벨)"
+  },
+  {
+   "video": "KakaoTalk_20260807_000721865",
+   "from_ms": 13000.0,
+   "to_ms": 16000.0,
+   "gap_ms": 3000.0,
+   "probe_max_conf": 0.886,
+   "reason": "IDSW 평가는 연속 구간만 필요. 구간 내 사람 존재 확인됨(검출기 기준, 미라벨)"
+  },
+  {
+   "video": "KakaoTalk_20260807_000721865",
+   "from_ms": 16000.0,
+   "to_ms": 23000.0,
+   "gap_ms": 7000.0,
+   "probe_max_conf": 0.929,
+   "reason": "IDSW 평가는 연속 구간만 필요. 구간 내 사람 존재 확인됨(검출기 기준, 미라벨)"
+  },
+  {
+   "video": "KakaoTalk_20260807_000721865",
+   "from_ms": 23000.0,
+   "to_ms": 25000.0,
+   "gap_ms": 2000.0,
+   "probe_max_conf": 0.75,
+   "reason": "IDSW 평가는 연속 구간만 필요. 구간 내 사람 존재 확인됨(검출기 기준, 미라벨)"
+  }
+ ],
+ "frames": [
+  {
+   "video": "KakaoTalk_20260807_000438282",
+   "t_ms": 500,
+   "file": "KakaoTalk_20260807_000438282_500ms.jpg",
+   "status": "needs_review",
+   "video_role": "full",
+   "gap_ms": 1000.0,
+   "boxes": 3,
+   "unmatched_tids": [
+    4
+   ]
+  },
+  {
+   "video": "KakaoTalk_20260807_000438282",
+   "t_ms": 1500,
+   "file": "KakaoTalk_20260807_000438282_1500ms.jpg",
+   "status": "interp",
+   "video_role": "full",
+   "gap_ms": 1000.0,
+   "boxes": 3,
+   "unmatched_tids": []
+  },
+  {
+   "video": "KakaoTalk_20260807_000438282",
+   "t_ms": 2500,
+   "file": "KakaoTalk_20260807_000438282_2500ms.jpg",
+   "status": "needs_review",
+   "video_role": "full",
+   "gap_ms": 1000.0,
+   "boxes": 2,
+   "unmatched_tids": [
+    3
+   ]
+  },
+  {
+   "video": "KakaoTalk_20260807_000438282",
+   "t_ms": 3500,
+   "file": "KakaoTalk_20260807_000438282_3500ms.jpg",
+   "status": "needs_review",
+   "video_role": "full",
+   "gap_ms": 1000.0,
+   "boxes": 2,
+   "unmatched_tids": [
+    5,
+    6
+   ]
+  },
+  {
+   "video": "KakaoTalk_20260807_000438282",
+   "t_ms": 4500,
+   "file": "KakaoTalk_20260807_000438282_4500ms.jpg",
+   "status": "needs_review",
+   "video_role": "full",
+   "gap_ms": 1000.0,
+   "boxes": 2,
+   "unmatched_tids": [
+    5,
+    6
+   ]
+  },
+  {
+   "video": "KakaoTalk_20260807_000438282",
+   "t_ms": 5500,
+   "file": "KakaoTalk_20260807_000438282_5500ms.jpg",
+   "status": "interp",
+   "video_role": "full",
+   "gap_ms": 1000.0,
+   "boxes": 2,
+   "unmatched_tids": []
+  },
+  {
+   "video": "KakaoTalk_20260807_000438282",
+   "t_ms": 6500,
+   "file": "KakaoTalk_20260807_000438282_6500ms.jpg",
+   "status": "interp",
+   "video_role": "full",
+   "gap_ms": 1000.0,
+   "boxes": 2,
+   "unmatched_tids": []
+  },
+  {
+   "video": "KakaoTalk_20260807_000438282",
+   "t_ms": 7500,
+   "file": "KakaoTalk_20260807_000438282_7500ms.jpg",
+   "status": "needs_review",
+   "video_role": "full",
+   "gap_ms": 1000.0,
+   "boxes": 2,
+   "unmatched_tids": [
+    7
+   ]
+  },
+  {
+   "video": "KakaoTalk_20260807_000438282",
+   "t_ms": 8500,
+   "file": "KakaoTalk_20260807_000438282_8500ms.jpg",
+   "status": "needs_review",
+   "video_role": "full",
+   "gap_ms": 1000.0,
+   "boxes": 1,
+   "unmatched_tids": [
+    2,
+    7,
+    8
+   ]
+  },
+  {
+   "video": "KakaoTalk_20260807_000438282",
+   "t_ms": 9500,
+   "file": "KakaoTalk_20260807_000438282_9500ms.jpg",
+   "status": "needs_review",
+   "video_role": "full",
+   "gap_ms": 1000.0,
+   "boxes": 1,
+   "unmatched_tids": [
+    8,
+    9
+   ]
+  },
+  {
+   "video": "KakaoTalk_20260807_000438282",
+   "t_ms": 10500,
+   "file": "KakaoTalk_20260807_000438282_10500ms.jpg",
+   "status": "interp",
+   "video_role": "full",
+   "gap_ms": 1000.0,
+   "boxes": 2,
+   "unmatched_tids": []
+  },
+  {
+   "video": "KakaoTalk_20260807_000438282",
+   "t_ms": 11500,
+   "file": "KakaoTalk_20260807_000438282_11500ms.jpg",
+   "status": "needs_review",
+   "video_role": "full",
+   "gap_ms": 1000.0,
+   "boxes": 1,
+   "unmatched_tids": [
+    9
+   ]
+  },
+  {
+   "video": "KakaoTalk_20260807_000438282",
+   "t_ms": 12500,
+   "file": "KakaoTalk_20260807_000438282_12500ms.jpg",
+   "status": "needs_review",
+   "video_role": "full",
+   "gap_ms": 1000.0,
+   "boxes": 0,
+   "unmatched_tids": [
+    1,
+    10
+   ]
+  },
+  {
+   "video": "KakaoTalk_20260807_000438282",
+   "t_ms": 13500,
+   "file": "KakaoTalk_20260807_000438282_13500ms.jpg",
+   "status": "needs_review",
+   "video_role": "full",
+   "gap_ms": 1000.0,
+   "boxes": 1,
+   "unmatched_tids": [
+    11
+   ]
+  },
+  {
+   "video": "KakaoTalk_20260807_000438282",
+   "t_ms": 14500,
+   "file": "KakaoTalk_20260807_000438282_14500ms.jpg",
+   "status": "needs_review",
+   "video_role": "full",
+   "gap_ms": 1000.0,
+   "boxes": 1,
+   "unmatched_tids": [
+    11
+   ]
+  },
+  {
+   "video": "KakaoTalk_20260807_000438282",
+   "t_ms": 15500,
+   "file": "KakaoTalk_20260807_000438282_15500ms.jpg",
+   "status": "needs_review",
+   "video_role": "full",
+   "gap_ms": 1000.0,
+   "boxes": 1,
+   "unmatched_tids": [
+    12,
+    13,
+    14
+   ]
+  },
+  {
+   "video": "KakaoTalk_20260807_000438282",
+   "t_ms": 16500,
+   "file": "KakaoTalk_20260807_000438282_16500ms.jpg",
+   "status": "needs_review",
+   "video_role": "full",
+   "gap_ms": 1000.0,
+   "boxes": 4,
+   "unmatched_tids": [
+    15
+   ]
+  },
+  {
+   "video": "KakaoTalk_20260807_000438282",
+   "t_ms": 17500,
+   "file": "KakaoTalk_20260807_000438282_17500ms.jpg",
+   "status": "needs_review",
+   "video_role": "full",
+   "gap_ms": 1000.0,
+   "boxes": 5,
+   "unmatched_tids": [
+    16
+   ]
+  },
+  {
+   "video": "KakaoTalk_20260807_000438282",
+   "t_ms": 18500,
+   "file": "KakaoTalk_20260807_000438282_18500ms.jpg",
+   "status": "needs_review",
+   "video_role": "full",
+   "gap_ms": 1000.0,
+   "boxes": 3,
+   "unmatched_tids": [
+    13,
+    14,
+    16
+   ]
+  },
+  {
+   "video": "KakaoTalk_20260807_000438282",
+   "t_ms": 19500,
+   "file": "KakaoTalk_20260807_000438282_19500ms.jpg",
+   "status": "needs_review",
+   "video_role": "full",
+   "gap_ms": 1000.0,
+   "boxes": 1,
+   "unmatched_tids": [
+    12,
+    15
+   ]
+  },
+  {
+   "video": "KakaoTalk_20260807_000442974",
+   "t_ms": 500,
+   "file": "KakaoTalk_20260807_000442974_500ms.jpg",
+   "status": "needs_review",
+   "video_role": "full",
+   "gap_ms": 1000.0,
+   "boxes": 0,
+   "unmatched_tids": [
+    1,
+    2
+   ]
+  },
+  {
+   "video": "KakaoTalk_20260807_000442974",
+   "t_ms": 12500,
+   "file": "KakaoTalk_20260807_000442974_12500ms.jpg",
+   "status": "needs_review",
+   "video_role": "full",
+   "gap_ms": 1000.0,
+   "boxes": 1,
+   "unmatched_tids": [
+    8,
+    10
+   ]
+  },
+  {
+   "video": "KakaoTalk_20260807_000442974",
+   "t_ms": 13500,
+   "file": "KakaoTalk_20260807_000442974_13500ms.jpg",
+   "status": "interp",
+   "video_role": "full",
+   "gap_ms": 1000.0,
+   "boxes": 2,
+   "unmatched_tids": []
+  },
+  {
+   "video": "KakaoTalk_20260807_000442974",
+   "t_ms": 14500,
+   "file": "KakaoTalk_20260807_000442974_14500ms.jpg",
+   "status": "interp",
+   "video_role": "full",
+   "gap_ms": 1000.0,
+   "boxes": 2,
+   "unmatched_tids": []
+  },
+  {
+   "video": "KakaoTalk_20260807_000442974",
+   "t_ms": 15500,
+   "file": "KakaoTalk_20260807_000442974_15500ms.jpg",
+   "status": "interp",
+   "video_role": "full",
+   "gap_ms": 1000.0,
+   "boxes": 2,
+   "unmatched_tids": []
+  },
+  {
+   "video": "KakaoTalk_20260807_000552920",
+   "t_ms": 500,
+   "file": "KakaoTalk_20260807_000552920_500ms.jpg",
+   "status": "needs_review",
+   "video_role": "full",
+   "gap_ms": 1000.0,
+   "boxes": 2,
+   "unmatched_tids": [
+    3,
+    4
+   ]
+  },
+  {
+   "video": "KakaoTalk_20260807_000552920",
+   "t_ms": 1500,
+   "file": "KakaoTalk_20260807_000552920_1500ms.jpg",
+   "status": "needs_review",
+   "video_role": "full",
+   "gap_ms": 1000.0,
+   "boxes": 2,
+   "unmatched_tids": [
+    2
+   ]
+  },
+  {
+   "video": "KakaoTalk_20260807_000552920",
+   "t_ms": 2500,
+   "file": "KakaoTalk_20260807_000552920_2500ms.jpg",
+   "status": "interp",
+   "video_role": "full",
+   "gap_ms": 1000.0,
+   "boxes": 2,
+   "unmatched_tids": []
+  },
+  {
+   "video": "KakaoTalk_20260807_000552920",
+   "t_ms": 3500,
+   "file": "KakaoTalk_20260807_000552920_3500ms.jpg",
+   "status": "interp",
+   "video_role": "full",
+   "gap_ms": 1000.0,
+   "boxes": 2,
+   "unmatched_tids": []
+  },
+  {
+   "video": "KakaoTalk_20260807_000552920",
+   "t_ms": 4500,
+   "file": "KakaoTalk_20260807_000552920_4500ms.jpg",
+   "status": "needs_review",
+   "video_role": "full",
+   "gap_ms": 1000.0,
+   "boxes": 2,
+   "unmatched_tids": [
+    5,
+    6
+   ]
+  },
+  {
+   "video": "KakaoTalk_20260807_000552920",
+   "t_ms": 5500,
+   "file": "KakaoTalk_20260807_000552920_5500ms.jpg",
+   "status": "needs_review",
+   "video_role": "full",
+   "gap_ms": 1000.0,
+   "boxes": 3,
+   "unmatched_tids": [
+    6
+   ]
+  },
+  {
+   "video": "KakaoTalk_20260807_000552920",
+   "t_ms": 6500,
+   "file": "KakaoTalk_20260807_000552920_6500ms.jpg",
+   "status": "needs_review",
+   "video_role": "full",
+   "gap_ms": 1000.0,
+   "boxes": 2,
+   "unmatched_tids": [
+    5
+   ]
+  },
+  {
+   "video": "KakaoTalk_20260807_000552920",
+   "t_ms": 7500,
+   "file": "KakaoTalk_20260807_000552920_7500ms.jpg",
+   "status": "interp",
+   "video_role": "full",
+   "gap_ms": 1000.0,
+   "boxes": 2,
+   "unmatched_tids": []
+  },
+  {
+   "video": "KakaoTalk_20260807_000552920",
+   "t_ms": 8500,
+   "file": "KakaoTalk_20260807_000552920_8500ms.jpg",
+   "status": "interp",
+   "video_role": "full",
+   "gap_ms": 1000.0,
+   "boxes": 2,
+   "unmatched_tids": []
+  },
+  {
+   "video": "KakaoTalk_20260807_000552920",
+   "t_ms": 9500,
+   "file": "KakaoTalk_20260807_000552920_9500ms.jpg",
+   "status": "interp",
+   "video_role": "full",
+   "gap_ms": 1000.0,
+   "boxes": 2,
+   "unmatched_tids": []
+  },
+  {
+   "video": "KakaoTalk_20260807_000552920",
+   "t_ms": 10500,
+   "file": "KakaoTalk_20260807_000552920_10500ms.jpg",
+   "status": "interp",
+   "video_role": "full",
+   "gap_ms": 1000.0,
+   "boxes": 2,
+   "unmatched_tids": []
+  },
+  {
+   "video": "KakaoTalk_20260807_000552920",
+   "t_ms": 11500,
+   "file": "KakaoTalk_20260807_000552920_11500ms.jpg",
+   "status": "interp",
+   "video_role": "full",
+   "gap_ms": 1000.0,
+   "boxes": 2,
+   "unmatched_tids": []
+  },
+  {
+   "video": "KakaoTalk_20260807_000552920",
+   "t_ms": 12500,
+   "file": "KakaoTalk_20260807_000552920_12500ms.jpg",
+   "status": "needs_review",
+   "video_role": "full",
+   "gap_ms": 1000.0,
+   "boxes": 1,
+   "unmatched_tids": [
+    4,
+    7
+   ]
+  },
+  {
+   "video": "KakaoTalk_20260807_000552920",
+   "t_ms": 13500,
+   "file": "KakaoTalk_20260807_000552920_13500ms.jpg",
+   "status": "needs_review",
+   "video_role": "full",
+   "gap_ms": 1000.0,
+   "boxes": 1,
+   "unmatched_tids": [
+    7,
+    8,
+    9
+   ]
+  },
+  {
+   "video": "KakaoTalk_20260807_000552920",
+   "t_ms": 16500,
+   "file": "KakaoTalk_20260807_000552920_16500ms.jpg",
+   "status": "needs_review",
+   "video_role": "full",
+   "gap_ms": 1000.0,
+   "boxes": 2,
+   "unmatched_tids": [
+    11,
+    13,
+    14
+   ]
+  },
+  {
+   "video": "KakaoTalk_20260807_000601541",
+   "t_ms": 500,
+   "file": "KakaoTalk_20260807_000601541_500ms.jpg",
+   "status": "interp",
+   "video_role": "full",
+   "gap_ms": 1000.0,
+   "boxes": 1,
+   "unmatched_tids": []
+  },
+  {
+   "video": "KakaoTalk_20260807_000601541",
+   "t_ms": 1500,
+   "file": "KakaoTalk_20260807_000601541_1500ms.jpg",
+   "status": "interp",
+   "video_role": "full",
+   "gap_ms": 1000.0,
+   "boxes": 1,
+   "unmatched_tids": []
+  },
+  {
+   "video": "KakaoTalk_20260807_000601541",
+   "t_ms": 2500,
+   "file": "KakaoTalk_20260807_000601541_2500ms.jpg",
+   "status": "interp",
+   "video_role": "full",
+   "gap_ms": 1000.0,
+   "boxes": 1,
+   "unmatched_tids": []
+  },
+  {
+   "video": "KakaoTalk_20260807_000601541",
+   "t_ms": 3500,
+   "file": "KakaoTalk_20260807_000601541_3500ms.jpg",
+   "status": "interp",
+   "video_role": "full",
+   "gap_ms": 1000.0,
+   "boxes": 1,
+   "unmatched_tids": []
+  },
+  {
+   "video": "KakaoTalk_20260807_000601541",
+   "t_ms": 4500,
+   "file": "KakaoTalk_20260807_000601541_4500ms.jpg",
+   "status": "interp",
+   "video_role": "full",
+   "gap_ms": 1000.0,
+   "boxes": 1,
+   "unmatched_tids": []
+  },
+  {
+   "video": "KakaoTalk_20260807_000601541",
+   "t_ms": 5500,
+   "file": "KakaoTalk_20260807_000601541_5500ms.jpg",
+   "status": "interp",
+   "video_role": "full",
+   "gap_ms": 1000.0,
+   "boxes": 1,
+   "unmatched_tids": []
+  },
+  {
+   "video": "KakaoTalk_20260807_000601541",
+   "t_ms": 6500,
+   "file": "KakaoTalk_20260807_000601541_6500ms.jpg",
+   "status": "interp",
+   "video_role": "full",
+   "gap_ms": 1000.0,
+   "boxes": 1,
+   "unmatched_tids": []
+  },
+  {
+   "video": "KakaoTalk_20260807_000601541",
+   "t_ms": 7500,
+   "file": "KakaoTalk_20260807_000601541_7500ms.jpg",
+   "status": "interp",
+   "video_role": "full",
+   "gap_ms": 1000.0,
+   "boxes": 1,
+   "unmatched_tids": []
+  },
+  {
+   "video": "KakaoTalk_20260807_000611749",
+   "t_ms": 500,
+   "file": "KakaoTalk_20260807_000611749_500ms.jpg",
+   "status": "interp",
+   "video_role": "full",
+   "gap_ms": 1000.0,
+   "boxes": 3,
+   "unmatched_tids": []
+  },
+  {
+   "video": "KakaoTalk_20260807_000611749",
+   "t_ms": 3500,
+   "file": "KakaoTalk_20260807_000611749_3500ms.jpg",
+   "status": "interp",
+   "video_role": "full",
+   "gap_ms": 1000.0,
+   "boxes": 1,
+   "unmatched_tids": []
+  },
+  {
+   "video": "KakaoTalk_20260807_000611749",
+   "t_ms": 4500,
+   "file": "KakaoTalk_20260807_000611749_4500ms.jpg",
+   "status": "needs_review",
+   "video_role": "full",
+   "gap_ms": 1000.0,
+   "boxes": 0,
+   "unmatched_tids": [
+    4,
+    5,
+    6
+   ]
+  },
+  {
+   "video": "KakaoTalk_20260807_000611749",
+   "t_ms": 10500,
+   "file": "KakaoTalk_20260807_000611749_10500ms.jpg",
+   "status": "needs_review",
+   "video_role": "full",
+   "gap_ms": 1000.0,
+   "boxes": 0,
+   "unmatched_tids": [
+    10,
+    11,
+    12,
+    13,
+    14
+   ]
+  },
+  {
+   "video": "KakaoTalk_20260807_000611749",
+   "t_ms": 11500,
+   "file": "KakaoTalk_20260807_000611749_11500ms.jpg",
+   "status": "needs_review",
+   "video_role": "full",
+   "gap_ms": 1000.0,
+   "boxes": 2,
+   "unmatched_tids": [
+    15
+   ]
+  },
+  {
+   "video": "KakaoTalk_20260807_000611749",
+   "t_ms": 12500,
+   "file": "KakaoTalk_20260807_000611749_12500ms.jpg",
+   "status": "needs_review",
+   "video_role": "full",
+   "gap_ms": 1000.0,
+   "boxes": 2,
+   "unmatched_tids": [
+    15
+   ]
+  },
+  {
+   "video": "KakaoTalk_20260807_000611749",
+   "t_ms": 13500,
+   "file": "KakaoTalk_20260807_000611749_13500ms.jpg",
+   "status": "needs_review",
+   "video_role": "full",
+   "gap_ms": 1000.0,
+   "boxes": 2,
+   "unmatched_tids": [
+    16,
+    17
+   ]
+  },
+  {
+   "video": "KakaoTalk_20260807_000611749",
+   "t_ms": 14500,
+   "file": "KakaoTalk_20260807_000611749_14500ms.jpg",
+   "status": "needs_review",
+   "video_role": "full",
+   "gap_ms": 1000.0,
+   "boxes": 3,
+   "unmatched_tids": [
+    17
+   ]
+  },
+  {
+   "video": "KakaoTalk_20260807_000632301",
+   "t_ms": 500,
+   "file": "KakaoTalk_20260807_000632301_500ms.jpg",
+   "status": "interp",
+   "video_role": "full",
+   "gap_ms": 1000.0,
+   "boxes": 2,
+   "unmatched_tids": []
+  },
+  {
+   "video": "KakaoTalk_20260807_000632301",
+   "t_ms": 1500,
+   "file": "KakaoTalk_20260807_000632301_1500ms.jpg",
+   "status": "needs_review",
+   "video_role": "full",
+   "gap_ms": 1000.0,
+   "boxes": 1,
+   "unmatched_tids": [
+    1
+   ]
+  },
+  {
+   "video": "KakaoTalk_20260807_000632301",
+   "t_ms": 2500,
+   "file": "KakaoTalk_20260807_000632301_2500ms.jpg",
+   "status": "interp",
+   "video_role": "full",
+   "gap_ms": 1000.0,
+   "boxes": 1,
+   "unmatched_tids": []
+  },
+  {
+   "video": "KakaoTalk_20260807_000632301",
+   "t_ms": 3500,
+   "file": "KakaoTalk_20260807_000632301_3500ms.jpg",
+   "status": "interp",
+   "video_role": "full",
+   "gap_ms": 1000.0,
+   "boxes": 1,
+   "unmatched_tids": []
+  },
+  {
+   "video": "KakaoTalk_20260807_000632301",
+   "t_ms": 4500,
+   "file": "KakaoTalk_20260807_000632301_4500ms.jpg",
+   "status": "interp",
+   "video_role": "full",
+   "gap_ms": 1000.0,
+   "boxes": 1,
+   "unmatched_tids": []
+  },
+  {
+   "video": "KakaoTalk_20260807_000632301",
+   "t_ms": 5500,
+   "file": "KakaoTalk_20260807_000632301_5500ms.jpg",
+   "status": "interp",
+   "video_role": "full",
+   "gap_ms": 1000.0,
+   "boxes": 1,
+   "unmatched_tids": []
+  },
+  {
+   "video": "KakaoTalk_20260807_000633827",
+   "t_ms": 500,
+   "file": "KakaoTalk_20260807_000633827_500ms.jpg",
+   "status": "needs_review",
+   "video_role": "full",
+   "gap_ms": 1000.0,
+   "boxes": 0,
+   "unmatched_tids": [
+    1,
+    2
+   ]
+  },
+  {
+   "video": "KakaoTalk_20260807_000633827",
+   "t_ms": 1500,
+   "file": "KakaoTalk_20260807_000633827_1500ms.jpg",
+   "status": "needs_review",
+   "video_role": "full",
+   "gap_ms": 1000.0,
+   "boxes": 0,
+   "unmatched_tids": [
+    2
+   ]
+  },
+  {
+   "video": "KakaoTalk_20260807_000633827",
+   "t_ms": 2500,
+   "file": "KakaoTalk_20260807_000633827_2500ms.jpg",
+   "status": "interp",
+   "video_role": "full",
+   "gap_ms": 1000.0,
+   "boxes": 0,
+   "unmatched_tids": []
+  },
+  {
+   "video": "KakaoTalk_20260807_000633827",
+   "t_ms": 3500,
+   "file": "KakaoTalk_20260807_000633827_3500ms.jpg",
+   "status": "interp",
+   "video_role": "full",
+   "gap_ms": 1000.0,
+   "boxes": 0,
+   "unmatched_tids": []
+  },
+  {
+   "video": "KakaoTalk_20260807_000633827",
+   "t_ms": 4500,
+   "file": "KakaoTalk_20260807_000633827_4500ms.jpg",
+   "status": "interp",
+   "video_role": "full",
+   "gap_ms": 1000.0,
+   "boxes": 0,
+   "unmatched_tids": []
+  },
+  {
+   "video": "KakaoTalk_20260807_000633827",
+   "t_ms": 5500,
+   "file": "KakaoTalk_20260807_000633827_5500ms.jpg",
+   "status": "interp",
+   "video_role": "full",
+   "gap_ms": 1000.0,
+   "boxes": 0,
+   "unmatched_tids": []
+  },
+  {
+   "video": "KakaoTalk_20260807_000633827",
+   "t_ms": 6500,
+   "file": "KakaoTalk_20260807_000633827_6500ms.jpg",
+   "status": "interp",
+   "video_role": "full",
+   "gap_ms": 1000.0,
+   "boxes": 0,
+   "unmatched_tids": []
+  },
+  {
+   "video": "KakaoTalk_20260807_000633827",
+   "t_ms": 7500,
+   "file": "KakaoTalk_20260807_000633827_7500ms.jpg",
+   "status": "interp",
+   "video_role": "full",
+   "gap_ms": 1000.0,
+   "boxes": 0,
+   "unmatched_tids": []
+  },
+  {
+   "video": "KakaoTalk_20260807_000633827",
+   "t_ms": 8500,
+   "file": "KakaoTalk_20260807_000633827_8500ms.jpg",
+   "status": "needs_review",
+   "video_role": "full",
+   "gap_ms": 1000.0,
+   "boxes": 0,
+   "unmatched_tids": [
+    3
+   ]
+  },
+  {
+   "video": "KakaoTalk_20260807_000633827",
+   "t_ms": 9500,
+   "file": "KakaoTalk_20260807_000633827_9500ms.jpg",
+   "status": "needs_review",
+   "video_role": "full",
+   "gap_ms": 1000.0,
+   "boxes": 0,
+   "unmatched_tids": [
+    3,
+    4
+   ]
+  },
+  {
+   "video": "KakaoTalk_20260807_000633827",
+   "t_ms": 10500,
+   "file": "KakaoTalk_20260807_000633827_10500ms.jpg",
+   "status": "needs_review",
+   "video_role": "full",
+   "gap_ms": 1000.0,
+   "boxes": 0,
+   "unmatched_tids": [
+    4,
+    5
+   ]
+  },
+  {
+   "video": "KakaoTalk_20260807_000633827",
+   "t_ms": 11500,
+   "file": "KakaoTalk_20260807_000633827_11500ms.jpg",
+   "status": "needs_review",
+   "video_role": "full",
+   "gap_ms": 1000.0,
+   "boxes": 1,
+   "unmatched_tids": [
+    6,
+    7
+   ]
+  },
+  {
+   "video": "KakaoTalk_20260807_000633827",
+   "t_ms": 12500,
+   "file": "KakaoTalk_20260807_000633827_12500ms.jpg",
+   "status": "needs_review",
+   "video_role": "full",
+   "gap_ms": 1000.0,
+   "boxes": 0,
+   "unmatched_tids": [
+    5,
+    6,
+    7,
+    8
+   ]
+  },
+  {
+   "video": "KakaoTalk_20260807_000658251",
+   "t_ms": 500,
+   "file": "KakaoTalk_20260807_000658251_500ms.jpg",
+   "status": "needs_review",
+   "video_role": "full",
+   "gap_ms": 1000.0,
+   "boxes": 1,
+   "unmatched_tids": [
+    2,
+    3
+   ]
+  },
+  {
+   "video": "KakaoTalk_20260807_000658251",
+   "t_ms": 1500,
+   "file": "KakaoTalk_20260807_000658251_1500ms.jpg",
+   "status": "needs_review",
+   "video_role": "full",
+   "gap_ms": 1000.0,
+   "boxes": 3,
+   "unmatched_tids": [
+    4
+   ]
+  },
+  {
+   "video": "KakaoTalk_20260807_000658251",
+   "t_ms": 2500,
+   "file": "KakaoTalk_20260807_000658251_2500ms.jpg",
+   "status": "needs_review",
+   "video_role": "full",
+   "gap_ms": 1000.0,
+   "boxes": 2,
+   "unmatched_tids": [
+    2,
+    4
+   ]
+  },
+  {
+   "video": "KakaoTalk_20260807_000658251",
+   "t_ms": 5500,
+   "file": "KakaoTalk_20260807_000658251_5500ms.jpg",
+   "status": "interp",
+   "video_role": "full",
+   "gap_ms": 1000.0,
+   "boxes": 1,
+   "unmatched_tids": []
+  },
+  {
+   "video": "KakaoTalk_20260807_000658251",
+   "t_ms": 6500,
+   "file": "KakaoTalk_20260807_000658251_6500ms.jpg",
+   "status": "needs_review",
+   "video_role": "full",
+   "gap_ms": 1000.0,
+   "boxes": 0,
+   "unmatched_tids": [
+    5,
+    6
+   ]
+  },
+  {
+   "video": "KakaoTalk_20260807_000658251",
+   "t_ms": 7500,
+   "file": "KakaoTalk_20260807_000658251_7500ms.jpg",
+   "status": "needs_review",
+   "video_role": "full",
+   "gap_ms": 1000.0,
+   "boxes": 1,
+   "unmatched_tids": [
+    7
+   ]
+  },
+  {
+   "video": "KakaoTalk_20260807_000658251",
+   "t_ms": 8500,
+   "file": "KakaoTalk_20260807_000658251_8500ms.jpg",
+   "status": "interp",
+   "video_role": "full",
+   "gap_ms": 1000.0,
+   "boxes": 2,
+   "unmatched_tids": []
+  },
+  {
+   "video": "KakaoTalk_20260807_000721865",
+   "t_ms": 25500,
+   "file": "KakaoTalk_20260807_000721865_25500ms.jpg",
+   "status": "needs_review",
+   "video_role": "detector_only",
+   "gap_ms": 1000.0,
+   "boxes": 0,
+   "unmatched_tids": [
+    8
+   ]
+  }
+ ]
+}
