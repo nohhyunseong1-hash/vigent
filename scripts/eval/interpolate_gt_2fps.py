@@ -1,6 +1,10 @@
 #!/usr/bin/env python3
 """scripts/eval/interpolate_gt_2fps.py — 1fps 정답지에서 2fps 정답지 **초안**을 만든다.
 
+★목적(2026-09-22 재정의): **사고 상황 검출기 재현율 + 2fps IDSW.**
+  ★**현장 파이프라인 재현율의 근거로 쓰지 않는다.** 사고영상은 현장 카메라가 아니며,
+  현장 지표는 재방문 수집(docs/refield_plan_addendum_20260922.md)으로 따로 만든다.
+
 배경(2026-09-21): 현 정답지는 1fps(1,000ms 간격) 표본인데 운용은 2fps(500ms)다.
   추적기 파라미터(match_thresh·lost_buffer·activation)는 **프레임 간격에 직접 민감**하므로
   1fps 정답지로 고른 값을 2fps 운용에 가져가면 틀린 값을 고를 수 있다.
@@ -31,10 +35,14 @@ _ROOT = Path(__file__).resolve().parent.parent.parent
 sys.path.insert(0, str(_ROOT / "vigent-core"))
 
 # 짝짓기 판정 상수 — 값을 바꾸면 초안이 달라지므로 리포트에 함께 적는다.
-IOU_OK = 0.30          # 이 이상이면 같은 사람으로 자동 채택
+IOU_OK = 0.25          # 이 이상이면 같은 사람으로 자동 채택(2026-09-22: 0.30→0.25)
 IOU_MAYBE = 0.05       # 이 미만이면 짝짓기 시도조차 하지 않는다(완전 별개)
-CENTER_OK = 0.15       # 중심 거리(화면 대각 대비) — IoU 가 낮아도 이 안이면 후보
-SIZE_RATIO_OK = 1.8    # 박스 크기 비(큰쪽/작은쪽) 상한 — 이보다 크면 다른 대상
+CENTER_OK = 0.20       # 중심 거리 — IoU 가 낮아도 이 안이면 후보(2026-09-22: 0.15→0.20)
+SIZE_RATIO_OK = 2.5    # ★**변 길이비**(폭·높이 각각 계산해 큰 쪽) 상한. 2026-09-22 정정:
+                       #   예전엔 '면적비 1.8' 이라 사람이 다가오면(면적은 제곱으로 변함)
+                       #   0.5초에도 후보에서 빠졌다. 변 길이비 2.5 로 바꾼다.
+PERSON_ONLY = True     # ★보간 대상은 person 만. 실측상 안전모·마스크는 1fps 에서 IoU 중앙값
+                       #   0.000~0.17 로 자동 연결이 불가능하고, 이번 목적(재현율·IDSW)과도 무관.
 
 
 def _xyxy(b: list[float]) -> tuple[float, float, float, float]:
@@ -59,10 +67,15 @@ def _center_dist(a: list[float], b: list[float]) -> float:
 
 
 def _size_ratio(a: list[float], b: list[float]) -> float:
-    aa, bb = a[2] * a[3], b[2] * b[3]
-    if aa <= 0 or bb <= 0:
-        return 99.0
-    return max(aa, bb) / min(aa, bb)
+    """★**변 길이비**(폭·높이 각각의 비 중 큰 쪽). 면적비가 아니다 — 면적은 제곱으로 변해
+    0.5초 접근에도 1.8 을 쉽게 넘었다(2026-09-22 정정)."""
+    ratios = []
+    for i in (2, 3):                       # w, h
+        x, y = a[i], b[i]
+        if x <= 0 or y <= 0:
+            return 99.0
+        ratios.append(max(x, y) / min(x, y))
+    return max(ratios)
 
 
 def match_boxes(prev: list[dict], cur: list[dict]) -> list[tuple[int, int, float, str]]:
@@ -80,22 +93,27 @@ def match_boxes(prev: list[dict], cur: list[dict]) -> list[tuple[int, int, float
             iou = _iou(p["box"], c["box"])
             dist = _center_dist(p["box"], c["box"])
             ratio = _size_ratio(p["box"], c["box"])
-            if ratio > SIZE_RATIO_OK:
+            # ★후보 = (IoU >= IOU_OK) **OR** (중심거리 <= CENTER_OK **AND** 변길이비 <= SIZE_RATIO_OK)
+            #   2026-09-22: 예전엔 크기비를 먼저 AND 로 걸러 IoU 가 충분해도 탈락했다.
+            by_iou = iou >= IOU_OK
+            by_pos = dist <= CENTER_OK and ratio <= SIZE_RATIO_OK
+            if not (by_iou or by_pos):
                 continue
-            if iou >= IOU_OK:
-                cands.append((iou + 1.0, i, j, "ok"))          # IoU 충분 — 우선 채택
-            elif iou >= IOU_MAYBE or dist <= CENTER_OK:
-                cands.append((iou + (CENTER_OK - min(dist, CENTER_OK)), i, j, "maybe"))
+            cands.append((iou + (1.0 if by_iou else 0.0), i, j, "cand"))
+    # ★후보가 **정확히 1개**면 자동 연결, 0개 또는 2개 이상이면 검수 대상(2026-09-22 지시).
+    by_cur: dict[int, list[tuple[float, int]]] = {}
+    for score, i, j, _k in cands:
+        by_cur.setdefault(j, []).append((score, i))
     cands.sort(reverse=True)
     used_p: set[int] = set()
     used_c: set[int] = set()
     out: list[tuple[int, int, float, str]] = []
-    for score, i, j, conf in cands:
+    for score, i, j, _k in cands:
         if i in used_p or j in used_c:
             continue
         used_p.add(i)
         used_c.add(j)
-        out.append((i, j, score, conf))
+        out.append((i, j, score, "ok" if len(by_cur.get(j, [])) == 1 else "maybe"))
     return out
 
 
@@ -173,9 +191,12 @@ def load_video_frames(manifest: list[dict], labels_dir: Path) -> dict[str, list[
                 if len(p) < 5:
                     continue
                 try:
-                    boxes.append({"cls": int(p[0]), "box": [float(v) for v in p[1:5]]})
+                    cls = int(p[0])
                 except ValueError:
                     continue                      # classes.txt 가 labels/ 안에 섞여 있다(1필드 7줄)
+                if PERSON_ONLY and cls != 0:
+                    continue                      # ★person(0) 만 — PPE 는 기존 1fps 정답지 그대로 둔다
+                boxes.append({"cls": cls, "box": [float(v) for v in p[1:5]]})
         byv.setdefault(r["video"], []).append(
             {"t_ms": float(r["t_ms"]), "frame_idx": int(r["frame_idx"]), "file": r["file"], "boxes": boxes})
     for v in byv:
