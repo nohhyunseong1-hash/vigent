@@ -95,11 +95,36 @@ class CvatToGtTest(unittest.TestCase):
         self.assertEqual(box["reason"], "low_quality")
         self.assertIsNone(box["track_id"])
 
-    def test_unknown_label_dropped(self) -> None:
-        """스키마에 없는 라벨(Mask)은 버린다 — 현장 보고서 §7-1 로 보호구 경보에서 뺐다."""
-        g = self.C.to_gt(self.parsed, 2.0, 640, 480)
+    def test_excluded_class_dropped_silently(self) -> None:
+        """★Mask 는 **의도적 제외**다 — 버그가 아니라 현장 조건에 따른 결정.
+
+        2026-08-27 학원에서 보호구 경보 490건 중 87건이 마스크 단독 발화였고 81건이
+        보호구를 갖춰 입은 장면이었다. 야외 중장비 실습장에서 마스크는 필수 보호구가 아니라
+        학원 프로파일의 `ppe.required` 에서 뺐다(2026-08-28). 규칙이 안 보는 것은 라벨하지 않는다.
+        ⚠전역 기본값은 3종 그대로 — 이 제외는 **학원 현장 한정**이다.
+        """
+        self.assertIn("Mask", self.C.EXCLUDED_CLASSES)
+        self.assertIn("NO-Mask", self.C.EXCLUDED_CLASSES)
         self.assertNotIn("Mask", self.C.CLASSES)
+        g = self.C.to_gt(self.parsed, 2.0, 640, 480)
         self.assertEqual(len(g[0]["boxes"]), 2, "person·NO-Hardhat 만 남아야 한다")
+
+    def test_excluded_and_unmapped_are_distinguished(self) -> None:
+        """의도적 제외와 '스키마 밖 미지의 라벨' 은 **다르게** 다뤄야 한다.
+
+        제외는 조용히 건너뛰고(집계만), 미지의 라벨은 경고 대상이다 — 오타일 수 있다.
+        """
+        typo_track = '<track id="9" label="Mask"></track>' + chr(10) + '  <track id="11" label="Hardhatt">'
+        xml = self.xml.read_text(encoding="utf-8").replace('<track id="9" label="Mask">', typo_track)
+        p2 = self.xml.with_name("mock2.xml")
+        p2.write_text(xml, encoding="utf-8")
+        parsed = self.C.parse_cvat(p2)
+        labels = {t["label"] for t in parsed["tracks"]}
+        self.assertIn("Hardhatt", labels, "오타 라벨이 파싱돼야 경고할 수 있다")
+        excluded = [x for x in labels if x in self.C.EXCLUDED_CLASSES]
+        unmapped = [x for x in labels if x not in self.C.CLASSES and x not in self.C.EXCLUDED_CLASSES]
+        self.assertEqual(excluded, ["Mask"])
+        self.assertEqual(unmapped, ["Hardhatt"], "오타는 '제외' 가 아니라 '미지' 로 분류돼야 한다")
 
     def test_box_normalized_cxcywh(self) -> None:
         """좌표가 정규화 cx,cy,w,h 로 바뀐다(기존 정답지 형식)."""

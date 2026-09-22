@@ -34,6 +34,21 @@ if hasattr(sys.stdout, "reconfigure"):
 
 # 기존 정답지와 **같은 순서**여야 한다(data/field_eval/classes.txt)
 CLASSES = ["person", "Hardhat", "NO-Hardhat", "Safety-Vest", "NO-Safety-Vest"]
+
+# ★의도적으로 제외한 클래스 — 버그가 아니다. 조용히 건너뛰되 집계에는 남긴다.
+#
+#   사유(실측 근거: reports/현장테스트_보고서_20260827_v1.2.md §7-1, 2026-08-27 학원 현장):
+#     보호구 경보 490건 중 **87건이 "마스크 미착용" 단독**으로 발화했고, 그중 **81건이
+#     보호구를 갖춰 입은 04·07 장면**에 몰려 있었다. **야외 중장비 실습장에서 마스크는
+#     필수 보호구가 아니다.** 즉 마스크 단독 발화가 사실상 전부 오탐이었다.
+#   조치(2026-08-28): 학원 프로파일에 `ppe.required = [NO-Hardhat, NO-Safety-Vest]`.
+#     **필수 보호구 규칙에 마스크가 없다** — 그래서 정답지에도 라벨할 이유가 없다.
+#     전후 재집계에서 안전모·조끼 경보는 365건 그대로, 손실 0.
+#   ⚠**전역 기본값은 3종(안전모·조끼·마스크) 그대로 둔다.** 실내 분진 작업 등 다른 현장에서는
+#     마스크가 필수일 수 있다. 이 제외는 **이 현장(학원) 정답지에 한정**된다.
+#   ※클래스 매핑 오류가 **아니다.** 현장 조건에 따른 운용 결정이다.
+EXCLUDED_CLASSES = ["Mask", "NO-Mask"]
+
 UNRESOLVABLE_ATTRS = {"unresolvable", "판정불가", "low_quality"}
 
 
@@ -87,8 +102,10 @@ def to_gt(parsed: dict[str, Any], target_fps: float, width: int, height: int,
 
     out: dict[int, dict[str, Any]] = {}
     for tr in parsed["tracks"]:
+        if tr["label"] in EXCLUDED_CLASSES:
+            continue                           # ★의도적 제외 — 경고하지 않는다(집계는 호출부에서)
         if tr["label"] not in CLASSES:
-            continue                           # 스키마에 없는 라벨은 버린다(경고는 호출부에서)
+            continue                           # 스키마 밖 라벨 — 호출부가 경고하고 파일로 남긴다
         cls = CLASSES.index(tr["label"])
         for b in tr["boxes"]:
             if b["frame"] not in wanted:
@@ -137,11 +154,25 @@ def main() -> int:
         return 2
 
     labels = Counter(t["label"] for t in parsed["tracks"])
-    unknown = {k: v for k, v in labels.items() if k not in CLASSES}
-    print(f"XML: {a.xml}\n  원본 {w}x{h} · {parsed['meta']['fps']}fps · {parsed['meta']['size']}프레임")
+    excluded = {k: v for k, v in labels.items() if k in EXCLUDED_CLASSES}
+    unmapped = {k: v for k, v in labels.items() if k not in CLASSES and k not in EXCLUDED_CLASSES}
+    print(f"XML: {a.xml}")
+    print(f"  원본 {w}x{h} · {parsed['meta']['fps']}fps · {parsed['meta']['size']}프레임")
     print(f"  트랙 {len(parsed['tracks'])}개 · 라벨 {dict(labels)}")
-    if unknown:
-        print(f"  ★스키마에 없는 라벨(버려진다): {unknown} — CLASSES={CLASSES}")
+    if excluded:
+        # ★의도적 제외 — 경고가 아니라 집계다(사유는 EXCLUDED_CLASSES 주석 참조)
+        print(f"  제외 클래스 {sum(excluded.values())}건(의도적): {excluded}")
+    if unmapped:
+        # 제외 목록에도 없는 라벨 — 오타인지 새 클래스인지 사람이 봐야 한다. 경고하고 파일로 남긴다.
+        print(f"  ★스키마 밖 라벨 {sum(unmapped.values())}건 — 버려진다. 확인 필요: {unmapped}")
+        up = Path(a.out or ".") / "unmapped_labels.json"
+        up.parent.mkdir(parents=True, exist_ok=True)
+        up.write_text(json.dumps(
+            {"xml": str(a.xml), "unmapped": unmapped, "known": CLASSES,
+             "excluded_intentionally": EXCLUDED_CLASSES,
+             "note": "스키마에 없고 의도적 제외 목록에도 없는 라벨이다. 오타인지 새 클래스인지 확인할 것."},
+            ensure_ascii=False, indent=1), encoding="utf-8")
+        print(f"    → {up}")
 
     frames = to_gt(parsed, a.fps, w, h, a.video_role)
     src = Counter(b["source"] for f in frames.values() for b in f["boxes"])

@@ -95,8 +95,19 @@ docker exec -it cvat_server bash -ic 'python3 ~/manage.py createsuperuser'
 
 ★**기존 정답지 클래스 순서와 맞춘다**(`data/field_eval/classes.txt`):
 `person`(0) · `Hardhat`(1) · `NO-Hardhat`(2) · `Safety-Vest`(3) · `NO-Safety-Vest`(4).
-Mask·NO-Mask 는 **이번 수집에서 제외**한다 — 현장 보고서 §7-1 에서 마스크를 보호구 경보에서
-뺐기 때문이다(`reports/현장테스트_보고서_20260827_v1.2.md`).
+
+### ★`Mask`·`NO-Mask` 는 만들지 않는다 (의도적 제외 — 버그가 아니다)
+
+**사유**: 2026-08-27 학원 현장에서 보호구 경보 490건 중 **87건이 "마스크 미착용" 단독**으로
+발화했고 그중 **81건이 보호구를 갖춰 입은 장면**이었다. **야외 중장비 실습장에서 마스크는
+필수 보호구가 아니므로** 단독 발화가 사실상 전부 오탐이었다
+(`reports/현장테스트_보고서_20260827_v1.2.md` §7-1).
+2026-08-28 조치로 학원 프로파일의 **필수 보호구 규칙에서 마스크를 뺐다**
+(`ppe.required = [NO-Hardhat, NO-Safety-Vest]`). 규칙이 보지 않는 것을 라벨할 이유가 없다.
+
+⚠️ **전역 기본값은 3종(안전모·조끼·마스크) 그대로다.** 실내 분진 작업 등 다른 현장에서는
+마스크가 필수일 수 있다. **이 제외는 학원 현장 정답지에 한정**된다.
+코드 정의: `scripts/eval/cvat_to_gt.py` 의 `EXCLUDED_CLASSES`.
 
 ### 3-3. 태스크 생성
 
