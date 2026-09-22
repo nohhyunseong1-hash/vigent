@@ -32,6 +32,13 @@ from typing import Any
 
 from pydantic import BaseModel
 
+if hasattr(sys.stdout, "reconfigure"):
+    # ★Windows 콘솔 기본 cp949 에서는 '—' 같은 문자에 UnicodeEncodeError 가 나 **기동이 죽는다**
+    #   (2026-09-22 실측). 다른 스크립트(check_raw_capture.py)와 같은 방식으로 utf-8 로 맞춘다.
+    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+if hasattr(sys.stderr, "reconfigure"):
+    sys.stderr.reconfigure(encoding="utf-8", errors="replace")
+
 _ROOT = Path(__file__).resolve().parent.parent.parent
 sys.path.insert(0, str(_ROOT / "vigent-core"))
 
@@ -124,6 +131,62 @@ def load_src_labels(stem: str) -> list[dict[str, Any]]:
     if done:                                     # V-2: 확정분이 있으면 그것이 정본
         out = [dict(b) for b in done["boxes"]]
     return out
+
+
+SELFTEST_STEM = "__selftest_roundtrip__"
+
+
+def selftest(app: Any) -> None:
+    """기동 자체 점검 — 저장 → 재읽기 → 삭제 왕복을 **실제 HTTP 경로**로 한 번 돌린다.
+
+    ★왜 HTTP 로 하나(2026-09-22 사고): `from __future__ import annotations` 로 애노테이션이
+      문자열이 되는데 FastAPI 는 그것을 **모듈 전역**에서 해석한다. `Save` 모델이 함수 안에
+      있어 못 찾고 본문이 아니라 **쿼리 파라미터**로 취급해 **모든 저장이 422 로 실패**하고
+      있었다. 함수를 직접 부르는 점검이었다면 통과했을 것이다 — 라우팅·모델 바인딩까지
+      지나가야 잡힌다.
+    ★실패하면 기동을 **중단**한다. 저장이 안 되는 뷰어로 검수하면 결과가 통째로 사라진다(규칙 11).
+    """
+    from fastapi.testclient import TestClient
+
+    box = {"cls": 0, "box": [0.5, 0.5, 0.1, 0.3], "track_id": 12345,
+           "verdict": "unresolvable", "src_tid": None}
+    before = progress()
+    try:
+        with TestClient(app) as c:
+            r = c.post("/api/save", json={"stem": SELFTEST_STEM, "boxes": [box],
+                                          "verified": False, "seconds": 0})
+            if r.status_code != 200:
+                raise RuntimeError(f"저장 요청이 {r.status_code} — 응답 {r.text[:300]}")
+            if not (r.json() or {}).get("ok"):
+                raise RuntimeError(f"저장 응답에 ok 가 없다 — {r.text[:300]}")
+            q = c.get("/api/queue")
+            if q.status_code != 200:
+                raise RuntimeError(f"큐 조회가 {q.status_code}")
+            done = (q.json() or {}).get("done", {})
+            saved = done.get(SELFTEST_STEM)
+            if not saved:
+                raise RuntimeError("저장했는데 다시 읽으니 없다(저장이 실제로 안 됐다)")
+            b = (saved.get("boxes") or [{}])[0]
+            if b.get("verdict") != "unresolvable":
+                raise RuntimeError(f"판정 불가가 보존되지 않았다 — {b}")
+            if b.get("track_id") is not None:
+                raise RuntimeError(f"판정 불가인데 track_id 가 남아 있다 — {b.get('track_id')}")
+            if (q.json() or {}).get("unresolvable", 0) < 1:
+                raise RuntimeError("판정 불가 집계가 올라가지 않았다")
+    finally:
+        # 삭제 — 점검 흔적을 남기지 않는다(진행률·평균 시간 오염 방지)
+        cur = progress()
+        cur["done"].pop(SELFTEST_STEM, None)
+        cur["durations"] = before.get("durations", [])
+        save_progress(cur)
+        for d in (_DRAFT, _SIDE_1FPS):
+            for ext in (".json", ".txt"):
+                f = d / f"{SELFTEST_STEM}{ext}"
+                if f.exists():
+                    f.unlink()
+    if SELFTEST_STEM in progress()["done"]:
+        raise RuntimeError("점검 항목이 지워지지 않았다")
+    print("자체 점검 통과 — 저장→재읽기→삭제 왕복 OK(판정 불가 보존·track_id 제거·집계 확인)")
 
 
 def progress() -> dict[str, Any]:
@@ -237,6 +300,13 @@ def main() -> int:
     def img1(name: str) -> Any:
         p = frames_1fps / name
         return FileResponse(p) if p.exists() else JSONResponse({"error": "없음"}, status_code=404)
+
+    try:
+        selftest(app)
+    except Exception as ex:                       # noqa: BLE001
+        print(f"★기동 중단 — 자체 점검 실패: {type(ex).__name__}: {ex}")
+        print("  저장이 안 되는 상태로 검수하면 결과가 통째로 사라진다. 고치고 다시 띄운다.")
+        return 2
 
     need = sum(1 for x in queue if x["status"] == "needs_review")
     print(f"검수 대기 {len(queue)}장(그중 검수 필요 {need}장) · 진행 {len(progress()['done'])}장")
