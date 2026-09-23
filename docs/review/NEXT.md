@@ -26,7 +26,7 @@
 | 5 | **NSSM 서비스 등록 실기 1회(관리자 셸)** | 인수시험 A1·설계 §5 검증. 비관리자 셸이라 아직 못 했다 | `D:\vigent_usb_stage\설치.bat` 관리자 실행 → A1~A8 |
 | 6 | **사양 판정** | 파일럿기 GPU/CPU 확정 | 근거: **4ch 2fps GPU 점유 18.6 % @5070 Ti**, **torch 604 MB**(+컨텍스트 ≈3.2GB 추정). 5060 배수는 추정하지 않았다 |
 | 7 | **RTX 5060 실기 확보** | 6번의 추정을 실측으로 바꾼다. 위 수치는 전부 5070 Ti 다 | 확보 즉시 `bench_4ch.py --pkg-root … --repeat 3` |
-| 8 | 벤치 GPU 가드 제외 목록 | 개정 규칙(단일 프로세스 ≥500MB)이 이 개발기에서 **`NVIDIA Overlay.exe` 4.0GB** 에 걸린다(dwm·explorer 만 제외). 제외에 넣을지 | `scripts/bench/bench_4ch.py` `GPU_EXCLUDE` |
+| 8 | ~~벤치 GPU 가드 제외 목록~~ | ✅ **결정(2026-09-24)**: `NVIDIA Overlay.exe` 를 제외 목록에 추가. 게임·브라우저는 계속 차단 | `scripts/bench/bench_4ch.py` `GPU_EXCLUDE` — 개발기 재확인 결과는 커밋 메시지 |
 
 ## 결정 없이도 남아 있는 숙제
 

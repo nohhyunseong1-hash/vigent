@@ -41,12 +41,16 @@ class Violations(unittest.TestCase):
     def setUp(self):
         self.procs = B.parse_gpu_procs(COUNTER)
 
-    def test_excludes_dwm_and_explorer_but_catches_others(self):
+    def test_excludes_dwm_explorer_overlay_but_catches_others(self):
         bad = B.gpu_violations(self.procs)
         names = [n for _, n, _ in bad]
-        self.assertNotIn("dwm.exe", names)
-        self.assertNotIn("explorer.exe", names)
-        self.assertEqual(names, ["NVIDIA Overlay.exe", "msw.exe"], "임계 이상이고 제외 목록에 없는 것만, 큰 순서")
+        for ex in ("dwm.exe", "explorer.exe", "NVIDIA Overlay.exe"):
+            self.assertNotIn(ex, names)
+        self.assertEqual(names, ["msw.exe"], "임계 이상이고 제외 목록에 없는 것만(2026-09-24: 오버레이 제외 추가)")
+
+    def test_exclusion_is_case_insensitive(self):
+        procs = [(1, "NVIDIA OVERLAY.EXE", 4000.0), (2, "Dwm.exe", 9000.0)]
+        self.assertEqual(B.gpu_violations(procs), [])
 
     def test_threshold_is_inclusive_and_sum_matters(self):
         self.assertEqual([n for _, n, _ in B.gpu_violations(self.procs, threshold_mb=431.0)][-1], "Discord.exe")
@@ -58,7 +62,7 @@ class Violations(unittest.TestCase):
         self.assertNotIn("python.exe", [n for _, n, _ in B.gpu_violations(procs, own_pids={777})])
 
     def test_exclude_list_is_the_user_specified_one(self):
-        self.assertEqual(B.GPU_EXCLUDE, {"dwm.exe", "explorer.exe"})
+        self.assertEqual(B.GPU_EXCLUDE, {"dwm.exe", "explorer.exe", "nvidia overlay.exe"})
 
 
 class AssertGpuFree(unittest.TestCase):
@@ -71,8 +75,9 @@ class AssertGpuFree(unittest.TestCase):
         with self.assertRaises(SystemExit) as cm:
             self._run(COUNTER)
         msg = str(cm.exception)
-        self.assertIn("NVIDIA Overlay.exe", msg); self.assertIn("4029 MB", msg); self.assertIn("msw.exe", msg)
+        self.assertIn("msw.exe", msg); self.assertIn("964 MB", msg)
         self.assertNotIn("dwm.exe", msg)
+        self.assertNotIn("NVIDIA Overlay.exe", msg, "2026-09-24 제외 목록에 넣었다 — 이름이 나오면 안 된다")
 
     def test_clean_desktop_passes(self):
         st = self._run("2108,dwm.exe,12412.0\n11364,explorer.exe,166.0\n21844,Discord.exe,411.0\n")

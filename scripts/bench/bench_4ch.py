@@ -183,7 +183,9 @@ def jsonl_to_csv(jsonl: Path, csv_path: Path) -> int:
 
 
 GPU_CONTENTION_MB = 500.0     # [승인 항목 5, 2026-09-23 개정] VIGENT 외 **단일 프로세스** VRAM 이 이 이상이면 벤치를 시작하지 않는다
-GPU_EXCLUDE = {"dwm.exe", "explorer.exe"}   # 데스크톱 합성기·셸 — 항상 크게 잡히지만 벤치와 무관(사용자 지정 제외 목록)
+# 사용자 지정 제외 목록: 데스크톱 합성기·셸(항상 크게 잡힘) + NVIDIA App 오버레이(개발기 실측 4.0GB, 벤치와 무관 — 2026-09-24 추가).
+#   ★게임·브라우저는 넣지 않는다 — 그것들이 바로 막아야 할 오염원이다.
+GPU_EXCLUDE = {"dwm.exe", "explorer.exe", "nvidia overlay.exe"}
 _GPU_PS = ("$s = Get-Counter '\\GPU Process Memory(*)\\Dedicated Usage' -ErrorAction Stop; "
            "foreach ($x in $s.CounterSamples) { $m = [regex]::Match($x.InstanceName, 'pid_(\\d+)'); if (-not $m.Success) { continue }; "
            "$p = Get-Process -Id ([int]$m.Groups[1].Value) -ErrorAction SilentlyContinue; "
