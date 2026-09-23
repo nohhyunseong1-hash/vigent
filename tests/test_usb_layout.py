@@ -22,6 +22,7 @@ def make_tree(root: Path, *, backend: str = "torch", with_optional: bool = True)
         "VERSION.txt": "태그 v-test\n",
         "설치.bat": "@echo off\n",
         "installer/preflight.ps1": "# preflight\n",
+        "installer/setup_wizard.py": "# wizard\n",
         "installer/windows/service_entry.py": "# entry\n",
         "installer/windows/nssm.exe": "MZ",
         "installer/windows/install_service.ps1": "# svc\n",

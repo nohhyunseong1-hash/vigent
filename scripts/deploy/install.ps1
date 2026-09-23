@@ -113,6 +113,9 @@ if (-not $DryRun) {
     foreach ($f in @("service_entry.py", "nssm.exe", "install_service.ps1", "uninstall_service.ps1", "service_status.ps1")) {
         $s = Join-Path $Inst "windows\$f"; if (Test-Path $s) { Copy-Item $s (Join-Path $dw $f) -Force } }
     foreach ($d in @("app\data", "app\logs", "state\logs", "state\data")) { New-Item -ItemType Directory -Force (Join-Path $Target $d) | Out-Null }
+    # 계획 3: 첫 실행 마법사를 기기에 둔다(앱 뿌리 = parents[2] = <Target>\app 이라 vigent-core 모듈을 그대로 쓴다)
+    $wz = Join-Path $Inst "setup_wizard.py"
+    if (Test-Path $wz) { $wd = Join-Path $App "scripts\deploy"; New-Item -ItemType Directory -Force $wd | Out-Null; Copy-Item $wz (Join-Path $wd "setup_wizard.py") -Force }
 }
 
 # ── 5. 기기 상태 되가져오기 / 첫 설치 초기화 ──
@@ -182,5 +185,9 @@ else {
 $Report.result = "완료(인수시험 전)"
 Step "8. 완료"
 Write-Host ("  {0} · {1} · {2:N1}분" -f $Report.mode, $Report.version_tag, ((Get-Date) - $T0).TotalMinutes)
+if ($Report.mode -eq "fresh") {
+    Write-Host "  다음: 첫 실행 마법사(카메라·텔레그램·이메일·필수 보호구) — 설치.bat 이 이어서 띄운다. 직접 띄우려면:"
+    Write-Host ("    `"{0}`" `"{1}`"" -f $Py, (Join-Path $App "scripts\deploy\setup_wizard.py"))
+} else { Write-Host "  업데이트라 기존 설정을 그대로 썼다. 마법사는 필요할 때만 다시 실행한다." }
 Write-Report
 exit 0
