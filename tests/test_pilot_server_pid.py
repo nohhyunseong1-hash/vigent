@@ -47,6 +47,28 @@ class ServerIdentification(unittest.TestCase):
         self.assertAlmostEqual(st["rss_mb"], 2687.4, places=1)
         self.assertAlmostEqual(st["cpu_s"], 18.91, places=2)
 
+    def test_python_launcher_and_its_other_children_are_excluded(self):
+        """★재는 도구를 같이 재면 안 된다.
+
+        2026-09-23 실측: bench_4ch.py(python)가 서버를 띄우면 조상 오르기가 드라이버까지
+        올라가 뿌리가 드라이버가 되고, 드라이버의 다른 자식인 pilot_load_test.py(측정 도구
+        자신)까지 합산됐다(트리 5개, RSS +3%). 서버 명령줄과 맞지 않는 부모에서 멈춰야 한다.
+        """
+        LAUNCHER, TOOL = 33816, 15112
+        procs = {
+            LAUNCHER: {"ppid": 1000, "rss_mb": 45.0, "cpu_s": 1.0, "match": False},   # bench_4ch.py
+            STUB: {"ppid": LAUNCHER, "rss_mb": 4.8, "cpu_s": 0.0, "match": True},
+            REAL: {"ppid": STUB, "rss_mb": 2682.6, "cpu_s": 18.91, "match": True},
+            TOOL: {"ppid": LAUNCHER, "rss_mb": 40.0, "cpu_s": 2.0, "match": False},  # pilot_load_test.py
+        }
+        with mock.patch.object(P, "_snapshot", return_value={"owner": REAL, "procs": procs, "sys": dict(SYS)}):
+            st = P.proc_stats()
+        self.assertEqual(st["root_pid"], STUB)
+        self.assertCountEqual(st["pids"], [STUB, REAL])
+        self.assertNotIn(LAUNCHER, st["pids"])
+        self.assertNotIn(TOOL, st["pids"])
+        self.assertAlmostEqual(st["rss_mb"], 2687.4, places=1)
+
     def test_fallback_picks_largest_not_first(self):
         """포트를 못 찾아도 **스텁을 고르면 안 된다.**"""
         with mock.patch.object(P, "_snapshot", return_value=snap(None)):

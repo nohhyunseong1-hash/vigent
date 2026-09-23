@@ -287,12 +287,16 @@ def _server_root(snap: dict[str, Any]) -> int | None:
         if not cands:
             return None
         pid = max(cands)[1]
-    # 조상 거슬러 올라가기 — 런처 스텁도 트리에 포함시켜 빠뜨림을 없앤다
+    # 조상 거슬러 올라가기 — 런처 스텁도 트리에 포함시켜 빠뜨림을 없앤다.
+    # ★단, **서버 명령줄(uvicorn main:app / service_entry.py)과 맞는 부모까지만** 오른다.
+    #   2026-09-23 실측 결함: 벤치 드라이버(bench_4ch.py, python)가 서버를 띄우면 그 위까지
+    #   올라가 뿌리가 드라이버가 되고, 드라이버의 다른 자식(pilot_load_test.py = 측정 도구 자신)
+    #   까지 합산됐다 — 트리 5개, RSS +3%. "재는 도구를 같이 재는" 오류다.
     seen = set()
     while pid in procs and pid not in seen:
         seen.add(pid)
         parent = procs[pid]["ppid"]
-        if parent in procs:
+        if parent in procs and procs[parent]["match"]:
             pid = parent
         else:
             break

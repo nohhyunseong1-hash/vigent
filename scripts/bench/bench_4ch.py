@@ -118,29 +118,11 @@ def first_real_inference(t0: float, timeout: float = 300) -> dict[str, Any]:
     return {"first_inference_s": None, "camera": None}
 
 
-def start_proc_sampler(pid: int, out_csv: Path, minutes: float) -> subprocess.Popen | None:
-    """서버 프로세스 자원 샘플러(별도 PowerShell 프로세스)를 띄운다.
-
-    ★왜 따로 재는가 (실측): scripts/pilot_load_test.py 의 proc_stats 가 이 환경에서
-      RSS 5.0MB · cpu_s 0.0156 을 **상수로** 뱉는다. 원인을 확인했다 —
-      `*uvicorn*main:app*` 에 python.exe 가 **두 개** 걸리는데(스텁 5MB / 진짜 서버 3,175MB)
-      find_server_pid() 가 `-First 1` 로 **스텁**을 고른다. 그 스크립트는 이번 범위가
-      아니라 고치지 않고, 우리가 spawn 한 PID 를 우리가 잰다.
-    ★psutil 은 이 저장소 .venv 에 **없다**(2026-09-23 확인). 그래서 PowerShell 로 잰다 —
-      파이썬 의존성을 늘리지 않는다.
-    """
-    ps1 = _ROOT / "scripts" / "bench" / "sample_server_proc.ps1"
-    if not ps1.exists():
-        print(f"  경고: 샘플러 없음({ps1.name}) — 서버 프로세스 자원은 미측정")
-        return None
-    # ★-Pid0 를 주지 않는다. `python -m uvicorn` 으로 띄우면 우리가 Popen 한 PID 는
-    #   RSS 5MB 짜리 **스텁**이고 진짜 서버는 그 자식이다(2026-09-23 실측: 스텁 15348 /
-    #   진짜 42448 RSS 3.3GB). 우리가 spawn 한 PID 를 그대로 재면 pilot_load_test 와
-    #   똑같은 실수를 반복한다 — 샘플러가 **RSS 최대** 후보를 고르게 둔다.
-    return subprocess.Popen(
-        ["powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", str(ps1),
-         "-Out", str(out_csv), "-Minutes", str(round(minutes + 3, 2)), "-PeriodSec", "15"],
-        stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+# [I-2 검증 완료, 2026-09-23] H-3 때 만든 우회 샘플러(sample_server_proc.ps1)는 제거했다.
+#   서버 프로세스 자원은 이제 scripts/pilot_load_test.py 의 proc_stats(포트 점유 PID → 서버
+#   명령줄과 맞는 부모까지 트리 합산)가 잰다. 제거 근거 — 고친 도구 vs 샘플러 대조:
+#   RSS +0.96% · 환산코어 +0.53%(8GB 상한 회차), 판정 기준 ±5% 이내.
+#   상세: docs/deploy/bench_4ch_repeat_2026-09-23.md §4.
 
 
 def jsonl_to_csv(jsonl: Path, csv_path: Path) -> int:
@@ -231,7 +213,6 @@ def run_once(a: Any, run_idx: int, env: dict[str, str], app_root: Path, safety: 
     meta_path = audit / f"bench4ch_{tag}_{stamp}_meta.json"
     csv_path = audit / f"bench4ch_{tag}_{stamp}.csv"
     srv_log = audit / f"bench4ch_{tag}_{stamp}_server.log"
-    proc_csv = audit / f"bench4ch_{tag}_{stamp}_serverproc.csv"
 
     if not port_free():
         raise SystemExit("중단: 8010 포트가 이미 점유돼 있다 — 이전 서버가 안 내려갔다")
@@ -247,7 +228,6 @@ def run_once(a: Any, run_idx: int, env: dict[str, str], app_root: Path, safety: 
     proc = subprocess.Popen(
         [a.server_python, "-m", "uvicorn", "main:app", "--host", "127.0.0.1", "--port", "8010"],
         cwd=str(a.server_cwd), env=env, stdout=logf, stderr=subprocess.STDOUT)
-    sampler = start_proc_sampler(proc.pid, proc_csv, a.minutes)
     warm: dict[str, Any] = {}
     fi: dict[str, Any] = {}
     lt_rc = None
@@ -269,8 +249,6 @@ def run_once(a: Any, run_idx: int, env: dict[str, str], app_root: Path, safety: 
         print(f"  부하 도구 종료 exit={lt_rc}")
     finally:
         print(f"=== [{run_idx}/{a.repeat}] 3. 서버 종료 ===")
-        if sampler is not None:
-            sampler.terminate()
         proc.terminate()
         try:
             proc.wait(timeout=60)
@@ -295,7 +273,7 @@ def run_once(a: Any, run_idx: int, env: dict[str, str], app_root: Path, safety: 
             "backend_from_log": backend_lines, "startup": warm, "first_inference": fi,
             "load_tool_exit": lt_rc, "jsonl": str(jsonl), "csv": str(csv_path), "csv_rows": n,
             "raw_csv": str(raw_csv), "raw_rows": raw_rows, "server_log": str(srv_log),
-            "safety": safety, "server_proc_csv": str(proc_csv), "server_python": a.server_python,
+            "safety": safety, "server_python": a.server_python,
             "server_cwd": str(a.server_cwd), "app_root": str(app_root),
             "leftover_pilot_after": left_after,
             "note_disk_metric": ("pilot_load_test 의 disk(data/logs MB)는 저장소 _ROOT 기준이라 "

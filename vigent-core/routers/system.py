@@ -279,6 +279,11 @@ def health(theme: str = DEFAULT_THEME):
                        "max_allocated_mb": round(torch.cuda.max_memory_allocated() / 1048576, 1)}
     except Exception:  # noqa: BLE001  torch 없음/초기화 전 — /health 를 죽이면 안 된다
         pass
+    try:
+        import device as _device
+        gpu_mem["cap"] = _device.cuda_mem_cap_status()   # [I-3] 상한 모사가 걸렸는지(벤치 증빙용)
+    except Exception:  # noqa: BLE001
+        gpu_mem["cap"] = None
 
     body = {
         "status": overall,

@@ -22,6 +22,19 @@ from _isolate import isolate_alerts  # noqa: E402
 _REPO = Path(__file__).resolve().parent.parent
 
 
+def _usage(free_gb: float):
+    """shutil.disk_usage 대체 — total/used/free 를 가진 결과. 실제 디스크와 무관하게 만든다.
+
+    ★왜: retention.sweep 은 `shutil.disk_usage(_ROOT).free` 를 읽어 5GB 미만이면 경고를 낸다.
+      2026-09-23 실제 사고 — 개발기 C: 여유가 15.6GB → 4.0GB 로 떨어지자(CUDA 커널 캐시 +4GB)
+      이 파일의 테스트가 **코드 변경 없이** 실패했다. 테스트가 기계 상태에 의존하면 안 된다.
+    """
+    import collections
+    U = collections.namedtuple("usage", "total used free")
+    free = int(free_gb * 1024**3)
+    return lambda _path: U(total=free * 4, used=free * 3, free=free)
+
+
 class FieldEvalGroup(unittest.TestCase):
     def test_group_registered_outside_repo_with_365_days(self):
         self.assertIn("field_eval", retention.GROUP_DIRS)
@@ -52,7 +65,8 @@ class FieldEvalGroup(unittest.TestCase):
                 mock.patch.object(retention, "_retention_config", return_value=cfg), \
                 mock.patch.object(retention, "STATUS_PATH", root / "data" / "st.json"), \
                 mock.patch.object(retention, "DELETION_LOG_DIR", root / "data" / "retention"), \
-                mock.patch.object(retention, "LOG_DIR", root / "logs"):
+                mock.patch.object(retention, "LOG_DIR", root / "logs"), \
+                mock.patch.object(retention.shutil, "disk_usage", _usage(100)):   # 여유 100GB 고정 — 환경 무관
             info = retention.scan_group("field_eval", 365)
             self.assertTrue(Path(info["dir"]).is_absolute(), info["dir"])
             self.assertEqual([Path(c["path"]).name for c in info["candidates"]], ["old.jpg"])
@@ -62,6 +76,32 @@ class FieldEvalGroup(unittest.TestCase):
         self.assertTrue(new.exists())
         self.assertEqual(st["groups"]["field_eval"]["deleted"], [str(old)])
         self.assertEqual(st["warnings"], [])
+
+    def test_low_disk_free_produces_one_warning(self):
+        """★경고 기능 자체를 검증한다 — 여유 4GB 로 고정하면 경고가 **정확히 1건** 나야 한다.
+
+        위 테스트가 여유를 100GB 로 고정해 '경고 없음' 만 보게 됐으므로, 경고가 조용히
+        사라져도 아무 테스트도 못 잡는다. 이 테스트가 그 반대편을 잡는다.
+        """
+        self.addCleanup(isolate_alerts())
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        root = Path(tmp.name) / "repo"
+        outside = Path(tmp.name) / "private" / "field_eval"
+        (outside / "frames").mkdir(parents=True)
+        (root / "data").mkdir(parents=True)
+        cfg = {"enabled": True, "dry_run": True, "groups": {"field_eval": {"days": 365}}}
+        with mock.patch.object(retention, "_ROOT", root), \
+                mock.patch.object(retention, "GROUP_DIRS", {"field_eval": outside}), \
+                mock.patch.object(retention, "_retention_config", return_value=cfg), \
+                mock.patch.object(retention, "STATUS_PATH", root / "data" / "st.json"), \
+                mock.patch.object(retention, "DELETION_LOG_DIR", root / "data" / "retention"), \
+                mock.patch.object(retention, "LOG_DIR", root / "logs"), \
+                mock.patch.object(retention.shutil, "disk_usage", _usage(4)):
+            st = retention.sweep(execute=False)
+        self.assertEqual(len(st["warnings"]), 1, st["warnings"])
+        self.assertIn("4.0GB", st["warnings"][0])
+        self.assertIn("5GB", st["warnings"][0])
 
     def test_protected_dirs_include_field_eval(self):
         self.assertIn(data_paths.media("field_eval"), privacy._protected_dirs())
