@@ -119,6 +119,7 @@ print(f"  torch VRAM allocated: {vram} MB" if vram is not None else "  VRAM(torc
 # ★VRAM 은 torch 기준이 아니라 nvidia-smi 의 **프로세스 점유**로 잰다.
 #   ORT 가 쓰는 VRAM 은 torch.memory_allocated 에 안 잡힌다(다른 할당자).
 import subprocess
+
 try:
     out = subprocess.run(["nvidia-smi", "--query-compute-apps=pid,used_memory",
                           "--format=csv,noheader,nounits"], capture_output=True, text=True, timeout=15).stdout

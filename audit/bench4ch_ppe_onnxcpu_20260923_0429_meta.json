@@ -1,0 +1,39 @@
+{
+  "tag": "ppe_onnxcpu",
+  "stamp": "20260923_0429",
+  "minutes": 35.0,
+  "interval_s": 300.0,
+  "cams": 4,
+  "detect_backend": "onnx-cpu",
+  "startup": {
+    "ready_s": 12.87,
+    "first_http_s": 9.12,
+    "warmup_s_reported": 9.58,
+    "transitions": [
+      {
+        "phase": "starting",
+        "t": 9.12,
+        "http": 503
+      },
+      {
+        "phase": "ready",
+        "t": 12.87,
+        "http": 200
+      }
+    ]
+  },
+  "first_inference": {
+    "first_inference_s": 12.89,
+    "camera": "pilot01"
+  },
+  "jsonl": "D:\\vigent_original\\audit\\bench4ch_ppe_onnxcpu_20260923_0429.jsonl",
+  "csv": "D:\\vigent_original\\audit\\bench4ch_ppe_onnxcpu_20260923_0429.csv",
+  "csv_rows": 8,
+  "server_log": "D:\\vigent_original\\audit\\bench4ch_ppe_onnxcpu_20260923_0429_server.log",
+  "safety": {
+    "webhook": "http://127.0.0.1:9911/sink",
+    "real_channels": []
+  },
+  "server_proc_csv": "D:\\vigent_original\\audit\\bench4ch_ppe_onnxcpu_20260923_0429_serverproc.csv",
+  "server_pid": 28688
+}

@@ -1,0 +1,39 @@
+{
+  "tag": "ppe_cpu",
+  "stamp": "20260923_0334",
+  "minutes": 35.0,
+  "interval_s": 300.0,
+  "cams": 4,
+  "detect_backend": "(설정 그대로)",
+  "startup": {
+    "ready_s": 16.77,
+    "first_http_s": 9.38,
+    "warmup_s_reported": 13.72,
+    "transitions": [
+      {
+        "phase": "starting",
+        "t": 9.38,
+        "http": 503
+      },
+      {
+        "phase": "ready",
+        "t": 16.77,
+        "http": 200
+      }
+    ]
+  },
+  "first_inference": {
+    "first_inference_s": 20.33,
+    "camera": "pilot01"
+  },
+  "jsonl": "D:\\vigent_original\\audit\\bench4ch_ppe_cpu_20260923_0334.jsonl",
+  "csv": "D:\\vigent_original\\audit\\bench4ch_ppe_cpu_20260923_0334.csv",
+  "csv_rows": 8,
+  "server_log": "D:\\vigent_original\\audit\\bench4ch_ppe_cpu_20260923_0334_server.log",
+  "safety": {
+    "webhook": "http://127.0.0.1:9911/sink",
+    "real_channels": []
+  },
+  "server_proc_csv": "D:\\vigent_original\\audit\\bench4ch_ppe_cpu_20260923_0334_serverproc.csv",
+  "server_pid": 26976
+}
