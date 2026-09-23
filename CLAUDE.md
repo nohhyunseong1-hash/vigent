@@ -100,6 +100,9 @@ Python 3.11 · FastAPI · ultralytics(YOLO11/8, AGPL 주의 — §6) · ByteTrac
 ## 코드 품질 게이트 (P0~P2 완료 — 변경 시 통과 필수)
 CODE_REVIEW.md §5의 P0~P2 조치가 완료됐다. 코드 변경 시 아래를 모두 통과 후 커밋(= CI 스텝과 동일):
 1. **ruff** `ruff check vigent-core tests` → 0
+   ★`ruff --fix` 는 **이번 변경 파일에만**(`scripts/gate.ps1` 2단계가 git 변경분으로 범위를 잡는다). 디렉터리 전체에
+   걸면 안 건드린 파일이 바뀐다 — 2026-09-23 `ruff check scripts --fix` 로 `capacity_probe.py` 에 무관한 빈 줄이 들어가
+   커밋 직전까지 갔다(되돌림). 로컬 게이트는 `powershell -File scripts\gate.ps1` 한 번으로 1~4 를 순서대로 돈다.
 2. **mypy**(점진) `python -m mypy` → 화이트리스트 0 에러 (라우트 핸들러엔 `-> dict/str` 금지: FastAPI가 response_model 로 채택해 응답 스키마가 바뀜)
 3. **테스트** `.../python3 -m unittest discover -s tests` → **726 tests**
    (★2026-09-23 갱신: 오래 "55 tests" 로 적혀 있었으나 실제는 726이다. 테스트를 추가하면 이 숫자도 같이 고친다.)
