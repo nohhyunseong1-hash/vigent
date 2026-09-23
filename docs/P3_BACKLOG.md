@@ -813,3 +813,15 @@
     라벨 스키마와 평가 대상 클래스를 결정한다. 그러면 현장이 바뀔 때 코드를 안 고쳐도 된다.
   · 정답지 메타에 그 현장의 `required_ppe` 를 함께 기록한다(규칙 9 — 어떤 기준의 값인지).
 - **상태**: 기록만. **구현하지 않음.**
+
+## B-alerts-test-channels. `/alerts/test` 직접 경로에서 `channels_sent` 미기록 (2026-09-23, 소형 버그)
+
+- **지금 상태**: F-35 토큰 교체 검증(2026-09-23 16:35)에서 `/alerts/test` 로 2건을 보냈다. 둘 다 텔레그램 HTTP 200·`status=sent`
+  인데 **첫 건(큐 id 358)은 `channels_sent`/`channels_failed` 가 `None`**, 둘째 건(id 359)은 `["telegram"]` / `["email:SMTP 미설정", "webhook:미설정"]`
+  로 정상 기록됐다. 같은 경로·같은 채널인데 기록이 갈린다.
+- **근거**: `data/alert_queue.db` 행 358·359 (같은 실행에서 조회). 전송 자체는 됐다 — **동작 결함이 아니라 기록 결함**이다.
+- **후보 원인(미검증)**: `routers/safety_core.py:alerts_test` 는 `dispatcher.dispatch` 를 **직접** 부른다(게이트 우회 경로). 큐 적재 후
+  첫 전송이 `_dispatch_now` 의 채널 결과를 행에 되쓰기 전에 끝나거나, 재시도 없는 즉시 성공 분기에서 `_split_channels()` 결과를
+  저장하지 않는 경로가 있을 수 있다. 두 번째 건부터 기록되는 이유가 설명돼야 진짜 원인이다.
+- **영향**: `/health` `notify.last_success`·`sent` 수는 맞다. `channels_sent` 로 채널별 전송 이력을 셀 때만 첫 건이 빠진다.
+- **상태**: 기록만. **구현하지 않음.** 다음에 dispatcher 를 만질 때 `tests/test_alert_delivery_hardening.py` 에 "직접 경로 첫 전송도 channels_sent 기록" 케이스를 추가해 잡는다.
