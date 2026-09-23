@@ -36,7 +36,12 @@ param(
   [int]$Port = 8010,
   [string]$Bind = "0.0.0.0",
   [long]$LogMaxBytes = 268435456,
-  [string]$NssmPath = ""            # 호출자가 이미 찾은 nssm.exe(검증 스크립트가 넘김). 비우면 자동 탐색
+  [string]$NssmPath = "",           # 호출자가 이미 찾은 nssm.exe(검증 스크립트가 넘김). 비우면 자동 탐색
+  # ★[USB 1차, 2026-09-23] 포터블 설치용 덮어쓰기 — 비우면 예전 그대로(저장소 루트 + .venv). 노트북 경로는 안 바뀐다.
+  #   포터블은 <설치루트>\app 이 Root(vigent-core·data·logs 가 그 아래)이고 파이썬은 <설치루트>\python\python.exe 다.
+  [string]$Root = "",
+  [string]$PythonExe = "",
+  [string[]]$ExtraEnv = @()         # 예: "VIGENT_PORTABLE=1","VIGENT_EXPECT_GPU=1" — AppEnvironmentExtra 에 덧붙인다
 )
 
 $ErrorActionPreference = "Stop"
@@ -50,7 +55,8 @@ if (-not $isAdmin) {
 }
 
 # ── 1. 경로 확인 ───────────────────────────────────────────────────────
-$Root = (Resolve-Path (Join-Path $PSScriptRoot "..\..")).Path
+$PortableMode = [bool]$Root            # -Root 가 오면 포터블 설치(USB 1차). 아니면 예전 저장소 방식 그대로.
+if (-not $Root) { $Root = (Resolve-Path (Join-Path $PSScriptRoot "..\..")).Path } else { $Root = (Resolve-Path $Root).Path }
 $Core = Join-Path $Root "vigent-core"
 $LogDir = Join-Path $Root "logs"
 if (-not (Test-Path $Core)) { Write-Error "vigent-core 를 찾을 수 없습니다: $Core"; exit 1 }
@@ -59,8 +65,10 @@ if (-not (Test-Path $LogDir)) { New-Item -ItemType Directory $LogDir | Out-Null 
 # python: **프로젝트 .venv 만** 쓴다(시스템 python·py 런처 폴백 금지 — [5단계 5-2 정정, 2026-09-06]).
 #   실사고: .venv 가 없어 시스템 Python311 로 등록됐다. 서비스가 쓰는 인터프리터는 "저장소 안의 .venv" 로 고정해야
 #   개발자 PC 의 PATH·py 기본값(3.14 실측)에 흔들리지 않는다. 없으면 만들라고 안내하고 중단한다.
-$Py = Join-Path $Root ".venv\Scripts\python.exe"
+#   ★포터블(-PythonExe)은 패키지 안의 python\python.exe 로 고정한다 — 같은 원칙(패키지 밖 인터프리터 금지).
+$Py = if ($PythonExe) { $PythonExe } else { Join-Path $Root ".venv\Scripts\python.exe" }
 if (-not (Test-Path $Py)) {
+  if ($PortableMode) { Write-Error ("포터블 파이썬이 없습니다: " + $Py + " — USB 설치기가 portable\python\ 을 복사했는지 확인하세요."); exit 1 }
   Write-Error (".venv 가 없습니다: " + $Py + "`n  만들기: py -3.11 -m venv .venv ; .\.venv\Scripts\python.exe -m pip install -r requirements.txt`n" +
                "  그다음 DEPLOYMENT §3-1 opencv 정리(headless 강제) · GPU 면 §3 CUDA 휠. 시스템 python 으로는 등록하지 않습니다.")
   exit 1
@@ -184,6 +192,8 @@ $envLines = @(
   "TORCH_HOME=$RtmCacheDir",
   "VIGENT_RESTART_CMD=$restartCmd"
 ) -join "`r`n"
+# [USB 1차] 포터블 설치가 넘기는 추가 env(VIGENT_PORTABLE=1 · VIGENT_EXPECT_GPU=1 · VIGENT_LOG_DIR 등). 예전 경로는 빈 배열.
+if ($ExtraEnv -and $ExtraEnv.Count -gt 0) { $envLines += "`r`n" + ($ExtraEnv -join "`r`n"); Write-Host ("추가 env: " + ($ExtraEnv -join ", ")) }
 & $nssmPath set $ServiceName AppEnvironmentExtra $envLines
 
 # ── 5. 기동 ────────────────────────────────────────────────────────────

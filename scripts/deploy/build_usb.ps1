@@ -78,6 +78,15 @@ foreach ($f in @("preflight.ps1", "install.ps1", "uninstall.ps1")) {
     else { Write-Host "  (아직 없음) installer\$f - 1차 계획 순서상 뒤에 온다" -ForegroundColor Yellow }
 }
 Copy-Item (Join-Path $Repo "scripts\deploy\usb_layout.py") (Join-Path $inst "usb_layout.py") -Force
+# 서비스 런처·NSSM·서비스 스크립트 — 포터블 빌드는 app\deploy\windows 를 잘라내므로(잔재 제거) USB 가 따로 싣는다.
+#   install.ps1 이 설치 시 <Target>\app\deploy\windows\ 로 되돌려 놓는다(service_entry.py 는 parents[2]=app 을 뿌리로 본다).
+$iw = Join-Path $inst "windows"; New-Item -ItemType Directory -Force $iw | Out-Null
+foreach ($f in @("service_entry.py", "nssm.exe", "install_service.ps1", "uninstall_service.ps1", "service_status.ps1")) {
+    $src = Join-Path $Repo "deploy\windows\$f"
+    if (-not (Test-Path $src)) { Fail "deploy\windows\$f 가 없다 — 서비스 등록에 필요하다" }
+    Copy-Item $src (Join-Path $iw $f) -Force
+}
+Write-Host "  installer\windows\ (service_entry.py · nssm.exe · install/uninstall/status_service.ps1)"
 Copy-Item (Join-Path $Repo "deploy\usb\설치.bat") (Join-Path $UsbRoot "설치.bat") -Force
 $drv = Join-Path $UsbRoot "driver"; New-Item -ItemType Directory -Force $drv | Out-Null
 @"

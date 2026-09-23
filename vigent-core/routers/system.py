@@ -1,5 +1,6 @@
 """routers/system.py — 헬스체크·시스템 상태 (P1-7 분할). main 미import."""
 import json
+import os
 import re as _re
 import time as _time
 
@@ -287,14 +288,28 @@ def health(theme: str = DEFAULT_THEME):
     # [USB 1차, 승인 항목 2] GPU 정체 — 인수시험 A4 가 이 블록을 읽는다(nvidia-smi 는 보조).
     #   torch 에서 읽는다: 드라이버가 보는 것이 아니라 **추론이 실제로 쓸 수 있는 것**을 말해야 한다.
     #   torch_cuda=false 면 서버는 CPU 로 돌고 있는 것이다 — 조용한 폴백 금지의 지문(항목 4).
-    gpu_info: dict = {"device_name": None, "arch": None, "vram_total_mb": None, "torch_cuda": False}
+    gpu_info: dict = {"device_name": None, "arch": None, "vram_total_mb": None, "torch_cuda": False,
+                      # [항목 4] GPU 빌드인데 CPU 로 도는 상태 — device._note_device 가 기록, 배너·인수시험이 읽는다
+                      "expected_gpu": False, "fallback": False, "fallback_reason": None}
     try:
         import torch
         if torch.cuda.is_available():
             p = torch.cuda.get_device_properties(0)
-            gpu_info = {"device_name": p.name, "arch": f"sm_{p.major}{p.minor}",
-                        "vram_total_mb": round(p.total_memory / 1048576), "torch_cuda": True}
+            gpu_info.update({"device_name": p.name, "arch": f"sm_{p.major}{p.minor}",
+                             "vram_total_mb": round(p.total_memory / 1048576), "torch_cuda": True})
     except Exception:  # noqa: BLE001  torch 없음/초기화 실패 — 기본값(false)이 곧 사실이다
+        pass
+    try:
+        import device as _device
+        fb = _device.gpu_fallback_status()
+        gpu_info.update({k: fb.get(k) for k in ("expected_gpu", "fallback", "fallback_reason")})
+        # 기대는 있는데 아직 어떤 슬롯도 장치를 고르지 않았을 수 있다(예열 전) — 그때는 torch 가 직접 답한다
+        if os.environ.get("VIGENT_EXPECT_GPU", "").strip() == "1":
+            gpu_info["expected_gpu"] = True
+            if not gpu_info["torch_cuda"] and not gpu_info["fallback"]:
+                gpu_info["fallback"] = True
+                gpu_info["fallback_reason"] = gpu_info["fallback_reason"] or "torch.cuda.is_available() == False"
+    except Exception:  # noqa: BLE001
         pass
 
     body = {

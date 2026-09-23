@@ -1,0 +1,21 @@
+﻿{
+    "installed_at":  "2026-09-23T17:48:46",
+    "usb_root":  "D:\\vigent_usb_stage",
+    "target":  "C:\\VIGENT",
+    "dry_run":  false,
+    "mode":  "fresh",
+    "version_tag":  "audit-before-cleanup-130-g50995e6",
+    "prev_version":  null,
+    "steps":  [
+                  "1. USB 레이아웃 검증",
+                  "2. 사양 검사(preflight)",
+                  "3. 설치 경로 판정",
+                  "4. portable 복사 → C:\\VIGENT",
+                  "5. 기기 상태(데이터·설정·비밀) 초기화",
+                  "6. CUDA 휠 교체(오프라인) → cuda 확인 → wheels_cuda 삭제",
+                  "7. NSSM 서비스 등록(install_service.ps1 재사용, 포터블 경로)",
+                  "8. 완료"
+              ],
+    "result":  "완료(인수시험 전)",
+    "preflight":  "C:\\Users\\shgus\\AppData\\Local\\Temp\\vigent_preflight_20260923_1748.json"
+}

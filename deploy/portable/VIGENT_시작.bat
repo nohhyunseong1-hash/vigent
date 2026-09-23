@@ -90,7 +90,24 @@ if not "!MISSING!"=="" (
 echo   모델 파일 OK: %W%
 
 rem ---- 선택: --gpu (CUDA 휠 오프라인 교체) ----
+rem ---- [USB 1차 항목 4, 확정] 기본값: CUDA 휠이 있으면 --gpu 다. 끄려면 --cpu 를 명시한다 ----
+rem  · 예전엔 --gpu 를 안 주면 CPU 판 torch 로 조용히 돌았다 - GPU 빌드를 받아 놓고 CPU 로 도는 사고의 뿌리.
+rem  · GPU 빌드 판정 = python\wheels_cuda\torch-*.whl 이 있거나(교체 전) torch 가 이미 +cu 판(교체 후).
+rem    그 경우 VIGENT_EXPECT_GPU=1 을 서버에 넘긴다 → CUDA 를 못 쓰면 서버가 CRITICAL 로그 + /health gpu.fallback + 붉은 배너.
 if /I "%~1"=="--gpu" set "VIGENT_PORTABLE_GPU=1"
+if /I "%~1"=="--cpu" set "VIGENT_PORTABLE_CPU=1"
+set "VIGENT_GPU_BUILD="
+if exist "%PKG%\python\wheels_cuda\torch-*.whl" set "VIGENT_GPU_BUILD=1"
+"%PY%" -c "import sys,torch; sys.exit(0 if '+cu' in torch.__version__ else 1)" >nul 2>&1
+if not errorlevel 1 set "VIGENT_GPU_BUILD=1"
+if "%VIGENT_GPU_BUILD%"=="1" if not "%VIGENT_PORTABLE_CPU%"=="1" (
+  set "VIGENT_EXPECT_GPU=1"
+  if exist "%PKG%\python\wheels_cuda\torch-*.whl" set "VIGENT_PORTABLE_GPU=1"
+)
+rem  --cpu 는 정말로 CPU 로 돈다(VIGENT_DETECT_DEVICE=cpu). 2026-09-23 실측: 교체·기대만 건너뛰면 torch 가 이미 cu 판일 때
+rem  여전히 device=cuda 로 돌아 "--cpu 인데 GPU" 가 됐다. 옵션 이름이 거짓말을 하면 안 된다.
+if "%VIGENT_PORTABLE_CPU%"=="1" set "VIGENT_DETECT_DEVICE=cpu"
+if "%VIGENT_PORTABLE_CPU%"=="1" echo   [--cpu] CPU 모드로 기동합니다 - CUDA 교체·GPU 기대 없음, 추론 장치 cpu 강제.
 if "%VIGENT_PORTABLE_GPU%"=="1" call :gpu_switch
 
 rem ---- 자가진단 3: 포트 ----

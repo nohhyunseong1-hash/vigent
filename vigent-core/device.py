@@ -17,6 +17,7 @@ YOLO 경로(guard.self.device·worker)는 prefer_mps=False(맥=CPU). RF-DETR·ml
 """
 from __future__ import annotations
 
+import logging
 import os
 
 _ENV = "VIGENT_DETECT_DEVICE"   # 'cpu'|'mps'|'cuda' 강제(모든 모델 공통)
@@ -54,6 +55,35 @@ def cuda_mem_cap_status() -> dict:
     return dict(_cap_state)
 
 
+# [USB 1차, 승인 항목 4 — 확정] GPU 빌드인데 CUDA 를 못 쓰면 **조용히 CPU 로 떨어지지 않는다.**
+#   런처/설치기가 GPU 빌드에 VIGENT_EXPECT_GPU=1 을 준다. 그 상태에서 CUDA 가 없으면:
+#     ① CRITICAL 로그 ② 이 상태를 기록해 /health.gpu.fallback=true 로 노출 ③ 대시보드가 붉은 배너를 띄운다.
+#   추론은 CPU 로 계속 돈다(서버를 죽이진 않는다 — 감시가 아예 멈추는 것보다 낫다). 대신 **아무도 모를 수는 없게** 한다.
+#   2026-09-23 배경: onnx-cpu 는 4채널 인수시험 미달(age ok 0.467)이라 "GPU 인 줄 알았는데 CPU" 는 곧 현장 불합격이다.
+_EXPECT_ENV = "VIGENT_EXPECT_GPU"
+_gpu_state: dict = {"expected_gpu": False, "fallback": False, "fallback_reason": None, "device": None}
+_LOG = logging.getLogger("vigent.device")
+
+
+def gpu_fallback_status() -> dict:
+    return dict(_gpu_state)
+
+
+def _note_device(dev: str, reason: str | None = None) -> str:
+    """고른 장치를 기록한다. GPU 를 기대했는데 cuda 가 아니면 CRITICAL 로 알린다(한 번만)."""
+    expected = os.environ.get(_EXPECT_ENV, "").strip() == "1"
+    _gpu_state["expected_gpu"] = expected
+    _gpu_state["device"] = dev
+    if expected and dev != "cuda":
+        if not _gpu_state["fallback"]:                       # 슬롯마다 반복하지 않는다 — 첫 발생만
+            _gpu_state["fallback"] = True
+            _gpu_state["fallback_reason"] = reason or "torch.cuda.is_available() == False"
+            _LOG.critical("GPU 빌드(VIGENT_EXPECT_GPU=1)인데 CUDA 를 쓸 수 없다 — CPU 로 추론 중(%s). "
+                          "인수시험 미달 상태다: 드라이버(≥580)·CUDA 휠 교체(--gpu)를 확인하라. 이유=%s",
+                          dev, _gpu_state["fallback_reason"])
+    return dev
+
+
 def pick_device(prefer_mps: bool = True, env: str = _ENV) -> str:
     """추론 장치를 'cuda'|'mps'|'cpu' 중에서 고른다.
     env(VIGENT_DETECT_DEVICE)로 강제 가능. prefer_mps=False면 MPS를 건너뛴다(YOLO 안정성)."""
@@ -61,14 +91,14 @@ def pick_device(prefer_mps: bool = True, env: str = _ENV) -> str:
     if forced in ("cpu", "mps", "cuda"):
         if forced == "cuda":
             apply_cuda_mem_cap()
-        return forced
+        return _note_device(forced, reason=f"{env}={forced} 로 강제됨")
     try:
         import torch
         if torch.cuda.is_available():
             apply_cuda_mem_cap()              # [I-3] 상한 모사(미설정이면 no-op)
-            return "cuda"                     # CUDA(리눅스/엔비디아)는 안정적 → 최우선
+            return _note_device("cuda")       # CUDA(리눅스/엔비디아)는 안정적 → 최우선
         if prefer_mps and torch.backends.mps.is_available():
-            return "mps"                      # Apple Silicon(rfdetr 등 안정 모델만)
-    except Exception:  # noqa: BLE001  torch 문제여도 최소 CPU로 동작
-        pass
-    return "cpu"
+            return _note_device("mps")        # Apple Silicon(rfdetr 등 안정 모델만)
+        return _note_device("cpu")
+    except Exception as ex:  # noqa: BLE001  torch 문제여도 최소 CPU로 동작 — 단 GPU 기대 시엔 이유를 남긴다
+        return _note_device("cpu", reason=f"torch import/초기화 실패: {type(ex).__name__}: {ex}")

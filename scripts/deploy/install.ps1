@@ -1,0 +1,186 @@
+﻿# install.ps1 - USB 설치기 1차 본체. [USB 1차 계획 2 + 승인 항목 3(멱등·업데이트) + 항목 4(GPU 기본)]
+#
+#   설치.bat 이 관리자 권한으로 부른다:  install.ps1 -UsbRoot <USB> [-Target C:\VIGENT] [-DryRun] [-NoService] [-Port 8010]
+#
+#   1. USB 레이아웃 검증(usb_layout.py verify) - 미달이면 시작 안 함
+#   2. preflight.ps1 - 사양 미달이면 시작 안 함(한 줄씩 전부 출력)
+#   3. 기존 설치가 있으면 **업데이트 경로**(항목 3):
+#        · 서비스 중지
+#        · <Target> 을 통째로 <Target>_prev_<이전버전> 으로 옮긴다(1세대만 보관 - 더 오래된 _prev 는 지운다)
+#        · 새 portable 복사 후 이전의 app\data\ · app\config\ · app\.env 를 **되가져온다**
+#          (data/camera_secrets.json·config/notify.yaml 이 그 안에 있다 - 비밀·현장 설정은 USB 에 없다)
+#        · 새로 실린 config\ 는 app\config.new\ 에 두어 사람이 차이를 볼 수 있게 한다(자동 병합 안 함)
+#      없으면 **첫 설치 경로**: 복사 + app\.env 토큰 생성(VIGENT_REQUIRE_TOKEN=1 서비스 게이트용)
+#   4. CUDA 휠 오프라인 교체(런처의 :gpu_switch 와 같은 명령) → torch.cuda 확인 → wheels_cuda 삭제(I-5)
+#   5. NSSM 서비스 등록 - 기존 deploy\windows\install_service.ps1 을 -Root/-PythonExe/-ExtraEnv 로 재사용
+#   6. install_report_<시각>.json 을 **기기**에 기록(USB 아님). 인수시험(계획 5)이 이어서 채운다.
+#
+#   -DryRun : 파일 복사·서비스·휠 교체를 하지 않고 무엇을 할지 단계별로 찍는다(재설치 판정 포함). 관리자 불필요.
+#   ★멱등: 같은 USB 로 두 번 돌리면 두 번째는 업데이트 경로를 타고, 결과 폴더는 같다.
+#   ★삭제 범위: <Target>_prev_* 중 가장 최근 하나만 남기고 지운다. 그 밖의 어떤 폴더도 지우지 않는다.
+[CmdletBinding()]
+param(
+    [Parameter(Mandatory = $true)][string]$UsbRoot,
+    [string]$Target = "C:\VIGENT",
+    [int]$Port = 8010,
+    [string]$Bind = "0.0.0.0",
+    [switch]$DryRun,
+    [switch]$NoService,                  # 시험용: 서비스 등록 생략(개발기 임시 설치)
+    [switch]$SkipPreflight               # 시험용: 이미 통과한 기기에서 반복할 때
+)
+$ErrorActionPreference = "Stop"
+[Console]::OutputEncoding = [Text.Encoding]::UTF8
+$env:PYTHONUTF8 = "1"
+$T0 = Get-Date
+$Stamp = $T0.ToString("yyyyMMdd_HHmm")
+$Report = [ordered]@{ installed_at = $T0.ToString("s"); usb_root = $UsbRoot; target = $Target; dry_run = [bool]$DryRun;
+                      mode = $null; version_tag = $null; prev_version = $null; steps = @(); result = $null }
+function Step($m) { Write-Host "`n== $m ==" -ForegroundColor Cyan; $script:Report.steps += $m }
+function Fail($m) { Write-Host "✗ $m" -ForegroundColor Red; $script:Report.result = "미완료: $m"; Write-Report; exit 1 }
+function Act($m) { if ($DryRun) { Write-Host "  [DRY] $m" -ForegroundColor DarkGray } else { Write-Host "  $m" } }
+function Write-Report {
+    $dir = if ($DryRun) { Join-Path $env:TEMP "vigent_install_dryrun" } else { Join-Path $Target "app\data" }
+    try { New-Item -ItemType Directory -Force $dir | Out-Null
+          $p = Join-Path $dir "install_report_$Stamp.json"
+          ($script:Report | ConvertTo-Json -Depth 6) | Out-File -FilePath $p -Encoding utf8
+          Write-Host "  보고서: $p" } catch { Write-Host "  보고서 기록 실패: $($_.Exception.Message)" -ForegroundColor Yellow }
+}
+$Inst = Join-Path $UsbRoot "installer"
+$UsbPy = Join-Path $UsbRoot "portable\python\python.exe"
+$UsbPortable = Join-Path $UsbRoot "portable"
+
+# ── 0. 관리자 — 서비스를 등록할 때만 필수(-NoService 실설치는 사용자 권한으로 가능: 개발기 임시 설치용) ──
+if (-not $DryRun -and -not $NoService) {
+    $isAdmin = ([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
+    if (-not $isAdmin) { Fail "관리자 권한이 필요합니다(설치.bat 을 관리자 권한으로 실행). 서비스 없이 시험만 하려면 -NoService" }
+}
+
+# ── 1. USB 레이아웃 ──
+Step "1. USB 레이아웃 검증"
+if (-not (Test-Path $UsbPy)) { Fail "USB 에 portable\python\python.exe 가 없다: $UsbRoot" }
+& $UsbPy (Join-Path $Inst "usb_layout.py") verify $UsbRoot
+if ($LASTEXITCODE -ne 0) { Fail "USB 레이아웃 미달" }
+$verTxt = Get-Content (Join-Path $UsbRoot "VERSION.txt") -Raw
+$Report.version_tag = ([regex]::Match($verTxt, "태그\s*:\s*(\S+)")).Groups[1].Value
+Write-Host "  버전: $($Report.version_tag)"
+
+# ── 2. 사양 검사 ──
+Step "2. 사양 검사(preflight)"
+if ($SkipPreflight) { Write-Host "  건너뜀(-SkipPreflight)" -ForegroundColor Yellow }
+else {
+    & powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $Inst "preflight.ps1") -InstallPath $Target -JsonOut (Join-Path $env:TEMP "vigent_preflight_$Stamp.json")
+    if ($LASTEXITCODE -ne 0) { Fail "사양 미달 - 위 [미달] 항목을 해결한 뒤 다시 실행" }
+    $Report.preflight = Join-Path $env:TEMP "vigent_preflight_$Stamp.json"
+}
+
+# ── 3. 첫 설치 / 업데이트 판정 ──
+Step "3. 설치 경로 판정"
+$App = Join-Path $Target "app"
+$existing = Test-Path (Join-Path $App "vigent-core\main.py")
+$prevVer = $null
+if ($existing) {
+    $pv = Join-Path $Target "VERSION.txt"
+    if (Test-Path $pv) { $prevVer = ([regex]::Match((Get-Content $pv -Raw), "태그\s*:\s*(\S+)")).Groups[1].Value }
+    if (-not $prevVer) { $prevVer = "unknown_$Stamp" }
+    $Report.mode = "update"; $Report.prev_version = $prevVer
+    Write-Host "  기존 설치 발견 → 업데이트 (이전 $prevVer → $($Report.version_tag))"
+} else { $Report.mode = "fresh"; Write-Host "  기존 설치 없음 → 첫 설치" }
+
+$svcName = "VIGENT"
+$svc = Get-Service -Name $svcName -ErrorAction SilentlyContinue
+if ($svc -and $svc.Status -ne "Stopped") { Act "서비스 $svcName 중지"; if (-not $DryRun) { Stop-Service $svcName -Force; Start-Sleep -Seconds 3 } }
+
+$Prev = "${Target}_prev_$($prevVer -replace '[^\w\.\-]', '_')"
+if ($existing) {
+    # 이전 세대 정리: _prev_* 중 가장 최근 1개만 남긴다(★그 외 어떤 경로도 지우지 않는다)
+    $olds = Get-ChildItem (Split-Path $Target -Parent) -Directory -Filter ((Split-Path $Target -Leaf) + "_prev_*") -ErrorAction SilentlyContinue | Sort-Object LastWriteTime -Descending
+    foreach ($o in $olds) { Act "이전 세대 보관본 제거(1세대만 보관): $($o.FullName)"; if (-not $DryRun) { Remove-Item -LiteralPath $o.FullName -Recurse -Force } }
+    Act "현재 설치 → 보관: $Target → $Prev"
+    if (-not $DryRun) { Move-Item -LiteralPath $Target -Destination $Prev -Force }
+}
+
+# ── 4. 복사 ──
+Step "4. portable 복사 → $Target"
+Act "robocopy $UsbPortable → $Target (state·app\data 는 USB 에 없다)"
+if (-not $DryRun) {
+    New-Item -ItemType Directory -Force $Target | Out-Null
+    & robocopy $UsbPortable $Target /E /NFL /NDL /NJH /NP /MT:16 | Out-Null
+    if ($LASTEXITCODE -ge 8) { Fail "robocopy 실패(exit $LASTEXITCODE)" }
+    Copy-Item (Join-Path $UsbRoot "VERSION.txt") (Join-Path $Target "VERSION.txt") -Force
+    Copy-Item (Join-Path $UsbRoot "usb_manifest.json") (Join-Path $Target "usb_manifest.json") -Force
+    # 서비스 런처(service_entry.py)·nssm 은 포터블 빌드가 잘라내는 deploy\windows 에 있다 - USB installer\ 에서 채운다
+    $dw = Join-Path $App "deploy\windows"; New-Item -ItemType Directory -Force $dw | Out-Null
+    foreach ($f in @("service_entry.py", "nssm.exe", "install_service.ps1", "uninstall_service.ps1", "service_status.ps1")) {
+        $s = Join-Path $Inst "windows\$f"; if (Test-Path $s) { Copy-Item $s (Join-Path $dw $f) -Force } }
+    foreach ($d in @("app\data", "app\logs", "state\logs", "state\data")) { New-Item -ItemType Directory -Force (Join-Path $Target $d) | Out-Null }
+}
+
+# ── 5. 기기 상태 되가져오기 / 첫 설치 초기화 ──
+Step "5. 기기 상태(데이터·설정·비밀) $(if ($existing) { '되가져오기' } else { '초기화' })"
+if ($existing) {
+    $keep = @("app\data", "app\config", "app\.env", "state")
+    # DryRun 은 Move-Item 을 안 했으므로 '이전 설치' 는 아직 $Target 에 있다 — 거기서 읽어야 목록이 찍힌다
+    $srcBase = if ($DryRun) { $Target } else { $Prev }
+    foreach ($k in $keep) {
+        $src = Join-Path $srcBase $k; if (-not (Test-Path $src)) { continue }
+        $dst = Join-Path $Target $k
+        if ($k -eq "app\config") {
+            Act "새 config 는 app\config.new 로, 이전 config 를 app\config 로 (자동 병합 안 함 - 사람이 차이를 본다)"
+            if (-not $DryRun) { if (Test-Path $dst) { Move-Item -LiteralPath $dst -Destination (Join-Path $App "config.new") -Force }
+                                Copy-Item -LiteralPath $src -Destination $dst -Recurse -Force }
+        } else {
+            Act "보존: $k"
+            if (-not $DryRun) { if ((Get-Item $src).PSIsContainer) { & robocopy $src $dst /E /NFL /NDL /NJH /NP | Out-Null } else { Copy-Item -LiteralPath $src -Destination $dst -Force } }
+        }
+    }
+} else {
+    $envFile = Join-Path $App ".env"
+    Act "app\.env 생성(VIGENT_API_TOKEN 무작위 64자 - 서비스 보안 게이트용, 값은 출력하지 않는다)"
+    if (-not $DryRun) {
+        if (-not (Test-Path $envFile)) {
+            $tok = -join ((1..64) | ForEach-Object { "0123456789abcdef"[(Get-Random -Maximum 16)] })
+            "VIGENT_API_TOKEN=$tok`n" | Out-File -FilePath $envFile -Encoding ascii -NoNewline
+            # ★설치한 사용자도 읽어야 한다 — 런처(VIGENT_시작.bat)는 그 사용자로 서버를 띄운다. 2026-09-23 실설치에서
+            #   Administrators·SYSTEM 만 주자 dotenv 가 PermissionError 로 죽었다(서비스=LocalSystem 은 됐을 것이지만 런처가 안 됐다).
+            #   R(읽기)만 주면 그 사용자가 자기 설치를 **지우지 못한다** — 2026-09-23 제거 시험이 "Access denied" 로 실패했다. M(수정)으로.
+            & icacls $envFile /inheritance:r /grant:r "Administrators:F" "SYSTEM:F" "$($env:USERDOMAIN)\$($env:USERNAME):M" | Out-Null
+        }
+    }
+    Act "config\notify.yaml · data\camera_secrets.json 은 마법사(계획 3)가 만든다 - 지금은 없음이 정상"
+}
+
+# ── 6. CUDA 휠 오프라인 교체(항목 4: GPU 빌드는 GPU 가 기본) ──
+Step "6. CUDA 휠 교체(오프라인) → cuda 확인 → wheels_cuda 삭제"
+$Py = Join-Path $Target "python\python.exe"
+$wc = Join-Path $Target "python\wheels_cuda"
+if ($DryRun) { Act "pip install --no-index --no-deps --force-reinstall wheels_cuda\torch-*.whl · torchvision-*.whl → cuda:True 확인 → wheels_cuda 삭제" }
+else {
+    $torchWhl = Get-ChildItem $wc -Filter "torch-*.whl" -ErrorAction SilentlyContinue | Select-Object -First 1
+    if ($torchWhl) {
+        foreach ($w in (Get-ChildItem $wc -Filter "*.whl")) { & $Py -m pip install --no-index --no-deps --force-reinstall --no-warn-script-location $w.FullName | Select-Object -Last 1 }
+        & $Py -c "import sys,torch; print('  torch', torch.__version__, 'cuda', torch.cuda.is_available()); sys.exit(0 if torch.cuda.is_available() else 1)"
+        if ($LASTEXITCODE -ne 0) { Fail "CUDA 휠을 설치했지만 torch.cuda.is_available() 가 False - 드라이버(≥580)·GPU 를 확인. wheels_cuda 는 남겨 둔다" }
+        Remove-Item -LiteralPath $wc -Recurse -Force; Write-Host "  wheels_cuda 삭제(I-5)"
+    } else {
+        & $Py -c "import sys,torch; print('  torch', torch.__version__, 'cuda', torch.cuda.is_available()); sys.exit(0 if torch.cuda.is_available() else 1)"
+        if ($LASTEXITCODE -ne 0) { Fail "wheels_cuda 도 없고 torch.cuda 도 False - 이 USB 는 GPU 빌드가 아니거나 GPU 를 못 쓴다" }
+    }
+}
+
+# ── 7. 서비스 ──
+Step "7. NSSM 서비스 등록(install_service.ps1 재사용, 포터블 경로)"
+$extra = @("VIGENT_PORTABLE=1", "VIGENT_EXPECT_GPU=1", "VIGENT_LOG_DIR=$(Join-Path $Target 'state\logs')", "PYTHONNOUSERSITE=1")
+if ($NoService) { Write-Host "  건너뜀(-NoService)" -ForegroundColor Yellow }
+elseif ($DryRun) { Act "install_service.ps1 -Root $App -PythonExe $Py -Bind $Bind -Port $Port -ExtraEnv $($extra -join ',')" }
+else {
+    $isv = Join-Path $App "deploy\windows\install_service.ps1"
+    if (-not (Test-Path $isv)) { Fail "install_service.ps1 이 없다: $isv (USB installer\windows\ 확인)" }
+    & powershell -NoProfile -ExecutionPolicy Bypass -File $isv -Root $App -PythonExe $Py -Bind $Bind -Port $Port -ExtraEnv $extra
+    if ($LASTEXITCODE -ne 0) { Fail "서비스 등록 실패" }
+}
+
+$Report.result = "완료(인수시험 전)"
+Step "8. 완료"
+Write-Host ("  {0} · {1} · {2:N1}분" -f $Report.mode, $Report.version_tag, ((Get-Date) - $T0).TotalMinutes)
+Write-Report
+exit 0

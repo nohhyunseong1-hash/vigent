@@ -43,6 +43,10 @@ REQUIRED: list[str] = [
     "usb_manifest.json",
     "설치.bat",
     "installer/preflight.ps1",
+    # 서비스 런처·NSSM — 포터블 빌드가 app\deploy\windows 를 잘라내므로 USB 가 따로 싣고 install.ps1 이 되돌린다
+    "installer/windows/service_entry.py",
+    "installer/windows/nssm.exe",
+    "installer/windows/install_service.ps1",
     "portable/",
     "portable/VIGENT_시작.bat",
     "portable/vc_redist.x64.exe",

@@ -223,6 +223,17 @@ function renderAlertBacklog(){
   // ★[F-35, 2026-09-22] 채널 불능은 pending/dead 와 **다른 문제**다 — 큐가 비어도 안 가는 상태가 있다.
   //   2026-08-21~09-10 20일간 텔레그램 401 로 경보 213건이 못 갔는데 화면은 조용했다.
   //   붉은 배너 = HTTP 4xx 확정(설정 오류) / 노란 배너 = 30분 넘게 미확인(망 문제일 수 있음).
+  // ★[USB 1차 항목 4, 2026-09-23] GPU 빌드인데 CPU 로 돌고 있으면 **최우선** 붉은 배너 — 조용한 폴백 금지.
+  //   onnx-cpu/CPU 추론은 4채널 인수시험 미달(age ok 0.467)이라 "돌긴 도는데 느린" 상태를 정상처럼 두면 안 된다.
+  var g=(HEALTH&&HEALTH.gpu)||{};
+  if(g.expected_gpu && (g.fallback || g.torch_cuda===false)){
+    el.style.display='block';
+    el.style.background='rgba(230,57,70,.35)'; el.style.color='#ff5a5a';
+    el.textContent='⚠ GPU 미사용 — CPU 로 추론 중 (인수시험 미달 상태)';
+    el.title='GPU 빌드인데 CUDA 를 쓰지 못합니다: '+(g.fallback_reason||'torch.cuda.is_available() == False')
+           +'. NVIDIA 드라이버(≥580)·CUDA 휠 교체(VIGENT_시작.bat --gpu)를 확인하세요.';
+    return;
+  }
   var n=(HEALTH&&HEALTH.notify)||{};
   if(n.selftest_state==='config_error' || n.config_error || n.channels_configured===false){
     el.style.display='block';
