@@ -172,25 +172,169 @@ def thermal_zone_c() -> float | None:
     return round(max(vals), 1) if vals else None
 
 
+# ── [I-2, 2026-09-23] 서버 프로세스 식별 — 스텁을 재던 결함 수정 ──────────────────────────────
+# ★무슨 일이 있었나 (실측)
+#   예전 find_server_pid() 는 CommandLine 이 '*uvicorn*main:app*' 인 python.exe 중
+#   **-First 1** 을 골랐다. 그런데 `python -m uvicorn` 으로 띄우면 **두 개**가 걸린다:
+#       PID 15348  RSS    5 MB  CPU    0.02s   <- 런처 스텁(아무 일도 안 한다)
+#       PID 42448  RSS 3,298 MB CPU 3,706s     <- 진짜 서버
+#   -First 1 이 스텁을 골라, 소크 리포트의 "서버 RSS" 와 "서버 환산코어" 가 창마다
+#   **5.0MB · 0.0156s 상수**로 찍혔다. 즉 합격 기준 "RSS ≤ 6GB / 서버 ≤ 8.0 코어" 가
+#   **아무것도 검증하지 못하는 상태**로 통과해 왔다.
+# ★어떻게 고쳤나
+#   1) **포트를 점유한 PID** 를 먼저 찾는다 — 실제로 요청을 받는 프로세스가 서버다.
+#   2) 그 PID 에서 조상을 거슬러 올라가 같은 계열(python) 뿌리를 찾고, **트리 전체를 합산**한다.
+#      스텁·런처는 뿌리에 포함되지만 RSS 5MB 라 합계에 영향이 없고, 빠뜨릴 위험도 없앤다.
+#   3) 포트 탐색이 실패하면 예전 방식으로 폴백하되 **RSS 최대**를 고른다.
+#   4) 그래도 못 찾거나 합계 RSS 가 비정상적으로 작으면(<100MB) **조용히 기록하지 않고 중단**한다.
+MIN_SERVER_RSS_MB = 100.0          # 이보다 작으면 서버를 잘못 잡은 것으로 본다(torch 서버는 GB 단위)
+
+# ── [I-3] 원시 샘플 CSV ────────────────────────────────────────────────────────────────────
+# 창마다 p95 만 남기면 나중에 p50·p99 를 물어볼 수 없다(H-3 에서 실제로 못 냈다).
+# 한 줄 = 한 번의 /health 조회에서 본 카메라 1대의 상태.
+_RAW: dict[str, Any] = {"f": None, "w": None, "n": 0}
+
+
+def raw_open(path: Path) -> None:
+    import csv as _csv
+    _RAW["f"] = path.open("w", newline="", encoding="utf-8-sig")
+    _RAW["w"] = _csv.writer(_RAW["f"])
+    _RAW["w"].writerow(["ts", "camera", "age_s", "detect_ms", "status"])
+
+
+def raw_write(cam: str, age: Any, ms: Any, status: Any) -> None:
+    if _RAW["w"] is None:
+        return
+    _RAW["w"].writerow([round(time.time(), 3), cam, age, ms, status])
+    _RAW["n"] += 1
+
+
+def raw_close() -> int:
+    if _RAW["f"] is not None:
+        _RAW["f"].flush()
+        _RAW["f"].close()
+        _RAW["f"] = None
+    return int(_RAW["n"])
+
+_PS_SNAPSHOT = r"""
+$port = __PORT__
+$own = $null
+try { $own = (Get-NetTCPConnection -LocalPort $port -State Listen -ErrorAction SilentlyContinue | Select-Object -First 1).OwningProcess } catch {}
+$procs = Get-CimInstance Win32_Process -Filter "Name='python.exe' OR Name='pythonw.exe'"
+$rows = foreach ($p in $procs) {
+  $g = Get-Process -Id $p.ProcessId -ErrorAction SilentlyContinue
+  if ($g) {
+    $m = 0
+    if ($p.CommandLine -like '*service_entry.py*' -or $p.CommandLine -like '*uvicorn*main:app*') { $m = 1 }
+    '{0},{1},{2},{3},{4}' -f $p.ProcessId, $p.ParentProcessId, [math]::Round($g.WorkingSet64/1MB,1), $g.TotalProcessorTime.TotalSeconds, $m
+  }
+}
+$os = Get-CimInstance Win32_OperatingSystem
+'OWNER,' + $own
+$rows
+'SYS,' + [math]::Round($os.FreePhysicalMemory/1024) + ',' + [math]::Round($os.TotalVisibleMemorySize/1024) + ',' + (Get-CimInstance Win32_ComputerSystem).NumberOfLogicalProcessors
+"""
+
+
+def _snapshot() -> dict[str, Any]:
+    """python 프로세스 표 + 포트 점유 PID + 시스템 메모리를 **한 번의 호출**로 모은다."""
+    port = 8010
+    m = re.search(r":(\d+)", BASE.split("//", 1)[-1])
+    if m:
+        port = int(m.group(1))
+    out = _run(["powershell", "-NoProfile", "-Command", _PS_SNAPSHOT.replace("__PORT__", str(port))], timeout=60)
+    owner: int | None = None
+    sysinfo: dict[str, Any] = {}
+    procs: dict[int, dict[str, Any]] = {}
+    for line in out.splitlines():
+        line = line.strip()
+        if not line:
+            continue
+        if line.startswith("OWNER,"):
+            v = line.split(",", 1)[1].strip()
+            owner = int(v) if v.isdigit() else None
+        elif line.startswith("SYS,"):
+            p = line.split(",")
+            if len(p) >= 4:
+                sysinfo = {"sys_avail_mb": float(p[1]), "sys_total_mb": float(p[2]), "logical_cpus": int(p[3])}
+        else:
+            p = line.split(",")
+            if len(p) == 5 and p[0].isdigit():
+                procs[int(p[0])] = {"ppid": int(p[1]), "rss_mb": float(p[2]),
+                                    "cpu_s": float(p[3]), "match": p[4] == "1"}
+    return {"owner": owner, "procs": procs, "sys": sysinfo}
+
+
+def _tree(root: int, procs: dict[int, dict[str, Any]]) -> list[int]:
+    """root 와 그 자손(같은 표 안에 있는 것만)."""
+    out, stack = [root], [root]
+    while stack:
+        cur = stack.pop()
+        for pid, v in procs.items():
+            if v["ppid"] == cur and pid not in out:
+                out.append(pid)
+                stack.append(pid)
+    return out
+
+
+def _server_root(snap: dict[str, Any]) -> int | None:
+    """서버 트리의 뿌리 PID. 포트 점유 → 조상 거슬러 올라가기 → 폴백(RSS 최대)."""
+    procs = snap["procs"]
+    pid = snap["owner"] if snap["owner"] in procs else None
+    if pid is None:
+        # 폴백: CommandLine 이 맞는 것 중 **RSS 최대**(스텁 회피). 예전처럼 -First 1 을 쓰지 않는다.
+        cands = [(v["rss_mb"], k) for k, v in procs.items() if v["match"]]
+        if not cands:
+            return None
+        pid = max(cands)[1]
+    # 조상 거슬러 올라가기 — 런처 스텁도 트리에 포함시켜 빠뜨림을 없앤다
+    seen = set()
+    while pid in procs and pid not in seen:
+        seen.add(pid)
+        parent = procs[pid]["ppid"]
+        if parent in procs:
+            pid = parent
+        else:
+            break
+    return pid
+
+
 def find_server_pid() -> int | None:
-    ps = ("Get-CimInstance Win32_Process -Filter \"Name='python.exe'\" | Where-Object { $_.CommandLine -like '*service_entry.py*' "
-          "-or $_.CommandLine -like '*uvicorn*main:app*' } | Select-Object -First 1 -ExpandProperty ProcessId")
-    out = _run(["powershell", "-NoProfile", "-Command", ps]).strip()
-    return int(out) if out.isdigit() else None
+    return _server_root(_snapshot())
 
 
-def proc_stats(pid: int) -> dict[str, Any]:
-    """서버 프로세스 CPU 누적시간(s)·RSS(MB)·시스템 가용 메모리(MB). CPU% 는 두 샘플의 차로 계산한다."""
-    ps = (f"$p = Get-Process -Id {pid} -ErrorAction SilentlyContinue; $os = Get-CimInstance Win32_OperatingSystem; "
-          "if ($p) { '' + $p.TotalProcessorTime.TotalSeconds + ',' + [math]::Round($p.WorkingSet64/1MB) + ',' + "
-          "[math]::Round($os.FreePhysicalMemory/1024) + ',' + [math]::Round($os.TotalVisibleMemorySize/1024) + ',' + "
-          "(Get-CimInstance Win32_ComputerSystem).NumberOfLogicalProcessors } else { 'dead' }")
-    out = _run(["powershell", "-NoProfile", "-Command", ps]).strip()
-    if out.startswith("dead") or not out:
-        return {"alive": False}
-    c, r, fm, tm, n = out.split(",")
-    return {"alive": True, "cpu_s": float(c), "rss_mb": float(r), "sys_avail_mb": float(fm), "sys_total_mb": float(tm),
-            "logical_cpus": int(n)}
+def proc_stats(pid: int | None = None) -> dict[str, Any]:
+    """서버 **트리 전체**의 CPU 누적시간(s)·RSS(MB) 합계 + 시스템 가용 메모리(MB).
+
+    pid 를 주면 그 트리를, 안 주면 매번 다시 식별한다(재시작 대비).
+    """
+    snap = _snapshot()
+    root = pid if (pid in snap["procs"]) else _server_root(snap)
+    if root is None:
+        return {"alive": False, "reason": "서버 프로세스를 못 찾았다"}
+    pids = _tree(root, snap["procs"])
+    rss = sum(snap["procs"][p]["rss_mb"] for p in pids)
+    cpu = sum(snap["procs"][p]["cpu_s"] for p in pids)
+    out: dict[str, Any] = {"alive": True, "cpu_s": round(cpu, 3), "rss_mb": round(rss, 1),
+                           "pids": pids, "root_pid": root}
+    out.update(snap["sys"])
+    return out
+
+
+def assert_server_proc_sane() -> dict[str, Any]:
+    """★식별 결과가 말이 되는지 **시작 전에** 확인한다. 아니면 중단한다.
+
+    규칙 11: 조용히 이상한 값을 기록하느니 멈추는 게 낫다. 예전엔 5MB 를 4시간 동안
+    성실하게 기록하고 '통과' 라고 적었다.
+    """
+    st = proc_stats()
+    if not st.get("alive"):
+        raise SystemExit("[중단] 서버 프로세스를 식별하지 못했다 — 서버가 떠 있는지, 포트가 맞는지 확인하라")
+    if st["rss_mb"] < MIN_SERVER_RSS_MB:
+        raise SystemExit(
+            f"[중단] 서버로 식별한 프로세스의 RSS 가 {st['rss_mb']}MB 로 비정상적으로 작다"
+            f"(하한 {MIN_SERVER_RSS_MB}MB). 런처 스텁을 잡았을 가능성이 크다 — pids={st.get('pids')}")
+    return st
 
 
 def _sha256(p: Path) -> str | None:
@@ -423,6 +567,9 @@ class Sampler:
                 lm = v.get("last_detect_latency_ms")
                 if lm is not None:
                     lat[k].append(float(lm))
+                # [I-3] 원시 샘플 저장 — 예전엔 창마다 p95 만 남겨 p50·p99 를 **영영 못 구했다**.
+                #   집계값만 남기면 나중에 다른 분위수를 물어볼 수 없다. 원본을 남긴다.
+                raw_write(k, v.get("last_detect_age_s"), lm, v.get("status"))
             time.sleep(every)
         per: dict[str, Any] = {}
         thr = 0.55 if self.fps >= 2 else (1.0 / self.fps) * 1.1
@@ -430,7 +577,11 @@ class Sampler:
             a = ages[k]
             per[k] = {"age_p50": round(_p(a, 0.5), 3) if a else None, "age_p95": round(_p(a, 0.95), 3) if a else None,
                       "age_ok_ratio": round(sum(1 for x in a if x <= thr) / len(a), 3) if a else None,
-                      "detect_ms_p95": round(_p(lat[k], 0.95), 1) if lat[k] else None, "bad_status_samples": st_bad[k],
+                      "detect_ms_n": len(lat[k]),
+                      "detect_ms_p50": round(_p(lat[k], 0.5), 1) if lat[k] else None,
+                      "detect_ms_p95": round(_p(lat[k], 0.95), 1) if lat[k] else None,
+                      "detect_ms_p99": round(_p(lat[k], 0.99), 1) if lat[k] else None,
+                      "bad_status_samples": st_bad[k],
                       "dropped": (live.get(k) or {}).get("dropped_frames") if (live := cams_running(last)) else None,
                       "reconnects": (live.get(k) or {}).get("reconnects"), "hangs": (live.get(k) or {}).get("hangs")}
         cam_bad = sum(1 for k in self.ids if st_bad[k] > 0)
@@ -455,6 +606,13 @@ class Sampler:
             ps["server_cores"] = round((ps["cpu_s"] - self.prev["cpu_s"]) / dt, 2) if dt > 0 else None
         rec["proc"] = ps
         rec["health"] = self.health_burst()
+        # [I-3] torch 기준 VRAM(allocated/reserved/max_allocated) — /health.gpu_mem 이 있을 때만.
+        #   nvidia-smi 의 mem_used 와 **다른 숫자**다: 저건 프로세스 밖에서 본 총점유, 이건 torch 할당자 내부.
+        #   16GB 카드에서 잰 총점유를 8GB 카드 값으로 추정하지 않기 위해 둘을 따로 남긴다.
+        try:
+            rec["gpu_mem"] = (api("/health")[1] or {}).get("gpu_mem")
+        except Exception:  # noqa: BLE001
+            rec["gpu_mem"] = None
         rec["browsers"] = browser_procs()                    # S9 준수 여부를 데이터로 남긴다
         rec["alerts_window"] = alert_stats(self.prev.get("t", self.t_start))
         rec["disk"] = {"data_mb": round(dir_size(_ROOT / "data") / 1048576, 1), "logs_mb": round(dir_size(_ROOT / "logs") / 1048576, 1)}
@@ -652,10 +810,16 @@ def main() -> int:
         kind = "file"
     if not sources:
         raise SystemExit("[중단] 소스 없음 — VIGENT_DATA_DIR/runs/rfdetr/accident/*.mp4 또는 --rtsp-list")
-    pid = find_server_pid()
+    # [I-3] 원시 샘플 CSV 를 연다(JSONL 과 같은 이름 + _raw.csv).
+    raw_open(jsonl.with_name(jsonl.stem + "_raw.csv"))
+    # [I-2] 서버 프로세스 식별이 말이 되는지 **시작 전에** 확인한다(아니면 중단).
+    srv0 = assert_server_proc_sane()
+    pid = srv0["root_pid"]
+    print(f"[server] 트리 {srv0['pids']} · RSS 합계 {srv0['rss_mb']}MB · CPU 누적 {srv0['cpu_s']}s")
     header = {"type": "header", "started": _dt.datetime.now().isoformat(timespec="seconds"), "host": host, "cpu": cpu_name, "gpu": gpu_name,
               "cams": a.cams, "fps": a.fps, "hours": a.hours, "interval_s": a.interval, "source_kind": kind,
-              "sources": [mask(s) for s in sources], "record": a.record, "server_pid": pid, "preflight": pre, "pass_criteria": PASS,
+              "sources": [mask(s) for s in sources], "record": a.record, "server_pid": pid,
+              "server_tree": srv0["pids"], "server_rss_mb_at_start": srv0["rss_mb"], "preflight": pre, "pass_criteria": PASS,
               "run_config": run_config(), "health_config": health_config(api("/health")[1] or {}),
               "note": "파일 소스는 네트워크 지연·재접속·h264 실스트림 디코드가 없다 — 6단계(네트워크)는 실카메라 전용" if kind == "file" else ""}
     with jsonl.open("w", encoding="utf-8") as f:
@@ -705,8 +869,13 @@ def main() -> int:
             except Exception:  # noqa: BLE001
                 pass
         cl = cleanup()
+        # [I-3] 원시 CSV 를 닫고 **실제로 몇 줄 썼는지** 확인한다(규칙 11: 0건은 실패로 의심).
+        n_raw = raw_close()
+        raw_path = jsonl.with_name(jsonl.stem + "_raw.csv")
+        print(f"[raw] {raw_path.name}: {n_raw}행"
+              + ("  ← ★0행이다. 원시 샘플이 하나도 안 남았다" if n_raw == 0 else ""))
         with jsonl.open("a", encoding="utf-8") as f:
-            f.write(json.dumps({"type": "cleanup", **cl}, ensure_ascii=False) + "\n")
+            f.write(json.dumps({"type": "cleanup", **cl, "raw_rows": n_raw}, ensure_ascii=False) + "\n")
     return report(jsonl, jsonl.with_suffix(".md"))
 
 

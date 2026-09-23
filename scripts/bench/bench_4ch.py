@@ -56,12 +56,13 @@ def _get(path: str, timeout: float = 10) -> tuple[int, Any]:
         return 0, None
 
 
-def assert_no_real_channels() -> dict[str, Any]:
+def assert_no_real_channels(app_root: Path) -> dict[str, Any]:
     """★통보 안전 확인 — 로컬 싱크 외의 채널이 하나라도 있으면 벤치를 시작하지 않는다.
 
     규칙 11: 확인이 필요하면 확인하는 **코드**를 만든다. 절차서에 적는 것으로는 부족하다.
+    app_root: 서버가 읽는 config/notify.yaml 이 있는 뿌리(저장소면 _ROOT, 포터블이면 <패키지>\\app).
     """
-    p = _ROOT / "config" / "notify.yaml"
+    p = app_root / "config" / "notify.yaml"
     cfg: dict[str, Any] = {}
     if p.exists():
         import yaml
@@ -199,60 +200,75 @@ def jsonl_to_csv(jsonl: Path, csv_path: Path) -> int:
     return len(rows)
 
 
-def main() -> int:
-    ap = argparse.ArgumentParser()
-    ap.add_argument("--tag", required=True)
-    ap.add_argument("--minutes", type=float, default=35.0)
-    ap.add_argument("--interval", type=float, default=300.0, help="집계 창(초). 기본 5분")
-    ap.add_argument("--cams", type=int, default=4)
-    ap.add_argument("--detect-backend", default="", help="비우면 설정 그대로. torch 면 PPE 도 GPU")
-    ap.add_argument("--python", default=str(_ROOT / ".venv" / "Scripts" / "python.exe"))
-    a = ap.parse_args()
+def port_free(port: int = 8010) -> bool:
+    import socket
+    with socket.socket() as s:
+        return s.connect_ex(("127.0.0.1", port)) != 0
 
+
+def leftover_pilot_cams(app_root: Path) -> list[str]:
+    """설정 파일에 남은 pilot* 카메라 — 다음 반복을 오염시키므로 0 이어야 한다."""
+    import re
+    hits: list[str] = []
+    cfg = app_root / "config"
+    if cfg.exists():
+        for p in cfg.glob("*.yaml"):
+            try:
+                for m in re.findall(r"\bpilot\d+\b", p.read_text(encoding="utf-8")):
+                    hits.append(f"{p.name}:{m}")
+            except OSError:
+                pass
+    return sorted(set(hits))
+
+
+def run_once(a: Any, run_idx: int, env: dict[str, str], app_root: Path, safety: dict[str, Any]) -> dict[str, Any]:
+    """한 조건을 한 번 돈다. 반환 = meta(산출물 경로·기동 시간·행 수)."""
     stamp = time.strftime("%Y%m%d_%H%M")
+    tag = f"{a.tag}_r{run_idx}" if a.repeat > 1 else a.tag
     audit = _ROOT / "audit"
     audit.mkdir(exist_ok=True)
-    jsonl = audit / f"bench4ch_{a.tag}_{stamp}.jsonl"
-    meta_path = audit / f"bench4ch_{a.tag}_{stamp}_meta.json"
-    csv_path = audit / f"bench4ch_{a.tag}_{stamp}.csv"
-    srv_log = audit / f"bench4ch_{a.tag}_{stamp}_server.log"
+    jsonl = audit / f"bench4ch_{tag}_{stamp}.jsonl"
+    meta_path = audit / f"bench4ch_{tag}_{stamp}_meta.json"
+    csv_path = audit / f"bench4ch_{tag}_{stamp}.csv"
+    srv_log = audit / f"bench4ch_{tag}_{stamp}_server.log"
+    proc_csv = audit / f"bench4ch_{tag}_{stamp}_serverproc.csv"
 
-    print("=== 0. 통보 안전 확인 ===")
-    safety = assert_no_real_channels()
-    print(f"  채널: 웹훅={safety['webhook'] or '(없음)'} · 실채널 0개")
+    if not port_free():
+        raise SystemExit("중단: 8010 포트가 이미 점유돼 있다 — 이전 서버가 안 내려갔다")
+    left = leftover_pilot_cams(app_root)
+    if left:
+        raise SystemExit(f"중단: 시작 전 pilot* 잔류 카메라가 있다 {left}")
 
-    env = dict(os.environ)
-    env["PYTHONUTF8"] = "1"
-    env["VIGENT_NOTIFY_SELFTEST"] = "0"          # 기동 시 외부 getMe 호출 금지
-    if a.detect_backend:
-        env["VIGENT_DETECT_BACKEND"] = a.detect_backend
-    backend_note = a.detect_backend or "(설정 그대로)"
-    print(f"=== 1. 서버 기동 (VIGENT_DETECT_BACKEND={backend_note}) ===")
-
+    backend_note = env.get("VIGENT_DETECT_BACKEND") or "(설정 그대로)"
+    print(f"=== [{run_idx}/{a.repeat}] 1. 서버 기동 (VIGENT_DETECT_BACKEND={backend_note}) ===")
+    print(f"  python={a.server_python}\n  cwd={a.server_cwd}")
     t0 = time.time()
     logf = srv_log.open("w", encoding="utf-8", errors="replace")
     proc = subprocess.Popen(
-        [a.python, "-m", "uvicorn", "main:app", "--host", "127.0.0.1", "--port", "8010"],
-        cwd=str(_ROOT / "vigent-core"), env=env, stdout=logf, stderr=subprocess.STDOUT)
-    proc_csv = audit / f"bench4ch_{a.tag}_{stamp}_serverproc.csv"
+        [a.server_python, "-m", "uvicorn", "main:app", "--host", "127.0.0.1", "--port", "8010"],
+        cwd=str(a.server_cwd), env=env, stdout=logf, stderr=subprocess.STDOUT)
     sampler = start_proc_sampler(proc.pid, proc_csv, a.minutes)
+    warm: dict[str, Any] = {}
+    fi: dict[str, Any] = {}
+    lt_rc = None
     try:
         warm = wait_ready(proc, t0)
         print(f"  ready {warm['ready_s']}s (서버 보고 warmup_s={warm['warmup_s_reported']})")
 
-        print(f"=== 2. 소크 {a.minutes}분 · 카메라 {a.cams}대 ===")
+        print(f"=== [{run_idx}/{a.repeat}] 2. 소크 {a.minutes}분 · 카메라 {a.cams}대 ===")
         lt = subprocess.Popen(
             [a.python, str(_ROOT / "scripts" / "pilot_load_test.py"),
              "--cams", str(a.cams), "--hours", str(round(a.minutes / 60.0, 4)),
              "--interval", str(a.interval), "--overload-cams", "0",
-             "--jsonl", str(jsonl), "--tag", a.tag],
+             "--jsonl", str(jsonl), "--tag", tag],
             cwd=str(_ROOT), env=env)
         fi = first_real_inference(t0)
         print(f"  첫 정상 추론: 기동 후 {fi['first_inference_s']}s (카메라 {fi['camera']})")
         lt.wait()
-        print(f"  부하 도구 종료 exit={lt.returncode}")
+        lt_rc = lt.returncode
+        print(f"  부하 도구 종료 exit={lt_rc}")
     finally:
-        print("=== 3. 서버 종료 ===")
+        print(f"=== [{run_idx}/{a.repeat}] 3. 서버 종료 ===")
         if sampler is not None:
             sampler.terminate()
         proc.terminate()
@@ -261,23 +277,108 @@ def main() -> int:
         except subprocess.TimeoutExpired:
             proc.kill()
         logf.close()
+        # 자식(진짜 서버)이 남아 포트를 쥐고 있으면 다음 반복이 죽는다 — 확인하고 기다린다
+        for _ in range(30):
+            if port_free():
+                break
+            time.sleep(1)
 
+    # ★백엔드는 태그·설정이 아니라 **서버 로그**로 확인한다(H-3 사고의 재발 방지).
+    log_txt = srv_log.read_text(encoding="utf-8", errors="replace") if srv_log.exists() else ""
+    backend_lines = [ln.strip() for ln in log_txt.splitlines() if "백엔드 사용" in ln]
     n = jsonl_to_csv(jsonl, csv_path) if jsonl.exists() else 0
-    meta = {"tag": a.tag, "stamp": stamp, "minutes": a.minutes, "interval_s": a.interval,
-            "cams": a.cams, "detect_backend": backend_note, "startup": warm,
-            "first_inference": fi, "jsonl": str(jsonl), "csv": str(csv_path),
-            "csv_rows": n, "server_log": str(srv_log), "safety": safety,
-            "server_proc_csv": str(proc_csv), "server_pid": proc.pid}
+    raw_csv = jsonl.with_name(jsonl.stem + "_raw.csv")
+    raw_rows = (sum(1 for _ in raw_csv.open(encoding="utf-8-sig")) - 1) if raw_csv.exists() else 0
+    left_after = leftover_pilot_cams(app_root)
+    meta = {"tag": tag, "run_idx": run_idx, "repeat": a.repeat, "stamp": stamp, "minutes": a.minutes,
+            "interval_s": a.interval, "cams": a.cams, "detect_backend_env": backend_note,
+            "backend_from_log": backend_lines, "startup": warm, "first_inference": fi,
+            "load_tool_exit": lt_rc, "jsonl": str(jsonl), "csv": str(csv_path), "csv_rows": n,
+            "raw_csv": str(raw_csv), "raw_rows": raw_rows, "server_log": str(srv_log),
+            "safety": safety, "server_proc_csv": str(proc_csv), "server_python": a.server_python,
+            "server_cwd": str(a.server_cwd), "app_root": str(app_root),
+            "leftover_pilot_after": left_after,
+            "note_disk_metric": ("pilot_load_test 의 disk(data/logs MB)는 저장소 _ROOT 기준이라 "
+                                 "포터블 서버에는 해당 없음(미측정)" if app_root != _ROOT else "")}
     meta_path.write_text(json.dumps(meta, ensure_ascii=False, indent=2), encoding="utf-8")
 
     # ★규칙 11 — 결과물이 실제로 있는지 같은 실행 안에서 확인한다.
-    ok = jsonl.exists() and jsonl.stat().st_size > 0 and n > 0
-    print("=== 4. 산출물 ===")
+    ok = jsonl.exists() and jsonl.stat().st_size > 0 and n > 0 and raw_rows > 0
+    print(f"=== [{run_idx}/{a.repeat}] 4. 산출물 ===")
     print(f"  JSONL {jsonl.name}: {'있음 ' + str(jsonl.stat().st_size) + 'B' if jsonl.exists() else '없음'}")
-    print(f"  CSV   {csv_path.name}: {n}행")
+    print(f"  CSV   {csv_path.name}: {n}행 · 원시 {raw_csv.name}: {raw_rows}행")
+    print(f"  백엔드(로그): {backend_lines[:3] if backend_lines else '★로그에 백엔드 줄이 없다'}")
     print(f"  meta  {meta_path.name}")
+    if left_after:
+        print(f"  ★pilot* 잔류: {left_after}")
+    meta["ok"] = bool(ok and not left_after)
+    return meta
+
+
+def main() -> int:
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--tag", required=True)
+    ap.add_argument("--minutes", type=float, default=35.0)
+    ap.add_argument("--interval", type=float, default=300.0, help="집계 창(초). 기본 5분")
+    ap.add_argument("--cams", type=int, default=4)
+    ap.add_argument("--repeat", type=int, default=1, help="같은 조건 반복 횟수(태그에 _r1.. 붙임)")
+    ap.add_argument("--detect-backend", default="", help="비우면 설정 그대로. torch 면 PPE 도 GPU")
+    ap.add_argument("--python", default=str(_ROOT / ".venv" / "Scripts" / "python.exe"),
+                    help="부하 도구(pilot_load_test.py)를 돌릴 파이썬 — 저장소 .venv")
+    # [I-3] 포터블 서버를 띄울 때: --pkg-root D:\vigent_portable_gpu2 하나면 나머지는 그 아래로 잡는다.
+    ap.add_argument("--pkg-root", default="", help="포터블 패키지 뿌리(있으면 서버를 여기서 띄운다)")
+    ap.add_argument("--server-python", default="", help="서버 파이썬(기본: pkg-root\\python\\python.exe 또는 .venv)")
+    ap.add_argument("--server-cwd", default="", help="서버 cwd(기본: <app>\\vigent-core)")
+    a = ap.parse_args()
+
+    if a.pkg_root:
+        pkg = Path(a.pkg_root)
+        app_root = pkg / "app"
+        a.server_python = a.server_python or str(pkg / "python" / "python.exe")
+        a.server_cwd = Path(a.server_cwd or (app_root / "vigent-core"))
+    else:
+        app_root = _ROOT
+        a.server_python = a.server_python or a.python
+        a.server_cwd = Path(a.server_cwd or (_ROOT / "vigent-core"))
+    for p in (Path(a.server_python), a.server_cwd / "main.py"):
+        if not p.exists():
+            raise SystemExit(f"중단: 없음 — {p}")
+
+    print("=== 0. 통보 안전 확인 ===")
+    safety = assert_no_real_channels(app_root)
+    print(f"  채널: 웹훅={safety['webhook'] or '(없음)'} · 실채널 0개 · notify.yaml={app_root / 'config' / 'notify.yaml'}")
+
+    env = dict(os.environ)
+    env["PYTHONUTF8"] = "1"
+    env["VIGENT_NOTIFY_SELFTEST"] = "0"          # 기동 시 외부 getMe 호출 금지
+    if a.detect_backend:
+        env["VIGENT_DETECT_BACKEND"] = a.detect_backend
+    if a.pkg_root:
+        # 런처(VIGENT_시작.bat)와 같은 환경 — 다르게 띄우면 다른 것을 재는 것이다
+        pkg = Path(a.pkg_root)
+        env["VIGENT_PORTABLE"] = "1"
+        env["VIGENT_CAPTURE_MODE"] = "thread"
+        env["VIGENT_LOG_DIR"] = str(pkg / "state" / "logs")
+        env["VIGENT_ALLOW_PRETRAIN_DOWNLOAD"] = ""
+        env["PYTHONNOUSERSITE"] = "1"
+        env.pop("PYTHONPATH", None)
+        env.pop("PYTHONHOME", None)
+        # 경보 지연은 **서버의** 큐 DB 로 잰다 — 저장소 DB 를 읽으면 엉뚱한 숫자다
+        env["VIGENT_ALERT_DB"] = str(app_root / "data" / "alert_queue.db")
+
+    results = []
+    for i in range(1, a.repeat + 1):
+        m = run_once(a, i, env, app_root, safety)
+        results.append(m)
+        if not m.get("ok"):
+            print(f"실패: 반복 {i} 의 결과물이 비었거나 잔류가 있다. 여기서 멈춘다.")
+            return 1
+    if a.repeat > 1:
+        summ = _ROOT / "audit" / f"bench4ch_{a.tag}_{time.strftime('%Y%m%d_%H%M')}_runs.json"
+        summ.write_text(json.dumps(results, ensure_ascii=False, indent=2), encoding="utf-8")
+        print(f"=== 반복 {a.repeat}회 완료 → {summ.name} ===")
+    ok = all(r.get("ok") for r in results)
     if not ok:
-        print("실패: 소크 결과가 비었다. 0건 처리는 성공이 아니다.")
         return 1
     return 0
 

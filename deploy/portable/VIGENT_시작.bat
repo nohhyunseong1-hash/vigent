@@ -134,7 +134,33 @@ if not exist "%PKG%\python\wheels_cuda\torch-*.whl" (
 for %%W in ("%PKG%\python\wheels_cuda\torch-*.whl" "%PKG%\python\wheels_cuda\torchvision-*.whl") do (
   "%PY%" -m pip install --no-index --no-deps --force-reinstall --no-warn-script-location "%%~W"
 )
+rem ---- [I-5] 교체가 **실제로 됐는지** 확인한 뒤에만 휠을 지운다 ----
+rem  휠은 1.8GB 다. 설치가 끝나면 다시 쓸 일이 없는데 그대로 남아 패키지가 그만큼 커진다.
+rem  ★확인 없이 지우면 실패했을 때 되돌릴 방법이 사라진다 - cuda:True 일 때만 지운다.
+"%PY%" -c "import sys,torch; sys.exit(0 if torch.cuda.is_available() else 1)"
+rem  ★괄호 블록 안에서는 echo 든 rem 이든 괄호를 쓰면 안 된다 - 닫는 괄호가 블록을 끝내 버린다.
+rem    2026-09-23 실제 사고: 블록 안 echo 의 "...남겨 둡니다." 뒤 괄호 때문에 ". was unexpected at this time." 로 런처가 죽었다.
+rem    아래 블록의 rem 과 echo 는 그래서 괄호가 없다. 고칠 때도 넣지 말 것.
+if errorlevel 1 (
+  echo   [--gpu] CUDA 를 못 씁니다. torch 는 교체됐을 수 있으나 GPU 가 안 잡힙니다.
+  echo   [--gpu] wheels_cuda 는 지우지 않습니다 - 되돌릴 수 있게 남겨 둡니다.
+  "%PY%" -c "import torch; print('  torch', torch.__version__, 'cuda:', torch.cuda.is_available())"
+  exit /b
+)
 "%PY%" -c "import torch; print('  torch', torch.__version__, 'cuda:', torch.cuda.is_available())"
+rem  ★for /f 의 명령은 작은따옴표로 감싸므로 그 안에 작은따옴표를 쓰면 안 된다.
+rem    → usebackq + 파이썬으로 크기를 잰다. 파이프·따옴표 충돌이 없다.
+if exist "%PKG%\python\wheels_cuda\" (
+  rem  ★명령이 따옴표로 시작하면 cmd /c 가 바깥 따옴표를 벗겨 버린다 - 앞에 call 을 둬서 막는다.
+  rem    2026-09-23 실제 사고: 이 줄이 빈 값을 돌려 "-  GB 회수했습니다" 로 찍혔다. 삭제는 됐지만 숫자가 비었다.
+  for /f "usebackq delims=" %%S in (`call "%PY%" -c "import os,sys;print(round(sum(os.path.getsize(os.path.join(r,f)) for r,_,fs in os.walk(sys.argv[1]) for f in fs)/1024**3,2))" "%PKG%\python\wheels_cuda"`) do set "WHGB=%%S"
+  rd /s /q "%PKG%\python\wheels_cuda"
+  if exist "%PKG%\python\wheels_cuda\" (
+    echo   [--gpu] wheels_cuda 삭제 실패 - 수동으로 지워도 됩니다.
+  ) else (
+    echo   [--gpu] wheels_cuda 삭제 완료 - !WHGB! GB 회수했습니다.
+  )
+)
 exit /b
 
 :fail

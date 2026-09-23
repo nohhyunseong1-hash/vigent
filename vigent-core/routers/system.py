@@ -266,10 +266,25 @@ def health(theme: str = DEFAULT_THEME):
         overall = "degraded"
         cameras = {}
 
+    # [I-3, 2026-09-23] torch 가 보는 VRAM — nvidia-smi 의 "프로세스 점유" 와는 다른 숫자다.
+    #   allocated = 텐서가 실제로 쥔 양, reserved = 캐시 할당자가 잡아 둔 양(≥ allocated).
+    #   벤치가 "8GB 카드에서 되나" 를 따질 때 필요한데 프로세스 밖에서는 읽을 수 없어 여기서 낸다.
+    #   CUDA 가 없으면 None — 조용히 0 으로 꾸미지 않는다.
+    gpu_mem: dict = {"allocated_mb": None, "reserved_mb": None, "max_allocated_mb": None}
+    try:
+        import torch
+        if torch.cuda.is_available():
+            gpu_mem = {"allocated_mb": round(torch.cuda.memory_allocated() / 1048576, 1),
+                       "reserved_mb": round(torch.cuda.memory_reserved() / 1048576, 1),
+                       "max_allocated_mb": round(torch.cuda.max_memory_allocated() / 1048576, 1)}
+    except Exception:  # noqa: BLE001  torch 없음/초기화 전 — /health 를 죽이면 안 된다
+        pass
+
     body = {
         "status": overall,
         "phase": phase,               # [B4] starting|ready|failed — 예열 완료 여부
         "warmup": warm,               # [B4] {phase, warmup_s, elapsed_s, error} — 예열 실측
+        "gpu_mem": gpu_mem,           # [I-3] torch 기준 VRAM {allocated_mb, reserved_mb, max_allocated_mb} · CUDA 없으면 None
         "alerts": alerts,             # [B5] {pending, sent, dead, dead_1h, undeliverable, channels_configured, last_config_error}
         # ★[F-35] 알림 채널이 실제로 살아 있는가 — "조용한 실패" 를 표면화한다.
         #   {last_success, dead_count, config_error, selftest_state, selftest_unknown_too_long}

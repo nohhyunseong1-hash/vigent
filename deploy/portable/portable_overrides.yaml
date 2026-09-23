@@ -29,6 +29,14 @@ detect.include_fire_smoke:
     [4차, 2026-09-10] 현장(학원) 프로필과 동일 — 화재 감시는 계약 범위 밖 + 배경 오탐 리스크(deploy/academy/README_academy.md).
 
 detect.backend:
+  # ★[I-1, 2026-09-23] -Gpu 빌드에서는 이 치환을 **하지 않는다**(backend: torch 유지).
+  #   근거(실측 docs/deploy/bench_4ch_2026-09-23.md): 4채널 35분 소크에서 onnx-cpu 는
+  #   age ok 비율 0.467 로 인수시험 합격선(≥0.9)에 **미달**한다. 추론이 797ms 인데
+  #   주기가 500ms 라 상시 경계선이다. torch(GPU)는 59.9ms · ok 1.000 으로 통과한다.
+  #   VRAM 은 둘 다 약 4.07GB 로 사실상 같다(±18MB) — GPU 로 올려도 VRAM 을 더 안 쓴다.
+  #   ★CPU 빌드에는 그대로 적용한다. CPU 전용 torch 에서는 onnx 가 1.85배 빠르다
+  #   (benchmarks/onnx_cpu_bench.md) — 즉 이 치환은 "CPU 일 때만 이득"이다.
+  skip_when_gpu: true
   from: "  backend: torch "
   to:   "  backend: onnx-cpu "
   why: >-

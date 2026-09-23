@@ -224,6 +224,11 @@ class RfdetrDetector(BaseDetector):
             except Exception:  # noqa: BLE001  최적화 실패해도 추론은 가능
                 pass
             self.device = dev
+            # ★[I-1] torch 경로도 로그를 남긴다. 예전엔 onnx 일 때만 로그가 있어,
+            #   로그만 보고는 "torch 를 쓰는지" 와 "서버가 조용히 CPU 로 돌고 있는지" 를
+            #   구분할 수 없었다(H-3 에서 태그만 믿고 같은 조건을 두 번 잰 사고의 원인).
+            _LOG.info("RF-DETR torch 백엔드 사용: device=%s weights=%s",
+                      dev, Path(weights).name if weights else "COCO(사전학습)")
         self._ln = label_normalize
         self._junk = junk
         self._imgsz_warned: set[int] = set()   # [Q-3] 같은 불일치값으로 매 프레임 로그 스팸 방지(1회만)

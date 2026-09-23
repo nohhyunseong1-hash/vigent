@@ -145,6 +145,8 @@ powershell -ExecutionPolicy Bypass -File scripts\deploy\preflight.ps1 -InstallPa
 ```
 
 기준선: **파일럿 사양(Ryzen 9700X / RTX 5060 8GB / RAM 16GB)**
+★확정 근거는 **노트북 클론의 `DECISIONS.md` D-1** 이다(계보 통합 전이라 이 저장소에는 없다).
+통합되면 이 절에서 그 문서를 인용한다 — **여기서 사양을 다시 정하지 않는다.**
 
 | 항목 | 최소 | 확인 방법 | 미달 시 메시지 |
 |---|---|---|---|

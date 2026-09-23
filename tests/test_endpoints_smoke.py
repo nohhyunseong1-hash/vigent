@@ -53,6 +53,12 @@ class TestEndpointsSmoke(unittest.TestCase):
         self.assertIn(r.json().get("status"), ("healthy", "degraded", "unhealthy", "starting"))
         self.assertIn("cameras", r.json())      # 검출 생존 필드가 반드시 실린다
         self.assertIn("phase", r.json())        # 예열 단계가 반드시 실린다
+        # [I-3] torch 기준 VRAM 블록 — CUDA 가 없으면 값은 None 이지만 **키는 반드시** 있어야 한다.
+        #   (벤치가 이 키로 allocated/reserved 를 읽는다. 키가 사라지면 조용히 미측정이 된다.)
+        gm = r.json().get("gpu_mem")
+        self.assertIsInstance(gm, dict)
+        for k in ("allocated_mb", "reserved_mb", "max_allocated_mb"):
+            self.assertIn(k, gm)
 
     def test_capabilities_ok(self):
         r = self.client.get("/system/capabilities")

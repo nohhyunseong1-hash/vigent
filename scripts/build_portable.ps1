@@ -246,13 +246,18 @@ $ov = Join-Path $Source "deploy\portable\portable_overrides.yaml"
 # overrides 항목의 file(tuning|vision, 기본 tuning)별로 원본을 읽어 치환한다. 원본(config/·themes/)은 불변, 산출물은 app\ 아래.
 $prof = @"
 import sys, io, os
-src_root, ov, dst_root = sys.argv[1:4]
+src_root, ov, dst_root, gpu = sys.argv[1:5]
+gpu = gpu == '1'
 import yaml
 o = yaml.safe_load(io.open(ov, encoding='utf-8'))
 FILES = {'tuning': ('config/tuning.yaml', 'config/tuning.yaml'), 'vision': ('themes/safety/vision.yaml', 'themes/safety/vision.yaml')}
+# [I-1] -Gpu 빌드에서는 skip_when_gpu 항목을 건너뛴다(예: detect.backend).
+#   GPU 에서 onnx-cpu 는 인수시험 미달이라 치환하면 안 된다 — 근거는 overrides 의 주석.
+skipped = [k for k, v in o.items() if gpu and v.get('skip_when_gpu')]
 applied = {}
 for fkey, (rel_src, rel_dst) in FILES.items():
-    items = [(k, v) for k, v in o.items() if (v.get('file') or 'tuning') == fkey]
+    items = [(k, v) for k, v in o.items()
+             if (v.get('file') or 'tuning') == fkey and not (gpu and v.get('skip_when_gpu'))]
     if not items:
         continue
     t = io.open(os.path.join(src_root, rel_src), encoding='utf-8').read()
@@ -267,10 +272,14 @@ for fkey, (rel_src, rel_dst) in FILES.items():
     applied[rel_dst] = [k for k, _ in items]
 for d, ks in applied.items():
     print('  적용 ' + d + ': ' + ', '.join(ks))
+for k in skipped:
+    print('  [GPU 빌드] 건너뜀 ' + k + ' (skip_when_gpu)')
 "@
 $profPy = Join-Path $Cache "apply_profile.py"; Set-Content -Path $profPy -Value $prof -Encoding UTF8
-Run $Py @($profPy, $Source, $ov, $App)
-Run $Py @("-c", "import io,sys; t=io.open(sys.argv[1],encoding='utf-8').read(); assert 'backend: onnx-cpu' in t; print('  확인: detect.backend = onnx-cpu')", (Join-Path $App "config\tuning.yaml"))
+Run $Py @($profPy, $Source, $ov, $App, $(if ($Gpu) { "1" } else { "0" }))
+# [I-1] 빌드 종류별로 **기대하는 backend 가 다르다** — 산출물을 열어 확인한다(설정값 믿지 않는다).
+$expectBackend = if ($Gpu) { "torch" } else { "onnx-cpu" }
+Run $Py @("-c", "import io,sys; t=io.open(sys.argv[1],encoding='utf-8').read(); want='backend: '+sys.argv[2]; assert want in t, '기대 '+want+' 가 산출물에 없다'; print('  확인: detect.backend = '+sys.argv[2])", (Join-Path $App "config\tuning.yaml"), $expectBackend)
 Run $Py @("-c", "import io,sys,yaml; t=io.open(sys.argv[1],encoding='utf-8').read(); d=yaml.safe_load(t); erg=d['judgment']['ergonomics']; assert 'joints' not in erg and 'joints_off_portable' in erg, list(erg); print('  확인: judgment.ergonomics.joints 없음(근골격 규칙 OFF, 값은 joints_off_portable 로 보존)')", (Join-Path $App "themes\safety\vision.yaml"))
 
 # ── 8. 런처·문서 ──
@@ -291,7 +300,47 @@ $md += "# VIGENT USB 포터블 패키지 — 내용물 목록"
 $md += ""
 $md += "빌드: $(Get-Date -Format 'yyyy-MM-dd HH:mm') · 원본 $Source (git $srcCommit) · scripts/build_portable.ps1"
 $md += ""
-$md += "**총 용량: {0:N2} GB · 파일 {1:N0}개**" -f ($total / 1GB), $files.Count
+$md += "**총 용량(빌드 직후): {0:N2} GB · 파일 {1:N0}개**" -f ($total / 1GB), $files.Count
+# ── [I-5] --gpu 교체 후 **최종** 용량 산정 ──────────────────────────────────────────────
+# ★왜: 예전엔 이 줄 하나만 찍어서 그 값을 "패키지 용량" 으로 보고했는데, 그건 **교체 전** 값이다.
+#   --gpu 를 하면 (1) CUDA torch 가 설치돼 site-packages 가 커지고 (2) wheels_cuda 는
+#   런처가 지운다. 2026-09-23 에 4.23GB 로 보고한 패키지의 실제 배포 상태는 6.49GB 였다.
+#   → 빌드 시점에 **둘 다** 계산해 적는다. 추정이 아니라 휠 안의 실제 크기로 계산한다.
+$whDir = Join-Path $PyDir "wheels_cuda"
+if (Test-Path $whDir) {
+    $whBytes = (Get-ChildItem $whDir -Recurse -File | Measure-Object -Property Length -Sum).Sum
+    # 휠(zip) 안의 압축 해제 크기 합 = 설치 후 대략 크기. 추측 대신 zip 목차를 읽는다.
+    $unzipPy = @"
+import sys, zipfile, glob, os
+tot = 0
+for w in glob.glob(os.path.join(sys.argv[1], '*.whl')):
+    with zipfile.ZipFile(w) as z:
+        tot += sum(i.file_size for i in z.infolist())
+print(tot)
+"@
+    $uzp = Join-Path $Cache "unzip_size.py"; Set-Content -Path $uzp -Value $unzipPy -Encoding UTF8
+    $instBytes = [double]((Quiet $Py @($uzp, $whDir)).out.Trim())
+    # 교체 대상(현 CPU torch/torchvision)은 지워지고 그 자리에 CUDA 판이 들어간다
+    $oldTorch = 0
+    foreach ($d in @("torch", "torchvision")) {
+        $p = Join-Path $PyDir "Lib\site-packages\$d"
+        if (Test-Path $p) { $oldTorch += (Get-ChildItem $p -Recurse -File | Measure-Object -Property Length -Sum).Sum }
+    }
+    $final = $total - $whBytes - $oldTorch + $instBytes
+    $md += ""
+    $md += "**★--gpu 교체 후 최종 용량(예상): {0:N2} GB**" -f ($final / 1GB)
+    $md += ""
+    $md += "| 구간 | 용량 |"
+    $md += "|---|---|"
+    $md += "| 빌드 직후(이 패키지 그대로) | {0:N2} GB |" -f ($total / 1GB)
+    $md += "| `python\wheels_cuda\`(교체 후 런처가 삭제) | −{0:N2} GB |" -f ($whBytes / 1GB)
+    $md += "| CPU torch/torchvision(교체로 대체됨) | −{0:N2} GB |" -f ($oldTorch / 1GB)
+    $md += "| CUDA torch/torchvision 설치분 | +{0:N2} GB |" -f ($instBytes / 1GB)
+    $md += "| **= --gpu 후 최종** | **{0:N2} GB** |" -f ($final / 1GB)
+    $md += ""
+    $md += "★위 '최종' 은 휠 안의 파일 크기 합으로 계산한 값이다. 실제 교체 후 측정값이 아니다."
+    Write-Host ("  --gpu 교체 후 최종 예상: {0:N2} GB (휠 {1:N2} GB 는 교체 후 런처가 삭제)" -f ($final / 1GB), ($whBytes / 1GB))
+}
 $md += ""
 $md += "구성: $pyv"
 $md += ""
