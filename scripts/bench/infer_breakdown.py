@@ -107,6 +107,9 @@ def main() -> int:
         sync(); return out
 
     def postproc(out):
+        # inference_model(traced)은 튜플을 돌려준다 — rfdetr.predict 와 같은 순서로 dict 화 (detr.py:1596-1600)
+        if isinstance(out, tuple):
+            out = {"pred_boxes": out[0], "pred_logits": out[1]}
         r = post(out, target_sizes=torch.tensor([[H, Wd]], device=dev))
         _ = r[0]["boxes"].cpu(); sync(); return r
 
