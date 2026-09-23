@@ -284,12 +284,25 @@ def health(theme: str = DEFAULT_THEME):
         gpu_mem["cap"] = _device.cuda_mem_cap_status()   # [I-3] 상한 모사가 걸렸는지(벤치 증빙용)
     except Exception:  # noqa: BLE001
         gpu_mem["cap"] = None
+    # [USB 1차, 승인 항목 2] GPU 정체 — 인수시험 A4 가 이 블록을 읽는다(nvidia-smi 는 보조).
+    #   torch 에서 읽는다: 드라이버가 보는 것이 아니라 **추론이 실제로 쓸 수 있는 것**을 말해야 한다.
+    #   torch_cuda=false 면 서버는 CPU 로 돌고 있는 것이다 — 조용한 폴백 금지의 지문(항목 4).
+    gpu_info: dict = {"device_name": None, "arch": None, "vram_total_mb": None, "torch_cuda": False}
+    try:
+        import torch
+        if torch.cuda.is_available():
+            p = torch.cuda.get_device_properties(0)
+            gpu_info = {"device_name": p.name, "arch": f"sm_{p.major}{p.minor}",
+                        "vram_total_mb": round(p.total_memory / 1048576), "torch_cuda": True}
+    except Exception:  # noqa: BLE001  torch 없음/초기화 실패 — 기본값(false)이 곧 사실이다
+        pass
 
     body = {
         "status": overall,
         "phase": phase,               # [B4] starting|ready|failed — 예열 완료 여부
         "warmup": warm,               # [B4] {phase, warmup_s, elapsed_s, error} — 예열 실측
         "gpu_mem": gpu_mem,           # [I-3] torch 기준 VRAM {allocated_mb, reserved_mb, max_allocated_mb} · CUDA 없으면 None
+        "gpu": gpu_info,              # [USB 1차] {device_name, arch(sm_xx), vram_total_mb, torch_cuda} — 인수시험 A4 입력
         "alerts": alerts,             # [B5] {pending, sent, dead, dead_1h, undeliverable, channels_configured, last_config_error}
         # ★[F-35] 알림 채널이 실제로 살아 있는가 — "조용한 실패" 를 표면화한다.
         #   {last_success, dead_count, config_error, selftest_state, selftest_unknown_too_long}

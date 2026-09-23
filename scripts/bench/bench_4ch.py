@@ -182,6 +182,51 @@ def jsonl_to_csv(jsonl: Path, csv_path: Path) -> int:
     return len(rows)
 
 
+GPU_CONTENTION_MB = 500.0     # [승인 항목 5] 시작 전 다른 프로세스의 VRAM 합계가 이 이상이면 벤치를 시작하지 않는다
+
+
+def parse_gpu_contention(mem_used_csv: str, apps_csv: str) -> tuple[float, list[str]]:
+    """nvidia-smi 두 출력(총 사용 MiB, 프로세스 목록)에서 (사용 MB, 프로세스명 목록)을 뽑는다.
+
+    ★왜 총 사용량인가: Windows(WDDM)에서는 `--query-compute-apps=used_memory` 가 프로세스별로 [N/A] 를 준다.
+      벤치 서버를 띄우기 **전**에 재면 memory.used 전부가 '다른 프로세스' 몫이므로 합계로 충분하다.
+    ★왜 필요한가: 2026-09-23 G-2 재확인·추론 분해 측정이 PUBG(TslGame.exe, GPU 67%·6.1GB) 실행 중에 이뤄져
+      기동 67.9s(깨끗할 땐 10~14s)·ppe_fwd 23.8ms(깨끗할 땐 12.2ms) 로 **오염**됐다. 사람이 매번 기억할 수 없으니 코드가 막는다.
+    """
+    used = 0.0
+    for ln in (mem_used_csv or "").splitlines():
+        ln = ln.strip().replace("MiB", "").strip()
+        if ln and ln.replace(".", "", 1).isdigit():
+            used = max(used, float(ln))
+    names: list[str] = []
+    for ln in (apps_csv or "").splitlines():
+        parts = [p.strip() for p in ln.split(",")]
+        if len(parts) >= 2 and parts[0].isdigit():
+            nm = parts[1].rsplit("\\", 1)[-1]
+            if nm and nm not in names:
+                names.append(nm)
+    return used, names
+
+
+def assert_gpu_free(threshold_mb: float = GPU_CONTENTION_MB) -> dict[str, Any]:
+    """서버 기동 전 GPU 가 비어 있는지. 아니면 프로세스명을 찍고 **시작하지 않는다**."""
+    def _q(args: list[str]) -> str:
+        try:
+            return subprocess.run(["nvidia-smi", *args], capture_output=True, text=True, timeout=20).stdout
+        except Exception as ex:  # noqa: BLE001  nvidia-smi 자체가 없으면 판정 불가 — 그것도 알린다
+            return f"__ERR__ {type(ex).__name__}"
+    mem = _q(["--query-gpu=memory.used", "--format=csv,noheader,nounits"])
+    apps = _q(["--query-compute-apps=pid,process_name", "--format=csv,noheader"])
+    if mem.startswith("__ERR__"):
+        raise SystemExit(f"중단: nvidia-smi 를 실행할 수 없다({mem}) — GPU 오염 여부를 판정할 수 없다")
+    used, names = parse_gpu_contention(mem, apps)
+    if used >= threshold_mb:
+        raise SystemExit("중단: 다른 프로세스가 GPU 를 쓰고 있다 — 사용 중 VRAM "
+                         f"{used:.0f} MB ≥ {threshold_mb:.0f} MB\n  프로세스: {', '.join(names) or '(목록 없음)'}"
+                         "\n  게임·브라우저 GPU 가속 등을 닫고 다시 시작하라. 오염된 측정은 측정이 아니다.")
+    return {"gpu_used_mb_before": used, "gpu_procs_before": names}
+
+
 def port_free(port: int = 8010) -> bool:
     import socket
     with socket.socket() as s:
@@ -325,6 +370,11 @@ def main() -> int:
     print("=== 0. 통보 안전 확인 ===")
     safety = assert_no_real_channels(app_root)
     print(f"  채널: 웹훅={safety['webhook'] or '(없음)'} · 실채널 0개 · notify.yaml={app_root / 'config' / 'notify.yaml'}")
+    print("=== 0b. GPU 오염 확인 (다른 프로세스 VRAM) ===")
+    gpu_free = assert_gpu_free()          # [승인 항목 5] ≥500MB 면 여기서 멈춘다(프로세스명 출력)
+    safety.update(gpu_free)
+    print(f"  사용 중 VRAM {gpu_free['gpu_used_mb_before']:.0f} MB < {GPU_CONTENTION_MB:.0f} MB · "
+          f"프로세스 {gpu_free['gpu_procs_before'] or '없음'}")
 
     env = dict(os.environ)
     env["PYTHONUTF8"] = "1"

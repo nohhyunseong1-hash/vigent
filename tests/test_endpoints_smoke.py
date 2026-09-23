@@ -59,6 +59,18 @@ class TestEndpointsSmoke(unittest.TestCase):
         self.assertIsInstance(gm, dict)
         for k in ("allocated_mb", "reserved_mb", "max_allocated_mb"):
             self.assertIn(k, gm)
+        # [USB 1차, 항목 2] gpu 블록 — 인수시험 A4 가 읽는다. CUDA 가 없는 CI 에서는 torch_cuda=False 에 나머지 None.
+        #   키가 빠지면 A4 가 "GPU 없음" 이 아니라 KeyError 로 죽는다 — 키 존재를 고정한다.
+        g = r.json().get("gpu")
+        self.assertIsInstance(g, dict)
+        for k in ("device_name", "arch", "vram_total_mb", "torch_cuda"):
+            self.assertIn(k, g)
+        self.assertIsInstance(g["torch_cuda"], bool)
+        if g["torch_cuda"]:
+            self.assertRegex(str(g["arch"]), r"^sm_\d+$")
+            self.assertGreater(g["vram_total_mb"], 0)
+        else:
+            self.assertIsNone(g["device_name"])
 
     def test_capabilities_ok(self):
         r = self.client.get("/system/capabilities")
