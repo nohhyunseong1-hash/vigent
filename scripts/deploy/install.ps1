@@ -39,10 +39,14 @@ function Step($m) { Write-Host "`n== $m ==" -ForegroundColor Cyan; $script:Repor
 function Fail($m) { Write-Host "✗ $m" -ForegroundColor Red; $script:Report.result = "미완료: $m"; Write-Report; exit 1 }
 function Act($m) { if ($DryRun) { Write-Host "  [DRY] $m" -ForegroundColor DarkGray } else { Write-Host "  $m" } }
 function Write-Report {
-    $dir = if ($DryRun) { Join-Path $env:TEMP "vigent_install_dryrun" } else { Join-Path $Target "app\data" }
+    # ★아무것도 복사하기 전에 실패(레이아웃·사양 미달)하면 보고서를 <Target> 에 쓰지 않는다 — 그러면 빈 껍데기 설치 폴더가
+    #   생겨 다음 실행이 "기존 설치" 로 오인하거나(2026-09-23 실측: 사양 미달 뒤 C:\VIGENT\app\data 만 남았다) 제거 대상이 된다.
+    $installed = (-not $DryRun) -and (Test-Path (Join-Path $Target "app\vigent-core"))
+    $dir = if ($DryRun) { Join-Path $env:TEMP "vigent_install_dryrun" } elseif ($installed) { Join-Path $Target "app\data" } else { Join-Path $env:TEMP "vigent_install_failed" }
     try { New-Item -ItemType Directory -Force $dir | Out-Null
           $p = Join-Path $dir "install_report_$Stamp.json"
-          ($script:Report | ConvertTo-Json -Depth 6) | Out-File -FilePath $p -Encoding utf8
+          # ★BOM 없이 쓴다. PS 5.1 의 Out-File -Encoding utf8 은 BOM 을 붙여 인수시험(json.loads)이 죽었다(2026-09-23 실설치).
+          [IO.File]::WriteAllText($p, ($script:Report | ConvertTo-Json -Depth 6), (New-Object Text.UTF8Encoding $false))
           Write-Host "  보고서: $p" } catch { Write-Host "  보고서 기록 실패: $($_.Exception.Message)" -ForegroundColor Yellow }
 }
 $Inst = Join-Path $UsbRoot "installer"
@@ -114,8 +118,9 @@ if (-not $DryRun) {
         $s = Join-Path $Inst "windows\$f"; if (Test-Path $s) { Copy-Item $s (Join-Path $dw $f) -Force } }
     foreach ($d in @("app\data", "app\logs", "state\logs", "state\data")) { New-Item -ItemType Directory -Force (Join-Path $Target $d) | Out-Null }
     # 계획 3: 첫 실행 마법사를 기기에 둔다(앱 뿌리 = parents[2] = <Target>\app 이라 vigent-core 모듈을 그대로 쓴다)
-    $wz = Join-Path $Inst "setup_wizard.py"
-    if (Test-Path $wz) { $wd = Join-Path $App "scripts\deploy"; New-Item -ItemType Directory -Force $wd | Out-Null; Copy-Item $wz (Join-Path $wd "setup_wizard.py") -Force }
+    $wd = Join-Path $App "scripts\deploy"; New-Item -ItemType Directory -Force $wd | Out-Null
+    foreach ($f in @("setup_wizard.py", "acceptance_test.py")) {   # 계획 3·5: 마법사·인수시험을 기기에 둔다
+        $s = Join-Path $Inst $f; if (Test-Path $s) { Copy-Item $s (Join-Path $wd $f) -Force } }
 }
 
 # ── 5. 기기 상태 되가져오기 / 첫 설치 초기화 ──

@@ -44,6 +44,7 @@ REQUIRED: list[str] = [
     "설치.bat",
     "installer/preflight.ps1",
     "installer/setup_wizard.py",       # 계획 3: 첫 실행 마법사 — install.ps1 이 <Target>\app\scripts\deploy\ 로 복사한다
+    "installer/acceptance_test.py",    # 계획 5: 인수시험(A1~A8 자동 + H1·H2 사람) — 같은 경로로 복사
     # 서비스 런처·NSSM — 포터블 빌드가 app\deploy\windows 를 잘라내므로 USB 가 따로 싣고 install.ps1 이 되돌린다
     "installer/windows/service_entry.py",
     "installer/windows/nssm.exe",

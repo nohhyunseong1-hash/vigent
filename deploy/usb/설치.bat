@@ -46,6 +46,12 @@ if "%SKIPWIZ%"=="1" (
   "%TARGET%\python\python.exe" "%WIZ%"
   if errorlevel 1 (
     echo   마법사가 중단됐습니다. 나중에 다시 실행: "%TARGET%\python\python.exe" "%WIZ%"
+  ) else (
+    rem ---- 계획 5: 인수시험 - 자동 A1~A8 + 사람 H1·H2. 실패면 설치 미완료로 기록된다 ----
+    echo.
+    echo   인수시험을 시작합니다. 결과는 기기의 app\data\install_report_*.json 에 남습니다.
+    "%TARGET%\python\python.exe" "%TARGET%\app\scripts\deploy\acceptance_test.py"
+    if errorlevel 1 echo   인수시험 미달 - 위 실패 항목을 해결한 뒤 다시 실행: "%TARGET%\python\python.exe" "%TARGET%\app\scripts\deploy\acceptance_test.py"
   )
 ) else (
   echo   마법사 파일이 없습니다: %WIZ%  - 업데이트 설치이거나 USB 구성이 불완전합니다.

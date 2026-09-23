@@ -79,6 +79,7 @@ foreach ($f in @("preflight.ps1", "install.ps1", "uninstall.ps1")) {
 }
 Copy-Item (Join-Path $Repo "scripts\deploy\usb_layout.py") (Join-Path $inst "usb_layout.py") -Force
 Copy-Item (Join-Path $Repo "scripts\deploy\setup_wizard.py") (Join-Path $inst "setup_wizard.py") -Force   # 계획 3: 첫 실행 마법사(install.ps1 이 기기로 복사)
+Copy-Item (Join-Path $Repo "scripts\deploy\acceptance_test.py") (Join-Path $inst "acceptance_test.py") -Force   # 계획 5: 인수시험(같이 복사)
 # 서비스 런처·NSSM·서비스 스크립트 — 포터블 빌드는 app\deploy\windows 를 잘라내므로(잔재 제거) USB 가 따로 싣는다.
 #   install.ps1 이 설치 시 <Target>\app\deploy\windows\ 로 되돌려 놓는다(service_entry.py 는 parents[2]=app 을 뿌리로 본다).
 $iw = Join-Path $inst "windows"; New-Item -ItemType Directory -Force $iw | Out-Null

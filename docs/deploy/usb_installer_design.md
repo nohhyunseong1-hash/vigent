@@ -326,6 +326,26 @@ python scripts\acceptance_test.py --only-human
 
 ---
 
+## 8-1. ★1차 구현 현황 (2026-09-23, 계획 1~6)
+
+| 계획 | 산출물 | 상태 | 검증 |
+|---|---|---|---|
+| 1 USB 빌드 | `scripts/deploy/build_usb.ps1` · `usb_layout.py`(계약·검증) · `deploy/usb/설치.bat` | ✅ | 테스트 8건 · 스테이징 통과 |
+| 2 설치·제거 | `install.ps1`(멱등·업데이트·DryRun) · `uninstall.ps1` · `install_service.ps1` 덮어쓰기 파라미터 | ✅ | DryRun 첫설치·재설치 · **개발기 C:\VIGENT 실설치(-NoService) 2회 → 제거** |
+| 3 마법사 | `setup_wizard.py`(명령줄, 각 입력 직후 검증) | ✅ | 테스트 11건(가짜 입력) — ★실카메라·실토큰 미검증 |
+| 4 서비스 | 기존 NSSM 스크립트 재사용(`-Root/-PythonExe/-ExtraEnv`) | ⚠ | ★**비관리자 셸이라 실기 등록 미검증** — 관리자 셸에서 `install.ps1`(서비스 포함) 1회 필요 |
+| 5 인수시험 | `acceptance_test.py`(A1~A8 자동 + H1·H2 사람 → install_report 합침) | ✅ | 테스트 8건 · 개발기 실설치에서 비대화식 실행(§6-3 결과는 audit/ 보관본) |
+| 6 문서 | [usb_install_guide.md](usb_install_guide.md)(현장용) · 이 절 | ✅ | — |
+| 승인 항목 1 | 추론 구간 분해 | ✅ | [infer_breakdown_2026-09-23.md](infer_breakdown_2026-09-23.md) |
+| 승인 항목 2 | `/health.gpu` 블록 | ✅ | 테스트 · 실설치 `/health` 실측 |
+| 승인 항목 3 | 멱등·업데이트·uninstall | ✅ | 위 계획 2 |
+| 승인 항목 4 | 런처 기본 --gpu · 조용한 폴백 금지(CRITICAL + `/health.gpu.fallback` + 붉은 배너) | ✅ 확정 | 테스트 5건 · 실설치에서 `--cpu`+기대 강제 → fallback true·CRITICAL 실측 |
+| 승인 항목 5 | 벤치 GPU 오염 가드(≥500MB 중단) | ✅ | 테스트 6건 · ★이 개발기 유휴 VRAM 1.5GB 라 임계 500MB 는 항상 막힌다(결정 사항) |
+
+★실설치가 잡은 결함(전부 수정): `.env` 권한(런처 PermissionError) · 남의 VIGENT 서비스를 자기 것으로 봄 · R 권한이라 제거 불가 ·
+런처 `--cpu` 가 GPU 로 돌던 것 · 배치 괄호/따옴표 3건 · `usb_layout` docstring `\u` SyntaxError · gpu2 휠 부재.
+★사양 검사는 개발기에서도 실제로 거부했다(C: 19.6GB < 20GB) — 인수시험 검증 회차만 `-SkipPreflight` 로 명시적 우회.
+
 ## 9. 1차 착수 조건
 
 - [ ] **원격(GitHub) 복구** — 현재 `ls-remote` 404
