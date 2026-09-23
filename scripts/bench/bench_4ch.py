@@ -182,49 +182,76 @@ def jsonl_to_csv(jsonl: Path, csv_path: Path) -> int:
     return len(rows)
 
 
-GPU_CONTENTION_MB = 500.0     # [승인 항목 5] 시작 전 다른 프로세스의 VRAM 합계가 이 이상이면 벤치를 시작하지 않는다
+GPU_CONTENTION_MB = 500.0     # [승인 항목 5, 2026-09-23 개정] VIGENT 외 **단일 프로세스** VRAM 이 이 이상이면 벤치를 시작하지 않는다
+GPU_EXCLUDE = {"dwm.exe", "explorer.exe"}   # 데스크톱 합성기·셸 — 항상 크게 잡히지만 벤치와 무관(사용자 지정 제외 목록)
+_GPU_PS = ("$s = Get-Counter '\\GPU Process Memory(*)\\Dedicated Usage' -ErrorAction Stop; "
+           "foreach ($x in $s.CounterSamples) { $m = [regex]::Match($x.InstanceName, 'pid_(\\d+)'); if (-not $m.Success) { continue }; "
+           "$p = Get-Process -Id ([int]$m.Groups[1].Value) -ErrorAction SilentlyContinue; "
+           "$n = if ($p) { $p.ProcessName + '.exe' } else { '(exited)' }; "
+           "'{0},{1},{2:F1}' -f $m.Groups[1].Value, $n, ($x.CookedValue / 1MB) }")
 
 
-def parse_gpu_contention(mem_used_csv: str, apps_csv: str) -> tuple[float, list[str]]:
-    """nvidia-smi 두 출력(총 사용 MiB, 프로세스 목록)에서 (사용 MB, 프로세스명 목록)을 뽑는다.
+def parse_gpu_procs(text: str) -> list[tuple[int, str, float]]:
+    """'pid,name,mb' 줄들 → [(pid, name, mb)]. 같은 pid 가 여러 줄(luid/phys 별)이면 합산한다.
 
-    ★왜 총 사용량인가: Windows(WDDM)에서는 `--query-compute-apps=used_memory` 가 프로세스별로 [N/A] 를 준다.
-      벤치 서버를 띄우기 **전**에 재면 memory.used 전부가 '다른 프로세스' 몫이므로 합계로 충분하다.
+    ★왜 nvidia-smi 가 아닌가: Windows(WDDM)에서 `nvidia-smi --query-compute-apps=used_memory` 는 프로세스별로 [N/A] 다
+      (2026-09-23 실측). 프로세스별 값은 Windows 성능 카운터 'GPU Process Memory\\Dedicated Usage' 가 준다.
     ★왜 필요한가: 2026-09-23 G-2 재확인·추론 분해 측정이 PUBG(TslGame.exe, GPU 67%·6.1GB) 실행 중에 이뤄져
       기동 67.9s(깨끗할 땐 10~14s)·ppe_fwd 23.8ms(깨끗할 땐 12.2ms) 로 **오염**됐다. 사람이 매번 기억할 수 없으니 코드가 막는다.
     """
-    used = 0.0
-    for ln in (mem_used_csv or "").splitlines():
-        ln = ln.strip().replace("MiB", "").strip()
-        if ln and ln.replace(".", "", 1).isdigit():
-            used = max(used, float(ln))
-    names: list[str] = []
-    for ln in (apps_csv or "").splitlines():
+    acc: dict[int, tuple[str, float]] = {}
+    for ln in (text or "").splitlines():
         parts = [p.strip() for p in ln.split(",")]
-        if len(parts) >= 2 and parts[0].isdigit():
-            nm = parts[1].rsplit("\\", 1)[-1]
-            if nm and nm not in names:
-                names.append(nm)
-    return used, names
+        if len(parts) != 3 or not parts[0].isdigit():
+            continue
+        try:
+            mb = float(parts[2])
+        except ValueError:
+            continue
+        pid = int(parts[0])
+        name, prev = acc.get(pid, (parts[1], 0.0))
+        acc[pid] = (name or parts[1], prev + mb)
+    return [(pid, n, mb) for pid, (n, mb) in acc.items()]
+
+
+def gpu_violations(procs: list[tuple[int, str, float]], threshold_mb: float = GPU_CONTENTION_MB,
+                   exclude: set[str] | None = None, own_pids: set[int] | None = None) -> list[tuple[int, str, float]]:
+    """임계 이상인 프로세스 중 제외 목록(dwm·explorer)과 VIGENT 자신(own_pids)을 뺀 것. 비어 있으면 통과."""
+    ex = {e.lower() for e in (GPU_EXCLUDE if exclude is None else exclude)}
+    own = own_pids or set()
+    return sorted([(pid, n, mb) for pid, n, mb in procs
+                   if mb >= threshold_mb and n.lower() not in ex and pid not in own], key=lambda t: -t[2])
+
+
+def _vigent_pids() -> set[int]:
+    """이미 떠 있는 VIGENT 서버 python(uvicorn main:app)의 PID — 벤치 시작 전엔 보통 없다."""
+    try:
+        out = subprocess.run(["powershell", "-NoProfile", "-Command",
+                              "Get-CimInstance Win32_Process -Filter \"Name='python.exe'\" | Where-Object { $_.CommandLine -like '*uvicorn*main:app*' } | ForEach-Object { $_.ProcessId }"],
+                             capture_output=True, text=True, timeout=30).stdout
+        return {int(x) for x in out.split() if x.strip().isdigit()}
+    except Exception:  # noqa: BLE001
+        return set()
 
 
 def assert_gpu_free(threshold_mb: float = GPU_CONTENTION_MB) -> dict[str, Any]:
-    """서버 기동 전 GPU 가 비어 있는지. 아니면 프로세스명을 찍고 **시작하지 않는다**."""
-    def _q(args: list[str]) -> str:
-        try:
-            return subprocess.run(["nvidia-smi", *args], capture_output=True, text=True, timeout=20).stdout
-        except Exception as ex:  # noqa: BLE001  nvidia-smi 자체가 없으면 판정 불가 — 그것도 알린다
-            return f"__ERR__ {type(ex).__name__}"
-    mem = _q(["--query-gpu=memory.used", "--format=csv,noheader,nounits"])
-    apps = _q(["--query-compute-apps=pid,process_name", "--format=csv,noheader"])
-    if mem.startswith("__ERR__"):
-        raise SystemExit(f"중단: nvidia-smi 를 실행할 수 없다({mem}) — GPU 오염 여부를 판정할 수 없다")
-    used, names = parse_gpu_contention(mem, apps)
-    if used >= threshold_mb:
-        raise SystemExit("중단: 다른 프로세스가 GPU 를 쓰고 있다 — 사용 중 VRAM "
-                         f"{used:.0f} MB ≥ {threshold_mb:.0f} MB\n  프로세스: {', '.join(names) or '(목록 없음)'}"
-                         "\n  게임·브라우저 GPU 가속 등을 닫고 다시 시작하라. 오염된 측정은 측정이 아니다.")
-    return {"gpu_used_mb_before": used, "gpu_procs_before": names}
+    """서버 기동 전 GPU 가 비어 있는지. VIGENT 외 단일 프로세스가 임계 이상이면 이름·용량을 찍고 **시작하지 않는다**."""
+    try:
+        r = subprocess.run(["powershell", "-NoProfile", "-Command", _GPU_PS], capture_output=True, text=True, timeout=60)
+        text, err = r.stdout, r.stderr
+    except Exception as ex:  # noqa: BLE001
+        raise SystemExit(f"중단: GPU 프로세스 카운터를 읽을 수 없다({type(ex).__name__}) — 오염 여부를 판정할 수 없다")
+    procs = parse_gpu_procs(text)
+    if not procs:
+        raise SystemExit("중단: 'GPU Process Memory' 카운터가 비어 있다 — 오염 여부를 판정할 수 없다"
+                         + (f"\n  {err.strip()[:200]}" if err.strip() else ""))
+    bad = gpu_violations(procs, threshold_mb, own_pids=_vigent_pids())
+    if bad:
+        lines = "\n".join(f"  - {n} (pid {pid}) {mb:.0f} MB" for pid, n, mb in bad)
+        raise SystemExit(f"중단: VIGENT 외 프로세스가 GPU 를 {threshold_mb:.0f} MB 이상 쓰고 있다:\n{lines}"
+                         "\n  게임·GPU 가속 앱을 닫고 다시 시작하라. 오염된 측정은 측정이 아니다.")
+    top = sorted(procs, key=lambda t: -t[2])[:5]
+    return {"gpu_procs_before": [f"{n}:{mb:.0f}MB" for _, n, mb in top], "gpu_threshold_mb": threshold_mb}
 
 
 def port_free(port: int = 8010) -> bool:
@@ -371,10 +398,9 @@ def main() -> int:
     safety = assert_no_real_channels(app_root)
     print(f"  채널: 웹훅={safety['webhook'] or '(없음)'} · 실채널 0개 · notify.yaml={app_root / 'config' / 'notify.yaml'}")
     print("=== 0b. GPU 오염 확인 (다른 프로세스 VRAM) ===")
-    gpu_free = assert_gpu_free()          # [승인 항목 5] ≥500MB 면 여기서 멈춘다(프로세스명 출력)
+    gpu_free = assert_gpu_free()          # [승인 항목 5] VIGENT 외 단일 프로세스 ≥500MB 면 여기서 멈춘다(이름·용량 출력)
     safety.update(gpu_free)
-    print(f"  사용 중 VRAM {gpu_free['gpu_used_mb_before']:.0f} MB < {GPU_CONTENTION_MB:.0f} MB · "
-          f"프로세스 {gpu_free['gpu_procs_before'] or '없음'}")
+    print(f"  단일 프로세스 VRAM 전부 < {GPU_CONTENTION_MB:.0f} MB (dwm·explorer 제외) · 상위: {gpu_free['gpu_procs_before']}")
 
     env = dict(os.environ)
     env["PYTHONUTF8"] = "1"
