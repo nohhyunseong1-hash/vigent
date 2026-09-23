@@ -1,0 +1,30 @@
+[
+  {
+    "tag": "gpu2_torch_cap8g_b",
+    "stamp": "20260923_1557",
+    "backend_from_log": [
+      "2026-09-23 15:57:18,083 [INFO] vigent.rfdetr_adapter: RF-DETR torch 백엔드 사용: device=cuda weights=COCO(사전학습)",
+      "2026-09-23 15:57:20,711 [INFO] vigent.rfdetr_adapter: RF-DETR torch 백엔드 사용: device=cuda weights=ppe_rfdetr_v1.pth"
+    ],
+    "ready_s": 13.14,
+    "warmup_s": 10.3,
+    "first_inference_s": 17.19,
+    "windows_total": 7,
+    "windows_judged": 5,
+    "sys_cpu_avg": 32.3,
+    "sys_cpu_max": 35.08,
+    "age_p95_worst": 0.5,
+    "age_ok_min": 1.0,
+    "alert_p95_max": 0.22,
+    "alerts_created": 9,
+    "vram_smi_max_mb": 2578.0,
+    "raw_n": 420,
+    "detect_p50": 41.4,
+    "detect_p95": 75.5,
+    "detect_p99": 93.2,
+    "tool_cores_avg": 5.33,
+    "tool_rss_avg_mb": 2842.0,
+    "torch_alloc_max_mb": 597.3,
+    "torch_reserved_max_mb": 862.0
+  }
+]
