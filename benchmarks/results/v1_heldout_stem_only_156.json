@@ -1,28 +1,22 @@
 {
-  "date": "2026-09-25 20:14",
+  "date": "2026-09-25 19:50",
   "weights": "D:\\vigent_original\\vigent-core\\weights\\ppe_rfdetr_v1.pth",
   "resolution": 384,
   "op_conf": 0.35,
   "iou": 0.5,
   "device": "cuda",
   "heldout": {
-    "split_rule": "video",
-    "heldout_images": 91,
-    "heldout_unique_originals": 91,
+    "heldout_images": 156,
+    "heldout_unique_originals": 156,
     "all_unique_originals": 700,
-    "heldout_share_of_originals": 0.13,
+    "heldout_share_of_originals": 0.223,
     "valid_test_total": 196,
     "dropped": {
-      "유래 영상이 train 에 있음": 40,
+      "유래 영상이 train 에 있음": 30,
       "원본 stem 이 train 에 있음": 8,
-      "연속 프레임 묶음(youtube-N) 제외": 57
+      "같은 원본의 두 번째 증강본": 2
     },
-    "train_videos": 28,
-    "heldout_videos": [
-      "autox",
-      "img_3093"
-    ],
-    "heldout_videos_in_train": []
+    "train_videos": 22
   },
   "heldout_files": [
     "data\\datasets\\css_safety\\valid\\images\\-1079-_png_jpg.rf.19092a3937930012f9fd9c1ce57f5a7b.jpg",
@@ -68,14 +62,50 @@
     "data\\datasets\\css_safety\\valid\\images\\img_08_jpg.rf.0f132a9c7ca6d12a8a9d1c4b3dbd54da.jpg",
     "data\\datasets\\css_safety\\valid\\images\\IMG_3093_mp4-22_jpg.rf.ea118a6046b21e9246efd53599dfdc41.jpg",
     "data\\datasets\\css_safety\\valid\\images\\MariusConePic31_png_jpg.rf.1fd6fccfeef580e0e0061d78d5a248a4.jpg",
+    "data\\datasets\\css_safety\\valid\\images\\Mask2_mov-11_jpg.rf.34ddcb1a619624541a2cca4400b7cd92.jpg",
+    "data\\datasets\\css_safety\\valid\\images\\Mask2_mov-15_jpg.rf.026bd9a95154b1ead451a722a25ed130.jpg",
     "data\\datasets\\css_safety\\valid\\images\\mms_00684_jpg.rf.47567bbd99db89023296aad0b965ff02.jpg",
+    "data\\datasets\\css_safety\\valid\\images\\Movie-on-10-31-22-at-10_08-AM_mov-22_jpg.rf.a02b881bb190fa4a30026a648d13d278.jpg",
+    "data\\datasets\\css_safety\\valid\\images\\Movie-on-10-31-22-at-10_08-AM_mov-6_jpg.rf.344372295a53aaf103587c9714ec98f7.jpg",
     "data\\datasets\\css_safety\\valid\\images\\ppe_0064_jpg.rf.f019b082d09af2750a81ef5ea3fcbc3e.jpg",
     "data\\datasets\\css_safety\\valid\\images\\ppe_0355_jpg.rf.508753d5b708536eca53de192b927c61.jpg",
     "data\\datasets\\css_safety\\valid\\images\\ppe_0665_jpg.rf.1dad479f7f54b2a7127cf18ef74ffd85.jpg",
     "data\\datasets\\css_safety\\valid\\images\\ppe_1228_jpg.rf.29b714c415ea74df3160f56a603463a0.jpg",
     "data\\datasets\\css_safety\\valid\\images\\residential_jpg.rf.17181770c64333009b9101e1572c5112.jpg",
+    "data\\datasets\\css_safety\\valid\\images\\RPReplay_Final1667001201_MP4-454_jpg.rf.74024a799f518f9a6314ed301827eb1b.jpg",
     "data\\datasets\\css_safety\\valid\\images\\shakespearebookshop_jpg.rf.9a14dbfdd07d9a0cc916cffef0194245.jpg",
     "data\\datasets\\css_safety\\valid\\images\\soooo_jpg.rf.5980d39f656b4d62672d2164173455e3.jpg",
+    "data\\datasets\\css_safety\\valid\\images\\youtube-118_jpg.rf.9dc8b46dfbac73d9e4f983964355d7ac.jpg",
+    "data\\datasets\\css_safety\\valid\\images\\youtube-179_jpg.rf.bab3fbda351095d3b9aaba8007e3aa87.jpg",
+    "data\\datasets\\css_safety\\valid\\images\\youtube-194_jpg.rf.601da70a10e87c30c693ffbee53b17a7.jpg",
+    "data\\datasets\\css_safety\\valid\\images\\youtube-200_jpg.rf.2c8aaf9fb58df4a3af442c293217d0c5.jpg",
+    "data\\datasets\\css_safety\\valid\\images\\youtube-226_jpg.rf.dd9d045ca17155289bcebe722e8a86e9.jpg",
+    "data\\datasets\\css_safety\\valid\\images\\youtube-232_jpg.rf.f92f310106a11e01495ce8bfae0f9b5a.jpg",
+    "data\\datasets\\css_safety\\valid\\images\\youtube-255_jpg.rf.c5a9f8ed208cb72e1a700ba52dc2fdfa.jpg",
+    "data\\datasets\\css_safety\\valid\\images\\youtube-267_jpg.rf.acd9b5f407f573eaa830029418345ad3.jpg",
+    "data\\datasets\\css_safety\\valid\\images\\youtube-277_jpg.rf.1bda1581c28b4f6cccd5eda6b23b94ee.jpg",
+    "data\\datasets\\css_safety\\valid\\images\\youtube-287_jpg.rf.c9a7d5b17f75d0c9ed62ad4127141aa2.jpg",
+    "data\\datasets\\css_safety\\valid\\images\\youtube-308_jpg.rf.790ae393e769f8e6280734b7506523ab.jpg",
+    "data\\datasets\\css_safety\\valid\\images\\youtube-342_jpg.rf.d7e55a17800f8d87313d7b6f33256ea9.jpg",
+    "data\\datasets\\css_safety\\valid\\images\\youtube-367_jpg.rf.fab8b016cb63c0928f40849db44ee98d.jpg",
+    "data\\datasets\\css_safety\\valid\\images\\youtube-392_jpg.rf.7e49e3a8486caaa4e9d82246de93e68e.jpg",
+    "data\\datasets\\css_safety\\valid\\images\\youtube-399_jpg.rf.3472ef7c01bb9092da48f0d562581121.jpg",
+    "data\\datasets\\css_safety\\valid\\images\\youtube-405_jpg.rf.6d1fc463659ac0d8e735bc1e731086a0.jpg",
+    "data\\datasets\\css_safety\\valid\\images\\youtube-416_jpg.rf.8b5d7c27337f84a1cd2b3e8b7c6435a7.jpg",
+    "data\\datasets\\css_safety\\valid\\images\\youtube-446_jpg.rf.b9d9b80538b79252761946ece0bc6317.jpg",
+    "data\\datasets\\css_safety\\valid\\images\\youtube-455_jpg.rf.35acd2e91608806a26f3ac4e784ea512.jpg",
+    "data\\datasets\\css_safety\\valid\\images\\youtube-470_jpg.rf.6aebf4cfb6c5a7e703c6532ca5090517.jpg",
+    "data\\datasets\\css_safety\\valid\\images\\youtube-476_jpg.rf.3744f21a7b74ea642bbcbc8251659001.jpg",
+    "data\\datasets\\css_safety\\valid\\images\\youtube-487_jpg.rf.5f1c67ece433c16da8ed3c9200ef4b5f.jpg",
+    "data\\datasets\\css_safety\\valid\\images\\youtube-540_jpg.rf.b229e14d526db6e53965f59e6146cf15.jpg",
+    "data\\datasets\\css_safety\\valid\\images\\youtube-584_jpg.rf.3136186a0786384c1ffc261f4d40ea42.jpg",
+    "data\\datasets\\css_safety\\valid\\images\\youtube-617_jpg.rf.309ef116f1d9074886d61bb0816b6b9e.jpg",
+    "data\\datasets\\css_safety\\valid\\images\\youtube-619_jpg.rf.93749f0e33b2f7beb302dd2e176d768a.jpg",
+    "data\\datasets\\css_safety\\valid\\images\\youtube-697_jpg.rf.950b34f23e196850ec51a4add2eeb840.jpg",
+    "data\\datasets\\css_safety\\valid\\images\\youtube-70_jpg.rf.2d5f69c78f062dfc572ccb6ce6bc3c9b.jpg",
+    "data\\datasets\\css_safety\\valid\\images\\youtube-727_jpg.rf.cb4c039b4ffea84835e67e2e3d2edf6e.jpg",
+    "data\\datasets\\css_safety\\valid\\images\\youtube-804_jpg.rf.c4250b3c54e1cca8d58622970882f60a.jpg",
+    "data\\datasets\\css_safety\\valid\\images\\youtube-836_jpg.rf.df6fc9e569e7b6b850ecb75c37781d10.jpg",
     "data\\datasets\\css_safety\\test\\images\\-4405-_png_jpg.rf.82b5c10b2acd1cfaa24259ada8e599fe.jpg",
     "data\\datasets\\css_safety\\test\\images\\000005_jpg.rf.96e9379ccae638140c4a90fc4b700a2b.jpg",
     "data\\datasets\\css_safety\\test\\images\\002551_jpg.rf.ce4b9f934161faa72c80dc6898d37b2d.jpg",
@@ -108,202 +138,151 @@
     "data\\datasets\\css_safety\\test\\images\\construction-843-_jpg.rf.c0ca85a10f6ad3c1375b37e52a51eeed.jpg",
     "data\\datasets\\css_safety\\test\\images\\Image36_jpg.rf.8704f3450f736cdd01a61dcee588f2c2.jpg",
     "data\\datasets\\css_safety\\test\\images\\image_53_jpg.rf.3446e366b5d4d905a32e1aedc8fe87de.jpg",
+    "data\\datasets\\css_safety\\test\\images\\IMG_0871_MOV-12_jpg.rf.36858a9d51613f9a39b7855b54dfa098.jpg",
     "data\\datasets\\css_safety\\test\\images\\IMG_5846_jpg.rf.0b9984069116e2acd928568eb7a8e214.jpg",
+    "data\\datasets\\css_safety\\test\\images\\Inside-merge_mov-58_jpg.rf.50147e19cb655e74c2df0047113e82b2.jpg",
     "data\\datasets\\css_safety\\test\\images\\ka_01181_png_jpg.rf.154ee4ef254eabd62e316be50470c578.jpg",
     "data\\datasets\\css_safety\\test\\images\\librairie_51_jpg.rf.56b0500ae2ad3820b4286133b627e59c.jpg",
     "data\\datasets\\css_safety\\test\\images\\maksssksksss17_png_jpg.rf.f685b497756b1facbf3d4c2d2d22c0d2.jpg",
+    "data\\datasets\\css_safety\\test\\images\\Movie-on-10-31-22-at-10_08-AM_mov-20_jpg.rf.aea4278b41550cdb75df5891a26052e7.jpg",
+    "data\\datasets\\css_safety\\test\\images\\Movie-on-10-31-22-at-10_08-AM_mov-24_jpg.rf.c50014f3510a484e5bd565460fd0fd5c.jpg",
     "data\\datasets\\css_safety\\test\\images\\NX_img_177_jpg.rf.c03709e5fadfe2109411f05a9e9bc25f.jpg",
     "data\\datasets\\css_safety\\test\\images\\ppe_0018_jpg.rf.be66fabcc8627f60d963454b5a227095.jpg",
     "data\\datasets\\css_safety\\test\\images\\ppe_1073_jpg.rf.72ea8a293a4f3e1135219e33701b1099.jpg",
-    "data\\datasets\\css_safety\\test\\images\\thumbnail-ba5c72edb320b49a69e86b05775c49b2-scaled-1_jpeg_jpg.rf.3bb460e284098219861b894fb0db13d5.jpg"
+    "data\\datasets\\css_safety\\test\\images\\RPReplay_Final1667001201_MP4-100_jpg.rf.9a1b50c4301c53b3ae534c6353337df9.jpg",
+    "data\\datasets\\css_safety\\test\\images\\thumbnail-ba5c72edb320b49a69e86b05775c49b2-scaled-1_jpeg_jpg.rf.3bb460e284098219861b894fb0db13d5.jpg",
+    "data\\datasets\\css_safety\\test\\images\\youtube-108_jpg.rf.9dc7ed5f816f07d520f3dbfaad08d40f.jpg",
+    "data\\datasets\\css_safety\\test\\images\\youtube-114_jpg.rf.5e02b6574ace1f4b3689befbc5051cd0.jpg",
+    "data\\datasets\\css_safety\\test\\images\\youtube-126_jpg.rf.786824e90daf3276130ca73ca610a8da.jpg",
+    "data\\datasets\\css_safety\\test\\images\\youtube-152_jpg.rf.9147878e3ddda845e58f7d9c041f1338.jpg",
+    "data\\datasets\\css_safety\\test\\images\\youtube-186_jpg.rf.1f1d93447d4be3233c22c4ce9f6e0601.jpg",
+    "data\\datasets\\css_safety\\test\\images\\youtube-192_jpg.rf.93bea040de8cd55f34ffb12f6ffe30b1.jpg",
+    "data\\datasets\\css_safety\\test\\images\\youtube-198_jpg.rf.e89faeb9765c6bd6cece5434d140f4af.jpg",
+    "data\\datasets\\css_safety\\test\\images\\youtube-213_jpg.rf.da70b1d8cefd3cc9d56e43bb88dfb67d.jpg",
+    "data\\datasets\\css_safety\\test\\images\\youtube-237_jpg.rf.d07a927721fe259757237c3706ea22e5.jpg",
+    "data\\datasets\\css_safety\\test\\images\\youtube-253_jpg.rf.5ad0a2d701e20141940508b809584856.jpg",
+    "data\\datasets\\css_safety\\test\\images\\youtube-263_jpg.rf.374e343e12ead395440dbd81417e1be9.jpg",
+    "data\\datasets\\css_safety\\test\\images\\youtube-34_jpg.rf.03eacc444bae3c5caa3fef5c736c3e40.jpg",
+    "data\\datasets\\css_safety\\test\\images\\youtube-388_jpg.rf.18caa1da4f818a65f73e48463cb2270e.jpg",
+    "data\\datasets\\css_safety\\test\\images\\youtube-462_jpg.rf.df73aa5089a04b8fbf3adf9d614a6740.jpg",
+    "data\\datasets\\css_safety\\test\\images\\youtube-471_jpg.rf.4296b7bd9a5a07753077beddbcd651bf.jpg",
+    "data\\datasets\\css_safety\\test\\images\\youtube-472_jpg.rf.e9425ff40c0df2beeef70abbc2324956.jpg",
+    "data\\datasets\\css_safety\\test\\images\\youtube-496_jpg.rf.def4e9964e9a354d0a02f4ac14334a73.jpg",
+    "data\\datasets\\css_safety\\test\\images\\youtube-510_jpg.rf.62f82e36d134d53587edb48f291986f4.jpg",
+    "data\\datasets\\css_safety\\test\\images\\youtube-53_jpg.rf.e96f8f81389f4e63a79663095680a617.jpg",
+    "data\\datasets\\css_safety\\test\\images\\youtube-596_jpg.rf.11a8a4ac01d8aadb80eeb0406dfa579a.jpg",
+    "data\\datasets\\css_safety\\test\\images\\youtube-631_jpg.rf.7c6ecf859c1b0a659f8ea057ad27aebd.jpg",
+    "data\\datasets\\css_safety\\test\\images\\youtube-671_jpg.rf.7b08643d6754cabe6caf2b49a963de47.jpg",
+    "data\\datasets\\css_safety\\test\\images\\youtube-738_jpg.rf.6f300b76e12b325f7c373c95ef319005.jpg",
+    "data\\datasets\\css_safety\\test\\images\\youtube-840_jpg.rf.974a83a7c5aee7c16e83435b043c6d96.jpg"
   ],
   "rows": [
     {
       "class": "Hardhat",
-      "gt": 146,
-      "tp": 127,
-      "fp": 15,
-      "fn": 19,
-      "precision": 89.4,
-      "precision_ci95": [
-        83.3,
-        93.5
-      ],
-      "recall": 87.0,
-      "recall_ci95": [
-        80.6,
-        91.5
-      ],
-      "ap50": 90.2
+      "gt": 183,
+      "tp": 159,
+      "fp": 16,
+      "fn": 24,
+      "precision": 90.9,
+      "recall": 86.9,
+      "ap50": 90.9
     },
     {
       "class": "Mask",
-      "gt": 22,
-      "tp": 12,
+      "gt": 32,
+      "tp": 22,
       "fp": 4,
       "fn": 10,
-      "precision": 75.0,
-      "precision_ci95": [
-        50.5,
-        89.8
-      ],
-      "recall": 54.5,
-      "recall_ci95": [
-        34.7,
-        73.1
-      ],
-      "ap50": 57.8
+      "precision": 84.6,
+      "recall": 68.8,
+      "ap50": 72.2
     },
     {
       "class": "NO-Hardhat",
-      "gt": 64,
-      "tp": 41,
-      "fp": 18,
-      "fn": 23,
-      "precision": 69.5,
-      "precision_ci95": [
-        56.9,
-        79.7
-      ],
-      "recall": 64.1,
-      "recall_ci95": [
-        51.8,
-        74.7
-      ],
-      "ap50": 65.8
+      "gt": 82,
+      "tp": 54,
+      "fp": 21,
+      "fn": 28,
+      "precision": 72.0,
+      "recall": 65.9,
+      "ap50": 68.3
     },
     {
       "class": "NO-Mask",
-      "gt": 109,
-      "tp": 83,
-      "fp": 36,
-      "fn": 26,
-      "precision": 69.7,
-      "precision_ci95": [
-        61.0,
-        77.3
-      ],
-      "recall": 76.1,
-      "recall_ci95": [
-        67.3,
-        83.2
-      ],
-      "ap50": 74.0
+      "gt": 141,
+      "tp": 101,
+      "fp": 43,
+      "fn": 40,
+      "precision": 70.1,
+      "recall": 71.6,
+      "ap50": 70.9
     },
     {
       "class": "NO-Safety Vest",
-      "gt": 135,
-      "tp": 113,
-      "fp": 17,
-      "fn": 22,
-      "precision": 86.9,
-      "precision_ci95": [
-        80.1,
-        91.7
-      ],
-      "recall": 83.7,
-      "recall_ci95": [
-        76.6,
-        89.0
-      ],
-      "ap50": 86.3
+      "gt": 166,
+      "tp": 136,
+      "fp": 20,
+      "fn": 30,
+      "precision": 87.2,
+      "recall": 81.9,
+      "ap50": 84.1
     },
     {
       "class": "Person",
-      "gt": 232,
-      "tp": 196,
-      "fp": 46,
-      "fn": 36,
-      "precision": 81.0,
-      "precision_ci95": [
-        75.6,
-        85.4
-      ],
-      "recall": 84.5,
-      "recall_ci95": [
-        79.3,
-        88.6
-      ],
-      "ap50": 86.4
+      "gt": 301,
+      "tp": 256,
+      "fp": 62,
+      "fn": 45,
+      "precision": 80.5,
+      "recall": 85.0,
+      "ap50": 86.6
     },
     {
       "class": "Safety Cone",
-      "gt": 82,
+      "gt": 83,
       "tp": 40,
-      "fp": 11,
-      "fn": 42,
-      "precision": 78.4,
-      "precision_ci95": [
-        65.4,
-        87.5
-      ],
-      "recall": 48.8,
-      "recall_ci95": [
-        38.3,
-        59.4
-      ],
-      "ap50": 52.1
+      "fp": 12,
+      "fn": 43,
+      "precision": 76.9,
+      "recall": 48.2,
+      "ap50": 51.4
     },
     {
       "class": "Safety Vest",
-      "gt": 62,
-      "tp": 50,
-      "fp": 13,
-      "fn": 12,
+      "gt": 98,
+      "tp": 81,
+      "fp": 21,
+      "fn": 17,
       "precision": 79.4,
-      "precision_ci95": [
-        67.8,
-        87.5
-      ],
-      "recall": 80.6,
-      "recall_ci95": [
-        69.1,
-        88.6
-      ],
-      "ap50": 82.8
+      "recall": 82.7,
+      "ap50": 83.5
     },
     {
       "class": "machinery",
-      "gt": 42,
-      "tp": 37,
-      "fp": 15,
-      "fn": 5,
-      "precision": 71.2,
-      "precision_ci95": [
-        57.7,
-        81.7
-      ],
-      "recall": 88.1,
-      "recall_ci95": [
-        75.0,
-        94.8
-      ],
-      "ap50": 90.3
+      "gt": 78,
+      "tp": 69,
+      "fp": 16,
+      "fn": 9,
+      "precision": 81.2,
+      "recall": 88.5,
+      "ap50": 91.5
     },
     {
       "class": "vehicle",
-      "gt": 9,
-      "tp": 7,
-      "fp": 2,
-      "fn": 2,
-      "precision": 77.8,
-      "precision_ci95": [
-        45.3,
-        93.7
-      ],
-      "recall": 77.8,
-      "recall_ci95": [
-        45.3,
-        93.7
-      ],
-      "ap50": 82.0
+      "gt": 60,
+      "tp": 38,
+      "fp": 12,
+      "fn": 22,
+      "precision": 76.0,
+      "recall": 63.3,
+      "ap50": 63.1
     }
   ],
   "summary": {
-    "mAP50_all10": 76.8,
-    "mAP50_our4": 81.3,
-    "recall_our4_mean": 78.8,
-    "precision_our4_mean": 81.3
+    "mAP50_all10": 76.3,
+    "mAP50_our4": 81.7,
+    "recall_our4_mean": 79.4,
+    "precision_our4_mean": 82.4
   },
-  "elapsed_s": 2.2
+  "elapsed_s": 4.4
 }
