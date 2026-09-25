@@ -21,7 +21,7 @@ RULE_KO = {
     "trip_hazard": "전도/미끄러짐", "forklift": "지게차 접근",
     "proximity_hazard": "작업반경 침입(협착)", "safety_measure_missing": "안전조치 미흡",
     "crowd_density": "인원 밀집(혼잡)", "lone_worker": "단독작업(2인1조 위반)",
-    "immobility": "장시간 무동작(쓰러짐 의심)", "rapid_motion": "급격한 이동(돌진)",
+    "immobility": "장시간 무동작(45초 이상 정지)", "rapid_motion": "급격한 이동(돌진)",   # ★2026-09-26: 낙상 감지 아님 — "쓰러짐" 표기 제거
 }
 LEVEL_KO = {"low": ("주의", "#22c55e"), "mid": ("경계", "#f59e0b"),
             "medium": ("경계", "#f59e0b"), "high": ("경계", "#f59e0b"),

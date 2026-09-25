@@ -501,7 +501,7 @@ class ErgonomicsTracker:
 
 
 class MotionTracker:
-    """사람 움직임 추적 → ① 장시간 무동작(쓰러짐·실신 의심, SOS) ② 급격한 이동(돌진·이상행동)."""
+    """사람 움직임 추적 → ① 장시간 무동작(45초 이상 정지 — 낙상 감지가 아니다) ② 급격한 이동(돌진·이상행동)."""
     MATCH = 0.32            # 사람 매칭 거리(급이동도 같은 사람으로 추적되게 넉넉히)
     IMMOBILE_S = float(tuning.val("motion", "immobile_s", 45.0))   # 무동작 시간(설정)
     IMMOBILE_SPREAD = 0.03  # 이동 범위(정규화) 이하면 정지로 간주
@@ -624,7 +624,8 @@ class MotionTracker:
                 xs = [x[1] for x in win]
                 ys = [x[2] for x in win]
                 if max(max(xs) - min(xs), max(ys) - min(ys)) < self.immobile_spread:
-                    out["immobility"] = ("immobility", "high", "장시간 무동작 — 쓰러짐·실신 의심")
+                    # ★2026-09-26 문구 정정: 이 규칙은 45초 정지 감지이지 낙상 감지가 아니다(낙상은 2026-08-06 제거).
+                    out["immobility"] = ("immobility", "high", "장시간 무동작(45초 이상 정지) — 확인 필요")
         return list(out.values())
 
 

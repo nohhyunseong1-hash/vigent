@@ -5,7 +5,9 @@ VIGENT가 각 사진에서 경보를 울렸는지 보고 실제 성능을 계산
 
   · 재현율(Recall)   = 진짜 위험을 안 놓친 비율  = TP / (TP+FN)
   · 정밀도(Precision)= 경보가 진짜였던 비율      = TP / (TP+FP)
-  · 둘 다 90% 이상이면 KOSHA 스마트 안전장치 인증 기준 후보
+  · 둘 다 90% 이상을 **자체 합격선**으로 본다 — 어떤 공인 인증 기준도 아니다
+    (★2026-09-26 정정: 이전 문구 "KOSHA 스마트 안전장치 인증 기준 후보"는 그런 제도·기준의
+     존재를 확인하지 못해 삭제했다. docs/review/ALGORITHM_TRUTH_20260926.md §6 #21)
 
 ⚠ 통제된 자체 측정이며 공인시험을 대체하지 않는다(공인기관 KOLAS 등이 정본).
 """
@@ -169,7 +171,7 @@ _PAGE = r"""<!DOCTYPE html><html lang="ko"><head><meta charset="UTF-8">
     }
     const s=j.summary; const cls=v=> v==null?'':(v>=90?'ok':v>=75?'mid':'bad');
     const verdict = s.pass_90
-      ? '<div class="verdict ok" style="background:#0f2a1a">✅ 재현율·정밀도 <b>둘 다</b> 90% 이상 — KOSHA 인증 기준 후보!</div>'
+      ? '<div class="verdict ok" style="background:#0f2a1a">✅ 재현율·정밀도 <b>둘 다</b> 90% 이상 — 자체 합격선 통과(공인 인증 기준 아님)</div>'
       : '<div class="verdict bad" style="background:#2a0f0f">아직 미달 — 재현율·정밀도가 <b>각각</b> 90%를 넘어야 함(현장 데이터 재학습 필요)</div>';
     document.getElementById('out').innerHTML=
       '<div class="card"><h3>📊 결과 ('+s.n+'장)</h3>'

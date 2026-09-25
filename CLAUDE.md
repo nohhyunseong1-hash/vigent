@@ -111,7 +111,7 @@ CODE_REVIEW.md §5의 P0~P2 조치가 완료됐다. 코드 변경 시 아래를 
    ★테스트는 **기계 상태에 의존하면 안 된다** — 2026-09-23 `test_field_eval_group` 이 C: 여유가
    5GB 아래로 떨어지자 코드 변경 없이 실패했다(실제 `shutil.disk_usage` 를 읽고 있었다). 디스크·시각·
    네트워크는 mock 으로 고정하고, 고정한 만큼 **반대편(경고가 나는 경우)** 도 테스트로 잡는다.
-4. **OpenAPI 무변경** `python scripts/check_openapi_diff.py` → 106 == baseline + WS 불변
+4. **OpenAPI 무변경** `python scripts/check_openapi_diff.py` → **110** == baseline + WS 불변(★2026-09-26 정정: 오래 "106" 으로 적혀 있었으나 체커 출력은 110/110 이다. 라우트를 추가하면 이 숫자도 같이 고친다)
 5. **CI** `.github/workflows/ci.yml` 이 위 4개를 push/PR 시 자동 실행
 - 구조·게이트·후속 백로그 상세: [docs/ONBOARDING.md](docs/ONBOARDING.md) §3.5·§6 · [docs/P3_BACKLOG.md](docs/P3_BACKLOG.md).
 

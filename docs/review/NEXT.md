@@ -42,7 +42,7 @@
 | 항목 | 착수 조건 |
 |---|---|
 | `B-imgsz` 입력 해상도 실험 | 재방문 정답지 확보 후 |
-| `B-finetune` 검출기 파인튜닝 | 재방문 정답지에서 40px 이상 재현율이 목표 미달일 때. **목표치 미선언** |
+| `B-finetune` 검출기 파인튜닝 | 재방문 정답지에서 40px 이상 재현율이 목표 미달일 때. **목표치 선언됨(2026-09-25)**: held-out 91장 NO-Hardhat R≥85·NO-Safety Vest R≥90(정밀도 유지) / dev 74 PPE R≥80 / 최종 판정은 현장 정답지 — `docs/model/ppe_rfdetr_v1_provenance.md` §8 |
 | AI Hub 학습 | 재방문 정답지 후 |
 | `B-required-ppe` 필수 보호구 프로필화 | — (마법사가 `ppe.required` 를 기록하는 것으로 1차 대응) |
 | `B-page-hits` `/health` 페이지 카운터 | — |

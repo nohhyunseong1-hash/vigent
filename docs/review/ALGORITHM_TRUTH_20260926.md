@@ -26,7 +26,7 @@
 | 7 | 디바운스·억제 | 단일 프레임 오검출 차단, 반복 통보 억제 | 시간 디바운스(구역 1.0s/근접 0.4s)·프레임 히스테리시스(PPE 3/화재 2)·쿨다운 15s·적응형 백오프 300→3600s·시간당 6건 | — | CPU | `tuning.yaml:7-21,38-44,87,239-240` · `guard.py:290` |
 | 8 | 경보 전송 | 이벤트 → sqlite 선기록 → 텔레그램→이메일→웹훅→릴레이 **순차** | 자체 큐·재시도·데드레터 | — | CPU | `docs/review/01-architecture.md:27-30,76-77` · `agents/dispatcher.py` |
 | 9 | 화재·연기 | 프레임 → fire/smoke 박스 | RF-DETR Nano 파인튜닝 `fire_smoke_rfdetr_v1_e17.pth`(D-Fire), conf fire 0.30/smoke 0.50 | 모델 Apache-2.0 · 데이터 라이선스 **미확인** | GPU | `vision.yaml:19-20,31` · `tuning.yaml:116-118` |
-| L2 | 에이전트 층 | 이벤트 → 위험성평가서 초안·법령 인용·권장 행동(사람 승인) | 규칙 기반 + (키 있을 때만) OpenAI/Anthropic 텍스트 LLM | — | CPU / 외부 API | `vigent-core/llm_provider.py:1-19` · `agents/*.py` · §3 |
+| L2 | 에이전트 층 | **L1 내장**: 인식 로그 빈도 → 위험성평가서 초안·법령 인용·권장 행동(사람 승인, HTTP 라우트에서만). **별도 L2 저장소 2곳**(`D:\agent\vigent-l2` LangGraph 6노드 — 실모델 미실행 · `D:\agent\vigent-vlm` VLM — 실행 기록 있음)은 **L1 과 미연결** | L1 내장: 규칙 기반 + (키 있을 때만) OpenAI/Anthropic. vigent-l2: Qwen3-8B Q5_K_M GGUF(미실행). vigent-vlm: OpenRouter qwen3-vl-8b(기본) / Qwen3.6-27B 4bit 로컬 | Apache-2.0(Qwen) | CPU / 외부 API / (로컬 27B 실측 0.5~0.7 tok/s) | `vigent-core/llm_provider.py:1-19` · §3 |
 
 ### 1-2. 확정된 성능 수치 (5개)
 
@@ -40,11 +40,11 @@
 
 ### 1-3. 알려진 한계 (5개)
 
-1. **현장 정답지가 없다.** 현장 카메라 기준 재현율·정밀도는 한 번도 재지 못했다(학원 929프레임은 원본 미보존, 정답=장면 대본). 사고영상 109장 정답지는 휴대폰 전달본·1fps·검수 1인이다. → `docs/labeling_plan.md:27-38` · `docs/review/FINAL-REPORT.md:41-99`
-2. **원거리 소인물.** 박스 높이가 화면의 10% 미만이면 dev 재현율 0~8%(1fps). 야간·역광·우천·분진은 데이터 자체가 없다. → `benchmarks/x5_recall_knobs_interim.md:59-60` · `docs/review/02-model-inference.md:95-110`
-3. **감시 중단을 원격으로 알리는 코드 경로가 0건.** `alert_notify.submit` 호출부 8곳에 health 전이·카메라 stale·슬롯 사망 통보 없음(2026-09-26 grep 재확인). 통보 채널은 텔레그램 1개가 실운영(이메일 코드 완료·앱 비밀번호 대기). → `docs/review/FINAL-REPORT.md:30` · `docs/review/NEXT.md:22`
-4. **배포 하드웨어 미실측.** RTX 5060 실기 값 없음. 현장 노트북(GTX 1650 Ti)은 램프 1회(N=4 검출 p95 675ms)·4h 소크 없음. → `docs/review/NEXT.md:27-28` · `docs/review/FINAL-REPORT.md:225-235`
-5. **재학습 미실행·두 계보 미통합.** PPE 재학습은 목표만 선언(§8 provenance), AI Hub 표본 대기. 노트북 클론(`laptop/20260917`)과 개발기 저장소가 통합 전이라 USB 는 개발기 계보만 담는다. → `docs/model/ppe_rfdetr_v1_provenance.md` §8 · `docs/review/NEXT.md:25`
+1. **현장 정답지가 없다.** 현장 카메라 기준 재현율·정밀도는 한 번도 재지 못했다(학원 929프레임은 원본 미보존, 정답=장면 대본). 사고영상 109장 정답지는 휴대폰 전달본·1fps·검수 1인이며, 그 추적 후 재현율(42%)은 2026-09-22 **폐기**됐다(§4-2). → `docs/labeling_plan.md:27-38` · `docs/review/FINAL-REPORT.md:41-99`
+2. **L2(문서 자동화)는 L1 과 연결돼 있지 않다.** 별도 저장소 `vigent-l2`(LangGraph 6노드)는 실모델 실행 기록 0·브리지 0 바이트·2026-08-05 이후 미커밋 정지, `vigent-vlm` 은 문서를 만들어 봤으나 기본이 클라우드 API 이고 L1 이벤트를 읽지 않는다. L1 내장 Scribe 는 이벤트 **빈도만** 재사용한다. "감지 → 서류 자동 반영"은 아직 없다. → §3
+3. **원거리 소인물·야간·역광.** 박스 높이가 화면의 10% 미만이면 dev 재현율 0~8%(1fps, 폐기 전 값이나 방향은 유효). 야간 유인·역광·우천·분진은 데이터 자체가 없다. → `benchmarks/x5_recall_knobs_interim.md:59-60` · `docs/review/02-model-inference.md:95-110`
+4. **감시 중단을 원격으로 알리는 코드 경로가 0건 + 실운영 통보 채널 1개.** `alert_notify.submit` 호출부 7종에 health 전이·카메라 stale·슬롯 사망 통보 없음(2026-09-26 grep). 텔레그램 1개가 실운영(이메일 코드 완료·앱 비밀번호 대기). 2026-08-21~09-10 20일간 213건 미전달 사고가 실제로 있었다. → `docs/review/FINAL-REPORT.md:30` · `docs/review/NEXT.md:22` · §2-8
+5. **배포 하드웨어 미실측·재학습 미실행·두 계보 미통합.** RTX 5060 실기 값 없음, 현장 노트북은 램프 1회(N=4 검출 p95 675ms)·4h 소크 없음. PPE 재학습은 목표만 선언(AI Hub 표본 대기). 노트북 클론(`laptop/20260917`)과 개발기 저장소가 통합 전이라 USB 는 개발기 계보만 담는다. → `docs/review/NEXT.md:25-28` · `docs/model/ppe_rfdetr_v1_provenance.md` §8
 
 ---
 
@@ -177,21 +177,62 @@
 
 ---
 
-## 3. L2 에이전트 층
+## 3. L2 에이전트 층 (2026-09-26 재작성 — L2 별도 저장소 3곳을 열어 확인)
 
-### 3-1. 무엇이 코드에 있고, 무엇이 운용 경로에 붙어 있나
+> **L2 저장소 위치**: `git filter-repo` 로 분리된 L2 는 개발기 `D:\agent\` 아래에 **세 갈래**로 있다. 셋 다 이번에 직접 열어 코드·커밋·파일 시각을 확인했다(테스트 실행·모델 기동은 하지 않았다). L1 저장소(`D:\vigent_original`) 안의 `vigent-core/agents/` 는 네 번째 계보다.
+>
+> | 저장소 | 성격 | git | 마지막 활동 | 근거 |
+> |---|---|---|---|---|
+> | **`D:\agent\vigent-l2`** | "VIGENT L2 Scribe" — 문서 3종(작업계획서·위험성평가서·TBM) 자동 생성 **LangGraph 파이프라인**, 에어갭·로컬 LLM 전제 | `master`, 커밋 4건(P0~P3, 2026-08-04) + **미커밋 Phase 4a 작업**(7파일 수정·15파일 신규, 2026-08-05 01:52) | 2026-08-05 | `git log`·`git status`(2026-09-26) · `MASTER_SPEC.md` |
+> | **`D:\agent\vigent-vlm`** | "위험성평가 작성 Agent (VLM)" — 사진/영상 → VLM → xlsx/pdf 3종. LangGraph 아님(단일 오케스트레이터) | `main`, 커밋 3건(2026-08-19 ×2, 08-31) | 2026-08-31 | `git log` · `README.md` |
+> | `D:\agent\vigent` | **L1 의 구 클론**(`fix/review-bugs`, 2026-08-08) — L2 아님 | — | 2026-08-08 | `git log` |
+> | `D:\vigent_original/vigent-core/agents/` | L1 안의 경량 에이전트 7클래스(§3-3) | L1 저장소 | 진행 중 | Glob |
+>
+> `D:\agent\vigent_subsidy`(2026-09-25, 보조금 매칭 웹앱)는 안전 문서 에이전트가 아니라 제외했다.
+
+### 3-1. `D:\agent\vigent-l2` — "6-agent LangGraph 구조"의 실체
 
 | 질문 | 답 | 근거 |
 |---|---|---|
-| "6-agent LangGraph 구조"가 코드에 있는가 | **LangGraph 없음**(`langgraph` grep 0건). `vigent-core/agents/` 에는 `base, guard, analyst, scribe, copilot, safety_manager, dispatcher` 7파일 — **일반 Python 클래스**(`BaseAgent` 상속)이고 그래프 프레임워크·상태 그래프·오케스트레이션 루프는 없다. `md/AGENT_STATUS.md:14` 의 `coach.py` 는 현재 파일 목록에 **없다**(문서 낡음) | 이 문서 작성 시 Glob/grep · `agents/analyst.py:35`, `safety_manager.py:21` |
-| Qwen3-8B-NVFP4 가 로드되는가 | **저장소에 없다.** `Qwen3`·`NVFP4` grep: 코드 0건. 감사 기록은 "Qwen3.6 은 별도 프로젝트(외부 에이전트), 이 저장소엔 없음"으로 정정돼 있다 | `AUDIT_REPORT.md:41,266` · `CLEANUP_PLAN.md:258` |
-| 실제 LLM | 텍스트: **OpenAI API(기본 gpt-4o-mini) 또는 Anthropic API** — 키가 있을 때만, 실패·오프라인이면 `(None, None)` 을 돌려 **규칙 기반 폴백**. Ollama 로컬은 2026-07-14 제거. 비전: 로컬 VLM 은 `mlx-community/Qwen2.5-VL-7B-Instruct-4bit`(**Apple MLX 전용 — Windows 에서 미동작**), 클라우드 비전은 `VIGENT_CLOUD_VLM=1` **and** `OPENAI_API_KEY` 둘 다 있을 때만 | `llm_provider.py:1-19,107-116,147-164` · `vision.yaml:98-101` · `README.md:30` |
-| `VIGENT_CLOUD_VLM` 게이트 | 기본 off. off 상태에서 `incident.analyze(use_vlm=True)` 실행 시 외부 호스트 해석 0건 [실측 2026-07-13]. 전송 전 얼굴 비식별화. 현재 `.env` 에 키·플래그 없음(2026-09-08 확인) | `llm_provider.py:111-116` · `benchmarks/FINDINGS.md:278-279` · `docs/review/05-security-privacy.md:167` |
-| 어느 이벤트에서 호출되는가 | **워커(카메라 루프)에서는 호출되지 않는다**(`worker.py` grep `llm|vlm|analyst|scribe|copilot` 0건). 호출부는 전부 **HTTP 라우트**: `/report/safety`·`/safety/auto/approve risk_assessment`(Scribe), `/safety/live/analyze`·brain 계열(`routers/safety_core.py:133,386-404,581-637`), `/safety/incident`(`incident.py:56,117,145,164`), 구역 브라우저 경로 VLM 확인(`routers/zone.py:110`). 즉 **사람이 버튼을 누르거나 브라우저 시연 경로를 쓸 때만** 돈다 | 이 문서 작성 시 grep |
-| 각 에이전트의 실체 | Guard = 검출·추적(§2). Analyst = 규칙 severity 가산 점수(`_SEVERITY_WEIGHT` critical 100/high 60/medium 30/low 10 → 등급). Scribe = KOSHA KRAS 서식 위험성평가서 HTML 생성(규칙→KB 매핑, LLM 은 '종합의견' 한 문단만 opt-in). Copilot = 법령 인용(`safety_citations.json` 24개, 화이트리스트 게이트로 가짜 조문 차단 실증). SafetyManager = 등급별 **권장 행동만** 반환, `requires_approval=True`, 자동 실행 0. Dispatcher = 채널 전송(§2-8) | `agents/analyst.py:1-32` · `agents/scribe.py:1-12` · `agents/safety_manager.py:1-13` · `md/AGENT_STATUS.md:8-16` |
-| 검증 상태 | 골든셋 정답 30건 미작성(사용자 몫) → 에이전트 판단 품질은 **채점된 적 없다**. Copilot 법령 게이트만 실동작 실증 | `md/AGENT_STATUS.md:41-49` |
+| LangGraph 그래프가 코드로 존재하는가 | **있다(미커밋).** `build_graph()` 가 `StateGraph(PipelineState)` 에 **노드 6개**(`planner → hazard_mapper → law_retriever → work_plan → generator_validator → tbm`)를 순차 연결한다. 단 **본체는 순수 함수 `run_pipeline`** 이고 LangGraph 는 같은 함수를 감싼 얇은 래퍼다 | `src/vigent/pipeline/graph.py:165-205`(미커밋, 2026-08-05) · `pyproject.toml:29`(`langgraph>=0.2`, optional `pipeline` 그룹) |
+| 스펙의 "6-agent"와 코드의 대응 | MASTER_SPEC §6: Planner · HazardMapper · LawRetriever · Generator · Validator · Renderer(+개발용 Evaluator). 코드: **Planner ✅ · HazardMapper ✅ · LawRetriever ✅ · Generator ✅ · Validator ✅**(`pipeline/agents/{planner,hazard_mapper,law_retriever,generator,validator}.py`, 미커밋) · **Renderer ❌**(`src/vigent/render/__init__.py` 0 바이트, Phase 5 미착수) · Evaluator ✅(`evalx/`, P3 커밋) · Transcribe(TBM 음성)는 **fixture 스텁만**(`agents/transcribe.py` `FixtureTranscriber` — 사이드카 txt 읽기, Whisper 없음) | `MASTER_SPEC.md:208-226` · Glob(2026-09-26) · `tests/test_pipeline.py:222-231` |
+| 테스트 | `tests/` 14파일, `def test_` **107개**(이번에 실행하지 않음 — 마지막 실행 기록은 P3 커밋 시점). 파이프라인 테스트 16개는 **`ScriptedLLMClient`(결정적 스텁)** 로 배관·재시도·hard fail 을 검증한다 — **실제 LLM 은 어떤 테스트도 호출하지 않는다.** `build_graph`(LangGraph 래퍼) 를 부르는 테스트는 **0개**(grep) | `tests/test_pipeline.py:1,94-101` · `src/vigent/llm/client.py:116-142` |
+| 원칙 준수(코드로 확인) | LLM 은 산수 금지(위험성=빈도×강도 코드 계산, `to_risk_entry`) · 법적 근거는 후보 인덱스 선택만·화이트리스트 밖 hard fail · 구조화 출력은 `response_format=json_schema` 제약 디코딩 · 로컬호스트 외 엔드포인트는 생성 시점 거부 | `pipeline/agents/generator.py:1-4` · `llm/client.py:7-9,62-67,101-110` · `tests/test_llm_client.py:65-70` |
+| **Qwen3-8B-NVFP4 가 실제 로드·실행된 기록이 있는가** | **NVFP4 표기·파일은 세 저장소 어디에도 없다**(`nvfp4` grep: 코드·설정 0건). 있는 것은 **`models/Qwen3-8B-Q5_K_M.gguf`(5.85GB, 2026-08-05 00:46 다운로드)** 와 `tools/llamacpp/`(llama-server.exe 등 CUDA 빌드 바이너리). 서빙 계획은 개발 = llama-server(`http://127.0.0.1:8080/v1`), 납품 = vLLM guided decoding. **실행 기록은 없다**: `vigent generate`(실모델 파이프라인) 의 산출물 `out/candidates/run_summary.json` 이 **존재하지 않고**, `out/` 에는 P3 채점 결과 2파일(2026-08-04 23:27, 합성 케이스 자가 채점, `"judge 미가용 (로컬 LLM 서빙 전)"`, `"warning": "합성 케이스만 포함 — 이 결과로 모델 선정 불가"`)뿐. 로그·벤치 파일 0건 | `configs/models.yaml:21,39-51` · `models/` 목록 · `out/eval_results.json:57,207-208` · `src/vigent/pipeline/runner.py:117` |
+| 모델 후보·라이선스 | `configs/models.yaml`(미커밋): 후보 qwen3-14b(Q4_K_M 9.0GB) · **qwen3-8b(Q5_K_M 5.85GB)** · A.X-4.0-Light(Apache-2.0, GGUF 자체 변환 필요), 예비 kanana-1.5-8b, 배제 EXAONE-4.0(NC). 라이선스는 HF 모델 카드 확인(2026-08-05). **최종 선정은 "골든셋 채점으로" — 아직 안 됨** | `configs/models.yaml:1-7,23-86` |
+| 골든셋·평가 | 케이스 3건(`goldenset/cases/case_001~003`)은 **합성(synthetic)** — 원본 pptx 3건(`goldenset/raw/`, 제조·물류·건설)의 Docling 변환은 미완. 채점 하네스는 expected 자가 채점에서 만점(스키마·산수 게이트 통과, 법적근거 F1 1.0) — 즉 **채점기 검증**이지 생성 품질 측정이 아니다 | `out/eval_results.json` · `goldenset/` 목록 |
+| L1↔L2 인터페이스 | **없다(스텁 계약만).** `src/vigent/bridge_l1/__init__.py` **0 바이트**, `src/vigent/api/__init__.py` **0 바이트**(FastAPI Phase 6 미착수). 있는 것은 Pydantic 계약 `L1Event{camera_id, timestamp, event_type, zone, confidence, sop_rule_ref}` 하나 — 어느 코드도 이를 채우거나 읽지 않는다(Phase 7 "fixture 기반 브리지" 계획). L1 저장소 쪽에도 `vigent-l2`·`bridge_l1` 참조 0건 | `src/vigent/schemas/l1_event.py:1-16` · `MASTER_SPEC.md:293-297` · L1 grep(2026-09-26) |
+| 상태 한 줄 | **구현됨·미실행**: 배관(스키마·검증·화이트리스트·제약 디코딩 클라이언트·LangGraph 래퍼)은 코드와 스텁 테스트로 존재하나, **실제 LLM 으로 문서를 한 번도 생성하지 않았고**(기록 기준), 렌더러·API·L1 브리지는 빈 패키지, Phase 4a 작업은 미커밋 상태로 2026-08-05 이후 멈춰 있다 | 위 표 |
 
-### 3-2. "LLM 이 안전 판단에 개입하나" — 개입 지점과 하지 않는 지점
+### 3-2. `D:\agent\vigent-vlm` — 실제로 문서를 만든 쪽
+
+| 항목 | 실체 | 근거 |
+|---|---|---|
+| 구조 | LangGraph 아님. `risk_assessment_agent/agent.py` 단일 오케스트레이션: 사진/영상(대표 프레임 N장) → VLM → 구조화 JSON → 국가법령정보센터 API 로 조문 대조·정정 → xlsx/pdf(위험성평가서·TBM 일지·작업계획서). 위험성=빈도×강도는 코드 계산 | `README.md:7-55,248-264` |
+| 모델 | **기본 = 클라우드 OpenRouter `qwen/qwen3-vl-8b-instruct`**(외부 API — L2 스펙의 "에어갭·외부 API 금지" 원칙과 반대 방향). 로컬 옵션 = `tools/local_vlm_server.py`(transformers + bitsandbytes **4bit nf4**, OpenAI 호환 `127.0.0.1:8000/v1`)로 **`D:\models\Qwen3.6-27B`**(55.6GB bf16, 2026-08-21 보유). 구조화 출력은 프롬프트 JSON 요청 + 정규식 추출(제약 디코딩 아님) | `.env.example:6-14` · `tools/local_vlm_server.py:1-11,29-37` · `vlm_client.py:46-60` · `D:\models` 목록 |
+| **실행 기록** | 있다. `output/` 에 위험성평가서 1~12 + `로컬테스트*` 6종(2026-08-31 19:46~21:51, xlsx/pdf/json 50파일). README 에 로컬 실측: **RTX 5070 Ti 16GB + 64GB RAM, Qwen3.6-27B 4bit, 53/64 레이어 GPU, 로딩 약 6분, 0.5~0.7 tok/s, 사진 1장 → 6종 문서 45분(1,422토큰)**. 단 출력 JSON 에 모델명 필드가 없어 **어느 파일이 클라우드/로컬 산출인지 파일만으로는 구분 못 한다**(README 수치는 [문서상 주장]) | `README.md:102-111` · `output/` 목록(2026-09-26) |
+| 테스트 | **0개**(`tests/` 없음) | Glob |
+| L1↔L2 인터페이스 | `tools/watch_server.py` 가 **HTTP 디렉터리 목록/JSON 목록/공유 폴더를 폴링해 새 영상 파일**을 처리한다 — L1 의 이벤트·`/recognition` API·증거 JPEG 를 읽는 코드는 없다. 즉 "서버 연동"은 **영상 파일 감시**이지 L1 이벤트 연동이 아니다. 현재 L1 서버는 영상 파일을 어디에도 올리지 않으므로 **연결돼 있지 않다** | `tools/watch_server.py:1-17` · `README.md:207-228` |
+
+### 3-3. L1 저장소 안의 에이전트(`vigent-core/agents/`) — 운용 경로에 붙어 있는 것
+
+| 질문 | 답 | 근거 |
+|---|---|---|
+| 구조 | `base, guard, analyst, scribe, copilot, safety_manager, dispatcher` 7파일 — 일반 Python 클래스(`BaseAgent`), LangGraph 없음. `md/AGENT_STATUS.md` 의 `coach.py` 는 제거됨(2026-09-26 정정) | Glob · `agents/analyst.py:35` |
+| 실제 LLM | 텍스트: **OpenAI API(기본 gpt-4o-mini) 또는 Anthropic API** — 키가 있을 때만, 실패·오프라인이면 `(None, None)` 을 돌려 **규칙 기반 폴백**. Ollama 로컬은 2026-07-14 제거. 비전: 로컬 VLM 설정은 `mlx-community/Qwen2.5-VL-7B-Instruct-4bit`(**Apple MLX 전용 — Windows 에서 미동작**), 클라우드 비전은 `VIGENT_CLOUD_VLM=1` **and** `OPENAI_API_KEY` 둘 다 있을 때만 | `llm_provider.py:1-19,107-116,147-164` · `vision.yaml:98-101` · `README.md:30` |
+| `VIGENT_CLOUD_VLM` 게이트 | 기본 off. off 상태에서 `incident.analyze(use_vlm=True)` 실행 시 외부 호스트 해석 0건 [실측 2026-07-13]. 전송 전 얼굴 비식별화. 현재 `.env` 에 키·플래그 없음(2026-09-08 확인) | `llm_provider.py:111-116` · `benchmarks/FINDINGS.md:278-279` · `docs/review/05-security-privacy.md:167` |
+| 어느 이벤트에서 호출되는가 | **워커(카메라 루프)에서는 호출되지 않는다**(`worker.py` grep `llm|vlm|analyst|scribe|copilot` 0건 — L1 저장소 사실, 유지). 호출부는 전부 **HTTP 라우트**: `/report/safety`·`/safety/auto/approve risk_assessment`(Scribe), `/safety/live/analyze`·brain 계열(`routers/safety_core.py:133,386-404,581-637`), `/safety/incident`(`incident.py:56,117,145,164`), 구역 브라우저 경로 VLM 확인(`routers/zone.py:110`). 즉 **사람이 버튼을 누르거나 브라우저 시연 경로를 쓸 때만** 돈다 | grep(2026-09-26) |
+| L1 이벤트 → 문서 연동 | Scribe 는 인식 로그 이벤트의 **빈도(count)만** `_likelihood` 로 재사용하고, 감지 규칙→체크리스트 항목 자동 O/X 는 없다("빈도 통계 재사용 수준", 팀 문서가 🔴로 표시) | `agents/scribe.py:124,254-268,580-591` · `docs/team/01_현황_숫자로_보기.md:63` · `docs/team/20_에이전트트랙_기획안.md:34,41-53` |
+| 각 에이전트의 실체 | Guard = 검출·추적(§2). Analyst = 규칙 severity 가산 점수(`_SEVERITY_WEIGHT` critical 100/high 60/medium 30/low 10 → 등급). Scribe = KOSHA KRAS 서식 위험성평가서 HTML 생성(규칙→KB 매핑, LLM 은 '종합의견' 한 문단만 opt-in). Copilot = 법령 인용(`safety_citations.json`, 화이트리스트 게이트로 가짜 조문 차단 실증). SafetyManager = 등급별 **권장 행동만** 반환, `requires_approval=True`, 자동 실행 0. Dispatcher = 채널 전송(§2-8) | `agents/analyst.py:1-32` · `agents/scribe.py:1-12` · `agents/safety_manager.py:1-13` |
+| 검증 상태 | 골든셋 정답 30건 미작성(사용자 몫) → 판단 품질은 **채점된 적 없다**(T1 홀드아웃 15케이스 11/15 는 체크리스트 채점). Copilot 법령 게이트만 실동작 실증 | `md/AGENT_STATUS.md:41-49` · `docs/team/01_현황_숫자로_보기.md:57` |
+
+### 3-4. 종합 — 멘토가 "L2 는 뭐가 있나"라고 물으면
+
+- **네 계보가 있고 서로 연결돼 있지 않다.** ① `vigent-l2`: LangGraph 6노드·제약 디코딩·화이트리스트 설계는 코드로 있으나 **실모델 실행 기록 0, 렌더러·API·L1 브리지 빈 패키지, 2026-08-05 이후 미커밋 정지**. ② `vigent-vlm`: 실제 문서 xlsx/pdf 를 만들어 봤고 로컬 27B 4bit 실측(45분/장)이 있으나 **기본이 클라우드 API 이고 테스트 0, L1 이벤트 연동 없음**. ③ L1 내장 agents: 운용 경로(`/report/safety` 등)에 붙어 있고 키 없이도 규칙으로 도나 **빈도 재사용 수준**. ④ 구 L1 클론.
+- **"Qwen3-8B-NVFP4"** 라는 이름의 모델·설정은 세 저장소·`D:\models` 어디에도 없다. 가장 가까운 것은 `vigent-l2` 의 **Qwen3-8B Q5_K_M GGUF(내려받음, 미실행)** 와 `vigent-vlm` 의 **Qwen3.6-27B 4bit(nf4, 실행 기록 있음)** 이다. **NVFP4 양자화본이 다른 경로에 있다면 그 위치를 알려 달라 — "없다"고 단정하지 않는다.**
+- **L1→L2 연결 상태: 없음.** L2 쪽 브리지는 0 바이트 패키지, L1 쪽에는 L2 를 부르는 코드 0건. 유일한 연결은 L1 내장 Scribe 가 인식 로그의 이벤트 빈도를 읽는 것뿐이다.
+
+### 3-5. "LLM 이 안전 판단에 개입하나" — 개입 지점과 하지 않는 지점
 
 | 지점 | LLM/VLM 개입 | 근거 |
 |---|---|---|
@@ -203,7 +244,7 @@
 | 법령 조문 | VLM 이 낸 `관련법령` 은 화이트리스트(`statutes.yaml` 14개 active)로 **차단/보류** — 가짜 999조 차단 실증 | `md/AGENT_STATUS.md:15,33` |
 | 설비 정지 | **어떤 층도 정지시키지 않는다.** 릴레이 신호는 §8.1 보조 신호, `is_primary_safety: False` 고정 | `routers/dispatch.py:40-41` · `docs/review/04-alerting-integration.md:65-70` |
 
-→ 한 줄 답: **"실시간 안전 경보에는 LLM 이 개입하지 않는다. LLM 은 사람이 요청한 문서·분석의 서술 문단에만, 키가 있을 때만, 규칙 폴백을 두고 쓴다."**
+→ 한 줄 답: **"실시간 안전 경보에는 LLM 이 개입하지 않는다(L1 저장소 사실). LLM 은 사람이 요청한 문서·분석의 서술 문단에만, 키가 있을 때만, 규칙 폴백을 두고 쓴다. 별도 L2 저장소(`vigent-l2`·`vigent-vlm`)는 L1 과 연결돼 있지 않으므로 현재 어떤 경보에도 영향을 주지 않는다."**
 
 ---
 
@@ -224,7 +265,7 @@
 | 수치 | 무엇 | 조건 | 상태 |
 |---|---|---|---|
 | **68.2% / 77.3%** | person 재현율 dev/test | 2026-08-10, **IoU 트래커 시절** | 2026-08-13 ByteTrack 도입 후 12일간 재측정 없이 인용됨 → 규칙 9 사고. 정정됨 (`v1_field_baseline_report.md:88-90`, `CLAUDE.md` 규칙 9) |
-| **38.2% / 42.0%** | person 재현율 dev(ByteTrack 기본 / `min_frames 0`) | 2026-08-25, 1fps 정지프레임 | [실측]. "42%" 는 `min_frames 0` 적용 후 대외 인용 기준(`proposal_base_2026-08.md:109`). **폐기된 것이 아니라 단서가 붙었다**: 1fps 표본은 현장 2fps 를 대표하지 않고(현장 손실 11.7%/고신뢰 3.9%), 2fps 정답지 검수는 2026-09-22 **중단·재방문 정답지로 대체**. "폐기"라고 적은 문서는 없다 | `b_passthru_results.md:3-8` · `FINAL-REPORT.md:85` |
+| **38.2% / 42.0%** | person 재현율 dev(ByteTrack 기본 / `min_frames 0`) — 파이프라인(추적 후) 재현율 | 2026-08-25, 1fps 정지프레임 | **2026-09-22 폐기**(대표 결정) — 1fps 정지프레임 평가는 추적기 이후 지표를 대표하지 않는다(현장 1.88fps 실측 손실 11.7%/고신뢰 3.9%). **검출 71.3% 는 유지.** 현장 파이프라인 재현율은 **재방문 정답지로 재측정 예정.** 원문 수치는 기록으로 보존하고 `FINAL-REPORT.md` §2-1 머리말·P0-3 행에 같은 단서를 달았다(README 에는 42% 인용 없음). 2fps 정답지 검수는 중단 | `b_passthru_results.md:3-8` · `FINAL-REPORT.md:41-43,85` · `docs/refield_plan_addendum_20260922.md` |
 | **71.3%** | person 검출 직전 재현율(추적 전) | 2026-08-25 dev 74, 1fps | [실측]. "병목은 모델이 아니라 추적"의 근거 | `v1_field_baseline_report.md:72` |
 | **75.62%** | PPE test 82 mAP@50(Colab) | 누출 분할, 체크포인트 미확인 | 원문 유지 + 단서 8곳 | `benchmarks/EVAL.md:92` 외 |
 | **76.8%** | PPE held-out 91 mAP@50 | 2026-09-25, 영상 단위 제외 | [실측]. 재학습 비교표 "전" 행 | `provenance.md` §7-2 |
@@ -270,13 +311,17 @@
 
 ## 6. 기존 자료 수치 대조표
 
-대상: `README.md` · `md/VIGENT_사업추진계획서_초안.md` · `docs/사업계획서_VIGENT_초안.md` · `docs/PILOT_PROPOSAL.md` · `docs/proposal_base_2026-08.md` · `docs/COMMERCIALIZATION_READINESS.md` · `docs/team/10_비전트랙_기획안.md` · `docs/review/FINAL-REPORT.md` · 설정 주석(`vision.yaml`)·`CLAUDE.md`. (`docs/team/pdf/*.html`·`.docx` 는 위 md 의 변환본이라 별도로 열지 않았다 — **미확인**.)
+대상: `README.md` · `md/VIGENT_사업추진계획서_초안.md` · `docs/사업계획서_VIGENT_초안.md` · `docs/PILOT_PROPOSAL.md` · `docs/proposal_base_2026-08.md` · `docs/COMMERCIALIZATION_READINESS.md` · `docs/team/10_비전트랙_기획안.md` · `docs/review/FINAL-REPORT.md` · 설정 주석(`vision.yaml`)·`CLAUDE.md`. (`docs/team/pdf/*.html`·`.docx` 는 위 md 의 변환본이라 별도로 열지 않았다 — **미확인**. `.docx` 는 이번 정정이 반영되지 않았으므로 재생성 전 배포 금지.)
+
+**외부 노출 문서 목록(정정 우선)**: `README.md`(GitHub 첫 화면) · `md/VIGENT_사업추진계획서_초안.md`(IR·사업계획) · `docs/사업계획서_VIGENT_초안.md` + `docs/사업계획서_VIGENT_초안.docx`(제출본) · `docs/PILOT_PROPOSAL.md`(고객 제안) · `docs/proposal_base_2026-08.md`(제안 기초) · `docs/team/pdf/*.pdf,*.html`(팀 배포본). 내부 문서: `docs/COMMERCIALIZATION_READINESS.md` · `docs/team/*.md` · `docs/review/*` · `CLAUDE.md` · 설정 주석.
+
+**정정 상태(2026-09-26 적용)**: 1순위 8건(#1·#3·#5·#6·#10·#12 원문 유지+단서, **#21·#26 삭제**) · 2순위 13건(#4·#15·#16·#19·#20·#22·#23·#24·#25·#27·#28·#29·#30 코드에 맞춰 문서 수정) · #2 는 §7-2 "구현됨·미연결"로 이동. 표의 "판정" 열은 정정 **전** 상태를 기록으로 남긴다.
 
 | # | 주장 | 출처 문서 | 코드·측정에서 확인되는가 | 차이 / 판정 |
 |---|---|---|---|---|
 | 1 | person mAP@50 **92.94%**, PPE **71.46%**, 화재 presence recall **95.91%**, 연기 87.88%(FAR 15.4%) — "핵심 인식 성능 실측 완료" | `md/VIGENT_사업추진계획서_초안.md:17,88-91` | 측정 파일 있음(`EVAL.md:34-35,70,93,135`, 2026-07) | **정정 필요(단서)**: 전부 공개셋 in-domain·현장 CCTV 아님. PPE 71.46 은 **누출 분할 test 82** 값 → "PPE 71.46%(누출 분할; 영상 단위 held-out 91장 76.8%, 2026-09-25)" 로 병기. 제안 문구: "공개 데이터셋 기준·현장 미검증" 을 각 수치에 |
-| 2 | "RIG 상태기계 로직 검증 완료(테스트 5/5)" | 〃 `:17` | `rig_monitor`/`rig_replay` 는 어느 라우트도 서빙하지 않는 **죽은 섬** | **정정 필요**: 제품 기능 서술에서 제외하거나 "운용 경로 미연결" 명시 |
-| 3 | 실내 배경 45장 안전모/조끼 오탐 **0%**, 연기 오탐 62.5→7.5% | 〃 `:101-102` | 원 측정 파일을 이번에 찾지 못함 | **[문서상 주장, 측정 파일 미확인]** — 출처 파일·날짜를 붙이거나 삭제 |
+| 2 | "RIG 상태기계 로직 검증 완료(테스트 5/5)" | 〃 `:17` | `rig_monitor.py`·`rig_replay.py` 는 어느 라우트·워커도 부르지 않는다 → **구현됨·미연결** | §7-2 로 이동. 문서에는 "운용 경로 미연결" 단서 부착(적용) |
+| 3 | 실내 배경 45장 안전모/조끼 오탐 **0%**, 연기 오탐 62.5→7.5% | 〃 `:101-102` | **출처 확인됨**: `benchmarks/FINDINGS.md:254-262` 웹캠 45장 신구 대결(구 YOLO smoke 62.5% → RF-DETR 7.5%; 같은 표에 person 12.5%·forklift 30% 오탐도 있음) | **정정 필요(단서)**: 개발기 실내 웹캠 1회·현장 오탐률 미측정·같은 표의 불리한 값 병기(적용) |
 | 4 | "테스트 481건 자동검증 체계" | `docs/사업계획서_VIGENT_초안.md:45` | 현재 **774건**(2026-09-25) | **정정 필요**(수치 낡음, 축소 방향이라 과장은 아님) |
 | 5 | "현장 시험 1회 완료(54분·929프레임) — 지게차 검출 97.7%, 경보 전송 19/19" | 〃 `:45,90,138,142` | 908/929 [실측]. 단 **정답 = 장면 대본(프레임 라벨 아님)**, 지게차는 **AGPL YOLO boda_ax**(safety 프로파일 기본 모델 아님) | **정정 필요(단서)**: "장면 대본 대비, 카운터밸런스 지게차 한정, 학원 프로파일 YOLO" 병기 |
 | 6 | 안전모 판정 일치(지상 근거리) 98.4% | 〃 `:143` | [실측]. 같은 표에 **캐빈 67.9%** 가 있다 | **정정 필요(누락)**: 캐빈 67.9% 병기 — 좋은 쪽만 뽑았다는 지적을 피한다 |
@@ -334,6 +379,8 @@
 | 야간·역광 대응 | **없음**(코드 0·데이터 0). 야간 무인 오탐 86.4→100% 만 측정 | `02-model-inference.md:99-101` |
 | 거리 캘리브레이션(호모그래피/BEV) | **없음** — 장비 박스 폭 기준자. 오차 실측 0 | `proximity.py:103-112` · `02-model-inference.md:132-143` |
 | 오탐 피드백 → 재학습 루프 | **없음** — `/recognition/note` 빈 스텁, 학습이 운영 데이터를 읽는 코드 0 | `routers/recognition.py:58-60` · `02-model-inference.md:229-240` |
+| L1 이벤트 → L2 문서 자동 반영 | **없음** — 별도 L2 저장소는 L1 과 미연결(브리지 0 바이트 / 영상 파일 폴링), L1 내장 Scribe 는 빈도만 재사용 | §3-1·3-2·3-3 |
+| RIG(줄걸이) 상태기계 | **구현됨·미연결** — `rig_monitor.py`·`rig_replay.py` 는 테스트만 있고 어느 라우트·워커도 호출하지 않는다(외부 CSV 입력 전제). 사업계획서의 "로직 검증 완료(5/5)"는 단위 테스트 통과를 뜻하며 제품 기능이 아니다 | `docs/review/FINAL-REPORT.md:151,207` · §6 #2 |
 | 카메라 tamper(가림·초점·과노출) | **없음** | `03-video-input.md:50-52` |
 | 클래스별 검출률 시계열·`/metrics` | **없음**(슬롯 생존/고장만) | `02-model-inference.md:237` |
 
@@ -342,15 +389,15 @@
 1. **재방문 현장 정답지(2fps·고정 CCTV·주야)** — 모든 성능 수치가 공개셋 또는 1fps 재인코딩본 기준이며, 재학습 판정도 여기서만 하기로 돼 있다(`provenance.md` §8 "최종 판정"). 녹화 원본 보존 장치(`scripts/field_recorder.py`)는 준비됨.
 2. **감시 중단 원격 통보 + 2번째 채널 활성** — 20일간 213건 미전달 사고가 실제로 있었고(§2-8), health 전이 통보는 아직 코드 0건. 공수 S(기존 큐 재사용).
 3. **RTX 5060 실기 1대 확보 후 `bench_4ch.py --repeat 3`** — 사양 판정의 모든 수치가 5070 Ti 다(§5). 설치기·인수시험은 준비돼 있어 즉시 잴 수 있다.
-4. **`vision.yaml` 주석·severity 등 문서-코드 불일치 22건 일괄 정정**(§6) — 멘토·심사·고객이 가장 먼저 잡아낼 것이고, 규칙 7 의 신뢰 문제라 비용 대비 효과가 크다.
+4. **L2 계보 하나로 결정** — `vigent-l2`(설계 우수·미실행) 와 `vigent-vlm`(실행 실적·설계 원칙 위반) 중 하나를 골라 L1 이벤트 브리지(`L1Event` 계약은 이미 있음)를 잇는다. 그 전까지 대외 자료의 "3층 구조·문서 자동화" 는 "L1 내장 초안 생성(빈도 재사용)" 으로만 말한다. (§6 의 문서-코드 불일치 22건은 2026-09-26 에 적용 완료)
 
 ---
 
 ## 8. 멘토가 물을 법한 질문 10개와 답
 
 1. **"왜 YOLO 안 쓰나?"** — 라이선스. ultralytics 는 AGPL 이라 배포 코드에서 제거했고(T10b, `vision.yaml:13-15`), RF-DETR 은 Apache-2.0 이다. 측정으로도 person raw mAP@50 YOLO 90.82 → RF-DETR 93.92(공개 이미지 74장)로 손해가 없었다(`EVAL.md:73`). 단 지게차는 RF-DETR 재학습이 실패(8.83%)해 학원 프로파일만 **AGPL YOLO boda_ax 를 예외로 쓴다** — 대표의 AGPL 결정 대기(`NEXT.md:49`). → §2-2, §4-2
-2. **"42% 는 뭐였나?"** — 사고영상 dev 74장(1fps 정지프레임)에서 추적 후 person 재현율(2026-08-25). 검출 직전은 71.3% 라 손실은 모델이 아니라 추적기 정책이었다. 이후 현장 2fps 실측에서 손실이 11.7%(고신뢰 3.9%)로 훨씬 작아 "1fps 표본이 만든 착시"로 정리됐고, 2fps 정답지 검수는 재방문 정답지로 대체했다. 폐기가 아니라 단서가 붙은 상태다. → §4-2
-3. **"LLM 이 왜 필요한가?"** — 실시간 경보에는 안 쓴다(§3-2). 쓰는 곳은 위험성평가서 '종합의견' 한 문단과 사고 사진 원인분석 서술뿐이고, 키가 없으면 규칙·지식베이스로 같은 문서를 만든다. 법령 조문은 화이트리스트로 차단한다. 따라서 "필요"라기보다 "있으면 서술이 좋아지는 opt-in" 이며, 그 품질은 골든셋이 없어 채점된 적 없다. → §3
+2. **"42% 는 뭐였나?"** — 사고영상 dev 74장(1fps 정지프레임)에서 추적 후 person 재현율(2026-08-25). 검출 직전은 71.3% 라 손실은 모델이 아니라 추적기 정책이었다. 이후 현장 1.88fps 실측에서 손실이 11.7%(고신뢰 3.9%)로 훨씬 작아 "1fps 표본이 만든 착시"로 확인됐고, **2026-09-22 에 이 42% 는 폐기**했다(검출 71.3% 는 유지, 현장 파이프라인 재현율은 재방문 정답지로 재측정 예정). → §4-2
+3. **"LLM 이 왜 필요한가? L2 는 어디 있나?"** — 실시간 경보에는 안 쓴다(§3-5). L1 안에서 쓰는 곳은 위험성평가서 '종합의견' 한 문단과 사고 사진 원인분석 서술뿐이고, 키가 없으면 규칙·지식베이스로 같은 문서를 만든다. 별도 L2 저장소는 둘: `vigent-l2`(LangGraph 6노드·제약 디코딩·법령 화이트리스트 설계 — 실모델 미실행·L1 미연결·2026-08-05 정지)와 `vigent-vlm`(사진→VLM→xlsx/pdf 실제 산출, 로컬 27B 4bit 45분/장 실측 — 기본은 클라우드 API, L1 미연결). "필요"라기보다 "감지 → 서류 자동 갱신" 이라는 약속을 아직 어느 계보도 채우지 못한 상태다. → §3
 4. **"경보 3주 누락은 어떻게 재발 방지했나?"** — 2026-08-21~09-10 텔레그램 401 로 213건 미전달. 조치: 기동 시 `getMe` 자가시험(배경, 10분 재시도, 확정 시 붉은 배너), 하루 1회 heartbeat(설정 시), `/health notify`, 데드레터 190건 보관 이동, 이메일 채널 코드. **아직 안 된 것**: heartbeat 는 기본 꺼짐, 이메일은 비밀번호 대기, health 전이 통보 0건. → §2-8
 5. **"학습 데이터 권리는?"** — PPE: Roboflow CSS v27 CC BY 4.0(저작자 표시 `attribution/SOURCES.md:29-40`). forklift: LOCO CC0 + Roboflow 3종 CC BY 4.0/CC0. person: RF-DETR COCO 체크포인트(Apache-2.0). **D-Fire 라이선스는 저장소에 표기가 없다 — 미확인.** 현장 원본 학습 데이터는 0장. 얼굴 식별 이미지가 git 이력에 남아 있어 공개 전 이력 재작성이 필요하다(`CLAUDE.md` 규칙 10). → §4-1
 6. **"5060 으로 4채널 되나?"** — 모른다. 5070 Ti 에서 4채널 2fps GPU 점유 18.6%·torch 604MB·CPU 30% 는 실측이고, 5060 은 sm_120 이라 cu130 빌드로만 돌 수 있다는 것까지 확인했다. 5060 실기가 없어 배수를 추정하지 않기로 했다. → §5

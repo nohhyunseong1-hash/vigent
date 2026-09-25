@@ -72,7 +72,7 @@ Worker.start() ──► _run_supervised (감독자, daemon 스레드)
 - 배경: `CAP_PROP_BUFFERSIZE=1`은 **FFmpeg 백엔드(RTSP 기본)가 대부분 무시**한다(V4L2 웹캠 등 일부만 존중). BUFFERSIZE만으로는 현장 RTSP에서 여전히 과거 프레임을 처리할 위험이 있다.
 - 해결: 백그라운드 캡처 스레드가 스트림을 계속 읽어 **최신 1프레임만 슬롯에 덮어쓰기**로 보관. 워커는 그 최신 프레임을 가져가 처리 → 백엔드와 무관하게 항상 최신.
 - **BUFFERSIZE=1도 병용**(비용 0, 일부 백엔드 보조 효과). FFmpeg/RTSP에서는 무시될 수 있음을 코드 주석에 명시.
-- **토글**: `VIGENT_CAPTURE_MODE=thread|sync`(**기본 sync** = 기존 동기 경로, 즉시 롤백 가능).
+- **토글**: `VIGENT_CAPTURE_MODE=thread|sync`(**코드 기본값은 sync** = 기존 동기 경로, 즉시 롤백 가능. ★2026-09-26 정정: **운영(NSSM 서비스·run.ps1)은 `thread` 를 주입**한다 — `deploy/windows/install_service.ps1:160`. "기본 sync" 는 env 를 안 준 수동 실행에만 해당).
 - **재연결**: 지수 백오프를 캡처 스레드 내부에 내장(`READ_FAIL_MAX` 연속 실패 → `cap.release()` → 백오프 → 재생성, 상한 `RECONNECT_MAX`).
 - **감시 편입**: thread 모드에선 `last_frame_ts`를 **슬롯 갱신 시각** 기준으로 둔다 → 캡처 스레드가 멈추면 슬롯이 정지 → `last_frame_ts` 정지 → `_hang_watch`가 캡처 스레드 정지를 잡아 재시작. 캡처 스레드 사망 시 `_loop`이 종료돼 감독자가 재시작.
 - **파일 소스는 이 구조를 쓰지 않음**(기존 동기 순차 처리·되감기 유지). 소스 타입 분기: 이미지 / 파일 비디오(순차·되감기) / 스트림(RTSP·웹캠·HTTP).
@@ -94,7 +94,7 @@ Worker.start() ──► _run_supervised (감독자, daemon 스레드)
 | 설정 | 환경변수 | tuning.yaml 키 | 기본값 | 의미 |
 |---|---|---|---|---|
 | hang 판정 임계 | `VIGENT_HANG_TIMEOUT` | `stability.hang_timeout_s` | **15.0s** | 프레임 무진전 이 시간 초과 → 앱 내부 hang 재기동(1차) |
-| 재연결 백오프 상한 | `VIGENT_RECONNECT_MAX` | `stability.reconnect_max_s` | **30.0s** | 스트림 재연결 지수 백오프 최대 간격 |
+| 재연결 백오프 상한 | `VIGENT_RECONNECT_MAX` | `stability.reconnect_max_s` | **5.0s** (★2026-09-26 정정: 구 30.0s → 2026-08-16 B3 에서 5s 로 축소, `config/tuning.yaml:216`) | 스트림 재연결 지수 백오프 최대 간격 |
 | read 실패 임계 | `VIGENT_READ_FAIL_MAX` | `stability.read_fail_max` | **5** | 연속 read 실패 이 횟수 → 재연결 시도 |
 | 캡처 버퍼 크기 | `VIGENT_CAP_BUFFERSIZE` | `stability.cap_buffersize` | **1** | 스트림 `CAP_PROP_BUFFERSIZE`(FFmpeg는 무시 가능) |
 | 캡처 방식 | `VIGENT_CAPTURE_MODE` | — | **sync** | `thread`=캡처 스레드(최신 프레임) / `sync`=동기(롤백) |

@@ -168,7 +168,7 @@ cipher /c D:\vigent_original\data\evidence   # 각 파일 앞 'E' 표시 확인
 > 물리 출력을 쓰는 현장에서만 해당. 안 쓰면 `relay.enabled: false`(기본) 그대로 두고
 > "화면·메신저 경보만 제공"임을 계약서에 명시할 것.
 
-- [ ] **릴레이 모델** 확정(HTTP 제어 지원 여부 확인 — 파일럿은 HTTP/Modbus TCP 1채널만 지원)
+- [ ] **릴레이 모델** 확정(HTTP GET/POST 제어 지원 여부 확인 — 파일럿은 **HTTP 1채널만** 지원. ★2026-09-26 정정: Modbus TCP 는 미구현이므로 Modbus 전용 릴레이는 동작하지 않는다)
 - [ ] **고정 IP** 할당(N-1 과 동일 이유 — IP 가 바뀌면 경보가 물리 출력으로 안 나간다)
 - [ ] **채널 번호**(다채널 릴레이인 경우) 확정
 - [ ] `config/tuning.yaml` `relay` 설정: `enabled: true`, `url`, `on_duration_s`

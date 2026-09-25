@@ -12,7 +12,7 @@ cd deploy\windows
 
 - **NSSM 이 없으면** install 이 다운로드 방법을 안내하고 멈춘다(`nssm.exe` 를 이 폴더에 두거나 `winget install NSSM.NSSM`).
 - 시작 유형은 **지연 자동(Delayed Auto)** — 부팅 후 네트워크·GPU 드라이버가 준비된 뒤 뜬다.
-- 죽으면 **5초 뒤 자동 재시작**(`AppExit Default Restart`).
+- 죽으면 **60초 뒤 자동 재시작**(`AppExit Default Restart` · `AppRestartDelay 60000`, `install_service.ps1:149`. ★2026-09-26 정정: 이전 문구 "5초"는 구 값).
 - 로그는 `logs\vigent.out.log` / `vigent.err.log`, **256MB 마다 로테이션**(약 2GB 상한).
 - 개발 런처 `run.ps1` 도 서비스와 같은 환경 4개(`VIGENT_CAPTURE_MODE=thread`·`PYTHONUTF8=1`·`RF_HOME`·`TORCH_HOME`)를 미설정 시 채운다 — 개발과 현장의 캡처·캐시 경로가 같다([CODE_REVIEW M7-2]).
 - 기동 후 **약 15초는 예열 구간**이라 `/health` 가 `phase=starting` + HTTP 503 이다 — 정상이다(B4).

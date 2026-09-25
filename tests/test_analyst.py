@@ -26,9 +26,11 @@ class TestAnalyst(unittest.TestCase):
         self.assertEqual(r["level"], "high")        # severity high=60
         self.assertTrue(any(f["rule"] == "zone_intrusion" for f in r["fired"]))
 
-    def test_ppe_missing_medium(self):
+    def test_ppe_missing_high(self):
+        # ★2026-09-26: vision.yaml 선언을 워커 코드(worker._derive 가 high 로 발화)에 맞춰 medium→high 로 정정.
+        #   이전엔 선언(medium)과 운용(high)이 달랐다 — docs/review/ALGORITHM_TRUTH_20260926.md §6 #20.
         r = self.analyst.judge({"ppe_missing": True})
-        self.assertEqual(r["level"], "medium")      # severity medium=30
+        self.assertEqual(r["level"], "high")        # severity high=60
 
     def test_guard_bypass_critical(self):
         r = self.analyst.judge({"hand_in_machine_zone": True})

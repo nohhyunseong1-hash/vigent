@@ -63,15 +63,19 @@ perception:                       # ── Guard (감지)
     - {id: fire_smoke, model: vigent-core/weights/fire_smoke_boda.pt, fallback: hsv_heuristic}
     # 지게차/중장비: 폴백 없음(모델 없으면 해당 기능만 비활성, 나머지는 정상)
     - {id: forklift, model: vigent-core/weights/forklift_boda_ax.pt, fallback: none}
-  # [정직화] pose 슬롯은 '정보성' — vision_loader 는 detector 슬롯(person/ppe/fire_smoke/forklift)만
-  #   모델로딩에 소비하고 pose 는 소비하지 않는다(guard.py). 실제 포즈 동작:
-  #     · 백엔드(근골격) = worker.py 가 weights/yolov8n-pose.pt 를 직접 로드(하드코딩)
+  # [정직화 2026-09-26 재정정] pose 슬롯은 '정보성' — vision_loader 는 detector 슬롯(person/ppe/fire_smoke/forklift)만
+  #   모델로딩에 소비하고 pose 는 소비하지 않는다(guard.py). 실제 포즈 동작(2026-09-26 코드 기준):
+  #     · 서버 워커(근골격) = **RTMPose-m body7 + YOLOX-m(rtmlib, onnxruntime CPU)** — worker.py `_PoseModel` 이
+  #       pose/rtmpose_adapter.py 를 로드하고 person 박스는 RF-DETR 에서 주입(T10c). yolov8n-pose 는 더 이상 쓰지 않는다.
+  #     · 산출물은 `ergonomic_risk`(기록 전용·통보 없음) 하나뿐 — 안전 경보 판정에는 미사용.
   #     · 브라우저 라이브뷰   = MediaPipe Holistic(CDN, index.html)
-  #   rtmpose 는 미설치·미사용(향후 업그레이드 후보). 아래 값 변경은 실제 동작과 무관(참고 표기).
+  #   ★구 주석("yolov8n-pose 직접 로드·rtmpose 미설치")은 실제와 반대였다(docs/review/02-model-inference.md #14).
+  #   아래 값 변경은 실제 동작과 무관(참고 표기).
   pose:    {model: rtmpose, fallback: [mediapipe_holistic, vigent-core/weights/yolov8n-pose.pt]}
-  # [정직화] ByteTrack 미구현·미사용. vision_loader 는 tracker 슬롯을 처리하지 않는다(no-op).
-  #   실제 객체추적: 브라우저 realtime_core.js(IoU+중심점 매칭) · rfdetr_service(SORTTracker) ·
-  #   worker 근골격(중심점 매칭). ByteTrack 은 도입 후보일 뿐 현재 코드에 없음.
+  # [정직화 2026-09-26 재정정] ByteTrack 은 **운영 중**이다 — config/tuning.yaml `track.algo: bytetrack`(2026-08-13 채택),
+  #   구현은 agents/guard.py `_track_bytetrack`(person 슬롯만, `trackers` 2.4.0 Apache-2.0). 그 외 클래스는 자체 IoU+중심점 그리디.
+  #   vision_loader 는 이 tracker 키를 읽지 않는다(no-op) — 실제 스위치는 tuning.yaml 이다.
+  #   ★구 주석("ByteTrack 미구현·미사용")은 실제와 반대였다.
   tracker: bytetrack
 
 judgment:                         # ── Analyst (판단), 가산식
@@ -82,7 +86,7 @@ judgment:                         # ── Analyst (판단), 가산식
   detect_threshold: 0.4           # rf-detr 탐지 confidence 임계값(코드 수정 없이 조정)
   rules:
     - {id: zone_intrusion, when: "person.center in danger_zone", severity: high}
-    - {id: ppe_missing,    when: "NO-Hardhat or NO-Safety-Vest",  severity: medium}
+    - {id: ppe_missing,    when: "NO-Hardhat or NO-Safety-Vest",  severity: high}    # ★2026-09-26: 워커(worker.py _derive)가 high 로 발화하는 것이 의도 — 구 medium 선언과 불일치했던 것을 코드에 맞춤
     - {id: guard_bypass,   when: "hand in machine_hazard_zone",    severity: critical}  # 프레스/전단기
   ergonomics:                     # ── 5.5단계: 인간공학(작업자세 위험) — 포즈 기반, 추가 모델 불필요
     framework: REBA               # safety=전신(REBA), 중량물·허리굽힘 작업자세

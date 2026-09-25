@@ -11,7 +11,7 @@
 | Guard | 탐지·추적 신호 | ✅ 구현 (`guard.py`) | ✅ 동작 | 🟡 부분 실측(person mAP·PPE recall 공개셋 기준). 현장 미검증 |
 | Analyst | 위험성 점수·등급 | ✅ 구현 (`analyst.py` judge/integrate) | ✅ 동작 | ⛔ 골든셋 정답 부재 → 채점 불가 |
 | Scribe | 문서 생성 | 🟡 **위험성평가서 1종** (`scribe.py`, 정량법+체크리스트법 2모드) | ✅ 동작(method=quantitative/checklist) | 🟡 골든#1 채점(정량 89점) · 체크리스트 정답 전환 대기 |
-| Coach | 코칭·피드백 | ⛔ **순수 스텁** (`coach.py`, safety 범위 밖 의도적) | ❌ 미동작(`implemented:False`) | — |
+| Coach | 코칭·피드백 | ⛔ **파일 없음** — ★2026-09-26 정정: `agents/coach.py` 는 현재 저장소에 존재하지 않는다(2026-07-12 당시 12줄 스텁이었고 이후 제거). `agents/` 에는 base·guard·analyst·scribe·copilot·safety_manager·dispatcher 7파일 | ❌ 없음 | — |
 | Copilot | 법령 인용 | ✅ 구현 (`copilot.py` cite) | ✅ 동작(`safety_citations.json` 24개) | 🟢 **VLM `관련법령` 게이트 차단 실증**(가짜 999조·보류 14조→"확인 필요", 진짜 38조 유지) |
 | SafetyManager | 승인 판단 | ✅ 구현 (`safety_manager.py` decide) | ✅ 권장만·`requires_approval=True` | 🟢 2계층 원칙 준수(자동실행 없음) |
 

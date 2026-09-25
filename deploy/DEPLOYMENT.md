@@ -25,7 +25,7 @@
 - Docker 는 가중치를 볼륨 마운트: `-v $PWD/vigent-core/weights:/app/vigent-core/weights`.
 
 ## Docker (C-S2)
-- `docker build -t vigent:0.2.0 .` (가중치 제외, opencv headless 단일화 자동 정리).
+- ~~`docker build -t vigent:0.2.0 .`~~ — ★**2026-09-26 정정: 현재 Dockerfile 은 빌드되지 않는다**(`Dockerfile:24` constraints 미복사 · `:38` 루트 `fetch_weights.py` 부재, `docs/review/FINAL-REPORT.md:196`). Docker 경로는 **미지원** 상태이며 Windows NSSM·USB 설치기가 정본이다.
 - 실행: `docker run -p 8010:8010 -e VIGENT_HOST=0.0.0.0 -e VIGENT_API_TOKEN=<비밀> -v <weights> vigent:0.2.0`
   - 컨테이너는 `0.0.0.0` 바인딩 필요(포트 매핑) → 토큰 필수.
 - 이미지 크기 ~9.5GB(torch 풀스택). CPU-only 휠/멀티스테이지로 축소 여지 있음(후속).

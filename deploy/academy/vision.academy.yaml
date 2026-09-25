@@ -72,7 +72,7 @@ judgment:                         # ── Analyst (판단), 가산식
   detect_threshold: 0.4           # rf-detr 탐지 confidence 임계값(코드 수정 없이 조정)
   rules:
     - {id: zone_intrusion, when: "person.center in danger_zone", severity: high}
-    - {id: ppe_missing,    when: "NO-Hardhat or NO-Safety-Vest",  severity: medium}
+    - {id: ppe_missing,    when: "NO-Hardhat or NO-Safety-Vest",  severity: high}    # ★2026-09-26: 전역과 동일하게 high(워커 코드 의도) — 프로파일 드리프트 검사 미러
     - {id: guard_bypass,   when: "hand in machine_hazard_zone",    severity: critical}  # 프레스/전단기
   ergonomics:                     # ── 5.5단계: 인간공학(작업자세 위험) — 포즈 기반, 추가 모델 불필요
     framework: REBA               # safety=전신(REBA), 중량물·허리굽힘 작업자세
