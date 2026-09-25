@@ -59,6 +59,7 @@ vigent-core 폴더에 FastAPI 기본 골격과 vision_loader.py(=vision.yaml을 
 모델 경로는 1단계에서 복사한 실제 파일 위치에 맞춰줘.
 6개 에이전트(Guard/Analyst/Scribe/Coach/Copilot/Dispatcher)는
 지금은 빈 껍데기(스텁)로만 만들어. 한 단계씩 채울 거야.
+(단서 2026-09-26: 이후 Coach 는 제거돼 L1 `agents/` 는 7파일 구성. 별도 L2 저장소(LangGraph 6노드)는 설계·부분 구현 단계 — 미실행·모델 실행 기록 0·L1 브리지 미구현. NVFP4 양자화본 없음. `docs/review/ALGORITHM_TRUTH_20260926.md` §3)
 ```
 
 ✅ 확인 포인트: 서버가 일단 켜지는지(에러 없이). vision.yaml이 읽히는지.

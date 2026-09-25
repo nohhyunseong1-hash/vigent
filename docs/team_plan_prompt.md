@@ -49,7 +49,7 @@
 - 미해결 항목: 현장 도메인 갭, 재학습 대기, 엣지(RK3588) 포팅 등
 
 ### 표 1-B. 에이전트(L2) 현황
-- 6개 에이전트(Dispatcher / Guard / Analyst / Scribe / Coach / Copilot) **각각**의 파일 경로 + 구현 상태(완료 / 부분 / 스텁) + 코드 줄 수
+- 6개 에이전트(Dispatcher / Guard / Analyst / Scribe / Coach / Copilot) **각각**의 파일 경로 + 구현 상태(완료 / 부분 / 스텁) + 코드 줄 수 (단서 2026-09-26: 현재 `agents/` 는 Coach 없이 7파일(+SafetyManager). 별도 L2 저장소의 LangGraph 6노드는 설계·부분 구현 단계 — 미실행·모델 실행 기록 0·L1 브리지 미구현. `docs/review/ALGORITHM_TRUTH_20260926.md` §3)
 - 골든셋: 작성 건수 / 목표 건수, 최근 채점 점수(축별 점수 포함)
 - 법령 화이트리스트: 조문 개수, 파일 경로, 검수 이력
 - 문서 생성기: 지원하는 산출물 종류 / 미구현 종류
