@@ -29,12 +29,18 @@ ruff check vigent-core tests; if ($LASTEXITCODE -ne 0) { Fail "ruff(청정 표�
 
 Write-Host "== 2. ruff --fix : 이번 변경 파일만 =="
 $changed = @(git diff --name-only HEAD -- '*.py') + @(git diff --name-only --cached -- '*.py') + @(git ls-files --others --exclude-standard -- '*.py')
-$changed = $changed | Where-Object { $_ -and (Test-Path $_) } | Sort-Object -Unique
+# ★반드시 @( ) 로 배열로 고정한다. 2026-09-25 실사고(재현 확인): 변경 파일이 **하나**뿐이면 Sort-Object 가
+#   배열이 아닌 문자열 하나를 돌려주고, 문자열을 `@changed` 로 스플랫하면 PowerShell 5.1 은 **글자 하나하나를
+#   별개 인자**로 넘긴다("scripts/eval/x.py" → s, c, r, ..., /, ., p, y = 인자 31개). 그중 "/" 와 "." 가
+#   경로로 해석돼 ruff 가 저장소 전체(.venv 포함)를 스캔했다. .venv 파일 수정은 없었지만(mtime 확인 0건)
+#   한 발짝 차이였다. 아래처럼 인자 배열을 먼저 만들고 "--" 뒤에 경로를 붙인다.
+$changed = @($changed | Where-Object { $_ -and (Test-Path $_) } | Sort-Object -Unique)
 if ($changed.Count -eq 0) {
     Write-Host "  변경된 .py 없음 - 건너뜀"
 } else {
     Write-Host ("  대상 {0}개: {1}" -f $changed.Count, ($changed -join ", "))
-    ruff check --fix @changed; if ($LASTEXITCODE -ne 0) { Fail "ruff --fix(변경 파일) 뒤에도 오류가 남았다" }
+    $ruffArgs = @("check", "--fix", "--") + $changed
+    & ruff @ruffArgs; if ($LASTEXITCODE -ne 0) { Fail "ruff --fix(변경 파일) 뒤에도 오류가 남았다" }
     # --fix 가 건드린 파일이 '대상' 밖이면 안 된다 - 있으면 그 자체가 실패
     $touched = @(git diff --name-only -- '*.py') | Where-Object { $_ -notin $changed }
     if ($touched.Count -gt 0) { Fail ("--fix 가 변경 파일 밖을 건드렸다: " + ($touched -join ", ")) }

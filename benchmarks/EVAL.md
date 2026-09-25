@@ -89,7 +89,7 @@ pipeline 트랙은 **인프로세스** `guard.detect`(cwd=루트)로 측정한�
 
 | 트랙 | mAP@50 | mAP@50:95 | 의미 |
 |---|---|---|---|
-| **RF-DETR raw** | **75.62%** | 44.1% | ★ 게이트 통과(≥73.2). 구 YOLO raw 75.20 대비 +0.42 |
+| **RF-DETR raw** | **75.62%** (단서 2026-09-25: valid/test 영상의 83~93%가 train에 포함된 누출 분할. 실성능 미확인. docs/model/ppe_rfdetr_v1_provenance.md 참조) | 44.1% | ★ 게이트 통과(≥73.2). 구 YOLO raw 75.20 대비 +0.42 |
 | **RF-DETR pipeline** | **71.46%** | 42.41% | ★ 배포 운용점(ppe 0.35). 구 YOLO pipeline 58.62 대비 **+12.84%p** |
 
 - raw 클래스별 AP@50: Hardhat 89.24·Mask 80.18·NO-Hardhat 64.42·NO-Mask 66.81·NO-SafetyVest 81.39·Person 85.49·SafetyCone 41.27·SafetyVest 78.85·machinery 91.23·vehicle 77.32.

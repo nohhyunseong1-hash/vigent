@@ -54,7 +54,7 @@
    "file": "ppe_rfdetr_v1.pth",
    "slot": "ppe",
    "backend": "rfdetr",
-   "purpose": "PPE 착용/미착용 검출 RF-DETR(T10b 이관, Colab best_ema — metrics.csv 미회수로 epoch 미확인. 게이트 raw mAP@50 75.62 통과. 배포 활성)",
+   "purpose": "PPE 착용/미착용 검출 RF-DETR(T10b 이관, Colab best_ema — metrics.csv 미회수로 epoch 미확인. 게이트 raw mAP@50 75.62 통과(단서 2026-09-25: valid/test 영상의 83~93%가 train에 포함된 누출 분할. 실성능 미확인. docs/model/ppe_rfdetr_v1_provenance.md 참조). 배포 활성)",
    "version": "rfdetr_v1",
    "sha256": "3380fa7d4bb1be878698535d575050e13a52330ffab0d37a16dd0a16c50bf570",
    "size_bytes": 120910843,

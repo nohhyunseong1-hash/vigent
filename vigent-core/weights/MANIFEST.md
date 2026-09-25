@@ -34,7 +34,7 @@
 | 클래스(10개) | `Hardhat, Mask, NO-Hardhat, NO-Mask, NO-Safety Vest, Person, Safety Cone, Safety Vest, machinery, vehicle` | `data.yaml`의 `names` 필드가 순서·표기까지 동일 | ✅ |
 | 라이선스 | CC BY 4.0 | `data.yaml`의 `roboflow.license` = CC BY 4.0 | ✅ |
 | 출처 | v27 | `data.yaml`의 `roboflow.version`=27, `url`=`https://universe.roboflow.com/roboflow-universe-projects/construction-site-safety/dataset/27` | ✅ |
-| test 분할 수 | 82(기존 `vision.yaml` 주석 "test 82 box mAP@50 75.62%"와 일치) | 82장 실측(`test/images` 파일 수) | ✅ |
+| test 분할 수 | 82(기존 `vision.yaml` 주석 "test 82 box mAP@50 75.62%"(단서 2026-09-25: valid/test 영상의 83~93%가 train에 포함된 누출 분할. 실성능 미확인. docs/model/ppe_rfdetr_v1_provenance.md 참조)와 일치) | 82장 실측(`test/images` 파일 수) | ✅ |
 | valid 분할 수 | (미기록) | 114장 | 참고 |
 | train 분할 수 | (미기록) | 2603장(API 메타데이터 상 증강 후 2605 — 2장 차이, 원인 미확인이나 나머지 전 항목이 정확히 일치해 동일 데이터셋으로 판단) | 대체로 일치 |
 
@@ -51,7 +51,7 @@
 EMA 전용 키가 없다(EMA 사본이었다면 보통 구분되는 키가 있음) — **best_total로 결론.**
 `vision.yaml`의 주석을 정정했다(별도 커밋).
 
-**측정치 재현성 경고**: 기존 문서(`vision.yaml`)에 적힌 "test 82 box mAP@50 75.62%"가 정확히 어느
+**측정치 재현성 경고**: 기존 문서(`vision.yaml`)에 적힌 "test 82 box mAP@50 75.62%"(단서 2026-09-25: valid/test 영상의 83~93%가 train에 포함된 누출 분할. 실성능 미확인. docs/model/ppe_rfdetr_v1_provenance.md 참조)가 정확히 어느
 체크포인트(ema 인지 total 인지)를 측정한 값인지 이 저장소 안에서 재현 가능한 기록을 못 찾았다
 (측정 자체가 Colab에서 이뤄져 로컬 아티팩트가 없음). **이 파일(best_total)에 대해 로컬로 새로
 측정된 mAP는 아직 없다** — 76.62%를 이 파일의 실측치로 그대로 인용하지 말 것(모른다 — 규칙7).
