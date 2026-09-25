@@ -22,9 +22,17 @@
   3. 지표: 클래스별 GT·TP·FP·FN·정밀도·재현율(IoU≥0.5, 클래스 일치, 1:1 매칭) + Wilson 95% 구간 + AP@50(전점 보간).
      10클래스 전부 + 우리 4클래스 평균. ★Wilson 구간은 박스를 독립 시행으로 본 근사다 — 한 장 안의 박스들은 완전히 독립이 아니다.
 
+★비교 하네스 (2026-09-25 마무리 2)
+  `--weights <임의 가중치>` 로 돌리면 같은 91장에서 평가하고 **"전(v1)" 행**(`benchmarks/results/v1_heldout_eval.json` = provenance §7-2)
+  을 항상 나란히 찍는다. 세 평가 집합(held-out 91 / 사고영상 dev 74 / 재방문 현장 정답지)을 한 표로 — dev 74 는 `--dev74`(앱
+  파이프라인, x4b_score_candidates.score_one) 또는 `--dev74-json`, 현장 정답지는 `--field-gt-json` 이 없으면 **"미확보"** 로 적는다.
+  재학습 목표(provenance §8)는 `GOALS` 상수에 있고 판정(달성/미달/미측정)을 같이 찍는다. 기준선 파일은 `--write-baseline` 없이는
+  덮어쓰지 않는다. 테스트: `tests/test_ppe_compare_harness.py`(v1 로 돌리면 §7-2 재현).
+
 사용:
-    python scripts/eval/eval_v1_heldout.py [--weights vigent-core/weights/ppe_rfdetr_v1.pth] [--res 384] [--split-rule video|stem]
-                                          [--out benchmarks/results/v1_heldout_eval.json]
+    python scripts/eval/eval_v1_heldout.py                                   # v1 자기 재현(전 == 후 여야 한다)
+    python scripts/eval/eval_v1_heldout.py --weights runs/.../best.pth --label aihub_v2 [--dev74]
+    python scripts/eval/eval_v1_heldout.py --split-rule stem                 # 1차 156장 재현(기준선 아님)
 """
 from __future__ import annotations
 
@@ -172,38 +180,50 @@ def match(preds: list[tuple[str, list[float], float]], gts: list[tuple[str, list
             out.append((name, conf, False))
     return out
 
+# ---------------------------------------------------------------------------------------------------------------------
+# 비교 하네스 (2026-09-25 T-0c 마무리 2): 임의 가중치를 같은 91장으로 평가하고 "전(v1)" 행과 나란히 놓는다
+# ---------------------------------------------------------------------------------------------------------------------
+BASELINE_JSON = _ROOT / "benchmarks" / "results" / "v1_heldout_eval.json"       # "전(v1)" 행 = provenance.md §7-2
+V1_DEV74 = {  # 사고영상 dev 74장 v1 현장 기준선(2026-08-10) — 앱 파이프라인(1fps·ByteTrack) 경유. 클래스별 표는 미기록
+    "source": "benchmarks/v1_field_baseline_report.md:91-94 (측정 2026-08-10)",
+    "ppe_precision": 93.6, "ppe_tp": 160, "ppe_fp": 11, "ppe_recall": 64.8, "ppe_gt": 247,
+    "nh_interval": [25.9, 100.0], "nh_n": 14,
+}
+GOALS = {  # 재학습 목표 선언(2026-09-25, provenance.md §8 · P3_BACKLOG B-finetune)
+    "primary": {  # held-out 91장 @0.35 — 정밀도는 v1 수준 이상 유지
+        "NO-Hardhat": {"recall_min": 85.0, "precision_min": 69.5},
+        "NO-Safety Vest": {"recall_min": 90.0, "precision_min": 86.9},
+    },
+    "secondary": {"dev74_ppe_recall_min": 80.0},   # 사고영상 dev 74장 PPE 전체 재현율 64.8 → 80 이상
+    "final": "재방문 현장 정답지에서만 판정 — 위 둘은 '가망 확인'",
+}
 
-def main() -> int:
-    ap = argparse.ArgumentParser()
-    ap.add_argument("--weights", default=str(_ROOT / "vigent-core" / "weights" / "ppe_rfdetr_v1.pth"))
-    ap.add_argument("--res", type=int, default=384)
-    ap.add_argument("--iou", type=float, default=0.5)
-    ap.add_argument("--out", default=str(_ROOT / "benchmarks" / "results" / "v1_heldout_eval.json"))
-    ap.add_argument("--limit", type=int, default=0, help="시험용: 앞 N장만")
-    ap.add_argument("--split-rule", choices=("video", "stem"), default="video",
-                    help="video=영상 id(확장자 무시)+youtube 묶음 제외(기본, 기준선) · stem=1차 규칙 재현(누출 잔존, 기준선 아님)")
-    a = ap.parse_args()
+
+def evaluate(weights: str, res: int = 384, iou_thr: float = 0.5, split_rule: str = "video", limit: int = 0,
+             verbose: bool = True) -> dict:
+    """held-out 에서 가중치 하나를 평가한다(학습 없음). 반환 dict 는 JSON 으로 그대로 저장 가능."""
     import yaml
     names = yaml.safe_load((DS / "data.yaml").read_text(encoding="utf-8"))["names"]
     tun = yaml.safe_load((_ROOT / "config" / "tuning.yaml").read_text(encoding="utf-8"))
     op_conf = float(((tun.get("detect") or {}).get("conf") or {}).get("ppe", 0.35))
 
-    imgs, info = build_heldout(a.split_rule)
-    if a.limit:
-        imgs = imgs[: a.limit]
-    print(f"held-out[{a.split_rule}]: {info['heldout_images']}장 / 고유 원본 {info['heldout_unique_originals']} / 전체 원본 {info['all_unique_originals']} "
-          f"= {info['heldout_share_of_originals']:.1%} · 제외 {info['dropped']}")
-    print(f"  남은 영상 유래: {info['heldout_videos']} · 그중 train 에도 있는 영상: {info['heldout_videos_in_train']}")
+    imgs, info = build_heldout(split_rule)
+    if limit:
+        imgs = imgs[:limit]
+    say = print if verbose else (lambda *a, **k: None)
+    say(f"held-out[{split_rule}]: {info['heldout_images']}장 / 고유 원본 {info['heldout_unique_originals']} / 전체 원본 {info['all_unique_originals']} "
+        f"= {info['heldout_share_of_originals']:.1%} · 제외 {info['dropped']}")
+    say(f"  남은 영상 유래: {info['heldout_videos']} · 그중 train 에도 있는 영상: {info['heldout_videos_in_train']}")
     if info["heldout_videos_in_train"]:
-        print("★실패: held-out 에 train 과 같은 영상이 남아 있다"); return 2
+        raise RuntimeError("held-out 에 train 과 같은 영상이 남아 있다: " + ", ".join(info["heldout_videos_in_train"]))
     if info["heldout_share_of_originals"] < 0.20:
-        print("★주의: held-out 이 전체 원본의 20% 미만이다 — 이것이 v1 이 안 본 이미지의 전부다(더 늘리면 train 원본이 섞인다)")
+        say("★주의: held-out 이 전체 원본의 20% 미만이다 — 이것이 v1 이 안 본 이미지의 전부다(더 늘리면 train 원본이 섞인다)")
 
     import torch
     from PIL import Image
     from rfdetr import RFDETRNano
     dev = "cuda" if torch.cuda.is_available() else "cpu"
-    m = RFDETRNano(pretrain_weights=a.weights, device=dev, resolution=a.res)
+    m = RFDETRNano(pretrain_weights=weights, device=dev, resolution=res)
     try:
         m.optimize_for_inference()
     except Exception:  # noqa: BLE001
@@ -223,19 +243,19 @@ def main() -> int:
             cid = int(cid)
             if 0 <= cid < len(cls_names):
                 preds.append((cls_names[cid], [float(x) for x in box], float(conf)))
-        for name, conf, tp in match(preds, gts, a.iou):
+        for name, conf, tp in match(preds, gts, iou_thr):
             scored[name].append((conf, tp))
         # 운용점 P/R: 임계 이상만으로 다시 매칭
         op_preds = [pr for pr in preds if pr[2] >= op_conf]
-        res = match(op_preds, gts, a.iou)
-        for name, _, tp in res:
+        matched = match(op_preds, gts, iou_thr)
+        for name, _, tp in matched:
             op[name]["TP" if tp else "FP"] += 1
         for gname in {g for g, _ in gts}:
             gt_c = sum(1 for g, _ in gts if g == gname)
-            tp_c = sum(1 for n, _, tp in res if tp and n == gname)
+            tp_c = sum(1 for n, _, tp in matched if tp and n == gname)
             op[gname]["FN"] += gt_c - tp_c
         if i % 20 == 0:
-            print(f"  {i}/{len(imgs)} ({time.time() - t0:.0f}s)")
+            say(f"  {i}/{len(imgs)} ({time.time() - t0:.0f}s)")
 
     rows = []
     for n in names:
@@ -245,26 +265,178 @@ def main() -> int:
                      "precision": None if np.isnan(prec) else round(prec * 100, 1), "precision_ci95": wilson(tp, tp + fp),
                      "recall": None if np.isnan(rec) else round(rec * 100, 1), "recall_ci95": wilson(tp, tp + fn),
                      "ap50": None if n_gt[n] == 0 else round(ap50(scored[n], n_gt[n]) * 100, 1)})
+
     def _mean(key, subset):
         v = [r[key] for r in rows if r["class"] in subset and r[key] is not None]
         return round(sum(v) / len(v), 1) if v else None
     summary = {"mAP50_all10": _mean("ap50", names), "mAP50_our4": _mean("ap50", OUR4),
                "recall_our4_mean": _mean("recall", OUR4), "precision_our4_mean": _mean("precision", OUR4)}
-    def _ci(v):
-        return "-" if not v else f"[{v[0]}, {v[1]}]"
-    print("\n| 클래스 | GT박스 | TP | FP | FN | P% | P Wilson95 | R% | R Wilson95 | AP50% |\n|---|---|---|---|---|---|---|---|---|---|")
-    for r in rows:
-        mark = "**" if r["class"] in OUR4 else ""
-        print(f"| {mark}{r['class']}{mark} | {r['gt']} | {r['tp']} | {r['fp']} | {r['fn']} | {r['precision']} | {_ci(r['precision_ci95'])} "
-              f"| {r['recall']} | {_ci(r['recall_ci95'])} | {r['ap50']} |")
-    print(f"| 우리 4클래스 평균 | | | | | {summary['precision_our4_mean']} | | {summary['recall_our4_mean']} | | **{summary['mAP50_our4']}** |")
-    print(f"| 10클래스 mAP50 | | | | | | | | | {summary['mAP50_all10']} |")
-    out = {"date": time.strftime("%Y-%m-%d %H:%M"), "weights": a.weights, "resolution": a.res, "op_conf": op_conf, "iou": a.iou,
-           "device": dev, "heldout": info, "heldout_files": [str(p.relative_to(_ROOT)) for p in imgs],
-           "rows": rows, "summary": summary, "elapsed_s": round(time.time() - t0, 1)}
-    Path(a.out).parent.mkdir(parents=True, exist_ok=True)
-    Path(a.out).write_text(json.dumps(out, ensure_ascii=False, indent=2), encoding="utf-8")
-    print(f"\n저장: {a.out} · {len(imgs)}장 · {dev} · {out['elapsed_s']}s")
+    return {"date": time.strftime("%Y-%m-%d %H:%M"), "weights": str(weights), "resolution": res, "op_conf": op_conf, "iou": iou_thr,
+            "device": dev, "heldout": info, "heldout_files": [str(p.relative_to(_ROOT)) for p in imgs],
+            "rows": rows, "summary": summary, "elapsed_s": round(time.time() - t0, 1)}
+
+
+def _ci(v) -> str:
+    return "-" if not v else f"[{v[0]}, {v[1]}]"
+
+
+def _row(result: dict | None, cls: str) -> dict | None:
+    if not result:
+        return None
+    return next((r for r in result["rows"] if r["class"] == cls), None)
+
+
+def verdict_of(val: float | None, tgt: float, ci: tuple[float, float] | None = None) -> str:
+    """점추정으로 달성/미달, Wilson 구간이 목표를 걸치면 '(구간 걸침)' 을 붙인다(§8 — 소표본 단서)."""
+    if val is None:
+        return "미측정"
+    base = "달성" if val >= tgt else "미달"
+    if ci and ci[0] < tgt <= ci[1]:
+        return base + "(구간 걸침)"
+    return base
+
+
+def goal_check(cand: dict | None) -> list[dict]:
+    """1차 목표(held-out 91장 @0.35) 판정. cand 가 없으면 전부 '미측정'."""
+    out = []
+    for cls, g in GOALS["primary"].items():
+        r = _row(cand, cls)
+        for key, tgt in (("recall", g["recall_min"]), ("precision", g["precision_min"])):
+            val = None if r is None else r[key]
+            ci = None if r is None else r[f"{key}_ci95"]
+            out.append({"set": "held-out 91", "class": cls, "metric": key, "target_min": tgt, "value": val,
+                        "ci95": ci, "verdict": verdict_of(val, tgt, ci)})
+    return out
+
+
+def render_heldout_compare(baseline: dict | None, cand: dict | None, cand_label: str) -> str:
+    """클래스별 전(v1) ↔ 후 비교표(마크다운). 한쪽이 없으면 '미측정'."""
+    classes = [r["class"] for r in (baseline or cand)["rows"]] if (baseline or cand) else []
+    L = [f"| 클래스 | 전(v1) R% [W95] | {cand_label} R% [W95] | ΔR | 전 P% [W95] | {cand_label} P% [W95] | ΔP | 전 AP50 | {cand_label} AP50 | ΔAP |",
+         "|---|---|---|---|---|---|---|---|---|---|"]
+
+    def cell(r, key):
+        if r is None or r[key] is None:
+            return "미측정"
+        ci = r.get(key + "_ci95")
+        return f"{r[key]} {_ci(ci)}" if ci else f"{r[key]}"
+
+    def delta(b, c, key):
+        if b is None or c is None or b[key] is None or c[key] is None:
+            return "-"
+        d = round(c[key] - b[key], 1)
+        return f"{d:+.1f}"
+    for cls in classes:
+        b, c = _row(baseline, cls), _row(cand, cls)
+        mark = "**" if cls in OUR4 else ""
+        L.append(f"| {mark}{cls}{mark} | {cell(b, 'recall')} | {cell(c, 'recall')} | {delta(b, c, 'recall')} | {cell(b, 'precision')} | "
+                 f"{cell(c, 'precision')} | {delta(b, c, 'precision')} | {cell(b, 'ap50')} | {cell(c, 'ap50')} | {delta(b, c, 'ap50')} |")
+    for label, key in (("우리 4클래스 AP50 평균", "mAP50_our4"), ("10클래스 mAP@50", "mAP50_all10")):
+        bs = None if not baseline else baseline["summary"][key]; cs = None if not cand else cand["summary"][key]
+        d = "-" if bs is None or cs is None else f"{cs - bs:+.1f}"
+        L.append(f"| {label} | | | | | | | {bs if bs is not None else '미측정'} | {cs if cs is not None else '미측정'} | {d} |")
+    return "\n".join(L)
+
+
+def render_three_sets(baseline: dict | None, cand: dict | None, cand_label: str, dev74_cand: dict | None,
+                      field_gt: dict | None) -> str:
+    """세 평가 집합 한 표: held-out 91 / 사고영상 dev 74 / 재방문 현장 정답지(미확보면 그렇게 적는다)."""
+    def hl(res, cls, key):
+        r = _row(res, cls)
+        return "미측정" if r is None or r[key] is None else f"{r[key]} {_ci(r[key + '_ci95'])}"
+    nh, nv = "NO-Hardhat", "NO-Safety Vest"
+    g = GOALS["primary"]
+    L = ["| 평가 집합 | 지표 | 전(v1) | " + cand_label + " | 목표 | 판정 |", "|---|---|---|---|---|---|"]
+    for cls, key, tgt in ((nh, "recall", g[nh]["recall_min"]), (nh, "precision", g[nh]["precision_min"]),
+                          (nv, "recall", g[nv]["recall_min"]), (nv, "precision", g[nv]["precision_min"])):
+        r = _row(cand, cls); val = None if r is None else r[key]
+        verdict = verdict_of(val, tgt, None if r is None else r[key + "_ci95"])
+        L.append(f"| held-out 91장(@{(cand or baseline or {}).get('op_conf', 0.35)}) | {cls} {key} | {hl(baseline, cls, key)} | {hl(cand, cls, key)} | ≥{tgt} | {verdict} |")
+    bs = None if not baseline else baseline["summary"]["mAP50_all10"]; cs = None if not cand else cand["summary"]["mAP50_all10"]
+    L.append(f"| held-out 91장 | 10클래스 mAP@50 | {bs if bs is not None else '미측정'} | {cs if cs is not None else '미측정'} | (참고) | - |")
+    # 사고영상 dev 74장 — 전 행은 v1 현장 기준선 리포트 고정값, 후 행은 x4b_score_candidates.score_one 결과가 있을 때만
+    d = dev74_cand or {}
+    dv = d.get("ppe_recall"); dv_s = "미측정" if dv is None else f"{round(dv * 100, 1) if dv <= 1 else dv}"
+    dp = d.get("ppe_precision"); dp_s = "미측정" if dp is None else f"{round(dp * 100, 1) if dp <= 1 else dp}"
+    tgt2 = GOALS["secondary"]["dev74_ppe_recall_min"]
+    v2 = "미측정" if dv is None else ("달성" if (dv * 100 if dv <= 1 else dv) >= tgt2 else "미달")
+    L.append(f"| 사고영상 dev 74장(앱 파이프라인) | PPE 전체 재현율 | {V1_DEV74['ppe_recall']} ({V1_DEV74['ppe_tp']}/{V1_DEV74['ppe_gt']}) | {dv_s} | ≥{tgt2} | {v2} |")
+    L.append(f"| 사고영상 dev 74장(앱 파이프라인) | PPE 전체 정밀도 | {V1_DEV74['ppe_precision']} | {dp_s} | (유지) | - |")
+    nh_i = d.get("nh_lower"); nh_s = "미측정" if nh_i is None else f"[{round(nh_i * 100, 1)}, {round(d.get('nh_upper', 0) * 100, 1)}]"
+    L.append(f"| 사고영상 dev 74장(앱 파이프라인) | NO-Hardhat 재현율 구간 | [{V1_DEV74['nh_interval'][0]}, {V1_DEV74['nh_interval'][1]}] n={V1_DEV74['nh_n']} | {nh_s} | (참고) | - |")
+    # 재방문 현장 정답지 — 최종 판정은 여기서만
+    if field_gt:
+        L.append(f"| 재방문 현장 정답지 | {field_gt.get('metric', 'PPE 재현율')} | {field_gt.get('before', '미측정')} | {field_gt.get('after', '미측정')} | {field_gt.get('target', '-')} | {field_gt.get('verdict', '-')} |")
+    else:
+        L.append("| **재방문 현장 정답지(최종 판정)** | PPE 클래스별 재현율 | **미확보** | **미확보** | 착수 조건: B-finetune | **판정 불가** |")
+    return "\n".join(L)
+
+
+def run_dev74(weights: str) -> dict:
+    """사고영상 dev 74장을 앱 파이프라인으로 채점(benchmarks/x4b_score_candidates.score_one). 자료가 없으면 미측정."""
+    try:
+        sys.path.insert(0, str(_ROOT / "benchmarks"))
+        import x4b_score_candidates as x4b  # noqa: PLC0415  (field_eval 자료가 있어야 import 자체가 된다)
+        r = x4b.score_one(weights)
+        r["status"] = "측정"
+        return r
+    except Exception as e:  # noqa: BLE001
+        return {"status": "미측정", "reason": f"{type(e).__name__}: {e}"}
+
+
+def main() -> int:
+    ap = argparse.ArgumentParser(description="PPE 가중치 비교 하네스 — held-out 91장 + 사고영상 dev 74 + 현장 정답지(미확보) 한 표")
+    ap.add_argument("--weights", default=str(_ROOT / "vigent-core" / "weights" / "ppe_rfdetr_v1.pth"))
+    ap.add_argument("--label", default=None, help="비교표의 '후' 열 이름(기본: 가중치 파일명)")
+    ap.add_argument("--res", type=int, default=384)
+    ap.add_argument("--iou", type=float, default=0.5)
+    ap.add_argument("--limit", type=int, default=0, help="시험용: 앞 N장만")
+    ap.add_argument("--split-rule", choices=("video", "stem"), default="video",
+                    help="video=영상 id(확장자 무시)+youtube 묶음 제외(기본, 기준선) · stem=1차 규칙 재현(누출 잔존, 기준선 아님)")
+    ap.add_argument("--baseline-json", default=str(BASELINE_JSON), help="'전(v1)' 행 원자료(provenance.md §7-2)")
+    ap.add_argument("--out", default=None, help="결과 JSON(기본 benchmarks/results/ppe_compare_<label>.json). 기준선 파일은 덮어쓰지 않는다")
+    ap.add_argument("--write-baseline", action="store_true", help="이 결과를 기준선(--baseline-json)으로 저장 — v1 재측정 때만")
+    ap.add_argument("--dev74", action="store_true", help="사고영상 dev 74장도 앱 파이프라인으로 채점(느림, field_eval 자료 필요)")
+    ap.add_argument("--dev74-json", default=None, help="이미 채점한 dev 74 결과(x4b score_one 형식)를 대신 읽는다")
+    ap.add_argument("--field-gt-json", default=None, help="재방문 현장 정답지 결과(있을 때만). 없으면 '미확보'")
+    a = ap.parse_args()
+    label = a.label or Path(a.weights).stem
+
+    baseline = json.loads(Path(a.baseline_json).read_text(encoding="utf-8")) if Path(a.baseline_json).exists() else None
+    if baseline is None:
+        print(f"★기준선 파일 없음: {a.baseline_json} — '전(v1)' 열은 미측정으로 표시")
+    cand = evaluate(a.weights, a.res, a.iou, a.split_rule, a.limit)
+    if baseline and a.split_rule == "video" and not a.limit and sorted(baseline["heldout_files"]) != sorted(cand["heldout_files"]):
+        print("★경고: 이 실행의 held-out 파일 목록이 기준선과 다르다 — 비교표는 같은 집합이 아니다")
+        cand["heldout_mismatch_vs_baseline"] = True
+
+    dev74 = None
+    if a.dev74_json:
+        dev74 = json.loads(Path(a.dev74_json).read_text(encoding="utf-8"))
+    elif a.dev74:
+        print("\n사고영상 dev 74장 채점 중(앱 파이프라인)…")
+        dev74 = run_dev74(a.weights)
+        print(f"  → {dev74.get('status')}" + (f" ({dev74.get('reason')})" if dev74.get("reason") else ""))
+    field_gt = json.loads(Path(a.field_gt_json).read_text(encoding="utf-8")) if a.field_gt_json else None
+
+    print(f"\n### held-out {cand['heldout']['heldout_images']}장 — 전(v1) ↔ {label}  (@{cand['op_conf']}, res {a.res}, {cand['device']})")
+    print(render_heldout_compare(baseline, cand, label))
+    print("\n### 세 평가 집합 — 목표 대비")
+    print(render_three_sets(baseline, cand, label, dev74, field_gt))
+    print(f"\n최종 판정: {GOALS['final']}")
+
+    out = {"candidate_label": label, "candidate": cand, "baseline_json": a.baseline_json, "goals": GOALS,
+           "goal_check": goal_check(cand), "dev74_candidate": dev74, "dev74_v1": V1_DEV74,
+           "field_gt": field_gt or "미확보"}
+    out_path = Path(a.out) if a.out else _ROOT / "benchmarks" / "results" / f"ppe_compare_{label}.json"
+    if a.write_baseline:
+        Path(a.baseline_json).write_text(json.dumps(cand, ensure_ascii=False, indent=2), encoding="utf-8")
+        print(f"기준선 갱신: {a.baseline_json}")
+    elif out_path.resolve() == Path(a.baseline_json).resolve():
+        print("★기준선 파일은 --write-baseline 없이는 덮어쓰지 않는다"); return 2
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+    out_path.write_text(json.dumps(out, ensure_ascii=False, indent=2), encoding="utf-8")
+    print(f"\n저장: {out_path} · {cand['heldout']['heldout_images']}장 · {cand['device']} · {cand['elapsed_s']}s")
     return 0
 
 
