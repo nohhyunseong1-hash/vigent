@@ -1,0 +1,14 @@
+# scripts/train/finetune_rfdetr.py 조립 설정 — AI Hub 507 보강 재학습 후보(2026-09-26). ★실행 금지 상태: --dry-run 만.
+# 클래스는 운용 PPE 4종 + person. Mask/NO-Mask 제외 원칙. forklift 는 이 설정에서 학습하지 않는다(510 은 별도 설정).
+classes: [person, Hardhat, NO-Hardhat, Safety-Vest, NO-Safety-Vest]
+sources:
+  - name: css_v27
+    kind: yolo_yaml
+    path: data/datasets/css_safety/data.yaml          # Roboflow YOLO export (원본 514장×5 증강 + valid/test)
+    splits: {train: train, valid: valid}               # test 82 는 누출 분할이라 valid 로도 쓰지 않는다(held-out 91 은 exclude_files 로 제외)
+  - name: aihub_507
+    kind: vigent
+    labels: D:/vigent_private_data/aihub/vigent_507/labels        # scripts/data/aihub_to_vigent.py 출력(장소ID 8:2 분할)
+    images: D:/vigent_private_data/aihub/docs_507                 # ★현재 원천 이미지는 경량 샘플 720장뿐 — 실학습 전 VS_03_공통(15GB) 수신 필요
+    split: D:/vigent_private_data/aihub/vigent_507/split.json
+exclude_files: benchmarks/results/v1_heldout_eval.json   # held-out 91장 stem 을 어느 분할에도 넣지 않는다(전/후 비교 집합)
