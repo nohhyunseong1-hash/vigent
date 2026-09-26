@@ -16,6 +16,9 @@ perception:                       # ── Guard (감지)
   backend: {person: rfdetr, ppe: rfdetr, fire_smoke: rfdetr, forklift: rfdetr}
   # rfdetr 백엔드 커스텀 파인튜닝 가중치(T10b). person 은 COCO 사전학습이라 항목 없음.
   #   forklift: LOCO 학습(T10b Phase1). box mAP@50 8.83%(YOLO 7.61 초과) — 단 confidence 낮아 운용점 tuning.yaml 참조.
+  #     ★[2026-09-26 출처 감사] 8.83% 는 LOCO test 238장+네거 80·conf 0.001·2026-07-04 조건. 8/27 학원 영상 재측정에서
+  #     현장 YOLO 박스와 IoU≥0.5 일치 0.5%(@0.1), 지게차 없는 사진 99% 에 conf≥0.5 박스 — 어디서도 국소화 못 함.
+  #     대외 97.7% 는 학원 프로파일 YOLO forklift_boda_ax 의 값(docs/model/ppe_rfdetr_v1_provenance.md §9).
   #   fire_smoke: D-Fire 학습(Colab e17 best_ema). D-Fire test 395 box mAP@50 80.13%(게이트≥60 통과), presence 게이트도 통과.
   #     운용점은 tuning.yaml fire_smoke_per_class(RF-DETR conf 스케일 재튜닝). in-domain(D-Fire) 우위 — 현장 재검증 대기.
   #   ppe: css_safety 학습(Colab best_total — 2026-08 정정, 구주석 "best_ema"는 오기였다: 실측 파일

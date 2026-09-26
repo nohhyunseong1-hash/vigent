@@ -217,3 +217,75 @@
 - 판정 도구: `scripts/eval/eval_v1_heldout.py --weights <새 가중치> [--dev74]` — "전(v1)" 행을 항상 나란히 찍고 위 목표 대비
   달성/미달/미측정을 표로 낸다(`GOALS` 상수 = 이 표). 현장 정답지가 없는 동안은 표에 **"미확보"** 로 남는다.
 - 표본이 작다(§7 머리말). 1차 목표 판정은 점추정으로 하되 Wilson 구간을 같이 적고, 구간이 목표를 걸치면 "달성(구간 걸침)"으로 따로 표기한다.
+
+## 9. `forklift_rfdetr_v1.pth` 출처 감사 (2026-09-26, T-0 와 같은 형식)
+
+> 결론 먼저. ① 이 파일은 **LOCO(CC0) 지게차 211장(train)·맥 MPS·50 epoch** 으로 2026-07 초에 만든 RF-DETR Nano 단일 클래스 모델이다.
+> ② 자기 검증 **mAP@50 8.83%** 는 LOCO test 238장+네거 80장, `predict` conf 0.001, 2026-07-04 조건의 값이다.
+> ③ **"학원에서는 되고 510에서는 안 되는가" → 아니다. 학원에서도 안 된다.** 오늘 8/27 학원 영상 956프레임 재측정: 현장 YOLO 박스와
+> IoU≥0.5 로 겹치는 RF-DETR 박스는 **conf 0.1 이상에서 0.5%**(5/935), 0.3 이상 **0%**. 지게차가 없는 507 이미지 720장에서도 **99.4%** 가
+> conf 0.5 이상 박스를 낸다 — 신뢰도가 지게차 유무와 무관하다. ④ 대외에 인용된 **97.7% 는 이 모델의 값이 아니다.** 학원 프로파일의
+> YOLO `forklift_boda_ax` 가 장면 대본 대비 낸 값이다(`benchmarks/field_academy_2026-08-27.md:32`).
+
+### 9-1. 슬롯 ↔ 파일 매핑 [실측]
+
+| 프로파일 | 지게차 슬롯 모델 | 근거 |
+|---|---|---|
+| 기본(safety) | `vigent-core/weights/forklift_rfdetr_v1.pth`(RF-DETR Nano, 클래스 `['forklift']`) — 단 `include_forklift: 0` 으로 **검출기 목록에서 제외**(2026-07-11) | `themes/safety/vision.yaml:16,30` · `config/tuning.yaml:109-124` |
+| 학원(academy) | `vigent-core/weights/forklift_boda_ax.pt`(YOLO, AGPL) conf 0.50 | `themes/safety/vision.yaml:65` · `benchmarks/forklift_duel_2026-08-19.md` §0 |
+
+### 9-2. 체크포인트 메타 [실측 — `torch.load(..., weights_only=False)['args']`]
+
+| 항목 | 값 | 비고 |
+|---|---|---|
+| 파일 | 120,781,691 B · SHA256 `cd76eb56…` · mtime 2026-08-17 02:04 | 2026-08-17 Release `weights-v1` 복원본(`weights/MANIFEST.md:115,137`) — **학습 시점이 아니라 복원 시점** |
+| `dataset_dir` | `/Users/nohyeonseong/Downloads/loco_forklift_ds`(맥, 저장소 밖) | `training/build_forklift_train_ds.py` 가 만든 폴더 |
+| `class_names` / `num_classes` | `['forklift']` / 1 | 정상 대조군 poc 는 2(§9-5) |
+| epochs / batch / grad_accum | 50 / 4 / 4(유효 16) | `training/rfdetr_train.py` 도크스트링과 일치 |
+| lr / lr_encoder / weight_decay / clip | 1e-4 / 1.5e-4 / 1e-4 / 0.1 | rfdetr 기본값과 같음 |
+| warmup / use_ema / multi_scale / expanded_scales / seed | 0 / True / True / True / **None** | seed 없음 → 재현 불가 |
+| 해상도 | **기록 없음**(`args` 에 `resolution` 키 없음) | RF-DETR Nano 기본 384 로 **추정**. 오늘 384/512 로 돌려도 거동 동일(§9-4) |
+| 장치 | MPS(Apple GPU) | `rfdetr_train.py` 도크스트링 "MPS, 야간 무인". 학습 로그(`metrics.csv`)는 **이 PC 에 없음**(Glob 미발견) — 회수본 분석은 `audit/salvage_recovery_2026-08-20.md` §3-2 인용 |
+| 저장 가중치의 NaN | **0 / 466 텐서** | ★salvage 문서의 "NaN 가중치가 저장됐다" 는 표현과 **다르다**(§9-5) |
+
+### 9-3. 학습 데이터 [실측: `training/build_forklift_train_ds.py` · `benchmarks/EVAL.md:146-160`]
+
+| 항목 | 값 | 꼬리표 |
+|---|---|---|
+| 원천 | **LOCO**(Logistics Objects in Context, CC0) `loco-all-v1.json` category 5 = forklift. 지게차 인스턴스 598 / 449장 | [문서상 주장, EVAL.md] |
+| 분할 | SHA256 결정적 — **test 238장/316 인스턴스(0.55 상향)** + 네거 80장(pallet_truck 40·일반 40) 격리, 나머지 **train 211장** → valid 10%(`score("v_"+name)<0.10`) | [실측, 스크립트] |
+| 학습에 들어간 수량 | 211장 중 valid 약 21 → train **약 190장**(정확 수는 매니페스트 `forklift_eval_manifest.json` 재계산 필요 — 이 PC 에 데이터 없음) | [추정] |
+| 이미지 특성 | 창고형 **전동 리치트럭·팔레트트럭** 중심(LOCO). 학원의 카운터밸런스 지게차와 다른 도메인 — YOLO boda_ax 도 LOCO 교차 검증에서 재현율 21.4%(`audit/salvage_recovery_2026-08-20.md` §3-1) | [실측, 타 모델] |
+| 라이선스 | CC0 (`attribution/SOURCES.md`). ★같은 파일의 `forklift_merge`(Roboflow 6종) 는 **재학습용 후보**이지 v1 학습 재료가 아니다 | [실측] |
+
+### 9-4. 자기 검증 8.83% 의 조건과 오늘 재측정
+
+**8.83% 의 조건** [문서상 주장, `benchmarks/COVERAGE.md:13` · `EVAL.md:146-160`]: LOCO test 238장(316 인스턴스)+네거 80장, `run_eval.py` COCOeval, `predict` conf **0.001**, 2026-07-04. 같은 셋에서 pipeline 8.5%. ★같은 EVAL.md 의 forklift 표는 **7.61 / 3.15** 를 적고 있는데 이는 **직전 YOLO 모델**의 값이고(COVERAGE.md 가 "YOLO(7.61/3.15) 초과" 로 구분), RF-DETR v1 의 raw 8.83 은 COVERAGE.md 에만 있다 — 원자료 JSON 은 이 PC 에서 못 찾았다 [미확인]. presence 지표(recall 58.4/35.7, FAR 50/28.7)도 **YOLO 모델 줄**이며 RF-DETR v1 의 presence 값은 문서에 없다.
+
+**오늘 재측정** [실측 2026-09-26, RTX 5070 Ti, rfdetr 1.8.0, res 384, `predict(threshold=0.001)`] — 원자료 `audit/forklift_field_rerun_20260926.json` · `audit/forklift_aihub_imagelevel_20260926.json` · `audit/forklift_box_geom_20260926.json`(git 미추적):
+
+| 집합 | 프레임/장 | 지게차 있음(기준) | ≥1 박스 @conf 0.1 / 0.3 / 0.5 | **기준 박스와 IoU≥0.5 일치** @0.05 / 0.1 / 0.3 | 읽는 법 |
+|---|---|---|---|---|---|
+| **8/27 학원 9장면(overlay.mp4 640×360)** | 956 | 현장 YOLO `forklift_present` 938(98.1%) · COCO truck/car 945(98.8%) | 81.0 / 56.0 / 48.7% | **1.6 / 0.5 / 0.0%**(기준 박스 있는 935프레임) | 박스는 내지만 **지게차 위에 있지 않다** |
+| 510 VS_03 **양성**(GT 지게차 있음) | 144 | 144 | 100 / 99.3 / 97.2% | 23.6 / 0.0 / 0.0% | A-4 의 R 23.6% 와 같은 사실 |
+| 510 VS_03 **음성**(GT 없음) | 2,399 | 0 | **99.1 / 94.8 / 91.4%** | — | 지게차 없는 사진에도 conf 0.9 박스 |
+| 507 개구부 표본 **음성** | 720 | 0 | **100 / 99.7 / 99.4%** | — | 〃 (top conf 중앙값 0.914) |
+| 빈 화면·잡음 6장 | 6 | 0 | 0 / 0 / 0% | — | 질감이 있는 실사진에만 난사 |
+
+- 학원 장면별로는 06b·06c·07(지게차가 크게 잡히는 위험구역 장면)에서 conf 0.5 이상이 86~97% 인데, 그 박스가 현장 YOLO 박스와 IoU≥0.5 로 겹치는 비율은 **0%** 다. 01(정지)·00(스모크)은 top conf 중앙값 0.06~0.07 로 8/19 측정(`audit/academy_g1g2_2026-08-19.md:32`, 최대 0.003)과 크기는 다르지만 "낮다"는 방향은 같다. ★8/19 의 0.003 과 오늘의 0.9 차이는 **원인 미확인**(rfdetr 버전·전처리 차이 가능성 [추측]) — 어느 쪽이든 판정은 같다.
+- 단서: overlay.mp4 는 **박스·글자가 그려진 표시용 영상**이며 원본은 미보존(규칙 11 사고). 정답은 장면 대본. 그래도 "기준 YOLO 박스와 겹치는가"는 그림과 무관하게 잴 수 있다.
+- **답**: "학원에서는 되고 510에서는 안 된다" 가 **아니라 어디서도 지게차를 국소화하지 못한다.** A-4 의 510 재현율 23.6%(@0.002) 는 이미지당 13개씩 난사한 박스가 우연히 겹친 몫으로 읽어야 한다.
+
+### 9-5. F-7 진단과 오늘 실측의 차이 (정직하게)
+
+`audit/salvage_recovery_2026-08-20.md` §3-2 [문서상 주장, 회수 `metrics.csv` 분석]: `train/loss_ce` 가 **epoch 1 부터 NaN**, bbox/giou 손실 ~0 붕괴, `val/mAP_50` 0.193→0.0, 49 epoch 완주. 대조군 poc(num_classes=2)·fire_e17 은 정상. 원인 가설 `num_classes=1` 은 미확정.
+오늘 확인한 것 [실측]: ① 저장된 텐서에 NaN 은 없다(0/466) — "NaN 가중치가 저장됐다" 는 **부정확**하고, "손실이 NaN 이 된 뒤 갱신이 멈춘(또는 무의미해진) 가중치" 가 맞는 표현이다. ② 출력은 "균일 저신뢰"(tuning.yaml:110) 가 아니라 **입력 질감에 반응하는 고신뢰 박스 난사**다. 둘 다 "학습이 안 됐다" 는 결론은 같다.
+→ 재학습(510 forklift) 착수 조건: NaN 감시(1 epoch 에서 중단)·seed 고정·`resolution` 기록·num_classes 재현 실험·held-out 은 **영상 단위**(§6-1) — `scripts/train/finetune_rfdetr.py` 가 이미 갖춘 것은 seed·held-out 제외·누출 검사이고, **NaN 감시는 아직 없다**(추가 필요).
+
+### 9-6. 대외 인용 정리
+
+| 수치 | 실제 출처 | 단서(인용처마다 병기) |
+|---|---|---|
+| **97.7%** (908/929) | 학원 프로파일 **YOLO `forklift_boda_ax`** @0.50, 장면 대본 대비, 2026-08-27 단일 세션 | "`forklift_rfdetr_v1` 의 값이 아님 · 장면 대본 기준 · 카운터밸런스 한정" — 단서 적용처: `benchmarks/field_academy_2026-08-27.md` · `reports/현장테스트_보고서_20260827*.md` · `reports/_template.html` · `docs/onboarding/01·04` · `docs/사업계획서_VIGENT_초안.md:45,142,275` · `scripts/fill_business_plan.py` · `docs/review/ALGORITHM_TRUTH_20260926.md` |
+| 99.1% | 같은 YOLO, `forklift_test.mp4` 320프레임(학원 유사) | 이미 "카운터밸런스 한정" 표기 있음(`proposal_base` Q4) |
+| 8.83% / 8.5% | `forklift_rfdetr_v1` LOCO 자기 검증(2026-07-04) | 오늘 재측정으로 **"국소화 0%"** 를 병기 |

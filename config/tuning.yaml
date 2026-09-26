@@ -108,6 +108,8 @@ detect:                     # 탐지 공통
     # ppe_per_class 제거(RF-DETR 단일 0.35로 충분). backend=yolo 롤백 시 ppe 0.62 + override(NO-Hardhat 0.30/NO-Mask 0.50/NO-Safety-Vest 0.50) 복원.
     forklift: 0.002         # ★ 잠정 비활성(2026-07-11): detect_frame 기본 detectors에서 제외(main.py).
       # F-7 과소학습으로 정탐/오탐 conf가 완전 겹침 — 정탐 p50 0.002·max 0.005 = 오탐과 동일(웹캠 벤치 실측).
+      # ★[2026-09-26 재측정] 지금 환경(rfdetr 1.8.0)에서는 "균일 저신뢰"가 아니라 질감 있는 실사진마다 conf 0.9 박스를
+      #   난사한다(지게차 없는 507 사진 99.4% 가 conf≥0.5). 결론(임계로 못 거름·검출기 제외)은 같다. provenance §9.
       # 어떤 임계도 오탐만 못 거름(0.002=정탐34.9%+오탐폭탄 / 0.01↑=정탐0). 사람 몸통을 conf 0.002로 오인(pos_bare 100%).
       # → 임계 0.30 은폐형 off 기각, 명시적 detectors 제외로 처리. 이 임계값(0.002)은 측정/게이트 경로
       #   (payload.detectors 명시 지정) 전용. T10b full 재학습 + 현장 데이터 운용점 스윕 후 복원.

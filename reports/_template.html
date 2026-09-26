@@ -48,7 +48,7 @@ footer { margin-top:26px; padding-top:10px; border-top:1px solid #ccc; font-size
 </div>
 
 <div class="kpi">
-  <div><span class="v big">97.7%</span><span class="l">지게차 검출률<br>(929프레임)</span></div>
+  <div><span class="v big">97.7%</span><span class="l">지게차 검출률<br>(929프레임 · 학원 프로파일 YOLO · 장면 대본 기준)</span></div>
   <div><span class="v big">0.0%</span><span class="l">운전자 오경보<br>(200프레임)</span></div>
   <div><span class="v big">100%</span><span class="l">경보 전송 성공<br>(19/19)</span></div>
   <div><span class="v big">1.8초</span><span class="l">알림 지연<br>(중앙값)</span></div>
@@ -73,7 +73,7 @@ footer { margin-top:26px; padding-top:10px; border-top:1px solid #ccc; font-size
 <tr><td>1 — 정지</td><td class="n">70</td><td class="n big">100%</td><td>score 0.938~0.945, 변동 거의 없음</td></tr>
 <tr><td>4 — 주행 (화면 33% 횡단)</td><td class="n">137</td><td class="n big">99%</td><td>놓친 구간 2프레임 1회</td></tr>
 <tr><td>5 — 주행</td><td class="n">146</td><td class="n">92%</td><td></td></tr>
-<tr><td><b>전체 9장면</b></td><td class="n"><b>929</b></td><td class="n big">97.7%</td><td>정지·주행 모두 사실상 놓치지 않음</td></tr>
+<tr><td><b>전체 9장면</b></td><td class="n"><b>929</b></td><td class="n big">97.7%</td><td>정지·주행 모두 사실상 놓치지 않음 · 모델 = 학원 프로파일 YOLO forklift_boda_ax @0.50(자체 RF-DETR 아님), 정답 = 장면 대본</td></tr>
 </table>
 __BASE__
 
