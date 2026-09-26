@@ -40,23 +40,34 @@ from aihub_to_vigent import CLASSES  # noqa: E402
 IMG_EXTS = (".jpg", ".jpeg", ".png")
 SOURCE = "pseudo:v1"
 HARDHAT = CLASSES.index("Hardhat")
+# [2026-09-27] 여러 클래스 준라벨(조끼 착용/미착용 등)로 일반화 — 기본은 Hardhat 하나(기존 동작·테스트 불변).
+CSS_TO_STD = {"Hardhat": "Hardhat", "Safety Vest": "Safety-Vest", "NO-Safety Vest": "NO-Safety-Vest", "NO-Hardhat": "NO-Hardhat"}
+ACTIVE_CLASSES: list[str] = ["Hardhat"]
+ACTIVE_SOURCE: str = SOURCE          # Hardhat 단독이면 "pseudo:v1", 그 외는 "pseudo:v1:<클래스+...>" — 병합 중복 검사 키
+
+
+def set_active(classes: list[str]) -> None:
+    global ACTIVE_CLASSES, ACTIVE_SOURCE
+    ACTIVE_CLASSES = list(classes)
+    ACTIVE_SOURCE = SOURCE if classes == ["Hardhat"] else f"{SOURCE}:{'+'.join(classes)}"
 
 
 def derive_rule(conf_min: float) -> str:
-    return f"ppe_rfdetr_v1 Hardhat conf>={conf_min:.2f} [추정: 검출기 출력을 정답으로 — 육안 확인 후 채택]"
+    return f"ppe_rfdetr_v1 {'/'.join(ACTIVE_CLASSES)} conf>={conf_min:.2f} [추정: 검출기 출력을 정답으로 — 육안 확인 후 채택]"
 
 
-def pseudo_boxes(dets: list[tuple[list[float], float]], W: int, H: int, conf_min: float) -> list[dict[str, Any]]:
-    """(x1,y1,x2,y2 px, conf) → 정규화 박스 dict(conf≥conf_min 만). 좌표는 이미지 안으로 자른다."""
+def pseudo_boxes(dets: list, W: int, H: int, conf_min: float) -> list[dict[str, Any]]:
+    """dets 항목 = (x1,y1,x2,y2 px, conf) [Hardhat 로 간주] 또는 (cls_idx, box, conf). → 정규화 박스 dict(conf≥conf_min 만). 좌표는 이미지 안으로 자른다."""
     out = []
-    for box, conf in dets:
+    for d in dets:
+        cls, box, conf = (HARDHAT, d[0], d[1]) if len(d) == 2 else (int(d[0]), d[1], d[2])
         if conf < conf_min:
             continue
         x1, y1, x2, y2 = (max(0.0, min(W, box[0])), max(0.0, min(H, box[1])), max(0.0, min(W, box[2])), max(0.0, min(H, box[3])))
         if x2 - x1 < 1 or y2 - y1 < 1:
             continue
-        out.append({"cls": HARDHAT, "box": [round((x1 + x2) / 2 / W, 6), round((y1 + y2) / 2 / H, 6), round((x2 - x1) / W, 6), round((y2 - y1) / H, 6)],
-                    "conf": round(float(conf), 4), "source": SOURCE, "derived": True, "derive_rule": derive_rule(conf_min)})
+        out.append({"cls": cls, "box": [round((x1 + x2) / 2 / W, 6), round((y1 + y2) / 2 / H, 6), round((x2 - x1) / W, 6), round((y2 - y1) / H, 6)],
+                    "conf": round(float(conf), 4), "source": ACTIVE_SOURCE, "derived": True, "derive_rule": derive_rule(conf_min)})
     return out
 
 
@@ -68,19 +79,19 @@ def write_pseudo(stem: str, file_name: str, boxes: list[dict[str, Any]], out: Pa
     """out/ 에 준라벨을 쓰고, merge_into 에 같은 stem 라벨이 있으면 거기에도 덧붙인다(중복 덧붙임 방지: 사이드카 source 로 확인)."""
     (out / "labels").mkdir(parents=True, exist_ok=True); (out / "labels_meta").mkdir(exist_ok=True)
     (out / "labels" / f"{stem}.txt").write_text(_lines(boxes), encoding="utf-8")
-    meta = {"file": file_name, "source": SOURCE, "boxes": boxes}
+    meta = {"file": file_name, "source": ACTIVE_SOURCE, "boxes": boxes}
     (out / "labels_meta" / f"{stem}.json").write_text(json.dumps(meta, ensure_ascii=False, indent=1), encoding="utf-8")
     rep = {"stem": stem, "n_boxes": len(boxes), "merged": False}
     if merge_into is not None:
         lb = merge_into / "labels" / f"{stem}.txt"; mt = merge_into / "labels_meta" / f"{stem}.json"
         if lb.exists():
             m = json.loads(mt.read_text(encoding="utf-8")) if mt.exists() else {"boxes": []}
-            if any(b.get("source") == SOURCE for b in m.get("boxes", [])):
-                rep["merged"] = "already"          # 두 번 돌려도 두 배로 붙지 않는다
+            if any(b.get("source") == ACTIVE_SOURCE for b in m.get("boxes", [])):
+                rep["merged"] = "already"          # 두 번 돌려도 두 배로 붙지 않는다(같은 클래스 묶음 기준)
             else:
                 with lb.open("a", encoding="utf-8") as f:
                     f.write(_lines(boxes))
-                m.setdefault("boxes", []).extend(boxes); m["pseudo_hardhat"] = {"source": SOURCE, "n": len(boxes)}
+                m.setdefault("boxes", []).extend(boxes); m.setdefault("pseudo_merges", []).append({"source": ACTIVE_SOURCE, "n": len(boxes)})
                 mt.write_text(json.dumps(m, ensure_ascii=False, indent=1), encoding="utf-8")
                 rep["merged"] = True
     return rep
@@ -97,7 +108,7 @@ def draw_preview(img_path: Path, boxes: list[dict[str, Any]], dst: Path, W: int,
         cx, cy, w, h = b["box"]
         x1, y1, x2, y2 = int((cx - w / 2) * W), int((cy - h / 2) * H), int((cx + w / 2) * W), int((cy + h / 2) * H)
         cv2.rectangle(im, (x1, y1), (x2, y2), (0, 200, 255), 2)
-        cv2.putText(im, f"Hardhat {b['conf']:.2f}", (x1, max(12, y1 - 4)), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 200, 255), 1)
+        cv2.putText(im, f"{CLASSES[int(b.get('cls', HARDHAT))]} {b['conf']:.2f}", (x1, max(12, y1 - 4)), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 200, 255), 1)
     ok, buf = cv2.imencode(".jpg", im, [cv2.IMWRITE_JPEG_QUALITY, 85])
     if not ok:
         return False
@@ -117,7 +128,9 @@ def main() -> int:
     ap.add_argument("--seed", type=int, default=20260926)
     ap.add_argument("--limit", type=int, default=0)
     ap.add_argument("--stems-from", default="", help="이 폴더(labels/*.txt)에 라벨이 있는 stem 만 처리 — 변환본 학습 프레임에만 준라벨을 붙일 때")
+    ap.add_argument("--classes", default="Hardhat", help="준라벨 클래스(쉼표). 예: Hardhat,Safety-Vest,NO-Safety-Vest — 2026-09-27 라벨 누락 메우기용")
     a = ap.parse_args()
+    set_active([c.strip() for c in a.classes.split(",") if c.strip()])
     from aihub_smoke_eval import class_names_of, load_model
     from PIL import Image
     out = Path(a.out); merge = Path(a.merge_into) if a.merge_into else None
@@ -133,16 +146,17 @@ def main() -> int:
         print("★이미지 0장 — 실패"); return 2
     model, dev = load_model("ppe", a.res)
     cn = class_names_of(model)
-    hat_ids = {k for k, v in cn.items() if v == "Hardhat"}
-    print(f"  ppe 모델 class_names {cn} → Hardhat id {sorted(hat_ids)} · device {dev}")
+    id_to_cls = {k: CLASSES.index(CSS_TO_STD[v]) for k, v in cn.items() if CSS_TO_STD.get(v) in ACTIVE_CLASSES}
+    hat_ids = set(id_to_cls)
+    print(f"  ppe 모델 class_names {cn} → 준라벨 클래스 {ACTIVE_CLASSES} id {sorted(hat_ids)} · source {ACTIVE_SOURCE} · device {dev}")
     if not hat_ids:
-        print("★모델에 Hardhat 클래스가 없다 — 실패"); return 2
+        print("★모델에 요청한 클래스가 없다 — 실패"); return 2
     reps, t0 = [], time.time()
     n_boxes = 0; confs = []
     for i, p in enumerate(imgs, 1):
         im = Image.open(p).convert("RGB"); W, H = im.size
         det = model.predict(im, threshold=a.conf)
-        dets = [([float(v) for v in box], float(c)) for box, cid, c in zip(det.xyxy, det.class_id, det.confidence) if int(cid) in hat_ids]
+        dets = [(id_to_cls[int(cid)], [float(v) for v in box], float(c)) for box, cid, c in zip(det.xyxy, det.class_id, det.confidence) if int(cid) in hat_ids]
         boxes = pseudo_boxes(dets, W, H, a.conf)
         if boxes:
             rep = write_pseudo(p.stem, p.name, boxes, out, merge); rep.update({"path": str(p), "W": W, "H": H}); reps.append(rep)
@@ -153,7 +167,7 @@ def main() -> int:
     stems = [r["stem"] for r in reps]
     (out / "split.json").write_text(json.dumps({"key": "pseudo", "train": stems, "val": [], "train_keys": ["pseudo"], "val_keys": []},
                                                ensure_ascii=False, indent=1), encoding="utf-8")
-    (out / "manifest.json").write_text(json.dumps({"source": SOURCE, "conf_min": a.conf, "rule": derive_rule(a.conf), "images_scanned": len(imgs),
+    (out / "manifest.json").write_text(json.dumps({"source": ACTIVE_SOURCE, "classes": ACTIVE_CLASSES, "conf_min": a.conf, "rule": derive_rule(a.conf), "images_scanned": len(imgs),
                                                    "images_with_boxes": len(reps), "boxes": n_boxes, "frames": reps}, ensure_ascii=False, indent=1), encoding="utf-8")
     # 규칙 11: 디스크 확인
     n_disk = len(list((out / "labels").glob("*.txt")))

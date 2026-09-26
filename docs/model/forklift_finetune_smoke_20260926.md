@@ -76,7 +76,7 @@
 | 경보 전송 | — | — | 창마다 1건 생성·1건 전송, dead 0, 싱크 수신 12줄 |
 
   - **판정**: 합격선 3항목(CPU·age·경보) 통과. 추론 p95 는 2.5배(190 ms)지만 2 fps 예산 500 ms 안이라 age 에 안 비친다. VRAM +0.47 GB.
-  - ★단서: 이 실행은 **7.5분·집계 창 2개**(첫 창 예열 제외 규칙이면 판정 창 1개)이고 `_meta.json` 이 없어 `aggregate_4ch.py` 가 "메타 없음" 으로 거부했다 — 9/23 프로토콜(30분×3)을 채운 것이 아니다. 학원 실기(노트북 GTX 1650 Ti 4 GB)는 미측정이라 +0.47 GB 가 거기서 어떤 영향인지 모른다. USB 재빌드 전에 30분×3 + 노트북 1회를 다시 잰다.
+  - ★단서(2026-09-26 밤): 이 실행은 7.5분·집계 창 2개였다. → **2026-09-27 01:33~03:15 에 30분×3회로 다시 잰 결과** [실측, `docs/deploy/bench_4ch_fk2_academy_2026-09-27.md`]: CPU 창평균 34.7~36.8 % · age p95 0.5 s ×3 · 경보 p95 0.15~0.27 s · 추론 p50 59~66 / p95 92~158 ms · torch VRAM 1,064~1,072 / 1,330 MB · nvidia-smi 3,425 MB — **합격선 3회 모두 통과, 결정 ① 근거 충족.** 학원 노트북(GTX 1650 Ti 4 GB)은 여전히 미측정(총점유 3.4 GB 는 4 GB 카드에 빠듯) → 노트북 실측 전 학원 배포 판단 없음.
 - **결정 ① 결과(2026-09-26)**: 검출률 −2.0 %p(≤ −3) · 벤치 합격선 통과 → `deploy/academy/vision.academy.yaml` `backend.forklift: yolo → rfdetr`, `rfdetr_weights.forklift → forklift_rfdetr_fk510_smoke.pth`, boda_ax detectors 항목 제거. `weights_manifest.json` 에 새 가중치 등록(required=false, 학원 전용). ALGORITHM_TRUTH #42·§7-1 "해소됨 [실측]", 주행 장면 저하는 §7-2 개선 항목. 재실행 한 줄: `bash scripts/bench/bench_with_sink.sh fk2_academy_torch 30 academy_fk2_tmp --detect-backend torch`.
 
 ## 3-2. 결정 ②(a) 507 음성 오탐 27장 육안 분류 (2026-09-26)

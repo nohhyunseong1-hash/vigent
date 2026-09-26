@@ -187,9 +187,24 @@ def assemble(cfg: dict[str, Any], out: Path, copy: bool, seed: int = 0, max_trai
             for img, boxes in got[split]:
                 if img.stem in exclude:
                     report["excluded_heldout"] += 1; continue
-                kept.append((img, boxes))
+                kept.append((img, boxes, src["name"]))       # 소스 이름을 달아 둔다(valid 상한용) — 아래에서 다시 2-튜플로 줄인다
             merged[split].extend(kept)
         report["sources"][src["name"]] = {s: len(v) for s, v in got.items()}
+    # 소스별 valid 상한(2026-09-27: 학습 중 검증셋을 CSS valid + 507 val ≤200 으로 — 507 치우침 제거). 시드로 결정적.
+    caps = cfg.get("valid_limit_per_source") or {}
+    if caps:
+        kept_valid: list = []; report["valid_capped"] = {}
+        for src in cfg["sources"]:
+            name = src["name"]; items = [it for it in merged["valid"] if it[2] == name] if merged["valid"] and len(merged["valid"][0]) == 3 else None
+            if items is None:
+                break
+            cap = caps.get(name)
+            if cap and len(items) > cap:
+                rnd = random.Random(seed); items = [items[i] for i in sorted(rnd.sample(range(len(items)), cap))]
+            report["valid_capped"][name] = len(items); kept_valid.extend(items)
+        if kept_valid:
+            merged["valid"] = kept_valid
+    merged["train"] = [(i, b) for i, b, *_ in merged["train"]]; merged["valid"] = [(i, b) for i, b, *_ in merged["valid"]]
     # 누출 검사: 같은 stem 이 train·valid 양쪽에 있으면 실패
     ts = {i.stem for i, _ in merged["train"]}; vs = {i.stem for i, _ in merged["valid"]}
     if ts & vs:

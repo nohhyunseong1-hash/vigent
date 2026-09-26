@@ -99,7 +99,8 @@ def _match(gts: list[list[float]], preds: list[list[float]]) -> set[int]:
     return gt_hit
 
 
-def score_one(weights: str | None) -> dict[str, Any]:
+def score_one(weights: str | None, exclude_classes: frozenset[str] = frozenset()) -> dict[str, Any]:
+    """exclude_classes: PPE 집계에서 뺄 클래스(예: {'Mask','NO-Mask'} — 5클래스 재학습본과 v1 을 같은 잣대로, 2026-09-27). 반환에 ppe_per_class 추가."""
     guard = bq._build_guard()
     if weights:
         guard._rfdetr_weights["ppe"] = weights
@@ -141,6 +142,8 @@ def score_one(weights: str | None) -> dict[str, Any]:
 
         # NO-Hardhat(구간용) + PPE 전체(클래스별 매칭)
         for cls in PPE_CLASSES:
+            if cls in exclude_classes:
+                continue
             cls_gts = [b for c, b in gt_all if c == cls]
             cls_preds = [d["bbox"] for d in preds_all if d.get("label") == cls]
             cls_hit = _match(cls_gts, cls_preds)
@@ -182,6 +185,8 @@ def score_one(weights: str | None) -> dict[str, Any]:
         "nh_ci": (ci_lower, ci_upper),
         "ppe_precision": prec, "ppe_recall": rec, "ppe_f1": f1,
         "ppe_tp": tp_all, "ppe_fp": fp_all, "ppe_gt": gt_all_n,
+        "excluded_classes": sorted(exclude_classes),
+        "ppe_per_class": {c: {"gt": ppe_gt[c], "tp": ppe_tp[c], "fp": ppe_fp[c]} for c in PPE_CLASSES if c not in exclude_classes},
     }
 
 

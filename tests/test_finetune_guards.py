@@ -132,6 +132,26 @@ class ProvenanceTest(unittest.TestCase):
         self.assertEqual(F.eta_minutes([240.0, 260.0], 10, 2), 33.3)           # 평균 250s × 8 epoch
         self.assertEqual(F.eta_minutes([], 10, 0), 0.0); self.assertEqual(F.eta_minutes([100.0], 10, 10), 0.0)
 
+    def test_valid_limit_per_source_caps_only_that_source(self):
+        # 2026-09-27: 학습 중 검증셋을 CSS valid + 507 val ≤N 으로 — 지정 소스만 시드 추림, 나머지는 그대로, train 은 불변
+        from PIL import Image
+        with tempfile.TemporaryDirectory() as td:
+            d = Path(td)
+            for name, val in (("s1", ["c", "d", "e"]), ("s2", ["x", "y"])):
+                sd = d / name; (sd / "labels").mkdir(parents=True)
+                for s in ["a", "b"] + val:
+                    Image.new("RGB", (16, 16)).save(sd / f"{name}_{s}.jpg"); (sd / "labels" / f"{name}_{s}.txt").write_text("0 0.5 0.5 0.2 0.2\n", encoding="utf-8")
+                (sd / "classes.txt").write_text("person\n", encoding="utf-8")
+                (sd / "split.json").write_text(json.dumps({"train": [f"{name}_a", f"{name}_b"], "val": [f"{name}_{s}" for s in val]}), encoding="utf-8")
+            cfg = {"classes": ["person"], "valid_limit_per_source": {"s1": 1},
+                   "sources": [{"name": n, "kind": "vigent", "labels": str(d / n / "labels"), "images": str(d / n), "split": str(d / n / "split.json")} for n in ("s1", "s2")]}
+            rep = F.assemble(cfg, d / "out", copy=False, seed=3)
+            self.assertEqual(rep["valid_capped"], {"s1": 1, "s2": 2}); self.assertEqual(rep["valid"]["images"], 3); self.assertEqual(rep["train"]["images"], 4)
+            rep2 = F.assemble(cfg, d / "out2", copy=False, seed=3)
+            self.assertEqual(rep2["valid"]["images"], 3)                    # 시드 동일 → 같은 추림
+            cfg.pop("valid_limit_per_source")
+            self.assertEqual(F.assemble(cfg, d / "out3", copy=False, seed=3)["valid"]["images"], 5)
+
     def test_subsample_is_deterministic_and_bounded(self):
         items = [(Path(f"i{i}.jpg"), []) for i in range(50)]
         s1 = F.subsample(items, 10, seed=1); s2 = F.subsample(items, 10, seed=1); s3 = F.subsample(items, 10, seed=2)

@@ -1,0 +1,188 @@
+[
+  {
+    "tag": "fk2_academy_torch_r_r1",
+    "run_idx": 1,
+    "repeat": 3,
+    "stamp": "20260927_0133",
+    "minutes": 30.0,
+    "interval_s": 300.0,
+    "cams": 4,
+    "detect_backend_env": "torch",
+    "backend_from_log": [
+      "2026-09-27 01:33:14,339 [INFO] vigent.rfdetr_adapter: RF-DETR torch 백엔드 사용: device=cuda weights=COCO(사전학습)",
+      "2026-09-27 01:33:16,588 [INFO] vigent.rfdetr_adapter: RF-DETR torch 백엔드 사용: device=cuda weights=ppe_rfdetr_v1.pth",
+      "2026-09-27 01:33:18,731 [INFO] vigent.rfdetr_adapter: RF-DETR torch 백엔드 사용: device=cuda weights=fire_smoke_rfdetr_v1_e17.pth",
+      "2026-09-27 01:33:21,030 [INFO] vigent.rfdetr_adapter: RF-DETR torch 백엔드 사용: device=cuda weights=forklift_rfdetr_fk510_smoke.pth"
+    ],
+    "startup": {
+      "ready_s": 19.03,
+      "first_http_s": 9.71,
+      "warmup_s_reported": 14.63,
+      "transitions": [
+        {
+          "phase": "starting",
+          "t": 9.71,
+          "http": 503
+        },
+        {
+          "phase": "ready",
+          "t": 19.03,
+          "http": 200
+        }
+      ]
+    },
+    "first_inference": {
+      "first_inference_s": 19.05,
+      "camera": "pilot02"
+    },
+    "load_tool_exit": 1,
+    "jsonl": "D:\\vigent_original\\audit\\bench4ch_fk2_academy_torch_r_r1_20260927_0133.jsonl",
+    "csv": "D:\\vigent_original\\audit\\bench4ch_fk2_academy_torch_r_r1_20260927_0133.csv",
+    "csv_rows": 7,
+    "raw_csv": "D:\\vigent_original\\audit\\bench4ch_fk2_academy_torch_r_r1_20260927_0133_raw.csv",
+    "raw_rows": 420,
+    "server_log": "D:\\vigent_original\\audit\\bench4ch_fk2_academy_torch_r_r1_20260927_0133_server.log",
+    "safety": {
+      "webhook": "http://127.0.0.1:9911/sink",
+      "real_channels": [],
+      "gpu_procs_before": [
+        "dwm.exe:19928MB",
+        "NVIDIA Overlay.exe:5210MB",
+        "Discord.exe:411MB",
+        "msedge.exe:250MB",
+        "explorer.exe:242MB"
+      ],
+      "gpu_threshold_mb": 500.0
+    },
+    "server_python": "D:\\vigent_original\\.venv\\Scripts\\python.exe",
+    "server_cwd": "D:\\vigent_original\\vigent-core",
+    "app_root": "D:\\vigent_original",
+    "leftover_pilot_after": [],
+    "note_disk_metric": "",
+    "ok": true
+  },
+  {
+    "tag": "fk2_academy_torch_r_r2",
+    "run_idx": 2,
+    "repeat": 3,
+    "stamp": "20260927_0207",
+    "minutes": 30.0,
+    "interval_s": 300.0,
+    "cams": 4,
+    "detect_backend_env": "torch",
+    "backend_from_log": [
+      "2026-09-27 02:07:17,674 [INFO] vigent.rfdetr_adapter: RF-DETR torch 백엔드 사용: device=cuda weights=COCO(사전학습)",
+      "2026-09-27 02:07:19,547 [INFO] vigent.rfdetr_adapter: RF-DETR torch 백엔드 사용: device=cuda weights=ppe_rfdetr_v1.pth",
+      "2026-09-27 02:07:21,351 [INFO] vigent.rfdetr_adapter: RF-DETR torch 백엔드 사용: device=cuda weights=fire_smoke_rfdetr_v1_e17.pth",
+      "2026-09-27 02:07:23,372 [INFO] vigent.rfdetr_adapter: RF-DETR torch 백엔드 사용: device=cuda weights=forklift_rfdetr_fk510_smoke.pth"
+    ],
+    "startup": {
+      "ready_s": 15.29,
+      "first_http_s": 8.13,
+      "warmup_s_reported": 13.25,
+      "transitions": [
+        {
+          "phase": "starting",
+          "t": 8.13,
+          "http": 503
+        },
+        {
+          "phase": "ready",
+          "t": 15.29,
+          "http": 200
+        }
+      ]
+    },
+    "first_inference": {
+      "first_inference_s": 19.72,
+      "camera": "pilot01"
+    },
+    "load_tool_exit": 1,
+    "jsonl": "D:\\vigent_original\\audit\\bench4ch_fk2_academy_torch_r_r2_20260927_0207.jsonl",
+    "csv": "D:\\vigent_original\\audit\\bench4ch_fk2_academy_torch_r_r2_20260927_0207.csv",
+    "csv_rows": 7,
+    "raw_csv": "D:\\vigent_original\\audit\\bench4ch_fk2_academy_torch_r_r2_20260927_0207_raw.csv",
+    "raw_rows": 420,
+    "server_log": "D:\\vigent_original\\audit\\bench4ch_fk2_academy_torch_r_r2_20260927_0207_server.log",
+    "safety": {
+      "webhook": "http://127.0.0.1:9911/sink",
+      "real_channels": [],
+      "gpu_procs_before": [
+        "dwm.exe:19928MB",
+        "NVIDIA Overlay.exe:5210MB",
+        "Discord.exe:411MB",
+        "msedge.exe:250MB",
+        "explorer.exe:242MB"
+      ],
+      "gpu_threshold_mb": 500.0
+    },
+    "server_python": "D:\\vigent_original\\.venv\\Scripts\\python.exe",
+    "server_cwd": "D:\\vigent_original\\vigent-core",
+    "app_root": "D:\\vigent_original",
+    "leftover_pilot_after": [],
+    "note_disk_metric": "",
+    "ok": true
+  },
+  {
+    "tag": "fk2_academy_torch_r_r3",
+    "run_idx": 3,
+    "repeat": 3,
+    "stamp": "20260927_0241",
+    "minutes": 30.0,
+    "interval_s": 300.0,
+    "cams": 4,
+    "detect_backend_env": "torch",
+    "backend_from_log": [
+      "2026-09-27 02:41:33,802 [INFO] vigent.rfdetr_adapter: RF-DETR torch 백엔드 사용: device=cuda weights=COCO(사전학습)",
+      "2026-09-27 02:41:35,761 [INFO] vigent.rfdetr_adapter: RF-DETR torch 백엔드 사용: device=cuda weights=ppe_rfdetr_v1.pth",
+      "2026-09-27 02:41:37,726 [INFO] vigent.rfdetr_adapter: RF-DETR torch 백엔드 사용: device=cuda weights=fire_smoke_rfdetr_v1_e17.pth",
+      "2026-09-27 02:41:39,535 [INFO] vigent.rfdetr_adapter: RF-DETR torch 백엔드 사용: device=cuda weights=forklift_rfdetr_fk510_smoke.pth"
+    ],
+    "startup": {
+      "ready_s": 31.52,
+      "first_http_s": 19.1,
+      "warmup_s_reported": 23.82,
+      "transitions": [
+        {
+          "phase": "starting",
+          "t": 19.1,
+          "http": 503
+        },
+        {
+          "phase": "ready",
+          "t": 31.52,
+          "http": 200
+        }
+      ]
+    },
+    "first_inference": {
+      "first_inference_s": 35.59,
+      "camera": "pilot01"
+    },
+    "load_tool_exit": 1,
+    "jsonl": "D:\\vigent_original\\audit\\bench4ch_fk2_academy_torch_r_r3_20260927_0241.jsonl",
+    "csv": "D:\\vigent_original\\audit\\bench4ch_fk2_academy_torch_r_r3_20260927_0241.csv",
+    "csv_rows": 7,
+    "raw_csv": "D:\\vigent_original\\audit\\bench4ch_fk2_academy_torch_r_r3_20260927_0241_raw.csv",
+    "raw_rows": 420,
+    "server_log": "D:\\vigent_original\\audit\\bench4ch_fk2_academy_torch_r_r3_20260927_0241_server.log",
+    "safety": {
+      "webhook": "http://127.0.0.1:9911/sink",
+      "real_channels": [],
+      "gpu_procs_before": [
+        "dwm.exe:19928MB",
+        "NVIDIA Overlay.exe:5210MB",
+        "Discord.exe:411MB",
+        "msedge.exe:250MB",
+        "explorer.exe:242MB"
+      ],
+      "gpu_threshold_mb": 500.0
+    },
+    "server_python": "D:\\vigent_original\\.venv\\Scripts\\python.exe",
+    "server_cwd": "D:\\vigent_original\\vigent-core",
+    "app_root": "D:\\vigent_original",
+    "leftover_pilot_after": [],
+    "note_disk_metric": "",
+    "ok": true
+  }
+]

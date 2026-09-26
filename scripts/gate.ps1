@@ -52,7 +52,8 @@ if ($NoTests) {
     Write-Host "== 3. unittest 전체 =="
     # [2026-09-27] 출력을 파일로도 남긴다 — 비결정 실패가 나도 이름을 잡을 수 있게(2026-09-26~27 두 번 놓쳤다)
     $utLog = Join-Path $root "audit\gate_unittest_last.log"
-    & $py -m unittest discover -s tests 2>&1 | Tee-Object -FilePath $utLog | Out-Host
+    # Tee-Object 는 PS 5.1 에서 UTF-16 으로 써서 grep 이 못 읽는다 → UTF-8 로 직접 기록(2026-09-27)
+    & $py -m unittest discover -s tests 2>&1 | ForEach-Object { $_ | Out-Host; "$_" } | Out-File -Encoding utf8 -FilePath $utLog
     if ($LASTEXITCODE -ne 0) {
         Select-String -Path $utLog -Pattern '^(FAIL|ERROR):' | ForEach-Object { Write-Host ("  " + $_.Line) -ForegroundColor Red }
         Fail "unittest 실패 (전체 로그: $utLog)"
