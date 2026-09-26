@@ -50,7 +50,13 @@ if ($NoTests) {
     Write-Host "== 3. unittest 건너뜀(-NoTests) - 커밋 전에는 전체로 다시 돌릴 것 ==" -ForegroundColor Yellow
 } else {
     Write-Host "== 3. unittest 전체 =="
-    & $py -m unittest discover -s tests; if ($LASTEXITCODE -ne 0) { Fail "unittest 실패" }
+    # [2026-09-27] 출력을 파일로도 남긴다 — 비결정 실패가 나도 이름을 잡을 수 있게(2026-09-26~27 두 번 놓쳤다)
+    $utLog = Join-Path $root "audit\gate_unittest_last.log"
+    & $py -m unittest discover -s tests 2>&1 | Tee-Object -FilePath $utLog | Out-Host
+    if ($LASTEXITCODE -ne 0) {
+        Select-String -Path $utLog -Pattern '^(FAIL|ERROR):' | ForEach-Object { Write-Host ("  " + $_.Line) -ForegroundColor Red }
+        Fail "unittest 실패 (전체 로그: $utLog)"
+    }
 }
 
 Write-Host "== 4. OpenAPI 무변경 =="

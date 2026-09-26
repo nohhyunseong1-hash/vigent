@@ -1,0 +1,131 @@
+{
+ "config": "configs/finetune_aihub_v2.yaml",
+ "out": "runs\\finetune\\ppe_507_v2",
+ "epochs": 10,
+ "batch": 8,
+ "grad_accum": 2,
+ "lr": 0.0001,
+ "res": 384,
+ "seed": 20260926,
+ "seeds_set": {
+  "random": true,
+  "numpy": true,
+  "torch": true,
+  "lightning": true
+ },
+ "init": "vigent-core/weights/ppe_rfdetr_v1.pth",
+ "classes": [
+  "person",
+  "Hardhat",
+  "NO-Hardhat",
+  "Safety-Vest",
+  "NO-Safety-Vest"
+ ],
+ "harness": "ppe",
+ "val_subsample": 800,
+ "eval_interval": 2,
+ "num_workers": 0,
+ "stall_min": 15.0,
+ "assembly": {
+  "sources": {
+   "css_v27": {
+    "train": 2603,
+    "valid": 114
+   },
+   "aihub_507": {
+    "train": 2200,
+    "valid": 742
+   },
+   "pseudo_507_sample": {
+    "train": 681,
+    "valid": 0
+   }
+  },
+  "excluded_heldout": 51,
+  "train_subsampled": {
+   "before": 5484,
+   "after": 5484
+  },
+  "valid_subsampled": {
+   "before": 805,
+   "after": 800,
+   "forklift_present_before": 0,
+   "forklift_present_after": 0,
+   "locations_after": 4
+  },
+  "train": {
+   "images": 5484,
+   "boxes": 27564,
+   "per_class": {
+    "Hardhat": 4044,
+    "person": 11891,
+    "NO-Safety-Vest": 3957,
+    "Safety-Vest": 3156,
+    "NO-Hardhat": 4516
+   }
+  },
+  "valid": {
+   "images": 800,
+   "boxes": 1655,
+   "per_class": {
+    "NO-Safety-Vest": 36,
+    "person": 804,
+    "NO-Hardhat": 763,
+    "Hardhat": 28,
+    "Safety-Vest": 24
+   }
+  },
+  "test": {
+   "images": 800,
+   "boxes": 1655,
+   "per_class": {
+    "NO-Safety-Vest": 36,
+    "person": 804,
+    "NO-Hardhat": 763,
+    "Hardhat": 28,
+    "Safety-Vest": 24
+   }
+  }
+ },
+ "notes_keys": [
+  "assembly",
+  "batch",
+  "classes",
+  "config",
+  "device",
+  "epochs",
+  "eval_interval",
+  "eval_max_dets",
+  "git_commit",
+  "grad_accum",
+  "harness",
+  "host",
+  "init",
+  "lr",
+  "max_train",
+  "num_workers",
+  "os",
+  "resolution",
+  "rfdetr_version",
+  "script",
+  "seed",
+  "stall_min",
+  "timestamp",
+  "torch_version",
+  "val_subsample"
+ ],
+ "guards": [
+  "NaN 감시(배치 손실·epoch 지표) → 즉시 중단",
+  "seed 고정",
+  "notes(resolution·seed·args) 체크포인트 기록 + 학습 후 검증",
+  "CUDA 강제",
+  "정체 감시 15.0분 → STALL_ABORT.json(py-spy 스택) + exit 9",
+  "epoch 소요·남은 예상 → metrics.csv epoch_time_s/eta_min + 로그"
+ ],
+ "note": "held-out 은 exclude_files 로 제외 · 학습 후 하네스 자동 호출 · PPE 최종 판정은 현장 정답지(미확보)",
+ "amend_20260927": {
+  "run_name": "PPE 스모크 A(준라벨 미검수)",
+  "pseudo_hardhat": "육안 판정 미실시 — 기각 3·17·42 는 예시 번호 오입력(판정 근거 없음, 제거는 유지). pseudo_507_sample 681장 = 미검수 conf>=0.6",
+  "next": "실제 판정 수신 후 스모크 B(검수 완료) 1회 재학습, A/B 나란히 비교(차이가 신뢰구간 안이면 준라벨 품질이 결과를 좌우하지 않는다는 근거)"
+ }
+}
