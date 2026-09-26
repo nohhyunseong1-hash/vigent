@@ -26,7 +26,8 @@
 | **정체 사고** | 1차 학습이 18:29 부터 2시간 무진행. py-spy 3회: `torchmetrics …_get_coco_format`(검증 3,561장×500 검출 파이썬 변환). 데이터로더·디스크·OOM 아님 | `runs/finetune/fk_510_smoke/ckpt_stall_20260926_1829/fk_510_smoke_pyspy.txt`(미추적) · ALGORITHM_TRUTH §7-1 |
 | 조치(승인) | 검증 층화 표본 800·2 epoch 마다·max_dets 100·workers 0·진행바 off·**정체 감시 15분 → STALL_ABORT.json+스택+exit 9**·epoch 소요/ETA 기록. 2차 실행 중 | `scripts/train/finetune_rfdetr.py` · `tests/test_finetune_guards.py` 9건 |
 | **2차 학습 결과** | 10 epoch 0.78h(epoch당 4.1~4.9분, 정체 0, NaN 0, 체크포인트 검증 통과). 하네스(전체 val 3,561): **AP50 94.3 [93.6, 95.0]** · R@0.5 88.1 [87.0, 89.1] · P 97.7 · 510 음성 오탐 0.0 [0.0, 3.7](n=101, 구간 걸침) · 507 음성 1.4 [0.9, 2.0](n=2,000, 참고) · 학원 956 IoU 일치 96.4 @0.5(v1 0.0). 목표 AP50 달성, 오탐 ≤1% 는 "달성(구간 걸침)" | `docs/model/forklift_finetune_smoke_20260926.md` · `benchmarks/results/forklift_fk_510_smoke_20260926/` |
-| 다음 | ① 배포 여부는 별도 결정(운용 파이프라인·학원 프로파일 교체 실측 후) ② 음성 표본 확대(510 val 지게차 없음 101장 → CI 상한 3.7) ③ PPE(NO-Hardhat, 507 train 2,200/val 742) 재학습 승인 대기 | — |
+| **결정 ① 실행** | 운용 경로 대본 기준 95.7 %(boda_ax 97.7, −2.0 %p) · 4ch 벤치 합격선 통과(7.5분 2창, 30분 프로토콜 미완) → **학원 프로파일 `backend.forklift` rfdetr 교체·boda_ax 제거(AGPL 의존 해소)**. 주행 장면 04/05 86~87 % 는 §7-2 개선 항목 | `docs/model/forklift_finetune_smoke_20260926.md` §3-1 · `deploy/academy/vision.academy.yaml` · ALGORITHM_TRUTH #42 |
+| 다음 | ① 30분×3 벤치 재실행 + 학원 노트북(4 GB) 실측 → USB 재빌드 ② VS_02 음성 전용 오탐률(②b) ③ PPE(NO-Hardhat) 재학습 — pseudo_hardhat 판정(기각 번호) 대기 | — |
 
 ---
 

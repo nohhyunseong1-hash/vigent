@@ -45,9 +45,10 @@ tuning:
     detect.conf.forklift:
       value: 0.5
       why: >-
-        forklift_boda_ax(yolo) 운용점. 전역 0.002 는 RF-DETR forklift 용 임계라
-        yolo 모델에 그대로 쓰면 오탐이 쏟아진다.
-        근거: benchmarks/forklift_duel_2026-08-19.md
+        [2026-09-26 갱신] rfdetr forklift_rfdetr_fk510_smoke 의 운용점(하네스 510 held-out @0.5 P 97.7·R 88.1,
+        학원 929프레임 대본 기준 95.7%). 전역 0.002 는 구 RF-DETR v1(F-7) 측정용 임계라 여기선 무효.
+        (구: forklift_boda_ax(yolo) 운용점도 0.50 — benchmarks/forklift_duel_2026-08-19.md)
+        근거: docs/model/forklift_finetune_smoke_20260926.md §3-1
 
 vision:
   base: themes/safety/vision.yaml
@@ -67,11 +68,19 @@ vision:
     judgment.ergonomics.joints_off_academy.shoulder.good: {value: 15, why: "위 omitted 참조 — 값 보존용 개명 키"}
     judgment.ergonomics.joints_off_academy.shoulder.warn: {value: 35, why: "위 omitted 참조 — 값 보존용 개명 키"}
   overrides:
-    perception.backend.forklift:
-      value: yolo
+    # (구 2026-08-19~09-26: perception.backend.forklift: yolo — G1 대결에서 boda_ax(yolo)가 RF-DETR v1 을 이겼음.
+    #  2026-09-26 교체로 backend 는 전역과 같은 rfdetr 이 됐다. 되돌리려면 backend.forklift: yolo + detectors 의 forklift 항목 복원.)
+    perception.rfdetr_weights.forklift:
+      value: vigent-core/weights/forklift_rfdetr_fk510_smoke.pth
       why: >-
-        G1 대결에서 forklift_boda_ax(yolo)가 RF-DETR 판을 이겼다(운용 conf 0.50).
-        ★이 값이 yolo 이므로 vision.academy 의 detectors 에 forklift 항목이
-        **반드시 있어야 한다** — 없으면 guard `_get_model` 이 None 을 돌려주고
-        지게차 검출이 통째로 죽는다(F31 참조).
-        근거: benchmarks/forklift_duel_2026-08-19.md
+        [2026-09-26 대표 결정 ①] 학원 지게차 검출을 AGPL YOLO(boda_ax)에서 Apache RF-DETR(AI Hub 510 스모크 파인튜닝,
+        SHA b409c98d…)로 교체. 근거 [실측]: 510 held-out 3,561장 AP50 94.3 [93.6, 95.0] · 8/27 학원 929프레임 대본 기준
+        95.7%(boda_ax 97.7, -2.0%p ≤ 기준 -3) · 4ch 벤치 age p95 0.5s·경보 p95 0.14s·CPU 35%(7.5분 2창).
+        전역 safety 는 여전히 forklift_rfdetr_v1(슬롯 제외 상태)을 선언하므로 값이 갈린다.
+        근거: docs/model/forklift_finetune_smoke_20260926.md · docs/model/ppe_rfdetr_v1_provenance.md §9-7
+    perception.detectors:
+      value: "[ppe, fire_smoke]  (전역은 forklift boda_ax 항목이 남아 있음)"
+      why: >-
+        [2026-09-26] 학원 프로파일에서 detectors 의 forklift(boda_ax.pt, yolo) 항목을 제거 — backend 가 rfdetr 이라
+        이 항목은 읽히지 않고, 남겨 두면 AGPL 가중치가 배포본에 딸려 간다. 전역 safety 는 롤백 기록용으로 항목을 유지한다.
+        되돌리려면 backend.forklift: yolo 와 함께 이 항목을 복원해야 한다(없으면 guard `_get_model` 이 None → 검출이 죽는다, F31).

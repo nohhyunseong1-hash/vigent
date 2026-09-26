@@ -63,7 +63,21 @@
 - 차이 **−2.0 %p**(보고서 값 대비) — 결정 기준 "−3 %p 이내" 충족. 놓침은 주행 장면 04·05 에 몰려 있다(정지·위험구역 장면은 100 %).
 - detect 지연(person+ppe+forklift 3슬롯, 단일 프레임) p50 38.8 ms · p95 42.7 ms(n=956).
 - ★단서: fk2 는 **박스·글자가 그려진 overlay**(원본 미보존) 위에서 잰 값이고 boda_ax 는 현장 원본이다. boda_ax 를 오늘 같은 overlay 에 다시 돌리려면 ultralytics 가 필요한데 `.venv`·포터블 패키지 3종 모두에 없다(AGPL 제거 상태) → 동일 프레임 비교는 불가, "현장 값 vs overlay 값" 비교임을 명시한다.
-- 4ch 2fps 벤치(`bench_4ch.py`, fk2 학원 프로파일): **미실행** — 벤치의 GPU 오염 가드가 다른 프로세스 `msw.exe`(GPU 750 MB)를 잡아 시작하지 않았다(측정 순수성 규칙). 재실행 한 줄: `bash scripts/bench/bench_with_sink.sh fk2_academy_torch 30 academy_fk2_tmp --detect-backend torch`(notify 를 싱크 전용으로 바꿨다가 자동 원복). 임시 테마 `themes/academy_fk2_tmp`·`academy_boda_tmp`(미추적)와 가중치 사본 `vigent-core/weights/forklift_rfdetr_fk510_smoke.pth`(미추적) 준비됨. **교체 결정은 벤치 결과까지 본 뒤.**
+- 4ch 2fps 벤치(`bench_4ch.py --detect-backend torch`, 테마 `academy_fk2_tmp`, 파일 카메라 4대, 로컬 싱크) **[실측 2026-09-26 23:15~23:23]** — 원자료 `audit/bench4ch_fk2_academy_torch_20260926_2314{.jsonl,_raw.csv,_server.log}`(미추적). 서버 로그로 `slot=forklift backend=rfdetr weights=forklift_rfdetr_fk510_smoke.pth sha=b409c98d… → LOADED`·예열 14.5 s 확인.
+
+| 항목 | 합격선 | 9/23 기준(safety 프로파일, forklift 슬롯 제외, 30분×3) | **fk2 학원 프로파일(forklift 슬롯 포함)** |
+|---|---|---|---|
+| 시스템 CPU 창평균 | ≤ 70 % | 29.3 ~ 30.6 | **34.6 · 35.1** |
+| 검출 age p95 최악 | ≤ 1.0 s | 0.5 | **0.5** |
+| 경보 큐→전송 p95 | ≤ 5 s | 0.16 ~ 0.25 | **0.14** |
+| 추론 detect_ms(원시 120행) p50 / p95 / max | — | p95 41.6 ~ 77.2 | **91.6 / 190.6 / 209** (슬롯 +1 = RF-DETR 호출 +1) |
+| VRAM torch allocated / reserved 최대 | — | 597 / 862 MB | **1,064 / 1,330 MB** (+467 / +468) |
+| VRAM nvidia-smi 총점유 | — | 2,469 ~ 2,492 MB | 2,944 ~ 2,960 MB |
+| 경보 전송 | — | — | 창마다 1건 생성·1건 전송, dead 0, 싱크 수신 12줄 |
+
+  - **판정**: 합격선 3항목(CPU·age·경보) 통과. 추론 p95 는 2.5배(190 ms)지만 2 fps 예산 500 ms 안이라 age 에 안 비친다. VRAM +0.47 GB.
+  - ★단서: 이 실행은 **7.5분·집계 창 2개**(첫 창 예열 제외 규칙이면 판정 창 1개)이고 `_meta.json` 이 없어 `aggregate_4ch.py` 가 "메타 없음" 으로 거부했다 — 9/23 프로토콜(30분×3)을 채운 것이 아니다. 학원 실기(노트북 GTX 1650 Ti 4 GB)는 미측정이라 +0.47 GB 가 거기서 어떤 영향인지 모른다. USB 재빌드 전에 30분×3 + 노트북 1회를 다시 잰다.
+- **결정 ① 결과(2026-09-26)**: 검출률 −2.0 %p(≤ −3) · 벤치 합격선 통과 → `deploy/academy/vision.academy.yaml` `backend.forklift: yolo → rfdetr`, `rfdetr_weights.forklift → forklift_rfdetr_fk510_smoke.pth`, boda_ax detectors 항목 제거. `weights_manifest.json` 에 새 가중치 등록(required=false, 학원 전용). ALGORITHM_TRUTH #42·§7-1 "해소됨 [실측]", 주행 장면 저하는 §7-2 개선 항목. 재실행 한 줄: `bash scripts/bench/bench_with_sink.sh fk2_academy_torch 30 academy_fk2_tmp --detect-backend torch`.
 
 ## 3-2. 결정 ②(a) 507 음성 오탐 27장 육안 분류 (2026-09-26)
 

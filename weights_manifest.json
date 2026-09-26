@@ -78,7 +78,7 @@
    "file": "forklift_boda_ax.pt",
    "slot": "forklift",
    "backend": "yolo",
-   "purpose": "지게차 검출 YOLO 경로(현재 backend=rfdetr, 롤백용)",
+   "purpose": "지게차 검출 YOLO 경로(롤백용. ★2026-09-26 학원 프로파일에서도 제거 — AGPL 의존 해소, forklift_rfdetr_fk510_smoke.pth 로 교체)",
    "version": "boda_ax",
    "sha256": "30579655ea0f8f48ba9b5a63eb21dd4ac5945a6a6db157b5adafe49177c84cb7",
    "size_bytes": 6274161,
@@ -96,7 +96,20 @@
    "url": "release:weights-v1",
    "required": true,
    "verified_at": "2026-08-17",
-   "note": "★required=true — 검출기 목록에선 제외(F-7 과소학습)지만 vision.yaml rfdetr_weights 에 슬롯이 선언돼 있어 **파일이 없으면 guard 가 기동을 거부**한다(F-8 silent 폴백 차단). 2026-08-17 B7 검증에서 깨끗한 클론이 기동 실패해 발견 — 매니페스트가 앱 요구와 어긋나 있었다."
+   "note": "★required=true — 검출기 목록에선 제외(F-7 과소학습)지만 vision.yaml rfdetr_weights 에 슬롯이 선언돼 있어 **파일이 없으면 guard 가 기동을 거부**한다(F-8 silent 폴백 차단). 2026-08-17 B7 검증에서 깨끗한 클론이 기동 실패해 발견 — 매니페스트가 앱 요구와 어긋나 있었다. ★2026-09-26: 학원 영상에서도 국소화 0%(provenance §9-4) — 학원 프로파일은 fk510_smoke 로 교체, 전역 safety 는 여전히 이 파일을 선언(슬롯 제외 상태)."
+  },
+  {
+   "file": "forklift_rfdetr_fk510_smoke.pth",
+   "slot": "forklift",
+   "backend": "rfdetr",
+   "purpose": "지게차 검출 RF-DETR — AI Hub 510 스모크 파인튜닝(2026-09-26, train 5,000·10 epoch·person+forklift 2클래스). 학원 프로파일(deploy/academy/vision.academy.yaml) 활성",
+   "version": "fk510_smoke_20260926",
+   "sha256": "b409c98d61b71d1f97efc1534e4f1b97a5bfebd07919a060b446e0a3a01ee5c3",
+   "size_bytes": 120797435,
+   "url": "local:runs/finetune/fk_510_smoke/ckpt/checkpoint_best_total.pth (Release 미업로드)",
+   "required": false,
+   "verified_at": "2026-09-26",
+   "note": "510 held-out 3,561장 AP50 94.3 [93.6, 95.0]·R 88.1·음성 오탐 0/101 · 학원 929프레임 대본 기준 95.7%(boda_ax 97.7%). 스모크 1회(시드 1개). 상세 docs/model/forklift_finetune_smoke_20260926.md · 출처 provenance §9-7. 학원 프로파일에서만 참조되므로 required=false — 학원 배포 시 이 파일이 없으면 guard 가 기동을 거부한다(rfdetr_weights 선언)."
   },
   {
    "file": "fire_smoke_rfdetr_v1_e17.pth",

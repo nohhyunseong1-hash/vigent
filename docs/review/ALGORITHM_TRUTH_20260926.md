@@ -362,7 +362,7 @@
 | 39 | "6개 에이전트 각각의 파일 경로 + 구현 상태" · S5 "온프렘 LLM" | `docs/team_plan_prompt.md:52,150` | 동상 | 단서 부착(적용) |
 | 40 | "에이전트 6개 중 4개는 실동작, Coach는 스텁(12줄)" | `docs/team/01_현황_숫자로_보기.md:65` | 2026-07-27 기준, coach.py 제거됨 | 단서 부착(적용) |
 | 41 | `.docx`·`pdf` 변환본(`docs/사업계획서_VIGENT_초안.docx`, `docs/team/pdf/*`) | — | 위 정정·단서 미반영 | **재생성 전 배포 금지**(유지) |
-| 42 | "배포 코드에서 ultralytics(AGPL) 제거 완료 — Apache 스택" · 지게차 97.7% | `themes/safety/vision.yaml:15` · §8 Q1 · 현장 보고서 | **현재 학원 배포는 AGPL 모델 의존** [실측 2026-09-26]: `deploy/academy/vision.academy.yaml:18` `backend.forklift: yolo`, `:55` `forklift_boda_ax.pt`(ultralytics). 기본 프로파일은 RF-DETR 이지만 그 `forklift_rfdetr_v1` 은 어디서도 지게차를 국소화하지 못한다(학원 956프레임 IoU≥0.5 일치 0.0%@0.5, 지게차 없는 사진 91~99% 에 conf≥0.5 박스 — `provenance.md` §9-4). 즉 **"Apache 만으로 동작하는 지게차 검출"은 현재 없다** | **정정(단서)**: "Apache 스택"을 말할 때 "지게차 슬롯 제외 — 학원 배포는 AGPL YOLO 의존, 재학습 1순위(forklift 510)" 병기. 97.7% 인용처 13곳에 단서 적용 완료 |
+| 42 | "배포 코드에서 ultralytics(AGPL) 제거 완료 — Apache 스택" · 지게차 97.7% | `themes/safety/vision.yaml:15` · §8 Q1 · 현장 보고서 | (2026-09-26 낮) 학원 배포가 AGPL YOLO `forklift_boda_ax` 에 의존했고 Apache 대체 `forklift_rfdetr_v1` 은 어디서도 국소화 0%. → **해소됨 [실측 2026-09-26 밤]**: AI Hub 510 스모크 파인튜닝(`forklift_rfdetr_fk510_smoke.pth`, SHA b409c98d…)이 510 held-out AP50 94.3 [93.6, 95.0], 학원 929프레임 대본 기준 **95.7 %**(boda_ax 97.7, −2.0 %p ≤ 기준 −3), 4ch 벤치 age p95 0.5 s·경보 p95 0.14 s 를 만족해 `vision.academy.yaml` `backend.forklift: rfdetr` 로 교체, boda_ax 항목 제거. 단서: 주행 장면 04/05 86~87 %(§7-2 개선 항목) · 벤치는 7.5분 2창 실행(30분 프로토콜 미완) · 학원 노트북(GTX 1650 Ti 4 GB) 미측정 | **정정 완료**: 이제 "Apache 스택" 은 학원 프로파일에도 참이다(설정 기준). 97.7 % 인용처 단서는 유지(그 값은 YOLO 의 값) |
 
 **정정 필요 집계: 30건 중 22건**(#1·2·3·4·5·6·10·12·15·16·19·20·21·22·23·24·25·26·27·28·29·30). 확인됨 8건(#7·8·9·11·13·14·17·18 — 이 중 #7·12 류는 단서 병기 권고). **L2 관련 추가 11건(#31~#41, 2026-09-26 §3 재작성 후)** — 10건 단서 부착 적용, #41 은 변환본 배포 금지 유지. **#42(2026-09-26 forklift 출처 감사 후 추가)**: "Apache 스택" 주장에 "지게차 슬롯은 학원 배포 AGPL 의존" 단서.
 
@@ -377,7 +377,7 @@
 | 현장 정답지 부재 | 재방문 날짜 미정. CVAT 로컬 설치·변환기 준비됨(Docker 는 확인 당시 꺼져 있었음) | `NEXT.md:23-24` |
 | RTX 5060 미실측 | 실기 미확보 | `NEXT.md:27-28` |
 | 재학습 — forklift 스모크 1회 진행 중 | 목표 선언(PPE §8 · forklift §9-7) → VS_07·VS_03_공통 수신 → 학습 의존성 설치(numpy·cv2 불변, `rfdetr[train]` 전체 대신 필수 조합) → **1차 실행 정체 사고 [실측 2026-09-26]**: 18:29 이후 2시간 `metrics.csv` 무갱신, GPU 8~23 %, 메인 프로세스 1.2코어. py-spy 3회 모두 `torchmetrics MeanAveragePrecision.compute → _get_coco_format`(검증 3,561장 × 최대 500 검출을 순수 파이썬으로 COCO 변환)에서 정지. 원인 = **검증 후처리 비용**(데이터로더·디스크·OOM 아님). 조치: 학습 중 검증셋 층화 표본 800장(장소×지게차 유무, 777 지게차 있음)·검증 2 epoch 마다·`eval_max_dets` 500→100·`num_workers 0`·진행바 off·**정체 감시 스레드**(15분 무갱신 → `STALL_ABORT.json` + py-spy 스택 + exit 9)·epoch 소요/남은 예상을 metrics.csv 와 로그에 기록. 증거: `benchmarks/results/forklift_fk_510_smoke_20260926/stall_pyspy_1st_run.txt`. **2차 실행 완료 [실측 21:29]**: 10 epoch 0.78h, 정체·NaN 0 → 510 held-out 3,561장 AP50 **94.3 [93.6, 95.0]** · R 88.1 · P 97.7 · 음성 오탐 0/101(구간 상한 3.7) · 학원 956 IoU 일치 96.4 %(v1 0.0). 배포 여부는 별도 결정(운용 파이프라인 미검증) | `docs/model/forklift_finetune_smoke_20260926.md` · `provenance.md` §9-7 · `scripts/train/finetune_rfdetr.py` · `tests/test_finetune_guards.py` |
-| **지게차 검출이 AGPL 에 묶여 있음** | 학원 프로파일 `backend.forklift: yolo`(`forklift_boda_ax.pt`, ultralytics AGPL) — B2G·상용 배포 불가. Apache 대체(`forklift_rfdetr_v1`)는 학원 영상에서도 국소화 0%. → **재학습 1순위 = forklift(510)**, 목표 AP50 ≥70·음성 오탐 ≤1%/장 | `deploy/academy/vision.academy.yaml:18,55` · `provenance.md` §9-4·§9-7 · §6 #42 |
+| ~~지게차 검출이 AGPL 에 묶여 있음~~ → **해소됨 [실측 2026-09-26]** | 학원 프로파일 `backend.forklift` 를 yolo(boda_ax, AGPL) → rfdetr(`forklift_rfdetr_fk510_smoke.pth`) 로 교체. 근거: 510 held-out AP50 94.3 · 학원 929프레임 대본 기준 95.7 %(−2.0 %p) · 4ch 벤치 합격선 통과(age p95 0.5 s·경보 0.14 s·CPU 35 %). 남은 것: 주행 장면 04/05 86~87 %(§7-2), 30분×3회 벤치 재실행, 학원 노트북 4 GB 실측, USB 재빌드 | `deploy/academy/vision.academy.yaml` · `docs/model/forklift_finetune_smoke_20260926.md` §3-1 · §6 #42 |
 | 카메라 네트워크 표준 미정 | 방향만(자체 PoE 스위치+고정 IP+유선 ONVIF 1종). Tapo C200 은 Wi-Fi, IP 할당 방식 기록 없음 | `usb_installer_design.md:362-371` |
 | 두 계보 미통합 | 노트북 `laptop/20260917` push → 비교·통합 → 실USB → 재설치 순. 노트북은 F-34 미반영 | `NEXT.md:25` |
 | 감시 중단 원격 통보 | 코드 경로 0건(2026-09-26 grep) | §2-8 |
@@ -398,6 +398,7 @@
 | VLM 에이전트(`vigent-vlm`) 기본값이 클라우드 | **영상 불유출 원칙과 상충** — 기본 엔드포인트가 OpenRouter, opt-in 게이트 없음. 기본값 변경(로컬 서버) 또는 `VIGENT_CLOUD_VLM=1` 명시 opt-in 으로 L1 게이트와 통일 필요(변경안은 §3-2, 코드 미수정) | §3-2 · `vigent-vlm/.env.example:14` |
 | RIG(줄걸이) 상태기계 | **구현됨·미연결** — `rig_monitor.py`·`rig_replay.py` 는 테스트만 있고 어느 라우트·워커도 호출하지 않는다(외부 CSV 입력 전제). 사업계획서의 "로직 검증 완료(5/5)"는 단위 테스트 통과를 뜻하며 제품 기능이 아니다 | `docs/review/FINAL-REPORT.md:151,207` · §6 #2 |
 | 카메라 tamper(가림·초점·과노출) | **없음** | `03-video-input.md:50-52` |
+| 지게차 **주행 장면** 검출 저하 (2026-09-26 추가) | fk510_smoke 가 학원 대본 기준 정지·위험구역 장면 100 % 인데 **주행 장면 04 86.1 %·05 87.0 %**(boda_ax 99.3 / 92.5). 원인 미확인 [추정: 화면 가장자리 진입·모션 블러·부분 가림]. 개선 후보: 510 주행 프레임 보강·ByteTrack 유지 프레임 상향·해상도 실험 | `docs/model/forklift_finetune_smoke_20260926.md` §3-1 · `audit/forklift_yardstick_fk_510_smoke_20260926_2217.json` |
 | 클래스별 검출률 시계열·`/metrics` | **없음**(슬롯 생존/고장만) | `02-model-inference.md:237` |
 
 ### 7-3. 우선순위 제안 (근거 포함, 4개)

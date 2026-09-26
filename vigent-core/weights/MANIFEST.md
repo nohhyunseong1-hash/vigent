@@ -136,3 +136,12 @@ SHA256이 아래와 일치하는지 확인할 것.
 |---|---|---|---|---|
 | forklift_rfdetr_v1.pth | 지게차 검출 (RF-DETR 자체학습) | 120,781,691 | cd76eb56487bf1aa308a2da428e0348c8f6fbff0187007db77ec577d693373ac | Release weights-v1 |
 | fire_smoke_rfdetr_v1_e17.pth | 화재/연기 검출 (RF-DETR 자체학습) | 120,807,675 | b7425ce450f12cad25cd821f616cd8e3f64d544de51d45bc6e0e6c833be6b4fb | Release weights-v1 |
+
+### [2026-09-26] 학원 프로파일 forklift 교체 — `forklift_rfdetr_fk510_smoke.pth`
+
+| 파일명 | 슬롯 | SHA256 | 크기 | 상태 |
+|---|---|---|---|---|
+| `forklift_rfdetr_fk510_smoke.pth` | forklift(rfdetr, **학원 프로파일 활성**) | `b409c98d61b71d1f97efc1534e4f1b97a5bfebd07919a060b446e0a3a01ee5c3` | 120,797,435 B | 개발기 로컬(`runs/finetune/fk_510_smoke/ckpt/checkpoint_best_total.pth` 사본). Release 미업로드 — USB 재빌드 전 업로드·`fetch_weights.py` 검증 필요 |
+| `forklift_boda_ax.pt` | forklift(yolo) | (기존) | 6,274,161 B | 학원 프로파일에서 **제거**(AGPL 의존 해소). 롤백용으로만 보관 |
+
+근거: `docs/model/forklift_finetune_smoke_20260926.md` §3-1 · `weights_manifest.json` fk510_smoke 항목.

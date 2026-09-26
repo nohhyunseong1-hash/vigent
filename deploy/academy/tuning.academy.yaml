@@ -53,7 +53,7 @@ detect:                     # 탐지 공통
     # 인정할지. true=기존 동작 그대로(재발명 아님 — 원래도 person+ppe 를 같이 부르면 섞여 들어왔음).
     # dev 74장 실측(benchmarks/p2_person_ensemble.md): 재현율+15.3%p·정밀도-9.8%p·F1+6.5%p → 채택.
     # false 는 person 슬롯 단독 성능을 재고 싶을 때만(예: run_eval.py 교차실험) 끈다.
-  include_forklift: 1       # ★[학원 프로파일] 지게차 슬롯 활성(boda_ax YOLO — G1 대결 채택)
+  include_forklift: 1       # ★[학원 프로파일] 지게차 슬롯 활성(2026-09-26 부터 rfdetr fk510_smoke — 구 boda_ax YOLO 는 제거)
   include_fire_smoke: 0     # ★[학원 프로파일] 화재 감시는 계약 범위 밖 + 배경 오탐 리스크 → 끔
   conf:                     # 검출기별 신뢰도 임계(낮을수록 많이 잡음=오탐↑)
     person: 0.40            # 0.35→0.40: 약한 사람 오탐↓(진짜 사람은 0.8+)
@@ -63,7 +63,8 @@ detect:                     # 탐지 공통
       # 향후 특정 클래스 약세가 현장에서 확인되면 per_class 인프라(guard ppe_per_class)로 재도입 가능.
       # 근거(0.30 vs 0.35 실측): NO-Hardhat R88=88 동일·NO-SafetyVest R97.2=97.2 동일(FAR만↑)·NO-Mask 80→86.7이나 FAR 3.8→7.7. 이득 미미/역효과.
     # ppe_per_class 제거(RF-DETR 단일 0.35로 충분). backend=yolo 롤백 시 ppe 0.62 + override(NO-Hardhat 0.30/NO-Mask 0.50/NO-Safety-Vest 0.50) 복원.
-    forklift: 0.50          # ★[학원 프로파일] boda_ax(YOLO) 운용점 — G1 대결 실측(학원 유사 영상 320프레임):
+    forklift: 0.50          # ★[학원 프로파일] 운용점 0.50 유지 — 2026-09-26 부터 rfdetr fk510_smoke 의 하네스 운용점(510 held-out P 97.7·R 88.1 @0.5, 학원 대본 95.7%).
+      # (구 boda_ax(YOLO) 운용점도 0.50 — G1 대결 실측(학원 유사 영상 320프레임):
       # 재현율 99.1% · 최장 미검출 0.5s · 다중박스 5.6% · conf 평균 0.93. (전역 기본값 0.002 는 F-7 측정용 — 여기선 무효)
       # F-7 과소학습으로 정탐/오탐 conf가 완전 겹침 — 정탐 p50 0.002·max 0.005 = 오탐과 동일(웹캠 벤치 실측).
       # 어떤 임계도 오탐만 못 거름(0.002=정탐34.9%+오탐폭탄 / 0.01↑=정탐0). 사람 몸통을 conf 0.002로 오인(pos_bare 100%).

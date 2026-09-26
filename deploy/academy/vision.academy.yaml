@@ -13,9 +13,12 @@ perception:                       # ── Guard (감지)
   # 슬롯별 검출 백엔드(T10a). 'yolo'=ultralytics(.pt, AGPL) / 'rfdetr'=RF-DETR(Apache-2.0).
   #   기본은 yolo(생략 시). person 은 RF-DETR 로 이관(COCO 사전학습, mAP@50 raw 93.9%·33.8ms).
   #   T10b: ppe·fire_smoke·forklift 전부 RF-DETR 이관 완료(배포 ultralytics 잔존 0 → A-4).
-  # ★[학원 프로파일] forklift 만 yolo(boda_ax) — G1 대결 채택(RF-DETR F-7 부적격·재현율 2.8%).
-  #   나머지 슬롯은 전역과 동일(rfdetr). ⚠yolo 경로는 ultralytics(AGPL) 설치 필요.
-  backend: {person: rfdetr, ppe: rfdetr, fire_smoke: rfdetr, forklift: yolo}
+  # ★[학원 프로파일, 2026-09-26 교체] forklift 도 rfdetr — AI Hub 510 스모크 파인튜닝 가중치(forklift_rfdetr_fk510_smoke.pth).
+  #   근거 [실측]: 8/27 학원 9장면 929프레임 대본 기준 검출률 95.7%(boda_ax 97.7%, -2.0%p ≤ 기준 -3%p) · 4ch 2fps 벤치 age p95 0.5s ·
+  #   경보 p95 0.14s · CPU 35% (docs/model/forklift_finetune_smoke_20260926.md §3-1). 이로써 학원 배포의 AGPL(ultralytics) 의존이 없어진다.
+  #   되돌리려면 backend.forklift 를 yolo 로, 아래 detectors 에 {id: forklift, model: vigent-core/weights/forklift_boda_ax.pt, fallback: none} 를 되살린다.
+  #   (구: forklift 만 yolo(boda_ax) — G1 대결 채택. RF-DETR v1 은 F-7 부적격이었다.)
+  backend: {person: rfdetr, ppe: rfdetr, fire_smoke: rfdetr, forklift: rfdetr}
   # rfdetr 백엔드 커스텀 파인튜닝 가중치(T10b). person 은 COCO 사전학습이라 항목 없음.
   #   forklift: LOCO 학습(T10b Phase1). box mAP@50 8.83%(YOLO 7.61 초과) — 단 confidence 낮아 운용점 tuning.yaml 참조.
   #   fire_smoke: D-Fire 학습(Colab e17 best_ema). D-Fire test 395 box mAP@50 80.13%(게이트≥60 통과), presence 게이트도 통과.
@@ -29,7 +32,7 @@ perception:                       # ── Guard (감지)
   #     배포본) 자체의 로컬 재측정치는 아직 없다(모른다, 규칙7). 운용점 tuning.yaml ppe.
   #   되돌리려면 backend 해당 슬롯을 yolo 로, tuning.yaml 임계를 원복(forklift 0.68 / fire 0.03·smoke 0.20 / ppe 0.62 이전 YOLO값)한다.
   rfdetr_weights:
-    forklift: vigent-core/weights/forklift_rfdetr_v1.pth
+    forklift: vigent-core/weights/forklift_rfdetr_fk510_smoke.pth   # ★2026-09-26: v1(NaN 학습) → 510 스모크 파인튜닝(SHA b409c98d…, provenance §9-7)
     fire_smoke: vigent-core/weights/fire_smoke_rfdetr_v1_e17.pth
     ppe: vigent-core/weights/ppe_rfdetr_v1.pth
   detectors:
@@ -39,8 +42,7 @@ perception:                       # ── Guard (감지)
     #   (guard.py `_get_model` rfdetr 분기는 _slot_path 를 안 본다). 전역 vision.yaml 과
     #   동일하게 주석 처리 — 기록은 보존한다. 되살리려면 backend.person 을 yolo 로 바꾸면서
     #   **반드시 이 줄의 주석도 함께 풀어야 한다**(안 그러면 person 검출이 조용히 죽는다).
-    #   ★★forklift 는 다르다 — 학원은 backend.forklift=yolo 라 **아래 forklift 항목이
-    #     반드시 살아 있어야 한다.** 지우면 지게차 검출이 통째로 죽는다.
+    #   (2026-09-26 이전에는 forklift 만 yolo 라 아래 forklift 항목이 필수였다 — 지금은 rfdetr 로 교체돼 항목을 뺐다.)
     # - {id: person, model: vigent-core/weights/yolo11m.pt, fallback: vigent-core/weights/yolo11s.pt, classes: [person]}
     # PPE: 25클래스 주력 모델. 안전모·조끼·마스크 착용/미착용 직접 감지 + 차량·중장비.
     #   라벨은 공백형으로 출력(Safety Vest 등) → guard.py 가 표준형(Safety-Vest)으로 정규화.
@@ -51,8 +53,8 @@ perception:                       # ── Guard (감지)
        classes: [Hardhat, NO-Hardhat, Safety-Vest, NO-Safety-Vest, Mask, NO-Mask]}
     # 화재/연기: fire_smoke_boda(Fire/smoke 2종, smoke mAP 0.896). 폴백은 HSV 색공간 휴리스틱
     - {id: fire_smoke, model: vigent-core/weights/fire_smoke_boda.pt, fallback: hsv_heuristic}
-    # 지게차/중장비: 폴백 없음(모델 없으면 해당 기능만 비활성, 나머지는 정상)
-    - {id: forklift, model: vigent-core/weights/forklift_boda_ax.pt, fallback: none}
+    # 지게차/중장비: ★2026-09-26 학원 프로파일에서 boda_ax(YOLO, AGPL) 제거 — rfdetr 백엔드가 rfdetr_weights.forklift 를 쓴다.
+    #   (구: - {id: forklift, model: vigent-core/weights/forklift_boda_ax.pt, fallback: none})
   # [정직화] pose 슬롯은 '정보성' — vision_loader 는 detector 슬롯(person/ppe/fire_smoke/forklift)만
   #   모델로딩에 소비하고 pose 는 소비하지 않는다(guard.py). 실제 포즈 동작:
   #     · 백엔드(근골격) = worker.py 가 weights/yolov8n-pose.pt 를 직접 로드(하드코딩)
