@@ -72,7 +72,7 @@ def eval_510(items: list[tuple[Any, list[list[float]]]], predict: Callable[[Any]
         else:
             neg += 1; neg_fa += int(mc >= op_conf); neg_fa03 += int(mc >= 0.3)
     r = lambda k, n: round(k / n * 100, 1) if n else None  # noqa: E731
-    w = lambda k, n: [round(x * 100, 1) for x in wilson(k, n)] if n else None  # noqa: E731
+    w = lambda k, n: list(wilson(k, n)) if n else None  # noqa: E731 — wilson 은 이미 % 단위
     return {"images": len(items), "gt": n_gt, "ap50": round(ap50(scored, n_gt) * 100, 1) if n_gt else None,
             "op_conf": op_conf, "tp": tp, "fp": fp, "fn": fn,
             "precision": r(tp, tp + fp), "precision_ci95": w(tp, tp + fp), "recall": r(tp, tp + fn), "recall_ci95": w(tp, tp + fn),
@@ -213,10 +213,21 @@ def load_model(weights: str, res: int):
         m = RFDETR.from_checkpoint(weights, resolution=res)
     from aihub_smoke_eval import class_names_of
     cn = class_names_of(m)
-    ids = {k for k, v in cn.items() if str(v) == "forklift"}
+    ids = resolve_forklift_ids(cn)
+    print(f"[model] class_names {cn} → forklift 로 볼 predict class_id: {'전부(단일 클래스)' if ids is None else sorted(ids)}")
+    return m, ids
+
+
+def resolve_forklift_ids(cn: dict[int, str]) -> set[int] | None:
+    """predict 의 class_id 중 forklift 로 셀 것. 단일 클래스 가중치(v1: class_names ['forklift'] 인데 predict 는 id 1 을 낸다 —
+    2026-09-26 실측)는 id 와 무관하게 전부(None). 다중 클래스는 class_names 인덱스로 고른다(★재학습 산출물은 첫 평가 때 표본으로 id 규약을 확인할 것)."""
+    names = {str(v) for v in cn.values()}
+    if len(names) == 1:
+        return None
+    ids = {int(k) for k, v in cn.items() if str(v) == "forklift"}
     if not ids:
         raise SystemExit(f"★가중치에 forklift 클래스가 없다: {cn}")
-    return m, ids
+    return ids
 
 
 def main() -> int:
@@ -236,7 +247,7 @@ def main() -> int:
 
     def predict_pil(im) -> list[tuple[list[float], float]]:
         det = model.predict(im, threshold=0.001)
-        return [([float(v) for v in box], float(c)) for box, cid, c in zip(det.xyxy, det.class_id, det.confidence) if int(cid) in ids]
+        return [([float(v) for v in box], float(c)) for box, cid, c in zip(det.xyxy, det.class_id, det.confidence) if ids is None or int(cid) in ids]
 
     result: dict[str, Any] = {"date": time.strftime("%Y-%m-%d %H:%M"), "weights": a.weights, "label": label, "res": a.res, "goals": GOALS_FK}
     labels, images, split = Path(a.s510_labels), Path(a.s510_images), Path(a.s510_split)

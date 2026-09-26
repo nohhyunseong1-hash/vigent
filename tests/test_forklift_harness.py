@@ -51,6 +51,12 @@ class Eval510Test(unittest.TestCase):
         md2 = H.render(cand, cand, "x")
         self.assertNotIn("--write-baseline", md2)
 
+    def test_resolve_forklift_ids(self):
+        self.assertIsNone(H.resolve_forklift_ids({0: "forklift"}))                    # v1: 단일 클래스인데 predict 는 id 1 → 전부
+        self.assertEqual(H.resolve_forklift_ids({0: "person", 1: "forklift"}), {1})
+        with self.assertRaises(SystemExit):
+            H.resolve_forklift_ids({0: "person", 1: "truck"})
+
     def test_field_agreement(self):
         frames = [("a", [[0, 0, 100, 100]]), ("b", [[0, 0, 100, 100]]), ("c", [])]
         preds = {"a": [([0, 0, 100, 100], 0.9)], "b": [([500, 500, 600, 600], 0.95), ([1, 1, 99, 99], 0.2)], "c": [([0, 0, 9, 9], 0.7)]}
