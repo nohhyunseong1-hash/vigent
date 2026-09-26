@@ -781,6 +781,12 @@
 
 ## B-finetune. 검출기 파인튜닝 착수 기준 (2026-09-22, 기록만)
 
+> ★**2026-09-26 우선순위 변경(대표 결정)**: **1순위 = forklift(AI Hub 510)** · 2순위 = NO-Hardhat(507). 근거: Apache 스택에 작동하는 지게차 검출기가
+> 없고(`forklift_rfdetr_v1` 은 학원 영상에서도 국소화 0% — `docs/model/ppe_rfdetr_v1_provenance.md` §9-4), 작동하는 `forklift_boda_ax` 는 AGPL 이라
+> B2G 불가, 근접 규칙(high)이 이 슬롯에 의존. forklift 목표(§9-7): **510 held-out(장소 단위) AP50 ≥ 70% · 지게차 없는 이미지 conf≥0.5 오탐 ≤ 1%/장**.
+> 판정 도구 `scripts/eval/forklift_compare_harness.py`(전(v1)/후/참고 boda_ax). 학습 전 필수 장치(NaN 감시·seed·메타 기록·CUDA 강제)는
+> `scripts/train/finetune_rfdetr.py` 에 구현·테스트됨. 아래 PPE 기준(현장 정답지·40px)은 2순위 PPE 에 그대로 적용.
+
 - **착수 조건**: **재방문 정답지**에서 검출기 재현율(**입력 40px 이상 박스 기준**)이
   목표 미달로 확인될 때만 착수한다. 지금은 착수하지 않는다.
   · 40px 미만을 빼는 이유: 그 구간은 **입력 해상도 문제**일 수 있어 학습이 아니라

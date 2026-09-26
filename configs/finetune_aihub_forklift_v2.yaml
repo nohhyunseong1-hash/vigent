@@ -1,0 +1,17 @@
+# scripts/train/finetune_rfdetr.py 조립 설정 — ★재학습 1순위 forklift(510) (2026-09-26 대표 결정). 실행은 대표 승인 뒤(스모크 1회, 510 5,000장 이내).
+# 근거: Apache 스택에 작동하는 지게차 검출기가 없다(v1 = NaN 학습·질감 있는 사진마다 conf 0.9 난사, provenance §9).
+#       작동하는 forklift_boda_ax 는 AGPL 이라 B2G 배포 불가. 근접 규칙(high)이 이 슬롯에 의존.
+classes: [person, forklift]   # ★단일 클래스(num_classes=1)는 v1 NaN 발산 가설(salvage §3-2, 미확정) — person 을 같이 넣어 2클래스로 학습. 평가는 forklift 만(하네스)
+harness: forklift             # 학습 후 scripts/eval/forklift_compare_harness.py 자동 호출(전(v1)/후 + 목표 판정)
+init: coco                    # v1 은 발산 가중치라 시작점으로 쓰지 않는다 → COCO rf-detr-nano 부터
+max_train: 5000               # 스모크 파인튜닝 상한(대표 승인 범위) — 시드로 결정적 추림
+sources:
+  - name: aihub_510
+    kind: vigent
+    labels: D:/vigent_private_data/aihub/vigent_510/labels          # scripts/data/aihub_to_vigent.py --dataset 510 (장소ID 단위 8:2)
+    images: D:/vigent_private_data/aihub/_inspect/510_src           # VS_03(있음) + VS_07_지게차(다운로드 승인, 수신 후 압축 해제)
+    split: D:/vigent_private_data/aihub/vigent_510/split.json
+harness_args:
+  s510_labels: D:/vigent_private_data/aihub/vigent_510/labels
+  s510_images: D:/vigent_private_data/aihub/_inspect/510_src
+  s510_split: D:/vigent_private_data/aihub/vigent_510/split.json

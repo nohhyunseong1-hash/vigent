@@ -289,3 +289,19 @@
 | **97.7%** (908/929) | 학원 프로파일 **YOLO `forklift_boda_ax`** @0.50, 장면 대본 대비, 2026-08-27 단일 세션 | "`forklift_rfdetr_v1` 의 값이 아님 · 장면 대본 기준 · 카운터밸런스 한정" — 단서 적용처: `benchmarks/field_academy_2026-08-27.md` · `reports/현장테스트_보고서_20260827*.md` · `reports/_template.html` · `docs/onboarding/01·04` · `docs/사업계획서_VIGENT_초안.md:45,142,275` · `scripts/fill_business_plan.py` · `docs/review/ALGORITHM_TRUTH_20260926.md` |
 | 99.1% | 같은 YOLO, `forklift_test.mp4` 320프레임(학원 유사) | 이미 "카운터밸런스 한정" 표기 있음(`proposal_base` Q4) |
 | 8.83% / 8.5% | `forklift_rfdetr_v1` LOCO 자기 검증(2026-07-04) | 오늘 재측정으로 **"국소화 0%"** 를 병기 |
+
+### 9-7. 재학습 우선순위 변경 + forklift 목표 선언 (2026-09-26 대표 결정)
+
+**우선순위**: **1순위 = forklift(510)** · 2순위 = NO-Hardhat(507, §8). 근거: Apache 스택에 작동하는 지게차 검출기가 없다(v1 = NaN 학습·아무 데나 0.9 박스, §9-4). 작동하는 `forklift_boda_ax` 는 **AGPL** 이라 B2G 배포 불가. 근접 규칙(`proximity_hazard`, high)이 이 슬롯에 의존한다.
+
+| 평가 집합 | 목표 | 현재(v1, "전") | 성격 |
+|---|---|---|---|
+| **510 held-out**(장소 단위 val, `aihub_to_vigent.py --dataset 510`, 판정 집합) | **AP50 ≥ 70%** · **지게차 없는 이미지에서 conf≥0.5 오탐 ≤ 1%/장** | 같은 집합 기준선은 `forklift_compare_harness.py --write-baseline` 으로 잰다(미측정). 스모크(VS_03 2,543장) 기준 AP50 0.0 · 음성 91.4% [참고] | 판정 |
+| 8/27 학원 overlay 956프레임 | 목표 없음 — 현장 YOLO 박스와 IoU≥0.5 일치율·≥1박스 비율을 나란히 | 일치 0.0% @0.5 / 0.5% @0.1 (§9-4) | **참고**(정답 = 대본·원본 미보존) |
+| 참고 열 | `forklift_boda_ax` YOLO 대본 대비 97.7% · present 98.1% | — | **후보 아님**(AGPL) |
+
+- 판정 도구: `scripts/eval/forklift_compare_harness.py --weights <새 가중치> --label <이름>` — 전(v1)/후/참고 세 행 + 목표 달성/미달/미측정. 학습 스크립트가 `harness: forklift` 설정이면 자동 호출.
+- 학습 전 필수(구현 완료·테스트 `tests/test_finetune_guards.py`): NaN 감시(손실·지표 NaN/inf 시 즉시 중단, 직전 체크포인트 보존) · seed 고정 · `resolution`·`seed`·args 전부를 체크포인트 `args.notes` 에 기록하고 학습 뒤 검증 · CUDA 강제(MPS 금지).
+- 설정: `configs/finetune_aihub_forklift_v2.yaml` — 클래스 `[person, forklift]`(단일 클래스 NaN 가설 회피), 시작점 COCO nano(v1 은 발산 가중치), `max_train: 5000`(스모크 1회 상한, 대표 승인 범위).
+- ★의존성: rfdetr 1.8 `train()` 은 pytorch_lightning 이 필요한데 **개발기 .venv 에 없다**(2026-09-26 확인). 설치(`pip install "rfdetr[train,loggers]"`)는 대표 승인 뒤.
+- 순서(다운로드 완료 후): A-4 재실행(forklift·NO-Hardhat) → A-5 `--dry-run` → forklift 스모크 파인튜닝 1회(승인) → 결과 표 → 그 다음 PPE.

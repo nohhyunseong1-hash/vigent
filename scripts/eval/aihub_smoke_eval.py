@@ -65,8 +65,9 @@ def load_model(kind: str, res: int):
     return m, dev
 
 
-def gt_from_aihub(dataset: str, labels_root: Path, images_root: Path, hardhat_ratio: float | None):
-    """이미지가 있는 stem 만 골라 (이미지경로, [(클래스명, [x1,y1,x2,y2] px)]) 목록을 만든다."""
+def gt_from_aihub(dataset: str, labels_root: Path, images_root: Path, hardhat_ratio: float | None = None):
+    """이미지가 있는 stem 만 골라 (이미지경로, [(클래스명, [x1,y1,x2,y2] px)]) 목록을 만든다.
+    ★hardhat_ratio 는 2026-09-26 파생 Hardhat 폐기로 무시된다(호환용 인자)."""
     imgs = {p.stem: p for p in images_root.rglob("*.jpg")}
     out = []
     for p in labels_root.rglob("*.json"):
@@ -75,7 +76,7 @@ def gt_from_aihub(dataset: str, labels_root: Path, images_root: Path, hardhat_ra
         fr = A.parse_frame(json.loads(p.read_text(encoding="utf-8")), dataset)
         W, H = fr["width"], fr["height"]
         boxes = []
-        for b in A.convert_frame(fr, dataset, hardhat_ratio, defaultdict(int)):
+        for b in A.convert_frame(fr, dataset, defaultdict(int)):
             cx, cy, w, h = b["box"]
             boxes.append((A.CLASSES[b["cls"]], [(cx - w / 2) * W, (cy - h / 2) * H, (cx + w / 2) * W, (cy + h / 2) * H], b["derived"]))
         out.append((imgs[p.stem], boxes))
@@ -124,7 +125,7 @@ def main() -> int:
     ap.add_argument("--s507-images", default=""); ap.add_argument("--s507-labels", default="")
     ap.add_argument("--res", type=int, default=384); ap.add_argument("--iou", type=float, default=0.5)
     ap.add_argument("--limit", type=int, default=0, help="시험용: 집합당 앞 N장")
-    ap.add_argument("--hardhat-from-wo01", type=float, default=0.17, help="507 Hardhat GT 파생 비율([추정])")
+    ap.add_argument("--hardhat-from-wo01", type=float, default=0.0, help="(폐기, 2026-09-26) 파생 Hardhat GT 는 더 만들지 않는다 — 인자는 무시")
     a = ap.parse_args()
     import yaml
     tun = yaml.safe_load((_ROOT / "config" / "tuning.yaml").read_text(encoding="utf-8"))
@@ -147,9 +148,9 @@ def main() -> int:
         print(json.dumps({"person": r_person["rows"], "forklift": r_fork["rows"]}, ensure_ascii=False, indent=1))
 
     if a.s507_images:
-        items = gt_from_aihub("507", Path(a.s507_labels), Path(a.s507_images), a.hardhat_from_wo01)
+        items = gt_from_aihub("507", Path(a.s507_labels), Path(a.s507_images))
         if a.limit: items = items[: a.limit]
-        print(f"[507 개구부 샘플] 이미지+라벨 {len(items)}장 (Hardhat GT = WO-01 상단 {a.hardhat_from_wo01:.2f} 파생 [추정])")
+        print(f"[507 개구부 샘플] 이미지+라벨 {len(items)}장 (Hardhat GT 없음 — 파생 폐기(2026-09-26). Hardhat 행은 오탐 수만 의미)")
         m, dev = load_model("ppe", a.res)
         cn = class_names_of(m)
         print(f"  ppe 모델 class_names: {cn}")
@@ -160,7 +161,7 @@ def main() -> int:
         pcn = class_names_of(mp, coco=True)
         r_person = evaluate(items, mp, lambda cid: "person" if pcn.get(cid, "").lower() == "person" else None, {"person": thr["person"]}, a.iou)
         r_ppe["rows"]["NO-Hardhat"]["note"] = "측정 불가 — 507 미착용(공통 폴더) 원본 이미지 미수신(VS_03_공통 15GB). GT 0 이면 FP 만 센 것"
-        r_ppe["rows"]["Hardhat"]["note"] = "GT 는 WO-01 상단 17% 파생 [추정] — 라벨 규칙이 보장하는 값이 아니다"
+        r_ppe["rows"]["Hardhat"]["note"] = "GT 없음(파생 Hardhat 2026-09-26 폐기) — 이 행은 검출 수(=오탐으로 집계)만 의미. Hardhat 양성은 pseudo_hardhat.py 준라벨로"
         result["sets"]["507_개구부_샘플"] = {"device": dev, "ppe_model": "ppe_rfdetr_v1.pth", "person_model": "rf-detr-nano COCO",
                                           "ppe": r_ppe, "person": r_person}
         print(json.dumps({"ppe": r_ppe["rows"], "person": r_person["rows"]}, ensure_ascii=False, indent=1))

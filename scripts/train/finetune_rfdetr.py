@@ -1,34 +1,35 @@
 #!/usr/bin/env python3
-"""scripts/train/finetune_rfdetr.py — PPE RF-DETR Nano 재학습(개발기 RTX 5070 Ti 로컬) + 학습 후 비교 하네스 자동 호출. [A-5, 2026-09-26]
+"""scripts/train/finetune_rfdetr.py — RF-DETR Nano 재학습(개발기 RTX 5070 Ti 로컬) + 학습 후 비교 하네스 자동 호출. [A-5, 2026-09-26]
 
-★★ 실행 금지 상태(대표 지시): 이 스크립트는 작성만 됐고 한 번도 돌리지 않았다. `--dry-run` 만 허용.
-   실제 학습은 대표 승인 뒤 — 그때도 아래 순서를 지킨다: 데이터 조립 검증 → 학습 → 하네스(전/후 비교) → 현장 정답지 판정.
+★★ 실행 금지 상태(대표 지시): 한 번도 돌리지 않았다. `--dry-run` 만 허용.
+   실제 학습은 대표 승인 뒤 — 순서: 데이터 조립 검증 → 학습 → 하네스(전/후 비교) → (PPE 는) 현장 정답지 판정.
+   ★우선순위(2026-09-26): 1순위 forklift(510, `configs/finetune_aihub_forklift_v2.yaml`) · 2순위 NO-Hardhat(507, `configs/finetune_aihub_v2.yaml`).
 
 무엇을 하는가
   1. 데이터 조립: 소스(우리 정답지 스키마 = labels/*.txt + images + split.json) 여러 개를 COCO 형식
      `out/dataset/{train,valid,test}/_annotations.coco.json` 으로 합친다(rfdetr 가 이 형식을 읽는다).
-       · CSS v27(YOLO, data.yaml) · AI Hub 507/510 변환본(scripts/data/aihub_to_vigent.py 출력) · (나중에) 현장 정답지
-       · **held-out 91장(benchmarks/results/v1_heldout_eval.json 의 heldout_files)은 어느 분할에도 넣지 않는다** — 하네스 "전/후" 비교 집합
-       · 클래스는 config 의 `classes`(기본 person·Hardhat·NO-Hardhat·Safety-Vest·NO-Safety-Vest, Mask 제외)
-  2. 학습: RFDETRNano(pretrain_weights=현 v1 또는 COCO nano).train(...) — 시드 고정, 체크포인트, resume.
-  3. 학습 후: `scripts/eval/eval_v1_heldout.py --weights <best> --label <tag> [--dev74]` 자동 호출 → 전(v1)/후 비교표.
-     현장 정답지는 하네스가 "미확보" 로 찍는다.
+       · CSS v27(YOLO, data.yaml) · AI Hub 507/510 변환본 · pseudo_hardhat 준라벨 · (나중에) 현장 정답지
+       · `exclude_files` 의 held-out stem 은 어느 분할에도 넣지 않는다 — 하네스 "전/후" 비교 집합
+       · `max_train` 이 있으면 train 을 시드로 결정적 추림(스모크 파인튜닝 상한)
+  2. 학습: RFDETRNano(...).train(...) — **v1 사고 재발 방지 장치**(provenance §9-2·§9-5: MPS·loss NaN 49 epoch 완주·seed 없음·resolution 미기록):
+       · NaN 감시: 배치 손실 또는 epoch 지표에 NaN/inf 가 나오면 **즉시 중단**(`NAN_ABORT.json` 기록). 직전 epoch 체크포인트(`last.ckpt`/`checkpoint_*.pth`)는 그대로 남는다
+       · seed 고정(random·numpy·torch·lightning) + `train(seed=)`
+       · `notes` 로 **resolution·seed·args 전부**를 체크포인트 `args.notes` 에 기록하고, 학습 뒤 체크포인트를 열어 **기록됐는지·NaN 텐서가 없는지 확인**(규칙 11)
+       · CUDA 가 아니면 시작하지 않는다(`--allow-cpu` 로만 우회)
+  3. 학습 후: config `harness`(ppe|forklift)에 따라 `scripts/eval/eval_v1_heldout.py` 또는 `scripts/eval/forklift_compare_harness.py` 자동 호출.
 
 사용:
-    python scripts/train/finetune_rfdetr.py --config configs/finetune_aihub_v2.yaml --dry-run    # 조립·계획만
-    python scripts/train/finetune_rfdetr.py --config ... --epochs 30 --lr 1e-4 --out runs/finetune/aihub_v2  (★승인 후)
-config 예:
-    classes: [person, Hardhat, NO-Hardhat, Safety-Vest, NO-Safety-Vest]
-    sources:
-      - {name: css_v27, kind: yolo_yaml, path: data/datasets/css_safety/data.yaml, splits: {train: train, valid: valid}}
-      - {name: aihub_507, kind: vigent, labels: D:/.../vigent_507/labels, images: D:/.../507_src, split: D:/.../vigent_507/split.json}
-    exclude_files: benchmarks/results/v1_heldout_eval.json   # heldout_files 제외
+    python scripts/train/finetune_rfdetr.py --config configs/finetune_aihub_forklift_v2.yaml --dry-run    # 조립·계획만
+    python scripts/train/finetune_rfdetr.py --config configs/finetune_aihub_forklift_v2.yaml --epochs 20 --out runs/finetune/fk_510  (★승인 후)
+★학습 의존성: rfdetr 1.8 의 train() 은 pytorch_lightning 이 필요하다(`pip install "rfdetr[train,loggers]"`) — 2026-09-26 현재 .venv 에 **없음**. 설치는 대표 승인 뒤.
 """
 from __future__ import annotations
 
 import argparse
 import json
+import math
 import os
+import platform
 import random
 import shutil
 import subprocess
@@ -36,15 +37,20 @@ import sys
 import time
 from collections import Counter
 from pathlib import Path
-from typing import Any
+from typing import Any, Callable
 
 _ROOT = Path(__file__).resolve().parent.parent.parent
 if hasattr(sys.stdout, "reconfigure"):
     sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 
 IMG_EXTS = (".jpg", ".jpeg", ".png")
+NOTES_REQUIRED = ("resolution", "seed", "epochs", "batch", "grad_accum", "lr", "init", "classes", "config", "git_commit",
+                  "rfdetr_version", "torch_version", "host", "timestamp", "assembly", "script")
 
 
+# ---------------------------------------------------------------------------------------------------------------------
+# 데이터 조립
+# ---------------------------------------------------------------------------------------------------------------------
 def _img_size(p: Path) -> tuple[int, int]:
     from PIL import Image
     with Image.open(p) as im:
@@ -85,12 +91,22 @@ def collect_source(src: dict[str, Any], classes: list[str]) -> dict[str, list[tu
         idx = {p.stem: p for p in images.rglob("*") if p.suffix.lower() in IMG_EXTS}
         sp = json.loads(Path(src["split"]).read_text(encoding="utf-8"))
         for split, key in (("train", "train"), ("valid", "val")):
-            for stem in sp[key]:
+            for stem in sp.get(key, []):
                 if stem in idx:
-                    out[split].append((idx[stem], _read_yolo(labels / f"{stem}.txt", names, classes)))
+                    lb = labels / f"{stem}.txt"
+                    out[split].append((idx[stem], _read_yolo(lb, names, classes) if lb.exists() else []))
     else:
         raise ValueError(f"알 수 없는 kind: {kind}")
     return out
+
+
+def subsample(items: list, max_n: int | None, seed: int) -> list:
+    """train 상한(스모크 파인튜닝) — 시드로 결정적. max_n 이 없거나 크면 그대로."""
+    if not max_n or len(items) <= max_n:
+        return list(items)
+    rnd = random.Random(seed)
+    idx = sorted(rnd.sample(range(len(items)), max_n))
+    return [items[i] for i in idx]
 
 
 def build_coco(items: list[tuple[Path, list]], classes: list[str], dst: Path, copy: bool) -> dict[str, Any]:
@@ -110,12 +126,12 @@ def build_coco(items: list[tuple[Path, list]], classes: list[str], dst: Path, co
                          "area": round(w * W * h * H, 2), "iscrowd": 0})
             stats[classes[cls]] += 1
     coco = {"images": images, "annotations": anns,
-            "categories": [{"id": i + 1, "name": c, "supercategory": "ppe"} for i, c in enumerate(classes)]}
+            "categories": [{"id": i + 1, "name": c, "supercategory": "vigent"} for i, c in enumerate(classes)]}
     (dst / "_annotations.coco.json").write_text(json.dumps(coco, ensure_ascii=False), encoding="utf-8")
     return {"images": len(images), "boxes": len(anns), "per_class": dict(stats)}
 
 
-def assemble(cfg: dict[str, Any], out: Path, copy: bool) -> dict[str, Any]:
+def assemble(cfg: dict[str, Any], out: Path, copy: bool, seed: int = 0, max_train: int | None = None) -> dict[str, Any]:
     classes = cfg["classes"]
     exclude = set()
     ex = cfg.get("exclude_files")
@@ -138,6 +154,9 @@ def assemble(cfg: dict[str, Any], out: Path, copy: bool) -> dict[str, Any]:
     ts = {i.stem for i, _ in merged["train"]}; vs = {i.stem for i, _ in merged["valid"]}
     if ts & vs:
         raise SystemExit(f"★누출: train·valid 양쪽에 같은 stem {len(ts & vs)}개 — 조립 중단")
+    n_before = len(merged["train"])
+    merged["train"] = subsample(merged["train"], max_train or cfg.get("max_train"), seed)
+    report["train_subsampled"] = {"before": n_before, "after": len(merged["train"])}
     for split, items in merged.items():
         report[split] = build_coco(items, classes, out / "dataset" / split, copy)
     # rfdetr 는 test 폴더도 기대한다 — valid 를 그대로 복제(기준선 판정은 하네스가 별도로 한다)
@@ -145,36 +164,232 @@ def assemble(cfg: dict[str, Any], out: Path, copy: bool) -> dict[str, Any]:
     return report
 
 
+# ---------------------------------------------------------------------------------------------------------------------
+# v1 사고 재발 방지 장치: NaN 감시 · seed · 메타 기록·확인 · CUDA 강제
+# ---------------------------------------------------------------------------------------------------------------------
+class NanAbort(RuntimeError):
+    """손실/지표에 NaN·inf — 학습을 즉시 중단한다(49 epoch 완주 사고 방지)."""
+
+
+def _nonfinite(v: Any) -> bool:
+    try:
+        if hasattr(v, "isfinite") and hasattr(v, "numel"):       # torch.Tensor
+            return bool((~v.detach().isfinite()).any().item()) if v.numel() else False
+        if isinstance(v, bool):
+            return False
+        if isinstance(v, (int, float)):
+            return not math.isfinite(v)
+        if hasattr(v, "item"):                                    # numpy scalar
+            return not math.isfinite(float(v.item()))
+    except Exception:  # noqa: BLE001
+        return False
+    return False
+
+
+def first_nonfinite(values: dict[str, Any]) -> str | None:
+    """{이름: 값} 에서 처음 발견한 NaN/inf 이름. 없으면 None."""
+    for k, v in values.items():
+        if _nonfinite(v):
+            return str(k)
+    return None
+
+
+def outputs_to_map(outputs: Any) -> dict[str, Any]:
+    if outputs is None:
+        return {}
+    if isinstance(outputs, dict):
+        return {str(k): v for k, v in outputs.items()}
+    return {"loss": outputs}
+
+
+class NanGuardCore:
+    """프레임워크 무관 핵심: 검사 → 기록 → 예외. PTL 콜백(NanGuard)이 이를 감싼다."""
+
+    def __init__(self, output_dir: Path | str):
+        self.output_dir = Path(output_dir)
+        self.abort_file = self.output_dir / "NAN_ABORT.json"
+
+    def _abort(self, where: str, name: str) -> None:
+        self.output_dir.mkdir(parents=True, exist_ok=True)
+        info = {"where": where, "metric": name, "time": time.strftime("%Y-%m-%d %H:%M:%S"),
+                "note": "손실/지표 NaN·inf → 즉시 중단. 직전 epoch 체크포인트는 보존됨(v1 사고: epoch 1 NaN 뒤 49 epoch 완주)"}
+        self.abort_file.write_text(json.dumps(info, ensure_ascii=False, indent=1), encoding="utf-8")
+        raise NanAbort(f"★NaN/inf {where} ({name}) — 학습 중단, {self.abort_file}")
+
+    def check_batch(self, outputs: Any, epoch: int, batch_idx: int) -> None:
+        bad = first_nonfinite(outputs_to_map(outputs))
+        if bad:
+            self._abort(f"epoch {epoch} batch {batch_idx}", bad)
+
+    def check_metrics(self, metrics: dict[str, Any], epoch: int) -> None:
+        bad = first_nonfinite(metrics)
+        if bad:
+            self._abort(f"epoch {epoch} 지표", bad)
+
+
+def nan_guard_callback(output_dir: Path | str):
+    """pytorch_lightning.Callback 서브클래스를 런타임에 만든다(테스트·dry-run 에서는 PTL 을 import 하지 않기 위해)."""
+    import pytorch_lightning as pl
+
+    class NanGuard(pl.Callback):
+        def __init__(self) -> None:
+            super().__init__()
+            self.core = NanGuardCore(output_dir)
+
+        def on_train_batch_end(self, trainer, pl_module, outputs, batch, batch_idx) -> None:  # noqa: ANN001
+            try:
+                self.core.check_batch(outputs, int(trainer.current_epoch), int(batch_idx))
+            except NanAbort:
+                trainer.should_stop = True
+                raise
+
+        def on_validation_epoch_end(self, trainer, pl_module) -> None:  # noqa: ANN001
+            try:
+                self.core.check_metrics({k: v for k, v in dict(trainer.callback_metrics).items() if "loss" in str(k)}, int(trainer.current_epoch))
+            except NanAbort:
+                trainer.should_stop = True
+                raise
+
+    return NanGuard()
+
+
+def wrap_build_trainer(orig: Callable[..., Any], guard: Any) -> Callable[..., Any]:
+    """rfdetr.training.build_trainer 를 감싸 Trainer 에 우리 콜백을 덧붙인다(rfdetr 1.8 은 외부 콜백 인자를 받지 않는다)."""
+    def wrapped(*a: Any, **k: Any) -> Any:
+        trainer = orig(*a, **k)
+        trainer.callbacks.append(guard)
+        return trainer
+    wrapped.__wrapped__ = orig  # type: ignore[attr-defined]
+    return wrapped
+
+
+def install_nan_guard(output_dir: Path | str) -> None:
+    import rfdetr.training as RT
+    RT.build_trainer = wrap_build_trainer(RT.build_trainer, nan_guard_callback(output_dir))
+
+
+def set_all_seeds(seed: int) -> dict[str, bool]:
+    done = {"random": True, "numpy": False, "torch": False, "lightning": False}
+    random.seed(seed)
+    try:
+        import numpy as np
+        np.random.seed(seed); done["numpy"] = True
+    except Exception:  # noqa: BLE001
+        pass
+    try:
+        import torch
+        torch.manual_seed(seed); torch.cuda.manual_seed_all(seed); done["torch"] = True
+    except Exception:  # noqa: BLE001
+        pass
+    try:
+        import pytorch_lightning as pl
+        pl.seed_everything(seed, workers=True); done["lightning"] = True
+    except Exception:  # noqa: BLE001
+        pass
+    return done
+
+
+def _git_commit() -> str:
+    try:
+        return subprocess.check_output(["git", "rev-parse", "--short", "HEAD"], cwd=str(_ROOT), text=True).strip()
+    except Exception:  # noqa: BLE001
+        return "unknown"
+
+
+def build_notes(a: argparse.Namespace, cfg: dict[str, Any], rep: dict[str, Any]) -> dict[str, Any]:
+    """체크포인트 args.notes 에 남길 출처 정보 — v1 에 없던 것(resolution·seed·lr·장치·데이터 수량)을 전부 적는다."""
+    try:
+        import rfdetr
+        rf_v = getattr(rfdetr, "__version__", "?")
+    except Exception:  # noqa: BLE001
+        rf_v = "not-installed"
+    try:
+        import torch
+        t_v = torch.__version__; dev = torch.cuda.get_device_name(0) if torch.cuda.is_available() else "cpu"
+    except Exception:  # noqa: BLE001
+        t_v, dev = "not-installed", "?"
+    notes = {"resolution": a.res, "seed": a.seed, "epochs": a.epochs, "batch": a.batch, "grad_accum": a.grad_accum, "lr": a.lr,
+             "init": a.init, "classes": list(cfg["classes"]), "config": str(a.config), "git_commit": _git_commit(),
+             "rfdetr_version": rf_v, "torch_version": t_v, "device": dev, "host": platform.node(), "os": platform.platform(),
+             "timestamp": time.strftime("%Y-%m-%d %H:%M:%S"), "assembly": rep, "script": "scripts/train/finetune_rfdetr.py",
+             "harness": cfg.get("harness", "ppe"), "max_train": a.max_train or cfg.get("max_train")}
+    json.dumps(notes)   # 직렬화 가능해야 rfdetr 가 저장한다
+    return notes
+
+
+def _state_dict_of(ck: dict[str, Any]) -> dict[str, Any]:
+    for k in ("state_dict", "model", "ema_model", "model_ema"):
+        v = ck.get(k)
+        if isinstance(v, dict) and v:
+            return v
+    return {}
+
+
+def verify_checkpoint(path: Path | str, expect_res: int, expect_seed: int) -> list[str]:
+    """학습 산출물 검증(규칙 11): notes 필수 키·resolution/seed 일치·NaN 텐서 0. 문제 목록을 돌려준다(빈 목록 = 통과)."""
+    import torch
+    problems: list[str] = []
+    ck = torch.load(str(path), map_location="cpu", weights_only=False)
+    args = ck.get("args") or {}
+    if hasattr(args, "__dict__") and not isinstance(args, dict):
+        args = vars(args)
+    notes = args.get("notes") if isinstance(args, dict) else None
+    if not isinstance(notes, dict):
+        problems.append("args.notes 없음(출처 메타 미기록)")
+    else:
+        missing = [k for k in NOTES_REQUIRED if k not in notes]
+        if missing:
+            problems.append(f"notes 필수 키 누락: {missing}")
+        if notes.get("resolution") != expect_res:
+            problems.append(f"notes.resolution {notes.get('resolution')} ≠ {expect_res}")
+        if notes.get("seed") != expect_seed:
+            problems.append(f"notes.seed {notes.get('seed')} ≠ {expect_seed}")
+    sd = _state_dict_of(ck)
+    if not sd:
+        problems.append("가중치 dict 없음(state_dict/model)")
+    else:
+        bad = [k for k, v in sd.items() if hasattr(v, "isfinite") and v.numel() and not bool(v.isfinite().all())]
+        if bad:
+            problems.append(f"NaN/inf 텐서 {len(bad)}개: {bad[:3]}")
+    return problems
+
+
+def require_cuda(available: bool, allow_cpu: bool = False) -> None:
+    """v1 은 맥 MPS 에서 발산했다(provenance §9-2). CUDA 가 아니면 시작하지 않는다."""
+    if not available and not allow_cpu:
+        raise SystemExit("★CUDA 없음 — 학습을 시작하지 않는다(MPS/CPU 학습 금지, --allow-cpu 로만 우회)")
+
+
+# ---------------------------------------------------------------------------------------------------------------------
 def main() -> int:
     ap = argparse.ArgumentParser()
-    ap.add_argument("--config", required=True, help="조립 설정 yaml(classes·sources·exclude_files)")
+    ap.add_argument("--config", required=True, help="조립 설정 yaml(classes·sources·exclude_files·harness·init·max_train)")
     ap.add_argument("--out", default=str(_ROOT / "runs" / "finetune" / time.strftime("aihub_%Y%m%d_%H%M")))
     ap.add_argument("--epochs", type=int, default=30); ap.add_argument("--batch", type=int, default=8)
     ap.add_argument("--grad-accum", type=int, default=2); ap.add_argument("--lr", type=float, default=1e-4)
     ap.add_argument("--res", type=int, default=384, help="운용 해상도와 같게")
     ap.add_argument("--seed", type=int, default=20260926)
-    ap.add_argument("--init", default=str(_ROOT / "vigent-core" / "weights" / "ppe_rfdetr_v1.pth"), help="시작 가중치(v1) — 'coco' 면 COCO nano")
+    ap.add_argument("--init", default="", help="시작 가중치 경로 또는 'coco'(기본: config init → 없으면 ppe v1)")
+    ap.add_argument("--max-train", type=int, default=0, help="train 상한(0=config max_train 또는 무제한)")
     ap.add_argument("--label", default="", help="하네스 비교표의 '후' 열 이름(기본 out 폴더명)")
-    ap.add_argument("--dev74", action="store_true", help="하네스에서 사고영상 dev 74 도 채점")
+    ap.add_argument("--dev74", action="store_true", help="(ppe 하네스) 사고영상 dev 74 도 채점")
     ap.add_argument("--copy-images", action="store_true", help="이미지를 dataset/ 에 복사(기본은 복사 없이 계획만 — dry-run 용)")
+    ap.add_argument("--allow-cpu", action="store_true", help="(비권장) CUDA 없이도 진행")
     ap.add_argument("--dry-run", action="store_true", help="조립 통계·계획만 출력하고 학습하지 않는다")
     a = ap.parse_args()
     import yaml
     cfg = yaml.safe_load(Path(a.config).read_text(encoding="utf-8"))
+    a.init = a.init or cfg.get("init") or str(_ROOT / "vigent-core" / "weights" / "ppe_rfdetr_v1.pth")
     out = Path(a.out); out.mkdir(parents=True, exist_ok=True)
-    random.seed(a.seed)
-    try:
-        import numpy as np
-        import torch
-        np.random.seed(a.seed)
-        torch.manual_seed(a.seed)
-    except Exception:  # noqa: BLE001
-        pass
+    seeds = set_all_seeds(a.seed)
 
-    rep = assemble(cfg, out, copy=a.copy_images and not a.dry_run)
+    rep = assemble(cfg, out, copy=a.copy_images and not a.dry_run, seed=a.seed, max_train=a.max_train or None)
+    notes = build_notes(a, cfg, rep)
     plan = {"config": a.config, "out": str(out), "epochs": a.epochs, "batch": a.batch, "grad_accum": a.grad_accum, "lr": a.lr,
-            "res": a.res, "seed": a.seed, "init": a.init, "classes": cfg["classes"], "assembly": rep,
-            "note": "held-out 91장은 제외됨(exclude_files) · 학습 후 eval_v1_heldout.py 로 전/후 비교 · 현장 정답지 미확보 → 하네스가 '미확보' 표기"}
+            "res": a.res, "seed": a.seed, "seeds_set": seeds, "init": a.init, "classes": cfg["classes"], "harness": cfg.get("harness", "ppe"),
+            "assembly": rep, "notes_keys": sorted(notes.keys()),
+            "guards": ["NaN 감시(배치 손실·epoch 지표) → 즉시 중단", "seed 고정", "notes(resolution·seed·args) 체크포인트 기록 + 학습 후 검증", "CUDA 강제"],
+            "note": "held-out 은 exclude_files 로 제외 · 학습 후 하네스 자동 호출 · PPE 최종 판정은 현장 정답지(미확보)"}
     (out / "plan.json").write_text(json.dumps(plan, ensure_ascii=False, indent=1), encoding="utf-8")
     print(json.dumps(plan, ensure_ascii=False, indent=1))
     if a.dry_run:
@@ -182,22 +397,40 @@ def main() -> int:
         return 0
 
     # ── 학습(승인 후에만 도달) ──
+    import torch
+    require_cuda(torch.cuda.is_available(), a.allow_cpu)
+    try:
+        import pytorch_lightning  # noqa: F401
+    except ModuleNotFoundError:
+        print('★pytorch_lightning 없음 — rfdetr 1.8 train() 은 `pip install "rfdetr[train,loggers]"` 가 필요하다(설치는 대표 승인 뒤)'); return 2
     from rfdetr import RFDETRNano
+    install_nan_guard(out / "ckpt")
     m = RFDETRNano(resolution=a.res) if a.init == "coco" else RFDETRNano(pretrain_weights=a.init, resolution=a.res)
     t0 = time.time()
-    m.train(dataset_dir=str(out / "dataset"), epochs=a.epochs, batch_size=a.batch, grad_accum_steps=a.grad_accum, lr=a.lr,
-            device="cuda", output_dir=str(out / "ckpt"), tensorboard=False, early_stopping=False, seed=a.seed)
+    try:
+        m.train(dataset_dir=str(out / "dataset"), epochs=a.epochs, batch_size=a.batch, grad_accum_steps=a.grad_accum, lr=a.lr,
+                device="cuda", output_dir=str(out / "ckpt"), tensorboard=False, early_stopping=False, seed=a.seed, notes=notes)
+    except NanAbort as e:
+        print(str(e)); print("★학습 실패(NaN) — 산출물을 하네스에 넘기지 않는다"); return 3
     print(f"[train] done {(time.time() - t0) / 3600:.2f}h → {out / 'ckpt'}")
     best = next(iter(sorted((out / "ckpt").glob("checkpoint_best_total.pth"))), None) or next(iter(sorted((out / "ckpt").glob("checkpoint*.pth"))), None)
     if best is None:
         print("★체크포인트가 없다 — 학습 실패로 본다"); return 1
-    # ── 하네스: 전(v1) / 후 비교 (held-out 91 · dev 74 · 현장 정답지 미확보) ──
-    cmd = [sys.executable, str(_ROOT / "scripts" / "eval" / "eval_v1_heldout.py"), "--weights", str(best), "--label", a.label or out.name]
-    if a.dev74:
-        cmd.append("--dev74")
+    problems = verify_checkpoint(best, a.res, a.seed)
+    if problems:
+        print("★체크포인트 검증 실패:", problems); return 4
+    print(f"[verify] {best.name}: notes 기록·resolution {a.res}·seed {a.seed}·NaN 0 — 통과")
+    # ── 하네스: 전/후 비교 ──
+    if cfg.get("harness", "ppe") == "forklift":
+        cmd = [sys.executable, str(_ROOT / "scripts" / "eval" / "forklift_compare_harness.py"), "--weights", str(best), "--label", a.label or out.name, "--res", str(a.res)]
+        for k, v in (cfg.get("harness_args") or {}).items():
+            cmd += [f"--{k.replace('_', '-')}", str(v)]
+    else:
+        cmd = [sys.executable, str(_ROOT / "scripts" / "eval" / "eval_v1_heldout.py"), "--weights", str(best), "--label", a.label or out.name]
+        if a.dev74:
+            cmd.append("--dev74")
     print("[harness]", " ".join(cmd))
-    rc = subprocess.call(cmd, cwd=str(_ROOT), env={**os.environ})
-    return rc
+    return subprocess.call(cmd, cwd=str(_ROOT), env={**os.environ})
 
 
 if __name__ == "__main__":

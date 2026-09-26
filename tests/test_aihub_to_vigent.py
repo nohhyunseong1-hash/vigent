@@ -2,8 +2,8 @@
 
 ★무엇을 고정하는가
   1. 507: WO-04 → NO-Hardhat(박스 그대로) · UA-04 → person 승격 · WO-01 → person · WO-05 는 제외(집계만).
-     Hardhat 파생은 옵션을 줄 때만 생기고 사이드카에 derived=true 로 표시된다([추정] 규칙).
-  2. 510: WO-01/02 → person · WO-04 → forklift · 폴리곤은 외접 박스. 분할은 영상 단위.
+     ★파생 Hardhat 은 2026-09-26 폐기 — WO-01 에서 Hardhat 이 생기지 않아야 한다(회귀 고정).
+  2. 510: WO-01/02 → person · WO-04 → forklift · 폴리곤은 외접 박스. 분할은 장소ID 단위(기본)·영상 단위(옵션).
   3. 분할 키가 양쪽에 있으면 누출 검사가 잡는다(exit 3) · 축소 증강 라벨 변환이 캔버스 좌표로 옮겨진다.
 """
 from __future__ import annotations
@@ -37,27 +37,23 @@ def _j510(rid: str, seq: int, ann: list[dict]) -> dict:
 
 
 class Convert507Test(unittest.TestCase):
-    def test_mapping_and_derived_hardhat(self):
+    def test_mapping_and_no_derived_hardhat(self):
         fr = A.parse_frame(_j507("H-210825_A03_E_UA-04_101", 1, [
             {"class_id": "WO-04", "box": [100, 200, 60, 60]},        # 머리 박스 → NO-Hardhat
             {"class_id": "UA-04", "box": [80, 200, 100, 360]},       # 전신 → person
             {"class_id": "WO-05", "box": [90, 260, 80, 140]},        # 제외
         ]), "507")
         c = Counter()
-        boxes = A.convert_frame(fr, "507", None, c)
+        boxes = A.convert_frame(fr, "507", c)
         self.assertEqual([b["cls"] for b in boxes], [A.CLASSES.index("NO-Hardhat"), A.CLASSES.index("person")])
         cx, cy, w, h = boxes[0]["box"]
         self.assertAlmostEqual(cx, (100 + 30) / 1920, places=5); self.assertAlmostEqual(h, 60 / 1080, places=5)
         self.assertEqual(c["skip:WO-05"], 1); self.assertFalse(any(b["derived"] for b in boxes))
-        # 시나리오 폴더 WO-01: 옵션 없으면 person 만, 옵션 주면 Hardhat 파생(derived=true, 상단 17%)
+        # 시나리오 폴더 WO-01: person 만 — 파생 Hardhat 은 폐기(2026-09-26)돼 어떤 경로로도 생기지 않는다
         fr2 = A.parse_frame(_j507("H-210717_E01_E_WS-20_101", 3, [{"class_id": "WO-01", "box": [434, 495, 248, 290]}]), "507")
-        only_person = A.convert_frame(fr2, "507", None, Counter())
+        only_person = A.convert_frame(fr2, "507", Counter())
         self.assertEqual([b["cls"] for b in only_person], [0])
-        with_hat = A.convert_frame(fr2, "507", 0.17, Counter())
-        self.assertEqual([b["cls"] for b in with_hat], [0, A.CLASSES.index("Hardhat")])
-        hat = with_hat[1]; self.assertTrue(hat["derived"]); self.assertIn("추정", hat["derive_rule"])
-        self.assertAlmostEqual(hat["box"][3], 290 * 0.17 / 1080, places=5)      # 높이 = 사람 높이의 17%
-        self.assertAlmostEqual(hat["box"][1], (495 + 290 * 0.17 / 2) / 1080, places=5)  # 상단 정렬
+        self.assertFalse(hasattr(A, "head_box"))
 
 
 class Convert510AndSplitTest(unittest.TestCase):
@@ -68,15 +64,16 @@ class Convert510AndSplitTest(unittest.TestCase):
             {"class_id": "WO-04", "type": "polygon", "coord": [[100, 100], [300, 120], [280, 400], [90, 380]]},
             {"class_id": "SO-02", "type": "box", "coord": [0, 0, 5, 5]},
         ]), "510")
-        boxes = A.convert_frame(fr, "510", None, c)
+        boxes = A.convert_frame(fr, "510", c)
         self.assertEqual([b["cls"] for b in boxes], [0, A.CLASSES.index("forklift")])
         fx, fy, fw, fh = boxes[1]["box"]
         self.assertAlmostEqual(fw, (300 - 90) / 1920, places=5); self.assertAlmostEqual(fh, (400 - 100) / 1080, places=5)
         self.assertEqual(c["skip:SO-02"], 1)
-        # 영상 단위 분할: 영상 5편 × 4프레임 → val 은 영상 단위로만 떨어진다
+        # 영상 단위 분할(옵션): 영상 5편 × 4프레임 → val 은 영상 단위로만 떨어진다
         frames = [{"stem": f"v{v}_{i}", "video": f"v{v}", "location_id": "G03"} for v in range(5) for i in range(4)]
         sp = A.split_by_key(frames, "video", 0.2, seed=1)
         self.assertEqual(len(sp["val_keys"]), 1); self.assertEqual(len(sp["val"]), 4)
+        self.assertEqual(A.SPLIT_KEY["510"], "location_id")       # 기본은 장소 단위(2026-09-26 지시)
         self.assertEqual(A.leak_check(sp, frames), [])
         sp_leak = dict(sp); sp_leak["val"] = sp["val"] + [sp["train"][0]]   # train 영상의 프레임을 val 에 섞는다
         self.assertTrue(A.leak_check(sp_leak, frames))
@@ -102,7 +99,7 @@ class ScaleAugAndEndToEndTest(unittest.TestCase):
                         {"class_id": "WO-04", "box": [100, 200, 60, 60]}, {"class_id": "UA-04", "box": [80, 200, 100, 360]}])), encoding="utf-8")
             import argparse
             rc = A.run(argparse.Namespace(dataset="507", labels_root=str(lroot), images_root="", out=str(out), max_per_video=0,
-                                          val_ratio=0.5, seed=1, hardhat_from_wo01=0.0, require_boxes=True, scale_aug="", scale_copies=1, dry_run=False))
+                                          val_ratio=0.5, seed=1, split_key="auto", require_boxes=True, scale_aug="", scale_copies=1, dry_run=False))
             self.assertEqual(rc, 0)
             self.assertEqual(len(list((out / "labels").glob("*.txt"))), 6)
             sp = json.loads((out / "split.json").read_text(encoding="utf-8"))

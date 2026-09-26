@@ -104,7 +104,7 @@ CODE_REVIEW.md §5의 P0~P2 조치가 완료됐다. 코드 변경 시 아래를 
    걸면 안 건드린 파일이 바뀐다 — 2026-09-23 `ruff check scripts --fix` 로 `capacity_probe.py` 에 무관한 빈 줄이 들어가
    커밋 직전까지 갔다(되돌림). 로컬 게이트는 `powershell -File scripts\gate.ps1` 한 번으로 1~4 를 순서대로 돈다.
 2. **mypy**(점진) `python -m mypy` → 화이트리스트 0 에러 (라우트 핸들러엔 `-> dict/str` 금지: FastAPI가 response_model 로 채택해 응답 스키마가 바뀜)
-3. **테스트** `.../python3 -m unittest discover -s tests` → **774 tests**(2026-09-25, 개발기 기준)
+3. **테스트** `.../python3 -m unittest discover -s tests` → **789 tests**(2026-09-26, 개발기 기준)
    (★2026-09-23 갱신: 오래 "55 tests" 로 적혀 있었으나 실제는 726이었다. 테스트를 추가하면 이 숫자도 같이 고친다.
    ★자산(가중치·데이터셋) 있는 개발기에서만 도는 테스트가 있다 — `tests/test_ppe_compare_harness.py` 의 v1 재현 1건은
    CI 에서는 skip 된다. 개발기에서 skip 이면 자산 누락이다.)

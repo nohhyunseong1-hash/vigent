@@ -7,16 +7,18 @@
     labels/<stem>.txt      YOLO 정규화 `cls cx cy w h` (기존 data/field_eval/labels 와 동일)
     labels_meta/<stem>.json  사이드카 {file, video, location_id, ..., source:"aihub:507", boxes:[{cls, box, aihub_class, derived}]}
     manifest.json          프레임 목록(장소·영상·device·박스 수·이미지 존재 여부)
-    split.json             train/val — 507 은 장소ID 단위 8:2, 510 은 영상(raw_data_ID) 단위 8:2
+    split.json             train/val — 507 은 장소ID 단위 8:2, 510 도 장소ID(location_ID) 단위 8:2(★2026-09-26 지시: forklift held-out 은 장소 단위).
+                           `--split-key video` 로 영상(raw_data_ID) 단위로 바꿀 수 있다.
     aug/                   (선택) --scale-aug 로 만든 축소 사본 이미지 + 라벨(이미지가 있을 때만)
 
 ★누출 검사: 분할 키(장소ID/영상ID)가 train·val 양쪽에 있으면 **exit 3**. 이미지 없는 프레임은 라벨만 쓰고 manifest 에 image_present=false 로 남긴다.
-★Hardhat 파생(`--hardhat-from-wo01 0.17`)은 기본 OFF — 시나리오 폴더 WO-01 이 "위반 없음"이라는 [추정] 위에서만 켠다(A-1 §3).
+★Hardhat 파생(WO-01 상단 N%)은 **2026-09-26 폐기**했다(A-4 진단: 검출기 안전모 박스와 IoU 중앙 0.18 — 틀린 박스를 정답으로 가르침).
+  Hardhat 양성은 `scripts/data/pseudo_hardhat.py`(현 검출기 conf≥0.6 준라벨, source="pseudo:v1", [추정]·육안 확인 후 채택)로만 만든다.
 
 사용:
     python scripts/data/aihub_to_vigent.py --dataset 507 --labels-root D:/vigent_private_data/aihub/_inspect/507_all \
         --images-root D:/vigent_private_data/aihub/_inspect/507_src --out D:/vigent_private_data/aihub/vigent_507 \
-        --max-per-video 20 [--hardhat-from-wo01 0.17] [--scale-aug 0.1,0.3 --scale-copies 1] [--dry-run]
+        --max-per-video 20 [--scale-aug 0.1,0.3 --scale-copies 1] [--dry-run]
     python scripts/data/aihub_to_vigent.py --dataset 510 --labels-root .../510_all --images-root .../510_src_VS03 --out .../vigent_510
 """
 from __future__ import annotations
@@ -41,7 +43,7 @@ MAP = {
     "507": {"WO-04": "NO-Hardhat", "UA-04": "person", "WO-01": "person"},
     "510": {"WO-01": "person", "WO-02": "person", "WO-04": "forklift"},
 }
-SPLIT_KEY = {"507": "location_id", "510": "video"}    # 507 장소ID 단위 · 510 영상 단위
+SPLIT_KEY = {"507": "location_id", "510": "location_id"}    # 둘 다 장소ID 단위(★2026-09-26: 510 도 영상→장소로. `--split-key video` 로 복원)
 # 근접 규칙 검증용으로 사이드카에 남길 510 상황 태그
 KEEP_SITUATION_510 = {"SO-15", "UA-10", "UC-10", "UA-14", "UA-01"}
 _RID = re.compile(r"^[A-Z]-(\d{6})_([A-Z]\d+)_([A-Z])_(\w+-\d+)_(\d+)$")
@@ -87,16 +89,9 @@ def parse_frame(j: dict, dataset: str) -> dict[str, Any]:
     }
 
 
-def head_box(xywh: list[float], ratio: float) -> list[float]:
-    """사람 박스 상단 ratio 만큼을 머리 박스로(정사각에 가깝게 폭은 높이와 같게, 중앙 정렬)."""
-    x, y, w, h = xywh
-    hh = h * ratio
-    ww = min(w, hh)
-    return [x + (w - ww) / 2, y, ww, hh]
-
-
-def convert_frame(fr: dict[str, Any], dataset: str, hardhat_ratio: float | None, counts: Counter) -> list[dict[str, Any]]:
-    """중간 표현 → 우리 박스 목록 [{cls, box(정규화 cx cy w h), aihub_class, derived, derive_rule}]."""
+def convert_frame(fr: dict[str, Any], dataset: str, counts: Counter) -> list[dict[str, Any]]:
+    """중간 표현 → 우리 박스 목록 [{cls, box(정규화 cx cy w h), aihub_class, source, derived}].
+    ★파생 Hardhat(WO-01 상단 N%) 은 2026-09-26 폐기 — 라벨 규칙에 있는 박스만 옮긴다."""
     W, H = fr["width"], fr["height"]
     mp = MAP[dataset]
     out = []
@@ -117,12 +112,6 @@ def convert_frame(fr: dict[str, Any], dataset: str, hardhat_ratio: float | None,
         out.append({"cls": CLASSES.index(name), "box": norm(b["xywh"]), "aihub_class": c,
                     "source": "aihub", "derived": False})
         counts[f"map:{c}->{name}"] += 1
-        if dataset == "507" and c == "WO-01" and hardhat_ratio:
-            # ★[추정] 시나리오 폴더 작업자는 위반 없음 → 상단 ratio 를 Hardhat 으로. 기본 OFF.
-            out.append({"cls": CLASSES.index("Hardhat"), "box": norm(head_box(b["xywh"], hardhat_ratio)),
-                        "aihub_class": "WO-01", "source": "aihub", "derived": True,
-                        "derive_rule": f"top{hardhat_ratio:.2f}_of_WO-01 [추정: 위반 없음 가정]"})
-            counts["derived:WO-01->Hardhat"] += 1
     return out
 
 
@@ -216,16 +205,17 @@ def run(a: argparse.Namespace) -> int:
     # 변환
     records = []
     for fr in frames:
-        boxes = convert_frame(fr, dataset, a.hardhat_from_wo01 if dataset == "507" else None, counts)
+        boxes = convert_frame(fr, dataset, counts)
         if a.require_boxes and not boxes:
             counts["dropped_empty"] += 1; continue
         records.append((fr, boxes))
     kept_frames = [fr for fr, _ in records]
-    split = split_by_key(kept_frames, SPLIT_KEY[dataset], a.val_ratio, a.seed)
+    skey = SPLIT_KEY[dataset] if getattr(a, "split_key", "auto") in ("auto", None) else a.split_key
+    split = split_by_key(kept_frames, skey, a.val_ratio, a.seed)
     problems = leak_check(split, kept_frames)
-    print(f"  프레임 {len(records)}장 · 영상 {counts['videos']}편 · 분할키 {SPLIT_KEY[dataset]}: train {len(split['train_keys'])} / val {len(split['val_keys'])} "
+    print(f"  프레임 {len(records)}장 · 영상 {counts['videos']}편 · 분할키 {skey}: train {len(split['train_keys'])} / val {len(split['val_keys'])} "
           f"(프레임 {len(split['train'])}/{len(split['val'])})")
-    print("  매핑 집계:", {k: v for k, v in sorted(counts.items()) if k.startswith(('map:', 'derived:', 'excluded:'))})
+    print("  매핑 집계:", {k: v for k, v in sorted(counts.items()) if k.startswith(('map:', 'excluded:'))})
     print("  제외 집계:", {k: v for k, v in sorted(counts.items()) if k.startswith('skip:')})
     if problems:
         print("★누출 검사 실패:", problems); return 3
@@ -249,7 +239,7 @@ def run(a: argparse.Namespace) -> int:
         if dataset == "510" and fr["situation_id"] in KEEP_SITUATION_510:
             meta["proximity_scenario"] = True
         (out / "labels_meta" / f"{stem}.json").write_text(json.dumps(meta, ensure_ascii=False, indent=1), encoding="utf-8")
-        manifest.append({"stem": stem, "file": fr["image_file"], "video": fr["video"], SPLIT_KEY[dataset]: fr.get(SPLIT_KEY[dataset]),
+        manifest.append({"stem": stem, "file": fr["image_file"], "video": fr["video"], skey: fr.get(skey),
                          "device": fr["device"], "n_boxes": len(boxes), "image_present": stem in img_index,
                          "image_path": str(img_index[stem]) if stem in img_index else None})
     (out / "manifest.json").write_text(json.dumps({"dataset": dataset, "source": f"aihub:{dataset}", "classes": CLASSES,
@@ -292,7 +282,8 @@ def main() -> int:
     ap.add_argument("--max-per-video", type=int, default=0, help="영상당 최대 프레임(균등 추림, 0=전부)")
     ap.add_argument("--val-ratio", type=float, default=0.2)
     ap.add_argument("--seed", type=int, default=20260926)
-    ap.add_argument("--hardhat-from-wo01", type=float, default=0.0, help="507: WO-01 상단 비율을 Hardhat 으로 파생(기본 0=끔, [추정])")
+    ap.add_argument("--split-key", choices=("auto", "location_id", "video"), default="auto",
+                    help="분할 단위(auto=장소ID). 507·510 모두 기본 장소ID — 2026-09-26 지시")
     ap.add_argument("--require-boxes", action="store_true", help="매핑 박스 0개 프레임은 버린다")
     ap.add_argument("--scale-aug", default="", help="축소 증강 배율 범위 'lo,hi' 예 0.1,0.3 (이미지 있을 때만)")
     ap.add_argument("--scale-copies", type=int, default=1)
