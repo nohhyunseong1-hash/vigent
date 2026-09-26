@@ -29,7 +29,8 @@
 | **결정 ① 실행** | 운용 경로 대본 기준 95.7 %(boda_ax 97.7, −2.0 %p) · 4ch 벤치 합격선 통과(7.5분 2창, 30분 프로토콜 미완) → **학원 프로파일 `backend.forklift` rfdetr 교체·boda_ax 제거(AGPL 의존 해소)**. 주행 장면 04/05 86~87 % 는 §7-2 개선 항목 | `docs/model/forklift_finetune_smoke_20260926.md` §3-1 · `deploy/academy/vision.academy.yaml` · ALGORITHM_TRUTH #42 |
 | ②(b) 완료 | VS_02 음성 2,568장 오탐 2장 = 0.1 % [0.0, 0.3] → 목표 ≤1 % 확정, v2(음성 혼입) 불필요 | `docs/model/forklift_finetune_smoke_20260926.md` §3-3 |
 | ③ PPE 스모크 A **완료** | 00:01~01:01(10 epoch 0.99 h, NaN·정체 0). **준라벨 681장 미검수**(2026-09-26 "기각 3·17·42" 는 예시 번호 오입력). held-out 91: NO-Hardhat R 65.6 [53.4, 76.1](전 64.1) · NO-Safety Vest R 82.2(전 83.7) · 4클래스 AP50 80.5(전 81.3) — **목표(≥85/≥90) 미달, 변화는 신뢰구간 안**. dev74 PPE R 49.4(전 64.8, Mask 클래스 부재 영향 포함). 배포 없음 | `docs/model/ppe_finetune_smoke_A_20260927.md` · `benchmarks/results/ppe_smoke_A_20260927/` |
-| 다음 | ① 30분×3 벤치 재실행 + 학원 노트북(4 GB) 실측 → USB 재빌드 ② pseudo_hardhat 실제 판정(`audit/pseudo_hardhat_check/preview_index.json` 100장) → 스모크 B | — |
+| PPE A 후속 실측(01:35) | dev74 Mask 제외 공정 비교: v1 62.3 [55.9, 68.3] → A **52.8 [46.4, 59.2]**(실제 −9.5 %p, NO-Safety-Vest 74→60/112·NO-Hardhat 14→10/54) · Safety Vest 오탐 19 중 12 는 군중 중복 박스 · 머리 박스 입력 기준 507 22.1 / held-out 20.4 / dev74 15.1 px(3배 이탈 아님, scale-aug 미적용 확인) → **축소 증강 실험 안 함**, "준라벨 제외 대조군" 제안(승인 대기) | `docs/model/ppe_finetune_smoke_A_20260927.md` §5 |
+| 다음 | ① forklift 30분×3 벤치(01:35 자동 시작, `audit/bench4ch_fk2_academy_r3_driver.log`) + 학원 노트북(4 GB) 실측 → USB 재빌드 ② 준라벨 제외 대조군 승인 ③ pseudo_hardhat 실제 판정 → 스모크 B | — |
 
 ---
 

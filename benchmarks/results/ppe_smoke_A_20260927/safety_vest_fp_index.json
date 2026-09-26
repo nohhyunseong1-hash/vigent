@@ -1,0 +1,292 @@
+{
+ "weights": "runs/finetune/ppe_507_v2/ckpt/checkpoint_best_total.pth",
+ "cls": "Safety Vest",
+ "conf": 0.35,
+ "pred_total": 71,
+ "fp_total": 19,
+ "items": [
+  {
+   "no": 1,
+   "file": "-211-_png_jpg.rf.eac228e3993f9027795b6400262811e7.jpg",
+   "fps": [
+    {
+     "conf": 0.368,
+     "box": [
+      44,
+      0,
+      329,
+      137
+     ]
+    }
+   ],
+   "gt_classes": [
+    "Hardhat",
+    "NO-Mask",
+    "Person",
+    "Safety Vest"
+   ]
+  },
+  {
+   "no": 2,
+   "file": "construction-823-_jpg.rf.640d8abfc7c7689d4a19e6aa00ac8984.jpg",
+   "fps": [
+    {
+     "conf": 0.397,
+     "box": [
+      371,
+      175,
+      408,
+      206
+     ]
+    }
+   ],
+   "gt_classes": [
+    "Hardhat",
+    "Person",
+    "Safety Vest",
+    "machinery"
+   ]
+  },
+  {
+   "no": 3,
+   "file": "ppe_0064_jpg.rf.f019b082d09af2750a81ef5ea3fcbc3e.jpg",
+   "fps": [
+    {
+     "conf": 0.443,
+     "box": [
+      263,
+      214,
+      635,
+      541
+     ]
+    }
+   ],
+   "gt_classes": [
+    "Hardhat",
+    "NO-Mask",
+    "Person",
+    "Safety Vest"
+   ]
+  },
+  {
+   "no": 4,
+   "file": "ppe_0355_jpg.rf.508753d5b708536eca53de192b927c61.jpg",
+   "fps": [
+    {
+     "conf": 0.609,
+     "box": [
+      0,
+      338,
+      81,
+      545
+     ]
+    }
+   ],
+   "gt_classes": [
+    "Hardhat",
+    "NO-Hardhat",
+    "NO-Mask",
+    "NO-Safety Vest",
+    "Person",
+    "Safety Vest"
+   ]
+  },
+  {
+   "no": 5,
+   "file": "soooo_jpg.rf.5980d39f656b4d62672d2164173455e3.jpg",
+   "fps": [
+    {
+     "conf": 0.386,
+     "box": [
+      566,
+      88,
+      639,
+      250
+     ]
+    }
+   ],
+   "gt_classes": [
+    "Mask",
+    "NO-Hardhat",
+    "NO-Mask",
+    "NO-Safety Vest",
+    "Person"
+   ]
+  },
+  {
+   "no": 6,
+   "file": "002551_jpg.rf.ce4b9f934161faa72c80dc6898d37b2d.jpg",
+   "fps": [
+    {
+     "conf": 0.407,
+     "box": [
+      0,
+      83,
+      32,
+      186
+     ]
+    }
+   ],
+   "gt_classes": [
+    "Hardhat",
+    "NO-Mask",
+    "NO-Safety Vest",
+    "Person"
+   ]
+  },
+  {
+   "no": 7,
+   "file": "0_jpg.rf.2ff49f74309118f169e07aa12564df87.jpg",
+   "fps": [
+    {
+     "conf": 0.39,
+     "box": [
+      360,
+      251,
+      379,
+      297
+     ]
+    }
+   ],
+   "gt_classes": [
+    "Hardhat",
+    "Person",
+    "Safety Vest",
+    "machinery",
+    "vehicle"
+   ]
+  },
+  {
+   "no": 8,
+   "file": "IMG_5846_jpg.rf.0b9984069116e2acd928568eb7a8e214.jpg",
+   "fps": [
+    {
+     "conf": 0.811,
+     "box": [
+      164,
+      257,
+      214,
+      349
+     ]
+    },
+    {
+     "conf": 0.658,
+     "box": [
+      276,
+      260,
+      328,
+      347
+     ]
+    },
+    {
+     "conf": 0.501,
+     "box": [
+      258,
+      253,
+      282,
+      322
+     ]
+    },
+    {
+     "conf": 0.494,
+     "box": [
+      306,
+      259,
+      335,
+      341
+     ]
+    },
+    {
+     "conf": 0.44,
+     "box": [
+      305,
+      255,
+      341,
+      334
+     ]
+    },
+    {
+     "conf": 0.416,
+     "box": [
+      147,
+      264,
+      174,
+      351
+     ]
+    },
+    {
+     "conf": 0.411,
+     "box": [
+      151,
+      243,
+      182,
+      285
+     ]
+    },
+    {
+     "conf": 0.382,
+     "box": [
+      360,
+      242,
+      384,
+      275
+     ]
+    },
+    {
+     "conf": 0.378,
+     "box": [
+      364,
+      249,
+      388,
+      281
+     ]
+    },
+    {
+     "conf": 0.374,
+     "box": [
+      103,
+      261,
+      132,
+      357
+     ]
+    },
+    {
+     "conf": 0.366,
+     "box": [
+      337,
+      228,
+      374,
+      274
+     ]
+    }
+   ],
+   "gt_classes": [
+    "Hardhat",
+    "NO-Mask",
+    "Person",
+    "Safety Vest"
+   ]
+  },
+  {
+   "no": 9,
+   "file": "ppe_1073_jpg.rf.72ea8a293a4f3e1135219e33701b1099.jpg",
+   "fps": [
+    {
+     "conf": 0.7,
+     "box": [
+      593,
+      248,
+      616,
+      332
+     ]
+    }
+   ],
+   "gt_classes": [
+    "Hardhat",
+    "NO-Mask",
+    "Person",
+    "Safety Vest"
+   ]
+  }
+ ]
+}
