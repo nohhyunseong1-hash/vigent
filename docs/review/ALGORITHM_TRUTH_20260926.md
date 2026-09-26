@@ -376,7 +376,7 @@
 |---|---|---|
 | 현장 정답지 부재 | 재방문 날짜 미정. CVAT 로컬 설치·변환기 준비됨(Docker 는 확인 당시 꺼져 있었음) | `NEXT.md:23-24` |
 | RTX 5060 미실측 | 실기 미확보 | `NEXT.md:27-28` |
-| 재학습 미실행 | 목표 선언 완료(PPE §8 · forklift §9-7), AI Hub 표본 대기(VS_07·VS_03_공통 승인). 학습 스크립트에 NaN 감시·seed·메타 기록·CUDA 강제 장치 추가(2026-09-26, 테스트 있음). ★rfdetr 1.8 학습 의존성 pytorch_lightning 이 .venv 에 없음 | `provenance.md` §8·§9-7 · `scripts/train/finetune_rfdetr.py` |
+| 재학습 — forklift 스모크 1회 진행 중 | 목표 선언(PPE §8 · forklift §9-7) → VS_07·VS_03_공통 수신 → 학습 의존성 설치(numpy·cv2 불변, `rfdetr[train]` 전체 대신 필수 조합) → **1차 실행 정체 사고 [실측 2026-09-26]**: 18:29 이후 2시간 `metrics.csv` 무갱신, GPU 8~23 %, 메인 프로세스 1.2코어. py-spy 3회 모두 `torchmetrics MeanAveragePrecision.compute → _get_coco_format`(검증 3,561장 × 최대 500 검출을 순수 파이썬으로 COCO 변환)에서 정지. 원인 = **검증 후처리 비용**(데이터로더·디스크·OOM 아님). 조치: 학습 중 검증셋 층화 표본 800장(장소×지게차 유무, 777 지게차 있음)·검증 2 epoch 마다·`eval_max_dets` 500→100·`num_workers 0`·진행바 off·**정체 감시 스레드**(15분 무갱신 → `STALL_ABORT.json` + py-spy 스택 + exit 9)·epoch 소요/남은 예상을 metrics.csv 와 로그에 기록. 증거: `runs/finetune/fk_510_smoke/ckpt_stall_20260926_1829/`(미추적) | `provenance.md` §9-7 · `scripts/train/finetune_rfdetr.py` · `tests/test_finetune_guards.py` |
 | **지게차 검출이 AGPL 에 묶여 있음** | 학원 프로파일 `backend.forklift: yolo`(`forklift_boda_ax.pt`, ultralytics AGPL) — B2G·상용 배포 불가. Apache 대체(`forklift_rfdetr_v1`)는 학원 영상에서도 국소화 0%. → **재학습 1순위 = forklift(510)**, 목표 AP50 ≥70·음성 오탐 ≤1%/장 | `deploy/academy/vision.academy.yaml:18,55` · `provenance.md` §9-4·§9-7 · §6 #42 |
 | 카메라 네트워크 표준 미정 | 방향만(자체 PoE 스위치+고정 IP+유선 ONVIF 1종). Tapo C200 은 Wi-Fi, IP 할당 방식 기록 없음 | `usb_installer_design.md:362-371` |
 | 두 계보 미통합 | 노트북 `laptop/20260917` push → 비교·통합 → 실USB → 재설치 순. 노트북은 F-34 미반영 | `NEXT.md:25` |

@@ -15,6 +15,20 @@
 
 ---
 
+## 2026-09-26 재학습 1순위 forklift(510) — 진행 기록 [실측]
+
+| 단계 | 결과 | 근거 |
+|---|---|---|
+| AI Hub 수신 | VS_07_지게차 10GB(9,905장)·VS_03_공통 15GB(18,598장) — 서버 Range 미지원이라 전체 재시도 모드로 받고 `finish` 로 풀기·CRC 통과 | `D:\vigent_private_data\aihub\download_510_507.sh` v4 · `done_510.txt`·`done_507.txt` |
+| 변환 | 510: 이미지 있는 프레임 12,350 · 장소 16/8 · train 8,789 / val 3,561(지게차 없음 101) · 507: 2,942 · train 2,200 / val 742 | `docs/model/aihub_A2_A5_20260926.md` A-4 재실행 절 |
+| A-4 재실행 | forklift v1 R 5.8 [5.4, 6.3]·AP50 0.0(GT 10,131) · NO-Hardhat 첫 실측 R 70.4 [68.7, 72.0]·AP50 56.6 | `audit/aihub_smoke_20260926_full.json` |
+| v1 "전" 행 | 510 val 3,561: AP50 0.6 [0.5, 0.7] · 음성 오탐 96.0 [90.3, 98.4](n=101) · 507 음성 96.6(n=2,000) · 학원 일치 0.0/0.5 | `benchmarks/results/forklift_v1_baseline.json` |
+| **정체 사고** | 1차 학습이 18:29 부터 2시간 무진행. py-spy 3회: `torchmetrics …_get_coco_format`(검증 3,561장×500 검출 파이썬 변환). 데이터로더·디스크·OOM 아님 | `runs/finetune/fk_510_smoke/ckpt_stall_20260926_1829/fk_510_smoke_pyspy.txt`(미추적) · ALGORITHM_TRUTH §7-1 |
+| 조치(승인) | 검증 층화 표본 800·2 epoch 마다·max_dets 100·workers 0·진행바 off·**정체 감시 15분 → STALL_ABORT.json+스택+exit 9**·epoch 소요/ETA 기록. 2차 실행 중 | `scripts/train/finetune_rfdetr.py` · `tests/test_finetune_guards.py` 9건 |
+| 다음 | 2차 학습 완료 → 하네스 표(전/후/참고 boda_ax, 95% 구간, 전체 val 3,561) → PPE 재학습 승인 대기 | — |
+
+---
+
 ## 남은 결정 (순서대로)
 
 | # | 결정 | 무엇이 걸려 있나 | 근거·준비물 |

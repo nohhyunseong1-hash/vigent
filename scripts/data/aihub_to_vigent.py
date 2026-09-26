@@ -192,6 +192,8 @@ def run(a: argparse.Namespace) -> int:
         if not fr["stem"]:
             fr["stem"] = p.stem
         fr["folder"] = p.relative_to(lroot).parts[0] if len(p.relative_to(lroot).parts) > 1 else ""
+        if getattr(a, "only_with_images", False) and (fr["stem"] or p.stem) not in img_index:
+            counts["skipped_no_image"] += 1; continue          # ★학습용: 원천 이미지가 있는 프레임만(2026-09-26, VS_07 9,905장 활용)
         per_video[fr["video"]].append(fr)
     # 영상당 균등 추림
     for vid, lst in per_video.items():
@@ -223,7 +225,15 @@ def run(a: argparse.Namespace) -> int:
     if a.dry_run:
         print("--dry-run: 파일을 쓰지 않았다"); return 0
 
-    # 쓰기
+    # 쓰기 — ★이전 변환 산출물이 남아 있으면 먼저 비운다(2026-09-26: 낡은 라벨 34k 가 남아 개수 검증이 실패했다)
+    stale = 0
+    for sub, ext in (("labels", ".txt"), ("labels_meta", ".json")):
+        d = out / sub
+        if d.exists():
+            for f in d.glob(f"*{ext}"):
+                f.unlink(); stale += 1
+    if stale:
+        print(f"  이전 산출물 {stale}개 삭제(out 폴더는 변환기 전용)")
     (out / "labels").mkdir(parents=True, exist_ok=True); (out / "labels_meta").mkdir(exist_ok=True)
     (out / "classes.txt").write_text("\n".join(CLASSES) + "\n", encoding="utf-8")
     manifest = []
@@ -285,6 +295,7 @@ def main() -> int:
     ap.add_argument("--split-key", choices=("auto", "location_id", "video"), default="auto",
                     help="분할 단위(auto=장소ID). 507·510 모두 기본 장소ID — 2026-09-26 지시")
     ap.add_argument("--require-boxes", action="store_true", help="매핑 박스 0개 프레임은 버린다")
+    ap.add_argument("--only-with-images", action="store_true", help="원천 이미지가 있는 프레임만 변환(학습용 조립 — 라벨 52만 장 전부를 쓰지 않는다)")
     ap.add_argument("--scale-aug", default="", help="축소 증강 배율 범위 'lo,hi' 예 0.1,0.3 (이미지 있을 때만)")
     ap.add_argument("--scale-copies", type=int, default=1)
     ap.add_argument("--dry-run", action="store_true")

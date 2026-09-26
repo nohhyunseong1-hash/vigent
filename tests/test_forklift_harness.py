@@ -35,6 +35,9 @@ class Eval510Test(unittest.TestCase):
         self.assertEqual(r["pos_detect_rate"], 50.0); self.assertEqual(r["neg_fp_rate"], 50.0); self.assertEqual(r["neg_fp_rate_03"], 100.0)
         self.assertEqual(r["ap50"], 75.0)          # conf 순: TP(0.9)·FP(0.8)·FP(0.4)·TP(0.2) → rec .5 에서 prec 1.0, rec 1.0 에서 0.5 → 전점 보간 AP 0.75
         self.assertEqual(len(r["recall_ci95"]), 2)
+        lo, hi = r["ap50_ci95"]; self.assertLessEqual(lo, 75.0); self.assertGreaterEqual(hi, 75.0)   # 부트스트랩 구간이 점추정을 품는다
+        self.assertEqual(H.bootstrap_ap50([]), None); self.assertEqual(H.bootstrap_ap50([([], 0)]), None)
+        self.assertEqual(H.bootstrap_ap50([([(0.9, True)], 1)], n_boot=50), [100.0, 100.0])          # 전부 맞으면 구간도 100
 
     def test_goal_check_and_render(self):
         self.assertTrue(all(g["verdict"] == "미측정" for g in H.goal_check(None)))

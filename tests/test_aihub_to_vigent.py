@@ -99,7 +99,7 @@ class ScaleAugAndEndToEndTest(unittest.TestCase):
                         {"class_id": "WO-04", "box": [100, 200, 60, 60]}, {"class_id": "UA-04", "box": [80, 200, 100, 360]}])), encoding="utf-8")
             import argparse
             rc = A.run(argparse.Namespace(dataset="507", labels_root=str(lroot), images_root="", out=str(out), max_per_video=0,
-                                          val_ratio=0.5, seed=1, split_key="auto", require_boxes=True, scale_aug="", scale_copies=1, dry_run=False))
+                                          val_ratio=0.5, seed=1, split_key="auto", require_boxes=True, only_with_images=False, scale_aug="", scale_copies=1, dry_run=False))
             self.assertEqual(rc, 0)
             self.assertEqual(len(list((out / "labels").glob("*.txt"))), 6)
             sp = json.loads((out / "split.json").read_text(encoding="utf-8"))

@@ -92,17 +92,45 @@ class ProvenanceTest(unittest.TestCase):
             self.assertTrue(any("resolution" in p for p in F.verify_checkpoint(mism, 384, 7)))
 
     def test_seed_and_cuda_guard(self):
+        # ★2026-09-26 게이트 1회 실패(재현 3회 불가)의 원인: 이 테스트가 전역 RNG 에서 값을 '뽑아' 비교했는데, 앞 테스트가 남긴
+        #   백그라운드 스레드(워커·통보 루프)가 그 사이 전역 RNG 를 소비하면 두 값이 어긋난다([추정 — 스레드 간섭]). 그래서
+        #   값을 뽑지 않고 시드 '상태' 만 비교한다(스레드 간섭과 무관).
         import random
-        F.set_all_seeds(123); a = random.random()
-        F.set_all_seeds(123); b = random.random()
+        F.set_all_seeds(123); a = random.getstate()
+        F.set_all_seeds(123); b = random.getstate()
         self.assertEqual(a, b)
         if torch is not None:
-            F.set_all_seeds(5); x = torch.rand(2).tolist()
-            F.set_all_seeds(5); y = torch.rand(2).tolist()
-            self.assertEqual(x, y)
+            F.set_all_seeds(5); self.assertEqual(torch.initial_seed(), 5)
+            F.set_all_seeds(7); self.assertEqual(torch.initial_seed(), 7)
+            g = torch.Generator().manual_seed(5); h = torch.Generator().manual_seed(5)
+            self.assertEqual(torch.rand(2, generator=g).tolist(), torch.rand(2, generator=h).tolist())   # 전용 생성기는 스레드와 무관
         with self.assertRaises(SystemExit):
             F.require_cuda(False)
         F.require_cuda(False, allow_cpu=True); F.require_cuda(True)
+
+    def test_stratified_subsample_keeps_ratio(self):
+        # 장소 3 × 지게차 유무: 있음 90 / 없음 10 → 20장 뽑으면 비율(약 9:1)·장소 유지, 시드 고정
+        items = []; keys = []
+        for loc in ("A", "B", "C"):
+            for i in range(30):
+                items.append((Path(f"{loc}{i}.jpg"), [])); keys.append((loc, i % 10 != 0))
+        s1 = F.stratified_subsample(items, 20, keys, seed=1); s2 = F.stratified_subsample(items, 20, keys, seed=1)
+        self.assertEqual(len(s1), 20); self.assertEqual(s1, s2)
+        kd = dict(zip([str(p) for p, _ in items], keys))
+        pos = sum(1 for p, _ in s1 if kd[str(p)][1]); locs = {kd[str(p)][0] for p, _ in s1}
+        self.assertGreaterEqual(pos, 16); self.assertLessEqual(pos, 19); self.assertEqual(locs, {"A", "B", "C"})   # 없음 층도 최소 1장씩
+        self.assertEqual(F.stratified_subsample(items, 500, keys, 1), items)
+
+    def test_stall_detection_and_eta(self):
+        self.assertTrue(F.is_stalled(newest=1000.0, now=1000.0 + 16 * 60, stall_min=15))
+        self.assertFalse(F.is_stalled(newest=1000.0, now=1000.0 + 14 * 60, stall_min=15))
+        with tempfile.TemporaryDirectory() as td:
+            d = Path(td); (d / "metrics.csv").write_text("epoch,step\n0,50\n0,100\n", encoding="utf-8")
+            self.assertEqual(F.last_metrics_row(d / "metrics.csv"), "0,100")
+            self.assertGreater(F.newest_mtime([d / "metrics.csv", d], 0.0), 0.0)
+            self.assertEqual(F.newest_mtime([d / "none.csv"], 42.0), 42.0)     # 아무것도 없으면 시작 시각
+        self.assertEqual(F.eta_minutes([240.0, 260.0], 10, 2), 33.3)           # 평균 250s × 8 epoch
+        self.assertEqual(F.eta_minutes([], 10, 0), 0.0); self.assertEqual(F.eta_minutes([100.0], 10, 10), 0.0)
 
     def test_subsample_is_deterministic_and_bounded(self):
         items = [(Path(f"i{i}.jpg"), []) for i in range(50)]

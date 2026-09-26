@@ -160,7 +160,10 @@ def main() -> int:
         mp, _ = load_model("person", a.res)
         pcn = class_names_of(mp, coco=True)
         r_person = evaluate(items, mp, lambda cid: "person" if pcn.get(cid, "").lower() == "person" else None, {"person": thr["person"]}, a.iou)
-        r_ppe["rows"]["NO-Hardhat"]["note"] = "측정 불가 — 507 미착용(공통 폴더) 원본 이미지 미수신(VS_03_공통 15GB). GT 0 이면 FP 만 센 것"
+        if r_ppe["rows"]["NO-Hardhat"].get("gt", 0) == 0:
+            r_ppe["rows"]["NO-Hardhat"]["note"] = "측정 불가 — 507 미착용(공통 폴더) 원본 이미지 없음. GT 0 이면 FP 만 센 것"
+        else:
+            r_ppe["rows"]["NO-Hardhat"]["note"] = "GT = 507 공통 폴더 WO-04 머리 박스(VS_03_공통 원본 수신 후 실측). 프레임당 미착용 1인만 라벨 — 다른 사람의 미착용 검출은 FP 로 센다"
         r_ppe["rows"]["Hardhat"]["note"] = "GT 없음(파생 Hardhat 2026-09-26 폐기) — 이 행은 검출 수(=오탐으로 집계)만 의미. Hardhat 양성은 pseudo_hardhat.py 준라벨로"
         result["sets"]["507_개구부_샘플"] = {"device": dev, "ppe_model": "ppe_rfdetr_v1.pth", "person_model": "rf-detr-nano COCO",
                                           "ppe": r_ppe, "person": r_person}
