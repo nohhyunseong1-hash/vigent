@@ -1,0 +1,89 @@
+{
+ "date": "2026-09-26 21:20",
+ "weights": "runs\\finetune\\fk_510_smoke\\ckpt\\checkpoint_best_total.pth",
+ "label": "fk_510_smoke",
+ "res": 384,
+ "goals": {
+  "ap50_min": 70.0,
+  "neg_fp_rate_max": 1.0,
+  "op_conf": 0.5,
+  "note": "510 held-out(장소 단위) AP50 ≥ 70 · 지게차 없는 이미지에서 conf≥0.5 박스 ≤ 1%/장 (2026-09-26 선언). 학원 956 은 참고"
+ },
+ "s510": {
+  "images": 3561,
+  "gt": 3573,
+  "ap50": 94.3,
+  "ap50_ci95": [
+   93.6,
+   95.0
+  ],
+  "op_conf": 0.5,
+  "tp": 3147,
+  "fp": 74,
+  "fn": 426,
+  "precision": 97.7,
+  "precision_ci95": [
+   97.1,
+   98.2
+  ],
+  "recall": 88.1,
+  "recall_ci95": [
+   87.0,
+   89.1
+  ],
+  "pos_images": 3460,
+  "neg_images": 101,
+  "pos_detect_rate": 91.5,
+  "neg_fp_rate": 0.0,
+  "neg_fp_rate_ci95": [
+   0.0,
+   3.7
+  ],
+  "neg_fp_rate_03": 3.0,
+  "elapsed_s": 390.0
+ },
+ "neg_extra": {
+  "source": "D:/vigent_private_data/aihub/_inspect/507_src",
+  "images": 2000,
+  "neg_fp_rate": 1.4,
+  "neg_fp_rate_ci95": [
+   0.9,
+   2.0
+  ],
+  "neg_fp_rate_03": 2.3,
+  "elapsed_s": 140.5,
+  "caveat": "507 고소작업 현장(지게차 없음) — 510 과 도메인이 다르다. 오탐률 보강용 참고"
+ },
+ "field": {
+  "frames": 956,
+  "ref_box_frames": 935,
+  "agree_iou50_rate_05": 96.4,
+  "agree_iou50_rate_01": 98.1,
+  "any_box_rate_05": 95.0,
+  "caveat": "overlay.mp4(박스가 그려진 표시용) · 정답=장면 대본 · 참고 집합"
+ },
+ "goal_check": [
+  {
+   "set": "510 held-out",
+   "metric": "ap50",
+   "target": "≥70.0",
+   "value": 94.3,
+   "ci95": [
+    93.6,
+    95.0
+   ],
+   "verdict": "달성"
+  },
+  {
+   "set": "510 held-out",
+   "metric": "neg_fp_rate@0.5",
+   "target": "≤1.0%/장",
+   "value": 0.0,
+   "ci95": [
+    0.0,
+    3.7
+   ],
+   "verdict": "달성(구간 걸침)"
+  }
+ ]
+}

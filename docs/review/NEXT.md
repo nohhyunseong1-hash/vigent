@@ -25,7 +25,8 @@
 | v1 "전" 행 | 510 val 3,561: AP50 0.6 [0.5, 0.7] · 음성 오탐 96.0 [90.3, 98.4](n=101) · 507 음성 96.6(n=2,000) · 학원 일치 0.0/0.5 | `benchmarks/results/forklift_v1_baseline.json` |
 | **정체 사고** | 1차 학습이 18:29 부터 2시간 무진행. py-spy 3회: `torchmetrics …_get_coco_format`(검증 3,561장×500 검출 파이썬 변환). 데이터로더·디스크·OOM 아님 | `runs/finetune/fk_510_smoke/ckpt_stall_20260926_1829/fk_510_smoke_pyspy.txt`(미추적) · ALGORITHM_TRUTH §7-1 |
 | 조치(승인) | 검증 층화 표본 800·2 epoch 마다·max_dets 100·workers 0·진행바 off·**정체 감시 15분 → STALL_ABORT.json+스택+exit 9**·epoch 소요/ETA 기록. 2차 실행 중 | `scripts/train/finetune_rfdetr.py` · `tests/test_finetune_guards.py` 9건 |
-| 다음 | 2차 학습 완료 → 하네스 표(전/후/참고 boda_ax, 95% 구간, 전체 val 3,561) → PPE 재학습 승인 대기 | — |
+| **2차 학습 결과** | 10 epoch 0.78h(epoch당 4.1~4.9분, 정체 0, NaN 0, 체크포인트 검증 통과). 하네스(전체 val 3,561): **AP50 94.3 [93.6, 95.0]** · R@0.5 88.1 [87.0, 89.1] · P 97.7 · 510 음성 오탐 0.0 [0.0, 3.7](n=101, 구간 걸침) · 507 음성 1.4 [0.9, 2.0](n=2,000, 참고) · 학원 956 IoU 일치 96.4 @0.5(v1 0.0). 목표 AP50 달성, 오탐 ≤1% 는 "달성(구간 걸침)" | `docs/model/forklift_finetune_smoke_20260926.md` · `benchmarks/results/forklift_fk_510_smoke_20260926/` |
+| 다음 | ① 배포 여부는 별도 결정(운용 파이프라인·학원 프로파일 교체 실측 후) ② 음성 표본 확대(510 val 지게차 없음 101장 → CI 상한 3.7) ③ PPE(NO-Hardhat, 507 train 2,200/val 742) 재학습 승인 대기 | — |
 
 ---
 

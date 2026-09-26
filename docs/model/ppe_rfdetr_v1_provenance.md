@@ -305,3 +305,4 @@
 - 설정: `configs/finetune_aihub_forklift_v2.yaml` — 클래스 `[person, forklift]`(단일 클래스 NaN 가설 회피), 시작점 COCO nano(v1 은 발산 가중치), `max_train: 5000`(스모크 1회 상한, 대표 승인 범위).
 - ★의존성: rfdetr 1.8 `train()` 은 pytorch_lightning 이 필요한데 **개발기 .venv 에 없다**(2026-09-26 확인). 설치(`pip install "rfdetr[train,loggers]"`)는 대표 승인 뒤.
 - 순서(다운로드 완료 후): A-4 재실행(forklift·NO-Hardhat) → A-5 `--dry-run` → forklift 스모크 파인튜닝 1회(승인) → 결과 표 → 그 다음 PPE.
+- ★**결과(2026-09-26 21:29 [실측])**: 스모크 1회(train 5,000·10 epoch·COCO nano 시작·person+forklift) → 510 held-out 3,561장 **AP50 94.3 [93.6, 95.0]** · R@0.5 88.1 [87.0, 89.1] · P 97.7 [97.1, 98.2] · 510 음성 오탐 **0/101 = 0.0 [0.0, 3.7]**(목표 ≤1% 는 구간 걸침) · 507 음성 1.4 [0.9, 2.0](n=2,000, 참고) · 학원 956 IoU≥0.5 일치 **96.4 %**(v1 0.0). 상세·단서: [forklift_finetune_smoke_20260926.md](forklift_finetune_smoke_20260926.md). 1차 실행은 검증 후처리 정체로 중단(§7-1 ALGORITHM_TRUTH·NEXT.md).

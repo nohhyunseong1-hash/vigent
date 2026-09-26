@@ -1,0 +1,106 @@
+{
+ "config": "configs/finetune_aihub_forklift_v2.yaml",
+ "out": "runs\\finetune\\fk_510_smoke",
+ "epochs": 10,
+ "batch": 8,
+ "grad_accum": 2,
+ "lr": 0.0001,
+ "res": 384,
+ "seed": 20260926,
+ "seeds_set": {
+  "random": true,
+  "numpy": true,
+  "torch": true,
+  "lightning": true
+ },
+ "init": "coco",
+ "classes": [
+  "person",
+  "forklift"
+ ],
+ "harness": "forklift",
+ "val_subsample": 800,
+ "eval_interval": 2,
+ "num_workers": 0,
+ "stall_min": 15.0,
+ "assembly": {
+  "sources": {
+   "aihub_510": {
+    "train": 8789,
+    "valid": 3561
+   }
+  },
+  "excluded_heldout": 0,
+  "train_subsampled": {
+   "before": 8789,
+   "after": 5000
+  },
+  "valid_subsampled": {
+   "before": 3561,
+   "after": 800,
+   "forklift_present_before": 3460,
+   "forklift_present_after": 777,
+   "locations_after": 8
+  },
+  "train": {
+   "images": 5000,
+   "boxes": 8419,
+   "per_class": {
+    "person": 4710,
+    "forklift": 3709
+   }
+  },
+  "valid": {
+   "images": 800,
+   "boxes": 1722,
+   "per_class": {
+    "forklift": 810,
+    "person": 912
+   }
+  },
+  "test": {
+   "images": 800,
+   "boxes": 1722,
+   "per_class": {
+    "forklift": 810,
+    "person": 912
+   }
+  }
+ },
+ "notes_keys": [
+  "assembly",
+  "batch",
+  "classes",
+  "config",
+  "device",
+  "epochs",
+  "eval_interval",
+  "eval_max_dets",
+  "git_commit",
+  "grad_accum",
+  "harness",
+  "host",
+  "init",
+  "lr",
+  "max_train",
+  "num_workers",
+  "os",
+  "resolution",
+  "rfdetr_version",
+  "script",
+  "seed",
+  "stall_min",
+  "timestamp",
+  "torch_version",
+  "val_subsample"
+ ],
+ "guards": [
+  "NaN 감시(배치 손실·epoch 지표) → 즉시 중단",
+  "seed 고정",
+  "notes(resolution·seed·args) 체크포인트 기록 + 학습 후 검증",
+  "CUDA 강제",
+  "정체 감시 15.0분 → STALL_ABORT.json(py-spy 스택) + exit 9",
+  "epoch 소요·남은 예상 → metrics.csv epoch_time_s/eta_min + 로그"
+ ],
+ "note": "held-out 은 exclude_files 로 제외 · 학습 후 하네스 자동 호출 · PPE 최종 판정은 현장 정답지(미확보)"
+}
