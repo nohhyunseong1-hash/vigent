@@ -116,11 +116,16 @@ def main() -> int:
     ap.add_argument("--preview-dir", default=str(_ROOT / "audit" / "pseudo_hardhat_check"))
     ap.add_argument("--seed", type=int, default=20260926)
     ap.add_argument("--limit", type=int, default=0)
+    ap.add_argument("--stems-from", default="", help="이 폴더(labels/*.txt)에 라벨이 있는 stem 만 처리 — 변환본 학습 프레임에만 준라벨을 붙일 때")
     a = ap.parse_args()
     from aihub_smoke_eval import class_names_of, load_model
     from PIL import Image
     out = Path(a.out); merge = Path(a.merge_into) if a.merge_into else None
     imgs = sorted(p for p in Path(a.images).rglob("*") if p.suffix.lower() in IMG_EXTS)
+    if a.stems_from:
+        want = {p.stem for p in Path(a.stems_from).glob("*.txt")}
+        imgs = [p for p in imgs if p.stem in want]
+        print(f"  --stems-from {a.stems_from}: 라벨 있는 stem {len(want)} → 이미지 {len(imgs)}장으로 제한")
     if a.limit:
         imgs = imgs[: a.limit]
     print(f"[pseudo_hardhat] 이미지 {len(imgs)}장 — {a.images} · conf≥{a.conf} · 병합 대상 {merge or '없음'}")

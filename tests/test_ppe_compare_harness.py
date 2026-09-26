@@ -36,6 +36,12 @@ class WilsonTest(unittest.TestCase):
         self.assertEqual(H.wilson(41, 64), (51.8, 74.7))
         self.assertEqual(H.wilson(41, 59), (56.9, 79.7))
 
+    def test_to_css_name_maps_standard_names(self):
+        # 재학습 산출물(person·Safety-Vest·NO-Safety-Vest) → CSS 정답지 이름. CSS 이름·미지 이름은 그대로(2026-09-26)
+        self.assertEqual([H.to_css_name(n) for n in ("person", "Safety-Vest", "NO-Safety-Vest")], ["Person", "Safety Vest", "NO-Safety Vest"])
+        self.assertEqual([H.to_css_name(n) for n in ("Hardhat", "NO-Hardhat", "Person", "NO-Safety Vest", "forklift")],
+                         ["Hardhat", "NO-Hardhat", "Person", "NO-Safety Vest", "forklift"])
+
     def test_edges(self):
         self.assertIsNone(H.wilson(0, 0))
         lo, hi = H.wilson(0, 10); self.assertEqual(lo, 0.0); self.assertLess(hi, 35.0)

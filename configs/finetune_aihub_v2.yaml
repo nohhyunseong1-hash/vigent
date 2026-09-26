@@ -1,6 +1,8 @@
-# scripts/train/finetune_rfdetr.py 조립 설정 — AI Hub 507 보강 재학습 후보(2026-09-26). ★실행 금지 상태: --dry-run 만.
-# 클래스는 운용 PPE 4종 + person. Mask/NO-Mask 제외 원칙. forklift 는 이 설정에서 학습하지 않는다(510 은 별도 설정).
+# scripts/train/finetune_rfdetr.py 조립 설정 — PPE(NO-Hardhat 2순위) 재학습. 2026-09-26 밤 대표 승인(pseudo_hardhat 판정: 기각 3·17·42, 나머지 채택) 후 실행.
+# 클래스는 운용 PPE 4종 + person. Mask/NO-Mask 제외 원칙. forklift 는 별도 설정(finetune_aihub_forklift_v2.yaml).
 classes: [person, Hardhat, NO-Hardhat, Safety-Vest, NO-Safety-Vest]
+harness: ppe                  # 학습 후 scripts/eval/eval_v1_heldout.py(held-out 91장 전/후 + --dev74) 자동 호출
+init: vigent-core/weights/ppe_rfdetr_v1.pth   # 현 배포 v1 에서 이어 학습(전/후 비교 대상)
 sources:
   - name: css_v27
     kind: yolo_yaml
@@ -8,7 +10,12 @@ sources:
     splits: {train: train, valid: valid}               # test 82 는 누출 분할이라 valid 로도 쓰지 않는다(held-out 91 은 exclude_files 로 제외)
   - name: aihub_507
     kind: vigent
-    labels: D:/vigent_private_data/aihub/vigent_507/labels        # scripts/data/aihub_to_vigent.py 출력(장소ID 8:2 분할)
-    images: D:/vigent_private_data/aihub/docs_507                 # ★현재 원천 이미지는 경량 샘플 720장뿐 — 실학습 전 VS_03_공통(15GB) 수신 필요
-    split: D:/vigent_private_data/aihub/vigent_507/split.json
+    labels: D:/vigent_private_data/aihub/vigent_507/labels        # aihub_to_vigent.py --dataset 507 --only-with-images (장소ID 7/3 분할, 2,942프레임)
+    images: D:/vigent_private_data/aihub/_inspect/507_src         # VS_03_공통 18,598장(이 중 라벨 있는 2,942장만 조립)
+    split: D:/vigent_private_data/aihub/vigent_507/split.json     # NO-Hardhat(WO-04)·person(UA-04) + pseudo Hardhat(conf≥0.6, 병합)
+  - name: pseudo_507_sample
+    kind: vigent
+    labels: D:/vigent_private_data/aihub/pseudo_507/labels        # 507 개구부 표본 720장 중 준라벨 Hardhat 681장(기각 3 제외) — 전부 train
+    images: D:/vigent_private_data/aihub/docs_507
+    split: D:/vigent_private_data/aihub/pseudo_507/split.json
 exclude_files: benchmarks/results/v1_heldout_eval.json   # held-out 91장 stem 을 어느 분할에도 넣지 않는다(전/후 비교 집합)

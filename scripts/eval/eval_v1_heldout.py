@@ -140,6 +140,14 @@ def load_gt(img: Path, names: list[str]) -> list[tuple[str, list[float]]]:
     return out
 
 
+_TO_CSS = {"person": "Person", "Safety-Vest": "Safety Vest", "NO-Safety-Vest": "NO-Safety Vest"}
+
+
+def to_css_name(name: str) -> str:
+    """우리 표준 클래스명(변환기·재학습 산출물) → CSS 정답지(data.yaml) 이름. CSS 이름은 그대로."""
+    return _TO_CSS.get(str(name), str(name))
+
+
 def iou(a, b) -> float:
     x1, y1 = max(a[0], b[0]), max(a[1], b[1]); x2, y2 = min(a[2], b[2]), min(a[3], b[3])
     inter = max(0.0, x2 - x1) * max(0.0, y2 - y1)
@@ -228,8 +236,9 @@ def evaluate(weights: str, res: int = 384, iou_thr: float = 0.5, split_rule: str
         m.optimize_for_inference()
     except Exception:  # noqa: BLE001
         pass
-    cls_names = list(getattr(m, "class_names", None) or names)
+    cls_names = [to_css_name(c) for c in (getattr(m, "class_names", None) or names)]
     # rfdetr 커스텀 체크포인트: class_id 는 0-indexed 로 class_names 에 대응(adapter 와 같은 규칙)
+    #   ★재학습 산출물은 우리 표준 이름(person·Safety-Vest·NO-Safety-Vest)을 내므로 CSS 정답지 이름으로 맞춘다(2026-09-26)
     n_gt: dict[str, int] = defaultdict(int); scored: dict[str, list] = defaultdict(list)
     op: dict[str, dict[str, int]] = {n: {"TP": 0, "FP": 0, "FN": 0} for n in names}
     t0 = time.time()
