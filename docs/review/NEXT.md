@@ -27,7 +27,9 @@
 | 조치(승인) | 검증 층화 표본 800·2 epoch 마다·max_dets 100·workers 0·진행바 off·**정체 감시 15분 → STALL_ABORT.json+스택+exit 9**·epoch 소요/ETA 기록. 2차 실행 중 | `scripts/train/finetune_rfdetr.py` · `tests/test_finetune_guards.py` 9건 |
 | **2차 학습 결과** | 10 epoch 0.78h(epoch당 4.1~4.9분, 정체 0, NaN 0, 체크포인트 검증 통과). 하네스(전체 val 3,561): **AP50 94.3 [93.6, 95.0]** · R@0.5 88.1 [87.0, 89.1] · P 97.7 · 510 음성 오탐 0.0 [0.0, 3.7](n=101, 구간 걸침) · 507 음성 1.4 [0.9, 2.0](n=2,000, 참고) · 학원 956 IoU 일치 96.4 @0.5(v1 0.0). 목표 AP50 달성, 오탐 ≤1% 는 "달성(구간 걸침)" | `docs/model/forklift_finetune_smoke_20260926.md` · `benchmarks/results/forklift_fk_510_smoke_20260926/` |
 | **결정 ① 실행** | 운용 경로 대본 기준 95.7 %(boda_ax 97.7, −2.0 %p) · 4ch 벤치 합격선 통과(7.5분 2창, 30분 프로토콜 미완) → **학원 프로파일 `backend.forklift` rfdetr 교체·boda_ax 제거(AGPL 의존 해소)**. 주행 장면 04/05 86~87 % 는 §7-2 개선 항목 | `docs/model/forklift_finetune_smoke_20260926.md` §3-1 · `deploy/academy/vision.academy.yaml` · ALGORITHM_TRUTH #42 |
-| 다음 | ① 30분×3 벤치 재실행 + 학원 노트북(4 GB) 실측 → USB 재빌드 ② VS_02 음성 전용 오탐률(②b) ③ PPE(NO-Hardhat) 재학습 — pseudo_hardhat 판정(기각 번호) 대기 | — |
+| ②(b) 완료 | VS_02 음성 2,568장 오탐 2장 = 0.1 % [0.0, 0.3] → 목표 ≤1 % 확정, v2(음성 혼입) 불필요 | `docs/model/forklift_finetune_smoke_20260926.md` §3-3 |
+| ③ PPE 스모크 A 진행 중 | 2026-09-27 00:01 시작(`runs/finetune/ppe_507_v2`). **준라벨 681장 미검수**(2026-09-26 "기각 3·17·42" 는 예시 번호 오입력 — 판정 근거 없음). 결과 표 첫 줄에 단서. 실제 판정 후 스모크 B(검수 완료) 재학습 → A/B 비교(차이가 신뢰구간 안이면 준라벨 품질 무관 근거) | `configs/finetune_aihub_v2.yaml` · `runs/finetune/ppe_507_v2/NOTES_AMEND_20260927.json` |
+| 다음 | ① 30분×3 벤치 재실행 + 학원 노트북(4 GB) 실측 → USB 재빌드 ② pseudo_hardhat 실제 판정(`audit/pseudo_hardhat_check/preview_index.json` 100장) → 스모크 B | — |
 
 ---
 

@@ -1,4 +1,6 @@
-# scripts/train/finetune_rfdetr.py 조립 설정 — PPE(NO-Hardhat 2순위) 재학습. 2026-09-26 밤 대표 승인(pseudo_hardhat 판정: 기각 3·17·42, 나머지 채택) 후 실행.
+# scripts/train/finetune_rfdetr.py 조립 설정 — PPE(NO-Hardhat 2순위) 재학습. 2026-09-26 밤 대표 승인 후 실행.
+# ★2026-09-27 정정: pseudo_hardhat "기각 3·17·42" 는 예시 번호 오입력(실제 육안 판정 미실시). 이 설정으로 돌린 첫 run = "PPE 스모크 A(준라벨 미검수)".
+#   실제 판정 수신 후 기각분을 반영해 "스모크 B(검수 완료)" 1회 재학습, A/B 나란히 비교.
 # 클래스는 운용 PPE 4종 + person. Mask/NO-Mask 제외 원칙. forklift 는 별도 설정(finetune_aihub_forklift_v2.yaml).
 classes: [person, Hardhat, NO-Hardhat, Safety-Vest, NO-Safety-Vest]
 harness: ppe                  # 학습 후 scripts/eval/eval_v1_heldout.py(held-out 91장 전/후 + --dev74) 자동 호출
@@ -15,7 +17,7 @@ sources:
     split: D:/vigent_private_data/aihub/vigent_507/split.json     # NO-Hardhat(WO-04)·person(UA-04) + pseudo Hardhat(conf≥0.6, 병합)
   - name: pseudo_507_sample
     kind: vigent
-    labels: D:/vigent_private_data/aihub/pseudo_507/labels        # 507 개구부 표본 720장 중 준라벨 Hardhat 681장(기각 3 제외) — 전부 train
+    labels: D:/vigent_private_data/aihub/pseudo_507/labels        # 507 개구부 표본 720장 중 준라벨 Hardhat 681장(★미검수 conf≥0.6; 3장 제거는 판정 근거 없음) — 전부 train
     images: D:/vigent_private_data/aihub/docs_507
     split: D:/vigent_private_data/aihub/pseudo_507/split.json
 exclude_files: benchmarks/results/v1_heldout_eval.json   # held-out 91장 stem 을 어느 분할에도 넣지 않는다(전/후 비교 집합)
