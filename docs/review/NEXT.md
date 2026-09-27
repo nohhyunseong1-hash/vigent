@@ -32,7 +32,10 @@
 | PPE A 후속 실측(01:35) | dev74 Mask 제외 공정 비교: v1 62.3 [55.9, 68.3] → A **52.8 [46.4, 59.2]**(실제 −9.5 %p, NO-Safety-Vest 74→60/112·NO-Hardhat 14→10/54) · Safety Vest 오탐 19 중 12 는 군중 중복 박스 · 머리 박스 입력 기준 507 22.1 / held-out 20.4 / dev74 15.1 px(3배 이탈 아님, scale-aug 미적용 확인) → **축소 증강 실험 안 함**, "준라벨 제외 대조군" 제안(승인 대기) | `docs/model/ppe_finetune_smoke_A_20260927.md` §5 |
 | forklift 30분×3 벤치 완료(03:15) | CPU 34.7~36.8 % · age p95 0.5 ×3 · 경보 p95 0.15~0.27 · 추론 p95 92~158 ms · VRAM torch 1,067/1,330 MB·smi 3,425 MB — 합격선 3회 통과. 노트북 4 GB 미측정 | `docs/deploy/bench_4ch_fk2_academy_2026-09-27.md` |
 | 507 스캔(03:20) → 스모크 B(03:29~04:05) | 507 train 2,200장 중 v1 조끼 박스 있는 이미지 **89.8 %**(NO-SV 81.0) · 라벨 0 → 가설 채택, 조끼 준라벨 1,975장 병합해 B. 결과: held-out NO-Hardhat R **62.5 [50.3, 73.3]**(A 65.6·v1 64.1) · dev74 Mask 제외 **51.5 [45.1, 57.9]**(A 52.8·v1 62.3) — **A/B 차이 전부 구간 안**, 준라벨 채움은 결과를 바꾸지 않음. 목표 미달, 배포 없음 | `docs/model/ppe_finetune_smoke_B_20260927.md` · `benchmarks/results/ppe_smoke_B_20260927/` |
-| 다음 | ① 학원 노트북(4 GB) 실측 → USB 재빌드(fk510_smoke 가중치 Release 업로드 포함) ② PPE 다음 변수 승인: 대조군 C(준라벨 전부 제외) → 507 비중 축소 → lr 1e-5 ③ pseudo_hardhat 실제 판정 | — |
+| A/B 레시피 결함 확정(14:00) | v1 10클래스 헤드는 재초기화 없이 유지됐지만(로그·헤드 텐서 동일·코사인 0.995), 데이터셋 5클래스가 슬롯 0~4 에 순서대로 들어가 person→v1 Hardhat 슬롯·Hardhat→v1 Mask 슬롯·Safety-Vest→v1 NO-Mask 슬롯 위에서 이어 학습됨(predict class_id 0~4 실측). A·B 문서 첫 줄 단서 | `docs/model/ppe_finetune_smoke_A_20260927.md` |
+| 대조군 D 진행 중(14:04) | CSS v27 만(train 2,603·valid 63, held-out 제외)·v1 이어 학습·A/B 와 같은 레시피(슬롯 어긋남 포함) → 변수 = "이어 학습 자체" | `configs/finetune_aihub_v2D.yaml` · `runs/finetune/ppe_D_css_only` |
+| **D 완료 → 정지 규칙 발동(14:19)** | D(CSS 만, v1 이어 학습): held-out NO-Hardhat R **64.1 [51.8, 74.7]**(= v1)·AP50 81.2 · dev74 Mask 제외 54.5(v1 62.3, −7.8 %p). A·B·D 셋 다 v1 구간 안 → **PPE 재학습 중단, v1 유지**. "507 은 현장 안전모 미착용 개선에 기여하지 않음 [실측 3회]". 부수 발견: v1 이어 학습 레시피 자체가 dev74 를 −7.8 %p 깎음(507 무관, 원인 미확인: 슬롯 충돌 또는 lr) | `docs/model/ppe_finetune_ABD_summary_20260927.md` |
+| 다음 | ① 학원 노트북(4 GB) 실측 → USB 재빌드(fk510_smoke 가중치 Release 업로드) ② PPE 는 재방문 현장 GT 확보 후 재개. 그 전 후보(승인 시만): E(COCO nano 새로 학습, `configs/finetune_aihub_v2E.yaml`) · 슬롯 유지 D′(`drop_classes`) · AI Hub 163 라벨 표본 실측(`aihubshell -l 163`) ③ pseudo_hardhat 실제 판정(보류 가능) | — |
 
 ---
 

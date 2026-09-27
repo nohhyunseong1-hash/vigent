@@ -1,0 +1,433 @@
+{
+  "candidate_label": "ppe_D_css_only",
+  "candidate": {
+    "date": "2026-09-27 14:18",
+    "weights": "runs\\finetune\\ppe_D_css_only\\ckpt\\checkpoint_best_total.pth",
+    "resolution": 384,
+    "op_conf": 0.35,
+    "iou": 0.5,
+    "device": "cuda",
+    "heldout": {
+      "split_rule": "video",
+      "heldout_images": 91,
+      "heldout_unique_originals": 91,
+      "all_unique_originals": 700,
+      "heldout_share_of_originals": 0.13,
+      "valid_test_total": 196,
+      "dropped": {
+        "유래 영상이 train 에 있음": 40,
+        "원본 stem 이 train 에 있음": 8,
+        "연속 프레임 묶음(youtube-N) 제외": 57
+      },
+      "train_videos": 28,
+      "heldout_videos": [
+        "autox",
+        "img_3093"
+      ],
+      "heldout_videos_in_train": []
+    },
+    "heldout_files": [
+      "data\\datasets\\css_safety\\valid\\images\\-1079-_png_jpg.rf.19092a3937930012f9fd9c1ce57f5a7b.jpg",
+      "data\\datasets\\css_safety\\valid\\images\\-1429-_png_jpg.rf.78a7894e86c79d018d80fa86f4d000f8.jpg",
+      "data\\datasets\\css_safety\\valid\\images\\-1969-_png_jpg.rf.41dd58ed3ae83df95fb2417c679d581f.jpg",
+      "data\\datasets\\css_safety\\valid\\images\\-1989-_png_jpg.rf.8cb3d6087bb86d08e693b4250fbf96e3.jpg",
+      "data\\datasets\\css_safety\\valid\\images\\-211-_png_jpg.rf.eac228e3993f9027795b6400262811e7.jpg",
+      "data\\datasets\\css_safety\\valid\\images\\-3154-_png_jpg.rf.f118da2b1c20afb78ff93dc7d558f42c.jpg",
+      "data\\datasets\\css_safety\\valid\\images\\-3766-_png_jpg.rf.81ead992d4b8047ec7beb28b7532cf0a.jpg",
+      "data\\datasets\\css_safety\\valid\\images\\004424_jpg.rf.0470713b945b08839105cde711db62d9.jpg",
+      "data\\datasets\\css_safety\\valid\\images\\005559_jpg.rf.5a5ab91289de227b286efca4418ff73d.jpg",
+      "data\\datasets\\css_safety\\valid\\images\\00596_jpg.rf.d030c5d98b937d080d75db1c1b269a84.jpg",
+      "data\\datasets\\css_safety\\valid\\images\\02646_jpg.rf.5c93ba95bdc03808bcf872c7218ac5ef.jpg",
+      "data\\datasets\\css_safety\\valid\\images\\1125_jpg.rf.2958d0a57630bdde8c3b5c6c560152af.jpg",
+      "data\\datasets\\css_safety\\valid\\images\\172_jpg.rf.9385682a04a12b6043a2ea893d1f319a.jpg",
+      "data\\datasets\\css_safety\\valid\\images\\2009_000277_jpg.rf.baccd85360fb8011e7c303066ceac286.jpg",
+      "data\\datasets\\css_safety\\valid\\images\\2009_000461_jpg.rf.43a28e2d6f1f9d399c92e18ccc9f0bf1.jpg",
+      "data\\datasets\\css_safety\\valid\\images\\2009_002778_jpg.rf.7c8977ed190a2ce4211ef58f66864066.jpg",
+      "data\\datasets\\css_safety\\valid\\images\\2009_003991_jpg.rf.c4fadb57b5579062cd4db5463ec3ba74.jpg",
+      "data\\datasets\\css_safety\\valid\\images\\2009_004100_jpg.rf.6eb0dc058fc0d307a6b0f7f579945e24.jpg",
+      "data\\datasets\\css_safety\\valid\\images\\4_jpg.rf.a937c41e1fc4d92e9e1f8c2d9efeb87d.jpg",
+      "data\\datasets\\css_safety\\valid\\images\\518_jpg.rf.73999663994434126ac8b7ac5dbe6b52.jpg",
+      "data\\datasets\\css_safety\\valid\\images\\644_jpg.rf.39197521b9addbcfa9d3620d85004e2d.jpg",
+      "data\\datasets\\css_safety\\valid\\images\\681_jpg.rf.7a0a7ef78f7dc01872cc3130dc3b354e.jpg",
+      "data\\datasets\\css_safety\\valid\\images\\972_jpg.rf.4c6fac866e4928f3da7591fd2c26c2ac.jpg",
+      "data\\datasets\\css_safety\\valid\\images\\airport_inside_0090_jpg.rf.663e21100a3c4bc66a41cceba5403e51.jpg",
+      "data\\datasets\\css_safety\\valid\\images\\airport_inside_0115_jpg.rf.8277ce4e71886a343bfdb10ce7fb6d4a.jpg",
+      "data\\datasets\\css_safety\\valid\\images\\casino_0448_jpg.rf.090df4137a5926092c541ee5c6918868.jpg",
+      "data\\datasets\\css_safety\\valid\\images\\class1_077_jpg.rf.84c3583c1866262daeb1618b80e18df9.jpg",
+      "data\\datasets\\css_safety\\valid\\images\\class1_206_jpg.rf.3988ff665e55e1cd9dbcd22c87be73d9.jpg",
+      "data\\datasets\\css_safety\\valid\\images\\class1_267_jpg.rf.ab7a08d97aba5b0748e976df6e65700a.jpg",
+      "data\\datasets\\css_safety\\valid\\images\\construction-1023-_jpg.rf.7b73352606fb1d79619d34031c07a232.jpg",
+      "data\\datasets\\css_safety\\valid\\images\\construction-1027-_jpg.rf.e78f55761814a8726ea51993407957af.jpg",
+      "data\\datasets\\css_safety\\valid\\images\\construction-1037-_jpg.rf.c44151f7f28c4da9757409953b1bff55.jpg",
+      "data\\datasets\\css_safety\\valid\\images\\construction-1114-_jpg.rf.69b25d38992eb6da67701a614f0a3f97.jpg",
+      "data\\datasets\\css_safety\\valid\\images\\construction-196-_jpg.rf.f593da25134315b48b325fb42436a01a.jpg",
+      "data\\datasets\\css_safety\\valid\\images\\construction-274-_jpg.rf.21181010ffb2b9ea429080ccd258e3ae.jpg",
+      "data\\datasets\\css_safety\\valid\\images\\construction-277-_jpg.rf.bf73a4edc7a1f7d412bc3267cbafcda7.jpg",
+      "data\\datasets\\css_safety\\valid\\images\\construction-711-_jpg.rf.50a19be8c0ae3cd1a82cd543a9bb6a14.jpg",
+      "data\\datasets\\css_safety\\valid\\images\\construction-823-_jpg.rf.640d8abfc7c7689d4a19e6aa00ac8984.jpg",
+      "data\\datasets\\css_safety\\valid\\images\\construction-9-_jpg.rf.c2af6f04317b1ea7d6e2a84d776788a2.jpg",
+      "data\\datasets\\css_safety\\valid\\images\\hospital-corridor_jpg.rf.bbac7f39a08bac2b0363ee9682bd86b2.jpg",
+      "data\\datasets\\css_safety\\valid\\images\\img_08_jpg.rf.0f132a9c7ca6d12a8a9d1c4b3dbd54da.jpg",
+      "data\\datasets\\css_safety\\valid\\images\\IMG_3093_mp4-22_jpg.rf.ea118a6046b21e9246efd53599dfdc41.jpg",
+      "data\\datasets\\css_safety\\valid\\images\\MariusConePic31_png_jpg.rf.1fd6fccfeef580e0e0061d78d5a248a4.jpg",
+      "data\\datasets\\css_safety\\valid\\images\\mms_00684_jpg.rf.47567bbd99db89023296aad0b965ff02.jpg",
+      "data\\datasets\\css_safety\\valid\\images\\ppe_0064_jpg.rf.f019b082d09af2750a81ef5ea3fcbc3e.jpg",
+      "data\\datasets\\css_safety\\valid\\images\\ppe_0355_jpg.rf.508753d5b708536eca53de192b927c61.jpg",
+      "data\\datasets\\css_safety\\valid\\images\\ppe_0665_jpg.rf.1dad479f7f54b2a7127cf18ef74ffd85.jpg",
+      "data\\datasets\\css_safety\\valid\\images\\ppe_1228_jpg.rf.29b714c415ea74df3160f56a603463a0.jpg",
+      "data\\datasets\\css_safety\\valid\\images\\residential_jpg.rf.17181770c64333009b9101e1572c5112.jpg",
+      "data\\datasets\\css_safety\\valid\\images\\shakespearebookshop_jpg.rf.9a14dbfdd07d9a0cc916cffef0194245.jpg",
+      "data\\datasets\\css_safety\\valid\\images\\soooo_jpg.rf.5980d39f656b4d62672d2164173455e3.jpg",
+      "data\\datasets\\css_safety\\test\\images\\-4405-_png_jpg.rf.82b5c10b2acd1cfaa24259ada8e599fe.jpg",
+      "data\\datasets\\css_safety\\test\\images\\000005_jpg.rf.96e9379ccae638140c4a90fc4b700a2b.jpg",
+      "data\\datasets\\css_safety\\test\\images\\002551_jpg.rf.ce4b9f934161faa72c80dc6898d37b2d.jpg",
+      "data\\datasets\\css_safety\\test\\images\\003357_jpg.rf.9867f91e88089bb68dc95947d5116d14.jpg",
+      "data\\datasets\\css_safety\\test\\images\\004063_jpg.rf.1b7cdc4035bcb24ef69b8798b444053e.jpg",
+      "data\\datasets\\css_safety\\test\\images\\004763_jpg.rf.46484e6ca73caeaa9de45822cf1085a9.jpg",
+      "data\\datasets\\css_safety\\test\\images\\006463_jpg.rf.02f19082420ecc5537b9d59abbe6050c.jpg",
+      "data\\datasets\\css_safety\\test\\images\\006672_jpg.rf.87d5978c486feb53177408cf00a0d87f.jpg",
+      "data\\datasets\\css_safety\\test\\images\\0_jpg.rf.2ff49f74309118f169e07aa12564df87.jpg",
+      "data\\datasets\\css_safety\\test\\images\\2008_008320_jpg.rf.bd34011d46f82f9410d95f00e560b8ea.jpg",
+      "data\\datasets\\css_safety\\test\\images\\2008_008519_jpg.rf.1798c8eed7de04399a0e7e297b4b4c9e.jpg",
+      "data\\datasets\\css_safety\\test\\images\\2009_000059_jpg.rf.50e8398a37eb33f33fd9f662feeea083.jpg",
+      "data\\datasets\\css_safety\\test\\images\\2009_000496_jpg.rf.9a2d210fe0f5ea4b572aeb07e41ecbae.jpg",
+      "data\\datasets\\css_safety\\test\\images\\3e7e40981ddd4cdb055c7ffe4c2af5d8_jpg.rf.bac50dc18195e9aeb6f3a21782a3efcb.jpg",
+      "data\\datasets\\css_safety\\test\\images\\777_jpg.rf.92dc6945342410ced7ac93f3dfbff0c5.jpg",
+      "data\\datasets\\css_safety\\test\\images\\autox_mp4-44_jpg.rf.5048603ee6ccedf9ae6e3f787b7f82ff.jpg",
+      "data\\datasets\\css_safety\\test\\images\\bookstore_44_08_flickr_jpg.rf.244b6f308c529933af798c4063e58601.jpg",
+      "data\\datasets\\css_safety\\test\\images\\Bookstore_More_Merchandise_jpg.rf.7ab5add3e28ced74f9b316e794cc04d2.jpg",
+      "data\\datasets\\css_safety\\test\\images\\class1_150_jpg.rf.5995dce34d38deb9eb0b6e36cae78f17.jpg",
+      "data\\datasets\\css_safety\\test\\images\\class2_131_jpg.rf.ad8314a9273471f1280ce8789ea75376.jpg",
+      "data\\datasets\\css_safety\\test\\images\\class2_145_jpg.rf.b8ed5a5357ee41f8fb1aa9b01a400d51.jpg",
+      "data\\datasets\\css_safety\\test\\images\\construction-1159-_jpg.rf.9f3172102a34edb157b556a73931c831.jpg",
+      "data\\datasets\\css_safety\\test\\images\\construction-192-_jpg.rf.56dd5c4c1396c6ad01be4fbec3bca46f.jpg",
+      "data\\datasets\\css_safety\\test\\images\\construction-275-_jpg.rf.e1c57987f9dc262aad1d7c67b694fd87.jpg",
+      "data\\datasets\\css_safety\\test\\images\\construction-597-_jpg.rf.e18e918aae0aeecfdf8348513636d344.jpg",
+      "data\\datasets\\css_safety\\test\\images\\construction-639-_jpg.rf.7db2168ad99f643f7e3070733387e3bb.jpg",
+      "data\\datasets\\css_safety\\test\\images\\construction-651-_jpg.rf.8fa283ce7693dbdf29eb98384f24cb85.jpg",
+      "data\\datasets\\css_safety\\test\\images\\construction-675-_jpg.rf.bb4a05441be707256175e04929da3478.jpg",
+      "data\\datasets\\css_safety\\test\\images\\construction-800-_jpg.rf.a01fcddd0db9cc89c0cacf4af88c468d.jpg",
+      "data\\datasets\\css_safety\\test\\images\\construction-843-_jpg.rf.c0ca85a10f6ad3c1375b37e52a51eeed.jpg",
+      "data\\datasets\\css_safety\\test\\images\\Image36_jpg.rf.8704f3450f736cdd01a61dcee588f2c2.jpg",
+      "data\\datasets\\css_safety\\test\\images\\image_53_jpg.rf.3446e366b5d4d905a32e1aedc8fe87de.jpg",
+      "data\\datasets\\css_safety\\test\\images\\IMG_5846_jpg.rf.0b9984069116e2acd928568eb7a8e214.jpg",
+      "data\\datasets\\css_safety\\test\\images\\ka_01181_png_jpg.rf.154ee4ef254eabd62e316be50470c578.jpg",
+      "data\\datasets\\css_safety\\test\\images\\librairie_51_jpg.rf.56b0500ae2ad3820b4286133b627e59c.jpg",
+      "data\\datasets\\css_safety\\test\\images\\maksssksksss17_png_jpg.rf.f685b497756b1facbf3d4c2d2d22c0d2.jpg",
+      "data\\datasets\\css_safety\\test\\images\\NX_img_177_jpg.rf.c03709e5fadfe2109411f05a9e9bc25f.jpg",
+      "data\\datasets\\css_safety\\test\\images\\ppe_0018_jpg.rf.be66fabcc8627f60d963454b5a227095.jpg",
+      "data\\datasets\\css_safety\\test\\images\\ppe_1073_jpg.rf.72ea8a293a4f3e1135219e33701b1099.jpg",
+      "data\\datasets\\css_safety\\test\\images\\thumbnail-ba5c72edb320b49a69e86b05775c49b2-scaled-1_jpeg_jpg.rf.3bb460e284098219861b894fb0db13d5.jpg"
+    ],
+    "rows": [
+      {
+        "class": "Hardhat",
+        "gt": 146,
+        "tp": 125,
+        "fp": 12,
+        "fn": 21,
+        "precision": 91.2,
+        "precision_ci95": [
+          85.3,
+          94.9
+        ],
+        "recall": 85.6,
+        "recall_ci95": [
+          79.0,
+          90.4
+        ],
+        "ap50": 88.3
+      },
+      {
+        "class": "Mask",
+        "gt": 22,
+        "tp": 0,
+        "fp": 0,
+        "fn": 22,
+        "precision": null,
+        "precision_ci95": null,
+        "recall": 0.0,
+        "recall_ci95": [
+          0.0,
+          14.9
+        ],
+        "ap50": 0.0
+      },
+      {
+        "class": "NO-Hardhat",
+        "gt": 64,
+        "tp": 41,
+        "fp": 11,
+        "fn": 23,
+        "precision": 78.8,
+        "precision_ci95": [
+          66.0,
+          87.8
+        ],
+        "recall": 64.1,
+        "recall_ci95": [
+          51.8,
+          74.7
+        ],
+        "ap50": 70.7
+      },
+      {
+        "class": "NO-Mask",
+        "gt": 109,
+        "tp": 0,
+        "fp": 0,
+        "fn": 109,
+        "precision": null,
+        "precision_ci95": null,
+        "recall": 0.0,
+        "recall_ci95": [
+          0.0,
+          3.4
+        ],
+        "ap50": 0.0
+      },
+      {
+        "class": "NO-Safety Vest",
+        "gt": 135,
+        "tp": 110,
+        "fp": 17,
+        "fn": 25,
+        "precision": 86.6,
+        "precision_ci95": [
+          79.6,
+          91.5
+        ],
+        "recall": 81.5,
+        "recall_ci95": [
+          74.1,
+          87.1
+        ],
+        "ap50": 84.7
+      },
+      {
+        "class": "Person",
+        "gt": 232,
+        "tp": 187,
+        "fp": 23,
+        "fn": 45,
+        "precision": 89.0,
+        "precision_ci95": [
+          84.1,
+          92.6
+        ],
+        "recall": 80.6,
+        "recall_ci95": [
+          75.0,
+          85.2
+        ],
+        "ap50": 86.1
+      },
+      {
+        "class": "Safety Cone",
+        "gt": 82,
+        "tp": 0,
+        "fp": 0,
+        "fn": 82,
+        "precision": null,
+        "precision_ci95": null,
+        "recall": 0.0,
+        "recall_ci95": [
+          0.0,
+          4.5
+        ],
+        "ap50": 0.0
+      },
+      {
+        "class": "Safety Vest",
+        "gt": 62,
+        "tp": 48,
+        "fp": 11,
+        "fn": 14,
+        "precision": 81.4,
+        "precision_ci95": [
+          69.6,
+          89.3
+        ],
+        "recall": 77.4,
+        "recall_ci95": [
+          65.6,
+          86.0
+        ],
+        "ap50": 81.2
+      },
+      {
+        "class": "machinery",
+        "gt": 42,
+        "tp": 0,
+        "fp": 0,
+        "fn": 42,
+        "precision": null,
+        "precision_ci95": null,
+        "recall": 0.0,
+        "recall_ci95": [
+          0.0,
+          8.4
+        ],
+        "ap50": 0.0
+      },
+      {
+        "class": "vehicle",
+        "gt": 9,
+        "tp": 0,
+        "fp": 0,
+        "fn": 9,
+        "precision": null,
+        "precision_ci95": null,
+        "recall": 0.0,
+        "recall_ci95": [
+          0.0,
+          29.9
+        ],
+        "ap50": 0.0
+      }
+    ],
+    "summary": {
+      "mAP50_all10": 41.1,
+      "mAP50_our4": 81.2,
+      "recall_our4_mean": 77.2,
+      "precision_our4_mean": 84.5
+    },
+    "elapsed_s": 2.4
+  },
+  "baseline_json": "D:\\vigent_original\\benchmarks\\results\\v1_heldout_eval.json",
+  "goals": {
+    "primary": {
+      "NO-Hardhat": {
+        "recall_min": 85.0,
+        "precision_min": 69.5
+      },
+      "NO-Safety Vest": {
+        "recall_min": 90.0,
+        "precision_min": 86.9
+      }
+    },
+    "secondary": {
+      "dev74_ppe_recall_min": 80.0
+    },
+    "final": "재방문 현장 정답지에서만 판정 — 위 둘은 '가망 확인'"
+  },
+  "goal_check": [
+    {
+      "set": "held-out 91",
+      "class": "NO-Hardhat",
+      "metric": "recall",
+      "target_min": 85.0,
+      "value": 64.1,
+      "ci95": [
+        51.8,
+        74.7
+      ],
+      "verdict": "미달"
+    },
+    {
+      "set": "held-out 91",
+      "class": "NO-Hardhat",
+      "metric": "precision",
+      "target_min": 69.5,
+      "value": 78.8,
+      "ci95": [
+        66.0,
+        87.8
+      ],
+      "verdict": "달성(구간 걸침)"
+    },
+    {
+      "set": "held-out 91",
+      "class": "NO-Safety Vest",
+      "metric": "recall",
+      "target_min": 90.0,
+      "value": 81.5,
+      "ci95": [
+        74.1,
+        87.1
+      ],
+      "verdict": "미달"
+    },
+    {
+      "set": "held-out 91",
+      "class": "NO-Safety Vest",
+      "metric": "precision",
+      "target_min": 86.9,
+      "value": 86.6,
+      "ci95": [
+        79.6,
+        91.5
+      ],
+      "verdict": "미달(구간 걸침)"
+    }
+  ],
+  "dev74_candidate": {
+    "person_recall_all": 0.0,
+    "person_gt_total": 157,
+    "person_recall_occlusion": 0.0,
+    "occlusion_n": 50,
+    "nh_lower": 0.2037037037037037,
+    "nh_gt_total": 54,
+    "nh_upper": 0.7857142857142857,
+    "nh_clear_n": 14,
+    "nh_tp_clear": 11,
+    "nh_ci": [
+      0.4920243229515281,
+      0.9534207121101327
+    ],
+    "ppe_precision": 0.9692307692307692,
+    "ppe_recall": 0.5101214574898786,
+    "ppe_f1": 0.6684350132625995,
+    "ppe_tp": 126,
+    "ppe_fp": 4,
+    "ppe_gt": 247,
+    "excluded_classes": [],
+    "ppe_per_class": {
+      "Hardhat": {
+        "gt": 63,
+        "tp": 52,
+        "fp": 3
+      },
+      "NO-Hardhat": {
+        "gt": 54,
+        "tp": 11,
+        "fp": 1
+      },
+      "Safety-Vest": {
+        "gt": 2,
+        "tp": 1,
+        "fp": 0
+      },
+      "NO-Safety-Vest": {
+        "gt": 112,
+        "tp": 62,
+        "fp": 0
+      },
+      "Mask": {
+        "gt": 0,
+        "tp": 0,
+        "fp": 0
+      },
+      "NO-Mask": {
+        "gt": 16,
+        "tp": 0,
+        "fp": 0
+      }
+    },
+    "status": "측정"
+  },
+  "dev74_v1": {
+    "source": "benchmarks/v1_field_baseline_report.md:91-94 (측정 2026-08-10)",
+    "ppe_precision": 93.6,
+    "ppe_tp": 160,
+    "ppe_fp": 11,
+    "ppe_recall": 64.8,
+    "ppe_gt": 247,
+    "nh_interval": [
+      25.9,
+      100.0
+    ],
+    "nh_n": 14
+  },
+  "field_gt": "미확보"
+}

@@ -1,0 +1,12 @@
+# PPE 대조군 D — 507·준라벨 전부 제외, v1 의 원래 학습 데이터(CSS v27 train, held-out 51 제외)만으로 A/B 와 같은 레시피. [2026-09-27 승인]
+# 변수 = "v1 에 이어 학습하는 것 자체"(10 epoch·lr 1e-4·seed 동일). 검증 = CSS valid(held-out 제외 후 63장).
+# 판정: D ≈ v1 이면 507 이 해친다 → 507 제외. D < v1 이면 레시피 문제 → 헤드 유지(클래스 매핑) 또는 lr 1e-5, 그리고 COCO nano 에서 새로 학습(E).
+classes: [person, Hardhat, NO-Hardhat, Safety-Vest, NO-Safety-Vest]
+harness: ppe
+init: vigent-core/weights/ppe_rfdetr_v1.pth
+sources:
+  - name: css_v27
+    kind: yolo_yaml
+    path: data/datasets/css_safety/data.yaml
+    splits: {train: train, valid: valid}
+exclude_files: benchmarks/results/v1_heldout_eval.json

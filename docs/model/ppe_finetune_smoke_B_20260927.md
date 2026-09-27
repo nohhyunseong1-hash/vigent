@@ -1,6 +1,7 @@
 # PPE 스모크 B — 507 조끼 준라벨로 라벨 누락을 메운 1회 (2026-09-27 03:29~04:05) + A/B/v1 나란히 [실측]
 
-> **첫 줄 단서**: B 의 준라벨은 둘 다 **미검수**다 — Hardhat 681장(A 와 동일, 예시 번호 오입력 정정 반영) + 507 train 1,975장 조끼 준라벨(v1 conf≥0.6, `source: pseudo:v1:Safety-Vest+NO-Safety-Vest`).
+> **첫 줄 단서 ②(레시피 결함, A 와 공통 — A 문서 첫 줄 참조)**: v1 10클래스 헤드가 재초기화 없이 유지됐지만 5클래스가 슬롯 0~4 에 순서대로 들어가 person·Hardhat·Safety-Vest 는 **v1 에서 다른 뜻이던 슬롯(Hardhat·Mask·NO-Mask)** 위에서 이어 학습됐다 [실측].
+> **첫 줄 단서 ①**: B 의 준라벨은 둘 다 **미검수**다 — Hardhat 681장(A 와 동일, 예시 번호 오입력 정정 반영) + 507 train 1,975장 조끼 준라벨(v1 conf≥0.6, `source: pseudo:v1:Safety-Vest+NO-Safety-Vest`).
 > A 대비 변수: (1) 507 조끼 준라벨 병합 (2) 학습 중 검증셋 = CSS valid 63 + 507 val 200(A 는 507 위주 800). 나머지(클래스·v1 시작점·하이퍼·seed) 동일.
 > 원자료: `benchmarks/results/ppe_smoke_B_20260927/`(하네스 JSON·dev74 공정 비교·metrics·config·plan·보정 메모). 가중치 `runs/`(미추적, SHA `d90935a6…` 보정 후). **배포 없음.**
 

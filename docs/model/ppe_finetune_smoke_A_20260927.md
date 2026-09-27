@@ -1,6 +1,12 @@
 # PPE 스모크 A (준라벨 미검수) — NO-Hardhat 재학습 1회 결과 (2026-09-27 00:01~01:01, 개발기 RTX 5070 Ti) [실측]
 
-> **첫 줄 단서**: 이 run 의 Hardhat 준라벨 681장(507 개구부 표본, 현 검출기 conf≥0.6)은 **육안 검수를 거치지 않았다.** 2026-09-26 밤 지시의 "기각 3·17·42" 는
+> **첫 줄 단서 ②(2026-09-27 14:00 확정, 레시피 결함)**: v1 체크포인트(10클래스 헤드)를 로드할 때 rfdetr 는 헤드를 **재초기화하지 않고 10클래스를 유지**했다
+> (로그 `Dataset has 5 classes but model was initialized with num_classes=10. Using the model's configured value (10)`, 헤드 텐서 `enc_out_class_embed` 모양 (11,256) 동일·코사인 0.995).
+> 그런데 데이터셋의 5클래스는 **슬롯 0~4 에 순서대로** 들어갔다(predict class_id 0~4 실측): person→슬롯0(**v1 의 Hardhat**), Hardhat→슬롯1(**v1 의 Mask**), NO-Hardhat→슬롯2(v1 NO-Hardhat ✓),
+> Safety-Vest→슬롯3(**v1 의 NO-Mask**), NO-Safety-Vest→슬롯4(v1 NO-Safety Vest ✓). 즉 5클래스 중 3개가 **의미가 다른 슬롯 위에서 이어 학습**됐다 — A·B 공통이며, v1 지식을 잇는다는 전제가 3클래스에서 깨져 있었다.
+> 정정안: 데이터셋 클래스를 v1 의 10슬롯 순서(Hardhat·Mask·NO-Hardhat·NO-Mask·NO-Safety-Vest·person·Safety Cone·Safety-Vest·machinery·vehicle)로 두고 Mask 류는 주석만 비운다(`classes_layout: v1`, 대조군 D 결과 뒤 적용 여부 결정).
+>
+> **첫 줄 단서 ①**: 이 run 의 Hardhat 준라벨 681장(507 개구부 표본, 현 검출기 conf≥0.6)은 **육안 검수를 거치지 않았다.** 2026-09-26 밤 지시의 "기각 3·17·42" 는
 > 사용자 실제 판정이 아니라 예시 번호 오입력이었다(2026-09-27 정정). 그 3장 제거는 판정 근거 없이 유지됐다. 실제 판정이 오면 **스모크 B(검수 완료)** 를 1회 더 돌려
 > A/B 를 나란히 놓는다 — 차이가 신뢰구간 안이면 "준라벨 품질이 결과를 좌우하지 않는다"는 근거가 된다.
 > 원자료: `benchmarks/results/ppe_smoke_A_20260927/`(harness JSON·metrics.csv·training_config·plan·보정 메모). 가중치는 `runs/`(미추적). **배포하지 않았다.**

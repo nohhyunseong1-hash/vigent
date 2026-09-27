@@ -205,6 +205,20 @@ def assemble(cfg: dict[str, Any], out: Path, copy: bool, seed: int = 0, max_trai
         if kept_valid:
             merged["valid"] = kept_valid
     merged["train"] = [(i, b) for i, b, *_ in merged["train"]]; merged["valid"] = [(i, b) for i, b, *_ in merged["valid"]]
+    # [2026-09-27 헤드 슬롯 유지] classes 를 v1 의 10슬롯 순서로 두고 쓰지 않는 클래스(Mask 류)는 주석만 비운다 — 슬롯 의미를 v1 과 맞추기 위해
+    drop = set(cfg.get("drop_classes") or [])
+    if drop:
+        bad = drop - set(classes)
+        if bad:
+            raise SystemExit(f"drop_classes 에 classes 에 없는 이름: {sorted(bad)}")
+        n_drop = 0
+        for split in merged:
+            new = []
+            for img, boxes in merged[split]:
+                kept_b = [(c, b) for c, b in boxes if classes[c] not in drop]; n_drop += len(boxes) - len(kept_b)
+                new.append((img, kept_b))
+            merged[split] = new
+        report["dropped_boxes_by_class_policy"] = {"classes": sorted(drop), "boxes": n_drop}
     # 누출 검사: 같은 stem 이 train·valid 양쪽에 있으면 실패
     ts = {i.stem for i, _ in merged["train"]}; vs = {i.stem for i, _ in merged["valid"]}
     if ts & vs:

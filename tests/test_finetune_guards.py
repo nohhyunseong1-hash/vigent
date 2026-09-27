@@ -152,6 +152,26 @@ class ProvenanceTest(unittest.TestCase):
             cfg.pop("valid_limit_per_source")
             self.assertEqual(F.assemble(cfg, d / "out3", copy=False, seed=3)["valid"]["images"], 5)
 
+    def test_drop_classes_keeps_slots_but_removes_boxes(self):
+        # 2026-09-27: v1 10슬롯 순서를 유지하되 Mask 류 주석은 비운다 — 카테고리는 남고 박스만 빠진다. classes 에 없는 이름이면 중단.
+        from PIL import Image
+        with tempfile.TemporaryDirectory() as td:
+            d = Path(td); (d / "labels").mkdir()
+            for s in ("a", "b"):
+                Image.new("RGB", (16, 16)).save(d / f"{s}.jpg"); (d / "labels" / f"{s}.txt").write_text("0 0.5 0.5 0.2 0.2\n1 0.5 0.5 0.2 0.2\n", encoding="utf-8")
+            (d / "classes.txt").write_text("Hardhat\nMask\n", encoding="utf-8")
+            (d / "split.json").write_text(json.dumps({"train": ["a"], "val": ["b"]}), encoding="utf-8")
+            cfg = {"classes": ["Hardhat", "Mask"], "drop_classes": ["Mask"],
+                   "sources": [{"name": "s", "kind": "vigent", "labels": str(d / "labels"), "images": str(d), "split": str(d / "split.json")}]}
+            rep = F.assemble(cfg, d / "out", copy=False, seed=1)
+            self.assertEqual(rep["dropped_boxes_by_class_policy"], {"classes": ["Mask"], "boxes": 2})
+            coco = json.loads((d / "out" / "dataset" / "train" / "_annotations.coco.json").read_text(encoding="utf-8"))
+            self.assertEqual([c["name"] for c in coco["categories"]], ["Hardhat", "Mask"])      # 슬롯(카테고리)은 유지
+            self.assertEqual({a["category_id"] for a in coco["annotations"]}, {1})                # Mask(2) 주석은 없음
+            cfg["drop_classes"] = ["NO-Mask"]
+            with self.assertRaises(SystemExit):
+                F.assemble(cfg, d / "out2", copy=False, seed=1)
+
     def test_subsample_is_deterministic_and_bounded(self):
         items = [(Path(f"i{i}.jpg"), []) for i in range(50)]
         s1 = F.subsample(items, 10, seed=1); s2 = F.subsample(items, 10, seed=1); s3 = F.subsample(items, 10, seed=2)
