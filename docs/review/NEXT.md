@@ -1,7 +1,25 @@
-# 다음에 할 것 (2026-09-23 기준)
+# 다음에 할 것 (2026-09-28 세션 마감 기준)
 
 > 이 문서는 **결정이 필요한 것**과 **결정 뒤 이어지는 작업**만 담는다.
 > 측정 결과·근거는 각 항목이 가리키는 파일에 있다. (이전판: 2026-09-22 — 아래 "완료" 로 흡수)
+
+## 2026-09-26 ~ 09-28 마감 요약 — 다음 세션은 여기서 시작
+
+**완료 [실측, 커밋]**
+| 항목 | 결과 | 커밋 |
+|---|---|---|
+| forklift fk510_smoke 로 학원 프로파일 교체 | 510 held-out AP50 **94.3 [93.6, 95.0]** · VS_02 음성 오탐 **0.1 %** [0.0, 0.3](n=2,568) · 4ch 벤치 **30분×3 통과** · AGPL YOLO(boda_ax) 의존 해소 | `fd67d6e` `694c5af` `7287bb8` `286e499` |
+| PPE 재학습(507) 정지 규칙 발동 → v1 유지 | A/B/D 무효(슬롯 결함) → 유효 A′·E 모두 v1 구간 안. 슬롯 가드 추가 | `cfe83de` `1eedb97` `85775da` |
+| 공개 데이터 경로 종결 | AI Hub 163(1인칭 액션캠 174/174, 코드 사진 확정)·507·510 · SHWD(MIT 표기이나 웹 수집+SCUT 연구전용, 안전모 프레임 감시 시점 0 %) · Roboflow 10종(감시 시점 최고 17 %) → 통과 0건. **CSS 자체도 감시 시점 0/30** | `328350e` `f529b7f` |
+| PPE v2 현장 경로 도구 7건 | `field_prelabel.py`(2fps·v1 초벌·CVAT 1.1·negatives) · `field_split.py`(held-out 300 클립 단위 층화 "학습 금지" + 카메라 분할 누출 exit 3) · 조립기 held-out 가드 · `finetune_field_v2{,_cont}.yaml` dry-run 통과 · 하네스 3번째 집합(현장 held-out+음성 오탐, 합격선 R≥85/≥90·오탐≤1 %) · 촬영 체크리스트 · 테스트 +10(808) | `41e36b2` |
+
+**보류**: E50(507 최종 판정 보류 — 현장 GT 로 대체) · pseudo_hardhat 판정(**불필요해짐** — 공개 데이터 경로 종결) · 163 1.공동주택 [0,0] 223장 정체(종결에 영향 없음).
+
+**사용자 대기(결정·행동)**: ① AI Hub 510 상업 활용 문의 회신 ② 학원 DVR 녹화본(내보내기 포맷·기간·카메라 수) ③ 촬영 날짜(`docs/data/field_capture_checklist.md`) ④ 노트북 GTX 1650 Ti 4 GB 실측(fk510_smoke 학원 프로파일) ⑤ Gmail smtp_pass(이메일 2번째 채널) ⑥ 사업자 등록.
+
+**다음 세션 첫 순서**: 현장 데이터 도착 → `field_prelabel.py`(초벌, 저장소 밖 `D:\vigent_private_data\field\`) → `field_split.py heldout`(300, 학습 금지) → `split`(카메라 단위) → CVAT 검수 → 학습 2종(`finetune_field_v2` / `_cont`, 10 epoch 마다 held-out 중간 평가) → `eval_v1_heldout.py --field-heldout` 3행 표 판정. 데이터가 없으면 ②·④ 부터.
+
+**개발기 상태(마감 시)**: 미커밋 변경 0 · VIGENT 학습/벤치/서버/싱크 프로세스 0(GPU 점유는 데스크톱 앱뿐) · `config/notify.yaml` 원본 그대로(싱크 미적용) · `runs/finetune/` 6 run 전부 완주(best 체크포인트 있음, 정체·NaN 마커 없음) **57.5 GB** 보존(fk_510_smoke 18.1 · ppe_507_v2 8.8 · ppe_A2_slot 8.8 · ppe_E_coco 8.8 · ppe_507_v2B 7.9 · ppe_D_css_only 5.1) — 삭제는 대표 결정 · D: 여유 231 GB · **C: 여유 9.1 GB(96 %)** — 테스트·pip 캐시 주의.
 
 ## 완료 (2026-09-22 ~ 09-23)
 
@@ -52,8 +70,10 @@
 | # | 결정 | 무엇이 걸려 있나 | 근거·준비물 |
 |---|---|---|---|
 | 1 | **Gmail 앱 비밀번호** | 이메일 두 번째 채널 활성 — 채널이 하나뿐이면 죽는 순간 경보가 아무에게도 안 간다 | `docs/ops/email_notify_setup.md`. 코드·자가시험은 끝나 있다 |
-| 2 | **재방문 날짜** | 현장 파이프라인 재현율을 영영 못 잰다(현재 "미확정") | `docs/refield_plan_addendum_20260922.md` — 45분·T1~T4 |
-| 3 | **CVAT 설치일** | 재방문 정답지 제작. 재방문 **전에** 10초 왕복 시험 권고 | `docs/labeling/cvat_setup.md` · 변환기 테스트 10건 OK |
+| 2 | **촬영(재방문) 날짜** | 현장 파이프라인 재현율·PPE v2 학습 데이터 — 공개 데이터 경로가 전부 종결돼 **유일한 경로**(2026-09-27) | `docs/data/field_capture_checklist.md`(4곳·4~6명·주야 1h·조합표·동의서) · `docs/refield_plan_addendum_20260922.md` |
+| 3 | **CVAT 설치일** | 초벌 라벨(`cvat/<카메라>.xml`, source=auto) 검수. 촬영 **전에** 10초 왕복 시험 권고 | `docs/labeling/cvat_setup.md` · 변환기 테스트 10건 OK |
+| 2-1 | **AI Hub 510 상업 활용 문의** | fk510_smoke(510 학습) 배포 가능 여부 — 회신 전까지 학원 프로파일은 실증 용도 | 문의 발송 여부·회신 기록 |
+| 2-2 | **사업자 등록** | 데이터 활용 동의서·AI Hub 문의 주체 | — |
 | 4 | **노트북 push(`laptop/20260917`) → 두 계보 통합 → 실USB 빌드 → 노트북·파일럿기 재설치** | 노트북은 지금도 F-34 미반영으로 경보를 버린다. USB 는 통합 전엔 개발기 계보만 담는다 | 통합 절차 `docs/deploy/laptop_update_20260922.md`. 실USB 는 `build_usb.ps1`(**-SkipBuild 없이** 새 빌드 4.23GB) |
 | 5 | **NSSM 서비스 등록 실기 1회(관리자 셸)** | 인수시험 A1·설계 §5 검증. 비관리자 셸이라 아직 못 했다 | `D:\vigent_usb_stage\설치.bat` 관리자 실행 → A1~A8 |
 | 6 | **사양 판정** | 파일럿기 GPU/CPU 확정 | 근거: **4ch 2fps GPU 점유 18.6 % @5070 Ti**, **torch 604 MB**(+컨텍스트 ≈3.2GB 추정). 5060 배수는 추정하지 않았다 |
@@ -74,8 +94,8 @@
 | 항목 | 착수 조건 |
 |---|---|
 | `B-imgsz` 입력 해상도 실험 | 재방문 정답지 확보 후 |
-| `B-finetune` 검출기 파인튜닝 | 재방문 정답지에서 40px 이상 재현율이 목표 미달일 때. **목표치 선언됨(2026-09-25)**: held-out 91장 NO-Hardhat R≥85·NO-Safety Vest R≥90(정밀도 유지) / dev 74 PPE R≥80 / 최종 판정은 현장 정답지 — `docs/model/ppe_rfdetr_v1_provenance.md` §8 |
-| AI Hub 학습 | 재방문 정답지 후 |
+| `B-finetune` 검출기 파인튜닝 | → **PPE v2 현장 경로로 대체(2026-09-27)**: 도구·설정·하네스 준비 완료(`41e36b2`), 실행은 현장 데이터 도착 후. 목표치(NO-Hardhat R≥85·NO-Safety Vest R≥90·음성 오탐 ≤1 %)는 현장 held-out 300 에서 판정 — `docs/model/ppe_rfdetr_v1_provenance.md` §8 |
+| AI Hub 학습 | **종결(2026-09-27)** — forklift 는 510 으로 완료, PPE 는 507·163 부적합(`docs/model/aihub_data_review_163_20260927.md`) |
 | `B-required-ppe` 필수 보호구 프로필화 | — (마법사가 `ppe.required` 를 기록하는 것으로 1차 대응) |
 | `B-page-hits` `/health` 페이지 카운터 | — |
 | boda_ax ONNX 변환 | 대표 AGPL 결정 후 |
