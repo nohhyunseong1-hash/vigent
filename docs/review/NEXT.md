@@ -36,7 +36,9 @@
 | 대조군 D 진행 중(14:04) | CSS v27 만(train 2,603·valid 63, held-out 제외)·v1 이어 학습·A/B 와 같은 레시피(슬롯 어긋남 포함) → 변수 = "이어 학습 자체" | `configs/finetune_aihub_v2D.yaml` · `runs/finetune/ppe_D_css_only` |
 | D 완료(14:19) → **정정** | D(CSS 만, v1 이어 학습): held-out NO-Hardhat R 64.1 [51.8, 74.7](= v1)·AP50 81.2 · dev74 Mask 제외 54.5(v1 62.3, −7.8 %p). ★대표 정정: A·B·D 는 **슬롯 어긋남 결함 레시피**라 무효 → **507 효과는 미검증, 하락의 원인은 레시피 [실측 D]**. 정지 규칙은 결함 없는 실험에만 | `docs/model/ppe_finetune_ABD_summary_20260927.md` |
 | **A′ 승인·진행** | 첫 유효 실험: A 와 같은 데이터(CSS+507+Hardhat 준라벨 681 미검수), `classes` = v1 10슬롯 순서 + `drop_classes`(Mask·NO-Mask·Cone·machinery·vehicle), 사전 가드(체크포인트 순서 ≠ 데이터셋 순서면 거부, 슬롯 매핑표 로그). 판정: A′>v1 구간 밖 → B′(조끼 준라벨) / A′≈v1 → E(COCO 새로 학습) 1회 / E 까지 구간 안 → 정지·v1 유지 | `configs/finetune_aihub_v2A2.yaml` |
-| 다음 | ① A′ 결과 → v1/D/A′ 3행(held-out 91 + dev74 Mask 제외) ② 학원 노트북(4 GB) 실측 → USB 재빌드 ③ AI Hub 163 라벨 표본(`aihubshell -l 163`) ④ pseudo_hardhat 실제 판정 | — |
+| **A′ 완료(15:12)** | 슬롯 정렬(가드 ✓)·데이터 A 와 동일: held-out NO-Hardhat R **64.1 [51.8, 74.7]**(= v1)·NO-SV 77.0·4클래스 AP50 80.1 · dev74 Mask 제외 **51.1 [44.7, 57.5]**(v1 62.3, −11.3 %p, NO-Hardhat 9/54). **A′ ≈ v1 → 이어 학습 한계 → E 착수**(승인 경로). dev74 하락은 슬롯 충돌 때문이 아님 | `docs/model/ppe_finetune_A2_slot_20260927.md` |
+| E 진행 중(15:2x) | COCO nano 에서 CSS+507(+준라벨 681) 새로 학습, 검증 800 층화, 변수 = 시작점 하나. E 까지 v1 구간 안이면 정지·v1 유지 | `configs/finetune_aihub_v2E.yaml` · `runs/finetune/ppe_E_coco` |
+| 다음 | ① E 결과 → v1/D/A′/E 표·정지 판단 ② 학원 노트북(4 GB) 실측 → USB 재빌드 ③ AI Hub 163 라벨 표본(`aihubshell -l 163`) ④ pseudo_hardhat 실제 판정 | — |
 
 ---
 

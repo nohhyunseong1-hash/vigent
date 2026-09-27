@@ -1,0 +1,219 @@
+{
+ "date": "2026-09-27 15:12",
+ "excluded": [
+  "Mask",
+  "NO-Mask"
+ ],
+ "cand": "runs/finetune/ppe_A2_slot/ckpt/checkpoint_best_total.pth",
+ "label": "A2",
+ "v1_all": {
+  "person_recall_all": 0.0,
+  "person_gt_total": 157,
+  "person_recall_occlusion": 0.0,
+  "occlusion_n": 50,
+  "nh_lower": 0.25925925925925924,
+  "nh_gt_total": 54,
+  "nh_upper": 1.0,
+  "nh_clear_n": 14,
+  "nh_tp_clear": 14,
+  "nh_ci": [
+   0.7683642383498834,
+   1.0
+  ],
+  "ppe_precision": 0.935672514619883,
+  "ppe_recall": 0.6477732793522267,
+  "ppe_f1": 0.7655502392344498,
+  "ppe_tp": 160,
+  "ppe_fp": 11,
+  "ppe_gt": 247,
+  "excluded_classes": [],
+  "ppe_per_class": {
+   "Hardhat": {
+    "gt": 63,
+    "tp": 54,
+    "fp": 2
+   },
+   "NO-Hardhat": {
+    "gt": 54,
+    "tp": 14,
+    "fp": 4
+   },
+   "Safety-Vest": {
+    "gt": 2,
+    "tp": 2,
+    "fp": 1
+   },
+   "NO-Safety-Vest": {
+    "gt": 112,
+    "tp": 74,
+    "fp": 1
+   },
+   "Mask": {
+    "gt": 0,
+    "tp": 0,
+    "fp": 3
+   },
+   "NO-Mask": {
+    "gt": 16,
+    "tp": 16,
+    "fp": 0
+   }
+  },
+  "elapsed_s": 11.7
+ },
+ "v1_noMask": {
+  "person_recall_all": 0.0,
+  "person_gt_total": 157,
+  "person_recall_occlusion": 0.0,
+  "occlusion_n": 50,
+  "nh_lower": 0.25925925925925924,
+  "nh_gt_total": 54,
+  "nh_upper": 1.0,
+  "nh_clear_n": 14,
+  "nh_tp_clear": 14,
+  "nh_ci": [
+   0.7683642383498834,
+   1.0
+  ],
+  "ppe_precision": 0.9473684210526315,
+  "ppe_recall": 0.6233766233766234,
+  "ppe_f1": 0.7519582245430808,
+  "ppe_tp": 144,
+  "ppe_fp": 8,
+  "ppe_gt": 231,
+  "excluded_classes": [
+   "Mask",
+   "NO-Mask"
+  ],
+  "ppe_per_class": {
+   "Hardhat": {
+    "gt": 63,
+    "tp": 54,
+    "fp": 2
+   },
+   "NO-Hardhat": {
+    "gt": 54,
+    "tp": 14,
+    "fp": 4
+   },
+   "Safety-Vest": {
+    "gt": 2,
+    "tp": 2,
+    "fp": 1
+   },
+   "NO-Safety-Vest": {
+    "gt": 112,
+    "tp": 74,
+    "fp": 1
+   }
+  },
+  "elapsed_s": 7.2
+ },
+ "A2_all": {
+  "person_recall_all": 0.0,
+  "person_gt_total": 157,
+  "person_recall_occlusion": 0.0,
+  "occlusion_n": 50,
+  "nh_lower": 0.16666666666666666,
+  "nh_gt_total": 54,
+  "nh_upper": 0.6428571428571429,
+  "nh_clear_n": 14,
+  "nh_tp_clear": 9,
+  "nh_ci": [
+   0.3513801106159917,
+   0.8724015701408403
+  ],
+  "ppe_precision": 0.8676470588235294,
+  "ppe_recall": 0.4777327935222672,
+  "ppe_f1": 0.6161879895561357,
+  "ppe_tp": 118,
+  "ppe_fp": 18,
+  "ppe_gt": 247,
+  "excluded_classes": [],
+  "ppe_per_class": {
+   "Hardhat": {
+    "gt": 63,
+    "tp": 50,
+    "fp": 3
+   },
+   "NO-Hardhat": {
+    "gt": 54,
+    "tp": 9,
+    "fp": 8
+   },
+   "Safety-Vest": {
+    "gt": 2,
+    "tp": 0,
+    "fp": 1
+   },
+   "NO-Safety-Vest": {
+    "gt": 112,
+    "tp": 59,
+    "fp": 6
+   },
+   "Mask": {
+    "gt": 0,
+    "tp": 0,
+    "fp": 0
+   },
+   "NO-Mask": {
+    "gt": 16,
+    "tp": 0,
+    "fp": 0
+   }
+  },
+  "elapsed_s": 7.2
+ },
+ "A2_noMask": {
+  "person_recall_all": 0.0,
+  "person_gt_total": 157,
+  "person_recall_occlusion": 0.0,
+  "occlusion_n": 50,
+  "nh_lower": 0.16666666666666666,
+  "nh_gt_total": 54,
+  "nh_upper": 0.6428571428571429,
+  "nh_clear_n": 14,
+  "nh_tp_clear": 9,
+  "nh_ci": [
+   0.3513801106159917,
+   0.8724015701408403
+  ],
+  "ppe_precision": 0.8676470588235294,
+  "ppe_recall": 0.5108225108225108,
+  "ppe_f1": 0.6430517711171663,
+  "ppe_tp": 118,
+  "ppe_fp": 18,
+  "ppe_gt": 231,
+  "excluded_classes": [
+   "Mask",
+   "NO-Mask"
+  ],
+  "ppe_per_class": {
+   "Hardhat": {
+    "gt": 63,
+    "tp": 50,
+    "fp": 3
+   },
+   "NO-Hardhat": {
+    "gt": 54,
+    "tp": 9,
+    "fp": 8
+   },
+   "Safety-Vest": {
+    "gt": 2,
+    "tp": 0,
+    "fp": 1
+   },
+   "NO-Safety-Vest": {
+    "gt": 112,
+    "tp": 59,
+    "fp": 6
+   }
+  },
+  "elapsed_s": 7.0
+ },
+ "delta_recall_pp": {
+  "with_mask": -17.0,
+  "no_mask": -11.3
+ }
+}
