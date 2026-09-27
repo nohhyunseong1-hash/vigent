@@ -1,0 +1,8 @@
+{
+ "run_name": "PPE 스모크 B(507 조끼 준라벨 병합, 준라벨 미검수)",
+ "variable_vs_A": "507 train 1,975장에 v1 조끼 준라벨(conf>=0.6, pseudo:v1:Safety-Vest+NO-Safety-Vest) 병합 + 학습 중 검증셋 CSS 63 + 507 val 200",
+ "pseudo_hardhat_681": "미검수(예시 번호 오입력 정정 반영)",
+ "ckpt_sha_before_amend": "f501bd1c85b4a176",
+ "ckpt_sha_after_amend": "d90935a6108bd424",
+ "size_bytes": 120917483
+}

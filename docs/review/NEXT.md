@@ -31,7 +31,8 @@
 | ③ PPE 스모크 A **완료** | 00:01~01:01(10 epoch 0.99 h, NaN·정체 0). **준라벨 681장 미검수**(2026-09-26 "기각 3·17·42" 는 예시 번호 오입력). held-out 91: NO-Hardhat R 65.6 [53.4, 76.1](전 64.1) · NO-Safety Vest R 82.2(전 83.7) · 4클래스 AP50 80.5(전 81.3) — **목표(≥85/≥90) 미달, 변화는 신뢰구간 안**. dev74 PPE R 49.4(전 64.8, Mask 클래스 부재 영향 포함). 배포 없음 | `docs/model/ppe_finetune_smoke_A_20260927.md` · `benchmarks/results/ppe_smoke_A_20260927/` |
 | PPE A 후속 실측(01:35) | dev74 Mask 제외 공정 비교: v1 62.3 [55.9, 68.3] → A **52.8 [46.4, 59.2]**(실제 −9.5 %p, NO-Safety-Vest 74→60/112·NO-Hardhat 14→10/54) · Safety Vest 오탐 19 중 12 는 군중 중복 박스 · 머리 박스 입력 기준 507 22.1 / held-out 20.4 / dev74 15.1 px(3배 이탈 아님, scale-aug 미적용 확인) → **축소 증강 실험 안 함**, "준라벨 제외 대조군" 제안(승인 대기) | `docs/model/ppe_finetune_smoke_A_20260927.md` §5 |
 | forklift 30분×3 벤치 완료(03:15) | CPU 34.7~36.8 % · age p95 0.5 ×3 · 경보 p95 0.15~0.27 · 추론 p95 92~158 ms · VRAM torch 1,067/1,330 MB·smi 3,425 MB — 합격선 3회 통과. 노트북 4 GB 미측정 | `docs/deploy/bench_4ch_fk2_academy_2026-09-27.md` |
-| 다음 | ① 학원 노트북(4 GB) 실측 → USB 재빌드(fk510_smoke 가중치 Release 업로드 포함) ② 507 "라벨 없는 조끼·착용 머리" 스캔(03:20 시작) → 20 % 기준으로 스모크 B 변수 결정 ③ pseudo_hardhat 실제 판정 | — |
+| 507 스캔(03:20) → 스모크 B(03:29~04:05) | 507 train 2,200장 중 v1 조끼 박스 있는 이미지 **89.8 %**(NO-SV 81.0) · 라벨 0 → 가설 채택, 조끼 준라벨 1,975장 병합해 B. 결과: held-out NO-Hardhat R **62.5 [50.3, 73.3]**(A 65.6·v1 64.1) · dev74 Mask 제외 **51.5 [45.1, 57.9]**(A 52.8·v1 62.3) — **A/B 차이 전부 구간 안**, 준라벨 채움은 결과를 바꾸지 않음. 목표 미달, 배포 없음 | `docs/model/ppe_finetune_smoke_B_20260927.md` · `benchmarks/results/ppe_smoke_B_20260927/` |
+| 다음 | ① 학원 노트북(4 GB) 실측 → USB 재빌드(fk510_smoke 가중치 Release 업로드 포함) ② PPE 다음 변수 승인: 대조군 C(준라벨 전부 제외) → 507 비중 축소 → lr 1e-5 ③ pseudo_hardhat 실제 판정 | — |
 
 ---
 
