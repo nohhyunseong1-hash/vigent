@@ -38,8 +38,9 @@
 | **A′ 승인·진행** | 첫 유효 실험: A 와 같은 데이터(CSS+507+Hardhat 준라벨 681 미검수), `classes` = v1 10슬롯 순서 + `drop_classes`(Mask·NO-Mask·Cone·machinery·vehicle), 사전 가드(체크포인트 순서 ≠ 데이터셋 순서면 거부, 슬롯 매핑표 로그). 판정: A′>v1 구간 밖 → B′(조끼 준라벨) / A′≈v1 → E(COCO 새로 학습) 1회 / E 까지 구간 안 → 정지·v1 유지 | `configs/finetune_aihub_v2A2.yaml` |
 | **A′ 완료(15:12)** | 슬롯 정렬(가드 ✓)·데이터 A 와 동일: held-out NO-Hardhat R **64.1 [51.8, 74.7]**(= v1)·NO-SV 77.0·4클래스 AP50 80.1 · dev74 Mask 제외 **51.1 [44.7, 57.5]**(v1 62.3, −11.3 %p, NO-Hardhat 9/54). **A′ ≈ v1 → 이어 학습 한계 → E 착수**(승인 경로). dev74 하락은 슬롯 충돌 때문이 아님 | `docs/model/ppe_finetune_A2_slot_20260927.md` |
 | **E 완료(16:22) → 정지 규칙 발동** | COCO nano 에서 CSS+507 새로 10 ep: held-out NO-Hardhat R **62.5 [50.3, 73.3]**·NO-SV 66.7·4클래스 AP50 76.7 · dev74 Mask 제외 50.2(−12.1 %p). 유효 실험 2회(A′·E) 모두 v1 구간 안 → **PPE 재학습 중단, v1 유지.** 507 효과는 미검증(E 는 10 ep vs v1 50 ep 단서). 레시피 대조: lr·증강·해상도·EMA 전부 v1 과 동일, 다른 것은 epochs 50→10·seed — 원인 후보 기록만 | `docs/model/ppe_finetune_final_20260927.md` |
-| 다음(PPE 두 갈래) | **① AI Hub 163 라벨 실측**: `aihubshell -l 163` → 라벨 zip 1개 표본 → 착용/미착용 코드 확인 → 있으면 E 방식(COCO 새로, 50 ep) CSS+163 1회(승인) · **② 재방문 현장 GT**: 2 fps 고정 CCTV 주야 촬영 + CVAT → 현장 정답지에서 v1 재측정·목표 재선언. 둘 다 전까지 v1 유지 | `docs/model/aihub_ppe_dataset_candidates_20260927.md` · `docs/refield_plan_addendum_20260922.md` |
-| 다음(그 외) | 학원 노트북(4 GB) 실측 → USB 재빌드(fk510_smoke Release 업로드) · pseudo_hardhat 실제 판정(보류 가능) | — |
+| E50 보류(대표, 16:3x) | **E 는 10 epoch 비교라 507 효과는 최종 판정하지 않음 — 보류.** PPE 는 v1 유지 | `docs/model/ppe_finetune_final_20260927.md` §2 |
+| **다음(순서)** | **① AI Hub 163 라벨 실측**: `aihubshell -l 163`(대표) → 라벨 zip 1개 표본(≤1 GB) → 안전모·조끼 착용/미착용 코드 확인(A-1 형식) · **② 학원 노트북(GTX 1650 Ti 4 GB) 실측**: fk510_smoke 학원 프로파일로 overlay 대본 검출률 + VRAM·지연(노트북 켤 때) → USB 재빌드(fk510_smoke Release 업로드) | `docs/model/aihub_ppe_dataset_candidates_20260927.md` · `docs/deploy/bench_4ch_fk2_academy_2026-09-27.md` |
+| 보류 | 재방문 현장 GT(날짜 미정) · pseudo_hardhat 실제 판정 · E50 | — |
 
 ---
 
