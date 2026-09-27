@@ -31,6 +31,7 @@ import math
 import os
 import platform
 import random
+import re
 import shutil
 import subprocess
 import sys
@@ -71,10 +72,21 @@ def _read_yolo(txt: Path, names: list[str], classes: list[str]) -> list[tuple[in
     return out
 
 
+FIELD_DIR_ENV = "VIGENT_FIELD_DIR"                                   # [2026-09-27 현장 경로] config 의 ${VIGENT_FIELD_DIR} 치환
+FIELD_DIR_DEFAULT = "D:/vigent_private_data/field/prelabel"
+
+
+def expand_path(p: str) -> str:
+    """config 경로의 ${VIGENT_FIELD_DIR} 를 env(없으면 기본 D:/vigent_private_data/field/prelabel)로 치환. dry-run 은 env 로 합성 자료를 가리킨다."""
+    env = {**os.environ}; env.setdefault(FIELD_DIR_ENV, FIELD_DIR_DEFAULT)
+    return re.sub(r"\$\{(\w+)\}", lambda m: env.get(m.group(1), m.group(0)), str(p))
+
+
 def collect_source(src: dict[str, Any], classes: list[str]) -> dict[str, list[tuple[Path, list[tuple[int, list[float]]]]]]:
     """소스 하나 → {split: [(이미지경로, [(cls, [cx,cy,w,h])])]}"""
     kind = src["kind"]
     out: dict[str, list] = {"train": [], "valid": []}
+    src = {k: (expand_path(v) if k in ("path", "labels", "images", "split") else v) for k, v in src.items()}
     if kind == "yolo_yaml":
         import yaml
         y = yaml.safe_load(Path(src["path"]).read_text(encoding="utf-8")); names = y["names"]
@@ -171,25 +183,56 @@ def build_coco(items: list[tuple[Path, list]], classes: list[str], dst: Path, co
     return {"images": len(images), "boxes": len(anns), "per_class": dict(stats)}
 
 
-def assemble(cfg: dict[str, Any], out: Path, copy: bool, seed: int = 0, max_train: int | None = None, val_subsample: int = 0) -> dict[str, Any]:
-    classes = cfg["classes"]
-    exclude = set()
+def heldout_stems(cfg: dict[str, Any]) -> tuple[set[str], dict[str, int]]:
+    """학습 금지 stem 집합. 출처 3곳: ① exclude_files(CSS held-out 91, heldout_files) ② exclude_manifests(현장 heldout.json: frames+negatives)
+    ③ vigent 소스 폴더 옆의 heldout.json(field_split.py heldout 산출) — 자동. [2026-09-27 현장 held-out 가드]"""
+    stems: set[str] = set(); rep: dict[str, int] = {}
     ex = cfg.get("exclude_files")
     if ex:
         j = json.loads((_ROOT / ex).read_text(encoding="utf-8"))
-        exclude = {Path(f).stem for f in j.get("heldout_files", [])}
+        s = {Path(f).stem for f in j.get("heldout_files", [])}; stems |= s; rep[str(ex)] = len(s)
+    paths = [str(Path(expand_path(p)).resolve()) for p in (cfg.get("exclude_manifests") or [])]
+    for src in cfg.get("sources", []):
+        if src.get("kind") == "vigent":
+            side = (Path(expand_path(src["labels"])).parent / "heldout.json").resolve()
+            if side.exists() and str(side) not in paths:
+                paths.append(str(side))
+    for p in paths:
+        if not Path(p).exists():
+            raise SystemExit(f"★exclude_manifests 파일 없음: {p} (held-out 을 먼저 뽑아야 조립한다 — field_split.py heldout)")
+        j = json.loads(Path(p).read_text(encoding="utf-8"))
+        s = set(j.get("frames", [])) | set(j.get("negatives", [])) | {Path(f).stem for f in j.get("heldout_files", [])}
+        stems |= s; rep[p] = len(s)
+    return stems, rep
+
+
+def heldout_guard(merged: dict[str, list], stems: set[str]) -> None:
+    """조립 결과에 학습 금지 stem 이 하나라도 있으면 중단(SystemExit). exclude 로 걸러진 뒤에도 다른 소스가 같은 stem 을 들고 오면 여기서 잡힌다."""
+    for split, items in merged.items():
+        bad = sorted({it[0].stem for it in items} & stems)
+        if bad:
+            raise SystemExit(f"★held-out 가드: {split} 에 학습 금지 stem {len(bad)}개({bad[:3]}) — 조립 중단")
+
+
+def assemble(cfg: dict[str, Any], out: Path, copy: bool, seed: int = 0, max_train: int | None = None, val_subsample: int = 0) -> dict[str, Any]:
+    classes = cfg["classes"]
+    exclude, ex_rep = heldout_stems(cfg)
     merged: dict[str, list] = {"train": [], "valid": []}
-    report: dict[str, Any] = {"sources": {}, "excluded_heldout": 0}
+    report: dict[str, Any] = {"sources": {}, "excluded_heldout": 0, "heldout_lists": ex_rep}
+    valid_only = set(cfg.get("valid_only_from") or [])                  # [2026-09-27] 검증은 이 소스들만(예: 현장 valid 만)
     for src in cfg["sources"]:
         got = collect_source(src, classes)
         for split in merged:
             kept = []
+            if split == "valid" and valid_only and src["name"] not in valid_only:
+                report.setdefault("valid_dropped_by_policy", {})[src["name"]] = len(got[split]); continue
             for img, boxes in got[split]:
                 if img.stem in exclude:
                     report["excluded_heldout"] += 1; continue
                 kept.append((img, boxes, src["name"]))       # 소스 이름을 달아 둔다(valid 상한용) — 아래에서 다시 2-튜플로 줄인다
             merged[split].extend(kept)
         report["sources"][src["name"]] = {s: len(v) for s, v in got.items()}
+    heldout_guard(merged, exclude)
     # 소스별 valid 상한(2026-09-27: 학습 중 검증셋을 CSS valid + 507 val ≤200 으로 — 507 치우침 제거). 시드로 결정적.
     caps = cfg.get("valid_limit_per_source") or {}
     if caps:
@@ -365,9 +408,48 @@ def wrap_build_trainer(orig: Callable[..., Any], guard: Any) -> Callable[..., An
     return wrapped
 
 
-def install_nan_guard(output_dir: Path | str, epochs_total: int = 0) -> None:
+def install_nan_guard(output_dir: Path | str, epochs_total: int = 0, extra: list[Any] | None = None) -> None:
     import rfdetr.training as RT
     RT.build_trainer = wrap_build_trainer(RT.build_trainer, nan_guard_callback(output_dir, epochs_total))
+    for cb in extra or []:
+        RT.build_trainer = wrap_build_trainer(RT.build_trainer, cb)
+
+
+# ── 현장 held-out 중간 평가(2026-09-27 PPE v2): N epoch 마다 최신 체크포인트를 하네스에 넘겨 field held-out 점수를 남긴다 ─────────
+def should_eval_heldout(epochs_done: int, every: int, total: int) -> bool:
+    """every>0 이고 epochs_done 이 every 의 배수(마지막 epoch 는 최종 하네스가 따로 돌므로 제외)."""
+    return every > 0 and epochs_done % every == 0 and epochs_done < total
+
+
+def newest_checkpoint(ckpt_dir: Path) -> Path | None:
+    cands = [p for p in Path(ckpt_dir).glob("checkpoint*.pth")]
+    return max(cands, key=lambda p: p.stat().st_mtime) if cands else None
+
+
+def heldout_eval_cmd(ckpt: Path, field_dir: str, out_json: Path, label: str, res: int) -> list[str]:
+    return [sys.executable, str(_ROOT / "scripts" / "eval" / "eval_v1_heldout.py"), "--weights", str(ckpt), "--label", label, "--res", str(res),
+            "--field-heldout", field_dir, "--field-only", "--out", str(out_json)]
+
+
+def heldout_eval_callback(ckpt_dir: Path | str, field_dir: str, every: int, total: int, res: int, runner: Callable[[list[str]], int] | None = None):
+    """pytorch_lightning.Callback: on_train_epoch_end 에서 should_eval_heldout 이면 최신 체크포인트로 field held-out 평가를 **동기** 실행(GPU 경합 방지).
+    어느 체크포인트를 썼는지(파일명·mtime)를 결과 JSON 이름과 로그에 남긴다 — 체크포인트 저장 순서가 콜백보다 늦을 수 있어 '직전 epoch' 일 수 있다."""
+    import pytorch_lightning as pl
+    run = runner or (lambda cmd: subprocess.call(cmd, cwd=str(_ROOT)))
+
+    class HeldoutEval(pl.Callback):
+        def on_train_epoch_end(self, trainer, pl_module) -> None:  # noqa: ANN001
+            done = int(trainer.current_epoch) + 1
+            if not should_eval_heldout(done, every, total):
+                return
+            ck = newest_checkpoint(Path(ckpt_dir))
+            if ck is None:
+                print(f"[heldout-eval] epoch {done}: 체크포인트 없음 — 건너뜀", file=sys.stderr, flush=True); return
+            out_json = Path(ckpt_dir).parent / f"heldout_eval_epoch{done:03d}.json"
+            print(f"[heldout-eval] epoch {done}: {ck.name}(mtime {time.strftime('%H:%M:%S', time.localtime(ck.stat().st_mtime))}) → {out_json.name}", file=sys.stderr, flush=True)
+            rc = run(heldout_eval_cmd(ck, field_dir, out_json, f"epoch{done}", res))
+            print(f"[heldout-eval] epoch {done}: rc={rc} · 결과 {'있음' if out_json.exists() else '★없음'}", file=sys.stderr, flush=True)
+    return HeldoutEval()
 
 
 # ── 정체 감시(2026-09-26 사고: metrics.csv 가 18:28 에 멈춘 채 2시간, 알림 없음) ───────────────────────────────────
@@ -579,10 +661,20 @@ def main() -> int:
     ap.add_argument("--copy-images", action="store_true", help="이미지를 dataset/ 에 복사(기본은 복사 없이 계획만 — dry-run 용)")
     ap.add_argument("--allow-cpu", action="store_true", help="(비권장) CUDA 없이도 진행")
     ap.add_argument("--dry-run", action="store_true", help="조립 통계·계획만 출력하고 학습하지 않는다")
-    a = ap.parse_args()
+    ap.add_argument("--heldout-eval-every", type=int, default=0, help="N epoch 마다 field held-out 중간 평가(0=안 함; config train.heldout_eval_every)")
+    ap.add_argument("--field-heldout", default="", help="중간 평가용 현장 held-out 폴더(config train.field_heldout; ${VIGENT_FIELD_DIR} 가능)")
     import yaml
-    cfg = yaml.safe_load(Path(a.config).read_text(encoding="utf-8"))
+    pre, _ = ap.parse_known_args()
+    cfg = yaml.safe_load(Path(pre.config).read_text(encoding="utf-8"))
+    train_defaults = {k.replace("-", "_"): v for k, v in (cfg.get("train") or {}).items()}   # [2026-09-27] config 의 train: 블록이 CLI 기본값이 된다(CLI 명시가 우선)
+    known = {act.dest for act in ap._actions}
+    unknown = sorted(set(train_defaults) - known)
+    if unknown:
+        raise SystemExit(f"config train: 에 모르는 키 {unknown}")
+    ap.set_defaults(**train_defaults)
+    a = ap.parse_args()
     a.init = a.init or cfg.get("init") or str(_ROOT / "vigent-core" / "weights" / "ppe_rfdetr_v1.pth")
+    a.field_heldout = expand_path(a.field_heldout) if a.field_heldout else ""
     out = Path(a.out); out.mkdir(parents=True, exist_ok=True)
     seeds = set_all_seeds(a.seed)
 
@@ -601,6 +693,7 @@ def main() -> int:
     plan = {"config": a.config, "out": str(out), "epochs": a.epochs, "batch": a.batch, "grad_accum": a.grad_accum, "lr": a.lr,
             "res": a.res, "seed": a.seed, "seeds_set": seeds, "init": a.init, "classes": cfg["classes"], "harness": cfg.get("harness", "ppe"),
             "val_subsample": a.val_subsample, "eval_interval": a.eval_interval, "num_workers": a.num_workers, "stall_min": a.stall_min,
+            "heldout_eval_every": a.heldout_eval_every, "field_heldout": a.field_heldout, "train_defaults_from_config": train_defaults,
             "assembly": rep, "notes_keys": sorted(notes.keys()),
             "guards": ["NaN 감시(배치 손실·epoch 지표) → 즉시 중단", "seed 고정", "notes(resolution·seed·args) 체크포인트 기록 + 학습 후 검증", "CUDA 강제",
                        f"정체 감시 {a.stall_min}분 → STALL_ABORT.json(py-spy 스택) + exit 9", "epoch 소요·남은 예상 → metrics.csv epoch_time_s/eta_min + 로그"],
@@ -619,7 +712,12 @@ def main() -> int:
     except ModuleNotFoundError:
         print('★pytorch_lightning 없음 — rfdetr 1.8 train() 은 `pip install "rfdetr[train,loggers]"` 가 필요하다(설치는 대표 승인 뒤)'); return 2
     from rfdetr import RFDETRNano
-    install_nan_guard(out / "ckpt", a.epochs)
+    extra = []
+    if a.heldout_eval_every and a.field_heldout:
+        if not (Path(a.field_heldout) / "heldout.json").exists():
+            print(f"★field held-out 폴더에 heldout.json 이 없다: {a.field_heldout} — 중간 평가를 켜지 않고 시작하지 않는다"); return 6
+        extra.append(heldout_eval_callback(out / "ckpt", a.field_heldout, a.heldout_eval_every, a.epochs, a.res))
+    install_nan_guard(out / "ckpt", a.epochs, extra)
     m = RFDETRNano(resolution=a.res) if a.init == "coco" else RFDETRNano(pretrain_weights=a.init, resolution=a.res)
     t0 = time.time()
     start_stall_watchdog(out / "ckpt", a.stall_min)
@@ -648,6 +746,8 @@ def main() -> int:
         cmd = [sys.executable, str(_ROOT / "scripts" / "eval" / "eval_v1_heldout.py"), "--weights", str(best), "--label", a.label or out.name]
         if a.dev74:
             cmd.append("--dev74")
+        if a.field_heldout:
+            cmd += ["--field-heldout", a.field_heldout]
     print("[harness]", " ".join(cmd))
     return subprocess.call(cmd, cwd=str(_ROOT), env={**os.environ})
 

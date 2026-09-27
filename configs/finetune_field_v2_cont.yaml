@@ -1,0 +1,31 @@
+# PPE v2 대조군 — v1 이어 학습(lr 1e-5), 나머지는 finetune_field_v2.yaml 과 동일(데이터·검증·held-out·epoch·가드). 변수 = 시작점(COCO 새로 ↔ v1 이어) 하나.
+# 이어 학습이므로 classes 는 v1 체크포인트의 10슬롯 순서 그대로 두고(슬롯 가드 통과 조건), 안 쓰는 클래스는 drop_classes 로 주석만 비운다(A′ 와 같은 방식).
+classes: [Hardhat, Mask, NO-Hardhat, NO-Mask, NO-Safety-Vest, person, Safety Cone, Safety-Vest, machinery, vehicle]
+drop_classes: [Mask, NO-Mask, Safety Cone, machinery, vehicle]
+harness: ppe
+init: vigent-core/weights/ppe_rfdetr_v1.pth
+sources:
+  - name: css_v27
+    kind: yolo_yaml
+    path: data/datasets/css_safety/data.yaml
+    splits: {train: train, valid: valid}
+  - name: field
+    kind: vigent
+    labels: ${VIGENT_FIELD_DIR}/labels
+    images: ${VIGENT_FIELD_DIR}/images
+    split: ${VIGENT_FIELD_DIR}/split.json
+valid_only_from: [field]
+exclude_files: benchmarks/results/v1_heldout_eval.json
+exclude_manifests:
+  - ${VIGENT_FIELD_DIR}/heldout.json
+train:
+  epochs: 50
+  lr: 1.0e-5
+  batch: 8
+  grad_accum: 2
+  res: 384
+  seed: 20260927
+  eval_interval: 2
+  val_subsample: 0
+  heldout_eval_every: 10
+  field_heldout: ${VIGENT_FIELD_DIR}

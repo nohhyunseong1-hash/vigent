@@ -203,32 +203,21 @@ GOALS = {  # 재학습 목표 선언(2026-09-25, provenance.md §8 · P3_BACKLOG
         "NO-Safety Vest": {"recall_min": 90.0, "precision_min": 86.9},
     },
     "secondary": {"dev74_ppe_recall_min": 80.0},   # 사고영상 dev 74장 PPE 전체 재현율 64.8 → 80 이상
+    "field": {"NO-Hardhat": {"recall_min": 85.0}, "NO-Safety Vest": {"recall_min": 90.0}, "neg_fp_rate_max": 1.0},   # [2026-09-27] 현장 held-out 300 합격선(최종)
     "final": "재방문 현장 정답지에서만 판정 — 위 둘은 '가망 확인'",
 }
 
 
-def evaluate(weights: str, res: int = 384, iou_thr: float = 0.5, split_rule: str = "video", limit: int = 0,
-             verbose: bool = True) -> dict:
-    """held-out 에서 가중치 하나를 평가한다(학습 없음). 반환 dict 는 JSON 으로 그대로 저장 가능."""
+def op_conf_default() -> float:
     import yaml
-    names = yaml.safe_load((DS / "data.yaml").read_text(encoding="utf-8"))["names"]
     tun = yaml.safe_load((_ROOT / "config" / "tuning.yaml").read_text(encoding="utf-8"))
-    op_conf = float(((tun.get("detect") or {}).get("conf") or {}).get("ppe", 0.35))
+    return float(((tun.get("detect") or {}).get("conf") or {}).get("ppe", 0.35))
 
-    imgs, info = build_heldout(split_rule)
-    if limit:
-        imgs = imgs[:limit]
-    say = print if verbose else (lambda *a, **k: None)
-    say(f"held-out[{split_rule}]: {info['heldout_images']}장 / 고유 원본 {info['heldout_unique_originals']} / 전체 원본 {info['all_unique_originals']} "
-        f"= {info['heldout_share_of_originals']:.1%} · 제외 {info['dropped']}")
-    say(f"  남은 영상 유래: {info['heldout_videos']} · 그중 train 에도 있는 영상: {info['heldout_videos_in_train']}")
-    if info["heldout_videos_in_train"]:
-        raise RuntimeError("held-out 에 train 과 같은 영상이 남아 있다: " + ", ".join(info["heldout_videos_in_train"]))
-    if info["heldout_share_of_originals"] < 0.20:
-        say("★주의: held-out 이 전체 원본의 20% 미만이다 — 이것이 v1 이 안 본 이미지의 전부다(더 늘리면 train 원본이 섞인다)")
 
+def make_predictor(weights: str, res: int, names: list[str]):
+    """rfdetr 체크포인트 → (predict(PIL)->[(CSS 클래스명, box, conf)], device). class_id 는 0-indexed 로 class_names 에 대응.
+    ★재학습 산출물은 우리 표준 이름(person·Safety-Vest·NO-Safety-Vest)을 내므로 CSS 정답지 이름으로 맞춘다(2026-09-26)"""
     import torch
-    from PIL import Image
     from rfdetr import RFDETRNano
     dev = "cuda" if torch.cuda.is_available() else "cpu"
     m = RFDETRNano(pretrain_weights=weights, device=dev, resolution=res)
@@ -237,35 +226,42 @@ def evaluate(weights: str, res: int = 384, iou_thr: float = 0.5, split_rule: str
     except Exception:  # noqa: BLE001
         pass
     cls_names = [to_css_name(c) for c in (getattr(m, "class_names", None) or names)]
-    # rfdetr 커스텀 체크포인트: class_id 는 0-indexed 로 class_names 에 대응(adapter 와 같은 규칙)
-    #   ★재학습 산출물은 우리 표준 이름(person·Safety-Vest·NO-Safety-Vest)을 내므로 CSS 정답지 이름으로 맞춘다(2026-09-26)
-    n_gt: dict[str, int] = defaultdict(int); scored: dict[str, list] = defaultdict(list)
-    op: dict[str, dict[str, int]] = {n: {"TP": 0, "FP": 0, "FN": 0} for n in names}
-    t0 = time.time()
-    for i, p in enumerate(imgs, 1):
-        gts = load_gt(p, names)
-        for g, _ in gts:
-            n_gt[g] += 1
-        det = m.predict(Image.open(p).convert("RGB"), threshold=0.05)
+
+    def predict(im):
+        det = m.predict(im, threshold=0.05)
         preds = []
         for box, cid, conf in zip(det.xyxy, det.class_id, det.confidence):
             cid = int(cid)
             if 0 <= cid < len(cls_names):
                 preds.append((cls_names[cid], [float(x) for x in box], float(conf)))
+        return preds
+    return predict, dev
+
+
+def score_items(predict, items: list[tuple[Path, list[tuple[str, list[float]]]]], names: list[str], op_conf: float, iou_thr: float = 0.5,
+                say=print) -> dict:
+    """공통 채점기: items=[(이미지, GT)] 를 predict 로 채점 → 클래스별 gt/tp/fp/fn·P/R(Wilson)·AP50 rows + summary. [2026-09-27 field 확장으로 분리]"""
+    from PIL import Image
+    n_gt: dict[str, int] = defaultdict(int); scored: dict[str, list] = defaultdict(list)
+    op: dict[str, dict[str, int]] = {n: {"TP": 0, "FP": 0, "FN": 0} for n in names}
+    t0 = time.time()
+    for i, (p, gts) in enumerate(items, 1):
+        for g, _ in gts:
+            n_gt[g] += 1
+        preds = predict(Image.open(p).convert("RGB"))
         for name, conf, tp in match(preds, gts, iou_thr):
             scored[name].append((conf, tp))
-        # 운용점 P/R: 임계 이상만으로 다시 매칭
-        op_preds = [pr for pr in preds if pr[2] >= op_conf]
+        op_preds = [pr for pr in preds if pr[2] >= op_conf]           # 운용점 P/R: 임계 이상만으로 다시 매칭
         matched = match(op_preds, gts, iou_thr)
         for name, _, tp in matched:
-            op[name]["TP" if tp else "FP"] += 1
+            if name in op:
+                op[name]["TP" if tp else "FP"] += 1
         for gname in {g for g, _ in gts}:
             gt_c = sum(1 for g, _ in gts if g == gname)
             tp_c = sum(1 for n, _, tp in matched if tp and n == gname)
-            op[gname]["FN"] += gt_c - tp_c
+            op.setdefault(gname, {"TP": 0, "FP": 0, "FN": 0})["FN"] += gt_c - tp_c
         if i % 20 == 0:
-            say(f"  {i}/{len(imgs)} ({time.time() - t0:.0f}s)")
-
+            say(f"  {i}/{len(items)} ({time.time() - t0:.0f}s)")
     rows = []
     for n in names:
         tp, fp, fn = op[n]["TP"], op[n]["FP"], op[n]["FN"]
@@ -280,9 +276,110 @@ def evaluate(weights: str, res: int = 384, iou_thr: float = 0.5, split_rule: str
         return round(sum(v) / len(v), 1) if v else None
     summary = {"mAP50_all10": _mean("ap50", names), "mAP50_our4": _mean("ap50", OUR4),
                "recall_our4_mean": _mean("recall", OUR4), "precision_our4_mean": _mean("precision", OUR4)}
+    return {"rows": rows, "summary": summary, "elapsed_s": round(time.time() - t0, 1), "images": len(items)}
+
+
+def evaluate(weights: str, res: int = 384, iou_thr: float = 0.5, split_rule: str = "video", limit: int = 0,
+             verbose: bool = True) -> dict:
+    """held-out 에서 가중치 하나를 평가한다(학습 없음). 반환 dict 는 JSON 으로 그대로 저장 가능."""
+    import yaml
+    names = yaml.safe_load((DS / "data.yaml").read_text(encoding="utf-8"))["names"]
+    op_conf = op_conf_default()
+
+    imgs, info = build_heldout(split_rule)
+    if limit:
+        imgs = imgs[:limit]
+    say = print if verbose else (lambda *a, **k: None)
+    say(f"held-out[{split_rule}]: {info['heldout_images']}장 / 고유 원본 {info['heldout_unique_originals']} / 전체 원본 {info['all_unique_originals']} "
+        f"= {info['heldout_share_of_originals']:.1%} · 제외 {info['dropped']}")
+    say(f"  남은 영상 유래: {info['heldout_videos']} · 그중 train 에도 있는 영상: {info['heldout_videos_in_train']}")
+    if info["heldout_videos_in_train"]:
+        raise RuntimeError("held-out 에 train 과 같은 영상이 남아 있다: " + ", ".join(info["heldout_videos_in_train"]))
+    if info["heldout_share_of_originals"] < 0.20:
+        say("★주의: held-out 이 전체 원본의 20% 미만이다 — 이것이 v1 이 안 본 이미지의 전부다(더 늘리면 train 원본이 섞인다)")
+    predict, dev = make_predictor(weights, res, names)
+    r = score_items(predict, [(p, load_gt(p, names)) for p in imgs], names, op_conf, iou_thr, say)
     return {"date": time.strftime("%Y-%m-%d %H:%M"), "weights": str(weights), "resolution": res, "op_conf": op_conf, "iou": iou_thr,
             "device": dev, "heldout": info, "heldout_files": [str(p.relative_to(_ROOT)) for p in imgs],
-            "rows": rows, "summary": summary, "elapsed_s": round(time.time() - t0, 1)}
+            "rows": r["rows"], "summary": r["summary"], "elapsed_s": r["elapsed_s"]}
+
+
+# ── 현장 held-out(세 번째 집합, 2026-09-27) — field_prelabel + field_split heldout 산출 폴더 ──────────────────────────────
+def load_field_heldout(field_dir: Path) -> tuple[list[tuple[Path, list[tuple[str, list[float]]]]], list[Path], dict]:
+    """heldout.json 의 frames(양성)·negatives(음성)를 이미지 경로+GT 로. 라벨은 YOLO(classes.txt 순, 검수 후 값) → CSS 이름."""
+    d = Path(field_dir); h = json.loads((d / "heldout.json").read_text(encoding="utf-8"))
+    names = (d / "classes.txt").read_text(encoding="utf-8").split()
+    from PIL import Image
+    items = []; missing = []
+    for stem in h["frames"]:
+        img = d / "images" / f"{stem}.jpg"; lb = d / "labels" / f"{stem}.txt"
+        if not img.exists():
+            missing.append(stem); continue
+        with Image.open(img) as im:
+            W, H = im.size
+        gts = []
+        for ln in (lb.read_text(encoding="utf-8").splitlines() if lb.exists() else []):
+            t = ln.split()
+            if len(t) < 5:
+                continue
+            c, cx, cy, w, hh = int(t[0]), *map(float, t[1:5])
+            gts.append((to_css_name(names[c]), [(cx - w / 2) * W, (cy - hh / 2) * H, (cx + w / 2) * W, (cy + hh / 2) * H]))
+        items.append((img, gts))
+    negs = [d / "negatives" / f"{s}.jpg" for s in h.get("negatives", []) if (d / "negatives" / f"{s}.jpg").exists()]
+    info = {"dir": str(d), "policy": h.get("policy"), "n_positive_listed": len(h["frames"]), "n_positive_found": len(items), "missing": missing[:5],
+            "n_negative_listed": len(h.get("negatives", [])), "n_negative_found": len(negs), "strata": h.get("strata"), "classes": names,
+            "labels_reviewed_note": "라벨은 CVAT 검수본이어야 한다(초벌 그대로면 v1 자기 채점) — labels_meta 의 prelabel 필드로 구분"}
+    return items, negs, info
+
+
+def negative_fp(predict, negs: list[Path], op_conf: float, say=print) -> dict:
+    """음성 프레임(사람 없음)에서 운용 임계 이상 박스가 1개라도 나오면 오탐 프레임. → 프레임 오탐률(Wilson) + 클래스별 박스 수."""
+    from PIL import Image
+    fp_frames = 0; by_cls: dict[str, int] = defaultdict(int); t0 = time.time()
+    for i, p in enumerate(negs, 1):
+        preds = [pr for pr in predict(Image.open(p).convert("RGB")) if pr[2] >= op_conf]
+        if preds:
+            fp_frames += 1
+            for n, _b, _c in preds:
+                by_cls[n] += 1
+        if i % 50 == 0:
+            say(f"  neg {i}/{len(negs)} ({time.time() - t0:.0f}s)")
+    rate = None if not negs else round(fp_frames / len(negs) * 100, 2)
+    return {"neg_images": len(negs), "fp_images": fp_frames, "neg_fp_rate": rate, "neg_fp_rate_ci95": wilson(fp_frames, len(negs)) if negs else None,
+            "fp_boxes_by_class": dict(by_cls)}
+
+
+def evaluate_field(weights: str, field_dir: str, res: int = 384, iou_thr: float = 0.5, limit: int = 0, verbose: bool = True) -> dict:
+    """현장 held-out 300(+음성)에서 한 가중치를 채점. rows 는 CSS 이름(NO-Hardhat·NO-Safety Vest·Person…)으로 맞춰 다른 표와 같은 형식."""
+    say = print if verbose else (lambda *a, **k: None)
+    items, negs, info = load_field_heldout(Path(field_dir))
+    if limit:
+        items = items[:limit]; negs = negs[:limit]
+    if not items:
+        raise SystemExit(f"★현장 held-out 양성 0장: {field_dir}")
+    names = sorted({to_css_name(n) for n in info["classes"]}, key=lambda n: (n not in OUR4, n))
+    op_conf = op_conf_default()
+    say(f"field held-out: 양성 {len(items)}장(목록 {info['n_positive_listed']}) · 음성 {len(negs)}장 · 클래스 {names} · @{op_conf}")
+    predict, dev = make_predictor(weights, res, names)
+    r = score_items(predict, items, names, op_conf, iou_thr, say)
+    neg = negative_fp(predict, negs, op_conf, say)
+    return {"date": time.strftime("%Y-%m-%d %H:%M"), "weights": str(weights), "resolution": res, "op_conf": op_conf, "iou": iou_thr, "device": dev,
+            "field": info, "rows": r["rows"], "summary": r["summary"], "negatives": neg, "elapsed_s": round(r["elapsed_s"], 1)}
+
+
+def field_goal_check(field: dict | None) -> list[dict]:
+    """합격선(GOALS.field): NO-Hardhat R ≥85 · NO-Safety Vest R ≥90 · 음성 오탐률 ≤1%. 판정은 verdict_of(구간 걸침 표시)."""
+    if not field:
+        return []
+    out = []
+    for cls, g in ((k, v) for k, v in GOALS["field"].items() if isinstance(v, dict)):
+        r = _row(field, cls); val = None if r is None else r["recall"]
+        out.append({"set": "field", "class": cls, "metric": "recall", "value": val, "target": g["recall_min"],
+                    "verdict": verdict_of(val, g["recall_min"], None if r is None else r["recall_ci95"])})
+    n = field.get("negatives") or {}; rate = n.get("neg_fp_rate"); mx = GOALS["field"]["neg_fp_rate_max"]
+    v = "미측정" if rate is None else ("달성" if rate <= mx else "미달")
+    out.append({"set": "field", "class": "(negatives)", "metric": "neg_fp_rate", "value": rate, "target": mx, "verdict": v, "ci95": n.get("neg_fp_rate_ci95")})
+    return out
 
 
 def _ci(v) -> str:
@@ -348,21 +445,22 @@ def render_heldout_compare(baseline: dict | None, cand: dict | None, cand_label:
 
 
 def render_three_sets(baseline: dict | None, cand: dict | None, cand_label: str, dev74_cand: dict | None,
-                      field_gt: dict | None) -> str:
-    """세 평가 집합 한 표: held-out 91 / 사고영상 dev 74 / 재방문 현장 정답지(미확보면 그렇게 적는다)."""
+                      field_gt: dict | None, field_baseline: dict | None = None) -> str:
+    """세 평가 집합 한 표: held-out 91 / 사고영상 dev 74 / 현장 held-out(evaluate_field 결과; 없으면 미확보로 적는다)."""
     def hl(res, cls, key):
         r = _row(res, cls)
         return "미측정" if r is None or r[key] is None else f"{r[key]} {_ci(r[key + '_ci95'])}"
     nh, nv = "NO-Hardhat", "NO-Safety Vest"
     g = GOALS["primary"]
     L = ["| 평가 집합 | 지표 | 전(v1) | " + cand_label + " | 목표 | 판정 |", "|---|---|---|---|---|---|"]
-    for cls, key, tgt in ((nh, "recall", g[nh]["recall_min"]), (nh, "precision", g[nh]["precision_min"]),
-                          (nv, "recall", g[nv]["recall_min"]), (nv, "precision", g[nv]["precision_min"])):
-        r = _row(cand, cls); val = None if r is None else r[key]
-        verdict = verdict_of(val, tgt, None if r is None else r[key + "_ci95"])
-        L.append(f"| held-out 91장(@{(cand or baseline or {}).get('op_conf', 0.35)}) | {cls} {key} | {hl(baseline, cls, key)} | {hl(cand, cls, key)} | ≥{tgt} | {verdict} |")
-    bs = None if not baseline else baseline["summary"]["mAP50_all10"]; cs = None if not cand else cand["summary"]["mAP50_all10"]
-    L.append(f"| held-out 91장 | 10클래스 mAP@50 | {bs if bs is not None else '미측정'} | {cs if cs is not None else '미측정'} | (참고) | - |")
+    if cand is not None or baseline is not None:
+        for cls, key, tgt in ((nh, "recall", g[nh]["recall_min"]), (nh, "precision", g[nh]["precision_min"]),
+                              (nv, "recall", g[nv]["recall_min"]), (nv, "precision", g[nv]["precision_min"])):
+            r = _row(cand, cls); val = None if r is None else r[key]
+            verdict = verdict_of(val, tgt, None if r is None else r[key + "_ci95"])
+            L.append(f"| held-out 91장(@{(cand or baseline or {}).get('op_conf', 0.35)}) | {cls} {key} | {hl(baseline, cls, key)} | {hl(cand, cls, key)} | ≥{tgt} | {verdict} |")
+        bs = None if not baseline else baseline["summary"]["mAP50_all10"]; cs = None if not cand else cand["summary"]["mAP50_all10"]
+        L.append(f"| held-out 91장 | 10클래스 mAP@50 | {bs if bs is not None else '미측정'} | {cs if cs is not None else '미측정'} | (참고) | - |")
     # 사고영상 dev 74장 — 전 행은 v1 현장 기준선 리포트 고정값, 후 행은 x4b_score_candidates.score_one 결과가 있을 때만
     d = dev74_cand or {}
     dv = d.get("ppe_recall"); dv_s = "미측정" if dv is None else f"{round(dv * 100, 1) if dv <= 1 else dv}"
@@ -374,7 +472,22 @@ def render_three_sets(baseline: dict | None, cand: dict | None, cand_label: str,
     nh_i = d.get("nh_lower"); nh_s = "미측정" if nh_i is None else f"[{round(nh_i * 100, 1)}, {round(d.get('nh_upper', 0) * 100, 1)}]"
     L.append(f"| 사고영상 dev 74장(앱 파이프라인) | NO-Hardhat 재현율 구간 | [{V1_DEV74['nh_interval'][0]}, {V1_DEV74['nh_interval'][1]}] n={V1_DEV74['nh_n']} | {nh_s} | (참고) | - |")
     # 재방문 현장 정답지 — 최종 판정은 여기서만
-    if field_gt:
+    if field_gt and "rows" in field_gt:                                  # [2026-09-27] evaluate_field 결과(현장 held-out 300 + 음성)
+        fb = field_baseline or {}; n_pos = (field_gt.get("field") or {}).get("n_positive_found", "?")
+        for cls in (nh, nv):
+            tgt = GOALS["field"][cls]["recall_min"]; r = _row(field_gt, cls)
+            L.append(f"| **현장 held-out {n_pos}장(@{field_gt.get('op_conf', 0.35)})** | {cls} recall | {hl(fb, cls, 'recall')} | {hl(field_gt, cls, 'recall')} | ≥{tgt} | "
+                     f"{verdict_of(None if r is None else r['recall'], tgt, None if r is None else r['recall_ci95'])} |")
+            L.append(f"| 현장 held-out {n_pos}장 | {cls} precision | {hl(fb, cls, 'precision')} | {hl(field_gt, cls, 'precision')} | (유지) | - |")
+            L.append(f"| 현장 held-out {n_pos}장 | {cls} AP50 | {'미측정' if not _row(fb, cls) else _row(fb, cls)['ap50']} | {'미측정' if r is None else r['ap50']} | (참고) | - |")
+        ng = field_gt.get("negatives") or {}; nb = (fb.get("negatives") or {}) if fb else {}
+        mx = GOALS["field"]["neg_fp_rate_max"]; rate = ng.get("neg_fp_rate")
+
+        def neg_cell(d):
+            return "미측정" if d.get("neg_fp_rate") is None else f"{d.get('neg_fp_rate')} {_ci(d.get('neg_fp_rate_ci95'))}"
+        neg_verdict = "미측정" if rate is None else ("달성" if rate <= mx else "미달")
+        L.append(f"| **현장 음성 {ng.get('neg_images', '?')}장** | 프레임 오탐률 % | {neg_cell(nb)} | {neg_cell(ng)} | ≤{mx} | {neg_verdict} |")
+    elif field_gt:
         L.append(f"| 재방문 현장 정답지 | {field_gt.get('metric', 'PPE 재현율')} | {field_gt.get('before', '미측정')} | {field_gt.get('after', '미측정')} | {field_gt.get('target', '-')} | {field_gt.get('verdict', '-')} |")
     else:
         L.append("| **재방문 현장 정답지(최종 판정)** | PPE 클래스별 재현율 | **미확보** | **미확보** | 착수 조건: B-finetune | **판정 불가** |")
@@ -408,16 +521,29 @@ def main() -> int:
     ap.add_argument("--dev74", action="store_true", help="사고영상 dev 74장도 앱 파이프라인으로 채점(느림, field_eval 자료 필요)")
     ap.add_argument("--dev74-json", default=None, help="이미 채점한 dev 74 결과(x4b score_one 형식)를 대신 읽는다")
     ap.add_argument("--field-gt-json", default=None, help="재방문 현장 정답지 결과(있을 때만). 없으면 '미확보'")
+    ap.add_argument("--field-heldout", default=None, help="[2026-09-27] 현장 held-out 폴더(field_prelabel+field_split heldout 산출: heldout.json·images·labels·negatives) → 세 번째 집합을 직접 채점")
+    ap.add_argument("--field-baseline-json", default=None, help="현장 held-out 의 '전(v1)' 결과(evaluate_field 저장본). 없으면 미측정")
+    ap.add_argument("--field-only", action="store_true", help="CSS held-out 91 은 건너뛰고 현장 held-out 만(학습 중 중간 평가용)")
     a = ap.parse_args()
     label = a.label or Path(a.weights).stem
+    if a.field_only and not a.field_heldout:
+        print("★--field-only 는 --field-heldout 이 필요하다"); return 2
 
     baseline = json.loads(Path(a.baseline_json).read_text(encoding="utf-8")) if Path(a.baseline_json).exists() else None
     if baseline is None:
         print(f"★기준선 파일 없음: {a.baseline_json} — '전(v1)' 열은 미측정으로 표시")
-    cand = evaluate(a.weights, a.res, a.iou, a.split_rule, a.limit)
-    if baseline and a.split_rule == "video" and not a.limit and sorted(baseline["heldout_files"]) != sorted(cand["heldout_files"]):
-        print("★경고: 이 실행의 held-out 파일 목록이 기준선과 다르다 — 비교표는 같은 집합이 아니다")
-        cand["heldout_mismatch_vs_baseline"] = True
+    cand = None
+    if not a.field_only:
+        cand = evaluate(a.weights, a.res, a.iou, a.split_rule, a.limit)
+        if baseline and a.split_rule == "video" and not a.limit and sorted(baseline["heldout_files"]) != sorted(cand["heldout_files"]):
+            print("★경고: 이 실행의 held-out 파일 목록이 기준선과 다르다 — 비교표는 같은 집합이 아니다")
+            cand["heldout_mismatch_vs_baseline"] = True
+    field_res = None; field_base = None
+    if a.field_heldout:
+        print("\n현장 held-out 채점 중…")
+        field_res = evaluate_field(a.weights, a.field_heldout, a.res, a.iou, a.limit)
+        if a.field_baseline_json and Path(a.field_baseline_json).exists():
+            field_base = json.loads(Path(a.field_baseline_json).read_text(encoding="utf-8"))
 
     dev74 = None
     if a.dev74_json:
@@ -426,26 +552,29 @@ def main() -> int:
         print("\n사고영상 dev 74장 채점 중(앱 파이프라인)…")
         dev74 = run_dev74(a.weights)
         print(f"  → {dev74.get('status')}" + (f" ({dev74.get('reason')})" if dev74.get("reason") else ""))
-    field_gt = json.loads(Path(a.field_gt_json).read_text(encoding="utf-8")) if a.field_gt_json else None
+    field_gt = field_res or (json.loads(Path(a.field_gt_json).read_text(encoding="utf-8")) if a.field_gt_json else None)
 
-    print(f"\n### held-out {cand['heldout']['heldout_images']}장 — 전(v1) ↔ {label}  (@{cand['op_conf']}, res {a.res}, {cand['device']})")
-    print(render_heldout_compare(baseline, cand, label))
+    if cand is not None:
+        print(f"\n### held-out {cand['heldout']['heldout_images']}장 — 전(v1) ↔ {label}  (@{cand['op_conf']}, res {a.res}, {cand['device']})")
+        print(render_heldout_compare(baseline, cand, label))
     print("\n### 세 평가 집합 — 목표 대비")
-    print(render_three_sets(baseline, cand, label, dev74, field_gt))
+    print(render_three_sets(baseline, cand, label, dev74, field_gt, field_base))
     print(f"\n최종 판정: {GOALS['final']}")
 
     out = {"candidate_label": label, "candidate": cand, "baseline_json": a.baseline_json, "goals": GOALS,
-           "goal_check": goal_check(cand), "dev74_candidate": dev74, "dev74_v1": V1_DEV74,
-           "field_gt": field_gt or "미확보"}
+           "goal_check": goal_check(cand) if cand else [], "dev74_candidate": dev74, "dev74_v1": V1_DEV74,
+           "field_gt": field_gt or "미확보", "field_goal_check": field_goal_check(field_res), "field_baseline_json": a.field_baseline_json}
     out_path = Path(a.out) if a.out else _ROOT / "benchmarks" / "results" / f"ppe_compare_{label}.json"
-    if a.write_baseline:
+    if a.write_baseline and cand is not None:
         Path(a.baseline_json).write_text(json.dumps(cand, ensure_ascii=False, indent=2), encoding="utf-8")
         print(f"기준선 갱신: {a.baseline_json}")
     elif out_path.resolve() == Path(a.baseline_json).resolve():
         print("★기준선 파일은 --write-baseline 없이는 덮어쓰지 않는다"); return 2
     out_path.parent.mkdir(parents=True, exist_ok=True)
     out_path.write_text(json.dumps(out, ensure_ascii=False, indent=2), encoding="utf-8")
-    print(f"\n저장: {out_path} · {cand['heldout']['heldout_images']}장 · {cand['device']} · {cand['elapsed_s']}s")
+    n_img = cand["heldout"]["heldout_images"] if cand else (field_res or {}).get("field", {}).get("n_positive_found", 0)
+    dev = (cand or field_res or {}).get("device", "?"); el = (cand or field_res or {}).get("elapsed_s", 0)
+    print(f"\n저장: {out_path} · {n_img}장 · {dev} · {el}s")
     return 0
 
 
