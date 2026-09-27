@@ -519,6 +519,39 @@ def verify_checkpoint(path: Path | str, expect_res: int, expect_seed: int) -> li
     return problems
 
 
+_STD = {"NO-Safety Vest": "NO-Safety-Vest", "Safety Vest": "Safety-Vest", "Person": "person"}
+
+
+def std_name(n: str) -> str:
+    return _STD.get(str(n), str(n))
+
+
+def ckpt_class_names(path: Path | str) -> list[str] | None:
+    """체크포인트의 class_names(있으면). args.class_names 또는 최상위 class_names."""
+    import torch
+    ck = torch.load(str(path), map_location="cpu", weights_only=False)
+    args = ck.get("args") or {}
+    if hasattr(args, "__dict__") and not isinstance(args, dict):
+        args = vars(args)
+    names = (args.get("class_names") if isinstance(args, dict) else None) or ck.get("class_names")
+    return [str(n) for n in names] if names else None
+
+
+def slot_alignment(ckpt_names: list[str] | None, dataset_classes: list[str]) -> tuple[bool, list[str]]:
+    """[2026-09-27 A′ 사전 가드] 이어 학습 시 데이터셋 클래스 i 는 헤드 슬롯 i 에 들어간다(rfdetr 는 클래스 수가 달라도 헤드를 유지한다 — A/B/D 실측).
+    그러므로 체크포인트 class_names 순서와 데이터셋 classes 순서가 **정확히 같아야** v1 지식을 잇는다. 다르면 (False, 매핑표) 를 돌려준다.
+    체크포인트에 class_names 가 없으면(COCO 사전학습 등 헤드 재초기화 경로) 검사하지 않는다(True)."""
+    rows = []
+    if not ckpt_names:
+        return True, ["체크포인트 class_names 없음 → 헤드 재초기화 경로로 보고 슬롯 검사 생략"]
+    ck = [std_name(n) for n in ckpt_names]
+    ok = ck == [std_name(c) for c in dataset_classes]
+    for i in range(max(len(ck), len(dataset_classes))):
+        a = ck[i] if i < len(ck) else "(없음)"; b = std_name(dataset_classes[i]) if i < len(dataset_classes) else "(없음)"
+        rows.append(f"슬롯 {i}: 체크포인트 {a:16s} ← 데이터셋 {b:16s} {'✓' if a == b else '✗ 충돌'}")
+    return ok, rows
+
+
 def require_cuda(available: bool, allow_cpu: bool = False) -> None:
     """v1 은 맥 MPS 에서 발산했다(provenance §9-2). CUDA 가 아니면 시작하지 않는다."""
     if not available and not allow_cpu:
@@ -554,6 +587,15 @@ def main() -> int:
     seeds = set_all_seeds(a.seed)
 
     rep = assemble(cfg, out, copy=a.copy_images and not a.dry_run, seed=a.seed, max_train=a.max_train or None, val_subsample=a.val_subsample)
+    # ── 사전 가드(2026-09-27): 이어 학습이면 체크포인트 클래스 순서 = 데이터셋 클래스 순서여야 한다(슬롯 의미 충돌 방지). 매핑표를 항상 남긴다 ──
+    if a.init != "coco":
+        ok, rows = slot_alignment(ckpt_class_names(a.init), cfg["classes"])
+        print("[slot] 헤드 슬롯 매핑(체크포인트 ← 데이터셋):"); [print("   " + r) for r in rows]
+        rep["slot_alignment"] = {"ok": ok, "rows": rows}
+        if not ok and not a.dry_run:
+            print("★체크포인트 class_names 순서와 데이터셋 classes 순서가 다르다 — v1 지식이 엉뚱한 슬롯에 이어진다(A/B/D 결함). 학습을 시작하지 않는다."); return 5
+        if not ok:
+            print("★(dry-run) 슬롯 불일치 — 실학습이면 거부된다")
     notes = build_notes(a, cfg, rep)
     notes.update({"val_subsample": a.val_subsample, "eval_interval": a.eval_interval, "num_workers": a.num_workers, "stall_min": a.stall_min, "eval_max_dets": a.eval_max_dets})
     plan = {"config": a.config, "out": str(out), "epochs": a.epochs, "batch": a.batch, "grad_accum": a.grad_accum, "lr": a.lr,

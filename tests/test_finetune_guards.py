@@ -172,6 +172,17 @@ class ProvenanceTest(unittest.TestCase):
             with self.assertRaises(SystemExit):
                 F.assemble(cfg, d / "out2", copy=False, seed=1)
 
+    def test_slot_alignment_guard(self):
+        # 2026-09-27 A′ 사전 가드: 체크포인트 class_names 순서 ≠ 데이터셋 classes 순서면 거부(매핑표 포함). CSS 공백형 이름은 표준형으로 맞춰 비교.
+        v1 = ["Hardhat", "Mask", "NO-Hardhat", "NO-Mask", "NO-Safety Vest", "Person", "Safety Cone", "Safety Vest", "machinery", "vehicle"]
+        ok, rows = F.slot_alignment(v1, ["person", "Hardhat", "NO-Hardhat", "Safety-Vest", "NO-Safety-Vest"])   # A/B/D 의 배치
+        self.assertFalse(ok); self.assertTrue(any("충돌" in r for r in rows)); self.assertIn("슬롯 0", rows[0])
+        ok2, rows2 = F.slot_alignment(v1, ["Hardhat", "Mask", "NO-Hardhat", "NO-Mask", "NO-Safety-Vest", "person", "Safety Cone", "Safety-Vest", "machinery", "vehicle"])
+        self.assertTrue(ok2); self.assertFalse(any("충돌" in r for r in rows2))
+        ok3, _ = F.slot_alignment(None, ["person", "forklift"])   # COCO 사전학습(헤드 재초기화) → 검사 생략
+        self.assertTrue(ok3)
+        self.assertFalse(F.slot_alignment(v1, v1[:5])[0])           # 길이만 달라도 거부
+
     def test_subsample_is_deterministic_and_bounded(self):
         items = [(Path(f"i{i}.jpg"), []) for i in range(50)]
         s1 = F.subsample(items, 10, seed=1); s2 = F.subsample(items, 10, seed=1); s3 = F.subsample(items, 10, seed=2)

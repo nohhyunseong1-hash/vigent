@@ -1,0 +1,23 @@
+# PPE A′ — 첫 유효 실험(2026-09-27 승인): A 와 같은 데이터(CSS+507+Hardhat 준라벨 681, 미검수 단서 유지), 변수 = **슬롯 정렬 하나**.
+# classes 를 v1 체크포인트 class_names 의 10슬롯 순서 그대로 두고, 우리 정책상 안 쓰는 클래스(Mask·NO-Mask)와 A 에 없던 클래스(Safety Cone·machinery·vehicle)는
+# drop_classes 로 주석만 비운다(슬롯=카테고리는 유지) → 학습되는 5클래스는 A 와 동일, 슬롯만 v1 과 일치. 사전 가드(slot_alignment)가 순서 불일치면 거부한다.
+classes: [Hardhat, Mask, NO-Hardhat, NO-Mask, NO-Safety-Vest, person, Safety Cone, Safety-Vest, machinery, vehicle]
+drop_classes: [Mask, NO-Mask, Safety Cone, machinery, vehicle]
+harness: ppe
+init: vigent-core/weights/ppe_rfdetr_v1.pth
+sources:
+  - name: css_v27
+    kind: yolo_yaml
+    path: data/datasets/css_safety/data.yaml
+    splits: {train: train, valid: valid}
+  - name: aihub_507
+    kind: vigent
+    labels: D:/vigent_private_data/aihub/vigent_507_A/labels      # ★A 가 본 507 라벨 그대로 = 현재 vigent_507 에서 B 의 조끼 준라벨(source pseudo:v1:Safety-Vest+NO-Safety-Vest)만 사이드카 기준으로 제거한 사본
+    images: D:/vigent_private_data/aihub/_inspect/507_src
+    split: D:/vigent_private_data/aihub/vigent_507_A/split.json
+  - name: pseudo_507_sample
+    kind: vigent
+    labels: D:/vigent_private_data/aihub/pseudo_507/labels        # 681장 Hardhat 준라벨(미검수)
+    images: D:/vigent_private_data/aihub/docs_507
+    split: D:/vigent_private_data/aihub/pseudo_507/split.json
+exclude_files: benchmarks/results/v1_heldout_eval.json
