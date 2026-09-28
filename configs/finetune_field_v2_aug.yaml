@@ -1,0 +1,48 @@
+# PPE v2 대조군 — "강한 CCTV 유사 증강 on" (2026-09-28 초안, 실행 안 함). 변수 = 증강 하나(나머지는 finetune_field_v2.yaml 과 동일).
+# ★현재 finetune_rfdetr.py 는 aug_config 를 rfdetr train() 에 넘기지 않는다(CODE_AUDIT_20260928 §4). 아래 train.aug_config 를 읽어
+#   `m.train(..., aug_config=...)` 로 전달하는 한 줄이 들어가기 전에는 이 설정을 돌려도 기본 증강(HorizontalFlip p0.5 + multi_scale)만 적용된다.
+#   → 그 수정은 승인 후. 그때 dry-run plan.json 에 aug_config 가 찍히는지로 확인한다.
+# 실측 기준 증강(2026-09-27 E·A′ training_config.json): multi_scale true · expanded_scales true(스케일 [-5..+5]×patch16×win2 → 최소 256)
+#   · do_random_resize_via_padding false · aug_config null → 기본 AUG_CONFIG = HorizontalFlip p0.5 뿐. 색·블러·노이즈·원근 없음.
+# 아래는 rfdetr 1.8 AlbumentationsWrapper 가 이름으로 받는 albumentations 변환(GEOMETRIC_TRANSFORMS 에 Perspective·Affine·Downscale 등록 확인).
+classes: [person, Hardhat, NO-Hardhat, Safety-Vest, NO-Safety-Vest]
+harness: ppe
+init: coco
+sources:
+  - name: css_v27
+    kind: yolo_yaml
+    path: data/datasets/css_safety/data.yaml
+    splits: {train: train, valid: valid}
+  - name: field
+    kind: vigent
+    labels: ${VIGENT_FIELD_DIR}/labels
+    images: ${VIGENT_FIELD_DIR}/images
+    split: ${VIGENT_FIELD_DIR}/split.json
+valid_only_from: [field]
+exclude_files: benchmarks/results/v1_heldout_eval.json
+exclude_manifests:
+  - ${VIGENT_FIELD_DIR}/heldout.json
+train:
+  epochs: 50
+  lr: 1.0e-4
+  batch: 8
+  grad_accum: 2
+  res: 384
+  seed: 20260927
+  eval_interval: 2
+  val_subsample: 0
+  heldout_eval_every: 10
+  field_heldout: ${VIGENT_FIELD_DIR}
+  aug_config:                                   # "CCTV 유사" — 고정 카메라·하향각·원거리·압축·야간 잡음을 흉내낸다
+    HorizontalFlip: {p: 0.5}
+    Perspective: {scale: [0.02, 0.06], keep_size: true, p: 0.4}          # 하향 20~40° 시점 변화(작게)
+    Affine: {scale: [0.7, 1.0], translate_percent: [-0.05, 0.05], rotate: [-3, 3], p: 0.4}   # 축소(원거리) 위주, 회전은 거의 없음(CCTV 는 수평)
+    Downscale: {scale_range: [0.35, 0.75], p: 0.4}                        # 저해상도 CCTV·원거리 소인물 흉내
+    GaussianBlur: {blur_limit: [3, 5], p: 0.3}
+    MotionBlur: {blur_limit: 5, p: 0.2}
+    ImageCompression: {quality_range: [40, 80], p: 0.4}                   # RTSP/H.264 압축 잡음
+    GaussNoise: {std_range: [0.02, 0.08], p: 0.3}                         # 야간 센서 잡음
+    RandomBrightnessContrast: {brightness_limit: 0.3, contrast_limit: 0.3, p: 0.5}
+    RandomGamma: {gamma_limit: [60, 140], p: 0.3}                         # 역광·야간 조명
+  # 끈 것: VerticalFlip·Rotate(큰 각)·Mosaic — 고정 CCTV 에 없는 변형. 인자 이름은 albumentations 2.0.8 기준(rfdetr 가 그대로 넘긴다).
+  # 판정: finetune_field_v2(기본 증강) 와 같은 현장 held-out 300 에서 NO-Hardhat R·NO-SV R·음성 오탐률을 나란히. 구간이 겹치면 "증강 효과 미검증".
