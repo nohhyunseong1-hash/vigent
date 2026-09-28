@@ -33,6 +33,17 @@ perception:                       # ── Guard (감지)
     forklift: vigent-core/weights/forklift_rfdetr_v1.pth
     fire_smoke: vigent-core/weights/fire_smoke_rfdetr_v1_e17.pth
     ppe: vigent-core/weights/ppe_rfdetr_v1.pth
+  # ★[CODE_AUDIT_20260928 #9] 슬롯별 허용 라벨(최종 검출에 내보낼 표준 라벨)·필수 라벨(커스텀 가중치 class_names 에 있어야 하는 것).
+  #   실측: forklift 가중치 fk510_smoke 의 class_names 는 [person, forklift] 라 허용 목록이 없으면 person 이 forklift 슬롯 출처로 섞였다.
+  #   필수 라벨이 빠진 가중치는 로드가 거부되고 /health slot_errors 에 사유가 남는다(학습 경로의 슬롯 가드와 짝).
+  rfdetr_classes:
+    ppe: [person, Hardhat, NO-Hardhat, Safety-Vest, NO-Safety-Vest, Mask, NO-Mask, Safety Cone, machinery, vehicle]
+    forklift: [forklift]
+    fire_smoke: [fire, smoke]
+  rfdetr_required:
+    ppe: [Hardhat, NO-Hardhat, Safety-Vest, NO-Safety-Vest]
+    forklift: [forklift]
+    fire_smoke: [fire, smoke]
   detectors:
     # ★[정직화 2026-08-24] person 항목은 **죽은 설정**이라 주석 처리했다(기록은 보존).
     #   위 backend 가 person: rfdetr 이므로 guard.py `_get_model` 이 rfdetr 분기로 가고,

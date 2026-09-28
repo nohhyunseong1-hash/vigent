@@ -189,10 +189,21 @@ def _round_resolution(requested: int) -> int:
     return rounded
 
 
+def verify_slot_classes(class_names: list[str] | None, required: list[str] | set[str] | None, label_normalize: dict) -> list[str]:
+    """[CODE_AUDIT_20260928 #9] 체크포인트 class_names 가 슬롯이 요구하는 라벨을 전부 갖는지. 반환: 없는 라벨 목록(빈 목록 = 통과).
+    비교는 표준 라벨(label_normalize 적용 후)로 한다 — 'Safety Vest'(CSS) 와 'Safety-Vest'(표준) 는 같은 것으로 본다.
+    class_names 가 None(COCO 사전학습 등 메타 없음)이면 검사하지 않는다(빈 목록)."""
+    if not required or class_names is None:
+        return []
+    have = {label_normalize.get(str(n), str(n)) for n in class_names}
+    return [r for r in required if label_normalize.get(str(r), str(r)) not in have]
+
+
 class RfdetrDetector(BaseDetector):
     backend = "rfdetr"
 
-    def __init__(self, weights: str, label_normalize: dict, junk: set, resolution: int | None = None):
+    def __init__(self, weights: str, label_normalize: dict, junk: set, resolution: int | None = None,
+                 allowed_labels: list[str] | set[str] | None = None):
         import sys
         from pathlib import Path
         sys.path.insert(0, str(Path(__file__).resolve().parent.parent))  # device·tuning 모듈 경로
@@ -244,6 +255,16 @@ class RfdetrDetector(BaseDetector):
         #   모델 자체 class_names(0-indexed, 예: ['forklift']). class_id ≥ 클래스수 = DETR 배경/no-object → 무시.
         #   (COCO_CLASSES 하드코딩은 커스텀 모델을 오매핑 → 실측 근거로 분기: T10b eval_rfdetr_custom.py 참조)
         self._custom_names = list(getattr(self.model, "class_names", []) or []) if weights else None
+        # ★[CODE_AUDIT_20260928 #9] 슬롯별 허용 라벨(표준형). None 이면 전부 통과(예전 동작). 실측: fk510_smoke(['person','forklift'])의
+        #   person 이 forklift 슬롯에서 최종 검출에 섞였다(109프레임 중 27프레임) — 허용 목록 밖 라벨은 여기서 버린다.
+        self.allowed: set[str] | None = ({label_normalize.get(str(a), str(a)) for a in allowed_labels}
+                                         if allowed_labels is not None else None)
+        self.dropped_by_allowlist = 0
+
+    @property
+    def class_names(self) -> list[str] | None:
+        """체크포인트 class_names(커스텀 가중치) — COCO 사전학습이면 None."""
+        return list(self._custom_names) if self._custom_names is not None else None
 
     def detect(self, image_bgr, conf: float, imgsz: int | None = None,
                augment: bool = False) -> list[dict[str, Any]]:
@@ -291,6 +312,10 @@ class RfdetrDetector(BaseDetector):
             if pad:                                            # 정사각 좌표 → 원본 픽셀로 복원(un-pad)
                 x1 -= ox; x2 -= ox; y1 -= oy; y2 -= oy
             d = finalize_box(raw, float(det.confidence[j]), x1, y1, x2, y2, w, h, self._ln, self._junk)
-            if d is not None:
-                out.append(d)
+            if d is None:
+                continue
+            if self.allowed is not None and d["label"] not in self.allowed:   # [#9] 슬롯 역할 밖 라벨(예: forklift 슬롯의 person)
+                self.dropped_by_allowlist += 1
+                continue
+            out.append(d)
         return out

@@ -104,6 +104,17 @@ LABEL_NORMALIZE = {
 }
 # PPE 미착용 판정에 쓰는 표준 라벨(안전모·조끼·마스크)
 PPE_MISSING_LABELS = {"NO-Hardhat", "NO-Safety-Vest", "NO-Mask"}
+# [CODE_AUDIT_20260928 #9] 슬롯별 허용/필수 라벨 기본값(표준형). vision.yaml perception.rfdetr_classes / rfdetr_required 가 덮어쓴다.
+RFDETR_CLASSES_DEFAULT: dict[str, list[str]] = {
+    "ppe": ["person", "Hardhat", "NO-Hardhat", "Safety-Vest", "NO-Safety-Vest", "Mask", "NO-Mask", "Safety Cone", "machinery", "vehicle"],
+    "forklift": ["forklift"],
+    "fire_smoke": ["fire", "smoke"],
+}
+RFDETR_REQUIRED_DEFAULT: dict[str, list[str]] = {
+    "ppe": ["Hardhat", "NO-Hardhat", "Safety-Vest", "NO-Safety-Vest"],
+    "forklift": ["forklift"],
+    "fire_smoke": ["fire", "smoke"],
+}
 # 잡음/무의미 클래스 — 그리지 않고 버림(예: fire 모델의 'default')
 JUNK_LABELS = {"default"}
 
@@ -509,6 +520,15 @@ class GuardAgent(BaseAgent):
             _raw_rfw = {}
         # 절대경로화 + 실파일 검증 + 로드 로그. 커스텀 부재 시 예외를 그대로 올려 기동을 거부(silent 폴백 차단).
         self._rfdetr_weights = self._resolve_rfdetr_weights(_raw_rfw)
+        # ★[CODE_AUDIT_20260928 #9] 슬롯별 허용 라벨·필수 라벨(vision.yaml perception.rfdetr_classes / rfdetr_required, 없으면 코드 기본).
+        #   허용: 슬롯이 최종 검출에 내보낼 수 있는 표준 라벨. 필수: 커스텀 가중치 class_names 에 반드시 있어야 하는 라벨(없으면 로드 거부 → DEGRADED).
+        try:
+            _perc = (getattr(config, "raw", {}) or {}).get("perception", {}) or {}
+            self._rfdetr_classes = {str(k): [str(x) for x in v] for k, v in (_perc.get("rfdetr_classes") or RFDETR_CLASSES_DEFAULT).items()}
+            self._rfdetr_required = {str(k): [str(x) for x in v] for k, v in (_perc.get("rfdetr_required") or RFDETR_REQUIRED_DEFAULT).items()}
+        except Exception as ex:  # noqa: BLE001
+            self._tuning_fail("perception.rfdetr_classes/rfdetr_required", ex)
+            self._rfdetr_classes, self._rfdetr_required = dict(RFDETR_CLASSES_DEFAULT), dict(RFDETR_REQUIRED_DEFAULT)
 
     def _tuning_fail(self, key: str, ex: Exception) -> None:
         """[M1-6] tuning 키 하나의 적용 실패를 **드러내고**(ERROR + status) 기본값으로 계속 간다."""
@@ -908,7 +928,15 @@ class GuardAgent(BaseAgent):
                 #   detect.imgsz)를 여기서 넘겨야 실제로 적용된다. 예전엔 이 인자가 없어 항상
                 #   라이브러리 기본값(384)으로 돌았다(dead parameter, benchmarks/
                 #   p3_1_resolution_ab_BLOCKED.md).
-                self._models[slot] = RfdetrDetector(rf_w, LABEL_NORMALIZE, JUNK_LABELS, resolution=self.IMGSZ)
+                from detectors.rfdetr_adapter import verify_slot_classes
+                det = RfdetrDetector(rf_w, LABEL_NORMALIZE, JUNK_LABELS, resolution=self.IMGSZ,
+                                     allowed_labels=getattr(self, "_rfdetr_classes", {}).get(slot))
+                if rf_w:                                       # [#9] 커스텀 가중치는 필수 라벨을 갖는지 로드 직후 검증(슬롯 가드의 추론판)
+                    missing = verify_slot_classes(det.class_names, getattr(self, "_rfdetr_required", {}).get(slot), LABEL_NORMALIZE)
+                    if missing:
+                        raise RuntimeError(f"class_names 불일치: 슬롯 {slot} 필수 {getattr(self, '_rfdetr_required', {}).get(slot)} 중 없음 {missing} "
+                                           f"— 체크포인트 class_names={det.class_names} (가중치 {_Path(rf_w).name})")
+                self._models[slot] = det
             else:
                 from detectors.yolo_adapter import YoloDetector
                 self._models[slot] = YoloDetector(path, self.device, self.IMGSZ,
@@ -917,6 +945,7 @@ class GuardAgent(BaseAgent):
         except Exception as ex:  # noqa: BLE001  로드 실패해도 죽지 않는다
             self._load_errors[slot] = f"{type(ex).__name__}: {ex}"
             self._models[slot] = None
+            _guard_logger().error("★검출 슬롯 로드 거부/실패: slot=%s — %s", slot, self._load_errors[slot])
             return None
 
     def detect(self, image_bgr: np.ndarray, detectors: list[str] | None = None,

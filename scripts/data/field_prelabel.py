@@ -170,6 +170,9 @@ def make_v1_predictor(weights: str, res: int = 384) -> Predictor:
     except Exception:  # noqa: BLE001
         pass
     names = [std_name(n) for n in (getattr(m, "class_names", None) or CLASSES)]
+    missing = [c for c in ("Hardhat", "NO-Hardhat", "Safety-Vest", "NO-Safety-Vest") if c not in names]   # [#9] 초벌 라벨러도 검사
+    if missing:
+        raise SystemExit(f"★초벌 가중치 class_names 에 없음 {missing}: {names} ({weights})")
 
     def predict(im) -> list[tuple[str, list[float], float]]:
         det = m.predict(im, threshold=0.05)

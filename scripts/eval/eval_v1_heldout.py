@@ -226,6 +226,10 @@ def make_predictor(weights: str, res: int, names: list[str]):
     except Exception:  # noqa: BLE001
         pass
     cls_names = [to_css_name(c) for c in (getattr(m, "class_names", None) or names)]
+    # ★[CODE_AUDIT_20260928 #9] 평가기도 슬롯 가드 — 우리 4클래스가 없는 가중치는 채점하지 않는다(엉뚱한 가중치가 조용히 채점되는 것 방지)
+    missing = [c for c in OUR4 if c not in cls_names]
+    if getattr(m, "class_names", None) and missing:
+        raise SystemExit(f"★가중치 class_names 에 우리 클래스가 없다: 없음 {missing} · class_names={list(getattr(m, 'class_names'))} ({weights})")
 
     def predict(im):
         det = m.predict(im, threshold=0.05)
