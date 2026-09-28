@@ -21,7 +21,8 @@ Environment=VIGENT_EDGE=1
 Environment=VIGENT_LOG_LEVEL=INFO
 # EnvironmentFile 로 비밀(VIGENT_API_TOKEN, WEBHOOK_URL 등) 주입 권장:
 # EnvironmentFile=__INSTALL_DIR__/.env
-ExecStart=/bin/bash __INSTALL_DIR__/bin/vigent-edge.command
+# [CODE_AUDIT_20260928 #4] 예전 bin/vigent-edge.command 는 저장소에 없는 파일(_archive/macos 에만) — 기동 불가였다.
+ExecStart=/bin/bash __INSTALL_DIR__/bin/vigent-serve.sh
 Restart=always
 RestartSec=5
 # 크래시 폭주 방지: 60초 내 5회 초과 재시작 시 정지(원인 점검 강제)

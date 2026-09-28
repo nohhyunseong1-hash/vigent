@@ -1429,10 +1429,31 @@ class WorkerManager:
             return {"ok": False, "error": f"{cam_id} 없음"}
         return w.set_fps(fps)
 
-    def stop_all(self) -> dict:
-        for w in list(self._workers.values()):
-            w.stop()
-        return {"ok": True, "stopped": len(self._workers)}
+    STOP_ALL_DEADLINE_S = 20.0   # [CODE_AUDIT #4] 전체 정지 데드라인(NSSM AppStopMethodConsole 30 s 안에 끝나야 한다)
+
+    def stop_all(self, deadline_s: float | None = None) -> dict:
+        """모든 워커를 **병렬**로 정지하고 총 데드라인 안에 돌아온다. 예전엔 순차(카메라당 최대 8 s)라 N대면 N×8 s 가 걸려
+        NSSM 기본 종료 대기(≈1.5 s)에 잘렸다. 반환 pending = 데드라인 안에 못 멈춘(또는 stop 이 ok=False 인) 카메라."""
+        deadline = float(self.STOP_ALL_DEADLINE_S if deadline_s is None else deadline_s)
+        with self._reg_lock:
+            items = list(self._workers.items())
+        results: dict[str, dict] = {}
+
+        def _run(cid, w):
+            try:
+                results[cid] = w.stop()
+            except Exception as ex:  # noqa: BLE001
+                results[cid] = {"ok": False, "error": f"{type(ex).__name__}: {ex}"}
+        ths = [threading.Thread(target=_run, args=(cid, w), name=f"stop-{cid}", daemon=True) for cid, w in items]
+        for t in ths:
+            t.start()
+        end = time.time() + deadline
+        for t in ths:
+            t.join(max(0.0, end - time.time()))
+        pending = [cid for cid, _ in items if cid not in results or not results[cid].get("ok", True)]
+        if pending:
+            _WLOG.error("stop_all: %d/%d 카메라가 %.0fs 안에 정지되지 않음(재기동 금지 상태): %s", len(pending), len(items), deadline, pending)
+        return {"ok": not pending, "stopped": len(items) - len(pending), "pending": pending, "total": len(items)}
 
     def status(self) -> dict:
         return {"site": self.site,

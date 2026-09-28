@@ -13,19 +13,37 @@ FAILS="${VIGENT_HEALTH_FAILS:-3}"
 AUTH=()
 [ -n "${VIGENT_API_TOKEN:-}" ] && AUTH=(-H "Authorization: Bearer ${VIGENT_API_TOKEN}")
 
-ok=0
+# ★[CODE_AUDIT_20260928 #4] 재기동 직후 유예 — /health 는 예열(phase=starting) 중 503 을 준다. 재기동 30 s 뒤 점검이 다시 503 을 보면
+#   무한 재기동 루프가 됐다. (1) 예열 중(본문 phase=starting)이면 정상으로 본다 (2) 마지막 재기동 뒤 GRACE_S 안에는 재기동하지 않는다.
+GRACE_S="${VIGENT_RESTART_GRACE_S:-120}"
+STATE="${VIGENT_WATCHDOG_STATE:-/tmp/vigent_watchdog_last_restart}"
+BODY_TMP="$(mktemp 2>/dev/null || echo /tmp/vigent_watchdog_body.$$)"
+ok=0; starting=0
 for i in $(seq 1 "$FAILS"); do
-  code=$(curl -s -o /dev/null -w "%{http_code}" --max-time 5 "${AUTH[@]}" "$URL" 2>/dev/null)
+  code=$(curl -s -o "$BODY_TMP" -w "%{http_code}" --max-time 5 ${AUTH[@]+"${AUTH[@]}"} "$URL" 2>/dev/null)
   if [ "$code" = "200" ]; then ok=1; break; fi
+  if grep -q '"phase"[[:space:]]*:[[:space:]]*"starting"' "$BODY_TMP" 2>/dev/null; then starting=1; break; fi
   sleep 2
 done
+rm -f "$BODY_TMP"
+if [ "$starting" = "1" ]; then
+  echo "[watchdog] 예열 중(phase=starting) — 재기동하지 않음"
+  exit 0
+fi
+if [ -f "$STATE" ]; then
+  last=$(cat "$STATE" 2>/dev/null || echo 0); now=$(date +%s)
+  if [ $((now - last)) -lt "$GRACE_S" ] && [ "$ok" != "1" ]; then
+    echo "[watchdog] 마지막 재기동 $((now - last))s 전 — 유예 ${GRACE_S}s 안이라 재기동하지 않음"
+    exit 0
+  fi
+fi
 
 STATUS_URL="${VIGENT_STATUS_URL:-http://127.0.0.1:8010/status}"
 HANG_RESTART_S="${VIGENT_HANG_RESTART_S:-45}"   # 앱 내부 hang 복구(15s)보다 충분히 커서 계층 안 겹침
 if [ "$ok" = "1" ]; then
   # 2차 방어(hang): 프로세스 생존·/health OK 여도 워커가 HANG_RESTART_S 이상 정지 지속이면 재기동
   #   (1차=앱 내부 자동 재기동 VIGENT_HANG_TIMEOUT. 그게 실패해 hang 이 오래 남을 때만 프로세스 재기동)
-  hung=$(curl -s --max-time 5 "${AUTH[@]}" "$STATUS_URL" 2>/dev/null | python3 -c "
+  hung=$(curl -s --max-time 5 ${AUTH[@]+"${AUTH[@]}"} "$STATUS_URL" 2>/dev/null | python3 -c "
 import sys, json
 try:
     d = json.load(sys.stdin); cams = d.get('cameras', {})
@@ -43,6 +61,7 @@ except Exception:
 fi
 
 echo "[watchdog] 비정상 — /health $FAILS회 연속 실패 ($URL)"
+date +%s > "$STATE" 2>/dev/null || true
 if [ -n "${VIGENT_RESTART_CMD:-}" ]; then
   echo "[watchdog] 재기동: $VIGENT_RESTART_CMD"
   eval "$VIGENT_RESTART_CMD"

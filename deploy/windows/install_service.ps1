@@ -146,6 +146,12 @@ $appArgs = ("`"" + $Entry + "`" --host $Bind --port $Port")
 #     재시작 지연을 60s 로 늘려 루프 자체를 완만하게 한다(정상 크래시 복구는 1분 지연을 감수).
 #   기동 실패 자체는 main._startup 이 통보·이벤트로그(Application/VIGENT ID 1000)로 드러낸다(M4-5(a)).
 & $nssmPath set $ServiceName AppExit Default Restart
+# ★[CODE_AUDIT_20260928 #4] 정지 방법·대기: 기본(콘솔 Ctrl+C 뒤 약 1.5 s 강제 종료)은 _shutdown(릴레이 OFF·워커 정지·큐 이월)이 끝나기 전에 잘랐다.
+#   콘솔 신호 뒤 30 s 를 기다린 다음에야 다음 단계(창·스레드·종료)로 넘어간다. 앱 쪽 stop_all 은 병렬+데드라인 20 s.
+& $nssmPath set $ServiceName AppStopMethodSkip 0
+& $nssmPath set $ServiceName AppStopMethodConsole 30000
+& $nssmPath set $ServiceName AppStopMethodWindow 5000
+& $nssmPath set $ServiceName AppStopMethodThreads 5000
 & $nssmPath set $ServiceName AppRestartDelay 60000    # 재시작 지연 60초(구 5초)
 & $nssmPath set $ServiceName AppThrottle 180000       # 기동 후 180초 안에 죽으면 폭주로 보고 감속(구 10초)
 
@@ -160,7 +166,9 @@ $errLog = Join-Path $LogDir "vigent.err.log"
 
 # 운영 환경변수. ★VIGENT_HANG_TIMEOUT 같은 회피값은 넣지 않는다(B4 에서 근본 해소됨).
 #   VIGENT_RESTART_CMD 는 기아 3단계(starvation_guard)가 실제로 소비한다.
-$restartCmd = 'sc.exe stop ' + $ServiceName + ' & sc.exe start ' + $ServiceName
+# ★[CODE_AUDIT_20260928 #4] 예전 'sc.exe stop X & sc.exe start X' 는 서비스의 자식 cmd 가 자기 서비스를 멈추는 순간 NSSM 이 트리를
+#   죽여 start 가 안 돌 수 있었다(실기 미검증). 이제 앱이 exit 3 으로 스스로 종료하고 NSSM AppExit Restart(60 s 지연)가 다시 띄운다.
+$restartCmd = 'exit:3'
 $WeightsDir = Join-Path $Core "weights"
 $RtmCacheDir = Join-Path $WeightsDir "rtm_cache"
 $envLines = @(

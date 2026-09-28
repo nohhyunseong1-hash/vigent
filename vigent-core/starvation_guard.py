@@ -98,11 +98,35 @@ def _escalate() -> None:
         _LOG.error("[기아 3단계] 프로세스 재기동 필요하나 VIGENT_RESTART_CMD 미설정 — 경고만 남김. "
                    "Windows 서비스 배포는 deploy/windows/install_service.ps1 참고")
         return
+    if _RESTART_CMD.lower().startswith("exit:"):
+        # ★[CODE_AUDIT_20260928 #4] 서비스(NSSM) 배포의 정규 경로 — 예전 'sc stop X & sc start X' 는 서비스 자신의 자식이
+        #   실행해 NSSM 이 프로세스 트리를 죽이면 sc start 가 안 돌 수 있었다. 이제 지정 코드로 **스스로 종료**하고
+        #   NSSM AppExit Default Restart(60 s 지연)가 다시 띄운다. 종료 전에 릴레이 OFF·큐 이월을 위해 graceful 경로를 먼저 밟는다.
+        try:
+            code = int(_RESTART_CMD.split(":", 1)[1] or 3)
+        except ValueError:
+            code = 3
+        _LOG.error("[기아 3단계] 프로세스 자가 종료(exit %d) → 서비스 관리자(NSSM) 재기동에 위임", code)
+        try:
+            import main as _main  # graceful: 릴레이 OFF → 워커 → 큐 이월(실패해도 종료는 진행)
+            _main._shutdown()
+        except Exception as ex:  # noqa: BLE001
+            _LOG.error("[기아 3단계] graceful 정리 중 예외(종료는 진행): %s: %s", type(ex).__name__, ex)
+        _process_exit(code)
+        return
     _LOG.error("[기아 3단계] 프로세스 재기동 실행: %s", _RESTART_CMD)
     try:
-        subprocess.Popen(_RESTART_CMD, shell=True)   # noqa: S602  운영자가 명시 설정한 명령
+        proc = subprocess.Popen(_RESTART_CMD, shell=True)   # noqa: S602  운영자가 명시 설정한 명령
+        _LOG.error("[기아 3단계] 재기동 명령 시작(pid %s) — 결과는 서비스 관리자 로그에서 확인", proc.pid)
     except Exception as ex:  # noqa: BLE001
         _LOG.error("[기아 3단계] 재기동 명령 실패: %s", ex)
+
+
+def _process_exit(code: int) -> None:
+    """os._exit 래퍼(테스트에서 바꿔 끼운다). 로그 핸들러를 먼저 비운다."""
+    import logging
+    logging.shutdown()
+    os._exit(code)
 
 
 def _tick() -> None:
