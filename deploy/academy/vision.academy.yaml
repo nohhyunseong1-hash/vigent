@@ -105,7 +105,7 @@ vlm:                              # ── 영상→위험 분석(로컬 MLX, An
   # 테마=설정 원칙: 모델·프롬프트를 여기서 주입 → office·sports 는 이 블록만 교체
   model: mlx-community/Qwen2.5-VL-7B-Instruct-4bit   # 3B→7B 상향(2026-07, 추론력↑·로컬 유지). 되돌리려면 3B로.
   fallback: none                  # 모델 없으면 VLM 만 비활성(규칙 가산 점수는 그대로 유지)
-  cooldown_sec: 8                 # 같은 장면 반복 분석 방지(무거움)
+  # (cooldown_sec 는 코드에서 읽는 곳이 없어 2026-09-28 CODE_AUDIT C-1 로 제거 — VLM 호출 간격은 vlm_confirm.py 상수가 정한다)
   language: ko
   output_schema: [위험요인, 위험등급, 근거, 권고조치, 관련법령]
   prompt: |

@@ -95,7 +95,7 @@
 > **라우터 규칙(P1-7):** 라우터는 `main`을 import하지 않는다(순환 금지). 공유는 `app_state`(상태)·`web_util`(헬퍼)로. 라우트 변경 시 `scripts/check_openapi_diff.py`로 회귀 확인. 상세는 [docs/ONBOARDING.md](docs/ONBOARDING.md) §3.5.
 
 ## 기술 스택
-Python 3.11 · FastAPI · ultralytics(YOLO11/8, AGPL 주의 — §6) · ByteTrack · RTMPose · mmaction2 · TensorFlow(BODA 분류기) · OpenCV. 프론트는 순수 HTML/JS + CDN(MediaPipe·TF.js). 테스트: `python -m unittest discover -s tests`.
+Python 3.11 · FastAPI · RF-DETR(`rfdetr`, Apache — person·PPE·forklift·fire_smoke 전부) · ByteTrack · RTMPose(rtmlib) · OpenCV(headless). ★ultralytics(AGPL)는 배포에서 제거됐고 개발기 .venv 에도 **없다**(2026-09-28 실측, CODE_AUDIT §3-3) — `requirements-train.txt` 의 YOLO 기준선 측정용 핀으로만 남아 있다. mmaction2·TensorFlow(BODA)는 현재 코드 경로에 없다[미검증: 이력 문서 기준]. 프론트는 순수 HTML/JS + CDN(MediaPipe·TF.js). 테스트: `python -m unittest discover -s tests`.
 
 ## 코드 품질 게이트 (P0~P2 완료 — 변경 시 통과 필수)
 CODE_REVIEW.md §5의 P0~P2 조치가 완료됐다. 코드 변경 시 아래를 모두 통과 후 커밋(= CI 스텝과 동일):
@@ -104,12 +104,16 @@ CODE_REVIEW.md §5의 P0~P2 조치가 완료됐다. 코드 변경 시 아래를 
    걸면 안 건드린 파일이 바뀐다 — 2026-09-23 `ruff check scripts --fix` 로 `capacity_probe.py` 에 무관한 빈 줄이 들어가
    커밋 직전까지 갔다(되돌림). 로컬 게이트는 `powershell -File scripts\gate.ps1` 한 번으로 1~4 를 순서대로 돈다.
 2. **mypy**(점진) `python -m mypy` → 화이트리스트 0 에러 (라우트 핸들러엔 `-> dict/str` 금지: FastAPI가 response_model 로 채택해 응답 스키마가 바뀜)
-3. **테스트** `.../python3 -m unittest discover -s tests` → **871 tests**(2026-09-28, 개발기 기준)
+3. **테스트** `.../python3 -m unittest discover -s tests` → **898 tests**(2026-09-28, 개발기 기준)
    ★게이트의 unittest 출력은 `audit/gate_unittest_last.log` 에 남는다(2026-09-27 추가) — 2026-09-26~27 에 비결정 실패가 2회 있었는데
    이름을 못 잡아 원인을 못 찾았다. 실패하면 그 로그의 `FAIL:`/`ERROR:` 줄을 먼저 본다.
    (★2026-09-23 갱신: 오래 "55 tests" 로 적혀 있었으나 실제는 726이었다. 테스트를 추가하면 이 숫자도 같이 고친다.
    ★자산(가중치·데이터셋) 있는 개발기에서만 도는 테스트가 있다 — `tests/test_ppe_compare_harness.py` 의 v1 재현 1건은
    CI 에서는 skip 된다. 개발기에서 skip 이면 자산 누락이다.)
+   ★`test_ppe_compare_harness.test_v1_reproduces_baseline` 이 전체 스위트에서만 흔들리던 문제(2026-09-25~28, Safety Vest AP50 82.8↔83.2 등)는
+   **앞선 모듈이 띄운 예열 스레드(vigent-warmup)의 GPU 동시 사용**이 원인이었다(CODE_AUDIT B-2, 2026-09-28: 결정성 플래그만으로는 5회 중 1회
+   실패 — 그 회차만 165 s 로 느림; setUp 에서 예열 스레드 join + `torch.cuda.empty_cache()` 뒤 **5회 연속 통과**, 허용 ±0.3 복귀). 평가 경로는
+   `eval_v1_heldout.enable_determinism()` 을 쓴다. 다시 흔들리면 허용을 넓히지 말고 어떤 스레드가 GPU 를 같이 쓰는지부터 본다.
    ★테스트는 **기계 상태에 의존하면 안 된다** — 2026-09-23 `test_field_eval_group` 이 C: 여유가
    5GB 아래로 떨어지자 코드 변경 없이 실패했다(실제 `shutil.disk_usage` 를 읽고 있었다). 디스크·시각·
    네트워크는 mock 으로 고정하고, 고정한 만큼 **반대편(경고가 나는 경우)** 도 테스트로 잡는다.

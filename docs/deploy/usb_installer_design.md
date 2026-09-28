@@ -346,6 +346,21 @@ python scripts\acceptance_test.py --only-human
 런처 `--cpu` 가 GPU 로 돌던 것 · 배치 괄호/따옴표 3건 · `usb_layout` docstring `\u` SyntaxError · gpu2 휠 부재.
 ★사양 검사는 개발기에서도 실제로 거부했다(C: 19.6GB < 20GB) — 인수시험 검증 회차만 `-SkipPreflight` 로 명시적 우회.
 
+## 8-2. ★실기 미검증 항목 (2026-09-28, CODE_AUDIT A 그룹 수정 뒤)
+
+코드·테스트로는 고정했지만 **관리자 셸·실제 USB·실기기에서 아직 확인하지 않은 것**. 검증 절차는 [field_verification_20260928.md](field_verification_20260928.md).
+
+| 항목 | 무엇이 미검증인가 | 근거 커밋 |
+|---|---|---|
+| NSSM 자가 재기동 | 기아 3단계 `exit 3` 뒤 `AppExit Default Restart`(60 s 지연)가 실제로 다시 띄우는지 | `286f1ef` |
+| AppStopMethodConsole 30000 | 서비스 정지 시 `_shutdown`(릴레이 OFF·워커 정지·큐 이월)이 잘리지 않고 끝나는지 | `286f1ef` |
+| `install.ps1` → `install_service.ps1` 직접 호출 | `-ExtraEnv` 배열 4개가 전부 서비스 환경에 들어가는지(예전 `-File` 은 첫 값만 바인딩 가능성) | `78d8c11` |
+| 외부 바인드 토큰 검사 | `-Bind 0.0.0.0` + `.env` 토큰 없음 → 설치 중단 | `78d8c11` |
+| `install_result.json` → 설치.bat·인수시험 | `-Target/-Port` 를 바꿔 설치했을 때 마법사·인수시험이 그 값을 따라가는지 | `78d8c11` |
+| CRLF 검증 | 실제 `build_usb.ps1` 실행에서 검증 단계 통과 | `78d8c11` |
+| go2rtc DELETE 파라미터 | `starvation_guard.py` 는 `name=`, `routers/cameras.py` 는 `src=` — go2rtc API 가 어느 쪽을 받는지 GET 으로 확인 | (미수정) |
+| 한국어 Windows 카운터 | `Get-Counter`/typeperf 영문 카운터명이 한국어 Windows 에서 통하는지 | (미수정) |
+
 ## 9. 1차 착수 조건
 
 - [ ] **원격(GitHub) 복구** — 현재 `ls-remote` 404

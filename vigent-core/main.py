@@ -11,7 +11,7 @@ main.py — VIGENT 공유 코어 FastAPI 골격 (§15-2)
 실행:
   cd ~/Desktop/VIGENT
   uvicorn vigent-core.main:app --reload      # 폴더명에 '-' 가 있어 패키지 임포트가 까다로움 → 아래 참고
-  # 권장: cd vigent-core && uvicorn main:app --reload --port 8000
+  # 권장: cd vigent-core && uvicorn main:app --reload --port 8010    (서비스·인수시험·watchdog 전부 8010)
 """
 from __future__ import annotations
 

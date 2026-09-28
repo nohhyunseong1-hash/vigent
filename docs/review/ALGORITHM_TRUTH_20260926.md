@@ -66,7 +66,7 @@
 
 | 항목 | 실체 | 근거 |
 |---|---|---|
-| 모델 | **RF-DETR Nano COCO 사전학습 그대로**(`rf-detr-nano.pth`, 366,287,238B, sha `d8d6…`). 커스텀 가중치 없음. COCO 80종 중 `person` 만 통과 | `vision.yaml:16,33-38` · `weights_manifest.json:10-16` · `docs/review/02-model-inference.md:33-34` |
+| 모델 | **RF-DETR Nano COCO 사전학습 그대로**(`rf-detr-nano.pth`, 366,287,238B, sha `d8d6…`). 커스텀 가중치 없음. **COCO 80종이 전부 최종 검출에 남는다**(★2026-09-28 정정 — 예전 "person 만 통과" 는 틀린 서술. 109프레임 실측에서 `boat·bench·bottle·cell phone·sports ball` 이 detector=person 으로 남았다, CODE_AUDIT_20260928 §2-3. 근접 규칙이 truck/car/bus 를 쓰므로 의도된 통과이고, person 슬롯에는 [#9] 허용 목록을 두지 않았다) | `vision.yaml:16,33-38` · `weights_manifest.json:10-16` · `docs/review/02-model-inference.md:33-34` |
 | 입력 해상도 | **384**(로드 시 컴파일 고정, 호출별 변경 불가). 960/640/1280 은 dev 실측 전부 악화(원인 미검증) | `tuning.yaml:88-95` · `benchmarks/p3_1_resolution_ab_v2.md` |
 | 임계 | person 0.40. ByteTrack 모드에서는 저신뢰 후보 확보용으로 0.28 까지 추론 후 트래커가 고/저신뢰 분리(0.50) | `tuning.yaml:102` · `guard.py:315-316` |
 | 앙상블 | `person_ensemble: true` — ppe 슬롯의 Person 클래스도 person 으로 인정. dev 74장: 재현율 55.4→70.7%(+15.3%p)·정밀도 89.7→79.9%(−9.8%p) [실측] | `tuning.yaml:97-99` · `guard.py:283-289` · `benchmarks/p2_person_ensemble.md` |

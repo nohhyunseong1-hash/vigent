@@ -1,5 +1,8 @@
 #!/usr/bin/env python3
-"""[라벨링] 현재 검출(dets.jsonl)을 **밑그림**으로 바꿔 라벨링 도구에 넣는다.
+"""★[폐기, 2026-09-28 CODE_AUDIT C-1] 2026-08-29 라벨링 1회용 도구 — 현재는 `scripts/data/field_prelabel.py`(CVAT 1.1 + YOLO, 표준 5클래스)가
+  대체한다. 이 파일의 클래스 순서(forklift 가 2번)는 정본(labels.STD5)과 다르므로 **새 라벨 작업에 쓰지 말 것**. 참고용으로만 남긴다.
+
+[라벨링] 현재 검출(dets.jsonl)을 **밑그림**으로 바꿔 라벨링 도구에 넣는다.
 
 ★왜 밑그림을 쓰나
   빈 화면에 박스를 처음부터 그리는 것보다, 이미 있는 박스를 **고치는 쪽**이 훨씬 빠르다.
@@ -25,6 +28,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import sys
 from pathlib import Path
 
 LABELS = ["person", "forklift", "Hardhat", "NO-Hardhat",
@@ -43,6 +47,7 @@ def _imwrite(path: Path, img, q: int = 92) -> None:
 
 
 def main() -> int:
+    print("★[폐기] make_prelabels.py 는 2026-08-29 1회용 도구입니다 — 새 라벨 작업은 scripts/data/field_prelabel.py 를 쓰세요(클래스 순서가 다릅니다).", file=sys.stderr)
     import cv2
 
     ap = argparse.ArgumentParser()
