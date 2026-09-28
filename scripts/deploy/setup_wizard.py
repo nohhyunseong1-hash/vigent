@@ -38,8 +38,10 @@ try:
 except Exception:  # noqa: BLE001
     pass
 
+from labels import PPE_MISSING_LABELS as _PPE_ALL  # noqa: E402  [CODE_AUDIT B-5] 정본(guard 와 같은 것)
+
 PROFILES: dict[str, dict[str, Any]] = {
-    "default": {"required_ppe": ["NO-Hardhat", "NO-Safety-Vest", "NO-Mask"], "desc": "코드 기본값(분진 작업장: 마스크 포함)"},
+    "default": {"required_ppe": list(_PPE_ALL), "desc": "코드 기본값(분진 작업장: 마스크 포함)"},
     "academy": {"required_ppe": ["NO-Hardhat", "NO-Safety-Vest"], "desc": "학원 현장(마스크는 필수 보호구 아님 — 08-28 결정)"},
 }
 _DEVICE_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9\-]{1,31}$")
@@ -239,7 +241,7 @@ class Wizard:
         default_ppe = PROFILES[prof]["required_ppe"]
         raw = self.ask("required_ppe", f"6) 필수 보호구(쉼표, 기본 {','.join(default_ppe)})", default=",".join(default_ppe))
         classes = [c.strip() for c in raw.split(",") if c.strip()]
-        allowed = {"NO-Hardhat", "NO-Safety-Vest", "NO-Mask"}
+        allowed = set(_PPE_ALL)
         bad = [c for c in classes if c not in allowed]
         if bad or not classes:
             raise SystemExit(f"[required_ppe] 허용 값 {sorted(allowed)} 만 가능: {bad or '비어 있음'}")

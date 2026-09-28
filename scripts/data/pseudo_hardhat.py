@@ -41,7 +41,10 @@ IMG_EXTS = (".jpg", ".jpeg", ".png")
 SOURCE = "pseudo:v1"
 HARDHAT = CLASSES.index("Hardhat")
 # [2026-09-27] 여러 클래스 준라벨(조끼 착용/미착용 등)로 일반화 — 기본은 Hardhat 하나(기존 동작·테스트 불변).
-CSS_TO_STD = {"Hardhat": "Hardhat", "Safety Vest": "Safety-Vest", "NO-Safety Vest": "NO-Safety-Vest", "NO-Hardhat": "NO-Hardhat"}
+sys.path.insert(0, str(_ROOT / "vigent-core"))
+import labels as _labels  # noqa: E402
+
+CSS_TO_STD = {"Hardhat": "Hardhat", "NO-Hardhat": "NO-Hardhat", **{k: v for k, v in _labels.CSS_TO_STD.items() if "Vest" in k}}   # [B-5] 정본 파생
 ACTIVE_CLASSES: list[str] = ["Hardhat"]
 ACTIVE_SOURCE: str = SOURCE          # Hardhat 단독이면 "pseudo:v1", 그 외는 "pseudo:v1:<클래스+...>" — 병합 중복 검사 키
 

@@ -35,7 +35,12 @@ from typing import Any
 if hasattr(sys.stdout, "reconfigure"):
     sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 
-CLASSES = ["person", "Hardhat", "NO-Hardhat", "Safety-Vest", "NO-Safety-Vest", "forklift"]
+_VC = str(Path(__file__).resolve().parents[2] / "vigent-core")
+if _VC not in sys.path:
+    sys.path.insert(0, _VC)
+from labels import STD5_FORKLIFT  # noqa: E402  [CODE_AUDIT B-5] 클래스 정본
+
+CLASSES = list(STD5_FORKLIFT)
 EXCLUDED_CLASSES = ["Mask", "NO-Mask"]          # 원칙 유지(cvat_to_gt 와 동일 사유)
 
 # 매핑표(docs/data/aihub_class_map.md). 값 = 우리 클래스명. 없는 코드는 전부 제외(집계만).

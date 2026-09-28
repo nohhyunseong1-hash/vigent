@@ -17,7 +17,9 @@ import time
 from pathlib import Path
 
 _ROOT = Path(__file__).resolve().parent.parent.parent
-sys.path.insert(0, str(Path(__file__).resolve().parent))
+sys.path.insert(0, str(Path(__file__).resolve().parent)); sys.path.insert(0, str(_ROOT / "vigent-core"))
+import defaults as _defaults  # noqa: E402
+
 if hasattr(sys.stdout, "reconfigure"):
     sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 
@@ -30,7 +32,7 @@ def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--weights", required=True); ap.add_argument("--res", type=int, default=384)
     ap.add_argument("--images", required=True); ap.add_argument("--labels", required=True); ap.add_argument("--tag", required=True)
-    ap.add_argument("--conf", type=float, default=0.5); ap.add_argument("--limit", type=int, default=0)
+    ap.add_argument("--conf", type=float, default=_defaults.FORKLIFT_OP_CONF); ap.add_argument("--limit", type=int, default=0)
     ap.add_argument("--dump", default="", help="오탐 이미지 저장 폴더(기본 audit/forklift_fp_<tag>)")
     a = ap.parse_args()
     import cv2

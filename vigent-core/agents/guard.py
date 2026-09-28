@@ -91,19 +91,16 @@ def _guard_logger():
                      type(ex).__name__, ex)
     return _LOG
 
-# 모델이 내보내는 원시 라벨 → VIGENT 표준 라벨(규칙이 비교하는 문자열)
-LABEL_NORMALIZE = {
-    "NO-Safety Vest": "NO-Safety-Vest",
-    "Safety Vest": "Safety-Vest",
-    "NO-Safety-Vest": "NO-Safety-Vest",
-    "Safety-Vest": "Safety-Vest",
-    "Hardhat": "Hardhat", "NO-Hardhat": "NO-Hardhat",
-    "Fire": "fire",   # 화재 모델 대문자 → 표준 소문자
-    "Person": "person", "PERSON": "person",   # PPE모델 'Person' ↔ COCO 'person' 통일(중복 박스 방지)
-    "Forklift": "forklift", "Smoke": "smoke",
-}
+# 모델이 내보내는 원시 라벨 → VIGENT 표준 라벨(규칙이 비교하는 문자열) — [CODE_AUDIT B-5] 정본은 labels.py
+try:
+    import labels as _labels
+except ModuleNotFoundError:                     # 패키지 밖에서 import 된 경우(defaults 와 같은 폴백)
+    import sys as _sys2
+    _sys2.path.insert(0, str(_Path(__file__).resolve().parent.parent))
+    import labels as _labels
+LABEL_NORMALIZE = dict(_labels.LABEL_NORMALIZE)
 # PPE 미착용 판정에 쓰는 표준 라벨(안전모·조끼·마스크)
-PPE_MISSING_LABELS = {"NO-Hardhat", "NO-Safety-Vest", "NO-Mask"}
+PPE_MISSING_LABELS = set(_labels.PPE_MISSING_LABELS)
 # [CODE_AUDIT_20260928 #9] 슬롯별 허용/필수 라벨 기본값(표준형). vision.yaml perception.rfdetr_classes / rfdetr_required 가 덮어쓴다.
 RFDETR_CLASSES_DEFAULT: dict[str, list[str]] = {
     "ppe": ["person", "Hardhat", "NO-Hardhat", "Safety-Vest", "NO-Safety-Vest", "Mask", "NO-Mask", "Safety Cone", "machinery", "vehicle"],

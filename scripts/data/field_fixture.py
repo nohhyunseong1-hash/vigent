@@ -14,7 +14,12 @@ import random
 import sys
 from pathlib import Path
 
-CLASSES = ["person", "Hardhat", "NO-Hardhat", "Safety-Vest", "NO-Safety-Vest"]
+_VC = str(Path(__file__).resolve().parents[2] / "vigent-core")
+if _VC not in sys.path:
+    sys.path.insert(0, _VC)
+from labels import STD5  # noqa: E402  [CODE_AUDIT B-5] 클래스 정본
+
+CLASSES = list(STD5)
 
 
 def _img(W: int, H: int, boxes: list[tuple[int, list[int]]], seed: int):

@@ -207,14 +207,10 @@ def analyze(image_bgr, present_classes: list[str] | None = None, use_vlm: bool =
     # 관련 법령·중대재해 사례(RAG 의미검색) — 장면·행동·빠진조치로 근거 보강
     related = []
     try:
+        # 영어 감지라벨 → 한국어(한국어 임베딩 모델이 이해하도록) — [B-5] labels.ko 정본. Person 만 검색어로 더 맞는 "작업자" 유지
+        import labels as _labels
         import safety_rag
-        # 영어 감지라벨 → 한국어(한국어 임베딩 모델이 이해하도록)
-        _cls_ko = {"NO-Hardhat": "안전모 미착용", "Hardhat": "안전모", "NO-Safety-Vest": "안전조끼 미착용",
-                   "Safety-Vest": "안전조끼", "NO-Mask": "마스크 미착용", "Mask": "마스크",
-                   "NO-Gloves": "장갑 미착용", "Gloves": "장갑", "NO-Goggles": "보안경 미착용",
-                   "Goggles": "보안경", "NO-Boots": "안전화 미착용", "Boots": "안전화",
-                   "Person": "작업자", "fire": "화재", "smoke": "연기", "forklift": "지게차"}
-        present_ko = [_cls_ko.get(c, c) for c in present]
+        present_ko = ["작업자" if str(c).lower() == "person" else _labels.ko(c) for c in present]
         q_parts = ([scene] + [b.get("label", "") for b in behaviors]
                    + [m["name"] for m in missing] + present_ko)
         if assessment:

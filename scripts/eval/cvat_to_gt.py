@@ -32,8 +32,13 @@ from typing import Any
 if hasattr(sys.stdout, "reconfigure"):
     sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 
-# 기존 정답지와 **같은 순서**여야 한다(data/field_eval/classes.txt)
-CLASSES = ["person", "Hardhat", "NO-Hardhat", "Safety-Vest", "NO-Safety-Vest"]
+_VC = str(Path(__file__).resolve().parents[2] / "vigent-core")
+if _VC not in sys.path:
+    sys.path.insert(0, _VC)
+from labels import STD5  # noqa: E402  [CODE_AUDIT B-5] 클래스 정본
+
+# 기존 정답지와 **같은 순서**여야 한다(data/field_eval/classes.txt) — 정본 labels.STD5
+CLASSES = list(STD5)
 
 # ★의도적으로 제외한 클래스 — 버그가 아니다. 조용히 건너뛰되 집계에는 남긴다.
 #

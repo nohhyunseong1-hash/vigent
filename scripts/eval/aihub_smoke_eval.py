@@ -28,6 +28,7 @@ if hasattr(sys.stdout, "reconfigure"):
     sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 
 import aihub_to_vigent as A  # noqa: E402
+import labels as _labels  # noqa: E402
 from eval_v1_heldout import ap50, match, wilson  # noqa: E402
 
 CAVEAT = "AI Hub 표본 기준 · 운용 조건 아님(앱 파이프라인·추적 없음) · 기준선 아님 — 기존 기준선(held-out 91·사고영상 74)은 수정하지 않는다"
@@ -155,7 +156,8 @@ def main() -> int:
         cn = class_names_of(m)
         print(f"  ppe 모델 class_names: {cn}")
         def ppe_name(cid):
-            return {"Hardhat": "Hardhat", "NO-Hardhat": "NO-Hardhat", "Person": "person"}.get(cn.get(cid, ""))
+            n = _labels.std_name(cn.get(cid, ""))                                        # [B-5] 정본
+            return n if n in ("Hardhat", "NO-Hardhat", "person") else None
         r_ppe = evaluate(items, m, ppe_name, {"Hardhat": thr["ppe"], "NO-Hardhat": thr["ppe"]}, a.iou)
         mp, _ = load_model("person", a.res)
         pcn = class_names_of(mp, coco=True)
