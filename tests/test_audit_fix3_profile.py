@@ -61,7 +61,9 @@ class OverridesSplit(unittest.TestCase):
 
     def test_academy_holds_site_decisions(self):
         o = self._load(self.ACADEMY)
-        self.assertEqual(sorted(o), ["detect.include_fire_smoke", "judgment.ergonomics.joints"])
+        # [2026-09-28 USB 재빌드] 지게차 3항목(fk510_smoke 가중치·include_forklift 1·conf.forklift 0.50) 추가 — 학원 결정은 전부 이 파일에
+        self.assertEqual(sorted(o), ["detect.conf.forklift", "detect.include_fire_smoke", "detect.include_forklift",
+                                     "judgment.ergonomics.joints", "perception.rfdetr_weights.forklift"])
 
     def test_every_from_matches_source_exactly_once(self):
         for f in (self.PORTABLE, self.ACADEMY):

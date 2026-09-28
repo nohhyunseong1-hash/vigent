@@ -18,3 +18,27 @@ detect.include_fire_smoke:
   to:   "  include_fire_smoke: 0"
   why: >-
     [4차, 2026-09-10] 현장(학원) 프로필과 동일 — 화재 감시는 계약 범위 밖 + 배경 오탐 리스크(deploy/academy/README_academy.md).
+
+# ★[2026-09-28 USB 재빌드] 학원 지게차 = RF-DETR fk510_smoke(2026-09-26 교체, deploy/academy/vision.academy.yaml·tuning.academy.yaml 과 동일 결정).
+#   포터블은 전역 vision.yaml/tuning.yaml 에 오버라이드를 얹어 만들므로, 여기 없으면 USB 에는 forklift_rfdetr_v1(F-7 부적격)·include_forklift 0 이 실린다.
+#   build_portable.ps1 6단계가 아래 to: 의 가중치 파일을 weights_manifest.json SHA 로 검증해 복사한다(manifest required=false 라 기본 루프에선 빠짐).
+perception.rfdetr_weights.forklift:
+  file: vision
+  from: "    forklift: vigent-core/weights/forklift_rfdetr_v1.pth"
+  to:   "    forklift: vigent-core/weights/forklift_rfdetr_fk510_smoke.pth"
+  why: >-
+    510 held-out AP50 94.3·R 88.1·음성 오탐 0/101 · 학원 929프레임 대본 95.7%(docs/model/forklift_finetune_smoke_20260926.md).
+    class_names 는 [person, forklift] — [#9] perception.rfdetr_classes.forklift=[forklift] 허용 목록이 person 을 버린다.
+
+detect.include_forklift:
+  from: "  # include_forklift: 0"
+  to:   "  include_forklift: 1"
+  why: >-
+    학원 프로파일은 지게차 슬롯 활성(tuning.academy.yaml:56). 전역 기본은 F-7(v1 과소학습) 때문에 제외였으나 fk510_smoke 로 바뀐 학원은 켠다.
+
+detect.conf.forklift:
+  from: "    forklift: 0.002"
+  to:   "    forklift: 0.50"
+  why: >-
+    운용점 0.50(defaults.FORKLIFT_OP_CONF = tuning.academy.yaml conf.forklift). 0.002 는 F-7 측정용 값이라 운용에 쓰면 오탐이 넘친다.
+    (치환은 값 부분만이라 원본 줄의 "잠정 비활성" 주석은 남는다 — 산출물 주석은 참고용.)

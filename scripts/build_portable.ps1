@@ -239,6 +239,20 @@ foreach ($e in $man.weights) {
 Copy-Verified "face_detection_yunet.onnx" (($man.weights | Where-Object { $_.file -eq "face_detection_yunet.onnx" }).sha256) "manifest(privacy)"
 foreach ($f in @("ppe_rfdetr_v1.onnx", "forklift_rfdetr_v1.onnx", "fire_smoke_rfdetr_v1_e17.onnx")) { Copy-Verified $f $null "onnx-cpu 슬롯(매니페스트 미등재 → 원본 SHA 대조)" }
 Copy-Item (Join-Path $wsrc "MANIFEST.md") (Join-Path $wdst "MANIFEST.md") -Force
+# ★[2026-09-28 USB 재빌드] 프로파일 오버라이드의 to: 가 가리키는 가중치(예: academy 의 forklift_rfdetr_fk510_smoke.pth)는 manifest
+#   required=false 라 위 루프에서 빠진다 — to: 줄에서 vigent-core/weights/<파일> 을 찾아 manifest SHA 로 검증 복사한다(manifest 에 없으면 실패).
+if ($Profile) {
+    $ovp = Join-Path $Source ("deploy\" + $Profile + "\portable_overrides." + $Profile + ".yaml")
+    if (-not (Test-Path $ovp)) { throw "프로파일 오버라이드가 없다: $ovp" }
+    $refs = Select-String -Path $ovp -Pattern '^\s*to:\s*.*vigent-core/weights/([\w\-\.]+\.(?:pth|onnx|pt))' -AllMatches |
+            ForEach-Object { $_.Matches } | ForEach-Object { $_.Groups[1].Value } | Sort-Object -Unique
+    foreach ($wf in @($refs)) {
+        $me = $man.weights | Where-Object { $_.file -eq $wf }
+        if (-not $me) { throw "프로파일 $Profile 이 가리키는 가중치가 weights_manifest.json 에 없다: $wf" }
+        Copy-Verified $wf $me.sha256 ("profile:" + $Profile)
+    }
+    if (-not $refs) { Write-Host "  (프로파일 $Profile 은 추가 가중치를 가리키지 않음)" }
+}
 $g2 = ($man.weights | Where-Object { $_.file -eq "go2rtc.exe" }).sha256
 if ((Sha256 (Join-Path $App "bin\go2rtc.exe")) -ne $g2) { throw "go2rtc.exe SHA 불일치" }
 Write-Host "  OK bin\go2rtc.exe (manifest SHA 일치)"
@@ -295,6 +309,22 @@ if ($Profile -eq "academy") {
     Run $Py @("-c", "import io,sys,yaml; t=io.open(sys.argv[1],encoding='utf-8').read(); d=yaml.safe_load(t); erg=d['judgment']['ergonomics']; assert 'joints' not in erg and 'joints_off_portable' in erg, list(erg); print('  확인(academy): judgment.ergonomics.joints 없음(근골격 규칙 OFF, 값은 joints_off_portable 로 보존)')", (Join-Path $App "themes\safety\vision.yaml"))
 } else {
     Run $Py @("-c", "import io,sys,yaml; t=io.open(sys.argv[1],encoding='utf-8').read(); d=yaml.safe_load(t); erg=d['judgment']['ergonomics']; assert 'joints' in erg, list(erg); print('  확인(기본): judgment.ergonomics.joints 유지(근골격 규칙 ON = 전역값)')", (Join-Path $App "themes\safety\vision.yaml"))
+}
+
+if ($Profile -eq "academy") {
+    # ★[2026-09-28] 학원 산출물 사후 검증 — 지게차 가중치 fk510_smoke · include_forklift 1 · conf.forklift 0.50 · 가중치 파일 실재(설정값 믿지 않는다)
+    Run $Py @("-c", "import io,os,sys,yaml; v=yaml.safe_load(io.open(sys.argv[1],encoding='utf-8')); t=yaml.safe_load(io.open(sys.argv[2],encoding='utf-8')); app=sys.argv[3]
+def find(d,k):
+    if isinstance(d,dict):
+        if k in d: return d[k]
+        for x in d.values():
+            r=find(x,k)
+            if r is not None: return r
+    return None
+w=find(v,'rfdetr_weights')['forklift']; assert w.endswith('forklift_rfdetr_fk510_smoke.pth'), w
+assert os.path.isfile(os.path.join(app,w)), 'weight file missing: '+w
+d=t['detect']; assert int(d.get('include_forklift',0))==1, d.get('include_forklift'); assert abs(float(d['conf']['forklift'])-0.5)<1e-9, d['conf']['forklift']
+print('  확인(academy): forklift='+os.path.basename(w)+' 실재 · include_forklift=1 · conf.forklift=0.50')", (Join-Path $App "themes\safety\vision.yaml"), (Join-Path $App "config\tuning.yaml"), $App)
 }
 
 # ── 8. 런처·문서 ──
