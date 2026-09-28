@@ -838,11 +838,41 @@ class Worker:
         self._hang_thread.start()
         return {"ok": True, "status": self.status()}
 
+    STOP_JOIN_S = 5.0            # [CODE_AUDIT #8] 메인 루프 join 대기(테스트에서 줄인다)
+
+    def is_alive(self) -> bool:
+        """메인 루프 스레드(또는 캡처 스레드)가 아직 살아 있는가 — manager.start 가 이중 기동을 막는 근거."""
+        th = self._thread; sc = self._streamcap
+        return bool(th is not None and th.is_alive()) or bool(sc is not None and sc.alive())
+
     def stop(self) -> dict:
+        """정지. ★[CODE_AUDIT_20260928 #8] 예전엔 join(5s) 결과를 보지 않고 running=False 로 뒀다 — cap.read() 가 막혀 옛 루프가 살아
+        있는데 구역 저장·기아 재시작이 두 번째 Worker 를 띄워 RTSP 세션 2개(카메라 한도)·중복 경보가 났다. 이제 cap.release() 로
+        블로킹을 깨우고, join 뒤 살아 있으면 running 을 유지한 채 ok=False 를 돌려준다(호출자는 재기동하지 않는다)."""
         self._stop.set()
-        if self._thread:
-            self._thread.join(timeout=5)
-        self.state["running"] = False
+        try:
+            if self._cap is not None:
+                self._cap.release()                      # 막힌 cap.read()/grab() 을 깨운다
+        except Exception as _we:  # noqa: BLE001
+            _WLOG.debug("worker 무시 예외 [stop cap release]: %s", _we)
+        sc = self._streamcap
+        if sc is not None:
+            try:
+                sc.stop()
+            except Exception as _we:  # noqa: BLE001
+                _WLOG.debug("worker 무시 예외 [stop streamcap]: %s", _we)
+        th = self._thread
+        if th is not None and th is not threading.current_thread():
+            th.join(timeout=self.STOP_JOIN_S)
+        for extra in (self._hang_thread, self._pose_thread):     # 감시·포즈 스레드도 정리(짧게)
+            if extra is not None and extra is not threading.current_thread():
+                extra.join(timeout=1.0)
+        if self.is_alive():
+            msg = f"stop 미완료: 워커 스레드가 {self.STOP_JOIN_S:.0f}s 안에 끝나지 않았다(캡처 블로킹?) — 재기동 금지"
+            self.state["error"] = msg; self.state["stop_pending"] = True
+            _WLOG.error("워커 '%s' %s", self.state.get("name"), msg)
+            return {"ok": False, "error": msg, "status": self.status()}
+        self.state["running"] = False; self.state["stop_pending"] = False
         return {"ok": True, "status": self.status()}
 
     def set_fps(self, fps: float) -> dict:
@@ -1360,8 +1390,8 @@ class WorkerManager:
               overrides: dict | None = None) -> dict:
         with self._reg_lock:
             cur = self._workers.get(cam_id)
-            if cur and cur.state["running"]:
-                return {"ok": False, "error": f"{cam_id} 이미 실행 중"}
+            if cur and (cur.state["running"] or cur.is_alive()):   # [CODE_AUDIT #8] 스레드 생존도 본다(정지 미완료 워커 위에 이중 기동 금지)
+                return {"ok": False, "error": f"{cam_id} 이미 실행 중(또는 정지 미완료 — 스레드 생존)"}
             w = Worker()
             self._workers[cam_id] = w
         return w.start(guard, infer_lock, source, name=name or cam_id, fps=fps,

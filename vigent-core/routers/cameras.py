@@ -244,11 +244,19 @@ def cameras_zone_set(cid: str, payload: dict = Body(...)):
     zone = [[float(p["x"]), float(p["y"])] for p in pts]
     _reg.upsert(cid, zone=zone)
     restarted = False
+    stop_error = ""
     if _worker(cid) is not None and (_reg.get(cid) or {}).get("enabled"):
-        _w.manager.stop(cid)
-        _start(cid)
-        restarted = True
-    return {"ok": True, "count": len(zone), "restarted": restarted}
+        r = _w.manager.stop(cid)
+        if r.get("ok", True):
+            _start(cid)
+            restarted = True
+        else:                                             # [CODE_AUDIT #8] 정지 미완료면 이중 워커를 만들지 않는다
+            stop_error = str(r.get("error") or "stop 실패")
+            _LOG.error("구역 저장 후 워커 '%s' 재기동 보류 — %s", cid, stop_error)
+    out = {"ok": True, "count": len(zone), "restarted": restarted}
+    if stop_error:
+        out["restart_error"] = stop_error
+    return out
 
 
 def _lan_ip() -> str:

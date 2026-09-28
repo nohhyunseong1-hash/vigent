@@ -79,7 +79,10 @@ def _restart_worker(cid: str) -> bool:
             _state.pop(cid, None)
             _LOG.warning("[기아] 등록부에 없는 카메라 '%s' — 되살리지 않고 제거", cid)
             return False
-        _w.manager.stop(cid)
+        r = _w.manager.stop(cid)
+        if not r.get("ok", True):                          # [CODE_AUDIT #8] 정지 미완료 → 재시작 대신 오류(이중 RTSP 세션 방지)
+            _LOG.error("[기아 2단계] 워커 '%s' 정지 미완료 — 재시작 보류: %s", cid, r.get("error"))
+            return False
         time.sleep(1.0)
         _cam_start(cid)
         _LOG.error("[기아 2단계] 워커 '%s' 재시작", cid)
