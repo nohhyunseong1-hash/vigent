@@ -14,6 +14,7 @@
 from __future__ import annotations
 
 import argparse
+import json
 import subprocess
 import sys
 from pathlib import Path
@@ -66,6 +67,50 @@ def requirements_for_install(cuda_build: str) -> Path:
     tmp = Path(tempfile.gettempdir()) / "vigent_setup_env_requirements_no_torch.txt"
     tmp.write_text("\n".join(lines) + "\n", encoding="utf-8")
     return tmp
+
+
+PROTECTED_PINS = ("numpy", "opencv-contrib-python-headless")   # [CODE_AUDIT_20260928 B-3] rfdetr[train]·albumentations 가 강등/교체하던 것
+
+
+def requirement_pins(req: Path | None = None) -> dict[str, str]:
+    """requirements.txt 의 `name==ver` 핀 → {소문자 이름: 버전}. 주석·`-r/-c` 줄은 무시."""
+    req = req or (_ROOT / "requirements.txt")
+    pins: dict[str, str] = {}
+    for ln in req.read_text(encoding="utf-8").splitlines():
+        code = ln.split("#", 1)[0].strip()
+        if "==" in code and not code.startswith("-"):
+            name, ver = code.split("==", 1)
+            pins[name.strip().lower()] = ver.strip()
+    return pins
+
+
+def check_pins(installed: dict[str, str], pins: dict[str, str], names: tuple[str, ...] = PROTECTED_PINS) -> list[str]:
+    """설치본이 핀과 다르거나 없으면 사유 목록(빈 목록 = 통과). [B-3] F-33(torch) 가드의 numpy·cv2 판 — 순수 함수라 테스트가 고정한다."""
+    out: list[str] = []
+    for n in names:
+        want = pins.get(n.lower())
+        if want is None:
+            continue
+        have = installed.get(n.lower())
+        if have is None:
+            out.append(f"{n}: 미설치 (핀 {want})")
+        elif have != want:
+            out.append(f"{n}: 설치 {have} != 핀 {want}")
+    return out
+
+
+def installed_versions(names: tuple[str, ...] = PROTECTED_PINS) -> dict[str, str]:
+    """이름별 설치 버전(없으면 빠짐) — **새 프로세스**에서 읽는다(pip 전후 같은 프로세스의 메타데이터 캐시를 피한다)."""
+    code = ("import importlib.metadata as m, json, sys; out = {}\n"
+            "for n in sys.argv[1:]:\n"
+            "    try: out[n.lower()] = m.version(n)\n"
+            "    except Exception: pass\n"
+            "print(json.dumps(out))")
+    r = subprocess.run([sys.executable, "-c", code, *names], capture_output=True, text=True)
+    try:
+        return dict(json.loads(r.stdout.strip() or "{}"))
+    except Exception:  # noqa: BLE001
+        return {}
 
 
 def installed_opencv() -> dict[str, str]:
@@ -139,6 +184,13 @@ def main() -> int:
     if set(after) != {"opencv-contrib-python-headless"}:
         print(f"  ★opencv 배포판이 headless 하나가 아니다: {sorted(after)}")
         ok = False
+    # [CODE_AUDIT_20260928 B-3] numpy·cv2 핀 가드 — rfdetr[train]·albumentations 설치가 numpy 를 강등하거나 cv2 를 바꿔도 여기서 잡힌다
+    bad = check_pins(installed_versions(), requirement_pins())
+    if bad:
+        print("  ★핀 불일치(requirements.txt 와 다름 — 학습 의존성 설치가 바꿨을 가능성): " + "; ".join(bad))
+        ok = False
+    else:
+        print("  핀 확인: " + ", ".join(PROTECTED_PINS) + " = requirements.txt")
     if not ok:
         return 1
     if a.weights:

@@ -7,14 +7,25 @@
 
 # ── 평가(mAP) ──
 pycocotools==2.0.11          # COCOeval(mAP)
-faster-coco-eval==1.7.2      # RF-DETR 학습/평가 가속 eval
+faster-coco-eval==1.8.0      # RF-DETR 학습/평가 가속 eval (★2026-09-28 정정: 1.7.2 로 적혀 있었으나 개발기 설치본은 1.8.0)
 
-# ── RF-DETR 재학습(.train()) ──
-# ⚠ `rfdetr[train]` 은 pytorch_lightning·peft·torchmetrics·albumentations·roboflow 등을 끌어오며
-#    torch/torchvision 을 다른 버전으로 바꿀 수 있다. 반드시 설치 전후 `torch.__version__`·
-#    `torch.cuda.is_available()` 이 그대로인지 확인할 것(requirements.txt 의 [X-3b] 주석, 2026-08-10 실측).
+# ── RF-DETR 재학습(.train()) — [CODE_AUDIT_20260928 B-3] 개발기 **실제 설치 조합**을 핀으로 기록 ──
+# ⚠ `rfdetr[train]==1.8.0` 을 그대로 풀면 numpy 강등·cv2(GUI) 교체가 일어났다(2026-09-26 실측) — 그래서 extras 대신 아래를 직접 핀한다.
+#    설치는 반드시 constraints 와 함께:  python -m pip install -r requirements-train.txt -c constraints.txt
+#    설치 뒤 `python scripts/setup_env.py --no-install` 이 numpy·cv2 핀·torch CUDA 빌드를 같은 실행 안에서 검증한다(F-33 의 numpy/cv2 판).
 #    이 데스크탑(RTX 5070 Ti/sm_120)은 torch==2.12.0+cu130 이어야 GPU 동작.
-# rfdetr[train]==1.8.0       # 필요 시 주석 해제 — 위 torch 보호 절차와 함께
+#    roboflow·rf100vl(rfdetr[train] 의 extras)은 설치하지 않는다 — 학습 경로 import 0건, 넣으면 opencv-python(GUI) 을 끌어온다.
+#    아래 버전은 2026-09-28 `pip freeze` 실측(개발기 .venv). 올릴 때는 finetune dry-run + tests/test_finetune_guards 로 확인.
+pytorch-lightning==2.6.6     # rfdetr[train] 요구 !=2.6.2,!=2.6.3,<3,>=2.6
+lightning-utilities==0.15.3
+torchmetrics==1.9.0          # rfdetr[train] 요구 torchmetrics[detection]>=1.2
+albumentations==2.0.8        # rfdetr[train] 요구 <3.0.0,>=1.4.24 · train.aug_config 의 변환 사전이 이것을 쓴다
+albucore==0.0.24             # albumentations 의 커널 — stringzilla==5.1.1 을 끌어온다(개발기는 로컬 휠로 설치됨, PyPI 휠 부재 가능)
+peft==0.21.0
+accelerate==1.15.0
+transformers==5.16.1         # rfdetr 기본 의존(<6.0.0,>=5.1.0)이지만 requirements.txt 미핀 — 학습 재현을 위해 여기서 고정
+scipy==1.17.1
+py-spy==0.4.2                # finetune_rfdetr 정체 감시(STALL_ABORT.json 의 스택 덤프)
 
 # ── YOLO baseline 측정·구 YOLO 학습 스크립트(training/train_fire·forklift·ppe·train_safety) ──
 # A-4 완료(T10b): ultralytics 는 배포 requirements 에서 제거됨. copyleft 배포 0.
