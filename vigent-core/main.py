@@ -417,7 +417,17 @@ def _notify_startup_failure(exc: BaseException) -> None:
 
 
 def _shutdown() -> None:
-    """graceful shutdown(SIGTERM/SIGINT 시 uvicorn 이 lifespan 종료로 트리거) — 워커·go2rtc·배경 스레드 정리."""
+    """graceful shutdown(SIGTERM/SIGINT 시 uvicorn 이 lifespan 종료로 트리거) — 릴레이 OFF → 워커·go2rtc·배경 스레드 정리."""
+    # ★[CODE_AUDIT_20260928 #2] 물리 출력(사이렌)을 **가장 먼저** 끈다 — 자동 해제 Timer 는 daemon 이라 프로세스와 함께 죽고,
+    #   그러면 종료·재시작 중 사이렌이 켜진 채 남는다. relay 가 꺼져 있거나(enabled=False) ON 상태가 아니면 HTTP 를 보내지 않는다.
+    try:
+        import relay as _relay
+        st = _relay.status()
+        if st.get("enabled") and (st.get("on") or st.get("off_failed")):
+            r = _relay.turn_off("서버 종료")
+            _log.warning("shutdown: 릴레이 OFF %s (%s)", "성공" if r.get("sent") else "★실패", r.get("reason"))
+    except Exception:  # noqa: BLE001
+        _log.warning("shutdown: 릴레이 OFF 중 예외\n%s", traceback.format_exc())
     try:
         import worker as _w
         stopped = _w.manager.stop_all() if hasattr(_w.manager, "stop_all") else "(stop_all 없음)"
