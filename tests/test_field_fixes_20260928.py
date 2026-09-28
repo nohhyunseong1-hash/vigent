@@ -157,6 +157,19 @@ class F5F6Procedure(unittest.TestCase):
         self.assertIn("vigent.err.log -Tail 40 -Encoding UTF8", s)
 
 
+class F9UninstallOnDevice(unittest.TestCase):
+    """2026-09-28 추가 발견: uninstall.ps1 이 USB installer\\ 에만 있어 USB 없이 제거 불가 → install.ps1 이 설치본 app\\scripts\\deploy 로 복사한다."""
+
+    def test_install_copies_uninstall_and_guide_points_to_it(self):
+        s = _ps("scripts/deploy/install.ps1")
+        self.assertIn('@("setup_wizard.py", "acceptance_test.py", "uninstall.ps1")', s)
+        self.assertEqual(_parse_errors("scripts/deploy/install.ps1"), "0")
+        g = (_ROOT / "docs/deploy/usb_install_guide.md").read_text(encoding="utf-8")
+        self.assertIn(r"app\scripts\deploy\uninstall.ps1 -Target", g)
+        u = _ps("scripts/deploy/uninstall.ps1")
+        self.assertNotIn("$PSScriptRoot", u, "uninstall.ps1 은 자기 위치에 기대면 안 된다(설치본·USB 어디서든 -Target 으로 동작)")
+
+
 class F7ShutdownRelayLog(unittest.TestCase):
     def test_disabled_relay_logs_one_line(self):
         import main

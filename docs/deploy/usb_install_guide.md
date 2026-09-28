@@ -48,7 +48,7 @@
 | 마법사 다시 | `C:\VIGENT\python\python.exe C:\VIGENT\app\scripts\deploy\setup_wizard.py` |
 | 인수시험 다시 | `C:\VIGENT\python\python.exe C:\VIGENT\app\scripts\deploy\acceptance_test.py` (사람 확인만: `--only-human`) |
 | 업데이트 | 새 USB 의 `설치.bat` 을 다시 관리자 권한으로 — 데이터·설정 보존 |
-| 제거 | USB `installer\uninstall.ps1` 을 관리자 PowerShell 에서 — 설정·데이터 백업 여부를 묻습니다 |
+| 제거 | 관리자 PowerShell 에서 `C:\VIGENT\app\scripts\deploy\uninstall.ps1 -Target C:\VIGENT` (설치본에 있어 **USB 없이 됩니다**, 2026-09-28) — USB 가 있으면 `installer\uninstall.ps1` 도 같은 것. 설정·데이터 백업 여부를 묻습니다 |
 
 ## 4. 하지 말 것
 

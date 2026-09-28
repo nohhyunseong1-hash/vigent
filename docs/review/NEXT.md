@@ -9,9 +9,12 @@
 실기 결함 8건 수정(`f766c8a` + 회귀 수정 커밋) · USB 스테이지 `D:\vigent_usb_stage`(academy, fk510_smoke 포함, 최신 재빌드는 [field_verification 결과표](../deploy/field_verification_20260928.md)).
 B-2 재현 테스트 흔들림은 예열 스레드 GPU 경합이 원인(5회 연속 통과, 허용 ±0.3 복귀).
 
-**다음 실기(대표)**: ① 재빌드본으로 **서비스 Running 상태에서 업데이트 설치**(수동 `sc stop` 없이 완료돼야 함) · 설치 폴더 안 셸에서 실행 → 서비스 중지 전 안내 ·
-Move-Item 실패 유도 → `Start-Service` 복구 ② 카메라 2대 이상에서 `sc stop` 정지 시간(<30 s·pending 없음) — 둘 다 [field_verification §미측정](../deploy/field_verification_20260928.md).
-③ 통과하면 `D:\vigent_usb_stage_prev_20260928_1355` 삭제(09-23 것은 삭제함).
+**설치 도구 실기 완결(2026-09-28 저녁)**: 재빌드본 `88ea5ad` 로 업데이트 설치 exit=0 · 서비스 Running 상태 `sc stop` 없이 exit=0 · 폴더 안 셸 안내 후 exit=1 — [field_verification 결과표](../deploy/field_verification_20260928.md) 완결.
+이전 스테이지 폴더(09-23·1355·1448) 전부 삭제, `D:\vigent_usb_stage` 하나만 남김. 추가 발견: uninstall.ps1 이 설치본에 없던 것 → install.ps1 이 `<Target>\app\scripts\deploy\` 로 복사(USB 없이 제거 가능).
+**학원 실기로 넘기는 미측정 2건**: 카메라 2대 이상 `sc stop` 시간(<30 s·pending 없음) · Move-Item 실패 유도 후 `Start-Service` 복구.
+
+**다음 순서**: ① **사용자 항목** — 텔레그램 봇 토큰 재발급(09-27 도구 출력 노출) · AI Hub 510 상업 활용 문의 회신 · 노트북(4 GB VRAM) 실측 · 학원 촬영/DVR 녹화본 확보
+② 현장 데이터 도착 → `field_prelabel.py` → `field_split.py heldout` → CVAT 검수 → ③ PPE v2 학습(`configs/finetune_field_v2*.yaml`, aug 대조군 포함).
 
 **보류·주의**: 텔레그램 봇 토큰 재발급 권장(09-27 도구 출력 노출) · go2rtc 는 `src=` 만 DELETE(코드 반영) · CLAUDE.md 스택의 mmaction2·TensorFlow 는 [미검증].
 

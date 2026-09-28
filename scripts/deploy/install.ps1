@@ -163,7 +163,8 @@ if (-not $DryRun) {
     foreach ($d in @("app\data", "app\logs", "state\logs", "state\data")) { New-Item -ItemType Directory -Force (Join-Path $Target $d) | Out-Null }
     # 계획 3: 첫 실행 마법사를 기기에 둔다(앱 뿌리 = parents[2] = <Target>\app 이라 vigent-core 모듈을 그대로 쓴다)
     $wd = Join-Path $App "scripts\deploy"; New-Item -ItemType Directory -Force $wd | Out-Null
-    foreach ($f in @("setup_wizard.py", "acceptance_test.py")) {   # 계획 3·5: 마법사·인수시험을 기기에 둔다
+    # ★[2026-09-28 실기] uninstall.ps1 도 기기에 둔다 — USB 가 없는 현장에서 제거할 수 있게(<Target>\app\scripts\deploy\uninstall.ps1 -Target <Target>)
+    foreach ($f in @("setup_wizard.py", "acceptance_test.py", "uninstall.ps1")) {   # 계획 3·5: 마법사·인수시험·제거를 기기에 둔다
         $s = Join-Path $Inst $f; if (Test-Path $s) { Copy-Item $s (Join-Path $wd $f) -Force } }
 }
 
