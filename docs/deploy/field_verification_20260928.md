@@ -37,8 +37,8 @@
   & $n get VIGENT AppStopMethodConsole   # → 30000
   & $n get VIGENT AppEnvironmentExtra    # → VIGENT_RESTART_CMD=exit:3 포함(§4 의 4개 env 도 여기서 같이 확인)
   # 3) 재기동 실측: 서비스 파이썬 PID 를 죽이고(어떤 종료코드든 Restart) 다시 뜨는 시각을 잰다
-  $pid = (Get-CimInstance Win32_Process | Where-Object { $_.CommandLine -like "*VIGENT_TEST*service_entry*" }).ProcessId; $t0 = Get-Date
-  Stop-Process -Id $pid -Force
+  $p = (Get-CimInstance Win32_Process | Where-Object { $_.CommandLine -like "*VIGENT_TEST*service_entry*" }).ProcessId; $t0 = Get-Date   # $pid 는 PowerShell 자동 변수(현재 셸 PID)라 쓰지 않는다
+  Stop-Process -Id $p -Force
   do { Start-Sleep 5; $h = try { Invoke-RestMethod http://127.0.0.1:8020/health } catch { $null } } until ($h -and $h.phase -eq "ready")
   "재기동까지 $((Get-Date) - $t0).TotalSeconds 초"
   # 4) exit:3 경로 자체(graceful 정리 뒤 종료코드 3): 콘솔 모드로 한 번
