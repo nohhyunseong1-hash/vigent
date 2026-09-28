@@ -65,12 +65,62 @@ class F2BindEnv(unittest.TestCase):
 
 
 class F3UpdateMoveGuard(unittest.TestCase):
+    """결함 3 + 회귀(결함 8): 사용 중 검사는 서비스 소유 프로세스 트리를 제외하고, 서비스 중지 **전에** 외부 점유·셸 위치를 본다."""
+
     def test_precheck_and_recovery(self):
         s = _ps("scripts/deploy/install.ps1")
         self.assertIn("$svcWasRunning", s); self.assertIn("Move-Item -LiteralPath $Target -Destination $Prev -Force -ErrorAction Stop", s)
-        self.assertIn("Start-Service $svcName", s); self.assertIn("service_entry", s)     # 서비스 자신은 사용 중 목록에서 제외
+        self.assertIn("Start-Service $svcName", s); self.assertIn("function Get-ExternalBusyProcesses", s)
         self.assertIn("현재 셸 위치가 설치 폴더 안이다", s)
+        # 순서: 검사(Get-ExternalBusyProcesses 호출) → Stop-Service → Move-Item
+        i_chk = s.index("$chk = Get-ExternalBusyProcesses"); i_stop = s.index("Stop-Service $svcName -Force"); i_mv = s.index("Move-Item -LiteralPath $Target")
+        self.assertLess(i_chk, i_stop); self.assertLess(i_stop, i_mv)
         self.assertEqual(_parse_errors("scripts/deploy/install.ps1"), "0")
+
+    @staticmethod
+    def _run_busy(target: str, procs: list[dict], svc_pid: int, cwd: str) -> dict:
+        """install.ps1 안의 Get-ExternalBusyProcesses 함수 본문을 그대로 꺼내 가짜 프로세스 목록으로 실행한다(코드 = 시험 대상)."""
+        import json
+        import re
+        import tempfile
+        ps = shutil.which("powershell")
+        if not ps:
+            raise unittest.SkipTest("powershell 없음")
+        src = _ps("scripts/deploy/install.ps1")
+        m = re.search(r"function Get-ExternalBusyProcesses.*?\n}\n", src, re.S)
+        assert m, "함수를 찾지 못했다"
+        procs_ps = ",".join("[pscustomobject]@{ProcessId=%d;ParentProcessId=%d;ExecutablePath='%s';Name='%s';CommandLine='%s'}"
+                            % (p["pid"], p["ppid"], p["exe"], p["name"], p.get("cmd", "")) for p in procs)
+        script = (m.group(0) + "\n$r = Get-ExternalBusyProcesses -Target '%s' -Procs @(%s) -ServicePid %d -Cwd '%s'\n"
+                  "@{cwd_inside=[bool]$r.cwd_inside; busy=@($r.busy | ForEach-Object { $_.ProcessId }); owned=$r.owned_count} | ConvertTo-Json -Compress\n"
+                  % (target, procs_ps, svc_pid, cwd))
+        with tempfile.TemporaryDirectory() as td:
+            f = Path(td) / "busy.ps1"; f.write_bytes(b"\xef\xbb\xbf" + script.replace("\n", "\r\n").encode("utf-8"))
+            r = subprocess.run([ps, "-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-File", str(f)], capture_output=True, text=True, timeout=60)
+        assert r.returncode == 0, r.stderr[-400:]
+        out = json.loads(r.stdout.strip())
+        out["busy"] = [int(x) for x in ([out["busy"]] if isinstance(out["busy"], int) else (out["busy"] or []))]
+        return out
+
+    SERVICE_TREE = [  # nssm(서비스 PID) → service_entry python → go2rtc : 전부 <Target> 안의 exe
+        {"pid": 100, "ppid": 4, "exe": r"D:\VIGENT_TEST\app\deploy\windows\nssm.exe", "name": "nssm.exe"},
+        {"pid": 102, "ppid": 100, "exe": r"D:\VIGENT_TEST\python\python.exe", "name": "python.exe", "cmd": "python service_entry.py --host 127.0.0.1"},
+        {"pid": 103, "ppid": 102, "exe": r"D:\VIGENT_TEST\app\bin\go2rtc.exe", "name": "go2rtc.exe"},
+        {"pid": 200, "ppid": 1, "exe": r"C:\Windows\explorer.exe", "name": "explorer.exe"},
+    ]
+
+    def test_service_running_is_not_busy(self):
+        """서비스 Running 상태에서 업데이트 설치가 막히면 안 된다(회귀 재현: 예전엔 nssm·go2rtc 가 busy 로 잡혔다)."""
+        r = self._run_busy(r"D:\VIGENT_TEST", self.SERVICE_TREE, 100, r"C:\Users\x")
+        self.assertEqual(r["busy"], []); self.assertFalse(r["cwd_inside"]); self.assertEqual(r["owned"], 3)
+
+    def test_external_shell_inside_target_is_reported_before_stop(self):
+        """외부 셸이 설치 폴더 안에 있거나 외부 exe 가 폴더 안 파일이면 busy — install.ps1 은 이때 Stop-Service 전에 Fail 한다."""
+        procs = self.SERVICE_TREE + [{"pid": 300, "ppid": 1, "exe": r"D:\VIGENT_TEST\app\vigent-core\tool.exe", "name": "tool.exe"}]
+        r = self._run_busy(r"D:\VIGENT_TEST", procs, 100, r"D:\VIGENT_TEST\app")
+        self.assertTrue(r["cwd_inside"]); self.assertEqual(r["busy"], [300])
+        r2 = self._run_busy(r"D:\VIGENT_TEST", self.SERVICE_TREE, 0, r"C:\Users\x")     # 서비스가 없는데 그 exe 들이 돌면(고아) busy 가 맞다
+        self.assertEqual(sorted(r2["busy"]), [100, 102, 103]); self.assertEqual(r2["owned"], 0)
 
 
 class F4ServiceState(unittest.TestCase):

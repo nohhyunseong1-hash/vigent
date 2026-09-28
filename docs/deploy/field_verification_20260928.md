@@ -99,6 +99,8 @@
 | 2 NSSM 재기동 | 2026-09-28 | **통과** [실측] | NSSM AppExit Restart · AppRestartDelay 60000 · AppStopMethodConsole 30000 · env 4/4 · 프로세스 kill 후 재기동 80 s · `_escalate` exit=3 |
 | 3 정지 30 s | 2026-09-28 | **통과** [실측] | `sc stop` 3.06 s · stop_all ok(pending 없음, 카메라 0대 — 카메라 있는 상태는 미측정) · python 잔존 0 · ★relay 로그 0줄 → 결함 7 |
 | 4 ExtraEnv·토큰·result | 2026-09-28 | **통과** [실측] | install_result.json 8020/D:\VIGENT_TEST · 인수시험 --base 없이 8020 자동 A2 ✓ · 0.0.0.0+.env 없음 → exit 1 "VIGENT_API_TOKEN 필수" · ★A1 오판(결함 4) · ★VIGENT_HOST=0.0.0.0(결함 2) |
+| 2′·4′ 재검증(재빌드본 `f766c8a`) | 2026-09-28 | **통과** [실측] | `VIGENT_HOST=127.0.0.1`(결함 2 수정 확인) · 인수시험 A1 RUNNING(결함 4 수정 확인) · A2 통과 · 시험 서비스 제거 완료 |
+| 3′ 회귀(결함 3 수정분) | 2026-09-28 | **회귀 발견 → 수정** [실측] | 업데이트 설치의 "사용 중" 검사가 서비스 자신의 nssm.exe·go2rtc.exe 를 잡아 서비스 Running 이면 항상 exit 1(수동 `sc stop` 으로 우회). 수정: 서비스 PID 트리 제외 + 순서 "외부 점유 검사 → 서비스 중지 → 이동 → 실패 시 복구"(결함 8). **재빌드본으로 재검증 필요** |
 | 5 go2rtc DELETE | 2026-09-28 | **src= 만 삭제** [실측] | PUT 등록 뒤 DELETE `name=` → 목록 그대로 · DELETE `src=` → 삭제 → `starvation_guard.py` 를 `src=` 로 수정(결함 1) |
 
 ## 실기에서 새로 발견한 결함 7건과 조치 (2026-09-28)
@@ -112,5 +114,14 @@
 | 5 | 서비스 stderr 로그(`app\logs\vigent.err.log`) 한글 깨짐 | **파일은 UTF-8 이다**(실측: utf-8 디코드 OK·cp949 실패, `PYTHONUTF8=1` 유효). 깨짐은 PS 5.1 `Get-Content` 기본 ANSI 읽기 — `service_status.ps1` 은 이미 `-Encoding UTF8`, 절차서 §3 에도 명시. 코드 변경 없음 | `F5F6Procedure` |
 | 6 | 절차서 오류: `$pid` 자동 변수 · 등록은 GET 이 아니라 PUT · 경과 초 수식 괄호 | 정정 | `F5F6Procedure` |
 | 7 | 릴레이 미설정 시 `_shutdown` 에 relay 줄 0 | `relay 미설정(enabled=False) — OFF 건너뜀` / `이미 OFF — 건너뜀` info 1줄 | `F7ShutdownRelayLog` |
+| 8 (회귀) | 결함 3 의 "사용 중" 검사가 서비스 자신의 nssm.exe·go2rtc.exe 를 잡아 **서비스 Running 이면 업데이트 설치가 항상 중단** | `Get-ExternalBusyProcesses` 순수 함수: VIGENT 서비스 PID(nssm)에서 내려가는 프로세스 트리는 제외, 외부 점유·현재 셸 위치만 검사. 순서 "외부 점유 검사 → 서비스 중지 → 이동 → 실패 시 Start-Service 복구" | `F3UpdateMoveGuard`(서비스 Running 상태에서 검사 통과 · 외부 셸이 폴더 안이면 서비스 중지 전 안내 후 중단) |
 
-결함 1·2·3·4 는 USB(`portable\app` 의 starvation_guard, `installer\` 의 install.ps1·install_service.ps1·acceptance_test.py)에 실리는 코드라 **USB 재빌드 대상**이다.
+결함 1·2·3·4·8 은 USB(`portable\app` 의 starvation_guard, `installer\` 의 install.ps1·install_service.ps1·acceptance_test.py)에 실리는 코드라 **USB 재빌드 대상**이다.
+
+## 미측정 (다음 실기 때)
+
+| 항목 | 이유 | 방법 |
+|---|---|---|
+| 카메라가 있는 상태의 `sc stop` 정지 시간 | §3 실기는 카메라 0대(3.06 s) | 카메라 2대 이상 등록 후 §3 재실행, 30 s 이내·pending 없음 확인 |
+| 결함 3(회귀 수정 뒤) 업데이트 설치 | 회귀 수정분은 가짜 프로세스 목록 테스트만 | 재빌드본으로 서비스 **Running 상태에서** `install.ps1`(업데이트 모드) 실행 → 수동 `sc stop` 없이 완료되는지 · 설치 폴더 안에서 셸을 띄우고 실행 → 서비스 중지 전 안내로 중단되는지 |
+| 결함 3 Move-Item 실패 시 서비스 복구 | 실패를 인위로 만들지 않았다 | 설치 폴더 안 파일을 다른 프로그램(메모장 등)으로 열어 둔 채 업데이트 → `Start-Service` 복구 메시지·서비스 Running 확인 |

@@ -38,6 +38,27 @@ $Report = [ordered]@{ installed_at = $T0.ToString("s"); usb_root = $UsbRoot; tar
 function Step($m) { Write-Host "`n== $m ==" -ForegroundColor Cyan; $script:Report.steps += $m }
 function Fail($m) { Write-Host "✗ $m" -ForegroundColor Red; $script:Report.result = "미완료: $m"; Write-Report; exit 1 }
 function Act($m) { if ($DryRun) { Write-Host "  [DRY] $m" -ForegroundColor DarkGray } else { Write-Host "  $m" } }
+# ★[2026-09-28 실기 결함 #3 → 회귀 수정] 업데이트 모드 "사용 중" 검사. 처음 판은 <Target> 아래 실행 파일을 쓰는 프로세스를 전부 잡아
+#   서비스 자신의 nssm.exe·go2rtc.exe 까지 걸려 **서비스가 살아 있으면 항상 exit 1**(현장 업데이트 불가)이었다(실기 재검증에서 발견).
+#   이제 VIGENT 서비스 PID(nssm)에서 내려가는 프로세스 트리(service_entry python·go2rtc 등)는 "서비스 소유" 로 제외하고,
+#   그 밖의 점유(탐색기·편집기·다른 셸이 띄운 exe)와 현재 셸 위치만 본다. 순수 함수라 tests/test_field_fixes_20260928 이 가짜 목록으로 검사한다.
+function Get-ExternalBusyProcesses([string]$Target, [object[]]$Procs, [int]$ServicePid, [string]$Cwd) {
+    $tgt = $Target.TrimEnd('\').ToLower()
+    $owned = New-Object 'System.Collections.Generic.HashSet[int]'
+    if ($ServicePid -gt 0) {
+        [void]$owned.Add($ServicePid); $changed = $true
+        while ($changed) {
+            $changed = $false
+            foreach ($pr in $Procs) {
+                $cid = [int]$pr.ProcessId; $ppid = [int]$pr.ParentProcessId
+                if (-not $owned.Contains($cid) -and $owned.Contains($ppid)) { [void]$owned.Add($cid); $changed = $true }
+            }
+        }
+    }
+    $busy = @($Procs | Where-Object {
+        $_.ExecutablePath -and $_.ExecutablePath.ToLower().StartsWith($tgt + '\') -and -not $owned.Contains([int]$_.ProcessId) })
+    return @{ cwd_inside = [bool]($Cwd -and $Cwd.ToLower().StartsWith($tgt)); busy = $busy; owned_count = $owned.Count }
+}
 function Write-Report {
     # ★아무것도 복사하기 전에 실패(레이아웃·사양 미달)하면 보고서를 <Target> 에 쓰지 않는다 — 그러면 빈 껍데기 설치 폴더가
     #   생겨 다음 실행이 "기존 설치" 로 오인하거나(2026-09-23 실측: 사양 미달 뒤 C:\VIGENT\app\data 만 남았다) 제거 대상이 된다.
@@ -96,14 +117,16 @@ $svcWasRunning = [bool]($svc -and $svc.Status -ne "Stopped")
 # ★[2026-09-28 실기 결함 #3] 업데이트 모드에서 <Target> 을 옮기는 Move-Item 이 "사용 중" 으로 실패하면 서비스만 멈춘 채 끝났다.
 #   ① 서비스를 멈추기 **전에** <Target> 아래에서 도는 프로세스(서비스 파이썬 제외)·현재 셸 위치를 검사해 미리 안내한다.
 if ($existing -and -not $DryRun) {
-    $tgtLower = $Target.TrimEnd('\').ToLower()
-    if ($PWD.Path.ToLower().StartsWith($tgtLower)) { Fail "현재 셸 위치가 설치 폴더 안이다($($PWD.Path)) — 다른 폴더로 이동한 뒤 다시 실행" }
-    $busy = @(Get-CimInstance Win32_Process -ErrorAction SilentlyContinue | Where-Object {
-        $_.ExecutablePath -and $_.ExecutablePath.ToLower().StartsWith($tgtLower + '\') -and ($_.CommandLine -notlike "*service_entry*") })
-    if ($busy.Count -gt 0) {
-        $list = ($busy | ForEach-Object { "$($_.ProcessId) $($_.Name)" }) -join ", "
-        Fail "설치 폴더 안의 실행 파일을 쓰는 프로세스가 있어 폴더를 옮길 수 없다: $list — 종료(또는 탐색기·셸 닫기) 후 다시 실행"
+    # 순서: 외부 점유 검사(서비스 소유 트리 제외) → 서비스 중지 → 이동 → 실패 시 Start-Service 복구
+    $svcPid = 0
+    try { $svcPid = [int](Get-CimInstance Win32_Service -Filter "Name='$svcName'" -ErrorAction Stop).ProcessId } catch { $svcPid = 0 }
+    $chk = Get-ExternalBusyProcesses -Target $Target -Procs @(Get-CimInstance Win32_Process -ErrorAction SilentlyContinue) -ServicePid $svcPid -Cwd $PWD.Path
+    if ($chk.cwd_inside) { Fail "현재 셸 위치가 설치 폴더 안이다($($PWD.Path)) — 다른 폴더로 이동한 뒤 다시 실행(서비스는 아직 멈추지 않았다)" }
+    if ($chk.busy.Count -gt 0) {
+        $list = ($chk.busy | ForEach-Object { "$($_.ProcessId) $($_.Name)" }) -join ", "
+        Fail "설치 폴더 안의 실행 파일을 쓰는 외부 프로세스가 있어 폴더를 옮길 수 없다: $list — 종료(또는 탐색기·셸 닫기) 후 다시 실행(서비스는 아직 멈추지 않았다)"
     }
+    Write-Host ("  사용 중 검사 통과 (서비스 소유 프로세스 " + $chk.owned_count + "개 제외)")
 }
 if ($svcWasRunning) { Act "서비스 $svcName 중지"; if (-not $DryRun) { Stop-Service $svcName -Force; Start-Sleep -Seconds 3 } }
 

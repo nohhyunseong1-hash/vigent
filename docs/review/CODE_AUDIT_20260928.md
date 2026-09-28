@@ -56,8 +56,10 @@
 |---|---|---|---|
 | NSSM 자가 재기동 | 기아 3단계 exit 3 뒤 AppExit Restart 60 s 재기동 | `286f1ef` | ✅ **실기 검증됨 2026-09-28**(D:\VIGENT_TEST·8020): Restart/60000/30000 · kill 후 재기동 80 s · `_escalate` exit=3 — [field_verification §2](../deploy/field_verification_20260928.md) |
 | AppStopMethodConsole 30000 | 서비스 정지 시 _shutdown 완주 | `286f1ef` | ✅ 실기 검증됨 2026-09-28: `sc stop` 3.06 s · pending 없음(카메라 0대) · python 잔존 0 — 〃 §3 |
-| install.ps1 직접 호출 | -ExtraEnv 배열 4개 전부 서비스 환경에 반영 | `78d8c11` | ✅ 실기 검증됨 2026-09-28: env 4/4 · 토큰 없는 0.0.0.0 → exit 1 — 〃 §4. ★부수 결함: `-Bind` 가 `VIGENT_HOST` 에 미반영(실기 결함 #2, 수정) |
-| install_result.json 경로 | -Target/-Port 변경 시 마법사·인수시험이 따라감 | `78d8c11` | ✅ 실기 검증됨 2026-09-28: 8020/D:\VIGENT_TEST · 인수시험 --base 없이 8020 — 〃 §4. ★부수 결함: A1 한국어 sc query 오판(실기 결함 #4, 수정) |
+| install.ps1 직접 호출 | -ExtraEnv 배열 4개 전부 서비스 환경에 반영 | `78d8c11` | ✅ 실기 검증됨 2026-09-28: env 4/4 · 토큰 없는 0.0.0.0 → exit 1 — 〃 §4. ★부수 결함: `-Bind` 가 `VIGENT_HOST` 에 미반영(실기 결함 #2, `f766c8a` 수정 → 재빌드본 재검증 `VIGENT_HOST=127.0.0.1` ✅) |
+| install_result.json 경로 | -Target/-Port 변경 시 마법사·인수시험이 따라감 | `78d8c11` | ✅ 실기 검증됨 2026-09-28: 8020/D:\VIGENT_TEST · 인수시험 --base 없이 8020 — 〃 §4. ★부수 결함: A1 한국어 sc query 오판(실기 결함 #4, `f766c8a` 수정 → 재검증 A1 RUNNING ✅) |
+| install.ps1 업데이트 모드 "사용 중" 검사 | 실기 결함 #3 수정분이 서비스 자신의 nssm·go2rtc 를 잡아 **서비스 Running 이면 업데이트 불가**(회귀, 재검증에서 발견) | 실기 결함 #8 로 수정(서비스 PID 트리 제외) | ⏳ **미검증** — 재빌드본으로 서비스 Running 상태 업데이트·폴더 안 셸 안내·Move-Item 실패 복구 3가지, [field_verification §미측정](../deploy/field_verification_20260928.md) |
+| 카메라 있는 상태의 정지 시간 | §3 실기는 카메라 0대(3.06 s) | `286f1ef` | ⏳ 미측정 — 카메라 2대 이상에서 §3 재실행 |
 | CRLF 검증 | 실제 build_usb.ps1 실행 | `78d8c11` | ✅ 실기 검증됨 2026-09-28 13:55 academy 빌드 — 〃 §1 |
 | go2rtc DELETE 파라미터 | `name=`(starvation_guard) vs `src=`(cameras) | 실기 결함 #1 로 수정 | ✅ 실기 검증됨 2026-09-28: **`src=` 만 삭제**(name= 은 200 이지만 무효) → starvation_guard 를 `src=` 로 — 〃 §5 |
 | 한국어 Windows Get-Counter | 영문 카운터명 동작 | 미수정 | 학원 기기 |

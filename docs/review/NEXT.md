@@ -3,6 +3,18 @@
 > 이 문서는 **결정이 필요한 것**과 **결정 뒤 이어지는 작업**만 담는다.
 > 측정 결과·근거는 각 항목이 가리키는 파일에 있다. (이전판: 2026-09-22 — 아래 "완료" 로 흡수)
 
+## 2026-09-28 저녁 추가 — CODE_AUDIT A·B·C 수정 완료 · 실기 검증 · USB 스테이지
+
+**완료 [실측, 커밋]**: CODE_AUDIT A 그룹 10건 + B-1 · B 5건 · C 2건(커밋 표는 [CODE_AUDIT §0-1](CODE_AUDIT_20260928.md)) · 실기 검증 §1~§5 통과 + 재검증(결함 2·4 확인) ·
+실기 결함 8건 수정(`f766c8a` + 회귀 수정 커밋) · USB 스테이지 `D:\vigent_usb_stage`(academy, fk510_smoke 포함, 최신 재빌드는 [field_verification 결과표](../deploy/field_verification_20260928.md)).
+B-2 재현 테스트 흔들림은 예열 스레드 GPU 경합이 원인(5회 연속 통과, 허용 ±0.3 복귀).
+
+**다음 실기(대표)**: ① 재빌드본으로 **서비스 Running 상태에서 업데이트 설치**(수동 `sc stop` 없이 완료돼야 함) · 설치 폴더 안 셸에서 실행 → 서비스 중지 전 안내 ·
+Move-Item 실패 유도 → `Start-Service` 복구 ② 카메라 2대 이상에서 `sc stop` 정지 시간(<30 s·pending 없음) — 둘 다 [field_verification §미측정](../deploy/field_verification_20260928.md).
+③ 통과하면 `D:\vigent_usb_stage_prev_20260928_1355` 삭제(09-23 것은 삭제함).
+
+**보류·주의**: 텔레그램 봇 토큰 재발급 권장(09-27 도구 출력 노출) · go2rtc 는 `src=` 만 DELETE(코드 반영) · CLAUDE.md 스택의 mmaction2·TensorFlow 는 [미검증].
+
 ## 2026-09-26 ~ 09-28 마감 요약 — 다음 세션은 여기서 시작
 
 **완료 [실측, 커밋]**
