@@ -22,7 +22,8 @@ param(
     [string]$WheelsCudaFrom = "",
     [switch]$SkipBuild,
     [string]$Cache = "D:\vigent_portable_cache",
-    [string]$Tag = ""                    # 비우면 git describe --tags --always
+    [string]$Tag = "",                   # 비우면 git describe --tags --always
+    [string]$Profile = ""                # [CODE_AUDIT #3] 현장 프로파일(academy 등) — build_portable.ps1 -Profile 로 전달. 비우면 전역값
 )
 $ErrorActionPreference = "Stop"
 [Console]::OutputEncoding = [Text.Encoding]::UTF8
@@ -64,7 +65,7 @@ if ($SkipBuild) {
         Write-Host ("  wheels_cuda 를 {0} 에서 채움 ({1:N2} GB)" -f $WheelsCudaFrom, ($wb / 1GB))
     }
 } else {
-    & powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $Repo "scripts\build_portable.ps1") -Gpu -Root $portable -Cache $Cache
+    & powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $Repo "scripts\build_portable.ps1") -Gpu -Root $portable -Cache $Cache -Profile $Profile
     if ($LASTEXITCODE -ne 0) { Fail "build_portable.ps1 -Gpu 실패" }
 }
 # 빈 폴더는 '설치 전' 상태로 다시 만든다(런처가 기대한다)

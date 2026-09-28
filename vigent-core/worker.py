@@ -137,8 +137,10 @@ DETECTOR_EXCLUSION_REASONS = {
                  "(강재를 지게차로 오탐→협착 오염·오경보). "
                  "detect.include_forklift=1(또는 VIGENT_INCLUDE_FORKLIFT=1)로 활성화."),
     "fire_smoke": ("detect.include_fire_smoke=0 으로 껐다(또는 VIGENT_INCLUDE_FIRE_SMOKE=0). "
-                   "학원 등 화재 감시가 계약 범위 밖이고 배경 오탐 리스크가 있는 현장 프로파일."),
+                   "현장 사유는 프로파일 tuning 의 detect.exclusion_reasons.fire_smoke 에 적는다."),
 }
+# ★[CODE_AUDIT_20260928 #3] 현장 고유 사유("학원 계약 범위 밖" 등)는 공용 코드가 아니라 프로파일 tuning 의
+#   detect.exclusion_reasons: {슬롯: 문구} 로 주입한다 — /health 가 그 문구를 그대로 보여준다.
 _KNOWN_SLOTS = ("person", "ppe", "fire_smoke", "forklift")
 
 
@@ -155,7 +157,12 @@ def active_detectors() -> list[str]:
 def disabled_detectors() -> dict[str, str]:
     """모델은 있으나 소비 경로에서 빠진 슬롯 → 사유. active_detectors() 의 여집합."""
     active = set(active_detectors())
-    return {s: DETECTOR_EXCLUSION_REASONS.get(s, "소비 경로에서 제외됨(사유 미기재)")
+    try:
+        site = tuning.section("detect").get("exclusion_reasons") or {}
+        site = {str(k): str(v) for k, v in dict(site).items() if str(v).strip()}
+    except Exception:  # noqa: BLE001  설정이 이상해도 표시는 기본 사유로
+        site = {}
+    return {s: site.get(s) or DETECTOR_EXCLUSION_REASONS.get(s, "소비 경로에서 제외됨(사유 미기재)")
             for s in _KNOWN_SLOTS if s not in active}
 
 

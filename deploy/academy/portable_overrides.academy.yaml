@@ -1,0 +1,20 @@
+# deploy/academy/portable_overrides.academy.yaml — 학원(academy) 현장용 포터블 빌드가 deploy/portable/portable_overrides.yaml 위에 **덧붙여** 얹는 값
+#
+# ★[CODE_AUDIT_20260928 #3] 예전엔 이 두 항목이 deploy/portable/portable_overrides.yaml 에 있어 **모든** 포터블/USB 빌드(판매용 포함)에
+#   학원 계약 결정(근골격 OFF·화재 OFF)이 기본으로 구워졌다. 이제 `scripts/build_portable.ps1 -Profile academy` 일 때만 적용된다.
+# 형식·규칙은 portable_overrides.yaml 과 같다(정확히 1곳 치환, 못 찾으면 빌드 실패).
+
+judgment.ergonomics.joints:
+  file: vision
+  from: "    joints:"
+  to:   "    joints_off_portable:"
+  why: >-
+    [2026-09-10 대표 결정] 근골격(ergonomic_risk) 규칙 OFF — 학원 현장 계약 범위 밖 + 현장 보고서 §387 기울기 판정 오류.
+    worker.ErgonomicsTracker 는 joints 가 비어 있으면 비활성(_enabled=False)이라 키 이름만 바꾼다(값 보존, 전역 vision.yaml 불변).
+    포즈 스레드·무동작(쓰러짐 의심) 규칙은 그대로(tests/test_worker_pose_event_tuple_f34.py 로 확인).
+
+detect.include_fire_smoke:
+  from: "  # include_fire_smoke: 1"
+  to:   "  include_fire_smoke: 0"
+  why: >-
+    [4차, 2026-09-10] 현장(학원) 프로필과 동일 — 화재 감시는 계약 범위 밖 + 배경 오탐 리스크(deploy/academy/README_academy.md).

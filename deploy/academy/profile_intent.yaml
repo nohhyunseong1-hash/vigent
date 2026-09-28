@@ -24,6 +24,9 @@ tuning:
     detect.include_fire_smoke:
       value: 0
       why: "화재 감시가 계약 범위 밖이고, 프레스 현장 실측에서 배경 오탐 리스크가 확인됐다."
+    detect.exclusion_reasons.fire_smoke:
+      value: "학원 실습장 — 화재 감시는 계약 범위 밖(2026-08-19 결정) + 배경 오탐 리스크(프레스 현장 실측)"
+      why: "[CODE_AUDIT_20260928 #3] /health 에 보이는 제외 사유를 공용 코드(worker.py)가 아니라 프로파일이 준다."
     ppe.required:
       value: [NO-Hardhat, NO-Safety-Vest]
       why: >-

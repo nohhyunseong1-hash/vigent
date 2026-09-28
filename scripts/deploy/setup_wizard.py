@@ -165,7 +165,7 @@ class Wizard:
         name = self.ask_until("device_name", "1) 기기명(영문·숫자·하이픈)", check_device_name)
         self.summary["device_name"] = name
         # 2 프로파일
-        prof = self.ask("profile", "2) 현장 프로파일 (default | academy)", default="academy").strip().lower()
+        prof = self.ask("profile", "2) 현장 프로파일 (default | academy)", default="default").strip().lower()   # ★[CODE_AUDIT_20260928 #3] 기본은 default — academy 는 명시 입력 때만(예전 기본 academy 는 모든 신규 설치에서 마스크를 필수 보호구에서 뺐다)
         if prof not in PROFILES:
             raise SystemExit(f"[profile] 없는 프로파일: {prof} (가능: {', '.join(PROFILES)})")
         self.summary["profile"] = prof

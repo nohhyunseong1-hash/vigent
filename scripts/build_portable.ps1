@@ -1,4 +1,4 @@
-﻿# scripts/build_portable.ps1 — VIGENT USB 포터블 패키지 빌드 (Windows PowerShell 5.1 이상)
+\xef\xbb\xbf# scripts/build_portable.ps1 — VIGENT USB 포터블 패키지 빌드 (Windows PowerShell 5.1 이상)
 #
 #   .\scripts\build_portable.ps1                        # D:\vigent_portable 에 빌드(캐시 D:\vigent_portable_cache)
 #   .\scripts\build_portable.ps1 -Gpu                   # + python\wheels_cuda\ 에 CUDA torch 휠 동봉(선택, 2.5GB+)
@@ -21,7 +21,10 @@ param(
     #   **sm_120** 이다. cu126 은 sm_120 을 지원하지 않아 RTX 5060/5070 에서 커널이 없어
     #   실패하거나 **조용히 CPU 로 떨어진다**(조용한 성능 저하 = 이 프로젝트가 금지하는 유형).
     [string]$Cuda = "cu130",
-    [switch]$SkipPip            # 패키지 설치 단계 생략(앱·가중치·런처만 다시 복사할 때)
+    [switch]$SkipPip,           # 패키지 설치 단계 생략(앱·가중치·런처만 다시 복사할 때)
+    # ★[CODE_AUDIT_20260928 #3] 현장 프로파일. 비우면 플랫폼 오버라이드(deploy/portable)만 적용 = 전역값(근골격 ON·화재 ON).
+    #   "academy" 면 deploy/academy/portable_overrides.academy.yaml 을 **덧붙여** 적용(근골격 OFF·화재 OFF).
+    [string]$Profile = ""
 )
 $ErrorActionPreference = "Stop"
 [Console]::OutputEncoding = [Text.Encoding]::UTF8
@@ -243,13 +246,21 @@ Write-Host "  OK bin\go2rtc.exe (manifest SHA 일치)"
 # ── 7. 포터블 프로필(원본 config 불변 — 빌드 시점 tuning.yaml + overrides) ──
 Step "7. deploy\portable 프로필 적용 → app\config\tuning.yaml · app\themes\safety\vision.yaml"
 $ov = Join-Path $Source "deploy\portable\portable_overrides.yaml"
+$ovProfile = ""
+if ($Profile) {
+    $ovProfile = Join-Path $Source ("deploy\" + $Profile + "\portable_overrides." + $Profile + ".yaml")
+    if (-not (Test-Path $ovProfile)) { throw "프로파일 오버라이드가 없다: $ovProfile" }
+    Write-Host ("  프로파일 " + $Profile + " 오버라이드 덧붙임: " + $ovProfile)
+}
 # overrides 항목의 file(tuning|vision, 기본 tuning)별로 원본을 읽어 치환한다. 원본(config/·themes/)은 불변, 산출물은 app\ 아래.
 $prof = @"
 import sys, io, os
-src_root, ov, dst_root, gpu = sys.argv[1:5]
+src_root, ov, dst_root, gpu, ov_profile = sys.argv[1:6]
 gpu = gpu == '1'
 import yaml
-o = yaml.safe_load(io.open(ov, encoding='utf-8'))
+o = yaml.safe_load(io.open(ov, encoding='utf-8')) or {}
+if ov_profile:   # [CODE_AUDIT #3] 프로파일 오버라이드를 덧붙인다(같은 키면 프로파일이 이긴다)
+    o.update(yaml.safe_load(io.open(ov_profile, encoding='utf-8')) or {})
 FILES = {'tuning': ('config/tuning.yaml', 'config/tuning.yaml'), 'vision': ('themes/safety/vision.yaml', 'themes/safety/vision.yaml')}
 # [I-1] -Gpu 빌드에서는 skip_when_gpu 항목을 건너뛴다(예: detect.backend).
 #   GPU 에서 onnx-cpu 는 인수시험 미달이라 치환하면 안 된다 — 근거는 overrides 의 주석.
@@ -276,11 +287,15 @@ for k in skipped:
     print('  [GPU 빌드] 건너뜀 ' + k + ' (skip_when_gpu)')
 "@
 $profPy = Join-Path $Cache "apply_profile.py"; Set-Content -Path $profPy -Value $prof -Encoding UTF8
-Run $Py @($profPy, $Source, $ov, $App, $(if ($Gpu) { "1" } else { "0" }))
+Run $Py @($profPy, $Source, $ov, $App, $(if ($Gpu) { "1" } else { "0" }), $ovProfile)
 # [I-1] 빌드 종류별로 **기대하는 backend 가 다르다** — 산출물을 열어 확인한다(설정값 믿지 않는다).
 $expectBackend = if ($Gpu) { "torch" } else { "onnx-cpu" }
 Run $Py @("-c", "import io,sys; t=io.open(sys.argv[1],encoding='utf-8').read(); want='backend: '+sys.argv[2]; assert want in t, '기대 '+want+' 가 산출물에 없다'; print('  확인: detect.backend = '+sys.argv[2])", (Join-Path $App "config\tuning.yaml"), $expectBackend)
-Run $Py @("-c", "import io,sys,yaml; t=io.open(sys.argv[1],encoding='utf-8').read(); d=yaml.safe_load(t); erg=d['judgment']['ergonomics']; assert 'joints' not in erg and 'joints_off_portable' in erg, list(erg); print('  확인: judgment.ergonomics.joints 없음(근골격 규칙 OFF, 값은 joints_off_portable 로 보존)')", (Join-Path $App "themes\safety\vision.yaml"))
+if ($Profile -eq "academy") {
+    Run $Py @("-c", "import io,sys,yaml; t=io.open(sys.argv[1],encoding='utf-8').read(); d=yaml.safe_load(t); erg=d['judgment']['ergonomics']; assert 'joints' not in erg and 'joints_off_portable' in erg, list(erg); print('  확인(academy): judgment.ergonomics.joints 없음(근골격 규칙 OFF, 값은 joints_off_portable 로 보존)')", (Join-Path $App "themes\safety\vision.yaml"))
+} else {
+    Run $Py @("-c", "import io,sys,yaml; t=io.open(sys.argv[1],encoding='utf-8').read(); d=yaml.safe_load(t); erg=d['judgment']['ergonomics']; assert 'joints' in erg, list(erg); print('  확인(기본): judgment.ergonomics.joints 유지(근골격 규칙 ON = 전역값)')", (Join-Path $App "themes\safety\vision.yaml"))
+}
 
 # ── 8. 런처·문서 ──
 Step "8. 런처·사용법 → 패키지 루트"
