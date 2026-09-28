@@ -43,6 +43,9 @@ _stop = threading.Event()
 _thread: threading.Thread | None = None
 
 
+GO2RTC_DELETE_URL = "http://127.0.0.1:1984/api/streams?src={cid}"   # [2026-09-28 실기] go2rtc 1.9.14: DELETE 는 src= 만 받는다
+
+
 def _release_go2rtc_slot(cid: str) -> bool:
     """해당 카메라의 go2rtc 스트림을 삭제해 카메라 슬롯을 비운다.
 
@@ -50,8 +53,11 @@ def _release_go2rtc_slot(cid: str) -> bool:
     routers/cameras 가 스트림을 다시 등록하므로 영구 손실이 아니다.
     """
     try:
+        # ★[2026-09-28 실기] go2rtc 1.9.14 의 DELETE /api/streams 는 `src=` 만 받는다 — `name=` 은 200 을 돌려주면서 아무것도 지우지 않았다
+        #   (개발기 실측: PUT 등록 뒤 DELETE name= → 목록 그대로, DELETE src= → 삭제). 예전 `name=` 은 기아 1단계를 통째로 무효로 만들었다.
+        #   routers/cameras.py 해제(src=)와 같은 파라미터. 테스트가 URL 을 고정한다.
         req = urllib.request.Request(
-            f"http://127.0.0.1:1984/api/streams?name={urllib.parse.quote(cid)}", method="DELETE")
+            GO2RTC_DELETE_URL.format(cid=urllib.parse.quote(cid)), method="DELETE")
         with urllib.request.urlopen(req, timeout=5) as r:
             ok = 200 <= r.status < 300
         _LOG.warning("[기아 1단계] go2rtc 스트림 '%s' 해제 → 카메라 슬롯 회수 (ok=%s)", cid, ok)

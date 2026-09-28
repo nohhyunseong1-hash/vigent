@@ -137,12 +137,39 @@ def _get_health(base: str) -> tuple[int, dict[str, Any]]:
         return r.status_code, {}
 
 
+_SC_STATE = {1: "STOPPED", 2: "START_PENDING", 3: "STOP_PENDING", 4: "RUNNING", 5: "CONTINUE_PENDING", 6: "PAUSE_PENDING", 7: "PAUSED"}
+
+
+def parse_sc_state(out: str) -> str:
+    """`sc query` 출력 → 상태 이름. ★[2026-09-28 실기] 한국어 Windows 는 라벨이 '상태' 이고 출력 인코딩(OEM cp949)에 따라 영문 상태어를
+    못 찾아 서비스가 RUNNING 인데 '없음/알 수 없음' 으로 오판했다(A1 오판). 라벨·언어에 기대지 않고 **': <숫자>'** 의 SCM 상태 코드
+    (1 STOPPED … 4 RUNNING)를 읽는다. 코드가 없으면 영문 상태어 폴백."""
+    import re
+    # ': 4  RUNNING' — 상태어 자체가 '???' 로 깨져도 코드 한 자리만 본다('종류 : 10 …' 은 두 자리라 안 걸린다)
+    m = re.search(r":\s*([1-7])\s+\S+", out) or re.search(r"(?:STATE|상태)\s*:\s*([1-7])\b", out)
+    if m:
+        return _SC_STATE.get(int(m.group(1)), f"code{m.group(1)}")
+    for w in ("RUNNING", "STOPPED"):
+        if w in out:
+            return w
+    return "없음/알 수 없음"
+
+
 def _service_running(name: str = "VIGENT") -> tuple[bool, str]:
+    # 1순위: PowerShell Get-Service — 상태가 enum 이름(Running/Stopped)이라 언어·코드페이지와 무관
     try:
-        out = subprocess.run(["sc", "query", name], capture_output=True, text=True, timeout=15).stdout
+        r = subprocess.run(["powershell", "-NoProfile", "-NonInteractive", "-Command", f"(Get-Service -Name '{name}' -ErrorAction Stop).Status.ToString()"],
+                           capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=20)
+        st = (r.stdout or "").strip()
+        if r.returncode == 0 and st:
+            return st.lower() == "running", st.upper()
+    except Exception:  # noqa: BLE001  powershell 없음 등 — sc 로
+        pass
+    try:
+        out = subprocess.run(["sc", "query", name], capture_output=True, text=True, errors="replace", timeout=15).stdout
     except Exception as ex:  # noqa: BLE001
         return False, f"sc query 실패: {type(ex).__name__}"
-    st = "RUNNING" if "RUNNING" in out else ("STOPPED" if "STOPPED" in out else "없음/알 수 없음")
+    st = parse_sc_state(out)
     return st == "RUNNING", st
 
 

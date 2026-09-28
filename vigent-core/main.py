@@ -426,6 +426,11 @@ def _shutdown() -> None:
         if st.get("enabled") and (st.get("on") or st.get("off_failed")):
             r = _relay.turn_off("서버 종료")
             _log.warning("shutdown: 릴레이 OFF %s (%s)", "성공" if r.get("sent") else "★실패", r.get("reason"))
+        elif not st.get("enabled"):
+            # ★[2026-09-28 실기] 릴레이 미설정 현장에서 _shutdown 로그에 relay 줄이 0 이라 "OFF 를 건너뛴 것인지 안 돈 것인지" 구분이 안 됐다
+            _log.info("shutdown: relay 미설정(enabled=False) — OFF 건너뜀")
+        else:
+            _log.info("shutdown: relay 이미 OFF(on=False) — 건너뜀")
     except Exception:  # noqa: BLE001
         _log.warning("shutdown: 릴레이 OFF 중 예외\n%s", traceback.format_exc())
     try:

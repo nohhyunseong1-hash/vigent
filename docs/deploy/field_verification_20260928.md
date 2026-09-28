@@ -40,7 +40,7 @@
   $p = (Get-CimInstance Win32_Process | Where-Object { $_.CommandLine -like "*VIGENT_TEST*service_entry*" }).ProcessId; $t0 = Get-Date   # $pid 는 PowerShell 자동 변수(현재 셸 PID)라 쓰지 않는다
   Stop-Process -Id $p -Force
   do { Start-Sleep 5; $h = try { Invoke-RestMethod http://127.0.0.1:8020/health } catch { $null } } until ($h -and $h.phase -eq "ready")
-  "재기동까지 $((Get-Date) - $t0).TotalSeconds 초"
+  "재기동까지 $(((Get-Date) - $t0).TotalSeconds) 초"
   # 4) exit:3 경로 자체(graceful 정리 뒤 종료코드 3): 콘솔 모드로 한 번
   cd D:\VIGENT_TEST\app\vigent-core; $env:VIGENT_RESTART_CMD = "exit:3"
   ..\..\python\python.exe -c "import sys; sys.path.insert(0,'.'); import main, starvation_guard as sg; sg._escalate()"; "exit=$LASTEXITCODE"
@@ -53,8 +53,10 @@
 - **무엇을**: `sc stop VIGENT` 때 릴레이 OFF → 워커 병렬 정지(데드라인 20 s) → 큐 이월이 잘리지 않고 끝나는지.
 - **어떻게**: 카메라 2대 이상 등록된 상태에서
   ```powershell
-  $t0 = Get-Date; sc.exe stop VIGENT; do { Start-Sleep 1 } until ((Get-Service VIGENT).Status -eq "Stopped"); "정지까지 $((Get-Date) - $t0).TotalSeconds 초"
-  Get-Content D:\VIGENT_TEST\state\logs\vigent.log -Tail 60 | Select-String "relay|stop_all|carried_over|_shutdown|종료"
+  $t0 = Get-Date; sc.exe stop VIGENT; do { Start-Sleep 1 } until ((Get-Service VIGENT).Status -eq "Stopped"); "정지까지 $(((Get-Date) - $t0).TotalSeconds) 초"
+  Get-Content D:\VIGENT_TEST\state\logs\vigent.log -Tail 60 -Encoding UTF8 | Select-String "relay|stop_all|carried_over|_shutdown|종료"
+  # 서비스 stderr 는 app\logs\vigent.err.log — ★파일은 UTF-8 이다(2026-09-28 실측: utf-8 디코드 OK·cp949 실패). PS 5.1 Get-Content 기본(ANSI)으로 열면 깨져 보이므로 반드시 -Encoding UTF8
+  Get-Content D:\VIGENT_TEST\app\logs\vigent.err.log -Tail 40 -Encoding UTF8
   ```
 - **통과 기준**: 정지 **< 30 s** · 로그에 `stop_all: … pending` 이 **없고**(있으면 카메라 이름과 함께 ERROR) `carried_over` 줄이 있음 · `Stopped` 뒤 파이썬 프로세스 잔존 0(`Get-Process python*`).
 - **미통과면**: 30 s 를 넘겨 강제 종료됐다면 어느 단계에서 멈췄는지 마지막 줄을 적는다(워커 join 8 s×N 이 아니라 병렬 20 s 여야 한다).
@@ -79,7 +81,7 @@
 - **무엇을**: 기아 1단계가 확대뷰 스트림을 실제로 해제하는지. go2rtc 1.9.14 [문서상 주장: `DELETE /api/streams?src=<이름>`] — 코드 두 곳이 다르므로 GET 으로 확인해 한쪽으로 맞춘다.
 - **어떻게** (go2rtc 가 떠 있는 상태, 관리자 불필요):
   ```powershell
-  curl.exe "http://127.0.0.1:1984/api/streams?name=t1&src=rtsp://127.0.0.1:554/none"   # 등록(연결 안 돼도 목록엔 남는다)
+  curl.exe -X PUT "http://127.0.0.1:1984/api/streams?name=t1&src=rtsp://127.0.0.1:554/none"   # 등록은 PUT(GET 은 목록 조회) — 연결 안 돼도 목록엔 남는다
   curl.exe http://127.0.0.1:1984/api/streams                                            # t1 보임
   curl.exe -X DELETE "http://127.0.0.1:1984/api/streams?name=t1"; curl.exe http://127.0.0.1:1984/api/streams   # ① name= 로 지워지나
   curl.exe -X DELETE "http://127.0.0.1:1984/api/streams?src=t1";  curl.exe http://127.0.0.1:1984/api/streams   # ② src= 로 지워지나
@@ -93,7 +95,21 @@
 | § | 날짜 | 결과 | 측정값·비고 |
 |---|---|---|---|
 | 1 USB 스테이징 | 2026-09-28 13:55 | **통과** [실측] | `build_usb.ps1 -Profile academy` exit 0 · 태그 audit-before-cleanup-191-g5d5b69e · 총 4.34 GB · 49,146 파일 · fk510_smoke 120,797,435 B SHA=manifest(b409c98d…) · vision `fk510_smoke.pth` · tuning `include_forklift: 1`·`forklift: 0.50` · wheels_cuda torch/torchvision 2.12.0/0.27.0+cu130 · CRLF 검증 통과(스테이지 3파일 LF-only 0줄) · notify.yaml·camera_secrets.json·.env 없음 · 이전 스테이지는 `D:\vigent_usb_stage_prev_20260923` 로 이동(삭제 안 함) · 로그 `audit/usb_build_20260928.log` |
-| 2 NSSM 재기동 | | | 재기동까지 __ s · exit=__ |
-| 3 정지 30 s | | | 정지까지 __ s · pending __ |
-| 4 ExtraEnv·토큰·result | | | env __/4 · 인수시험 base __ |
-| 5 go2rtc DELETE | | | name= __ / src= __ |
+| 2 NSSM 재기동 | 2026-09-28 | **통과** [실측] | NSSM AppExit Restart · AppRestartDelay 60000 · AppStopMethodConsole 30000 · env 4/4 · 프로세스 kill 후 재기동 80 s · `_escalate` exit=3 |
+| 3 정지 30 s | 2026-09-28 | **통과** [실측] | `sc stop` 3.06 s · stop_all ok(pending 없음, 카메라 0대 — 카메라 있는 상태는 미측정) · python 잔존 0 · ★relay 로그 0줄 → 결함 7 |
+| 4 ExtraEnv·토큰·result | 2026-09-28 | **통과** [실측] | install_result.json 8020/D:\VIGENT_TEST · 인수시험 --base 없이 8020 자동 A2 ✓ · 0.0.0.0+.env 없음 → exit 1 "VIGENT_API_TOKEN 필수" · ★A1 오판(결함 4) · ★VIGENT_HOST=0.0.0.0(결함 2) |
+| 5 go2rtc DELETE | 2026-09-28 | **src= 만 삭제** [실측] | PUT 등록 뒤 DELETE `name=` → 목록 그대로 · DELETE `src=` → 삭제 → `starvation_guard.py` 를 `src=` 로 수정(결함 1) |
+
+## 실기에서 새로 발견한 결함 7건과 조치 (2026-09-28)
+
+| # | 결함 | 조치 | 고정 테스트 |
+|---|---|---|---|
+| 1 | `starvation_guard._release_go2rtc_slot` 이 `name=` 으로 DELETE → go2rtc 1.9.14 는 200 을 주면서 지우지 않음 = **기아 1단계 무효** | `GO2RTC_DELETE_URL` = `…/api/streams?src={cid}` | `test_field_fixes_20260928.F1Go2rtcDelete` |
+| 2 | `install.ps1 -Bind 127.0.0.1` 인데 서비스 env `VIGENT_HOST=0.0.0.0`(install_service.ps1 에 값이 박혀 있었음) | `"VIGENT_HOST=$Bind"` | `F2BindEnv` |
+| 3 | 업데이트 설치에서 `Move-Item` "사용 중" 실패 시 서비스를 멈춘 채 종료 | 서비스 중지 **전** 설치 폴더 안 프로세스·현재 셸 위치 검사 → 안내 후 중단 · Move-Item 실패 시 서비스 재시작 후 중단 | `F3UpdateMoveGuard` |
+| 4 | 인수시험 A1 이 한국어 Windows `sc query` 출력을 못 읽어 "서비스 없음" 오판 | 1순위 `Get-Service` enum 이름, 폴백 `sc query` 의 SCM 상태 코드(4=RUNNING) | `F4ServiceState` |
+| 5 | 서비스 stderr 로그(`app\logs\vigent.err.log`) 한글 깨짐 | **파일은 UTF-8 이다**(실측: utf-8 디코드 OK·cp949 실패, `PYTHONUTF8=1` 유효). 깨짐은 PS 5.1 `Get-Content` 기본 ANSI 읽기 — `service_status.ps1` 은 이미 `-Encoding UTF8`, 절차서 §3 에도 명시. 코드 변경 없음 | `F5F6Procedure` |
+| 6 | 절차서 오류: `$pid` 자동 변수 · 등록은 GET 이 아니라 PUT · 경과 초 수식 괄호 | 정정 | `F5F6Procedure` |
+| 7 | 릴레이 미설정 시 `_shutdown` 에 relay 줄 0 | `relay 미설정(enabled=False) — OFF 건너뜀` / `이미 OFF — 건너뜀` info 1줄 | `F7ShutdownRelayLog` |
+
+결함 1·2·3·4 는 USB(`portable\app` 의 starvation_guard, `installer\` 의 install.ps1·install_service.ps1·acceptance_test.py)에 실리는 코드라 **USB 재빌드 대상**이다.

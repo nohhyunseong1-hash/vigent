@@ -92,7 +92,20 @@ if ($existing) {
 
 $svcName = "VIGENT"
 $svc = Get-Service -Name $svcName -ErrorAction SilentlyContinue
-if ($svc -and $svc.Status -ne "Stopped") { Act "서비스 $svcName 중지"; if (-not $DryRun) { Stop-Service $svcName -Force; Start-Sleep -Seconds 3 } }
+$svcWasRunning = [bool]($svc -and $svc.Status -ne "Stopped")
+# ★[2026-09-28 실기 결함 #3] 업데이트 모드에서 <Target> 을 옮기는 Move-Item 이 "사용 중" 으로 실패하면 서비스만 멈춘 채 끝났다.
+#   ① 서비스를 멈추기 **전에** <Target> 아래에서 도는 프로세스(서비스 파이썬 제외)·현재 셸 위치를 검사해 미리 안내한다.
+if ($existing -and -not $DryRun) {
+    $tgtLower = $Target.TrimEnd('\').ToLower()
+    if ($PWD.Path.ToLower().StartsWith($tgtLower)) { Fail "현재 셸 위치가 설치 폴더 안이다($($PWD.Path)) — 다른 폴더로 이동한 뒤 다시 실행" }
+    $busy = @(Get-CimInstance Win32_Process -ErrorAction SilentlyContinue | Where-Object {
+        $_.ExecutablePath -and $_.ExecutablePath.ToLower().StartsWith($tgtLower + '\') -and ($_.CommandLine -notlike "*service_entry*") })
+    if ($busy.Count -gt 0) {
+        $list = ($busy | ForEach-Object { "$($_.ProcessId) $($_.Name)" }) -join ", "
+        Fail "설치 폴더 안의 실행 파일을 쓰는 프로세스가 있어 폴더를 옮길 수 없다: $list — 종료(또는 탐색기·셸 닫기) 후 다시 실행"
+    }
+}
+if ($svcWasRunning) { Act "서비스 $svcName 중지"; if (-not $DryRun) { Stop-Service $svcName -Force; Start-Sleep -Seconds 3 } }
 
 $Prev = "${Target}_prev_$($prevVer -replace '[^\w\.\-]', '_')"
 if ($existing) {
@@ -100,7 +113,15 @@ if ($existing) {
     $olds = Get-ChildItem (Split-Path $Target -Parent) -Directory -Filter ((Split-Path $Target -Leaf) + "_prev_*") -ErrorAction SilentlyContinue | Sort-Object LastWriteTime -Descending
     foreach ($o in $olds) { Act "이전 세대 보관본 제거(1세대만 보관): $($o.FullName)"; if (-not $DryRun) { Remove-Item -LiteralPath $o.FullName -Recurse -Force } }
     Act "현재 설치 → 보관: $Target → $Prev"
-    if (-not $DryRun) { Move-Item -LiteralPath $Target -Destination $Prev -Force }
+    if (-not $DryRun) {
+        try { Move-Item -LiteralPath $Target -Destination $Prev -Force -ErrorAction Stop }
+        catch {
+            # ② 그래도 실패(열린 핸들 등)하면 멈춘 서비스를 되살리고 끝낸다 — 설치 전 상태 그대로 두는 것이 "서비스 죽은 채 방치" 보다 낫다
+            $why = $_.Exception.Message
+            if ($svcWasRunning) { try { Start-Service $svcName; Write-Host "  서비스 $svcName 다시 시작(설치 중단)" } catch { Write-Host "  ★서비스 재시작 실패: $($_.Exception.Message)" -ForegroundColor Red } }
+            Fail "설치 폴더를 옮기지 못했다($why) — 폴더를 연 탐색기·셸·편집기를 닫고 다시 실행(서비스는 되살렸다)"
+        }
+    }
 }
 
 # ── 4. 복사 ──

@@ -179,7 +179,9 @@ $envLines = @(
   #   LAN 접속(폰 /health 점검 등)이 전부 403 "forbidden host" 가 된다(재부팅 시험에서
   #   실측 발견). 바인드 주소와 앱 인식을 반드시 일치시킨다. LAN 노출 라우트는
   #   VIGENT_REQUIRE_TOKEN=1 + Bearer 로 방어(설계 원안 그대로, /health 는 면제).
-  "VIGENT_HOST=0.0.0.0",
+  # ★[2026-09-28 실기 결함 #2] 위 원칙("바인드 주소와 앱 인식 일치")을 적어 놓고 값은 0.0.0.0 으로 박아 두어, install.ps1 -Bind 127.0.0.1 로
+  #   설치해도 서비스 env 는 0.0.0.0 이 됐다(uvicorn 은 127.0.0.1, 앱은 LAN 바인드로 오인). -Bind 그대로 쓴다.
+  "VIGENT_HOST=$Bind",
   # ★[2026-08-20] 서비스 로그 한글 깨짐 수정. 서비스는 cp949 인코딩을 물려받아
   #   readiness 등의 한글 로그가 "???? slot=ppe" 로 찍혔다 — 현장 장애 때 봐야 할
   #   로그가 읽히지 않는다(scripts/*.py 의 UnicodeEncodeError 와 같은 뿌리).
