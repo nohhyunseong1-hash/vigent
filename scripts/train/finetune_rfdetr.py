@@ -35,6 +35,7 @@ import re
 import shutil
 import subprocess
 import sys
+import threading
 import time
 from collections import Counter
 from pathlib import Path
@@ -302,8 +303,10 @@ def _nonfinite(v: Any) -> bool:
             return not math.isfinite(v)
         if hasattr(v, "item"):                                    # numpy scalar
             return not math.isfinite(float(v.item()))
-    except Exception:  # noqa: BLE001
-        return False
+    except Exception as ex:  # noqa: BLE001
+        # ★[CODE_AUDIT_20260928 #10] 판정 중 예외는 "정상" 이 아니라 "의심" 이다(fail-closed). v1 사고 재발 방지 장치가 조용히 무력화되지 않게.
+        print(f"★NaN 판정 불가({type(v).__name__}: {type(ex).__name__}: {ex}) — 의심으로 취급", file=sys.stderr, flush=True)
+        return True
     return False
 
 
@@ -447,7 +450,9 @@ def heldout_eval_callback(ckpt_dir: Path | str, field_dir: str, every: int, tota
                 print(f"[heldout-eval] epoch {done}: 체크포인트 없음 — 건너뜀", file=sys.stderr, flush=True); return
             out_json = Path(ckpt_dir).parent / f"heldout_eval_epoch{done:03d}.json"
             print(f"[heldout-eval] epoch {done}: {ck.name}(mtime {time.strftime('%H:%M:%S', time.localtime(ck.stat().st_mtime))}) → {out_json.name}", file=sys.stderr, flush=True)
+            touch_heartbeat(ckpt_dir)                       # [#10] 동기 평가 중 정체 오판 방지
             rc = run(heldout_eval_cmd(ck, field_dir, out_json, f"epoch{done}", res))
+            touch_heartbeat(ckpt_dir)
             print(f"[heldout-eval] epoch {done}: rc={rc} · 결과 {'있음' if out_json.exists() else '★없음'}", file=sys.stderr, flush=True)
     return HeldoutEval()
 
@@ -492,16 +497,30 @@ def pyspy_dump(pid: int) -> str:
         return f"py-spy 실패: {e}"
 
 
-def start_stall_watchdog(ckpt_dir: Path, stall_min: float, check_s: float = 30.0):
-    """metrics.csv/체크포인트가 stall_min 분 넘게 갱신되지 않으면 STALL_ABORT.json(마지막 step·시각·py-spy 스택)을 쓰고 프로세스를 종료(exit 9).
-    메인 스레드가 CPU 작업에 갇혀 있어도 감시 스레드는 돈다 → 알림 없이 몇 시간 멈추는 일을 막는다."""
-    import threading
-    t0 = time.time(); csv_path = ckpt_dir / "metrics.csv"
+HEARTBEAT_NAME = ".watchdog_heartbeat"
+
+
+def touch_heartbeat(ckpt_dir: Path | str) -> None:
+    """[CODE_AUDIT_20260928 #10] 학습 외 긴 작업(중간 held-out 평가 등) 중에 감시 스레드가 정체로 오판하지 않게 심장박동 파일을 갱신한다."""
+    p = Path(ckpt_dir) / HEARTBEAT_NAME
+    p.parent.mkdir(parents=True, exist_ok=True)
+    p.write_text(time.strftime("%Y-%m-%d %H:%M:%S"), encoding="utf-8")
+
+
+def start_stall_watchdog(ckpt_dir: Path, stall_min: float, check_s: float = 30.0, stop: "threading.Event | None" = None):
+    """metrics.csv/체크포인트/heartbeat 가 stall_min 분 넘게 갱신되지 않으면 STALL_ABORT.json(마지막 step·시각·py-spy 스택)을 쓰고 프로세스를 종료(exit 9).
+    메인 스레드가 CPU 작업에 갇혀 있어도 감시 스레드는 돈다 → 알림 없이 몇 시간 멈추는 일을 막는다.
+    ★[CODE_AUDIT_20260928 #10] 반환 (thread, stop_event). 학습이 끝나면 stop_event.set() — 예전엔 중지 경로가 없어 학습 뒤 하네스·검증이
+      15분을 넘기면 거짓 STALL_ABORT 로 부모가 강제 종료됐다(하네스 자식은 고아). 루프 본문 예외는 감시 스레드를 죽이지 않는다."""
+    t0 = time.time(); csv_path = ckpt_dir / "metrics.csv"; hb = Path(ckpt_dir) / HEARTBEAT_NAME
+    stop_ev = stop or threading.Event()
 
     def loop() -> None:
-        while True:
-            time.sleep(check_s)
-            newest = newest_mtime([csv_path, ckpt_dir], t0)
+        while not stop_ev.wait(check_s):
+            try:
+                newest = newest_mtime([csv_path, ckpt_dir, hb], t0)
+            except Exception as ex:  # noqa: BLE001  루프가 죽으면 감시가 조용히 사라진다
+                print(f"★정체 감시 예외(계속): {type(ex).__name__}: {ex}", file=sys.stderr, flush=True); continue
             if is_stalled(newest, time.time(), stall_min):
                 info = {"time": time.strftime("%Y-%m-%d %H:%M:%S"), "stall_min": stall_min, "last_update": time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(newest)),
                         "last_metrics_row": last_metrics_row(csv_path), "pyspy": pyspy_dump(os.getpid()),
@@ -509,10 +528,15 @@ def start_stall_watchdog(ckpt_dir: Path, stall_min: float, check_s: float = 30.0
                 ckpt_dir.mkdir(parents=True, exist_ok=True)
                 (ckpt_dir / "STALL_ABORT.json").write_text(json.dumps(info, ensure_ascii=False, indent=1), encoding="utf-8")
                 print(f"★정체 {stall_min}분 — STALL_ABORT.json 기록 후 종료(exit 9): 마지막 행 {info['last_metrics_row']!r}", file=sys.stderr, flush=True)
-                os._exit(9)
+                _stall_exit(9)
 
     th = threading.Thread(target=loop, name="stall-watchdog", daemon=True); th.start()
-    return th
+    return th, stop_ev
+
+
+def _stall_exit(code: int) -> None:
+    """os._exit 래퍼(테스트에서 바꿔 끼운다)."""
+    os._exit(code)
 
 
 def set_all_seeds(seed: int) -> dict[str, bool]:
@@ -534,6 +558,15 @@ def set_all_seeds(seed: int) -> dict[str, bool]:
     except Exception:  # noqa: BLE001
         pass
     return done
+
+
+def split_train_block(cfg: dict[str, Any]) -> tuple[dict[str, Any], dict[str, Any] | None]:
+    """config 의 train: 블록 → (CLI 기본값 dict, aug_config). [B-1] aug_config 는 argparse 인자가 아니라 rfdetr train(aug_config=) 로 간다."""
+    block = dict(cfg.get("train") or {})
+    aug = block.pop("aug_config", None)
+    if aug is not None and not isinstance(aug, dict):
+        raise SystemExit(f"config train.aug_config 는 매핑이어야 한다({type(aug).__name__})")
+    return {k.replace("-", "_"): v for k, v in block.items()}, (dict(aug) if aug else None)
 
 
 def _git_commit() -> str:
@@ -666,7 +699,7 @@ def main() -> int:
     import yaml
     pre, _ = ap.parse_known_args()
     cfg = yaml.safe_load(Path(pre.config).read_text(encoding="utf-8"))
-    train_defaults = {k.replace("-", "_"): v for k, v in (cfg.get("train") or {}).items()}   # [2026-09-27] config 의 train: 블록이 CLI 기본값이 된다(CLI 명시가 우선)
+    train_defaults, aug_config = split_train_block(cfg)   # [2026-09-27] config 의 train: 블록이 CLI 기본값이 된다(CLI 명시가 우선) · [B-1] aug_config 는 별도
     known = {act.dest for act in ap._actions}
     unknown = sorted(set(train_defaults) - known)
     if unknown:
@@ -694,6 +727,7 @@ def main() -> int:
             "res": a.res, "seed": a.seed, "seeds_set": seeds, "init": a.init, "classes": cfg["classes"], "harness": cfg.get("harness", "ppe"),
             "val_subsample": a.val_subsample, "eval_interval": a.eval_interval, "num_workers": a.num_workers, "stall_min": a.stall_min,
             "heldout_eval_every": a.heldout_eval_every, "field_heldout": a.field_heldout, "train_defaults_from_config": train_defaults,
+            "aug_config": aug_config,                     # [B-1] None = rfdetr 기본(HorizontalFlip p0.5 + multi_scale)
             "assembly": rep, "notes_keys": sorted(notes.keys()),
             "guards": ["NaN 감시(배치 손실·epoch 지표) → 즉시 중단", "seed 고정", "notes(resolution·seed·args) 체크포인트 기록 + 학습 후 검증", "CUDA 강제",
                        f"정체 감시 {a.stall_min}분 → STALL_ABORT.json(py-spy 스택) + exit 9", "epoch 소요·남은 예상 → metrics.csv epoch_time_s/eta_min + 로그"],
@@ -720,15 +754,19 @@ def main() -> int:
     install_nan_guard(out / "ckpt", a.epochs, extra)
     m = RFDETRNano(resolution=a.res) if a.init == "coco" else RFDETRNano(pretrain_weights=a.init, resolution=a.res)
     t0 = time.time()
-    start_stall_watchdog(out / "ckpt", a.stall_min)
+    _wd_thread, wd_stop = start_stall_watchdog(out / "ckpt", a.stall_min)
     print(f"[train] 시작 {time.strftime('%H:%M:%S')} · epochs {a.epochs} · valid {rep['valid']['images']}장(학습 중) · eval_interval {a.eval_interval} · "
           f"num_workers {a.num_workers} · 정체 감시 {a.stall_min}분", flush=True)
     try:
         m.train(dataset_dir=str(out / "dataset"), epochs=a.epochs, batch_size=a.batch, grad_accum_steps=a.grad_accum, lr=a.lr,
                 device="cuda", output_dir=str(out / "ckpt"), tensorboard=False, early_stopping=False, seed=a.seed, notes=notes,
-                eval_interval=a.eval_interval, num_workers=a.num_workers, progress_bar=None, checkpoint_interval=1, eval_max_dets=a.eval_max_dets)
+                eval_interval=a.eval_interval, num_workers=a.num_workers, progress_bar=None, checkpoint_interval=1, eval_max_dets=a.eval_max_dets,
+                **({"aug_config": aug_config} if aug_config else {}))          # [B-1] train.aug_config → rfdetr albumentations 사전
     except NanAbort as e:
+        wd_stop.set()
         print(str(e)); print("★학습 실패(NaN) — 산출물을 하네스에 넘기지 않는다"); return 3
+    finally:
+        wd_stop.set()                                    # [#10] 학습이 끝났다 — 이후(검증·하네스)엔 정체 감시가 돌면 안 된다
     print(f"[train] done {(time.time() - t0) / 3600:.2f}h → {out / 'ckpt'}")
     best = next(iter(sorted((out / "ckpt").glob("checkpoint_best_total.pth"))), None) or next(iter(sorted((out / "ckpt").glob("checkpoint*.pth"))), None)
     if best is None:
