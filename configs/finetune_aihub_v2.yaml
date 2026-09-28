@@ -12,12 +12,12 @@ sources:
     splits: {train: train, valid: valid}               # test 82 는 누출 분할이라 valid 로도 쓰지 않는다(held-out 91 은 exclude_files 로 제외)
   - name: aihub_507
     kind: vigent
-    labels: D:/vigent_private_data/aihub/vigent_507/labels        # aihub_to_vigent.py --dataset 507 --only-with-images (장소ID 7/3 분할, 2,942프레임)
-    images: D:/vigent_private_data/aihub/_inspect/507_src         # VS_03_공통 18,598장(이 중 라벨 있는 2,942장만 조립)
-    split: D:/vigent_private_data/aihub/vigent_507/split.json     # NO-Hardhat(WO-04)·person(UA-04) + pseudo Hardhat(conf≥0.6, 병합)
+    labels: ${VIGENT_DATA_DIR}/aihub/vigent_507/labels        # aihub_to_vigent.py --dataset 507 --only-with-images (장소ID 7/3 분할, 2,942프레임)
+    images: ${VIGENT_DATA_DIR}/aihub/_inspect/507_src         # VS_03_공통 18,598장(이 중 라벨 있는 2,942장만 조립)
+    split: ${VIGENT_DATA_DIR}/aihub/vigent_507/split.json     # NO-Hardhat(WO-04)·person(UA-04) + pseudo Hardhat(conf≥0.6, 병합)
   - name: pseudo_507_sample
     kind: vigent
-    labels: D:/vigent_private_data/aihub/pseudo_507/labels        # 507 개구부 표본 720장 중 준라벨 Hardhat 681장(★미검수 conf≥0.6; 3장 제거는 판정 근거 없음) — 전부 train
-    images: D:/vigent_private_data/aihub/docs_507
-    split: D:/vigent_private_data/aihub/pseudo_507/split.json
+    labels: ${VIGENT_DATA_DIR}/aihub/pseudo_507/labels        # 507 개구부 표본 720장 중 준라벨 Hardhat 681장(★미검수 conf≥0.6; 3장 제거는 판정 근거 없음) — 전부 train
+    images: ${VIGENT_DATA_DIR}/aihub/docs_507
+    split: ${VIGENT_DATA_DIR}/aihub/pseudo_507/split.json
 exclude_files: benchmarks/results/v1_heldout_eval.json   # held-out 91장 stem 을 어느 분할에도 넣지 않는다(전/후 비교 집합)

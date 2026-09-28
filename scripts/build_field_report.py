@@ -10,6 +10,7 @@ PDF 변환은 Windows 기본 Edge 의 headless 인쇄를 쓴다 — 추가 설�
 from __future__ import annotations
 
 import base64
+import shutil
 import subprocess
 import sys
 import time
@@ -20,7 +21,7 @@ if hasattr(sys.stdout, "reconfigure"):
 
 ROOT = Path(__file__).resolve().parent.parent
 F = ROOT / "runs" / "field_20260827"
-EDGE = Path(r"C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe")
+EDGE = Path(shutil.which("msedge") or r"C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe")   # [B-4] PATH 우선
 
 # 사진은 scripts/pick_report_frames.py 가 **캡션 조건을 좌표로 검증해** 뽑은 것만 쓴다.
 #   (2026-08-27: 스틸을 어림잡아 골랐다가 캡션과 다른 순간의 사진이 실렸다 — 재발 방지)

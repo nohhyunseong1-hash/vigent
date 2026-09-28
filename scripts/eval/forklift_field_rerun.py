@@ -6,20 +6,22 @@ import json
 import os
 import sys
 import time
+from pathlib import Path
 
+_ROOT = Path(__file__).resolve().parents[2]
+sys.path.insert(0, str(_ROOT / "vigent-core")); sys.path.insert(0, str(_ROOT / "scripts" / "eval")); sys.path.insert(0, str(_ROOT / "scripts" / "data"))
 import cv2
+import data_paths as _dp  # noqa: E402
 import torch
 from PIL import Image
-
-sys.path.insert(0, r'D:\vigent_original\scripts\eval')
 from rfdetr import RFDETRNano
 from rfdetr.assets.coco_classes import COCO_CLASSES
 
-ROOT = r'D:\vigent_field\20260827\field_20260827'
-OUT = r'D:\vigent_original\audit\forklift_field_rerun_20260926.json'
+ROOT = str(_dp.field_root() / '20260827' / 'field_20260827')
+OUT = str(_ROOT / 'audit' / 'forklift_field_rerun_20260926.json')
 THRS = [0.002, 0.01, 0.05, 0.1, 0.3, 0.5]
 dev = 'cuda' if torch.cuda.is_available() else 'cpu'
-fk = RFDETRNano(pretrain_weights=r'D:\vigent_original\vigent-core\weights\forklift_rfdetr_v1.pth', resolution=384, device=dev)
+fk = RFDETRNano(pretrain_weights=str(_ROOT / 'vigent-core' / 'weights' / 'forklift_rfdetr_v1.pth'), resolution=384, device=dev)
 coco = RFDETRNano(resolution=384, device=dev)
 for m in (fk, coco):
     try: m.optimize_for_inference()

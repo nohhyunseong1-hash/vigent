@@ -13,18 +13,20 @@ import time
 from pathlib import Path
 
 _ROOT = Path(__file__).resolve().parent.parent.parent
-sys.path.insert(0, str(Path(__file__).resolve().parent))
+sys.path.insert(0, str(Path(__file__).resolve().parent)); sys.path.insert(0, str(_ROOT / "vigent-core"))
 if hasattr(sys.stdout, "reconfigure"):
     sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 
+import data_paths as _dp  # noqa: E402
+import defaults as _defaults  # noqa: E402
 from forklift_compare_harness import IMG_EXTS, load_model  # noqa: E402
 
 
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--weights", required=True); ap.add_argument("--res", type=int, default=384)
-    ap.add_argument("--neg-images", default="D:/vigent_private_data/aihub/_inspect/507_src"); ap.add_argument("--neg-limit", type=int, default=2000)
-    ap.add_argument("--conf", type=float, default=0.5); ap.add_argument("--out", default=str(_ROOT / "audit" / "forklift_fp_507"))
+    ap.add_argument("--neg-images", default=str(_dp.media("aihub/_inspect/507_src"))); ap.add_argument("--neg-limit", type=int, default=2000)
+    ap.add_argument("--conf", type=float, default=_defaults.FORKLIFT_OP_CONF); ap.add_argument("--out", default=str(_ROOT / "audit" / "forklift_fp_507"))
     a = ap.parse_args()
     import cv2
     import numpy as np

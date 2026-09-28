@@ -42,6 +42,10 @@ from pathlib import Path
 from typing import Any, Callable
 
 _ROOT = Path(__file__).resolve().parent.parent.parent
+sys.path.insert(0, str(_ROOT / "vigent-core"))                       # [B-4] data_paths·labels·defaults(정본) 를 쓴다
+import data_paths as _dp  # noqa: E402
+import labels as _labels  # noqa: E402
+
 if hasattr(sys.stdout, "reconfigure"):
     sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 
@@ -66,7 +70,7 @@ def _read_yolo(txt: Path, names: list[str], classes: list[str]) -> list[tuple[in
         if len(t) < 5:
             continue
         name = names[int(t[0])] if int(t[0]) < len(names) else None
-        name = {"Safety Vest": "Safety-Vest", "NO-Safety Vest": "NO-Safety-Vest", "Person": "person"}.get(name, name)  # CSS 공백형 → 표준형
+        name = std_name(name)                                                           # CSS 공백형 → 표준형([B-5] labels 정본)
         if name not in classes:
             continue
         out.append((classes.index(name), [float(x) for x in t[1:5]]))
@@ -74,12 +78,14 @@ def _read_yolo(txt: Path, names: list[str], classes: list[str]) -> list[tuple[in
 
 
 FIELD_DIR_ENV = "VIGENT_FIELD_DIR"                                   # [2026-09-27 현장 경로] config 의 ${VIGENT_FIELD_DIR} 치환
-FIELD_DIR_DEFAULT = "D:/vigent_private_data/field/prelabel"
+FIELD_DIR_DEFAULT = str(_dp.media("field/prelabel"))                 # [B-4] 예전 리터럴 "D:/vigent_private_data/field/prelabel" → data_paths
+DATA_DIR_ENV = _dp.ENV                                                # "VIGENT_DATA_DIR" — configs 의 ${VIGENT_DATA_DIR}/aihub/... 치환
 
 
 def expand_path(p: str) -> str:
-    """config 경로의 ${VIGENT_FIELD_DIR} 를 env(없으면 기본 D:/vigent_private_data/field/prelabel)로 치환. dry-run 은 env 로 합성 자료를 가리킨다."""
-    env = {**os.environ}; env.setdefault(FIELD_DIR_ENV, FIELD_DIR_DEFAULT)
+    """config 경로의 ${VIGENT_FIELD_DIR}·${VIGENT_DATA_DIR} 를 env 로 치환(없으면 data_paths 기본: 저장소 옆 vigent_private_data).
+    dry-run 은 VIGENT_FIELD_DIR 로 합성 자료를 가리킨다. [B-4] configs 의 D:/ 절대경로를 없앴다."""
+    env = {**os.environ}; env.setdefault(FIELD_DIR_ENV, FIELD_DIR_DEFAULT); env.setdefault(DATA_DIR_ENV, str(_dp.data_dir()))
     return re.sub(r"\$\{(\w+)\}", lambda m: env.get(m.group(1), m.group(0)), str(p))
 
 
@@ -634,7 +640,7 @@ def verify_checkpoint(path: Path | str, expect_res: int, expect_seed: int) -> li
     return problems
 
 
-_STD = {"NO-Safety Vest": "NO-Safety-Vest", "Safety Vest": "Safety-Vest", "Person": "person"}
+_STD = dict(_labels.CSS_TO_STD)                                          # [B-5] 정본 labels.CSS_TO_STD
 
 
 def std_name(n: str) -> str:

@@ -6,17 +6,18 @@ import sys
 import time
 from pathlib import Path
 
+_ROOT = Path(__file__).resolve().parents[2]
+sys.path.insert(0, str(_ROOT / "vigent-core")); sys.path.insert(0, str(_ROOT / "scripts" / "eval")); sys.path.insert(0, str(_ROOT / "scripts" / "data"))
+import data_paths as _dp  # noqa: E402
 import torch
-from PIL import Image
-
-sys.path.insert(0, r'D:\vigent_original\scripts\eval'); sys.path.insert(0, r'D:\vigent_original\scripts\data')
 from aihub_smoke_eval import gt_from_aihub
+from PIL import Image
 from rfdetr import RFDETRNano
 
-OUT = r'D:\vigent_original\audit\forklift_aihub_imagelevel_20260926.json'
+OUT = str(_ROOT / 'audit' / 'forklift_aihub_imagelevel_20260926.json')
 THRS = [0.002, 0.01, 0.05, 0.1, 0.3, 0.5]
 dev = 'cuda' if torch.cuda.is_available() else 'cpu'
-fk = RFDETRNano(pretrain_weights=r'D:\vigent_original\vigent-core\weights\forklift_rfdetr_v1.pth', resolution=384, device=dev)
+fk = RFDETRNano(pretrain_weights=str(_ROOT / 'vigent-core' / 'weights' / 'forklift_rfdetr_v1.pth'), resolution=384, device=dev)
 try: fk.optimize_for_inference()
 except Exception: pass
 
@@ -51,6 +52,6 @@ def run(name, dataset, labels, images):
 
 res = {'date': time.strftime('%Y-%m-%d %H:%M'), 'device': dev, 'thresholds': THRS, 'model': 'forklift_rfdetr_v1 res384 predict thr0.001',
        'caveat': 'AI Hub 표본 기준·운용 조건 아님·기준선 아님. 이미지 단위 존재 판정(현장 재측정과 같은 지표).', 'sets': {}}
-res['sets']['510_VS03'] = run('510_VS03', '510', r'D:\vigent_private_data\aihub\_inspect\510_all', r'D:\vigent_private_data\aihub\_inspect\510_src_VS03')
-res['sets']['507_opening_sample'] = run('507_opening_sample', '507', r'D:\vigent_private_data\aihub\docs_507', r'D:\vigent_private_data\aihub\docs_507')
+res['sets']['510_VS03'] = run('510_VS03', '510', str(_dp.media('aihub/_inspect/510_all')), str(_dp.media('aihub/_inspect/510_src_VS03')))
+res['sets']['507_opening_sample'] = run('507_opening_sample', '507', str(_dp.media('aihub/docs_507')), str(_dp.media('aihub/docs_507')))
 json.dump(res, open(OUT, 'w', encoding='utf-8'), ensure_ascii=False, indent=1); print('saved', OUT)

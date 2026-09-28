@@ -58,9 +58,10 @@ def main() -> int:
     import yaml
     res = {}; cache: dict = {}
     # 1) 507 train
-    v507 = Path("D:/vigent_private_data/aihub/vigent_507"); names507 = (v507 / "classes.txt").read_text(encoding="utf-8").split()
+    import data_paths as _dp
+    v507 = _dp.media("aihub/vigent_507"); names507 = (v507 / "classes.txt").read_text(encoding="utf-8").split()
     sp = json.loads((v507 / "split.json").read_text(encoding="utf-8"))
-    idx = {p.stem: p for p in Path("D:/vigent_private_data/aihub/_inspect/507_src").rglob("*.jpg")}
+    idx = {p.stem: p for p in _dp.media("aihub/_inspect/507_src").rglob("*.jpg")}
     files = [v507 / "labels" / f"{s}.txt" for s in sp["train"]]
     res["507_train(WO-04 머리 박스)"] = _q(heights_yolo(files, names507, lambda lb: idx.get(lb.stem), cache))
     # 2) CSS train / 3) held-out 91

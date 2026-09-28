@@ -23,14 +23,17 @@ sys.path.insert(0, str(_ROOT / "vigent-core"))
 if hasattr(sys.stdout, "reconfigure"):
     sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 
-FIELD_ROOT = r"D:\vigent_field\20260827\field_20260827"
+import data_paths as _dp  # noqa: E402
+import defaults as _defaults  # noqa: E402
+
+FIELD_ROOT = str(_dp.field_root() / "20260827" / "field_20260827")    # [B-4] 방문 날짜는 --root 로
 SMOKE_PREFIX = "00_"
 
 
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--theme", required=True); ap.add_argument("--label", required=True)
-    ap.add_argument("--root", default=FIELD_ROOT); ap.add_argument("--conf-forklift", type=float, default=0.5)
+    ap.add_argument("--root", default=FIELD_ROOT); ap.add_argument("--conf-forklift", type=float, default=_defaults.FORKLIFT_OP_CONF)
     ap.add_argument("--out", default=""); ap.add_argument("--limit", type=int, default=0)
     a = ap.parse_args()
     import cv2

@@ -8,10 +8,10 @@ max_train: 5000               # 스모크 파인튜닝 상한(대표 승인 범�
 sources:
   - name: aihub_510
     kind: vigent
-    labels: D:/vigent_private_data/aihub/vigent_510/labels          # scripts/data/aihub_to_vigent.py --dataset 510 (장소ID 단위 8:2)
-    images: D:/vigent_private_data/aihub/_inspect/510_src           # VS_03(있음) + VS_07_지게차(다운로드 승인, 수신 후 압축 해제)
-    split: D:/vigent_private_data/aihub/vigent_510/split.json
+    labels: ${VIGENT_DATA_DIR}/aihub/vigent_510/labels          # scripts/data/aihub_to_vigent.py --dataset 510 (장소ID 단위 8:2)
+    images: ${VIGENT_DATA_DIR}/aihub/_inspect/510_src           # VS_03(있음) + VS_07_지게차(다운로드 승인, 수신 후 압축 해제)
+    split: ${VIGENT_DATA_DIR}/aihub/vigent_510/split.json
 harness_args:
-  s510_labels: D:/vigent_private_data/aihub/vigent_510/labels
-  s510_images: D:/vigent_private_data/aihub/_inspect/510_src
-  s510_split: D:/vigent_private_data/aihub/vigent_510/split.json
+  s510_labels: ${VIGENT_DATA_DIR}/aihub/vigent_510/labels
+  s510_images: ${VIGENT_DATA_DIR}/aihub/_inspect/510_src
+  s510_split: ${VIGENT_DATA_DIR}/aihub/vigent_510/split.json

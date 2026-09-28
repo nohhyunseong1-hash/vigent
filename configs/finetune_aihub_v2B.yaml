@@ -13,12 +13,12 @@ sources:
     splits: {train: train, valid: valid}
   - name: aihub_507
     kind: vigent
-    labels: D:/vigent_private_data/aihub/vigent_507/labels        # A 와 같은 라벨 + ★train 프레임에만 pseudo:v1:Safety-Vest+NO-Safety-Vest 병합(사이드카 source 표기)
-    images: D:/vigent_private_data/aihub/_inspect/507_src
-    split: D:/vigent_private_data/aihub/vigent_507/split.json
+    labels: ${VIGENT_DATA_DIR}/aihub/vigent_507/labels        # A 와 같은 라벨 + ★train 프레임에만 pseudo:v1:Safety-Vest+NO-Safety-Vest 병합(사이드카 source 표기)
+    images: ${VIGENT_DATA_DIR}/aihub/_inspect/507_src
+    split: ${VIGENT_DATA_DIR}/aihub/vigent_507/split.json
   - name: pseudo_507_sample
     kind: vigent
-    labels: D:/vigent_private_data/aihub/pseudo_507/labels        # A 와 동일(681장, 미검수 conf≥0.6 Hardhat)
-    images: D:/vigent_private_data/aihub/docs_507
-    split: D:/vigent_private_data/aihub/pseudo_507/split.json
+    labels: ${VIGENT_DATA_DIR}/aihub/pseudo_507/labels        # A 와 동일(681장, 미검수 conf≥0.6 Hardhat)
+    images: ${VIGENT_DATA_DIR}/aihub/docs_507
+    split: ${VIGENT_DATA_DIR}/aihub/pseudo_507/split.json
 exclude_files: benchmarks/results/v1_heldout_eval.json

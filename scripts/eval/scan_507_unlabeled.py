@@ -16,18 +16,22 @@ from collections import Counter
 from pathlib import Path
 
 _ROOT = Path(__file__).resolve().parent.parent.parent
-sys.path.insert(0, str(Path(__file__).resolve().parent))
+sys.path.insert(0, str(Path(__file__).resolve().parent)); sys.path.insert(0, str(_ROOT / "vigent-core"))
+import data_paths as _dp  # noqa: E402
+
 if hasattr(sys.stdout, "reconfigure"):
     sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 
-VEST = {"Safety Vest": "Safety-Vest", "NO-Safety Vest": "NO-Safety-Vest"}
+import labels as _labels  # noqa: E402
+
+VEST = {k: v for k, v in _labels.CSS_TO_STD.items() if "Vest" in k}     # [B-5] 정본 파생
 HAT = {"Hardhat": "Hardhat"}
 COLORS = {"Safety-Vest": (0, 0, 255), "NO-Safety-Vest": (200, 0, 200), "Hardhat": (0, 200, 0)}
 
 
 def main() -> int:
     ap = argparse.ArgumentParser()
-    ap.add_argument("--vigent507", default="D:/vigent_private_data/aihub/vigent_507"); ap.add_argument("--images", default="D:/vigent_private_data/aihub/_inspect/507_src")
+    ap.add_argument("--vigent507", default=str(_dp.media("aihub/vigent_507"))); ap.add_argument("--images", default=str(_dp.media("aihub/_inspect/507_src")))
     ap.add_argument("--conf", type=float, default=0.6); ap.add_argument("--limit", type=int, default=0); ap.add_argument("--preview-n", type=int, default=30)
     ap.add_argument("--preview-dir", default=str(_ROOT / "audit" / "507_vest_unlabeled")); ap.add_argument("--out", default=str(_ROOT / "audit" / "scan_507_unlabeled.json"))
     ap.add_argument("--seed", type=int, default=20260927)

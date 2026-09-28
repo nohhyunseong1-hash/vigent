@@ -27,14 +27,18 @@ from typing import Any, Callable
 from xml.sax.saxutils import escape
 
 _ROOT = Path(__file__).resolve().parent.parent.parent
-sys.path.insert(0, str(_ROOT / "scripts" / "eval"))
+sys.path.insert(0, str(_ROOT / "scripts" / "eval")); sys.path.insert(0, str(_ROOT / "vigent-core"))
+import data_paths as _dp  # noqa: E402
+
 if hasattr(sys.stdout, "reconfigure"):
     sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 
 VIDEO_EXTS = (".mp4", ".avi", ".mkv", ".mov", ".h264", ".264", ".dav", ".ts")
 IMG_EXTS = (".jpg", ".jpeg", ".png", ".bmp")
-CLASSES = ["person", "Hardhat", "NO-Hardhat", "Safety-Vest", "NO-Safety-Vest"]          # VIGENT 표준 5클래스(변환기와 같은 순서)
-PRIVATE_ROOT_DEFAULT = Path("D:/vigent_private_data/field")
+from labels import STD5  # noqa: E402  [CODE_AUDIT B-5] 클래스 정본
+
+CLASSES = list(STD5)                                                                    # VIGENT 표준 5클래스(변환기와 같은 순서)
+PRIVATE_ROOT_DEFAULT = _dp.media("field")                                            # [B-4] 예전 Path("D:/vigent_private_data/field")
 _DATE = re.compile(r"(20\d{2})[-_.]?(\d{2})[-_.]?(\d{2})(?:[-_T ]?(\d{2})[-:_]?(\d{2})[-:_]?(\d{2}))?")
 Predictor = Callable[[Any], list[tuple[str, list[float], float]]]     # PIL image → [(표준 클래스명, [x1,y1,x2,y2], conf)]
 

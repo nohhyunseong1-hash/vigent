@@ -38,9 +38,13 @@ if hasattr(sys.stdout, "reconfigure"):
     sys.stdout.reconfigure(encoding="utf-8")
 
 MD = ROOT / "reports" / "현장테스트_보고서_20260827_v1.2.md"
-OUT_DIR = Path(r"D:\vigent_field\20260827\build")
-VID_ROOT = Path(r"D:\vigent_field\20260827\field_20260827")
-EDGE = Path(r"C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe")
+sys.path.insert(0, str(ROOT / "vigent-core"))
+import data_paths as _dp  # noqa: E402
+
+# [B-4] 현장 원본 루트는 data_paths.field_root()(VIGENT_FIELD_ROOT) · Edge 는 PATH 에서 찾고 없으면 기본 설치 경로
+OUT_DIR = _dp.field_root() / "20260827" / "build"
+VID_ROOT = _dp.field_root() / "20260827" / "field_20260827"
+EDGE = Path(shutil.which("msedge") or r"C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe")
 
 # v1.1 사진 6장(base·nop·full·board·misfire·zone) + v1.2 신규 1장(maskonly).
 # zone 은 자동 선정기가 없어 v1.1 PDF 에서 추출한 것을 그대로 쓴다.
