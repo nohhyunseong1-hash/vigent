@@ -67,6 +67,12 @@ if ($SkipBuild) {
 } else {
     & powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $Repo "scripts\build_portable.ps1") -Gpu -Root $portable -Cache $Cache -Profile $Profile
     if ($LASTEXITCODE -ne 0) { Fail "build_portable.ps1 -Gpu 실패" }
+# ★[CODE_AUDIT_20260928 #5] 배치·ps1 은 CRLF 여야 한다(작업트리가 LF 로 체크아웃되면 cmd 파싱이 깨질 수 있다 — .gitattributes 는 CRLF 선언).
+foreach ($f in @((Join-Path $Repo "deploy\usb\설치.bat"), (Join-Path $Repo "scripts\deploy\install.ps1"), (Join-Path $Repo "deploy\windows\install_service.ps1"))) {
+    $raw = [IO.File]::ReadAllText($f)
+    if ($raw -match "(?<!`r)`n") { Fail ("CRLF 검증 실패(LF 줄바꿈 발견): " + $f + " — git add --renormalize 후 다시 체크아웃") }
+}
+Write-Host "  CRLF 검증 통과(설치.bat·install.ps1·install_service.ps1)"
 }
 # 빈 폴더는 '설치 전' 상태로 다시 만든다(런처가 기대한다)
 foreach ($d in @("state\logs", "state\data", "app\data", "app\logs")) { New-Item -ItemType Directory -Force (Join-Path $portable $d) | Out-Null }

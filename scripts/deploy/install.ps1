@@ -183,8 +183,28 @@ elseif ($DryRun) { Act "install_service.ps1 -Root $App -PythonExe $Py -Bind $Bin
 else {
     $isv = Join-Path $App "deploy\windows\install_service.ps1"
     if (-not (Test-Path $isv)) { Fail "install_service.ps1 이 없다: $isv (USB installer\windows\ 확인)" }
-    & powershell -NoProfile -ExecutionPolicy Bypass -File $isv -Root $App -PythonExe $Py -Bind $Bind -Port $Port -ExtraEnv $extra
+    # ★[CODE_AUDIT_20260928 #5] 외부 바인드(0.0.0.0 등)면 app\.env 의 VIGENT_API_TOKEN 이 있어야 한다 — 없으면 무인증 노출이므로 등록하지 않는다.
+    if ($Bind -ne "127.0.0.1" -and $Bind -ne "localhost") {
+        $envCheck = Join-Path $App ".env"
+        $hasTok = (Test-Path $envCheck) -and (Select-String -Path $envCheck -Pattern '^VIGENT_API_TOKEN=\S{16,}' -Quiet)
+        if (-not $hasTok) { Fail "외부 바인드($Bind)에는 VIGENT_API_TOKEN 이 필수인데 app\.env 에 없다 — 토큰 생성 단계 확인" }
+        Write-Host "  외부 바인드 $Bind — app\.env 토큰 확인(값은 출력하지 않음)"
+    }
+    # ★[CODE_AUDIT_20260928 #5] 예전 `& powershell -File $isv ... -ExtraEnv $extra` 는 배열을 문자열로 풀어 첫 값만 바인딩되고
+    #   나머지가 위치 인자(ServiceName·LogMaxBytes)로 흘러갈 수 있었다(실기 미검증). 같은 세션에서 직접 호출해 배열을 그대로 넘긴다.
+    & $isv -Root $App -PythonExe $Py -Bind $Bind -Port $Port -ExtraEnv $extra
     if ($LASTEXITCODE -ne 0) { Fail "서비스 등록 실패" }
+}
+
+# ★[CODE_AUDIT_20260928 #5] 설치 결과(Target·Port·Bind)를 고정 위치에 남긴다 — 설치.bat(마법사·인수시험 경로)과 acceptance_test.py 가 읽는다.
+#   예전엔 설치.bat 이 C:\VIGENT 를, 인수시험이 8010 을 각자 고정해 -Target/-Port 를 바꾸면 엉뚱한 곳을 봤다.
+if (-not $DryRun) {
+    $resObj = [ordered]@{ target = $Target; app = $App; python = $Py; port = $Port; bind = $Bind; installed_at = $T0.ToString("s"); mode = $Report.mode }
+    $resDir = Join-Path $App "data"; New-Item -ItemType Directory -Force $resDir | Out-Null
+    [IO.File]::WriteAllText((Join-Path $resDir "install_result.json"), ($resObj | ConvertTo-Json -Depth 3), (New-Object Text.UTF8Encoding $false))
+    $resEnv = "TARGET=$Target`r`nAPP=$App`r`nPYTHON=$Py`r`nPORT=$Port`r`nBIND=$Bind`r`n"
+    [IO.File]::WriteAllText((Join-Path $env:TEMP "vigent_install_result.env"), $resEnv, (New-Object Text.UTF8Encoding $false))
+    Write-Host ("  설치 결과 기록: " + (Join-Path $resDir "install_result.json") + " · " + (Join-Path $env:TEMP "vigent_install_result.env"))
 }
 
 $Report.result = "완료(인수시험 전)"

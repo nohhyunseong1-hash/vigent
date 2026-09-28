@@ -1,4 +1,4 @@
-\xef\xbb\xbf# scripts/build_portable.ps1 — VIGENT USB 포터블 패키지 빌드 (Windows PowerShell 5.1 이상)
+﻿# scripts/build_portable.ps1 — VIGENT USB 포터블 패키지 빌드 (Windows PowerShell 5.1 이상)
 #
 #   .\scripts\build_portable.ps1                        # D:\vigent_portable 에 빌드(캐시 D:\vigent_portable_cache)
 #   .\scripts\build_portable.ps1 -Gpu                   # + python\wheels_cuda\ 에 CUDA torch 휠 동봉(선택, 2.5GB+)

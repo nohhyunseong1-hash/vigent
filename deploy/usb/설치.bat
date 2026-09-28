@@ -31,9 +31,15 @@ if not "%RC%"=="0" (
   exit /b %RC%
 )
 echo   설치 완료.
-rem ---- 계획 3: 첫 실행 마법사(대화식). --dry-run 이면 건너뛴다. 설치 대상은 install.ps1 기본값 C:\VIGENT ----
+rem ---- 계획 3: 첫 실행 마법사(대화식). --dry-run 이면 건너뛴다. ----
 rem  · 마법사는 기기 안의 파이썬·앱 모듈로 돈다. 토큰·비밀번호는 화면에 다시 찍지 않고 USB 에 저장하지 않는다.
+rem  · 설치 대상·포트는 install.ps1 이 남긴 %TEMP%\vigent_install_result.env 에서 읽는다(CODE_AUDIT #5). 없으면 기본값.
 set "TARGET=C:\VIGENT"
+set "PORT=8010"
+set "RESF=%TEMP%\vigent_install_result.env"
+if exist "%RESF%" for /f "usebackq tokens=1,* delims==" %%a in ("%RESF%") do set "RES_%%a=%%b"
+if defined RES_TARGET set "TARGET=%RES_TARGET%"
+if defined RES_PORT set "PORT=%RES_PORT%"
 set "WIZ=%TARGET%\app\scripts\deploy\setup_wizard.py"
 set "SKIPWIZ="
 if /I "%~1"=="--dry-run" set "SKIPWIZ=1"
@@ -50,7 +56,7 @@ if "%SKIPWIZ%"=="1" (
     rem ---- 계획 5: 인수시험 - 자동 A1~A8 + 사람 H1·H2. 실패면 설치 미완료로 기록된다 ----
     echo.
     echo   인수시험을 시작합니다. 결과는 기기의 app\data\install_report_*.json 에 남습니다.
-    "%TARGET%\python\python.exe" "%TARGET%\app\scripts\deploy\acceptance_test.py"
+    "%TARGET%\python\python.exe" "%TARGET%\app\scripts\deploy\acceptance_test.py" --base http://127.0.0.1:%PORT%
     if errorlevel 1 echo   인수시험 미달 - 위 실패 항목을 해결한 뒤 다시 실행: "%TARGET%\python\python.exe" "%TARGET%\app\scripts\deploy\acceptance_test.py"
   )
 ) else (

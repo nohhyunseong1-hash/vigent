@@ -228,14 +228,24 @@ def run(base: str, *, no_service: bool, only_human: bool, non_interactive: bool,
     return 1 if fails else 0
 
 
+def default_base(app: Path = APP) -> str:
+    """[CODE_AUDIT_20260928 #5] install.ps1 이 남긴 app/data/install_result.json 의 port 로 base URL 을 만든다. 없으면 8010."""
+    p = app / "data" / "install_result.json"
+    try:
+        port = int((json.loads(p.read_text(encoding="utf-8-sig")) or {}).get("port") or 8010)
+    except Exception:  # noqa: BLE001  파일 없음/손상 → 기본 포트
+        port = 8010
+    return f"http://127.0.0.1:{port}"
+
+
 def main() -> int:
     ap = argparse.ArgumentParser()
-    ap.add_argument("--base", default="http://127.0.0.1:8010")
+    ap.add_argument("--base", default=None, help="기본: app/data/install_result.json 의 port(없으면 8010)")
     ap.add_argument("--no-service", action="store_true")
     ap.add_argument("--only-human", action="store_true")
     ap.add_argument("--non-interactive", action="store_true")
     a = ap.parse_args()
-    return run(a.base, no_service=a.no_service, only_human=a.only_human, non_interactive=a.non_interactive)
+    return run(a.base or default_base(), no_service=a.no_service, only_human=a.only_human, non_interactive=a.non_interactive)
 
 
 if __name__ == "__main__":
