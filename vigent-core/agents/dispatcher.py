@@ -39,9 +39,23 @@ def notify_cfg() -> dict[str, Any]:
     if p.exists():
         try:
             import yaml
-            cfg = yaml.safe_load(p.read_text(encoding="utf-8")) or {}
-        except Exception:  # noqa: BLE001
+            loaded = yaml.safe_load(p.read_text(encoding="utf-8")) or {}
+            if not isinstance(loaded, dict):
+                raise TypeError(f"최상위가 매핑이 아님({type(loaded).__name__})")
+            cfg = loaded
+            if _PARSE_ERROR["sig"] is not None:          # 고쳐졌으면 상태 해제
+                _PARSE_ERROR.update(sig=None, reason=None)
+                if _SELFTEST.get("state") == "config_error" and str(_SELFTEST.get("reason", "")).startswith("notify.yaml"):
+                    _SELFTEST.update(state="unknown", checked_at=None, reason=None)
+        except Exception as ex:  # noqa: BLE001
+            # ★[CODE_AUDIT_20260928 #7] 예전엔 cfg={} 로 삼켜 "미설정" 으로만 보였다 — 원인(문법 오류)이 숨는다.
+            #   같은 오류는 ERROR 1회만 남기고(매 호출 스팸 방지), 자가시험 상태를 config_error 로 확정해 붉은 배너가 뜨게 한다.
             cfg = {}
+            sig = f"{type(ex).__name__}: {str(ex).splitlines()[0][:120]}"
+            if _PARSE_ERROR["sig"] != sig:
+                _PARSE_ERROR.update(sig=sig, reason=f"notify.yaml 파싱 실패 — {sig}")
+                _LOG.error("★config/notify.yaml 파싱 실패 — 알림 설정이 전부 무시된다: %s", sig)
+                _SELFTEST.update(state="config_error", checked_at=time.time(), unknown_since=None, reason=_PARSE_ERROR["reason"])
 
     def pick(key: str, env: str | None = None):
         v = cfg.get(key)
@@ -97,6 +111,7 @@ def redact_secrets(s: str) -> str:
 # [CODE_REVIEW M4-1·M4-3, 2026-09-06] 전달 실패 통계(프로세스 전역) — /health 가 dispatcher.status() 로 읽는다.
 #   undeliverable: critical/high 가 발생했는데 원격 채널이 하나도 설정돼 있지 않아 **큐에 넣지 않고 폐기**한 건수
 #   last_config_error: 4xx(토큰·chat_id·URL 오류) — 재시도해도 영원히 실패하는 설정 오류. 토큰 값은 절대 담지 않는다.
+_PARSE_ERROR: dict[str, Any] = {"sig": None, "reason": None}   # [CODE_AUDIT #7] notify.yaml 파싱 오류(같은 오류는 1회만 로그)
 _DELIVERY: dict[str, Any] = {"undeliverable_count": 0, "undeliverable_last_ts": None, "last_config_error": None,
                              "config_error_count": 0, "config_error_first_ts": None,
                              "enqueue_fail": 0, "enqueue_fail_last_ts": None}   # [CODE_AUDIT #1-②] 선기록 실패(재시도 불가) 건수
@@ -122,6 +137,7 @@ def reset_delivery_stats_for_test() -> None:
                      config_error_count=0, config_error_first_ts=None, enqueue_fail=0, enqueue_fail_last_ts=None)
     _SELFTEST.update(state="unknown", checked_at=None, unknown_since=None,
                      reason=None, bot=None, attempts=0)
+    _PARSE_ERROR.update(sig=None, reason=None)
 
 
 def note_config_error(channel: str, status: int | None) -> None:
@@ -155,6 +171,9 @@ def selftest_channels(force: bool = False) -> dict[str, Any]:
         return dict(_SELFTEST)                     # 미확인 재시도 간격 이내
     c = notify_cfg()
     _SELFTEST["attempts"] = int(_SELFTEST.get("attempts", 0)) + 1
+    if _PARSE_ERROR["sig"] is not None:                    # [CODE_AUDIT #7] 문법 오류 = 설정 오류(망 문제가 아니다)
+        _SELFTEST.update(state="config_error", checked_at=now, unknown_since=None, reason=_PARSE_ERROR["reason"])
+        return dict(_SELFTEST)
     if not (c["telegram_token"] and c["telegram_chat"]):
         _SELFTEST.update(state="not_configured", checked_at=now, reason="telegram 미설정", unknown_since=None)
         return dict(_SELFTEST)
