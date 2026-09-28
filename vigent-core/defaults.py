@@ -14,7 +14,12 @@ DEFAULT_CONF: float = 0.30           # 검출기 목록에 없는 슬롯의 임�
 CONF: dict[str, float] = {           # detect.conf.<slot>
     "person": 0.40,
     "ppe": 0.35,
-    "forklift": 0.002,               # F-7 측정용 값 — 운용은 프로파일(academy 0.50)이 덮는다
+    "forklift": 0.002,               # F-7 측정용 값 — 운용은 프로파일(academy, 아래 FORKLIFT_OP_CONF)이 덮는다
     "fire_smoke": 0.55,
 }
 PERSON_THRESHOLD: float = CONF["person"]   # rfdetr_service.detect_threshold 폴백
+
+# [CODE_AUDIT_20260928 B-5] 지게차 **운용점** 하나 — 학원 프로파일 deploy/academy/tuning.academy.yaml detect.conf.forklift 와 같아야 한다
+#   (tests/test_audit_b5_labels 가 대조). 평가 스크립트(forklift_compare_harness·fp_dump·neg_eval·field_yardstick)의 --conf 기본값이 이것.
+#   예전엔 tuning 0.002 / academy 0.50 / guard 0.55 / scripts 0.5 네 값이 따로 놀았다(guard 0.55 는 #6 에서 제거).
+FORKLIFT_OP_CONF: float = 0.50

@@ -32,6 +32,17 @@ def media(rel: str) -> Path:
     return data_dir() / rel
 
 
+FIELD_ENV = "VIGENT_FIELD_ROOT"
+
+
+def field_root() -> Path:
+    """[CODE_AUDIT_20260928 B-4] 현장 원본(녹화·프레임 = 개인영상정보, 저장소·OneDrive 밖) 루트.
+    `VIGENT_FIELD_ROOT` 우선, 없으면 미디어 루트 **옆** `vigent_field/`(개발기: D:\vigent_private_data 옆 D:\vigent_field).
+    스크립트가 `D:\vigent_field\20260827\\...` 를 직접 적지 않고 여기서 받는다(방문 날짜는 인자)."""
+    v = os.environ.get(FIELD_ENV)
+    return Path(v).expanduser().resolve() if v else (data_dir().parent / "vigent_field")
+
+
 # ── [CODE_REVIEW M6-6 정정, 2026-09-06 대표 지시] 현장 평가 자료(field_eval)는 두 곳에 나뉜다 ──
 #   · 이미지(jpg 등, 얼굴이 찍힌 현장 프레임 = 개인영상정보) → 저장소 밖 VIGENT_DATA_DIR/field_eval
 #   · 라벨·정답지·매니페스트(txt/json/md — PII 아님, 평가 정답지로 버전 관리) → 저장소 data/field_eval (git 추적, 정본)

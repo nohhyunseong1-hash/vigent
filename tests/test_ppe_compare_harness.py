@@ -91,6 +91,21 @@ class ReproduceProvenance72Test(unittest.TestCase):
     넘나든 것이다. 그래서 GT 는 정확히, TP/FP/FN 은 클래스별 ±1, AP50·mAP 는 ±0.3 으로 본다 — 그 이상 벌어지면 진짜 회귀다.
     """
 
+    def setUp(self):
+        # ★[B-2, 2026-09-28] 전체 스위트에서 앞선 모듈(test_endpoints_smoke 등)이 띄운 "vigent-warmup" 스레드가 실모델을 GPU 에 올리는 동안
+        #   이 평가가 겹치면 결과가 흔들렸다(5회 중 1회 Safety Vest 83.2, 그 회차만 165 s 로 느림 = GPU 경합). R12(2026-09-06)와 같은 처방:
+        #   남은 예열 스레드를 먼저 기다리고, GPU 캐시를 비운 뒤 평가한다.
+        import threading
+        for t in threading.enumerate():
+            if t.name == "vigent-warmup" and t is not threading.current_thread():
+                t.join(120)
+        try:
+            import torch
+            if torch.cuda.is_available():
+                torch.cuda.synchronize(); torch.cuda.empty_cache()
+        except Exception:  # noqa: BLE001
+            pass
+
     def test_v1_reproduces_baseline(self):
         base = json.loads(H.BASELINE_JSON.read_text(encoding="utf-8"))
         cand = H.evaluate(str(_WEIGHTS), verbose=False)
@@ -103,9 +118,10 @@ class ReproduceProvenance72Test(unittest.TestCase):
                 # ★허용 오차 ±2(2026-09-27): ±1 이던 때 게이트에서 'Person.fp 48 vs 46' 으로 1회 실패(GPU 를 다른 작업이 함께 쓰던 중).
                 #   RF-DETR predict 의 GPU 비결정성으로 경계 conf 박스 1~2개가 오갈 수 있다 — 기준선 재현의 뜻(같은 집합·같은 모델)은 ±2 로도 지켜진다.
                 self.assertLessEqual(abs(c[k] - b[k]), 2, f"{b['class']}.{k}: {c[k]} vs 기준선 {b[k]}")
-            # ★클래스별 AP50 허용 ±0.5(2026-09-28): 전체 스위트 안에서만 Safety Vest 83.2 vs 기준선 82.8(단독 82.8) 이 3회 재현됐다
-            #   (CODE_AUDIT_20260928 §3-2, GPU 비결정 — 경계 conf 박스 1개가 순위를 바꿈). mAP(10클래스 평균)은 ±0.3 유지. 근본 원인은 감사 B 항목.
-            self.assertAlmostEqual(c["ap50"], b["ap50"], delta=0.5, msg=b["class"])
+            # ★클래스별 AP50 허용 ±0.3 로 복귀(2026-09-28 B-2): 09-28 에 ±0.5 로 넓혔던 것은 전체 스위트 안에서만 Safety Vest 83.2 vs 82.8 ·
+            #   machinery 91.4 vs 90.3 이 흔들렸기 때문(GPU 비결정). 이제 make_predictor 가 enable_determinism()(cudnn benchmark OFF·
+            #   deterministic ON·use_deterministic_algorithms) 을 켜므로 원래 허용으로 되돌린다. 다시 흔들리면 B-2 미해결로 기록한다.
+            self.assertAlmostEqual(c["ap50"], b["ap50"], delta=0.3, msg=b["class"])
         self.assertAlmostEqual(cand["summary"]["mAP50_all10"], base["summary"]["mAP50_all10"], delta=0.3)
         self.assertAlmostEqual(cand["summary"]["mAP50_all10"], 76.8, delta=0.3)  # provenance.md §7-2 · 2026-09-25 20:14 측정
 

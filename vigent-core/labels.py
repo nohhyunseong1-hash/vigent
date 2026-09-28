@@ -33,6 +33,31 @@ CLS_KO: dict[str, str] = {
 # 대소문자 무시 조회용 소문자 인덱스
 _LC: dict[str, str] = {k.lower(): v for k, v in CLS_KO.items()}
 
+# ── 클래스 이름·순서 정본 [CODE_AUDIT_20260928 B-5] ──
+#   예전엔 같은 5클래스 리스트가 변환기·정답지·현장 초벌·학습 설정 등 8곳, CSS 공백형↔표준형 변환표가 5곳 이상에 복제돼 있었다.
+#   여기 하나만 고친다. 학습 설정 yaml 의 classes: 는 데이터셋 계약이라 그대로 두되 테스트가 STD5 와 대조한다.
+STD5: list[str] = ["person", "Hardhat", "NO-Hardhat", "Safety-Vest", "NO-Safety-Vest"]   # class id 계약(순서 = classes.txt)
+STD5_FORKLIFT: list[str] = [*STD5, "forklift"]                                          # aihub_to_vigent(510 지게차 포함)
+PPE_MISSING_LABELS: tuple[str, ...] = ("NO-Hardhat", "NO-Safety-Vest", "NO-Mask")        # 전역 기본 필수 보호구(학원은 프로파일 yaml 이 2종)
+CSS_TO_STD: dict[str, str] = {"NO-Safety Vest": "NO-Safety-Vest", "Safety Vest": "Safety-Vest", "Person": "person"}   # CSS 공백형 → 표준형
+STD_TO_CSS: dict[str, str] = {v: k for k, v in CSS_TO_STD.items()}
+# 모델 원시 라벨 → 표준 라벨(규칙이 비교하는 문자열). guard.LABEL_NORMALIZE 의 정본 — 값·순서를 바꾸면 tests/test_audit_b5_labels 가 잡는다.
+LABEL_NORMALIZE: dict[str, str] = {
+    "NO-Safety Vest": "NO-Safety-Vest",
+    "Safety Vest": "Safety-Vest",
+    "NO-Safety-Vest": "NO-Safety-Vest",
+    "Safety-Vest": "Safety-Vest",
+    "Hardhat": "Hardhat", "NO-Hardhat": "NO-Hardhat",
+    "Fire": "fire",   # 화재 모델 대문자 → 표준 소문자
+    "Person": "person", "PERSON": "person",   # PPE모델 'Person' ↔ COCO 'person' 통일(중복 박스 방지)
+    "Forklift": "forklift", "Smoke": "smoke",
+}
+
+
+def std_name(name: str) -> str:
+    """모델 원시/CSS 라벨 → 표준 라벨. 모르는 이름은 그대로."""
+    return LABEL_NORMALIZE.get(str(name), str(name))
+
 
 def ko(c: str) -> str:
     """영문 클래스 → 한국어 표시명(대소문자 무시). 없으면 원문 그대로."""

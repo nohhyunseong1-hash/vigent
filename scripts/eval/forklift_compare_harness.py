@@ -33,10 +33,13 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 if hasattr(sys.stdout, "reconfigure"):
     sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 
+sys.path.insert(0, str(_ROOT / "vigent-core"))
+import data_paths as _dp  # noqa: E402
+import defaults as _defaults  # noqa: E402
 from eval_v1_heldout import ap50, iou, match, wilson  # noqa: E402
 
 GOALS_FK = {
-    "ap50_min": 70.0, "neg_fp_rate_max": 1.0, "op_conf": 0.5,
+    "ap50_min": 70.0, "neg_fp_rate_max": 1.0, "op_conf": _defaults.FORKLIFT_OP_CONF,
     "note": "510 held-out(장소 단위) AP50 ≥ 70 · 지게차 없는 이미지에서 conf≥0.5 박스 ≤ 1%/장 (2026-09-26 선언). 학원 956 은 참고",
 }
 BODA_REF = {
@@ -46,7 +49,7 @@ BODA_REF = {
 V1_SMOKE_NOTE = ("같은 집합 기준선 아님 — 2026-09-26 스모크(510 VS_03 2,543장): AP50 0.0 · R 23.6 @0.002 · 음성 2,399장 중 91.4% 가 conf≥0.5 박스 · "
                  "학원 956 IoU 일치 0.0% @0.5 (`docs/model/ppe_rfdetr_v1_provenance.md` §9-4)")
 BASELINE_JSON = _ROOT / "benchmarks" / "results" / "forklift_v1_baseline.json"
-FIELD_ROOT_DEFAULT = r"D:\vigent_field\20260827\field_20260827"
+FIELD_ROOT_DEFAULT = str(_dp.field_root() / "20260827" / "field_20260827")    # [B-4] 방문 날짜는 --field-root 로 바꾼다
 IMG_EXTS = (".jpg", ".jpeg", ".png")
 
 
@@ -54,7 +57,7 @@ IMG_EXTS = (".jpg", ".jpeg", ".png")
 # 순수 계산(테스트 대상) — predict 는 주입
 # ---------------------------------------------------------------------------------------------------------------------
 def eval_510(items: list[tuple[Any, list[list[float]]]], predict: Callable[[Any], list[tuple[list[float], float]]],
-             op_conf: float = 0.5, iou_thr: float = 0.5) -> dict[str, Any]:
+             op_conf: float = _defaults.FORKLIFT_OP_CONF, iou_thr: float = 0.5) -> dict[str, Any]:
     """items=[(키, [GT xyxy px, ...])], predict(키)→[(xyxy px, conf), ...](임계 0.001 전 검출). forklift 단일 클래스."""
     scored: list[tuple[float, bool]] = []
     per_img: list[tuple[list[tuple[float, bool]], int]] = []      # 이미지 단위 부트스트랩용
@@ -100,7 +103,7 @@ def bootstrap_ap50(per_img: list[tuple[list[tuple[float, bool]], int]], n_boot: 
 
 
 def eval_field_frames(frames: list[tuple[Any, list[list[float]]]], predict: Callable[[Any], list[tuple[list[float], float]]],
-                      op_conf: float = 0.5) -> dict[str, Any]:
+                      op_conf: float = _defaults.FORKLIFT_OP_CONF) -> dict[str, Any]:
     """frames=[(키, [현장 YOLO 지게차 박스 xyxy px, ...])]. 참고 집합 — 정답은 대본이므로 '일치율'로만 읽는다."""
     n = len(frames); ref = agree05 = agree01 = any05 = 0
     for key, boda in frames:
@@ -224,7 +227,9 @@ def load_field_frames(root: Path, limit_per_scene: int = 0):
 
 
 def load_model(weights: str, res: int):
+    from eval_v1_heldout import enable_determinism
     from rfdetr import RFDETRNano
+    enable_determinism()                                   # [CODE_AUDIT B-2] PPE 평가기와 같은 결정성 설정
     try:
         m = RFDETRNano(pretrain_weights=weights, resolution=res)
     except Exception:  # noqa: BLE001 — PTL 체크포인트(재학습 산출물)는 from_checkpoint 로
@@ -253,11 +258,11 @@ def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--weights", required=True); ap.add_argument("--label", default="")
     ap.add_argument("--res", type=int, default=384)
-    ap.add_argument("--s510-labels", default="D:/vigent_private_data/aihub/vigent_510/labels")
-    ap.add_argument("--s510-images", default="D:/vigent_private_data/aihub/_inspect/510_src")
-    ap.add_argument("--s510-split", default="D:/vigent_private_data/aihub/vigent_510/split.json")
+    ap.add_argument("--s510-labels", default=str(_dp.media("aihub/vigent_510/labels")))
+    ap.add_argument("--s510-images", default=str(_dp.media("aihub/_inspect/510_src")))
+    ap.add_argument("--s510-split", default=str(_dp.media("aihub/vigent_510/split.json")))
     ap.add_argument("--field-root", default=FIELD_ROOT_DEFAULT); ap.add_argument("--skip-field", action="store_true")
-    ap.add_argument("--neg-images", default="D:/vigent_private_data/aihub/_inspect/507_src", help="지게차가 없는 별도 음성 이미지 폴더(오탐률 보강 — 510 val 음성이 101장뿐)")
+    ap.add_argument("--neg-images", default=str(_dp.media("aihub/_inspect/507_src")), help="지게차가 없는 별도 음성 이미지 폴더(오탐률 보강 — 510 val 음성이 101장뿐)")
     ap.add_argument("--neg-limit", type=int, default=2000, help="음성 집합 표집 수(시드 고정, 균등 간격)")
     ap.add_argument("--baseline-json", default=str(BASELINE_JSON)); ap.add_argument("--write-baseline", action="store_true")
     ap.add_argument("--out", default=""); ap.add_argument("--limit", type=int, default=0)

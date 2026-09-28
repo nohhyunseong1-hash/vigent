@@ -38,6 +38,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import re
 import sys
 import time
@@ -140,12 +141,42 @@ def load_gt(img: Path, names: list[str]) -> list[tuple[str, list[float]]]:
     return out
 
 
-_TO_CSS = {"person": "Person", "Safety-Vest": "Safety Vest", "NO-Safety-Vest": "NO-Safety Vest"}
+import labels as _labels  # noqa: E402
+
+_TO_CSS = dict(_labels.STD_TO_CSS)                                        # [B-5] 정본(labels.CSS_TO_STD 의 역방향)
 
 
 def to_css_name(name: str) -> str:
     """우리 표준 클래스명(변환기·재학습 산출물) → CSS 정답지(data.yaml) 이름. CSS 이름은 그대로."""
     return _TO_CSS.get(str(name), str(name))
+
+
+CUBLAS_ENV = "CUBLAS_WORKSPACE_CONFIG"
+CUBLAS_WORKSPACE = ":4096:8"
+
+
+def enable_determinism(warn_only: bool = True) -> dict:
+    """[CODE_AUDIT_20260928 B-2] 평가 경로의 GPU 비결정성을 끈다 — 같은 가중치·같은 집합이면 같은 숫자가 나와야 기준선 재현 테스트가 뜻이 있다.
+    실측 이력: 단독 실행은 매번 같았지만 전체 스위트 안에서는 NO-Mask fp 35↔36(09-25) · Person fp 48↔46(09-27) · Safety Vest AP50 82.8↔83.2
+    (09-28 3회) · machinery 90.3↔91.4(09-28) 로 흔들렸다. 원인은 cuDNN 자동 알고리즘 선택(benchmark)이 GPU 메모리 상태에 따라 다른 커널을
+    고르는 것 + cuBLAS 작업공간 비결정. 여기서 cudnn.benchmark=False·deterministic=True·use_deterministic_algorithms(True) 를 켠다.
+    ★CUBLAS_WORKSPACE_CONFIG 는 cuBLAS 핸들이 만들어지기 **전에** 있어야 효과가 있다(같은 프로세스에서 CUDA 를 이미 썼다면 늦을 수 있다) —
+      그래서 env 는 setdefault 로만 두고, 결정성의 주력은 cudnn 플래그다. warn_only=True: 결정적 구현이 없는 연산은 경고만 하고 계속 돈다.
+    반환: 적용 상태 dict(테스트·리포트용)."""
+    os.environ.setdefault(CUBLAS_ENV, CUBLAS_WORKSPACE)
+    import torch
+    st = {"cublas_workspace_config": os.environ.get(CUBLAS_ENV, ""), "cudnn_benchmark": None, "cudnn_deterministic": None,
+          "deterministic_algorithms": None, "warn_only": warn_only, "note": ""}
+    try:
+        torch.backends.cudnn.benchmark = False
+        torch.backends.cudnn.deterministic = True
+        torch.use_deterministic_algorithms(True, warn_only=warn_only)
+        st.update(cudnn_benchmark=bool(torch.backends.cudnn.benchmark), cudnn_deterministic=bool(torch.backends.cudnn.deterministic),
+                  deterministic_algorithms=bool(torch.are_deterministic_algorithms_enabled()))
+    except Exception as ex:  # noqa: BLE001  구버전 torch·테스트의 가짜 torch 등 — 평가는 계속하되 상태에 남긴다
+        st["note"] = f"결정성 설정 실패: {type(ex).__name__}: {ex}"
+        print(f"★[B-2] {st['note']}", file=sys.stderr, flush=True)
+    return st
 
 
 def iou(a, b) -> float:
@@ -219,12 +250,26 @@ def make_predictor(weights: str, res: int, names: list[str]):
     ★재학습 산출물은 우리 표준 이름(person·Safety-Vest·NO-Safety-Vest)을 내므로 CSS 정답지 이름으로 맞춘다(2026-09-26)"""
     import torch
     from rfdetr import RFDETRNano
+    enable_determinism()                                   # [B-2] 모델을 만들기 전에(cudnn 플래그는 첫 conv 전이면 된다)
     dev = "cuda" if torch.cuda.is_available() else "cpu"
     m = RFDETRNano(pretrain_weights=weights, device=dev, resolution=res)
-    try:
-        m.optimize_for_inference()
-    except Exception:  # noqa: BLE001
-        pass
+    # [B-2] optimize_for_inference(export + jit.trace, fp32) 는 **숫자가 달라지는 경로 선택**이다 — 실패를 삼키면 eager 로 조용히 떨어져
+    #   같은 가중치·같은 집합에서 AP50 이 0.4 만큼 다른 두 상태(82.8/83.2)가 생긴다(의심 원인, 아래 probe 로 확인). 실패하면 GPU 캐시를 비우고
+    #   한 번 더 시도하고, 그래도 안 되면 stderr 에 남기고 predict.optimized=False 로 표시한다(하네스 테스트가 이 값을 본다).
+    optimized, err = False, ""
+    for attempt in (1, 2):
+        try:
+            m.optimize_for_inference()
+            optimized = True
+            break
+        except Exception as ex:  # noqa: BLE001
+            err = f"{type(ex).__name__}: {str(ex)[:200]}"
+            print(f"★[B-2] optimize_for_inference 실패({attempt}/2): {err}", file=sys.stderr, flush=True)
+            try:
+                import gc
+                gc.collect(); torch.cuda.empty_cache()
+            except Exception:  # noqa: BLE001
+                pass
     cls_names = [to_css_name(c) for c in (getattr(m, "class_names", None) or names)]
     # ★[CODE_AUDIT_20260928 #9] 평가기도 슬롯 가드 — 우리 4클래스가 없는 가중치는 채점하지 않는다(엉뚱한 가중치가 조용히 채점되는 것 방지)
     missing = [c for c in OUR4 if c not in cls_names]
@@ -239,6 +284,8 @@ def make_predictor(weights: str, res: int, names: list[str]):
             if 0 <= cid < len(cls_names):
                 preds.append((cls_names[cid], [float(x) for x in box], float(conf)))
         return preds
+    predict.optimized = optimized          # type: ignore[attr-defined]
+    predict.optimize_error = err           # type: ignore[attr-defined]
     return predict, dev
 
 
@@ -279,7 +326,9 @@ def score_items(predict, items: list[tuple[Path, list[tuple[str, list[float]]]]]
         v = [r[key] for r in rows if r["class"] in subset and r[key] is not None]
         return round(sum(v) / len(v), 1) if v else None
     summary = {"mAP50_all10": _mean("ap50", names), "mAP50_our4": _mean("ap50", OUR4),
-               "recall_our4_mean": _mean("recall", OUR4), "precision_our4_mean": _mean("precision", OUR4)}
+               "recall_our4_mean": _mean("recall", OUR4), "precision_our4_mean": _mean("precision", OUR4),
+               "optimized": getattr(predict, "optimized", None),                 # [B-2] jit 경로 여부(None = 외부 predictor)
+               "optimize_error": getattr(predict, "optimize_error", "")}
     return {"rows": rows, "summary": summary, "elapsed_s": round(time.time() - t0, 1), "images": len(items)}
 
 
