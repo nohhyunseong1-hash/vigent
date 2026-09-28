@@ -98,7 +98,8 @@ def redact_secrets(s: str) -> str:
 #   undeliverable: critical/high 가 발생했는데 원격 채널이 하나도 설정돼 있지 않아 **큐에 넣지 않고 폐기**한 건수
 #   last_config_error: 4xx(토큰·chat_id·URL 오류) — 재시도해도 영원히 실패하는 설정 오류. 토큰 값은 절대 담지 않는다.
 _DELIVERY: dict[str, Any] = {"undeliverable_count": 0, "undeliverable_last_ts": None, "last_config_error": None,
-                             "config_error_count": 0, "config_error_first_ts": None}
+                             "config_error_count": 0, "config_error_first_ts": None,
+                             "enqueue_fail": 0, "enqueue_fail_last_ts": None}   # [CODE_AUDIT #1-②] 선기록 실패(재시도 불가) 건수
 
 # ★[F-35, 2026-09-22] 채널 자가시험 상태 — "조용한 실패" 를 없애기 위한 것.
 #   실제 사고: 2026-08-21 22:04 을 마지막으로 텔레그램이 401 이 됐는데 **아무도 몰랐다.**
@@ -118,7 +119,7 @@ _TELEGRAM_MAX_TEXT = 4000        # [M4-7] 텔레그램 sendMessage 본문 상한
 
 def reset_delivery_stats_for_test() -> None:
     _DELIVERY.update(undeliverable_count=0, undeliverable_last_ts=None, last_config_error=None,
-                     config_error_count=0, config_error_first_ts=None)
+                     config_error_count=0, config_error_first_ts=None, enqueue_fail=0, enqueue_fail_last_ts=None)
     _SELFTEST.update(state="unknown", checked_at=None, unknown_since=None,
                      reason=None, bot=None, attempts=0)
 
@@ -295,6 +296,8 @@ class DispatcherAgent(BaseAgent):
                 "last_config_error": _DELIVERY["last_config_error"],
                 # [F-35] 조용한 실패 방지 — 자가시험 상태·설정오류 누계
                 "config_error_count": _DELIVERY.get("config_error_count", 0),
+                "enqueue_fail": _DELIVERY.get("enqueue_fail", 0),                 # [CODE_AUDIT #1-②]
+                "enqueue_fail_last_ts": _DELIVERY.get("enqueue_fail_last_ts"),
                 "selftest": selftest_status()}
 
     def _send_telegram(self, text: str) -> dict[str, Any]:
@@ -371,8 +374,15 @@ class DispatcherAgent(BaseAgent):
             try:
                 import alert_queue
                 row_id = alert_queue.enqueue(level, message, meta)
-            except Exception:  # noqa: BLE001  큐 실패가 전송 자체를 막으면 안 된다
+            except Exception as ex:  # noqa: BLE001  큐 실패가 전송 자체를 막으면 안 된다 — 단 **조용히** 는 아니다
+                # ★[CODE_AUDIT_20260928 #1-②] 예전엔 row_id=None 으로만 넘어가 즉시 전송까지 실패하면 재시도·데드레터 없이
+                #   영구 소실됐고 /health 도 몰랐다. 이제 ERROR 로그 + enqueue_fail 카운터(status()/health notify.enqueue_fail).
+                import time as _t
                 row_id = None
+                _DELIVERY["enqueue_fail"] = int(_DELIVERY.get("enqueue_fail", 0)) + 1
+                _DELIVERY["enqueue_fail_last_ts"] = _t.time()
+                _LOG.error("★경보 선기록(alert_queue.enqueue) 실패 — 즉시 전송만 시도, 실패하면 재시도 없음(누적 %d): %s: %s",
+                           _DELIVERY["enqueue_fail"], type(ex).__name__, redact_secrets(str(ex))[:160])
         res = self._dispatch_now(level, message, meta)
         if row_id is not None:
             try:
@@ -381,8 +391,9 @@ class DispatcherAgent(BaseAgent):
                     alert_queue.mark_sent(row_id)
                 else:
                     alert_queue.mark_failed(row_id, str(res.get("results"))[:300])
-            except Exception:  # noqa: BLE001
-                pass
+            except Exception as ex:  # noqa: BLE001
+                _LOG.warning("경보 큐 상태 표시 실패(row %s) — pending 잔류로 재시도 스레드가 중복 발송할 수 있다: %s: %s",
+                             row_id, type(ex).__name__, redact_secrets(str(ex))[:120])
         return res
 
     def _queue_enabled(self, level: str) -> bool:

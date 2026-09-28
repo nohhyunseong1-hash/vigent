@@ -33,7 +33,8 @@ _stop = threading.Event()
 _lock = threading.RLock()
 
 _stats: dict[str, int] = {"submitted": 0, "queued": 0, "suppressed": 0,
-                          "dropped": 0, "sent": 0, "failed": 0}
+                          "dropped": 0, "sent": 0, "failed": 0,
+                          "carried_over": 0, "carry_over_failed": 0}   # [CODE_AUDIT #1-③] stop 시 잔여 → alert_queue 이월
 
 
 def queue_max() -> int:
@@ -88,8 +89,33 @@ def start() -> threading.Thread | None:
         return _thread
 
 
+def _carry_over_pending() -> int:
+    """[CODE_AUDIT_20260928 #1-③] 정지 시점에 메모리 큐에 남은 경보를 내구 큐(alert_queue)로 이월한다.
+    선기록은 전송 스레드 안(dispatcher.dispatch)에서 하므로, 여기 남은 항목은 **DB 에도 없다** — 그냥 버리면 영구 소실.
+    반환: 이월한 건수. 이월 자체가 실패한 건은 carry_over_failed 로 세고 ERROR 로 남긴다."""
+    if _q is None:
+        return 0
+    moved = 0
+    while True:
+        try:
+            level, message, meta = _q.get_nowait()
+        except queue.Empty:
+            break
+        try:
+            import alert_queue
+            alert_queue.enqueue(level, message, meta)
+            moved += 1
+        except Exception:  # noqa: BLE001
+            _stats["carry_over_failed"] += 1
+            _LOG.error("★정지 중 잔여 경보 이월 실패(유실): [%s] %s", level, str(message)[:100], exc_info=True)
+    if moved:
+        _stats["carried_over"] += moved
+        _LOG.warning("통보 스레드 정지 — 미전송 잔여 %d건을 alert_queue 로 이월(재시도 스레드가 이어받는다)", moved)
+    return moved
+
+
 def stop(join_s: float = 2.0) -> None:
-    """전송 스레드 정지(테스트·종료용). 스레드 참조를 비워 다음 start() 가 새로 띄운다."""
+    """전송 스레드 정지(테스트·종료용). 스레드 참조를 비워 다음 start() 가 새로 띄운다. 잔여 경보는 alert_queue 로 이월한다."""
     global _thread
     _stop.set()
     t = _thread
@@ -103,6 +129,7 @@ def stop(join_s: float = 2.0) -> None:
             _LOG.warning("통보 스레드가 %.1f초 안에 끝나지 않았다 — 참조를 유지한다"
                          "(중복 기동 방지)", join_s)
             return
+    _carry_over_pending()
     _thread = None
 
 

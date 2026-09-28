@@ -502,6 +502,9 @@ def safety_voice_scene(payload: dict = Body(...), theme: str = DEFAULT_THEME):
     return liveguide.build_guidance(dets, bool(payload.get("use_vlm")), image_bgr=img)
 
 # [M3-2] 센서별 임계 상태(초과 중인가) — "진입 전이"에서만 통보하기 위한 메모리 상태(재기동 시 초기화 = 다음 초과가 전이).
+import logging
+
+_LOG = logging.getLogger("vigent.safety_core")
 _SENSOR_DANGER: dict[str, bool] = {}
 
 
@@ -536,14 +539,18 @@ def safety_sensor(payload: dict = Body(...), theme: str = DEFAULT_THEME):
     #   시간당 상한 유지) ③임계 아래로 내려갔다 다시 넘으면 새 전이. 응답 alert_sent 는 "통보 큐 적재" 의미.
     key = f"{stype}|{site}"
     was_danger = _SENSOR_DANGER.get(key, False)
-    _SENSOR_DANGER[key] = danger
+    # ★[CODE_AUDIT_20260928 #1-①] 예전엔 여기서 _SENSOR_DANGER[key]=danger 를 **먼저** 기록했다. 그러면 submit 이 게이트(시간당
+    #   상한·disabled·queue_full)나 예외로 막혀도 전이는 이미 소비돼, 위험 구간에 머무는 동안 critical 이 다시는 나가지 않았다.
+    #   이제 전이 확정(True 기록)은 **submit 이 queued=True 를 돌려줄 때만**. 막히면 미확정으로 남겨 다음 POST 가 다시 시도한다.
+    if not danger:
+        _SENSOR_DANGER[key] = False
     result["transition"] = bool(danger and not was_danger)
     if danger:
         msg = msg_t.format(v=value) + " — 위험 임계 초과"
         try:
             data_engine.log_event(rule, level="critical", score=value, site=site, note=msg)
         except Exception:  # noqa: BLE001
-            pass
+            _LOG.error("센서 위험 기록 실패(%s) — 통보는 계속 시도", key, exc_info=True)
         result["alert_sent"] = False
         if result["transition"]:
             try:
@@ -553,8 +560,12 @@ def safety_sensor(payload: dict = Body(...), theme: str = DEFAULT_THEME):
                                         edge=True)
                 result["alert_sent"] = bool(n.get("queued"))
                 result["gate"] = n.get("reason")
+                if result["alert_sent"]:
+                    _SENSOR_DANGER[key] = True          # 통보 큐에 실제로 들어갔을 때만 전이 확정
+                else:
+                    _LOG.warning("센서 전이 통보가 막힘(%s, %s) — 전이 미확정, 다음 POST 에 재시도", key, n.get("reason"))
             except Exception:  # noqa: BLE001
-                pass
+                _LOG.error("센서 전이 통보 예외(%s) — 전이 미확정, 다음 POST 에 재시도", key, exc_info=True)
         result["message"] = msg
     return result
 
