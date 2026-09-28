@@ -29,6 +29,14 @@ from typing import Any
 
 from .base import BaseDetector, finalize_box
 
+try:
+    import defaults as _defaults  # [CODE_AUDIT #6] 해상도 폴백 단일 출처
+except ModuleNotFoundError:
+    import sys as _sys
+    from pathlib import Path as _P
+    _sys.path.insert(0, str(_P(__file__).resolve().parent.parent))
+    import defaults as _defaults
+
 _LOG_PRELOAD = logging.getLogger("vigent.rfdetr_adapter")
 
 
@@ -199,7 +207,7 @@ class RfdetrDetector(BaseDetector):
         use_onnx = infer_backend == "onnx-cpu" and onnx_path is not None and onnx_path.exists()
         if use_onnx:
             try:
-                self.model = _OnnxRfdetrModel(onnx_path, res_req or 384)
+                self.model = _OnnxRfdetrModel(onnx_path, res_req or _defaults.RES)
                 self.resolution = self.model.resolution
                 self.device = "cpu"
                 _LOG.info("RF-DETR ONNX 백엔드 사용(저가 CPU 배포): %s", onnx_path.name)
@@ -218,7 +226,7 @@ class RfdetrDetector(BaseDetector):
             self.model = RFDETRNano(**kwargs)
             # [Q-3] 실제로 적용된 해상도를 모델 설정에서 그대로 읽는다(요청값이 block_size 배수가 아니면
             #   라이브러리가 조정할 수 있어, "요청값"이 아니라 "실제 로드값"을 신뢰한다).
-            self.resolution = int(getattr(self.model.model_config, "resolution", resolution or 384))
+            self.resolution = int(getattr(self.model.model_config, "resolution", resolution or _defaults.RES))
             try:
                 self.model.optimize_for_inference()
             except Exception:  # noqa: BLE001  최적화 실패해도 추론은 가능

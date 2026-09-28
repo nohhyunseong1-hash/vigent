@@ -22,6 +22,13 @@ import numpy as np
 
 from .base import BaseAgent
 
+try:                                            # vigent-core 가 sys.path 에 있을 때(앱·테스트 공통). 없으면 아래 폴백
+    import defaults as _defaults
+except ModuleNotFoundError:                     # 패키지 밖에서 import 된 경우 — 경로를 넣고 재시도
+    import sys as _sys
+    _sys.path.insert(0, str(_Path(__file__).resolve().parent.parent))
+    import defaults as _defaults
+
 # 프로젝트 루트(VIGENT) — guard.py = <root>/vigent-core/agents/guard.py → 세 단계 위.
 #   vision.yaml 의 rfdetr_weights 는 이 루트 기준 상대경로(예: vigent-core/weights/ppe_rfdetr_v1.pth).
 #   서버는 cwd=vigent-core 로 기동되므로, 상대경로를 그대로 쓰면 cwd 기준 이중경로로 깨진다(F-8).
@@ -247,11 +254,11 @@ class GuardAgent(BaseAgent):
     role = "감지: 실시간 탐지·추적·이벤트 스트림 생성"
 
     # ── 인식 강화 튜닝(한 곳에서 조정) ──
-    DEFAULT_CONF = 0.30      # 임계값(낮을수록 많이 잡음)
+    DEFAULT_CONF = _defaults.DEFAULT_CONF      # 임계값(낮을수록 많이 잡음) — [CODE_AUDIT #6] 코드 기본값은 defaults.py 한 곳(= tuning.yaml)
     # 검출기별 임계값 — 사람은 낮게(잘 잡되), 건설모델(PPE·지게차·화재)은 높게(실내 오탐 컷).
     # 화재는 오경보가 치명적이라 가장 높게. 명시 conf 가 오면 그걸 우선.
-    DETECTOR_CONF = {"person": 0.35, "ppe": 0.55, "forklift": 0.55, "fire_smoke": 0.70}
-    IMGSZ = 960              # 추론 해상도(클수록 작은 객체↑). 워밍업 후 ~250ms/회로 빠름
+    DETECTOR_CONF = dict(_defaults.CONF)       # [CODE_AUDIT #6] 예전 {0.35,0.55,0.55,0.70} 은 yaml 과 달랐다 — yaml 누락 시 조용히 다른 운용점
+    IMGSZ = _defaults.RES                       # 추론 해상도. 예전 960 은 실측상 더 나쁜 값(benchmarks/p3_1_resolution_ab_v2.md) — yaml 과 같은 384
     TRACK_TTL = 1.2          # 서버 추적 유지시간(초). 프론트 간격보다 길게 → 깜빡임 제거
     TRACK_IOU = 0.45         # 같은 객체로 볼 겹침 기준
     EMA = 0.75               # 박스 위치 스무딩(0~1, 클수록 새 위치 빨리 반영). 0.5→0.75: 움직임 추종↑(현장 반응성)
@@ -371,6 +378,9 @@ class GuardAgent(BaseAgent):
         #   키만 기본값 + ERROR + status()["tuning_warn"](/health) 노출, 나머지는 그대로 적용한다.
         #   기동은 실패시키지 않는다(F1·F31 원칙).
         self.TUNING_WARN: list[str] = []
+        # ★[CODE_AUDIT #6] 신호 히스테리시스 사전은 tuning 블록 **앞**에서 만든다 — 예전엔 아래(470행 부근)에서 만들어
+        #   detect.hysteresis_frames>0 이면 여기서 AttributeError 로 기동이 실패했고, 통과해도 뒤에서 덮어써 설정이 무효였다.
+        self.HYSTERESIS = dict(self.HYSTERESIS_FRAMES)             # 신호 발화 히스테리시스(track_key 별 스트릭)
         _tun: Any = None
         try:
             import tuning as _tun
@@ -384,6 +394,12 @@ class GuardAgent(BaseAgent):
                 _per_class_keys = ("ppe_per_class", "fire_smoke_per_class")
                 self.DETECTOR_CONF = {**self.DETECTOR_CONF,
                                       **{k: v for k, v in conf_cfg.items() if k not in _per_class_keys}}
+                # ★[CODE_AUDIT #6] yaml 에 키가 없으면 코드 기본값으로 도는데, 그 사실을 드러낸다(조용한 운용점 변경 방지)
+                _missing = [k for k in _defaults.CONF if k not in conf_cfg]
+                if _missing or "imgsz" not in _tun.section("detect"):
+                    _m = f"tuning detect.conf 키 누락 {_missing}" + ("" if "imgsz" in _tun.section("detect") else " · detect.imgsz 누락") + " — defaults.py 값 사용"
+                    self.TUNING_WARN.append(_m)
+                    _guard_logger().warning("★설정 누락: %s", _m)
             except Exception as ex:  # noqa: BLE001
                 conf_cfg = {}
                 self._tuning_fail("detect.conf", ex)
@@ -467,7 +483,6 @@ class GuardAgent(BaseAgent):
         self._key_last_used: dict[str, float] = {}  # track_key 별 마지막 사용 시각(F-2 TTL 청소용)
         self._last_sweep_at: float = 0.0          # 마지막 스윕 시각(F-2 — 이 간격보다 자주 스윕 안 함)
         self._tid_seq: int = 0                    # 트랙 안정 id 시퀀스(클라 id 매칭용 · 1.8b)
-        self.HYSTERESIS = dict(self.HYSTERESIS_FRAMES)             # 신호 발화 히스테리시스(track_key 별 스트릭)
         self._sig_streak: dict[str, dict[str, int]] = {}          # track_key → {signal: 연속 True 프레임수}
         self.device = self._pick_device()        # GPU(MPS) 있으면 사용 → 추론 4배↑
         # config.slots 에서 실제 .pt 파일로 해석된 detector 슬롯만 추린다

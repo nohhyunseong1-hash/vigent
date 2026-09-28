@@ -28,7 +28,8 @@ def _load_zone_and_threshold(theme: str = "safety"):
     import yaml
     vy = yaml.safe_load(open(ROOT / "themes" / theme / "vision.yaml", encoding="utf-8"))
     jud = vy.get("judgment", {}) or {}
-    thr = float(jud.get("detect_threshold", 0.4))
+    from defaults import PERSON_THRESHOLD as _pt
+    thr = float(jud.get("detect_threshold", _pt))        # [CODE_AUDIT #6] 폴백은 defaults.py(= tuning person 0.40)
     zpath = (jud.get("zones", {}) or {}).get("danger_zones")
     pts = []
     if zpath:
