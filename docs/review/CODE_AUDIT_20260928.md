@@ -24,6 +24,46 @@
 
 그 다음 순위(수정안은 §부록 A): `/tmp`(Windows `	mp`, imwrite 반환 미검사) · `copilot.py:104-111` 법령 게이트 fail-open · `worker.py:388-403` RTMPose 로드 실패 영구 침묵 · `rfdetr_service.py:190-197` VLM 대기 중 `DETECT_LOCK` 보유(모든 워커 검출 정지) · `routers/cameras.py:306-314` `psutil` 미의존(go2rtc 고아를 남의 것으로 오판) · `vlog.py:41-47` 로그 파일 생성 실패 침묵 · `bench_with_sink.sh:17` MSYS PID 로 `taskkill /F` · `bench_4ch.py:302` `terminate()`(go2rtc 고아).
 
+## 0-1. 수정 완료 상태 (2026-09-28, 승인 A 그룹 10건 + B-1 · B 그룹 5건 · C 그룹 2건)
+
+항목마다 테스트 1건 이상 + 게이트(ruff·mypy·unittest·OpenAPI 110) 통과 후 커밋. 브랜치 `audit/cleanup-20260906`, 원격 동기화.
+
+| 항목 | 커밋 | 테스트 파일 | 비고 |
+|---|---|---|---|
+| #1 경보 유실 3곳 | `6df1ef6` | `test_audit_fix1_alert_loss.py`(6) | 전이 확정은 queued=True 일 때만 · enqueue_fail 카운터 · stop 시 이월 |
+| #2 릴레이 종료·재시도 | `f40596d` | `test_audit_fix2_relay.py`(4) | _shutdown 첫 단계 OFF · 지수 백오프 · HTTP 락 밖 |
+| #3 학원 전용 값 분리 | `75b6285` | `test_audit_fix3_profile.py`(8) | 마법사 기본 default · deploy/academy 오버라이드 · 사유 주입 · ★이 커밋이 build_portable.ps1 BOM 을 글자로 써 파싱 불가 회귀 → #5 에서 수정 |
+| #7 notify.example.yaml | `4edb5af` | `test_audit_fix7_notify_example.py`(3) | 평면 스키마 · 파싱 실패 config_error |
+| #6 defaults.py | `aecc5d3` | `test_audit_fix6_defaults.py`(5) | 코드 기본값 = yaml · HYSTERESIS 순서 |
+| #8 워커 stop join | `69166e1` | `test_audit_fix8_worker_stop.py`(5) | stop_pending · manager is_alive · 재기동 보류 |
+| #9 슬롯 클래스 허용 목록 | `2bce623` | `test_audit_fix9_slot_classes.py`(7) | rfdetr_classes/required · DEGRADED · dropped_by_allowlist |
+| #5 설치 고정값·인자 | `78d8c11` | `test_audit_fix5_installer.py`(9) | 직접 호출 · 토큰 필수 · install_result.json · CRLF · ★BOM 회귀 수정 + 파서 테스트 |
+| #4 서비스 자가 재기동 | `286f1ef` | `test_audit_fix4_service.py`(8) | exit:3 → NSSM · AppStopMethodConsole 30000 · stop_all 병렬 · systemd · watchdog 유예 |
+| #10 + B-1 정체 감시·aug_config | `af34d11` | `test_audit_fix10_watchdog.py`(6) | stop_event · heartbeat · NaN fail-closed · aug_config 전달(dry-run 실측 10변환) |
+| B-2 평가 결정성 | `0c8718d` | `test_audit_b2_determinism.py`(3) | 원인 = 예열 스레드 GPU 경합; setUp 격리 뒤 전체 스위트 **5회 연속 통과**, 허용 ±0.3 복귀 |
+| B-3 학습 의존성 핀 | `3bf29bc` | `test_audit_b3_train_pins.py`(5) | pip freeze 실측 조합 · setup_env numpy/cv2 가드 |
+| B-4 절대경로 제거 | `1a2bf5e` | `test_audit_b4_paths.py`(4) | ${VIGENT_DATA_DIR} · data_paths.field_root · 스크립트 11개 |
+| B-5 클래스 정본 | `a6820bd` | `test_audit_b5_labels.py`(5) | labels.STD5/CSS_TO_STD/LABEL_NORMALIZE 12곳 · FORKLIFT_OP_CONF |
+| B-6 pip check 화이트리스트 | `7eb5d01` | `test_audit_b6_pip_check.py`(4) | 허용 6건 · 개발기 exit 0 |
+| C-1 문서·죽은 설정 6건 | `3b6dbe7` | `test_audit_c1_docs.py`(6) | person 만 통과 정정 · ultralytics · 8010 · cooldown_sec · make_prelabels 폐기 · 실기 미검증 표 |
+| C-2 이 표 | (이 커밋) | `test_audit_c2_status.py`(1) | — |
+
+★재현 테스트 허용 오차 이력: 09-28 오전 ±0.5 로 넓혔던 것(`aecc5d3`)은 B-2 에서 ±0.3 으로 되돌렸다.
+
+## 0-2. 실기 미검증 (코드·테스트로 고정했으나 실기기·관리자 셸에서 아직 확인하지 않은 것)
+
+| 항목 | 무엇이 미검증인가 | 관련 커밋 | 확인 절차 |
+|---|---|---|---|
+| NSSM 자가 재기동 | 기아 3단계 exit 3 뒤 AppExit Restart 60 s 재기동 | `286f1ef` | [docs/deploy/field_verification_20260928.md](../deploy/field_verification_20260928.md) §2 |
+| AppStopMethodConsole 30000 | 서비스 정지 시 _shutdown 완주 | `286f1ef` | 〃 §3 |
+| install.ps1 직접 호출 | -ExtraEnv 배열 4개 전부 서비스 환경에 반영 | `78d8c11` | 〃 §4 |
+| install_result.json 경로 | -Target/-Port 변경 시 마법사·인수시험이 따라감 | `78d8c11` | 〃 §4 |
+| CRLF 검증 | 실제 build_usb.ps1 실행 | `78d8c11` | 〃 §1 |
+| go2rtc DELETE 파라미터 | `name=`(starvation_guard) vs `src=`(cameras) | 미수정 | 〃 §5 |
+| 한국어 Windows Get-Counter | 영문 카운터명 동작 | 미수정 | 학원 기기 |
+| Linux watchdog.sh·systemd | bash -n 만 통과 | `286f1ef` | Linux 기기 |
+| B-1 실제 학습 | rfdetr 1.8.0 TrainConfig.aug_config 필드는 실측, 학습 적용은 현장 데이터 후 | `af34d11` | 첫 현장 학습 |
+
 ## 1. 하드코딩
 
 ### 1-1. 절대 경로 (data_paths / `VIGENT_DATA_DIR` 우회)
