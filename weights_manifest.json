@@ -106,10 +106,10 @@
    "version": "fk510_smoke_20260926",
    "sha256": "b409c98d61b71d1f97efc1534e4f1b97a5bfebd07919a060b446e0a3a01ee5c3",
    "size_bytes": 120797435,
-   "url": "local:runs/finetune/fk_510_smoke/ckpt/checkpoint_best_total.pth (Release 미업로드)",
+   "url": "release:weights-v1",
    "required": false,
    "verified_at": "2026-09-26",
-   "note": "510 held-out 3,561장 AP50 94.3 [93.6, 95.0]·R 88.1·음성 오탐 0/101 · 학원 929프레임 대본 기준 95.7%(boda_ax 97.7%). 스모크 1회(시드 1개). 상세 docs/model/forklift_finetune_smoke_20260926.md · 출처 provenance §9-7. 학원 프로파일에서만 참조되므로 required=false — 학원 배포 시 이 파일이 없으면 guard 가 기동을 거부한다(rfdetr_weights 선언)."
+   "note": "510 held-out 3,561장 AP50 94.3 [93.6, 95.0]·R 88.1·음성 오탐 0/101 · 학원 929프레임 대본 기준 95.7%(boda_ax 97.7%). 스모크 1회(시드 1개). 상세 docs/model/forklift_finetune_smoke_20260926.md · 출처 provenance §9-7. 학원 프로파일에서만 참조되므로 required=false — 학원 배포 시 이 파일이 없으면 guard 가 기동을 거부한다(rfdetr_weights 선언). ★2026-10-08 Release weights-v1 에 업로드(OPEN_ISSUES #18) — 예전 local: 은 수동 복사였다."
   },
   {
    "file": "fire_smoke_rfdetr_v1_e17.pth",
@@ -194,6 +194,45 @@
    "required": false,
    "verified_at": "2026-09-06",
    "note": "sha256·크기는 2026-09-06 GitHub 릴리스 v1.9.14 go2rtc_win64.zip(7,378,736B) 을 받아 압축 해제한 go2rtc.exe 기준. Windows x64 전용 — 다른 OS 는 같은 릴리스의 해당 자산을 수동 조달."
+  },
+  {
+   "file": "ppe_rfdetr_v1.onnx",
+   "slot": "ppe",
+   "backend": "onnx-cpu",
+   "purpose": "ppe 슬롯 ONNX(detect.backend=onnx-cpu, CPU 포터블·test_rfdetr_onnx_parity). .pth 와 같은 가중치의 변환본",
+   "version": "rfdetr_v1_onnx",
+   "sha256": "beb80941a2c920e87113af89d7e9265852c8f7abc47c4f9607847667f6da8a2a",
+   "size_bytes": 115033243,
+   "url": "release:weights-v1",
+   "required": false,
+   "verified_at": "2026-10-08",
+   "note": "[OPEN_ISSUES_20261008 #18] 매니페스트 미등재라 수동 복사였던 것을 Release 등재. torch 백엔드만 쓰면 불필요."
+  },
+  {
+   "file": "forklift_rfdetr_v1.onnx",
+   "slot": "forklift",
+   "backend": "onnx-cpu",
+   "purpose": "forklift 슬롯 ONNX(detect.backend=onnx-cpu, CPU 포터블·test_rfdetr_onnx_parity). .pth 와 같은 가중치의 변환본",
+   "version": "rfdetr_v1_onnx",
+   "sha256": "4812da8a62953c1cf27acfda05867209f3fdaaa4c2c67af51adabcd9ab9572b0",
+   "size_bytes": 107662591,
+   "url": "release:weights-v1",
+   "required": false,
+   "verified_at": "2026-10-08",
+   "note": "[OPEN_ISSUES_20261008 #18] 매니페스트 미등재라 수동 복사였던 것을 Release 등재. torch 백엔드만 쓰면 불필요."
+  },
+  {
+   "file": "fire_smoke_rfdetr_v1_e17.onnx",
+   "slot": "fire_smoke",
+   "backend": "onnx-cpu",
+   "purpose": "fire_smoke 슬롯 ONNX(detect.backend=onnx-cpu, CPU 포터블·test_rfdetr_onnx_parity). .pth 와 같은 가중치의 변환본",
+   "version": "rfdetr_v1_onnx",
+   "sha256": "453e6798c22123701ea5898fb63768d81909b371d50332c0833398577f06246f",
+   "size_bytes": 107664664,
+   "url": "release:weights-v1",
+   "required": false,
+   "verified_at": "2026-10-08",
+   "note": "[OPEN_ISSUES_20261008 #18] 매니페스트 미등재라 수동 복사였던 것을 Release 등재. torch 백엔드만 쓰면 불필요."
   }
  ],
  "release_tag": "weights-v1",
