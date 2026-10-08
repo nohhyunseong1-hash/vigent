@@ -3,6 +3,8 @@
 자격증명은 camera_registry 가 secrets 로 분리·마스킹 → 응답엔 마스킹된 source 만 노출.
 enable=워커 start(cam_id=track_key 격리), disable=stop. startup 자동복원은 autostart_enabled().
 """
+import subprocess
+
 import camera_registry as _reg
 from app_state import DEFAULT_THEME, STATE
 from app_state import DETECT_LOCK as _DETECT_LOCK
@@ -32,7 +34,8 @@ def _g2_register(cid: str) -> None:
         src = _reg.source_of(cid)
         if not src:
             return
-        url = "http://127.0.0.1:1984/api/streams?" + urllib.parse.urlencode({"name": cid, "src": src})
+        import go2rtc_client
+        url = go2rtc_client.url("/api/streams", name=cid, src=src)
         urllib.request.urlopen(urllib.request.Request(url, method="PUT"), timeout=3)
     except Exception:  # noqa: BLE001  go2rtc 미실행/실패 — WebRTC 없이 폴백
         pass
@@ -43,7 +46,9 @@ def _g2_unregister(cid: str) -> None:
     try:
         import urllib.parse
         import urllib.request
-        url = "http://127.0.0.1:1984/api/streams?" + urllib.parse.urlencode({"src": cid})
+
+        import go2rtc_client
+        url = go2rtc_client.url("/api/streams", src=cid)
         urllib.request.urlopen(urllib.request.Request(url, method="DELETE"), timeout=3)
     except Exception:  # noqa: BLE001
         pass
@@ -285,7 +290,9 @@ _LOG = _logging.getLogger("vigent.cameras")
 _G2_ROOT = _Path(__file__).resolve().parent.parent.parent      # 테스트가 임시 루트로 바꾼다
 _G2_PROC = None                                                 # 우리가 띄운 Popen 핸들(이 프로세스 수명)
 _G2_LOGF = None                                                 # go2rtc stdout/stderr 파일 핸들(예전엔 열고 닫지 않았다)
-_G2_PORT = 1984
+import go2rtc_client as _g2c  # noqa: E402
+
+_G2_PORT = _g2c.PORT   # [OPEN_ISSUES #16] 한 곳
 
 
 def _close_logf() -> None:
@@ -305,7 +312,7 @@ def _g2_pidfile() -> _Path:
 def _g2_port_busy() -> bool:
     import socket
     try:
-        with socket.create_connection(("127.0.0.1", _G2_PORT), timeout=0.5):
+        with socket.create_connection((_g2c.HOST, _G2_PORT), timeout=0.5):
             return True
     except Exception:  # noqa: BLE001
         return False
@@ -318,7 +325,23 @@ def _pid_alive(pid: int) -> bool:
         import psutil
         p = psutil.Process(pid)
         return p.is_running() and "go2rtc" in (p.name() or "").lower()
-    except Exception:  # noqa: BLE001  psutil 없음/권한 → 보수적으로 False(남의 것으로 간주)
+    except ImportError:
+        return _pid_alive_fallback(pid)      # [OPEN_ISSUES #12] psutil 없으면 tasklist/ps 로 (예전엔 무조건 False → 고아 방치)
+    except Exception:  # noqa: BLE001  권한/소멸 → 보수적으로 False(남의 것으로 간주)
+        return False
+
+
+def _pid_alive_fallback(pid: int) -> bool:
+    """psutil 없는 환경: Windows `tasklist /FI "PID eq N"`, 그 외 `ps -p N -o comm=`. 이름에 go2rtc 가 있어야 True."""
+    import subprocess
+    import sys
+    try:
+        if sys.platform.startswith("win"):
+            out = subprocess.run(["tasklist", "/FI", f"PID eq {pid}", "/NH", "/FO", "CSV"], capture_output=True, text=True, timeout=5).stdout
+        else:
+            out = subprocess.run(["ps", "-p", str(pid), "-o", "comm="], capture_output=True, text=True, timeout=5).stdout
+        return "go2rtc" in out.lower()
+    except Exception:  # noqa: BLE001
         return False
 
 
@@ -412,7 +435,11 @@ def stop_go2rtc() -> bool:
         try:
             if p.poll() is None:
                 p.terminate()
-                p.wait(timeout=5)
+                try:
+                    p.wait(timeout=5)
+                except subprocess.TimeoutExpired:
+                    p.kill()                      # [OPEN_ISSUES #12] terminate 뒤 5 s 안에 안 죽으면 강제 — 고아 금지
+                    p.wait(timeout=5)
             done = True
         except Exception:  # noqa: BLE001
             pass

@@ -71,3 +71,6 @@ onnx==1.22.0                 # [C-3, 2026-08-12] detect.backend=onnx-cpu 서빙 
 # ── 포즈: RTMPose(rtmlib, Apache) — 낙상·근골격(T10c) ──
 rtmlib==0.0.15
 onnxruntime==1.27.0
+# [OPEN_ISSUES_20261008 #12] routers/cameras 가 go2rtc 고아 판정에 쓴다 — 예전엔 전이의존으로만 깔려 "항상 있는 것처럼" 보였고
+#   없으면 import 실패 → 우리가 띄운 go2rtc 를 남의 것으로 오판해 고아가 남았다. 명시 핀(개발기 실측 7.2.2).
+psutil==7.2.2
