@@ -447,9 +447,10 @@ def _shutdown() -> None:
     #   데몬 스레드라 안 불러도 프로세스는 끝나지만, 큐 행 갱신 도중에 잘리는 창을 없앤다.
     import alert_notify
     import alert_queue
+    import health_watch
     import retention_scheduler
     import starvation_guard
-    for name, fn in (("alert_notify", alert_notify.stop), ("alert_queue", alert_queue.stop),
+    for name, fn in (("health_watch", health_watch.stop), ("alert_notify", alert_notify.stop), ("alert_queue", alert_queue.stop),
                      ("retention_scheduler", retention_scheduler.stop), ("starvation_guard", starvation_guard.stop)):
         try:
             fn()
@@ -578,6 +579,11 @@ def _startup() -> None:
     #    어디에도 없어(작업 스케줄러 미등록·main 스레드 없음) "자동 파기"가 사실이 아니었다.
     #    별도 데몬 스레드라 DETECT_LOCK·GPU 를 건드리지 않고, 실패해도 검출에 영향이 없다.
     _optional("retention_scheduler", retention_scheduler.start)
+    # [OPEN_ISSUES_20261008 #5] 감시 중단 원격 통보 — alert_notify 배선 뒤에 시작(통보 경로 재사용)
+    def _health_watch() -> None:
+        import health_watch
+        health_watch.start()
+    _optional("health_watch", _health_watch)
 
 
 # ─────────────────────────────────────────────────────────────

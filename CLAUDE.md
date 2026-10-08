@@ -107,7 +107,7 @@ CODE_REVIEW.md §5의 P0~P2 조치가 완료됐다. 코드 변경 시 아래를 
    ★[2026-10-08 정정] **그동안 로컬 게이트(`gate.ps1`)에는 mypy 단계가 없었고 개발기 .venv 에 mypy 가 설치돼 있지도 않았다** — 2026-09-28 까지의
    "ruff·mypy·unittest·OpenAPI 통과" 보고에서 mypy 는 CI 결과를 본 것이 아니라 **돌지 않은 것**이다(10-08 처음 로컬 실행: 19파일 0 에러).
    이제 gate.ps1 이 `.venv` 의 ruff·mypy(`requirements-dev.txt` 핀 = CI 핀 0.12.0/1.17.1)를 직접 돌린다. 전역 PATH 의 ruff(0.16.1)는 쓰지 않는다.
-3. **테스트** `.../python3 -m unittest discover -s tests` → **939 tests**(2026-10-08, 개발기 기준)
+3. **테스트** `.../python3 -m unittest discover -s tests` → **945 tests**(2026-10-08, 개발기 기준)
    ★게이트의 unittest 출력은 `audit/gate_unittest_last.log` 에 남는다(2026-09-27 추가) — 2026-09-26~27 에 비결정 실패가 2회 있었는데
    이름을 못 잡아 원인을 못 찾았다. 실패하면 그 로그의 `FAIL:`/`ERROR:` 줄을 먼저 본다.
    (★2026-09-23 갱신: 오래 "55 tests" 로 적혀 있었으나 실제는 726이었다. 테스트를 추가하면 이 숫자도 같이 고친다.

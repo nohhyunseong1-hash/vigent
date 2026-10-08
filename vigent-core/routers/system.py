@@ -238,6 +238,12 @@ def health(theme: str = DEFAULT_THEME):
                 notify_block["last_heartbeat_ok"] = _hb.get("last_ok")
             except Exception:  # noqa: BLE001
                 pass
+            # [OPEN_ISSUES_20261008 #5] 감시 중단 원격 통보 상태 — 꺼져 있거나 죽어 있으면 여기서 보인다
+            try:
+                import health_watch as _hw
+                notify_block["health_watch"] = _hw.status()
+            except Exception:  # noqa: BLE001
+                pass
         except Exception:  # noqa: BLE001
             notify_block = {}
         alert_problems, alert_warnings = health_status.alert_health(alerts, disp_status)
