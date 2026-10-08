@@ -188,11 +188,13 @@ class _PinnedRunner:
                 box[1] = e
             ev.set()
 
-    def run(self, fn, *args, **kw):
+    def run(self, fn, *args, _timeout: float | None = None, **kw):
         ev = threading.Event()
         box: list = [None, None]
         self._q.put((fn, args, kw, ev, box))
-        ev.wait()
+        if not ev.wait(_timeout):
+            # [OPEN_ISSUES #10] 호출자는 여기서 풀려난다. 작업 자체는 고정 스레드에서 계속 돌고(취소 불가) 결과는 버려진다.
+            raise TimeoutError(f"VLM 응답 대기 {_timeout}s 초과 — 작업은 백그라운드에서 계속, 결과 폐기")
         if box[1] is not None:
             raise box[1]
         return box[0]
@@ -216,39 +218,72 @@ class VLMService:
             from vlm_risk_summary import RiskVLM
             self._vlm = RiskVLM()
 
-    def _summarize_impl(self, image_bgr, prompt, max_tokens, enrich, facts):
+    @staticmethod
+    def _tmp_image(image_bgr, tag: str) -> str:
+        """[OPEN_ISSUES #13] 예전 Path("/tmp") 는 Windows 에서 `\\tmp`(드라이브 루트) 였고 imwrite 반환을 안 봐서
+        저장 실패 시 **이전 호출의 이미지**를 VLM 이 분석했다. tempfile.gettempdir() + 반환 확인."""
         import os
+        import tempfile
 
         import cv2
+        tmp = Path(tempfile.gettempdir()) / f"vigent_vlm_{tag}_{os.getpid()}.jpg"
+        if not cv2.imwrite(str(tmp), image_bgr):
+            raise RuntimeError(f"VLM 입력 이미지 저장 실패: {tmp}")
+        return str(tmp)
+
+    def _summarize_impl(self, image_bgr, prompt, max_tokens, enrich, facts):
         self._ensure()
         # 고유 파일명(PID) — 동시요청이 서로의 프레임을 덮어써 오분석하는 레이스 방지(감사 E-3/C-4)
-        tmp = Path("/tmp") / f"vigent_vlm_event_{os.getpid()}.jpg"
-        cv2.imwrite(str(tmp), image_bgr)
-        return self._vlm.summarize(str(tmp), prompt=prompt, max_tokens=max_tokens,
+        tmp = self._tmp_image(image_bgr, "event")
+        return self._vlm.summarize(tmp, prompt=prompt, max_tokens=max_tokens,
                                    enrich=enrich, facts=facts)
+
+    @staticmethod
+    def wait_timeout_s() -> float:
+        """VLM 응답 대기 상한(초). tuning vlm.wait_timeout_s, 기본 120."""
+        try:
+            import tuning
+            return float(tuning.val("vlm", "wait_timeout_s", 120.0))
+        except Exception:  # noqa: BLE001
+            return 120.0
+
+    def _run_vlm(self, fn, *args):
+        """[OPEN_ISSUES #10] 예전엔 호출 스레드가 DETECT_LOCK 을 **쥔 채** 응답을 무한 대기해 VLM 이 멈추면 모든 워커 검출이 멈췄다.
+        이제 검출과의 상호배제(F-14)는 고정 스레드 안에서 fn 을 감싸 지키고, 호출 스레드는 락 밖에서 타임아웃으로 기다린다.
+        단 호출 스레드가 이미 DETECT_LOCK 을 쥐고 있으면(워커 재진입) 고정 스레드가 그 락을 못 얻어 데드락이 되므로 종전 방식 유지."""
+        if getattr(DETECT_LOCK, "_is_owned", lambda: False)():
+            with DETECT_LOCK:
+                return _VLM_RUNNER.run(fn, *args)
+        if not self._needs_detect_lock():
+            # CUDA/CPU: 검출(PyTorch)과 VLM 은 서로 다른 런타임이라 직렬화할 이유가 없다 — VLM 이 멈춰도 검출은 계속
+            return _VLM_RUNNER.run(fn, *args, _timeout=self.wait_timeout_s())
+
+        def _locked(*a):
+            with DETECT_LOCK:
+                return fn(*a)
+        return _VLM_RUNNER.run(_locked, *args, _timeout=self.wait_timeout_s())
+
+    @staticmethod
+    def _needs_detect_lock() -> bool:
+        """F-14 의 근거는 Apple MPS 와 MLX 의 동시 실행 크래시 — darwin 에서만 검출 락과 직렬화한다."""
+        import sys
+        return sys.platform == "darwin"
 
     def summarize_bgr(self, image_bgr: np.ndarray, prompt: str | None = None,
                       max_tokens: int = 260, enrich: bool = True,
                       facts: str | None = None) -> dict[str, Any]:
-        # DETECT_LOCK 은 호출 스레드가 잡아 검출(PyTorch-MPS)과 상호배제 + worker RLock 재진입 유지.
         # 실제 MLX 추론은 _VLM_RUNNER(고정 데몬 스레드)에서만 — 워커스레드 teardown 크래시 제거(F-14).
-        with DETECT_LOCK:
-            return _VLM_RUNNER.run(self._summarize_impl, image_bgr, prompt, max_tokens, enrich, facts)
+        return self._run_vlm(self._summarize_impl, image_bgr, prompt, max_tokens, enrich, facts)
 
     def _quick_impl(self, image_bgr, prompt, max_tokens, max_side):
-        import os
-
-        import cv2
         self._ensure()
-        tmp = Path("/tmp") / f"vigent_vlm_quick_{os.getpid()}.jpg"
-        cv2.imwrite(str(tmp), image_bgr)
-        return self._vlm.quick(str(tmp), prompt, max_tokens=max_tokens, max_side=max_side)
+        tmp = self._tmp_image(image_bgr, "quick")
+        return self._vlm.quick(tmp, prompt, max_tokens=max_tokens, max_side=max_side)
 
     def quick_bgr(self, image_bgr: np.ndarray, prompt: str,
                   max_tokens: int = 64, max_side: int = 640) -> dict[str, Any]:
         """빠른 단발 질의(PPE 등 단답) — 작은 이미지·짧은 토큰·재시도 없음."""
-        with DETECT_LOCK:
-            return _VLM_RUNNER.run(self._quick_impl, image_bgr, prompt, max_tokens, max_side)
+        return self._run_vlm(self._quick_impl, image_bgr, prompt, max_tokens, max_side)
 
 
 # 서버 전역 싱글톤
