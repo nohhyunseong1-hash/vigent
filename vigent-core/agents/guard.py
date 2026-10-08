@@ -618,6 +618,10 @@ class GuardAgent(BaseAgent):
         #   기계 상태(프로필 캐시)에 의존했던 것. 저장소 검증본이 있으면 그것을 쓰고, 없을 때만 예전 기본(~/.roboflow/models)으로 간다.
         repo_dir = _Path(__file__).resolve().parent.parent / "weights"
         if (repo_dir / GuardAgent.PRETRAIN_FILE).is_file():
+            # ★rfdetr 라이브러리(RFDETRNano)는 자기 캐시를 RF_HOME > ~/.roboflow/models 로 **따로** 고른다. 우리가 저장소본을 확인만 하고
+            #   env 를 안 세우면 라이브러리는 프로필에 366 MB 를 **인터넷에서 또 받는다**(2026-10-08 실측: 빈 프로필에서 게이트 중 다운로드).
+            #   그래서 저장소본을 쓰기로 한 순간 RF_HOME 을 그 디렉터리로 세운다(이미 설정돼 있으면 건드리지 않는다).
+            os.environ["RF_HOME"] = str(repo_dir)
             return repo_dir
         return _Path(os.path.expanduser("~/.roboflow/models"))
 

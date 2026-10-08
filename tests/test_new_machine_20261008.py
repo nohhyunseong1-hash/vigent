@@ -38,6 +38,9 @@ class CacheDirFallback(unittest.TestCase):
             repo = _ROOT / "vigent-core" / "weights"
             if (repo / "rf-detr-nano.pth").is_file():
                 self.assertEqual(guard.GuardAgent.rfdetr_cache_dir(), repo)
+                # 라이브러리(rfdetr)도 같은 파일을 쓰도록 RF_HOME 이 세워진다 — 안 세우면 프로필에 366 MB 를 인터넷에서 또 받는다(10-08 실측)
+                self.assertEqual(os.environ.get("RF_HOME"), str(repo))
+                os.environ.pop("RF_HOME", None)
             with mock.patch.object(Path, "is_file", return_value=False):
                 self.assertEqual(guard.GuardAgent.rfdetr_cache_dir(), Path(os.path.expanduser("~/.roboflow/models")))
 
