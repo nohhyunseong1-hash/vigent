@@ -99,7 +99,19 @@ def prune_rotated_logs(keep: int | None = None, execute: bool = False) -> dict[s
 # 디스크 여유공간 경고 임계값 — 근거: 이벤트 1건당 evidence+recognition 합쳐 수백KB 수준
 # (실측 기준 §docs/ops_disk_sizing.md)이라, 5GB면 최소 수만 건의 신규 이벤트를 받을 여유가
 # 있다고 보고 "지금 당장 위험은 아니되 조치가 필요한" 경계로 잡았다(운영 판단값, 조정 가능).
-WARN_FREE_BYTES = 5 * 1024 ** 3
+def _warn_free_bytes() -> int:
+    """[OPEN_ISSUES #15] tuning retention.warn_free_gb > defaults.RETENTION_WARN_FREE_GB(5)."""
+    import defaults
+    gb = defaults.RETENTION_WARN_FREE_GB
+    try:
+        import tuning
+        gb = float(tuning.val("retention", "warn_free_gb", gb))
+    except Exception:  # noqa: BLE001
+        pass
+    return int(gb * 1024 ** 3)
+
+
+WARN_FREE_BYTES = _warn_free_bytes()
 
 
 def rotate_if_large(path: Path, max_mb: float) -> bool:

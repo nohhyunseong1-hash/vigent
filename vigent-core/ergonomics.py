@@ -16,6 +16,8 @@ from __future__ import annotations
 import math
 from typing import Any
 
+from defaults import ERGO_JOINTS  # [OPEN_ISSUES #15] 코드 기본값 = vision.yaml
+
 # COCO-17 키포인트 인덱스
 NOSE, L_EYE, R_EYE, L_EAR, R_EAR = 0, 1, 2, 3, 4
 L_SH, R_SH, L_EL, R_EL = 5, 6, 7, 8
@@ -70,13 +72,13 @@ def assess(keypoints_xy, conf, thresholds, min_conf: float = _MIN_CONF) -> dict[
     if sh_c and hip_c and "trunk" in joints:
         a = _vert_angle(hip_c[0] - sh_c[0], hip_c[1] - sh_c[1])
         angles["trunk"] = round(a, 1)
-        grades["trunk"] = _grade(a, joints["trunk"].get("good", 20), joints["trunk"].get("warn", 45))
+        grades["trunk"] = _grade(a, joints["trunk"].get("good", ERGO_JOINTS["trunk"][0]), joints["trunk"].get("warn", ERGO_JOINTS["trunk"][1]))
 
     # neck(목): 어깨중점→머리 벡터의 수직 대비 각. 목을 앞으로 숙일수록 커진다.
     if sh_c and head and "neck" in joints:
         a = _vert_angle(head[0] - sh_c[0], head[1] - sh_c[1])
         angles["neck"] = round(a, 1)
-        grades["neck"] = _grade(a, joints["neck"].get("good", 15), joints["neck"].get("warn", 25))
+        grades["neck"] = _grade(a, joints["neck"].get("good", ERGO_JOINTS["neck"][0]), joints["neck"].get("warn", ERGO_JOINTS["neck"][1]))
 
     # shoulder(어깨): 좌우 어깨 높이차 / 어깨너비 → 비대칭각(도). 한쪽을 들면 커진다.
     lsh = xy[L_SH] if len(cf) > L_SH and cf[L_SH] >= min_conf else None
@@ -86,7 +88,7 @@ def assess(keypoints_xy, conf, thresholds, min_conf: float = _MIN_CONF) -> dict[
         bw = abs(float(lsh[0]) - float(rsh[0])) + 1e-6
         a = math.degrees(math.atan2(dyv, bw))
         angles["shoulder"] = round(a, 1)
-        grades["shoulder"] = _grade(a, joints["shoulder"].get("good", 12), joints["shoulder"].get("warn", 25))
+        grades["shoulder"] = _grade(a, joints["shoulder"].get("good", ERGO_JOINTS["shoulder"][0]), joints["shoulder"].get("warn", ERGO_JOINTS["shoulder"][1]))
 
     if not grades:                                        # 판정 가능한 관절 없음 → 폴백(skip)
         return {}

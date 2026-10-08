@@ -23,3 +23,13 @@ PERSON_THRESHOLD: float = CONF["person"]   # rfdetr_service.detect_threshold 폴
 #   (tests/test_audit_b5_labels 가 대조). 평가 스크립트(forklift_compare_harness·fp_dump·neg_eval·field_yardstick)의 --conf 기본값이 이것.
 #   예전엔 tuning 0.002 / academy 0.50 / guard 0.55 / scripts 0.5 네 값이 따로 놀았다(guard 0.55 는 #6 에서 제거).
 FORKLIFT_OP_CONF: float = 0.50
+
+# ── [OPEN_ISSUES_20261008 #15] 코드 기본값 ≠ yaml 잔여 4곳 (값은 각 yaml·배포 스크립트와 같다, tests/test_open_issues_m 가 대조) ──
+BYTETRACK_MIN_FRAMES: int = 0            # tuning.yaml track.bytetrack_min_frames (예전 코드 기본 1 = 첫 프레임 사람 전부 버림)
+ERGO_JOINTS: dict[str, tuple[int, int]] = {   # vision.yaml judgment.ergonomics.joints {good, warn} — 예전 코드 15/25·20/45·12/25
+    "neck": (25, 40), "trunk": (20, 45), "shoulder": (15, 35),
+}
+RETENTION_WARN_FREE_GB: float = 5.0      # retention.WARN_FREE_BYTES — tuning retention.warn_free_gb 로 덮어쓸 수 있다(키 없으면 이 값)
+SPEC_MIN: dict[str, object] = {          # scripts/deploy/preflight.ps1 param 기본값 = build_portable.ps1 -Cuda 와 같은 한 벌
+    "vram_gb": 8, "ram_gb": 16, "disk_gb": 20, "cuda": "cu130", "driver_min": 580, "vcredist_min": "14.51",
+}

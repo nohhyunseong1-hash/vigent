@@ -361,7 +361,7 @@ class GuardAgent(BaseAgent):
     #   zone.grid_cells(위치 기반 대체 키)와 **함께** 켜야 경보까지 닿는다.
     PASSTHROUGH_CONF = 0.0
     BYTETRACK_ACTIVATION: float | None = None
-    BYTETRACK_MIN_FRAMES = 1         # 트랙 확정(tid 부여)까지 필요한 연속매칭 수. guard MIN_HITS=1 과 동일하게
+    BYTETRACK_MIN_FRAMES = _defaults.BYTETRACK_MIN_FRAMES   # [OPEN_ISSUES #15] = tuning.yaml 0 (예전 코드 1 ≠ yaml). 아래 설명은 역사 기록
                                       # 맞춰 "확정까지 프레임 수" 자체는 회귀 없게(라이브러리 기본 2 아님).
 
     # ── track_key 정리(F-2, 2026-08) — 클라이언트가 주는 값이 그대로 _tracks_by_key 키가 되는 경로
