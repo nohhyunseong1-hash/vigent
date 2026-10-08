@@ -15,9 +15,17 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import subprocess
 import sys
 from pathlib import Path
+
+# [2026-10-08 새 환경 점검] cp949 콘솔(PYTHONUTF8 미설정 Windows)에서 한글·기호 print 가 UnicodeEncodeError 로 죽던 것 —
+#   실측: setup_env.py 가 새 clone 의 첫 print 에서 종료돼 pip 설치가 시작도 안 됐다. stdout/stderr 를 UTF-8 로 재설정한다.
+for _s in (sys.stdout, sys.stderr):
+    if hasattr(_s, "reconfigure"):
+        _s.reconfigure(encoding="utf-8", errors="replace")
+
 
 _ROOT = Path(__file__).resolve().parent.parent
 HEADLESS = "opencv-contrib-python-headless==4.13.0.92"     # requirements.txt 핀과 같아야 한다(테스트가 대조)
@@ -140,11 +148,84 @@ def verify_cv2() -> tuple[bool, str]:
     return ok, f"cv2 {ver} · GUI 항목 {info['gui'] or ['(없음)']}"
 
 
+def check_environment(root: Path | None = None, weights_dir: Path | None = None, home: Path | None = None) -> list[dict]:
+    """[2026-10-08 새 환경 점검] 새 clone 에서 **빠져 있는 것**을 한 번에 보여 준다 — 각 항목은 {name, level, ok, where, how}.
+    level: 'required'(없으면 서버·게이트가 깨진다) / 'optional'(없어도 돌지만 기능 제한) / 'dev'(평가·학습 자산, 개발기에서만).
+    실측 근거(2026-10-08, GitHub 새 clone D:\\vigent_fresh): .gitignore 로 빠지는 것 = 가중치 15종·go2rtc.exe·notify.yaml·.env·
+    camera_secrets.json·data/datasets 이미지·runs/·logs/. 가중치 6종(required)+go2rtc 는 fetch_weights.py 가 GitHub Release/원출처에서 받는다.
+    fk510_smoke 는 `local:`(Release 미업로드)이라 **수동 복사** 대상이다. 순수 함수(파일 존재·SHA 만 봄, 다운로드·수정 없음)."""
+    root = root or _ROOT
+    wdir = weights_dir or (root / "vigent-core" / "weights")
+    home = home or Path.home()
+    sys.path.insert(0, str(root / "scripts"))
+    import fetch_weights as fw
+    man = fw.load_manifest() if root == _ROOT else json.loads((root / "weights_manifest.json").read_text(encoding="utf-8"))
+    items: list[dict] = []
+    for e in man.get("weights", []):
+        dest = e.get("dest")
+        p = (root / e["root_dest"] / e["file"]) if e.get("root_dest") else ((wdir / dest / e["file"]) if dest else (wdir / e["file"]))
+        ok = p.is_file() and p.stat().st_size == int(e.get("size_bytes") or p.stat().st_size)
+        url = str(e.get("url", ""))
+        if url.startswith("local:"):
+            how = f"Release 미업로드 — 개발기(또는 USB 스테이지 portable\\app\\vigent-core\\weights)에서 복사 후 `python scripts/fetch_weights.py --check --all` 로 SHA 확인 (기대 {e.get('sha256', '')[:16]}…)"
+        else:
+            how = "`python scripts/fetch_weights.py`" + ("" if e.get("required") else " `--all`") + f" (출처 {url[:48]}…)"
+        level = "required" if e.get("required") else ("optional" if e.get("slot") in ("_bin", "privacy") or url.startswith("local:") else "optional")
+        items.append({"name": e["file"], "level": level, "ok": ok, "where": str(p), "how": how})
+    # RF-DETR 사전학습 캐시 — RF_HOME > 저장소 weights > ~/.roboflow/models (guard.rfdetr_cache_dir 와 같은 순서)
+    rf = os.environ.get("RF_HOME")
+    cands = [Path(rf).expanduser()] if rf else [wdir, home / ".roboflow" / "models"]
+    hit = next((c / "rf-detr-nano.pth" for c in cands if (c / "rf-detr-nano.pth").is_file()), None)
+    items.append({"name": "rf-detr-nano.pth 캐시(RF_HOME/저장소/프로필)", "level": "required", "ok": hit is not None,
+                  "where": str(hit or cands[0]), "how": "`python scripts/fetch_weights.py` 가 저장소 weights 에 받는다(2026-10-08 부터 guard 가 저장소본을 먼저 본다). RF_HOME 을 따로 두려면 그 안에 같은 파일"})
+    # onnx-cpu 슬롯(.onnx 3종)은 매니페스트에 없어 fetch_weights 로 못 받는다(build_portable.ps1 6단계가 "매니페스트 미등재" 로 원본 SHA 대조만) → 수동 복사
+    for f in ("ppe_rfdetr_v1.onnx", "forklift_rfdetr_v1.onnx", "fire_smoke_rfdetr_v1_e17.onnx"):
+        items.append({"name": f + " (onnx-cpu 슬롯)", "level": "optional", "ok": (wdir / f).is_file(), "where": str(wdir / f),
+                      "how": "매니페스트 미등재 — detect.backend=onnx-cpu(CPU 포터블)·test_rfdetr_onnx_parity 에만 필요. 개발기 vigent-core/weights 에서 복사(torch 백엔드면 불필요)"})
+    items.append({"name": "config/notify.yaml", "level": "optional", "ok": (root / "config" / "notify.yaml").is_file(), "where": str(root / "config" / "notify.yaml"),
+                  "how": "`copy config\\notify.example.yaml config\\notify.yaml` 뒤 값 입력(개발기·시험기는 **비워 두거나** 로컬 싱크 `scripts/bench/local_sink.py` 웹훅만 — 실채널 금지)"})
+    items.append({"name": ".env (VIGENT_API_TOKEN)", "level": "optional", "ok": (root / ".env").is_file(), "where": str(root / ".env"),
+                  "how": "127.0.0.1 바인드는 없어도 기동. 외부 바인드·VIGENT_REQUIRE_TOKEN=1 이면 필수: `python -c \"import secrets;print('VIGENT_API_TOKEN='+secrets.token_hex(32))\" > .env`"})
+    items.append({"name": "data/camera_secrets.json", "level": "optional", "ok": (root / "data" / "camera_secrets.json").is_file(), "where": str(root / "data" / "camera_secrets.json"),
+                  "how": "카메라 등록(설정 콘솔·setup_wizard) 때 자동 생성. 개발기 것을 복사하지 말 것(현장 자격증명)"})
+    items.append({"name": "data/datasets/css_safety (PPE held-out 평가)", "level": "dev", "ok": (root / "data" / "datasets" / "css_safety" / "train" / "images").is_dir(),
+                  "where": str(root / "data" / "datasets" / "css_safety"),
+                  "how": "평가·학습 전용(CC BY 4.0, Roboflow Universe Construction Site Safety v27). 없으면 해당 테스트는 skip. 개발기 data/datasets 에서 복사"})
+    sys.path.insert(0, str(root / "vigent-core"))
+    try:
+        import data_paths as _dp
+        dd = _dp.data_dir()
+        items.append({"name": f"VIGENT_DATA_DIR({dd})", "level": "dev", "ok": dd.is_dir(), "where": str(dd),
+                      "how": "현장 원본·AI Hub 등 저장소 밖 자료 루트. 환경변수 VIGENT_DATA_DIR 로 지정(없으면 저장소 옆 vigent_private_data). 학습·현장 평가에만 필요"})
+    except Exception as ex:  # noqa: BLE001
+        items.append({"name": "data_paths", "level": "dev", "ok": False, "where": "", "how": f"import 실패: {ex}"})
+    return items
+
+
+def print_environment(items: list[dict]) -> int:
+    """점검 결과 출력. required 누락이 하나라도 있으면 1."""
+    missing_req = [i for i in items if i["level"] == "required" and not i["ok"]]
+    print("\n[preflight] 새 환경 점검 — 없는 것과 가져올 곳")
+    for i in items:
+        mark = "OK " if i["ok"] else ("★없음" if i["level"] == "required" else " 없음")
+        print(f"  {mark:5} [{i['level']:8}] {i['name']}")
+        if not i["ok"]:
+            print(f"         위치: {i['where']}\n         조치: {i['how']}")
+    if missing_req:
+        print(f"\n★필수 {len(missing_req)}개가 없어 서버 기동·게이트가 실패한다. 위 조치대로 채운 뒤 `python scripts/setup_env.py --preflight` 로 다시 확인.")
+        return 1
+    print("  필수 항목 전부 있음.")
+    return 0
+
+
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     ap.add_argument("--no-install", action="store_true", help="pip install 생략(opencv 정리·검증만)")
     ap.add_argument("--weights", action="store_true", help="설치 뒤 scripts/fetch_weights.py --all 실행")
+    ap.add_argument("--preflight", action="store_true", help="설치 없이 새 환경 점검만(가중치·캐시·비밀·데이터 — 없는 것과 가져올 곳)")
     a = ap.parse_args()
+    if a.preflight:
+        return print_environment(check_environment())
     print(f"python: {sys.executable} ({sys.version.split()[0]})")
     if sys.version_info[:2] != (3, 11):
         print("[오류] Python 3.11 전용(.python-version). 대상 venv 의 python 으로 실행하세요.")
@@ -162,6 +243,8 @@ def main() -> int:
             _pip("install", "-r", str(req), "-c", str(_ROOT / "constraints.txt"))   # 임시 목록엔 -c 줄이 없다 → 여기서 동반
         else:
             _pip("install", "-r", str(req))
+        # [2026-10-08] 개발 도구(ruff·mypy, CI 와 같은 핀) — 게이트가 .venv 의 것을 쓴다
+        _pip("install", "-r", str(_ROOT / "requirements-dev.txt"))
         if cuda_before:
             cuda_after = _torch_cuda_build()
             if cuda_after != cuda_before:
@@ -200,7 +283,8 @@ def main() -> int:
             print(f"  ★fetch_weights 실패(exit {r.returncode})")
             return 1
     print("\n완료 — cv2 headless 4.13 확인됨.")
-    return 0
+    # [2026-10-08] 설치가 끝나도 가중치·캐시·비밀이 없으면 서버는 못 뜬다 — 여기서 바로 보여 준다(required 누락이면 종료코드 1)
+    return print_environment(check_environment())
 
 
 if __name__ == "__main__":

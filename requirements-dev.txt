@@ -1,0 +1,5 @@
+# VIGENT 개발 도구 — 게이트(scripts/gate.ps1)·CI(.github/workflows/ci.yml) 와 **같은 핀**. [2026-10-08 새 환경 점검]
+#   실측: 개발기 .venv 에는 ruff·mypy 가 없었고 gate.ps1 은 PATH 의 전역 ruff(0.16.1, CI 핀과 다름)를 썼으며 mypy 단계는 없었다.
+#   새 clone 에서는 ruff 자체가 없어 게이트 1단계에서 멈춘다. setup_env.py 가 이 파일을 함께 설치한다.
+ruff==0.12.0
+mypy==1.17.1

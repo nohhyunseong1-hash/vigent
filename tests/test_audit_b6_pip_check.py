@@ -31,6 +31,8 @@ class Classify(unittest.TestCase):
     def test_six_allowed_only(self):
         ok, bad = C.classify(SIX + ["", "No broken requirements found."])
         self.assertEqual(len(ok), 6); self.assertEqual(bad, [])
+        ok2, bad2 = C.classify(SIX + ["ultralytics 8.3.253 requires opencv-python, which is not installed."])   # 학습 venv(새 clone 실측 2026-10-08)
+        self.assertEqual(len(ok2), 7); self.assertEqual(bad2, [])
 
     def test_other_problems_are_bad(self):
         extra = ["torch 2.12.0+cu130 has requirement setuptools<82, but you have setuptools 83.0.0.",

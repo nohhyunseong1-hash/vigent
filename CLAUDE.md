@@ -104,7 +104,10 @@ CODE_REVIEW.md §5의 P0~P2 조치가 완료됐다. 코드 변경 시 아래를 
    걸면 안 건드린 파일이 바뀐다 — 2026-09-23 `ruff check scripts --fix` 로 `capacity_probe.py` 에 무관한 빈 줄이 들어가
    커밋 직전까지 갔다(되돌림). 로컬 게이트는 `powershell -File scripts\gate.ps1` 한 번으로 1~4 를 순서대로 돈다.
 2. **mypy**(점진) `python -m mypy` → 화이트리스트 0 에러 (라우트 핸들러엔 `-> dict/str` 금지: FastAPI가 response_model 로 채택해 응답 스키마가 바뀜)
-3. **테스트** `.../python3 -m unittest discover -s tests` → **913 tests**(2026-09-28, 개발기 기준)
+   ★[2026-10-08 정정] **그동안 로컬 게이트(`gate.ps1`)에는 mypy 단계가 없었고 개발기 .venv 에 mypy 가 설치돼 있지도 않았다** — 2026-09-28 까지의
+   "ruff·mypy·unittest·OpenAPI 통과" 보고에서 mypy 는 CI 결과를 본 것이 아니라 **돌지 않은 것**이다(10-08 처음 로컬 실행: 19파일 0 에러).
+   이제 gate.ps1 이 `.venv` 의 ruff·mypy(`requirements-dev.txt` 핀 = CI 핀 0.12.0/1.17.1)를 직접 돌린다. 전역 PATH 의 ruff(0.16.1)는 쓰지 않는다.
+3. **테스트** `.../python3 -m unittest discover -s tests` → **921 tests**(2026-10-08, 개발기 기준)
    ★게이트의 unittest 출력은 `audit/gate_unittest_last.log` 에 남는다(2026-09-27 추가) — 2026-09-26~27 에 비결정 실패가 2회 있었는데
    이름을 못 잡아 원인을 못 찾았다. 실패하면 그 로그의 `FAIL:`/`ERROR:` 줄을 먼저 본다.
    (★2026-09-23 갱신: 오래 "55 tests" 로 적혀 있었으나 실제는 726이었다. 테스트를 추가하면 이 숫자도 같이 고친다.
@@ -114,6 +117,9 @@ CODE_REVIEW.md §5의 P0~P2 조치가 완료됐다. 코드 변경 시 아래를 
    **앞선 모듈이 띄운 예열 스레드(vigent-warmup)의 GPU 동시 사용**이 원인이었다(CODE_AUDIT B-2, 2026-09-28: 결정성 플래그만으로는 5회 중 1회
    실패 — 그 회차만 165 s 로 느림; setUp 에서 예열 스레드 join + `torch.cuda.empty_cache()` 뒤 **5회 연속 통과**, 허용 ±0.3 복귀). 평가 경로는
    `eval_v1_heldout.enable_determinism()` 을 쓴다. 다시 흔들리면 허용을 넓히지 말고 어떤 스레드가 GPU 를 같이 쓰는지부터 본다.
+   ★[2026-10-08 새 환경 점검] `GuardAgent` 가 사전학습 캐시를 **저장소 `vigent-core/weights`(fetch_weights 가 받는 곳) → `~/.roboflow/models`** 순서로 본다.
+   프로필 캐시가 지워져 게이트가 ERROR 39 로 깨진 사고(10-08)의 수정. 새 기계 세팅 절차는 [docs/SETUP_NEW_MACHINE.md](docs/SETUP_NEW_MACHINE.md),
+   빠진 것 점검은 `python scripts/setup_env.py --preflight`.
    ★테스트는 **기계 상태에 의존하면 안 된다** — 2026-09-23 `test_field_eval_group` 이 C: 여유가
    5GB 아래로 떨어지자 코드 변경 없이 실패했다(실제 `shutil.disk_usage` 를 읽고 있었다). 디스크·시각·
    네트워크는 mock 으로 고정하고, 고정한 만큼 **반대편(경고가 나는 경우)** 도 테스트로 잡는다.

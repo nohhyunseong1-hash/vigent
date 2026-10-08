@@ -24,8 +24,14 @@ if (-not (Test-Path $py)) { $py = "python" }
 
 function Fail($msg) { Write-Host "✗ $msg" -ForegroundColor Red; exit 1 }
 
+# ★[2026-10-08 새 환경 점검] ruff·mypy 는 .venv 의 것(requirements-dev.txt 핀 = CI)을 쓴다. 예전엔 PATH 의 전역 ruff(버전 불일치)를 썼고,
+#   새 clone 에는 ruff 가 없어 여기서 멈췄다. mypy 단계는 아예 없었다(CI 만 돌았음) — CLAUDE.md 가 말하는 1~4 를 실제로 돈다.
+& $py -m ruff --version *> $null; if ($LASTEXITCODE -ne 0) { Fail "ruff 가 .venv 에 없다 — `$py -m pip install -r requirements-dev.txt` (또는 scripts/setup_env.py)" }
+& $py -m mypy --version *> $null; if ($LASTEXITCODE -ne 0) { Fail "mypy 가 .venv 에 없다 — `$py -m pip install -r requirements-dev.txt` (또는 scripts/setup_env.py)" }
 Write-Host "== 1. ruff check vigent-core tests (CI 와 동일, 수정 없음) =="
-ruff check vigent-core tests; if ($LASTEXITCODE -ne 0) { Fail "ruff(청정 표면) 실패" }
+& $py -m ruff check vigent-core tests; if ($LASTEXITCODE -ne 0) { Fail "ruff(청정 표면) 실패" }
+Write-Host "== 1b. mypy (pyproject 화이트리스트, CI 와 동일) =="
+& $py -m mypy; if ($LASTEXITCODE -ne 0) { Fail "mypy 실패" }
 
 Write-Host "== 2. ruff --fix : 이번 변경 파일만 =="
 $changed = @(git diff --name-only HEAD -- '*.py') + @(git diff --name-only --cached -- '*.py') + @(git ls-files --others --exclude-standard -- '*.py')
@@ -40,7 +46,7 @@ if ($changed.Count -eq 0) {
 } else {
     Write-Host ("  대상 {0}개: {1}" -f $changed.Count, ($changed -join ", "))
     $ruffArgs = @("check", "--fix", "--") + $changed
-    & ruff @ruffArgs; if ($LASTEXITCODE -ne 0) { Fail "ruff --fix(변경 파일) 뒤에도 오류가 남았다" }
+    & $py -m ruff @ruffArgs; if ($LASTEXITCODE -ne 0) { Fail "ruff --fix(변경 파일) 뒤에도 오류가 남았다" }
     # --fix 가 건드린 파일이 '대상' 밖이면 안 된다 - 있으면 그 자체가 실패
     $touched = @(git diff --name-only -- '*.py') | Where-Object { $_ -notin $changed }
     if ($touched.Count -gt 0) { Fail ("--fix 가 변경 파일 밖을 건드렸다: " + ($touched -join ", ")) }

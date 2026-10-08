@@ -611,7 +611,15 @@ class GuardAgent(BaseAgent):
          서비스 첫 기동에서 349MB 를 새로 받았다.)
         """
         import os
-        return _Path(os.path.expanduser(os.environ.get("RF_HOME", "~/.roboflow/models")))
+        if os.environ.get("RF_HOME"):
+            return _Path(os.path.expanduser(os.environ["RF_HOME"]))
+        # ★[2026-10-08 새 환경 점검] RF_HOME 미설정이면 **저장소 안 검증본**(vigent-core/weights, fetch_weights.py 가 받는 곳)을 먼저 본다.
+        #   실측: 사용자 프로필 ~/.roboflow 가 지워지자 코드 변경 0 인데 게이트가 ERROR 39 로 깨졌다(2026-10-08) — 테스트·서버가
+        #   기계 상태(프로필 캐시)에 의존했던 것. 저장소 검증본이 있으면 그것을 쓰고, 없을 때만 예전 기본(~/.roboflow/models)으로 간다.
+        repo_dir = _Path(__file__).resolve().parent.parent / "weights"
+        if (repo_dir / GuardAgent.PRETRAIN_FILE).is_file():
+            return repo_dir
+        return _Path(os.path.expanduser("~/.roboflow/models"))
 
     def _require_rfdetr_pretrain(self, needed: bool) -> None:
         """베이스 체크포인트 부재를 **기동 시점에 명시적으로** 실패시킨다(F-8 과 같은 원칙).

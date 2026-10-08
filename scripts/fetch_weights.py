@@ -159,6 +159,12 @@ def verify(entry: dict[str, Any]) -> tuple[str, str]:
 
 
 def download(entry: dict[str, Any], man: dict[str, Any]) -> tuple[bool, str]:
+    raw = str(entry.get("url") or "")
+    if raw.startswith("local:") and not os.environ.get(str(man.get("base_url_env") or "VIGENT_WEIGHTS_BASE_URL")):
+        # [2026-10-08 새 환경 점검] Release 에 올리지 않은 산출물(예: fk510_smoke) — 예전엔 urlopen 이 'unknown url type: local' 로
+        #   죽어 무엇을 해야 하는지 알 수 없었다. 어디서 복사하고 어떻게 확인하는지를 돌려준다.
+        return False, (f"Release 미업로드(local) — 개발기 또는 USB 스테이지의 portable\\app\\vigent-core\\weights\\{entry['file']} 를 "
+                       f"{target_path(entry)} 로 복사한 뒤 `--check --all` 로 SHA 확인(기대 {str(entry.get('sha256', ''))[:16]}…). 원본: {raw[6:]}")
     url = resolve_url(entry, man)
     if not url or "PLACEHOLDER" in url:
         return False, "다운로드 URL 미설정(매니페스트 url 또는 VIGENT_WEIGHTS_BASE_URL 필요)"

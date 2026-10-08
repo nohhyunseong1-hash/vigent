@@ -19,7 +19,7 @@ import sys
 
 # 허용: <이름> <버전> requires opencv-(python|python-headless|contrib-python), which is not installed.
 #   → headless(contrib) 가 cv2 모듈을 제공하므로 실제로는 충족된다(설치 시 GUI 빌드를 지운 것이 의도).
-ALLOWED_PKGS = ("albucore", "albumentations", "rtmlib", "supervision", "trackers")
+ALLOWED_PKGS = ("albucore", "albumentations", "rtmlib", "supervision", "trackers", "ultralytics")   # ultralytics: requirements-train(YOLO 기준선)만, 2026-10-08 새 clone 실측
 _ALLOWED = re.compile(r"^(?P<pkg>" + "|".join(ALLOWED_PKGS) + r") \S+ requires opencv-(python|python-headless|contrib-python), which is not installed\.$")
 HEADLESS = "opencv-contrib-python-headless"
 
