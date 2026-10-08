@@ -19,6 +19,11 @@ _ROOT = Path(__file__).resolve().parent.parent.parent
 _CORPUS = _ROOT / "config" / "corpus" / "safety_citations.json"
 
 
+import logging
+
+_LOG = logging.getLogger("vigent.copilot")
+
+
 class CopilotAgent(BaseAgent):
     name = "Copilot"
     role = "근거: 법령·KOSHA 가이드 RAG 검색, citation 포함 근거 블록"
@@ -107,8 +112,12 @@ class CopilotAgent(BaseAgent):
                 import legal_whitelist
                 vlm["관련법령"] = legal_whitelist.gate_vlm_text(
                     str(vlm.get("관련법령", "")), doc_type="VLM위험분석")
-            except Exception:  # noqa: BLE001
-                pass
+            except Exception as ex:  # noqa: BLE001
+                # ★[OPEN_ISSUES_20261008 #4] 예전엔 `pass` 라 게이트가 고장 나면 **검증 안 된 조문이 그대로 통과**했다(fail-open).
+                #   법령 인용은 안전관리자가 그대로 믿는 문구라 fail-closed: 조문을 '안전관리자 확인 필요' 로 바꾸고 ERROR 를 남긴다.
+                _LOG.error("법령 화이트리스트 게이트 실패 → VLM 조문을 통과시키지 않음(fail-closed): %s: %s", type(ex).__name__, ex)
+                vlm["관련법령"] = "안전관리자 확인 필요(법령 게이트 오류)"
+                vlm["_law_gate_error"] = f"{type(ex).__name__}: {ex}"[:200]
             return vlm   # (게이트 적용 후) VLM 자체 값 유지
         text = f"{vlm.get('위험요인', '')} {vlm.get('근거', '')}"
         m = self.cite_for_hazard(text)
