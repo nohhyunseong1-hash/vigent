@@ -13,13 +13,15 @@ from unittest import mock
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "vigent-core"))
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "scripts"))
-
+sys.path.insert(0, str(Path(__file__).resolve().parent))
 import relay  # noqa: E402
+from _isolate import isolate_alerts  # noqa: E402  [OPEN_ISSUES #3] 운영 큐 격리
 from mock_relay import MockRelay  # noqa: E402
 
 
 class _RelayTest(unittest.TestCase):
     def setUp(self):
+        self.addCleanup(isolate_alerts())
         # ★[2026-08-28] 다른 테스트가 띄워둔 **배경 전송 스레드를 먼저 재운다.**
         #   alert_notify 전송 스레드와 alert_queue 재시도 스레드는 dispatcher 를 거쳐
         #   `relay.turn_on()` 까지 닿는다. 그 스레드가 이 테스트 도중 깨어나면 전역 릴레이

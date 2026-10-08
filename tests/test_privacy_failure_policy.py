@@ -15,15 +15,17 @@ from pathlib import Path
 from unittest import mock
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "vigent-core"))
-
+sys.path.insert(0, str(Path(__file__).resolve().parent))
 import data_engine  # noqa: E402
 import privacy  # noqa: E402
+from _isolate import isolate_alerts  # noqa: E402  [OPEN_ISSUES #3] 운영 큐 격리
 
 
 class FailureAlerting(unittest.TestCase):
     """① 잦은 실패는 통보된다."""
 
     def setUp(self):
+        self.addCleanup(isolate_alerts())
         privacy._fail_times.clear()
         privacy._fail_total = 0
         privacy._last_alert_at = 0.0
@@ -73,6 +75,7 @@ class RecordMarking(unittest.TestCase):
     """② 원본 저장 사실이 기록에 남는다 — 선별 삭제의 전제."""
 
     def setUp(self):
+        self.addCleanup(isolate_alerts())
         from _isolate import isolate_data_dirs
         self.addCleanup(isolate_data_dirs())   # [4단계 ④] 운영 data/recognition/events_*.jsonl 에 쓰지 않는다
 

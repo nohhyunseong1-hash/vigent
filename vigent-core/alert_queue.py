@@ -21,6 +21,7 @@ from __future__ import annotations
 import json
 import os
 import sqlite3
+import sys
 import threading
 import time
 from pathlib import Path
@@ -33,7 +34,29 @@ _LOG = vlog.get("vigent.alert_queue")
 _ROOT = Path(__file__).resolve().parent.parent
 # [4단계 ④, 2026-09-06] 큐 DB 경로를 env 로 바꿀 수 있게 — 테스트·격리 실행이 운영 DB 를 건드리지
 #   않도록(실측: 테스트 스위트가 운영 큐에 시험 행을 남겼다, CODE_REVIEW.md §4-0). 기본값 불변.
-_DB_PATH = Path(os.environ.get("VIGENT_ALERT_DB") or (_ROOT / "data" / "alert_queue.db"))
+
+
+def _resolve_db_path() -> Path:
+    """큐 DB 경로. VIGENT_ALERT_DB > (테스트 러너 안이면 임시 DB) > 운영 data/alert_queue.db.
+
+    ★[OPEN_ISSUES_20261008 #3, 실측] 2026-09-28 11:12 `tests/test_audit_fix2_relay` 가 격리 헬퍼 없이 relay 실패 통보 경로를 타
+    **운영 큐에 critical pending 3건**을 남겼고, 실채널이 설정된 개발기에서 서버를 띄우면 그대로 텔레그램으로 나갈 상태였다.
+    격리는 테스트가 "잊지 않아야" 되는 opt-in 이라 재발한다 → 여기서 구조적으로 막는다: `unittest` 모듈이 올라와 있으면(= 테스트
+    러너 프로세스; 앱 코드는 unittest 를 import 하지 않는다) 운영 DB 대신 프로세스 전용 임시 DB 를 쓰고 WARNING 1줄을 남긴다.
+    정말 운영 DB 를 써야 하는 시험은 VIGENT_ALERT_DB 로 명시한다."""
+    env = os.environ.get("VIGENT_ALERT_DB")
+    if env:
+        return Path(env)
+    if "unittest" in sys.modules and os.environ.get("VIGENT_ALERT_DB_ALLOW_REAL") != "1":
+        import tempfile
+        d = Path(tempfile.gettempdir()) / f"vigent_test_alert_queue_{os.getpid()}"
+        d.mkdir(parents=True, exist_ok=True)
+        _LOG.warning("alert_queue: 테스트 러너 감지 — 운영 큐 대신 임시 DB 사용 %s (운영 DB 를 쓰려면 VIGENT_ALERT_DB 명시)", d)
+        return d / "alert_queue.db"
+    return _ROOT / "data" / "alert_queue.db"
+
+
+_DB_PATH = _resolve_db_path()
 
 PENDING, SENT, DEAD = "pending", "sent", "dead"
 

@@ -15,10 +15,11 @@ from pathlib import Path
 from unittest import mock
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "vigent-core"))
-
+sys.path.insert(0, str(Path(__file__).resolve().parent))
 import alert_gate  # noqa: E402
 import alert_notify  # noqa: E402
 import zone_debounce  # noqa: E402
+from _isolate import isolate_alerts  # noqa: E402  [OPEN_ISSUES #3] 운영 큐 격리
 
 
 def cfg(**kw):
@@ -32,6 +33,7 @@ class TestGateFire(unittest.TestCase):
     """1) 발화 — 첫 위험은 반드시 통보된다."""
 
     def setUp(self):
+        self.addCleanup(isolate_alerts())
         alert_gate.reset()
 
     def test_first_alert_notifies(self):
@@ -56,6 +58,7 @@ class TestGateSuppress(unittest.TestCase):
     """2) 억제 — [M3] 의 '정지 오검출이 경보를 계속 낳는' 상황을 막는다."""
 
     def setUp(self):
+        self.addCleanup(isolate_alerts())
         alert_gate.reset()
 
     def test_repeat_within_cooldown_suppressed(self):
@@ -150,6 +153,7 @@ class TestGateEscalation(unittest.TestCase):
     """3) 등급 상승은 쿨다운을 무시한다 — 악화를 늦게 알면 안 된다."""
 
     def setUp(self):
+        self.addCleanup(isolate_alerts())
         alert_gate.reset()
 
     def test_escalation_bypasses_cooldown(self):
@@ -176,6 +180,7 @@ class TestNotifyRollback(unittest.TestCase):
     """롤백 경로: alerts.notify=false 면 구 동작(통보 안 함, 기록은 그대로)."""
 
     def setUp(self):
+        self.addCleanup(isolate_alerts())
         alert_notify.reset_for_test()
 
     def test_disabled_returns_not_queued(self):
@@ -189,6 +194,7 @@ class TestSendFailureDoesNotBlockDetection(unittest.TestCase):
     """4) ★전송 실패·지연이 검출을 막지 않는다."""
 
     def setUp(self):
+        self.addCleanup(isolate_alerts())
         alert_notify.reset_for_test()
 
     def tearDown(self):
@@ -234,6 +240,9 @@ class TestSendFailureDoesNotBlockDetection(unittest.TestCase):
 
 class TestProximityDebounce(unittest.TestCase):
     """[W2] 근접 디바운스 — 침입(1.0s)보다 짧은 0.4s."""
+    def setUp(self):
+        self.addCleanup(isolate_alerts())
+
 
     def test_single_frame_hit_does_not_confirm(self):
         """★단일 프레임 오검출은 경보가 되지 않는다(도입 목적)."""
@@ -272,6 +281,9 @@ class TestProximityDebounce(unittest.TestCase):
 
 class TestDeriveWiring(unittest.TestCase):
     """_derive 가 근접 디바운서를 실제로 태우는지(전이에서만 발화)."""
+    def setUp(self):
+        self.addCleanup(isolate_alerts())
+
 
     def _dets(self):
         return [{"label": "forklift", "bbox": [0.40, 0.30, 0.80, 0.90], "class": "forklift"},
@@ -313,6 +325,9 @@ class TestWorkerCallsNotify(unittest.TestCase):
     단위 테스트만으로는 "게이트는 맞지만 아무도 안 부른다"([M1] 에서 실제로 발견된 상태)를
     못 잡는다 — 그래서 _process_frame 을 직접 돌려 호출 자체를 확인한다.
     """
+    def setUp(self):
+        self.addCleanup(isolate_alerts())
+
 
     def _run_one_frame(self, signals):
         import numpy as np

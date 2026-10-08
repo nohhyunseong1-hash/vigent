@@ -15,8 +15,9 @@ from pathlib import Path
 from unittest import mock
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "vigent-core"))
-
+sys.path.insert(0, str(Path(__file__).resolve().parent))
 import relay  # noqa: E402
+from _isolate import isolate_alerts  # noqa: E402  [OPEN_ISSUES #3] 운영 큐 격리
 
 
 def _cfg(**kw):
@@ -28,6 +29,7 @@ def _cfg(**kw):
 
 class OffFailureRetriesWithBackoff(unittest.TestCase):
     def setUp(self):
+        self.addCleanup(isolate_alerts())
         relay._reset_for_test(); self.addCleanup(relay._reset_for_test)
 
     def test_retry_until_success_and_notify_once(self):
@@ -58,6 +60,7 @@ class OffFailureRetriesWithBackoff(unittest.TestCase):
 
 class HttpOutsideLock(unittest.TestCase):
     def setUp(self):
+        self.addCleanup(isolate_alerts())
         relay._reset_for_test(); self.addCleanup(relay._reset_for_test)
 
     def test_turn_on_not_blocked_by_slow_off(self):
@@ -78,6 +81,9 @@ class HttpOutsideLock(unittest.TestCase):
 
 
 class ShutdownTurnsRelayOffFirst(unittest.TestCase):
+    def setUp(self):
+        self.addCleanup(isolate_alerts())
+
     def test_shutdown_calls_turn_off_when_on(self):
         import main
         order: list[str] = []

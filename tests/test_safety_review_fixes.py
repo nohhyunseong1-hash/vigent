@@ -19,10 +19,11 @@ from pathlib import Path
 from unittest import mock
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "vigent-core"))
-
+sys.path.insert(0, str(Path(__file__).resolve().parent))
 import data_engine  # noqa: E402
 import health_status as hs  # noqa: E402
 import worker as W  # noqa: E402
+from _isolate import isolate_alerts  # noqa: E402  [OPEN_ISSUES #3] 운영 큐 격리
 
 ZONE = [(0.1, 0.1), (0.9, 0.1), (0.9, 0.9), (0.1, 0.9)]
 GLOBAL_ZONE = [(0.0, 0.0), (0.5, 0.0), (0.5, 0.5)]
@@ -47,6 +48,7 @@ class TestZoneFallbackBlocked(unittest.TestCase):
     """F5 — '설정 안 함' 과 '개발용 좌표 적용' 은 완전히 다르다."""
 
     def setUp(self):
+        self.addCleanup(isolate_alerts())
         self.tmp = tempfile.TemporaryDirectory()
         self.src = _img(Path(self.tmp.name))
 
@@ -108,6 +110,9 @@ class TestZoneFallbackBlocked(unittest.TestCase):
 # ───────────────────────────────────────────────── F1
 class TestSlotDegradedSurfaces(unittest.TestCase):
     """F1 — 사람을 못 보는 상태가 healthy 로 보이면 안 된다."""
+    def setUp(self):
+        self.addCleanup(isolate_alerts())
+
 
     OKCAM = {"c1": {"status": hs.OK}}
 
@@ -152,6 +157,7 @@ class TestRecordFailureDoesNotBlockAlert(unittest.TestCase):
     """F2 — 디스크가 차도 알림은 나가야 한다."""
 
     def setUp(self):
+        self.addCleanup(isolate_alerts())
         self.tmp = tempfile.TemporaryDirectory()
         d = Path(self.tmp.name)
         self._orig = (data_engine._ROOT, data_engine._EVIDENCE, data_engine._RECOG)
