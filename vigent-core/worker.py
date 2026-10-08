@@ -378,6 +378,7 @@ class _PoseModel:
     def __init__(self) -> None:
         self._m: Any = None            # RtmPoseDetector(지연 import) → Any
         self._failed = False
+        self.error: str | None = None  # [OPEN_ISSUES #11] 로드 실패 사유 — Worker.status() → /health cameras[].pose_error 로 노출
         self._load_lock = threading.Lock()   # [M5-7] 카메라 N대의 포즈 스레드가 동시에 지연 로드하지 않게
 
     def persons(self, frame: "np.ndarray", boxes: list | None = None, min_kp: float = 0.3) -> "list[dict[str, Any]]":
@@ -392,8 +393,11 @@ class _PoseModel:
                             sys.path.insert(0, core)
                         from pose.rtmpose_adapter import RtmPoseDetector
                         self._m = RtmPoseDetector()
-                    except Exception:  # noqa: BLE001  로드 실패 → 포즈 기능만 비활성(탐지 무중단)
+                    except Exception as ex:  # noqa: BLE001  로드 실패 → 포즈 기능만 비활성(탐지 무중단)
                         self._failed = True
+                        # [OPEN_ISSUES #11] 예전엔 로그 0·상태 0 으로 영구 침묵 — 근골격·무동작 경보가 조용히 사라졌다
+                        self.error = f"{type(ex).__name__}: {ex}"[:200]
+                        _WLOG.error("RTMPose 로드 실패 — 포즈·근골격 경보 비활성(검출은 계속): %s", self.error)
         if self._m is None or not boxes:
             return []
         try:
@@ -884,6 +888,8 @@ class Worker:
 
     def status(self) -> dict:
         s = dict(self.state)
+        if _posemodel.error:
+            s["pose_error"] = _posemodel.error      # [OPEN_ISSUES #11] /health 가 본다
         lft = s.get("last_frame_ts", 0.0)
         if lft and lft > 0:
             idle = time.time() - lft
@@ -1029,8 +1035,11 @@ class Worker:
                 try:
                     ctx.dataset_dir.mkdir(parents=True, exist_ok=True)
                     safe = "".join(c if c.isalnum() else "_" for c in str(ctx.name))[:20]
-                    cv2.imwrite(str(ctx.dataset_dir / f"{safe}_{int(t0)}.jpg"), frame)
-                    self.state["collected"] = self.state.get("collected", 0) + 1
+                    # [OPEN_ISSUES #13] imwrite 는 실패해도 예외가 아니라 False — 반환을 봐야 수집 수가 실제 파일 수와 같다
+                    if cv2.imwrite(str(ctx.dataset_dir / f"{safe}_{int(t0)}.jpg"), frame):
+                        self.state["collected"] = self.state.get("collected", 0) + 1
+                    else:
+                        self.state["collect_failed"] = self.state.get("collect_failed", 0) + 1
                 except Exception as _we:  # noqa: BLE001
                     _WLOG.debug("worker 무시 예외 [수집 카운트 갱신]: %s", _we)
             # 3.12 ②: 차등 캐던스. focus 중엔 person 전용 고속(표시·일관 tid, :pf 풀) + 풀세트 저속(이벤트·PPE·화재·pose).

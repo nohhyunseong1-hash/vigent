@@ -83,6 +83,7 @@ def camera_status(st: dict[str, Any], thr: dict[str, float] | None = None) -> di
         "last_frame_age_s": frame_age,
         "last_detect_age_s": detect_age,
         "last_detect_latency_ms": st.get("last_detect_ms"),
+        "pose_error": st.get("pose_error"),          # [OPEN_ISSUES #11] RTMPose 로드 실패 사유(None = 정상)
         # [E1] 병목 특정용 단계 분해 — 락 대기 / 추론 실행 / 프레임 획득
         "lock_wait_ms": st.get("lock_wait_ms"),
         "infer_ms": st.get("infer_ms"),
