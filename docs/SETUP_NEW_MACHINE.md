@@ -17,7 +17,7 @@
 ## 1. clone → .venv → 의존성
 
 ```powershell
-git clone --branch audit/cleanup-20260906 https://github.com/<owner>/vigent.git D:\vigent
+git clone https://github.com/<owner>/vigent.git D:\vigent      # 기본 브랜치 main (2026-10-08 audit/cleanup-20260906 → main 병합)
 cd D:\vigent
 py -3.11 -m venv .venv
 .\.venv\Scripts\python.exe -m pip install --upgrade pip
