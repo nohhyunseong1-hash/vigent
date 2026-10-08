@@ -98,8 +98,11 @@ def _safe_image(img_path: str, max_side: int = 1024) -> str:
     w, h = im.size
     s = min(1.0, max_side / max(w, h))
     nw, nh = max(28, int(w * s) // 28 * 28), max(28, int(h * s) // 28 * 28)
-    out = Path("/tmp") / f"vlm_in_{Path(img_path).stem}.jpg"
+    import tempfile
+    out = Path(tempfile.gettempdir()) / f"vlm_in_{Path(img_path).stem}.jpg"   # [OPEN_ISSUES #13] /tmp 는 Windows 에서 \\tmp
     im.resize((nw, nh)).save(out)
+    if not out.is_file() or out.stat().st_size == 0:
+        raise RuntimeError(f"VLM 입력 이미지 저장 실패: {out}")
     return str(out)
 
 
