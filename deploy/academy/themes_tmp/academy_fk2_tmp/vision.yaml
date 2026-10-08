@@ -1,0 +1,119 @@
+# ─────────────────────────────────────────────────────────────
+# VIGENT Safety 테마 선언 (메타 프롬프트 §5 기준)
+#
+# 이 파일 하나로 코어가 전체 파이프라인을 구성한다.
+# 모델 경로는 1단계에서 복사한 실제 파일(vigent-core/weights/) 기준이며,
+# 파일이 없으면 vision_loader 가 자동으로 fallback 으로 내려간다(절대 저하 없음).
+# ─────────────────────────────────────────────────────────────
+theme: safety
+brand: VIGENT
+display_name: "VIGENT Safety"
+
+perception:                       # ── Guard (감지)
+  # 슬롯별 검출 백엔드(T10a). 'yolo'=ultralytics(.pt, AGPL) / 'rfdetr'=RF-DETR(Apache-2.0).
+  #   기본은 yolo(생략 시). person 은 RF-DETR 로 이관(COCO 사전학습, mAP@50 raw 93.9%·33.8ms).
+  #   T10b: ppe·fire_smoke·forklift 전부 RF-DETR 이관 완료(배포 ultralytics 잔존 0 → A-4).
+  # ★[학원 프로파일] forklift 만 yolo(boda_ax) — G1 대결 채택(RF-DETR F-7 부적격·재현율 2.8%).
+  #   나머지 슬롯은 전역과 동일(rfdetr). ⚠yolo 경로는 ultralytics(AGPL) 설치 필요.
+  backend: {person: rfdetr, ppe: rfdetr, fire_smoke: rfdetr, forklift: rfdetr}
+  # rfdetr 백엔드 커스텀 파인튜닝 가중치(T10b). person 은 COCO 사전학습이라 항목 없음.
+  #   forklift: LOCO 학습(T10b Phase1). box mAP@50 8.83%(YOLO 7.61 초과) — 단 confidence 낮아 운용점 tuning.yaml 참조.
+  #   fire_smoke: D-Fire 학습(Colab e17 best_ema). D-Fire test 395 box mAP@50 80.13%(게이트≥60 통과), presence 게이트도 통과.
+  #     운용점은 tuning.yaml fire_smoke_per_class(RF-DETR conf 스케일 재튜닝). in-domain(D-Fire) 우위 — 현장 재검증 대기.
+  #   ppe: css_safety 학습(Colab best_total — 2026-08 정정, 구주석 "best_ema"는 오기였다: 실측 파일
+  #     크기(120,910,843B)가 best_total과 일치·체크포인트 메타(early_stopping_use_ema=False, EMA 전용
+  #     키 없음)도 이를 뒷받침, 근거는 vigent-core/weights/MANIFEST.md). test 82 box mAP@50 75.62%
+  #     (단서 2026-09-25: valid/test 영상의 83~93%가 train에 포함된 누출 분할. 실성능 미확인. docs/model/ppe_rfdetr_v1_provenance.md 참조)
+  #     (게이트≥73.2 통과, 동일출처 누출 한계) — 이 수치가 ema/total 중 어느 체크포인트를 쟀는지는
+  #     로컬에 재현 가능한 기록이 없어 미확인(Colab 실측이라 로컬 아티팩트 부재) — best_total(현재
+  #     배포본) 자체의 로컬 재측정치는 아직 없다(모른다, 규칙7). 운용점 tuning.yaml ppe.
+  #   되돌리려면 backend 해당 슬롯을 yolo 로, tuning.yaml 임계를 원복(forklift 0.68 / fire 0.03·smoke 0.20 / ppe 0.62 이전 YOLO값)한다.
+  rfdetr_weights:
+    forklift: vigent-core/weights/forklift_rfdetr_fk510_smoke.pth
+    fire_smoke: vigent-core/weights/fire_smoke_rfdetr_v1_e17.pth
+    ppe: vigent-core/weights/ppe_rfdetr_v1.pth
+  detectors:
+    # 범용 객체(COCO 80종): yolo11m — 일상 사물 전반을 가장 정확히 잡는 주력 검출기.
+    #   (재학습 office_person_v1 은 빠른학습이라 품질이 낮아 보류. 제대로 재학습 시 교체 예정)
+    # ★[정직화 2026-08-24] person 은 backend 가 rfdetr 이라 아래 경로가 **참조되지 않는다**
+    #   (guard.py `_get_model` rfdetr 분기는 _slot_path 를 안 본다). 전역 vision.yaml 과
+    #   동일하게 주석 처리 — 기록은 보존한다. 되살리려면 backend.person 을 yolo 로 바꾸면서
+    #   **반드시 이 줄의 주석도 함께 풀어야 한다**(안 그러면 person 검출이 조용히 죽는다).
+    #   ★★forklift 는 다르다 — 학원은 backend.forklift=yolo 라 **아래 forklift 항목이
+    #     반드시 살아 있어야 한다.** 지우면 지게차 검출이 통째로 죽는다.
+    # - {id: person, model: vigent-core/weights/yolo11m.pt, fallback: vigent-core/weights/yolo11s.pt, classes: [person]}
+    # PPE: 25클래스 주력 모델. 안전모·조끼·마스크 착용/미착용 직접 감지 + 차량·중장비.
+    #   라벨은 공백형으로 출력(Safety Vest 등) → guard.py 가 표준형(Safety-Vest)으로 정규화.
+    # ppe_css_v1: CSS 상업데이터(CC BY 4.0) 학습. 실측 mAP50 — 마스크/조끼 91%, 안전모 86%,
+    #   미착용 NO-Hardhat 72%·NO-Mask 79%·NO-Safety Vest 82% (구 v30 대비 미착용 감지 대폭↑).
+    #   되돌리려면 model 을 weights/ppe_construction_v30.pt 로 바꾸면 됨(구 모델 보존).
+    - {id: ppe, model: vigent-core/weights/ppe_css_v1.pt, fallback: heuristic,
+       classes: [Hardhat, NO-Hardhat, Safety-Vest, NO-Safety-Vest, Mask, NO-Mask]}
+    # 화재/연기: fire_smoke_boda(Fire/smoke 2종, smoke mAP 0.896). 폴백은 HSV 색공간 휴리스틱
+    - {id: fire_smoke, model: vigent-core/weights/fire_smoke_boda.pt, fallback: hsv_heuristic}
+    # 지게차/중장비: 폴백 없음(모델 없으면 해당 기능만 비활성, 나머지는 정상)
+    - {id: forklift, model: vigent-core/weights/forklift_boda_ax.pt, fallback: none}
+  # [정직화] pose 슬롯은 '정보성' — vision_loader 는 detector 슬롯(person/ppe/fire_smoke/forklift)만
+  #   모델로딩에 소비하고 pose 는 소비하지 않는다(guard.py). 실제 포즈 동작:
+  #     · 백엔드(근골격) = worker.py 가 weights/yolov8n-pose.pt 를 직접 로드(하드코딩)
+  #     · 브라우저 라이브뷰   = MediaPipe Holistic(CDN, index.html)
+  #   rtmpose 는 미설치·미사용(향후 업그레이드 후보). 아래 값 변경은 실제 동작과 무관(참고 표기).
+  pose:    {model: rtmpose, fallback: [mediapipe_holistic, vigent-core/weights/yolov8n-pose.pt]}
+  # [정직화] ByteTrack 미구현·미사용. vision_loader 는 tracker 슬롯을 처리하지 않는다(no-op).
+  #   실제 객체추적: 브라우저 realtime_core.js(IoU+중심점 매칭) · rfdetr_service(SORTTracker) ·
+  #   worker 근골격(중심점 매칭). ByteTrack 은 도입 후보일 뿐 현재 코드에 없음.
+  tracker: bytetrack
+
+judgment:                         # ── Analyst (판단), 가산식
+  zones:
+    danger_zones: config/danger_zone.json          # 일반 위험구역(침입=high)
+    machine_hazard_zones: config/machine_zone.json # 프레스/전단기 방호구역(손 진입=critical, §8)
+    intrusion: ray_casting
+  detect_threshold: 0.4           # rf-detr 탐지 confidence 임계값(코드 수정 없이 조정)
+  rules:
+    - {id: zone_intrusion, when: "person.center in danger_zone", severity: high}
+    - {id: ppe_missing,    when: "NO-Hardhat or NO-Safety-Vest",  severity: high}    # ★2026-09-26: 전역과 동일하게 high(워커 코드 의도) — 프로파일 드리프트 검사 미러
+    - {id: guard_bypass,   when: "hand in machine_hazard_zone",    severity: critical}  # 프레스/전단기
+  ergonomics:                     # ── 5.5단계: 인간공학(작업자세 위험) — 포즈 기반, 추가 모델 불필요
+    framework: REBA               # safety=전신(REBA), 중량물·허리굽힘 작업자세
+    # ★[학원 프로필, 2026-09-10 대표 결정] 근골격(ergonomic_risk) 규칙 OFF — 계약 범위 밖 + 현장 보고서 §387 기울기 판정 오류.
+    #   worker.ErgonomicsTracker 는 `joints` 가 비어 있으면 스스로 비활성(_enabled=False)이므로 키 이름만 바꿔 둔다(값은 보존).
+    #   포즈 스레드·무동작(쓰러짐 의심) 규칙은 그대로. 다시 켜려면 아래 키를 `joints:` 로 되돌린다. 전역 themes/safety/vision.yaml 은 불변.
+    joints_off_academy:
+      neck:     {good: 25, warn: 40}    # 목 굽힘(도) — 실영상 튜닝(하향 CCTV 2D 과대추정 보정, 중립~21°가 good)
+      trunk:    {good: 20, warn: 45}    # 허리 굽힘(작업현장은 허용범위 넓게) — 실측상 적정, 유지
+      shoulder: {good: 15, warn: 35}    # 어깨 비대칭/들어올림(도) — 실영상 튜닝(선 채 원근 오탐 억제)
+    hold_sec: 3                   # 나쁜 자세 3초 지속 시 위험 가산
+    neck_requires_corroboration: true   # 목 단독발화 억제: 목 warn 만으론 위험 X(목 bad 또는 허리/어깨 동반 warn+ 필요)
+    law_rule: ergonomic_risk      # Copilot 법령(근골격계 부담작업 예방)
+  score: additive
+
+vlm:                              # ── 영상→위험 분석(로컬 MLX, Analyst·Copilot 보조)
+  # 테마=설정 원칙: 모델·프롬프트를 여기서 주입 → office·sports 는 이 블록만 교체
+  model: mlx-community/Qwen2.5-VL-7B-Instruct-4bit   # 3B→7B 상향(2026-07, 추론력↑·로컬 유지). 되돌리려면 3B로.
+  fallback: none                  # 모델 없으면 VLM 만 비활성(규칙 가산 점수는 그대로 유지)
+  cooldown_sec: 8                 # 같은 장면 반복 분석 방지(무거움)
+  language: ko
+  output_schema: [위험요인, 위험등급, 근거, 권고조치, 관련법령]
+  prompt: |
+    당신은 한국 산업안전보건 관제 분석가다. 답변은 무조건 한국어로만 한다(영어·중국어·일본어 금지).
+    이 CCTV 프레임의 작업장 위험을 산업안전보건법·산업안전보건기준에관한규칙·KOSHA Guide 관점에서 분석하라.
+    아래 JSON 하나만 출력하라(설명·코드블록 금지):
+    {"위험요인": "한국어 설명", "위험등급": "낮음 또는 중간 또는 높음", "근거": "한국어 설명", "권고조치": "한국어 설명", "관련법령": "해당 산업안전보건법 조항·KOSHA Guide(모르면 빈 문자열)"}
+    반드시 보이는 것에만 근거해 간결히 작성하고, 추측하지 마라.
+
+report:                           # ── Scribe (보고서)
+  templates: [risk_assessment_kr, incident_evidence]
+  output: [pdf, web]
+
+evidence:                         # ── Copilot (논문/근거 써치)
+  corpus: [산업안전보건법, 산업안전보건기준에관한규칙, KOSHA_Guide]
+  retrieval: rag
+  cite: true
+
+dispatch:                         # ── Dispatcher (피드백·연동)
+  channels: [telegram, webhook]
+  on_severity:
+    critical: [alarm, manager_call, safety_relay_signal]   # ⚠ §8 기능안전 경계: 보조 신호만
+    high:     [alarm, manager_call]
+    medium:   [log]
