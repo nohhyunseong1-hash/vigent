@@ -39,7 +39,8 @@ def _ensure_stream(src: str) -> None:
         source = _reg.source_of(src)
         if not source:
             return
-        url = "http://127.0.0.1:1984/api/streams?" + urllib.parse.urlencode({"name": src, "src": source})
+        import go2rtc_client
+        url = go2rtc_client.url("/api/streams", name=src, src=source)
         urllib.request.urlopen(urllib.request.Request(url, method="PUT"), timeout=3)
     except Exception:  # noqa: BLE001  go2rtc 미실행/실패 — WebRTC 없이 폴백
         pass
@@ -50,7 +51,8 @@ def tapo_videortc_js():
     """go2rtc 의 video-rtc.js(ES모듈)를 VIGENT 서버가 대신 받아 같은 출처로 제공."""
     import urllib.request
     try:
-        with urllib.request.urlopen("http://127.0.0.1:1984/video-rtc.js", timeout=5) as r:
+        import go2rtc_client
+        with urllib.request.urlopen(go2rtc_client.url("/video-rtc.js"), timeout=5) as r:
             return Response(r.read(), media_type="application/javascript")
     except Exception as ex:  # noqa: BLE001
         raise HTTPException(status_code=502, detail=f"go2rtc 미실행: {ex}")
@@ -71,10 +73,10 @@ async def tapo_ws(ws: WebSocket):
         return
     _ensure_stream(src)
     await ws.accept()
-    import urllib.parse
 
+    import go2rtc_client
     import websockets
-    up_url = "ws://127.0.0.1:1984/api/ws?" + urllib.parse.urlencode({"src": src})
+    up_url = go2rtc_client.ws_url("/api/ws", src=src)
     try:
         async with websockets.connect(up_url) as up:
             async def c2u():
@@ -111,7 +113,7 @@ async def tapo_webrtc(request: Request):
     _ensure_stream(src)
     sdp = await request.body()
     req = urllib.request.Request(
-        "http://127.0.0.1:1984/api/webrtc?" + urllib.parse.urlencode({"src": src}),
+        __import__("go2rtc_client").url("/api/webrtc", src=src),
         data=sdp, method="POST")
     try:
         with urllib.request.urlopen(req, timeout=10) as r:

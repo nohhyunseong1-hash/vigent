@@ -43,7 +43,9 @@ _stop = threading.Event()
 _thread: threading.Thread | None = None
 
 
-GO2RTC_DELETE_URL = "http://127.0.0.1:1984/api/streams?src={cid}"   # [2026-09-28 실기] go2rtc 1.9.14: DELETE 는 src= 만 받는다
+import go2rtc_client as _g2c  # noqa: E402
+
+GO2RTC_DELETE_URL = _g2c.url("/api/streams") + "?src={cid}"   # [2026-09-28 실기] go2rtc 1.9.14: DELETE 는 src= 만 받는다
 
 
 def _release_go2rtc_slot(cid: str) -> bool:

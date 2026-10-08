@@ -2766,7 +2766,7 @@ function toggleMirror(){
 //  Vision LLM 분석
 // ═══════════════════════════════════════════════════
 let llmAnalysisCount=0, llmAutoTimer=null, llmAutoRunning=false;
-const API_BASE=(location.protocol==='file:'||!location.host)?'http://127.0.0.1:8005':'';
+const API_BASE=(location.protocol==='file:'||!location.host)?'http://127.0.0.1:8010':'';   // [OPEN_ISSUES #16] 8005 는 고아 포트, 서버는 8010
 
 const ERGO_DOMAIN_PROMPTS={
   general:{
