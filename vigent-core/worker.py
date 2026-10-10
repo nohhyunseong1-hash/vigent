@@ -74,6 +74,16 @@ os.environ.setdefault("OPENCV_FFMPEG_CAPTURE_OPTIONS", _FFMPEG_CAPTURE_OPTIONS)
 _RTSP_TIMEOUT_MS = int(os.environ.get("VIGENT_RTSP_TIMEOUT_MS") or tuning.val("stability", "rtsp_timeout_ms", 5000))
 
 
+def _fault_stop_detect_enabled() -> bool:
+    """[2단계 A-4] 결함주입 스위치 판정 — '1' 일 때만 켠다.
+
+    예전 `bool(os.environ.get(...))` 은 '0'·'false' 같은 **끄려는 값에도 True** 였다
+    (bool("0") is True). 이 스위치는 켜지면 추론이 전면 중단되므로(프레임·/health 200 은
+    유지 = 무증상) 오타·오설정이 곧 사고다 — 같은 파일의 다른 환경 스위치와 동일하게
+    문자열 '1' 정확 일치만 켠다."""
+    return os.environ.get("VIGENT_FAULT_STOP_DETECT", "").strip() == "1"
+
+
 def _open_capture(source: str):
     """소스별 VideoCapture 생성 — 스트림(RTSP/HTTP)은 FFMPEG 백엔드 + 열기/읽기 타임아웃, 웹캠(정수)·파일은 기본 백엔드.
     [M5-4] 열기 실패는 여기서 WARNING 으로 구분해 남긴다("끊김"이 아니라 "열기 실패")."""
@@ -1019,7 +1029,10 @@ class Worker:
 
     # [B2] 테스트 전용 결함 주입 — 검출만 멈추고 프레임 수신은 유지해 P0(stale_detect)를 재현한다.
     #   기본 False. 운영 기본값이 아니라 **명시 환경변수로만** 켜진다(scripts/test_health_fault_injection.py).
-    fault_stop_detect = bool(os.environ.get("VIGENT_FAULT_STOP_DETECT"))
+    #   [2단계 A-4] 판정을 bool(env) → == "1" 로 교정: bool("0") 은 True 라서
+    #   VIGENT_FAULT_STOP_DETECT=0 으로 "끄려고" 설정하면 오히려 켜져 — 프레임 수신·/health 200 은
+    #   유지되는데 추론이 전면 중단되는 무증상 상태가 됐다. 같은 파일의 다른 스위치와 동일 규칙.
+    fault_stop_detect = _fault_stop_detect_enabled()
 
     def _process_frame(self, frame, t0, guard, lock, ctx: "_FrameCtx"):
         """단일 프레임 처리 — 수집·추론·트래커·발화·쿨다운·이벤트로깅(P2-13에서 _loop 에서 추출).
