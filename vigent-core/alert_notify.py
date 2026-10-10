@@ -57,8 +57,20 @@ def _loop() -> None:
         level, message, meta = item
         try:
             if _sender is None:
+                # [2단계 A-3] 선기록(enqueue)은 _sender(=dispatcher.dispatch) **안에서** 일어난다 —
+                #   따라서 sender 가 없으면 DB 에도 없어 경보가 그대로 소멸했는데, 로그는
+                #   "기록은 유지됨"이라고 사실과 반대로 안내했다(기동 꼬임 시 전량 유실).
+                #   → 여기서 직접 큐에 pending 으로 보존한다. sender 가 나중에 주입되면
+                #   재시도 스레드가 이어받고, 끝내 없으면 /health pending·dead 로 드러난다.
                 _stats["failed"] += 1
-                _LOG.warning("경보 전송기 미주입 — 통보 건너뜀(기록은 유지됨): %s", message[:120])
+                try:
+                    import alert_queue
+                    rid = alert_queue.enqueue(level, message, meta)
+                    _LOG.warning("경보 전송기 미주입 — 지금은 전송 못 함, 큐에 pending 보존(row %d): %s",
+                                 rid, message[:120])
+                except Exception:  # noqa: BLE001  보존까지 실패하면 유실임을 정직하게 남긴다
+                    _LOG.error("경보 전송기 미주입 + 큐 보존 실패 — 이 경보는 유실됨: %s",
+                               message[:120], exc_info=True)
                 continue
             res = _sender(level, message, meta) or {}
             if res.get("delivered"):
