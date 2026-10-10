@@ -31,18 +31,42 @@ def _yaml_write(p: Path, data: dict) -> None:
 
 # ── 현장(site.yaml) ──
 def read_site() -> dict:
+    """[1단계 M-3] 카메라 source 의 자격증명은 마스킹해 내보낸다(rtsp://***:***@host/...).
+    예전엔 RTSP 계정·비밀번호 원문이 그대로 응답에 실렸다 — /cameras 쪽은 이미
+    camera_registry.mask_source 로 가리고 있었는데 이 경로만 빠져 있었다."""
+    from camera_registry import mask_source  # 지연 import(기동비용·순환 회피)
     c = _yaml_load(_SITE)
+    cams = []
+    for cam in c.get("cameras", []) or []:
+        cam = dict(cam)
+        cam["source"] = mask_source(str(cam.get("source", "")))
+        cams.append(cam)
     return {"site": c.get("site", ""), "central_url": c.get("central_url", ""),
-            "cameras": c.get("cameras", []) or []}
+            "cameras": cams}
+
+
+_MASK_SIG = "***:***@"   # mask_source 가 만드는 마스킹 표식
 
 
 def write_site(data: dict) -> dict:
+    # [1단계 M-3] 설정 화면은 read_site(마스킹본)를 폼에 채웠다가 통째로 다시 저장한다 —
+    #   마스킹된 source 가 그대로 돌아오면 저장된 원본(같은 id)을 보존하고,
+    #   보존할 원본이 없으면(새 id 에 마스킹 표식) 저장을 거부해 조용한 파손을 막는다.
+    prev = {str(c.get("id", "")): str(c.get("source", ""))
+            for c in (_yaml_load(_SITE).get("cameras", []) or [])}
     cams = []
     for cam in data.get("cameras", []) or []:
         src = str(cam.get("source", "")).strip()
         if not src:
             continue
-        c = {"id": str(cam.get("id") or f"cam{len(cams)+1}").strip(),
+        cid = str(cam.get("id") or f"cam{len(cams)+1}").strip()
+        if _MASK_SIG in src:
+            kept = prev.get(cid, "")
+            if not kept:
+                return {"ok": False,
+                        "error": f"카메라 '{cid}' 의 주소가 마스킹된 값(***:***@)입니다 — 전체 주소를 다시 입력하세요"}
+            src = kept                        # 변경 없이 저장 → 원본 보존
+        c = {"id": cid,
              "name": str(cam.get("name", "")).strip() or f"카메라{len(cams)+1}",
              "source": src, "fps": float(cam.get("fps", 2) or 2)}
         if cam.get("zone"):
@@ -186,7 +210,9 @@ _PAGE = r"""<!DOCTYPE html><html lang="ko"><head><meta charset="UTF-8">
       return {id:i[0].value,name:i[1].value,source:i[2].value,fps:parseFloat(i[3].value)||2};});
     const r=await fetch('/site/config',{method:'POST',headers:{'Content-Type':'application/json'},
       body:JSON.stringify({site:$('site').value,central_url:$('central').value,cameras:cams})});
-    const j=await r.json();toast('현장 저장됨 (카메라 '+(j.cameras||0)+'대)');$('siteSt').textContent='✅ 저장됨';
+    const j=await r.json().catch(()=>({}));
+    if(!r.ok){toast('저장 거부: '+(j.detail||r.status));$('siteSt').textContent='⚠ 저장 안 됨';return;}
+    toast('현장 저장됨 (카메라 '+(j.cameras||0)+'대)');$('siteSt').textContent='✅ 저장됨';
   }
   // 워커
   async function workers(act){

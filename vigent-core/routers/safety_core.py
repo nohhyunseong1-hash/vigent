@@ -744,10 +744,13 @@ def site_config_get():
     import setup_console
     return setup_console.read_site()
 
-@router.post("/site/config")
+@router.post("/site/config")   # [1단계 M-3] write_site 가 저장 거부(ok:False)를 돌려주면 400
 def site_config_post(payload: dict = Body(...)):
     import setup_console
-    return setup_console.write_site(payload)
+    out = setup_console.write_site(payload)
+    if not out.get("ok"):
+        raise HTTPException(status_code=400, detail=out.get("error") or "현장 설정 저장 거부")
+    return out
 
 @router.get("/notify/config")
 def notify_config_get():
