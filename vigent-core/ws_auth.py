@@ -56,7 +56,13 @@ def _extra_ws_origins() -> set[str]:
 
 
 def _handshake_source_ok(ws: WebSocket) -> bool:
-    """① Host 가 허용목록에 있고 ② Origin(있으면)의 호스트도 허용돼야 True."""
+    """① [M-1] 무토큰 외부 소켓 차단 ② Host 허용목록 ③ Origin(있으면) 허용 — 전부 참이어야 True."""
+    # [1단계 M-1] HTTP 미들웨어와 동일: 토큰 미설정인데 요청이 루프백이 아닌 실소켓으로 들어오면
+    #   (uvicorn --host 0.0.0.0 직접 실행 등 환경변수 우회) 핸드셰이크를 거부한다.
+    if not os.environ.get("VIGENT_API_TOKEN", "").strip():
+        srv_host = str((ws.scope.get("server") or ("", 0))[0] or "").lower().strip("[]")
+        if srv_host not in ("127.0.0.1", "::1", "localhost", "testserver", ""):
+            return False
     allowed = _host_allowlist()
     host = _host_only(ws.headers.get("host", ""))
     if allowed is not None and host and host not in allowed:

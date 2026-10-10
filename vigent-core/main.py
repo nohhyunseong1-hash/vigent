@@ -18,6 +18,7 @@ from __future__ import annotations
 import asyncio
 import hmac
 import html
+import logging
 import os
 import sys
 import threading
@@ -233,11 +234,41 @@ def _host_only(raw: str) -> str:
     return h.split(":")[0]
 
 
+# [1단계 M-1] 무토큰 요청을 받아도 되는 '우리 쪽' 소켓 주소 — 루프백 + TestClient 의 testserver.
+#   기동 시 검사(위 _IS_LOOPBACK)는 VIGENT_HOST **환경변수**만 믿는다 — `uvicorn main:app --host 0.0.0.0`
+#   으로 직접 띄우면(이 파일 docstring 의 예시 명령이 바로 이 형태) 변수가 비어 "루프백"으로 오인,
+#   토큰 없이 전 라우트가 LAN 에 열렸다. 요청이 실제로 도착한 소켓(ASGI scope["server"] = accept 된
+#   연결의 로컬 주소)을 보면 속일 수 없다: 외부 인터페이스로 들어온 무토큰 요청은 여기서 403.
+_LOOPBACK_SERVER = {"127.0.0.1", "::1", "localhost", "testserver", ""}
+_M1_LOGGED = {"done": False}
+
+
+def _untokened_external_socket(request) -> bool:
+    """토큰 미설정 상태에서, 요청이 루프백이 아닌 실소켓으로 들어왔는가(= 설정 우회 노출)."""
+    if _API_TOKEN:
+        return False
+    srv = (request.scope.get("server") or ("", 0))
+    host = str(srv[0] or "").lower()
+    if host.startswith("[") and host.endswith("]"):   # 일부 서버는 IPv6 를 대괄호로 준다
+        host = host[1:-1]
+    return host not in _LOOPBACK_SERVER
+
+
 @app.middleware("http")
 async def _auth_guard(request, call_next):
-    """보안 게이트: ① Host 허용목록(DNS-rebinding 방어) ② VIGENT_API_TOKEN Bearer 검증(+
-    [S3-후속1] 세션 쿠키 폴백). 토큰 미설정=로컬 개발 무인증이지만 Host 검증은 유지(무토큰
-    모드가 rebinding 에 가장 취약)."""
+    """보안 게이트: ① [M-1] 무토큰 외부 소켓 차단 ② Host 허용목록(DNS-rebinding 방어)
+    ③ VIGENT_API_TOKEN Bearer 검증(+ [S3-후속1] 세션 쿠키 폴백). 토큰 미설정=로컬 개발
+    무인증이지만 Host 검증은 유지(무토큰 모드가 rebinding 에 가장 취약)."""
+    if request.method != "OPTIONS" and _untokened_external_socket(request):
+        if not _M1_LOGGED["done"]:
+            _M1_LOGGED["done"] = True
+            logging.getLogger("vigent.main").critical(
+                "무토큰 외부 노출 차단: 요청이 루프백이 아닌 소켓(%s)으로 도착했는데 VIGENT_API_TOKEN 이 없습니다 — "
+                "uvicorn 을 --host 0.0.0.0 으로 직접 실행했거나 VIGENT_HOST 가 실제 바인드와 다릅니다. "
+                "외부 노출은 VIGENT_HOST=<바인드주소> + VIGENT_API_TOKEN=<토큰> 으로 기동하세요.",
+                (request.scope.get("server") or ("?",))[0])
+        return JSONResponse({"detail": "무토큰 외부 노출 차단 — VIGENT_API_TOKEN 설정 후 재기동 필요"},
+                            status_code=403)
     if _ALLOWED_HOSTS is not None and request.method != "OPTIONS":
         host = _host_only(request.headers.get("host", ""))
         if host and host not in _ALLOWED_HOSTS:
