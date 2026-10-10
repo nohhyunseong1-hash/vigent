@@ -1,14 +1,19 @@
 #!/bin/bash
-# VIGENT /health 워치독 (C-S1). /health 가 N회 연속 실패하면 서비스 재기동.
+# VIGENT 생존 워치독 (C-S1). 점검 URL 이 N회 연속 실패하면 서비스 재기동.
 #   - systemd: vigent-watchdog.timer 가 주기 실행 → 실패 시 systemctl restart
 #   - macOS/cron: 이 스크립트를 주기 실행(launchd StartInterval 또는 crontab)
+# [1단계 M-2] 기본 점검 URL 을 /health → /healthz 로 교체 — /health 는 토큰 모드에서 인증
+#   뒤로 들어갔다(정보노출 방지). /healthz 는 status·phase 만 주는 무인증 생존 점검이라
+#   워치독이 토큰 없이도 동작하고, 판정·상태코드(503=starting/unhealthy)·phase=starting
+#   예열 유예 모두 /health 와 동일하게 성립한다. 2차 점검(/status)은 토큰 배포 환경에서
+#   VIGENT_API_TOKEN 이 있어야 한다(아래 AUTH).
 # 환경변수:
-#   VIGENT_HEALTH_URL  (기본 http://127.0.0.1:8010/health)
-#   VIGENT_API_TOKEN   (설정 시 Bearer 로 인증 — 토큰 배포 환경)
+#   VIGENT_HEALTH_URL  (기본 http://127.0.0.1:8010/healthz)
+#   VIGENT_API_TOKEN   (설정 시 Bearer 로 인증 — 토큰 배포 환경의 /status 2차 점검에 필요)
 #   VIGENT_RESTART_CMD (기본 systemctl restart vigent-edge / 미설정 시 재기동 생략하고 경고만)
 #   VIGENT_HEALTH_FAILS (연속 실패 임계, 기본 3)
 set -u
-URL="${VIGENT_HEALTH_URL:-http://127.0.0.1:8010/health}"
+URL="${VIGENT_HEALTH_URL:-http://127.0.0.1:8010/healthz}"
 FAILS="${VIGENT_HEALTH_FAILS:-3}"
 AUTH=()
 [ -n "${VIGENT_API_TOKEN:-}" ] && AUTH=(-H "Authorization: Bearer ${VIGENT_API_TOKEN}")

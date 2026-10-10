@@ -58,7 +58,8 @@ def _dropped_by_error(mstatus: dict) -> dict:
 @router.get("/health")
 def health(theme: str = DEFAULT_THEME):
     """확장 헬스체크(C-S1): 제품 버전·모델별 버전/SHA·uptime·backend 구성.
-    워치독·모니터링용(무인증 허용). SHA 는 weights_manifest.json 기준(앞 16자)."""
+    [1단계 M-2] 토큰 모드에서는 인증 필요(세션 쿠키 또는 Bearer) — 무인증 생존 점검은 /healthz.
+    SHA 는 weights_manifest.json 기준(앞 16자)."""
     backend = {}
     bundle = STATE.get(theme)
     if bundle:
@@ -365,6 +366,21 @@ def health(theme: str = DEFAULT_THEME):
     #   degraded 는 200(운영은 계속되지만 일부 카메라 정지) + 본문으로 구분.
     # [B4] starting 도 503 — 예열 전에는 아직 감시가 성립하지 않으므로 "준비됨"이라고 답하지 않는다.
     return JSONResponse(body, status_code=503 if overall in ("unhealthy", "starting") else 200)
+
+
+@router.get("/healthz")
+def healthz(theme: str = DEFAULT_THEME):
+    """[1단계 M-2] 무인증 생존 점검 — status·phase 만(워치독·기동 대기·폰 LAN 점검용).
+
+    /health 는 GPU·모델 SHA·카메라 id·에러 문자열까지 담아 외부에 공짜 지문이었다 →
+    토큰 모드에서 /health 는 인증 뒤로 옮기고(main._AUTH_EXEMPT 에서 제외), 밖에는 이
+    최소 응답만 연다. 판정·상태코드는 /health 와 동일(같은 함수를 그대로 거친다):
+    unhealthy·starting → 503, ok·degraded → 200. phase 는 워치독의 예열 유예
+    (phase=starting 이면 재기동 금지)가 본문에서 읽으므로 함께 남긴다."""
+    r = health(theme)
+    body = json.loads(bytes(r.body))
+    return JSONResponse({"status": body.get("status"), "phase": body.get("phase")},
+                        status_code=r.status_code)
 
 
 @router.get("/system/capabilities")

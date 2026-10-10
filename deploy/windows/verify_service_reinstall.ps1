@@ -116,8 +116,21 @@ function Build-TempEnvLines([string]$Token, [string[]]$Keys, [string]$StampText)
 }
 function SvcStatus() { $s = Get-Service -Name $ServiceName -ErrorAction SilentlyContinue; if ($s) { "" + $s.Status } else { "(없음)" } }
 function WaitRunning([int]$sec) { $t0 = Get-Date; while (((Get-Date) - $t0).TotalSeconds -lt $sec) { if ((SvcStatus) -eq "Running") { return $true }; Start-Sleep -Seconds 2 }; return ((SvcStatus) -eq "Running") }
+function ReadEnvToken() {
+  # [1단계 M-2] /health 가 토큰 모드에서 인증 필요 — 그 시점의 .env 토큰을 읽어 Bearer 로 보낸다
+  #   (임시본 단계에서는 이 스크립트가 넣은 무작위 임시값, 복구 단계에서는 원본 토큰이 읽힌다).
+  try {
+    $p = Join-Path $Root ".env"
+    if (Test-Path $p) {
+      $l = (Get-Content -Encoding UTF8 $p | Where-Object { $_ -match "^\s*VIGENT_API_TOKEN\s*=" } | Select-Object -First 1)
+      if ($l) { return ($l -split "=", 2)[1].Trim() }
+    }
+  } catch {}
+  return ""
+}
 function HealthJson() {
-  try { $r = Invoke-WebRequest -UseBasicParsing -TimeoutSec 5 ("http://127.0.0.1:" + $Port + "/health")
+  $hd = @{}; $t = ReadEnvToken; if ($t) { $hd["Authorization"] = "Bearer " + $t }
+  try { $r = Invoke-WebRequest -UseBasicParsing -TimeoutSec 5 -Headers $hd ("http://127.0.0.1:" + $Port + "/health")
         return @{ code = [int]$r.StatusCode; body = ($r.Content | ConvertFrom-Json) } }
   catch { $code = 0; try { $code = [int]$_.Exception.Response.StatusCode } catch {}
           $body = $null; try { $sr = New-Object IO.StreamReader($_.Exception.Response.GetResponseStream()); $body = ($sr.ReadToEnd() | ConvertFrom-Json) } catch {}

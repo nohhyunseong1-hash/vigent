@@ -362,7 +362,7 @@
     "/zone/intrusion": {
       "post": {
         "summary": "Zone Intrusion Alert",
-        "description": "위험구역 침입(몸통/머리/다리 등 '위험') → 휴대폰 알림(텔레그램/웹훅) + 증거 저장.\n프론트(AX 엔진)는 손/팔만이면 호출하지 않고, '위험' 부위 진입 시에만 호출한다.",
+        "description": "위험구역 침입(몸통/머리/다리 등 '위험') → 휴대폰 알림(텔레그램/웹훅) + 증거 저장.\n프론트(AX 엔진)는 손/팔만이면 호출하지 않고, '위험' 부위 진입 시에만 호출한다.\n[M8-1] payload.cam 필수(브라우저가 쓰는 카메라 id 또는 go2rtc 스트림 이름). 워커가 감시 중인 카메라면 **기록만**\n(증거 1장, source=browser)하고 통보는 워커에 위임(gate=\"worker_owned\") — 워커 없는 카메라(시연·웹캠)만 브라우저 통보.",
         "operationId": "zone_intrusion_alert_zone_intrusion_post",
         "parameters": [
           {
@@ -413,8 +413,47 @@
     "/health": {
       "get": {
         "summary": "Health",
-        "description": "확장 헬스체크(C-S1): 제품 버전·모델별 버전/SHA·uptime·backend 구성.\n워치독·모니터링용(무인증 허용). SHA 는 weights_manifest.json 기준(앞 16자).",
+        "description": "확장 헬스체크(C-S1): 제품 버전·모델별 버전/SHA·uptime·backend 구성.\n[1단계 M-2] 토큰 모드에서는 인증 필요(세션 쿠키 또는 Bearer) — 무인증 생존 점검은 /healthz.\nSHA 는 weights_manifest.json 기준(앞 16자).",
         "operationId": "health_health_get",
+        "parameters": [
+          {
+            "name": "theme",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "default": "safety",
+              "title": "Theme"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/healthz": {
+      "get": {
+        "summary": "Healthz",
+        "description": "[1단계 M-2] 무인증 생존 점검 — status·phase 만(워치독·기동 대기·폰 LAN 점검용).\n\n/health 는 GPU·모델 SHA·카메라 id·에러 문자열까지 담아 외부에 공짜 지문이었다 →\n토큰 모드에서 /health 는 인증 뒤로 옮기고(main._AUTH_EXEMPT 에서 제외), 밖에는 이\n최소 응답만 연다. 판정·상태코드는 /health 와 동일(같은 함수를 그대로 거친다):\nunhealthy·starting → 503, ok·degraded → 200. phase 는 워치독의 예열 유예\n(phase=starting 이면 재기동 금지)가 본문에서 읽으므로 함께 남긴다.",
+        "operationId": "healthz_healthz_get",
         "parameters": [
           {
             "name": "theme",
@@ -1187,7 +1226,7 @@
     "/recognition/log": {
       "post": {
         "summary": "Recognition Log",
-        "description": "데이터엔진 — 위험 이벤트 1건 기록(+증거 프레임 저장).\npayload={rule, level, score, site, note, image(data URL, 선택)}",
+        "description": "데이터엔진 — 위험 이벤트 1건 기록(+증거 프레임 저장).\npayload={rule, level, score, site, note, image(data URL, 선택), source?(browser 등)}\n[M8-7] rule 은 화이트리스트(allowed_rules) 밖이면 400 — 디버그·오타 행이 안전 이벤트 로그에 섞이지 않게.",
         "operationId": "recognition_log_recognition_log_post",
         "requestBody": {
           "required": true,
@@ -1412,7 +1451,7 @@
     "/dispatch/relay": {
       "post": {
         "summary": "Dispatch Relay",
-        "description": "§8 보조 방호신호. guard_bypass(critical) 발생 시 프론트가 호출.\n⚠ 비전은 보조·감시 계층이며 1차 비상정지를 대체하지 않는다.",
+        "description": "§8 보조 방호신호 — 수동 시험용(호출부 0, [M8-9]). 자동 경로는 워커 guard_bypass → dispatch(critical) 의 safety_relay_signal.\n⚠ 비전은 보조·감시 계층이며 1차 비상정지를 대체하지 않는다.",
         "operationId": "dispatch_relay_dispatch_relay_post",
         "parameters": [
           {
@@ -1478,7 +1517,7 @@
       },
       "post": {
         "summary": "Cameras Add",
-        "description": "등록/수정. payload={id, name?, source(rtsp/파일/웹캠번호), fps?, zone?, enabled?}. source 는 마스킹 저장.",
+        "description": "등록/수정. payload={id, name?, source(rtsp/파일/웹캠번호), fps?, zone?, enabled?, overrides?}. source 는 마스킹 저장.\noverrides: [R15] 카메라별 설정 — 지금은 {\"motion\": {\"immobile_s\": 초}} 1키(앉아 작업 현장의 무동작 오경보 방지). {} 로 해제.",
         "operationId": "cameras_add_cameras_post",
         "requestBody": {
           "content": {

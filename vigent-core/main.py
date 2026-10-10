@@ -202,7 +202,10 @@ if _IS_LOOPBACK and not _API_TOKEN:
 # 토큰 미설정(로컬)이면 인증 생략. 설정 시 아래 경로만 예외(모니터링·파비콘·로그인 폼 자체).
 #   [S3-후속1] /login·/logout 은 로그인 발급 절차 자체라 인증 없이도 도달 가능해야 한다
 #   (요청 본문에 담긴 토큰은 여기서가 아니라 login_submit() 내부에서 hmac 상수시간 비교로 검증).
-_AUTH_EXEMPT = {"/health", "/favicon.ico", "/login", "/logout"}
+#   [1단계 M-2] /health → /healthz 로 교체 — /health 는 GPU·모델 SHA·카메라 id·에러 문자열까지
+#   담아 무인증 정보노출이었다. 무인증 점검은 /healthz(status·phase 만), /health 는 토큰 뒤로
+#   (브라우저는 세션 쿠키로, 스크립트는 Bearer 로 접근 — watchdog.sh 는 이미 Bearer 지원).
+_AUTH_EXEMPT = {"/healthz", "/favicon.ico", "/login", "/logout"}
 
 # ── DNS-rebinding 방어(item3, CODE_REVIEW §3.3): Host 헤더 허용목록 ──
 #   로컬 무토큰 모드는 전 라우트 무인증 → 악성 웹페이지가 DNS rebinding 으로 피해자 브라우저를 통해

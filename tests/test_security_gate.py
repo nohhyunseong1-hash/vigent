@@ -53,10 +53,15 @@ class TestSecurityGate(unittest.TestCase):
         r = self.client.get("/status", headers={"Authorization": "Bearer wrong"})
         self.assertEqual(r.status_code, 401)
 
-    def test_health_exempt_from_token(self):
+    def test_healthz_exempt_but_health_protected(self):
+        """[1단계 M-2] 무인증 면제가 /health → /healthz 로 교체됐다 — /health 는 GPU·모델
+        SHA·카메라 id·에러 문자열까지 담아 정보노출이었다. /healthz 는 status·phase 만."""
         main._API_TOKEN = "secret-xyz"
         main._ALLOWED_HOSTS = None
-        self.assertNotEqual(self.client.get("/health").status_code, 401)       # /health 는 인증 예외
+        self.assertNotEqual(self.client.get("/healthz").status_code, 401)      # /healthz 는 인증 예외
+        self.assertEqual(self.client.get("/health").status_code, 401)          # /health 는 보호됨
+        r = self.client.get("/health", headers={"Authorization": "Bearer secret-xyz"})
+        self.assertNotEqual(r.status_code, 401)                                # Bearer 로는 열람 가능
 
 
 if __name__ == "__main__":

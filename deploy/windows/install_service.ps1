@@ -176,9 +176,12 @@ $envLines = @(
   "VIGENT_CAPTURE_MODE=thread",
   # ★[2026-08-20 정합 수정] uvicorn 은 --host 0.0.0.0(LAN 바인드)로 띄우면서 이 변수를
   #   안 넣으면 앱이 "루프백 바인드"로 오인해 Host 허용목록을 루프백만으로 걸어 —
-  #   LAN 접속(폰 /health 점검 등)이 전부 403 "forbidden host" 가 된다(재부팅 시험에서
+  #   LAN 접속(폰 /healthz 점검 등)이 전부 403 "forbidden host" 가 된다(재부팅 시험에서
   #   실측 발견). 바인드 주소와 앱 인식을 반드시 일치시킨다. LAN 노출 라우트는
-  #   VIGENT_REQUIRE_TOKEN=1 + Bearer 로 방어(설계 원안 그대로, /health 는 면제).
+  #   VIGENT_REQUIRE_TOKEN=1 + Bearer 로 방어(설계 원안 그대로).
+  #   ★[1단계 M-2, 2026-10-10] 무인증 면제가 /health → /healthz(status·phase 만)로 바뀜 —
+  #   /health 는 GPU·모델 SHA·카메라 id 까지 담아 LAN 에 공짜 지문이었다. 폰 점검은 /healthz,
+  #   전체 상태는 로그인(세션 쿠키) 또는 Bearer 로 /health.
   # ★[2026-09-28 실기 결함 #2] 위 원칙("바인드 주소와 앱 인식 일치")을 적어 놓고 값은 0.0.0.0 으로 박아 두어, install.ps1 -Bind 127.0.0.1 로
   #   설치해도 서비스 env 는 0.0.0.0 이 됐다(uvicorn 은 127.0.0.1, 앱은 LAN 바인드로 오인). -Bind 그대로 쓴다.
   "VIGENT_HOST=$Bind",
@@ -218,5 +221,6 @@ Write-Host "서비스 '$ServiceName' 상태: $($svc.Status)" -ForegroundColor Gr
 Write-Host "로그 : $outLog"
 Write-Host ""
 Write-Host "다음 단계:"
-Write-Host "  .\service_status.ps1        # 상태 + /health 확인"
-Write-Host "  ※ 예열에 약 15초 걸립니다. 그동안 /health 는 phase=starting + HTTP 503 입니다(정상)."
+Write-Host "  .\service_status.ps1        # 상태 + /health 확인(.env 토큰으로 자동 인증)"
+Write-Host "  ※ 예열에 약 15초 걸립니다. 그동안 /healthz 는 phase=starting + HTTP 503 입니다(정상)."
+Write-Host "  ※ 폰 등 LAN 에서 토큰 없이 보는 생존 점검은 /healthz 입니다(/health 는 로그인·Bearer 필요)."

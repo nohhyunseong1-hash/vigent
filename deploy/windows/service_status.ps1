@@ -53,9 +53,24 @@ if ($crashLoop) {
   Write-Host $msg -ForegroundColor Red
 }
 
+# [1단계 M-2] /health 가 토큰 모드에서 인증 뒤로 들어갔다(정보노출 방지) — 이 스크립트는 설치
+#   루트의 .env 에서 VIGENT_API_TOKEN 을 읽어 Bearer 로 보낸다(파일럿 LocalSystem 설치본과 동일 위치).
+#   토큰이 없으면(로컬 무토큰 모드) 헤더 없이 기존대로 동작한다.
+$hdrs = @{}
+try {
+  $envFile = Join-Path (Split-Path -Parent $LogDir) ".env"
+  if (Test-Path $envFile) {
+    $tokLine = (Get-Content -Encoding UTF8 $envFile | Where-Object { $_ -match "^\s*VIGENT_API_TOKEN\s*=" } | Select-Object -First 1)
+    if ($tokLine) {
+      $tok = ($tokLine -split "=", 2)[1].Trim()
+      if ($tok) { $hdrs["Authorization"] = "Bearer " + $tok }
+    }
+  }
+} catch {}
+
 $code = 0; $status = "?"; $phase = "?"; $cams = @()
 try {
-  $resp = Invoke-WebRequest -Uri "http://127.0.0.1:$Port/health" -UseBasicParsing -TimeoutSec 10
+  $resp = Invoke-WebRequest -Uri "http://127.0.0.1:$Port/health" -UseBasicParsing -TimeoutSec 10 -Headers $hdrs
   $code = $resp.StatusCode
   $h = $resp.Content | ConvertFrom-Json
 } catch {
@@ -73,6 +88,12 @@ try {
     if ($crashLoop) { exit 4 }
     exit 3
   }
+}
+
+# [1단계 M-2] 401 = 토큰 모드인데 .env 의 VIGENT_API_TOKEN 을 못 읽었거나 불일치 — 기동중과 구분해 안내
+if ($code -eq 401) {
+  Write-Host ("서비스={0} | HTTP 401 — /health 인증 실패. 설치 루트 .env 의 VIGENT_API_TOKEN 확인(무인증 생존 점검은 /healthz)" -f $svcState) -ForegroundColor Red
+  exit 3
 }
 
 # 응답은 왔는데 본문을 못 읽은 경우 = 앱이 아직 라우트를 서빙하기 전(기동 중)

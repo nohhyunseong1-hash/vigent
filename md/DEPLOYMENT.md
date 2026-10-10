@@ -458,7 +458,7 @@ env를 `nssm set`으로 손으로 고치지 않는다(다음 재설치 때 되�
 
 | 변수 | 값 | 왜 필요한가 |
 |---|---|---|
-| `VIGENT_REQUIRE_TOKEN` | `1` | LAN 바인딩이라 전 라우트 Bearer 필수(`/health` 면제) |
+| `VIGENT_REQUIRE_TOKEN` | `1` | LAN 바인딩이라 전 라우트 Bearer 필수(무인증 면제는 `/healthz` 뿐 — ★2026-10-10 M-2: 예전 `/health` 면제는 정보노출이라 폐지) |
 | `VIGENT_CAPTURE_MODE` | `thread` | 캡처 스레드 모드 |
 | `VIGENT_HOST` | `0.0.0.0` | uvicorn 바인드와 앱 인식 일치(불일치 시 LAN 403) |
 | `PYTHONUTF8` | `1` | 서비스 로그 한글 깨짐 방지 |
@@ -541,7 +541,8 @@ Start-Service VIGENT
 
 ### 상태 감시
 
-`/health`만 보면 된다. **HTTP 코드로 판단 가능**하다:
+`/health`만 보면 된다(★2026-10-10 M-2: 토큰 모드에서는 로그인 또는 Bearer 필요 — 토큰 없이 보는
+생존 점검은 `/healthz`(status·phase 만, HTTP 코드 동일)). **HTTP 코드로 판단 가능**하다:
 
 | status | HTTP | 뜻 |
 |---|---|---|
