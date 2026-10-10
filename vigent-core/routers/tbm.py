@@ -2,6 +2,7 @@
 
 /safety/tbm(목록·작성·생성·제안·위험성평가 전환·열람). 공유 CSS 는 web_util._TBM_CSS.
 """
+import html
 from pathlib import Path
 
 import tbm_store
@@ -31,11 +32,12 @@ _TBM_VIEW_SCRIPT = """<script>
 def tbm_list():
     """저장된 TBM 회의록 목록 + '새 회의록 작성' 버튼."""
     items = tbm_store.list_recent()
+    e = html.escape   # 저장값(작성자 입력)은 전부 escape — 저장된 XSS 방지(1단계 H-3)
     rows = "".join(
-        f"""<tr><td>{i['created_at'][:16].replace('T',' ')}</td><td>{i['site'] or '-'}</td>
-        <td>{i['process'] or '-'}</td><td style="text-align:center">{i['signed_count']}/{i['worker_count']}</td>
+        f"""<tr><td>{e(i['created_at'][:16].replace('T',' '))}</td><td>{e(i['site'] or '-')}</td>
+        <td>{e(i['process'] or '-')}</td><td style="text-align:center">{i['signed_count']}/{i['worker_count']}</td>
         <td style="text-align:center">{i['hazard_count']}</td>
-        <td><a href="/safety/tbm/{i['id']}" target="_blank">열기 ↗</a></td></tr>"""
+        <td><a href="/safety/tbm/{e(i['id'])}" target="_blank">열기 ↗</a></td></tr>"""
         for i in items) or '<tr><td colspan="6" style="color:#64748b">저장된 회의록이 없습니다. 새 회의록을 작성하세요.</td></tr>'
     return f"""<!DOCTYPE html><html lang="ko"><head><meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
@@ -116,31 +118,32 @@ def tbm_open(tid: str):
     r = tbm_store.get(tid)
     if not r:
         raise HTTPException(status_code=404, detail=f"회의록 없음: {tid}")
-    haz = "".join(f"<li>{h}</li>" for h in r.get("hazards", [])) or '<li style="color:#64748b">등록된 위험요인 없음</li>'
+    e = html.escape   # 저장값(작성자 입력)은 전부 escape — 저장된 XSS 방지(1단계 H-3)
+    haz = "".join(f"<li>{e(h)}</li>" for h in r.get("hazards", [])) or '<li style="color:#64748b">등록된 위험요인 없음</li>'
     chk = "".join(
-        f"""<tr><td style="text-align:center">{'✅' if c.get('ok') else '⬜'}</td><td>{c.get('item','')}</td></tr>"""
+        f"""<tr><td style="text-align:center">{'✅' if c.get('ok') else '⬜'}</td><td>{e(c.get('item',''))}</td></tr>"""
         for c in r.get("checklist", []))
     wks = "".join(
-        f"""<tr><td>{w.get('name','')}</td><td style="text-align:center">{'서명함 ✔' if w.get('signed') else '미서명'}</td></tr>"""
+        f"""<tr><td>{e(w.get('name',''))}</td><td style="text-align:center">{'서명함 ✔' if w.get('signed') else '미서명'}</td></tr>"""
         for w in r.get("workers", [])) or '<tr><td colspan="2" style="color:#64748b">참석 작업자 없음</td></tr>'
     return f"""<!DOCTYPE html><html lang="ko"><head><meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>TBM 회의록 · {r.get('site','')}</title><style>{_TBM_CSS}</style></head><body><div class="wrap">
+<title>TBM 회의록 · {e(r.get('site',''))}</title><style>{_TBM_CSS}</style></head><body><div class="wrap">
   <h1>📋 작업 전 TBM 회의록</h1>
-  <div class="sub">{r.get('created_at','')[:16].replace('T',' ')} · {r.get('id','')}</div>
+  <div class="sub">{e(r.get('created_at','')[:16].replace('T',' '))} · {e(r.get('id',''))}</div>
   <div class="card"><h2>작업 정보</h2>
     <table>
-      <tr><th style="width:110px">현장</th><td>{r.get('site','') or '-'}</td></tr>
-      <tr><th>작업공종</th><td>{r.get('process','') or '-'}</td></tr>
-      <tr><th>작업내용</th><td>{(r.get('work_desc','') or '-').replace(chr(10),'<br>')}</td></tr>
-      <tr><th>감독관</th><td>{r.get('supervisor','') or '-'}</td></tr>
+      <tr><th style="width:110px">현장</th><td>{e(r.get('site','') or '-')}</td></tr>
+      <tr><th>작업공종</th><td>{e(r.get('process','') or '-')}</td></tr>
+      <tr><th>작업내용</th><td>{e(r.get('work_desc','') or '-').replace(chr(10),'<br>')}</td></tr>
+      <tr><th>감독관</th><td>{e(r.get('supervisor','') or '-')}</td></tr>
     </table></div>
   <div class="card"><h2>중점 관리 위험요인</h2><ul>{haz}</ul></div>
   <div class="card"><h2>작업 전 안전점검</h2><table>
     <thead><tr><th style="width:60px">확인</th><th>점검 항목</th></tr></thead><tbody>{chk}</tbody></table></div>
   <div class="card"><h2>참석 작업자 ({sum(1 for w in r.get('workers',[]) if w.get('signed'))}/{len(r.get('workers',[]))} 서명)</h2>
     <table><thead><tr><th>이름</th><th style="width:120px">서명</th></tr></thead><tbody>{wks}</tbody></table></div>
-  <div class="card"><h2>전달사항</h2><div style="white-space:pre-wrap;font-size:14px">{r.get('notes','') or '-'}</div></div>
+  <div class="card"><h2>전달사항</h2><div style="white-space:pre-wrap;font-size:14px">{e(r.get('notes','') or '-')}</div></div>
   <div class="bar">
     <a class="btn" href="/safety/tbm">목록</a>
     <button class="btn" onclick="makeRA(event)">📋 위험성평가서 만들기</button>

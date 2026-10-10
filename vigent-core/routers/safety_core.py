@@ -3,6 +3,7 @@
 홈·리포트·워커·브레인·이벤트·자동처리·음성·데모·설정·테마페이지 등 safety 핵심 라우트.
 ※ `/` 루트는 app.version(FastAPI 인스턴스)을 참조하므로 순환 방지 위해 main.py 에 잔류.
 """
+import html as _html
 import re as _re
 import time as _time
 from pathlib import Path
@@ -205,11 +206,12 @@ def safety_reports(theme: str = DEFAULT_THEME):
     if scribe is None:
         raise HTTPException(status_code=503, detail="Scribe 미로드")
     items = scribe.list_saved()
+    e = _html.escape   # 저장값(요청 본문에서 온 site 등)은 전부 escape — 저장된 XSS 방지(1단계 H-3)
     rows = "".join(
-        f"""<tr><td>{i['generated_at']}</td><td>{i['site']}</td>
+        f"""<tr><td>{e(str(i['generated_at']))}</td><td>{e(str(i['site']))}</td>
         <td style="text-align:center">{i['총항목']}</td>
         <td style="text-align:center;color:#ef4444">{i['상_높음']}</td>
-        <td><a href="/safety/risk-assessment/{i['id']}" target="_blank">열기 ↗</a></td></tr>"""
+        <td><a href="/safety/risk-assessment/{e(str(i['id']))}" target="_blank">열기 ↗</a></td></tr>"""
         for i in items) or '<tr><td colspan="5" style="color:#94a3b8">저장된 평가서가 없습니다. 아래 버튼으로 생성하세요.</td></tr>'
     return f"""<!DOCTYPE html><html lang="ko"><head><meta charset="UTF-8">
 <title>VIGENT 위험성평가서 목록</title><style>
@@ -301,11 +303,12 @@ def safety_auto_audit():
     """감사추적 — 누가·언제·무엇을 승인했는지(사람 최종판단 입증용)."""
     items = audit_store.list_recent()
     act_ko = {"risk_assessment": "위험성평가 승인·생성", "acknowledge": "조치 확인"}
+    e = _html.escape   # 저장값(요청 본문에서 온 approver·rule·site 등)은 전부 escape — 저장된 XSS 방지(1단계 H-3)
     rows = "".join(
-        f"""<tr><td>{i.get('at','')[:19].replace('T',' ')}</td><td>{i.get('approver','')}</td>
-        <td>{i.get('rule','')}</td><td>{act_ko.get(i.get('action',''), i.get('action',''))}</td>
-        <td>{i.get('site','') or '-'}</td>
-        <td>{('<a href="/safety/risk-assessment/'+i['ra_aid']+'" target="_blank">평가서 ↗</a>') if i.get('ra_aid') else '-'}</td></tr>"""
+        f"""<tr><td>{e(i.get('at','')[:19].replace('T',' '))}</td><td>{e(i.get('approver',''))}</td>
+        <td>{e(i.get('rule',''))}</td><td>{act_ko.get(i.get('action',''), e(i.get('action','')))}</td>
+        <td>{e(i.get('site','') or '-')}</td>
+        <td>{('<a href="/safety/risk-assessment/'+e(i['ra_aid'])+'" target="_blank">평가서 ↗</a>') if i.get('ra_aid') else '-'}</td></tr>"""
         for i in items) or '<tr><td colspan="6" style="color:#64748b">아직 승인 이력이 없습니다.</td></tr>'
     return f"""<!DOCTYPE html><html lang="ko"><head><meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
