@@ -26,8 +26,15 @@ import tuning
 
 _LOG = logging.getLogger("vigent.heartbeat")
 _STATE: dict[str, Any] = {"last_sent_date": None, "last_result": None, "enabled": None,
-                          "last_sent_ts": None, "last_ok": None}
+                          "last_sent_ts": None, "last_ok": None, "last_attempt_ts": None}
 _CHECK_INTERVAL_SEC = 30.0        # 분 단위 시각을 놓치지 않을 만큼만 자주 본다
+
+
+def _retry_sec() -> float:
+    """[2단계 A-1] 실패 시 재시도 간격(기본 600초). 예전엔 성공·실패 무관하게 날짜 도장을
+    찍어 그날 재시도가 없었다 — 이제 도장은 **성공한 날만** 찍고, 실패는 이 간격으로
+    재시도한다(30초 폭주 방지와 그날 포기 사이의 절충)."""
+    return max(60.0, float(tuning.val("notify", "heartbeat_retry_s", 600)))
 
 
 def configured_at() -> str | None:
@@ -84,8 +91,12 @@ def _send_all_channels(text: str) -> dict[str, Any]:
     ★이메일 실패도 note_config_error 경로를 탄다(_send_email 안에서 처리).
     반환: {"sent": 하나라도 성공, "channels": {...}} — 성공 판정은 경보와 같은 규칙.
     """
-    from app_state import STATE
-    agent = ((STATE.get("bundle") or {}).get("agents") or {}).get("Dispatcher")
+    # [2단계 A-1] STATE 는 **테마명으로 키**된다(app_state.load_theme: STATE[theme]=bundle).
+    #   예전 코드는 존재하지 않는 "bundle" 키를 읽어 agent 가 항상 None → heartbeat 가
+    #   한 번도 발송된 적이 없었다(테스트도 같은 오가정을 공유해 못 잡음). health_watch 와
+    #   동일하게 기본 테마로 찾는다.
+    from app_state import DEFAULT_THEME, STATE
+    agent = ((STATE.get(DEFAULT_THEME) or {}).get("agents") or {}).get("Dispatcher")
     if agent is None:
         return {"sent": False, "reason": "에이전트 없음"}
     out: dict[str, Any] = {}
@@ -123,6 +134,10 @@ def maybe_send(now: _dt.datetime | None = None, sender: Any = None) -> dict[str,
     hh, mm = (int(x) for x in at.split(":"))
     if (now.hour, now.minute) < (hh, mm):
         return {"sent": False, "reason": f"아직 {at} 전"}
+    # [2단계 A-1] 직전 시도가 실패였으면 재시도 간격만큼 기다렸다 다시 시도(폭주 방지)
+    la = _STATE.get("last_attempt_ts")
+    if la is not None and (now.timestamp() - float(la)) < _retry_sec():
+        return {"sent": False, "reason": f"실패 재시도 대기({int(_retry_sec())}초 간격)"}
     text = compose_message()
     try:
         if sender is None:
@@ -131,7 +146,9 @@ def maybe_send(now: _dt.datetime | None = None, sender: Any = None) -> dict[str,
             res = sender(text)
     except Exception as ex:  # noqa: BLE001  통보 실패가 서버를 죽이면 안 된다
         res = {"sent": False, "reason": type(ex).__name__}
-    _STATE["last_sent_date"] = today          # ★성공·실패와 무관하게 하루 1회만 시도한다
+    _STATE["last_attempt_ts"] = now.timestamp()
+    if res.get("sent"):
+        _STATE["last_sent_date"] = today      # ★[A-1] 도장은 **성공한 날만** — 실패는 그날 안에 재시도된다
     _STATE["last_result"] = res
     # ★[F-35] 전송 시각·성공 여부를 남긴다 — /health 가 "heartbeat 도 실패했다" 를 말할 수 있게.
     #   heartbeat 가 조용히 실패하면 '침묵이 신호' 라는 설계 자체가 무너진다.
@@ -172,4 +189,4 @@ def status() -> dict[str, Any]:
 
 def reset_for_test() -> None:
     _STATE.update(last_sent_date=None, last_result=None, enabled=None,
-                  last_sent_ts=None, last_ok=None)
+                  last_sent_ts=None, last_ok=None, last_attempt_ts=None)
