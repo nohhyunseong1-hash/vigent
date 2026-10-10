@@ -74,6 +74,13 @@ def write_notify(data: dict) -> dict:
     cur = _yaml_load(_NOTIFY)
     for k in ("telegram_chat", "webhook_url", "smtp_host", "smtp_port", "smtp_user", "email_to"):
         cur[k] = str(data.get(k, "")).strip()
+    # [1단계 H-4] 저장 시점에도 웹훅 목적지 화이트리스트 검증 — 미허용 호스트는 저장 자체를 거부해
+    #   설정 화면에서 바로 오류로 보이게 한다(전송 경로의 차단과 이중 방어).
+    if cur.get("webhook_url"):
+        from web_util import webhook_allowed  # 지연 import(순환·기동비용 회피)
+        if not webhook_allowed(cur["webhook_url"]):
+            return {"ok": False,
+                    "error": "webhook_url 목적지 미허용 — config/security.json allowed_webhook_hosts 에 호스트를 먼저 등록하세요"}
     for k in _SECRET:                       # 비밀은 새 값 있을 때만 갱신(빈 값=보존)
         v = str(data.get(k, "")).strip()
         if v:
@@ -202,7 +209,8 @@ _PAGE = r"""<!DOCTYPE html><html lang="ko"><head><meta charset="UTF-8">
   async function saveNotify(){
     const b={};['telegram_chat','telegram_token','email_to','smtp_host','smtp_user','smtp_pass','webhook_url'].forEach(k=>b[k]=$(k).value);
     b.smtp_port=587;
-    await fetch('/notify/config',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(b)});
+    const r=await fetch('/notify/config',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(b)});
+    if(!r.ok){const j=await r.json().catch(()=>({}));toast('저장 거부: '+(j.detail||r.status));return;}
     toast('알림 설정 저장됨');$('telegram_token').value='';$('smtp_pass').value='';loadNotify();
   }
   async function testAlert(){

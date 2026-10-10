@@ -757,7 +757,10 @@ def notify_config_get():
 @router.post("/notify/config")
 def notify_config_post(payload: dict = Body(...)):
     import setup_console
-    return setup_console.write_notify(payload)
+    out = setup_console.write_notify(payload)
+    if not out.get("ok"):   # [1단계 H-4] 웹훅 목적지 미허용 등 저장 거부 → 400(화면이 오류로 표시)
+        raise HTTPException(status_code=400, detail=out.get("error") or "알림 설정 저장 거부")
+    return out
 
 @router.post("/alerts/test")
 def alerts_test(payload: dict = Body(default={}), theme: str = DEFAULT_THEME):

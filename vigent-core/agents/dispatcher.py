@@ -364,6 +364,14 @@ class DispatcherAgent(BaseAgent):
         c = notify_cfg()
         if not c["webhook_url"]:
             return {"channel": "webhook", "sent": False, "fallback": True, "reason": "미설정"}
+        # [1단계 H-4] 목적지 화이트리스트(config/security.json allowed_webhook_hosts) — 장치(web_util.webhook_allowed)는
+        #   있었는데 정작 전송 경로가 안 불렀다(/notify/config 로 임의 URL 저장 → 서버가 내부망/외부로 대신 POST = SSRF,
+        #   이후 모든 실경보가 그 주소로 유출). routers/dispatch.py 의 403 게이트와 같은 기준을 전송 직전에 적용(fail-closed).
+        from web_util import webhook_allowed  # 지연 import — agents 로딩 시 web_util(app_state) 순환·기동비용 회피
+        if not webhook_allowed(c["webhook_url"]):
+            note_config_error("webhook", None)
+            return {"channel": "webhook", "sent": False, "fallback": True, "config_error": True,
+                    "reason": "웹훅 목적지 미허용 — config/security.json allowed_webhook_hosts 에 호스트 등록 필요"}
         if requests is None:
             return {"channel": "webhook", "sent": False, "fallback": True, "reason": "requests 미설치"}
         try:
