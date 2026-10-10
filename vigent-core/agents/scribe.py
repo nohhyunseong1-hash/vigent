@@ -803,11 +803,18 @@ class ScribeAgent(BaseAgent):
 
     @staticmethod
     def load_html(aid: str) -> str | None:
-        """저장된 평가서 HTML 을 그대로 반환(다시열기). 없으면 None."""
-        # 경로 조작 방지: 파일명만 허용
-        if "/" in aid or ".." in aid:
+        """저장된 평가서 HTML 을 그대로 반환(다시열기). 없으면 None.
+
+        [1단계 L-2] 경로 검증을 금지목록('/'·'..')에서 **격리 확인**(_safe_evidence_path 와 같은
+        resolve + is_relative_to)으로 교체 — 예전 방식은 Windows 역슬래시·드라이브 경로(C:\\...)를
+        못 막아, 저장 폴더 밖 임의 .html 을 읽을 수 있었다(pathlib 이 드라이브 절대경로를 만나면
+        앞부분을 통째로 버린다)."""
+        try:
+            p = (_SAVE_DIR / f"{aid}.html").resolve()
+            if not p.is_relative_to(_SAVE_DIR.resolve()):
+                return None
+        except (OSError, ValueError):   # NUL 문자·해석 불가 경로 등 — 조용히 없음 처리
             return None
-        p = _SAVE_DIR / f"{aid}.html"
         return p.read_text(encoding="utf-8") if p.exists() else None
 
     def run(self, events: list[dict[str, Any]] | None = None, **kw) -> dict[str, Any]:
