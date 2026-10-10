@@ -86,18 +86,22 @@ def ws_token_ok(ws: WebSocket) -> bool:
     [H-5] 토큰 이전에 출처부터 — Host·Origin 이 허용목록 밖이면 토큰이 맞아도 거부한다
     (교차 사이트 페이지가 관리자의 세션 쿠키에 편승하는 것을 차단).
     VIGENT_API_TOKEN 미설정 시 출처 검사만 적용(로컬 개발 무인증 유지 — HTTP 쪽과 동일 정책).
-    설정 시 아래 중 하나가 유효해야 True: 쿼리 `?token=<토큰>` · `Authorization: Bearer <토큰>`
-    헤더(상수시간 비교) · 로그인으로 발급된 세션 쿠키.
+    설정 시 아래 중 하나가 유효해야 True: `Authorization: Bearer <토큰>` 헤더(상수시간 비교) ·
+    로그인으로 발급된 세션 쿠키. (쿼리 `?token=` 은 [L-3] 폐지 — 로그·히스토리에 토큰이 남음.)
     """
     if not _handshake_source_ok(ws):
         return False
     token = os.environ.get("VIGENT_API_TOKEN", "").strip()
     if not token:
         return True
-    q = ws.query_params.get("token", "")
-    if q and hmac.compare_digest(q, token):
-        return True
+    # [1단계 L-3] 쿼리 `?token=` 인증 폐지 — URL 은 uvicorn access 로그·프록시 로그·브라우저
+    #   히스토리에 남아 토큰이 평문으로 퍼진다. 저장소 전수 확인(2026-10-10): 이 방식의 실사용
+    #   0건(브라우저는 세션 쿠키, 도구는 Bearer 헤더가 이미 표준 경로). 비ASCII 헤더의
+    #   compare_digest TypeError(500)는 인증 실패로 처리(fail-closed).
     auth = ws.headers.get("authorization", "")
-    if hmac.compare_digest(auth, f"Bearer {token}"):
-        return True
+    try:
+        if hmac.compare_digest(auth, f"Bearer {token}"):
+            return True
+    except TypeError:
+        pass
     return auth_session.validate_session(ws.cookies.get(auth_session.SESSION_COOKIE))

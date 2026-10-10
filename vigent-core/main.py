@@ -283,7 +283,11 @@ async def _auth_guard(request, call_next):
         path = request.url.path
         if path not in _AUTH_EXEMPT:
             # 상수시간 비교(P0-3/P1-8): 타이밍 사이드채널로 토큰 추측 방지. compare_digest 는 길이 불일치도 안전.
-            ok = hmac.compare_digest(request.headers.get("Authorization", ""), f"Bearer {_API_TOKEN}")
+            # [1단계 L-3] 비ASCII 헤더(latin-1 디코드로 127 초과 바이트 가능)는 TypeError → 500 이었다 — 깔끔한 401 로.
+            try:
+                ok = hmac.compare_digest(request.headers.get("Authorization", ""), f"Bearer {_API_TOKEN}")
+            except TypeError:
+                ok = False
             if not ok:
                 # [S3-후속1] 브라우저는 Authorization 헤더를 실을 방법이 없다 — 로그인으로
                 # 발급된 세션 쿠키를 두 번째 인증 수단으로 인정한다(API/스크립트 클라이언트는

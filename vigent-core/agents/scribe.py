@@ -461,7 +461,9 @@ class ScribeAgent(BaseAgent):
                 _uri = img.get("uri") if isinstance(img, dict) else img
                 _note = img.get("note") if isinstance(img, dict) else ""
                 note_html = f'<div class="evnote">🧠 VLM 장면분석(초안): {e(_note)}</div>' if _note else ""
-                ev_cards += (f'<div class="evc"><img src="{_uri}" alt="증거">'
+                # [1단계 L-3] 속성 자리 escape 보강 — _uri 는 현재 내부 생성(data: URI)뿐이지만
+                #   속성 컨텍스트에 비 escape 삽입은 남겨 두면 언젠가 터지는 자리다.
+                ev_cards += (f'<div class="evc"><img src="{e(_uri or "")}" alt="증거">'
                              f'<div class="evcap">[{e(r["유해위험요인"])}] · {e(r.get("AI감지근거",""))}</div>'
                              f'{note_html}</div>')
         ev_section = (f'<div class="evsec"><h3>📷 현장 증거 사진 '

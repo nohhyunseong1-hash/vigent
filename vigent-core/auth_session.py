@@ -32,8 +32,13 @@ _locked_until: dict[str, float] = {}      # ip -> 잠금 해제 시각(epoch)
 
 
 def create_session() -> str:
+    # [1단계 L-3] 만료 세션은 로그인 시점에 청소 — 예전엔 validate 로 읽힌 것만 지워서,
+    #   반복 로그인 환경에서 _sessions 가 무한히 자랄 수 있었다(메모리 누수).
+    now = time.time()
+    for k in [k for k, exp in _sessions.items() if now > exp]:
+        _sessions.pop(k, None)
     sid = secrets.token_urlsafe(32)
-    _sessions[sid] = time.time() + SESSION_TTL_S
+    _sessions[sid] = now + SESSION_TTL_S
     return sid
 
 
@@ -80,4 +85,9 @@ def clear_failures(ip: str) -> None:
 
 
 def check_token(token: str, expected: str) -> bool:
-    return hmac.compare_digest(token, expected)
+    # [1단계 L-3] 비ASCII 입력(한글 오타 등)이 오면 compare_digest 가 TypeError 를 던져
+    #   500 이 났다 — 인증 실패(False)로 조용히 처리한다(fail-closed, 우회 아님).
+    try:
+        return hmac.compare_digest(token, expected)
+    except TypeError:
+        return False

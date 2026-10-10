@@ -76,9 +76,10 @@ class TestWsOrigin(unittest.TestCase):
 
     def test_correct_token_same_origin_accepted(self):
         os.environ["VIGENT_API_TOKEN"] = "secret-xyz"
-        with self.client.websocket_connect("/tapo/ws?token=secret-xyz",
-                                           headers={"Origin": "http://localhost:8010"}):
-            pass
+        with self.client.websocket_connect("/tapo/ws",
+                                           headers={"Origin": "http://localhost:8010",
+                                                    "Authorization": "Bearer secret-xyz"}):
+            pass  # (쿼리 ?token= 은 [L-3] 폐지 — Bearer 헤더로 검증)
 
     # ── 예외 구성 ───────────────────────────────────────────────────────────
     def test_explicit_allowlist_env_is_honored(self):

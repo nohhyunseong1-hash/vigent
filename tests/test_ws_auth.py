@@ -53,10 +53,14 @@ class TestWsAuth(unittest.TestCase):
                 pass
         self.assertEqual(cm.exception.code, 1008)
 
-    def test_ws_accepts_correct_token_via_query(self):
+    def test_ws_query_token_no_longer_accepted(self):
+        """[1단계 L-3] 쿼리 `?token=` 인증 폐지 — URL 은 access 로그·히스토리에 남아 토큰이
+        평문으로 퍼진다(실사용 0건 확인). 올바른 토큰이라도 쿼리로는 거부돼야 한다."""
         os.environ["VIGENT_API_TOKEN"] = "secret-xyz"
-        with self.client.websocket_connect("/tapo/ws?token=secret-xyz"):
-            pass  # 예외 없이 진입 = accept() 도달(인증 통과)
+        with self.assertRaises(WebSocketDisconnect) as cm:
+            with self.client.websocket_connect("/tapo/ws?token=secret-xyz"):
+                pass
+        self.assertEqual(cm.exception.code, 1008)
 
     def test_ws_accepts_correct_token_via_header(self):
         os.environ["VIGENT_API_TOKEN"] = "secret-xyz"
