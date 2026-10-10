@@ -25,6 +25,9 @@ runs/*          # ★'runs/' 가 아니라 'runs/*' 다 — 디렉터리 자체�
 # ── 파이썬 캐시·가상환경 ──
 __pycache__/
 *.py[cod]
+# [2단계 삭제①, 2026-10-10] 도구 캐시 — 빠져 있어 git status 를 더럽히고 301MB 가 쌓여 있었다
+.mypy_cache/
+.ruff_cache/
 .venv/
 venv/
 env/
