@@ -149,8 +149,14 @@ async def login_submit(request: Request):
     auth_session.clear_failures(ip)
     sid = auth_session.create_session()
     resp = RedirectResponse(next_path, status_code=303)
+    # [1단계 M-6] HTTPS 로 로그인했으면 Secure 쿠키 — 이후 평문 HTTP 로는 세션 쿠키가 실리지 않아
+    #   LAN 도청으로 세션을 못 줍는다. 감지는 ① uvicorn 직접 TLS(scheme=https) ② 역프록시
+    #   (Caddy 자동 / nginx 는 docs/TLS_DEPLOYMENT.md 예시가 X-Forwarded-Proto 전달).
+    #   HTTP 배포(현행 LAN 파일럿)는 플래그 없이 기존 그대로 — 무조건 켜면 HTTP 로그인이 깨진다.
+    https = (request.url.scheme == "https"
+             or request.headers.get("x-forwarded-proto", "").split(",")[0].strip().lower() == "https")
     resp.set_cookie(auth_session.SESSION_COOKIE, sid, httponly=True, samesite="lax",
-                     max_age=int(auth_session.SESSION_TTL_S))
+                     max_age=int(auth_session.SESSION_TTL_S), secure=https)
     return resp
 
 
