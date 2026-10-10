@@ -344,7 +344,10 @@ def worker_start(payload: dict = Body(...), theme: str = DEFAULT_THEME):
     #   `/cameras` 에는 없는데 `/health.cameras` 에는 보이고, `DELETE /cameras/{id}` 가
     #   404 라 **지울 방법이 재시작뿐**이었다 — 워커를 되살리는 세 번째 입구이자 유령의 원형.
     #   등록부에 넣어 두면 정규 삭제·비활성 경로가 그대로 듣는다(동작은 그대로, 회수만 가능해짐).
-    _reg.upsert(cid, name=name, source=src, enabled=True, fps=fps, zone=payload.get("zone"))
+    try:   # [1단계 M-4·M-5] source 허용목록(camera_registry.validate_source) 위반 → 400
+        _reg.upsert(cid, name=name, source=src, enabled=True, fps=fps, zone=payload.get("zone"))
+    except ValueError as ex:
+        raise HTTPException(status_code=400, detail=str(ex)) from None
     return _w.manager.start(bundle["agents"].get("Guard"), _DETECT_LOCK, cid, src,
                             name=name, fps=fps, zone=payload.get("zone"))
 
