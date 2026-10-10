@@ -415,7 +415,12 @@ class DispatcherAgent(BaseAgent):
             try:
                 import alert_queue
                 if res.get("delivered"):
-                    alert_queue.mark_sent(row_id)
+                    # [2단계 A-2, OPEN_ISSUES #14] 1차 전송 경로도 채널별 성공/실패를 남긴다 —
+                    #   재시도 경로(alert_queue.try_send)는 이미 남기는데 여기만 인자 없이 불러
+                    #   channels_sent 가 NULL → counts()["email_last_success"] 영구 None →
+                    #   '이메일만 죽은' 상태를 /health 가 영원히 못 잡았다(F-35 가 막으려던 고장 모드).
+                    sent_ch, failed_ch = alert_queue._split_channels(res)
+                    alert_queue.mark_sent(row_id, sent_ch, failed_ch)
                 else:
                     alert_queue.mark_failed(row_id, str(res.get("results"))[:300])
             except Exception as ex:  # noqa: BLE001
